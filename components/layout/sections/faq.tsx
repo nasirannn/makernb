@@ -1,0 +1,73 @@
+import {
+  Accordion,
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger,
+} from "@/components/ui/accordion";
+
+interface FAQProps {
+  question: string;
+  answer: string;
+  value: string;
+}
+
+const FAQList: FAQProps[] = [
+  {
+    question: "Is R&B Generator really free to use?",
+    answer: "Yes! R&B Generator offers free daily credits that allow you to create original R&B tracks without any subscription fees. You get fresh credits every day to continue your music creation journey.",
+    value: "item-1",
+  },
+  {
+    question: "What R&B styles can I generate?",
+    answer: "Our AI specializes in authentic R&B styles including New Jack Swing, Hip-Hop Soul, Neo-Soul, Quiet Storm, and Contemporary R&B. Each style captures the unique characteristics, rhythms, and production techniques that define these distinct R&B genres.",
+    value: "item-2",
+  },
+  {
+    question: "Can I use my own lyrics in the songs?",
+    answer: "Absolutely! In Custom Mode, you can input your own lyrics to create personalized R&B tracks that tell your unique story. The AI will compose music that perfectly complements your words.",
+    value: "item-3",
+  },
+  {
+    question: "What audio quality do I get when downloading?",
+    answer: "All generated tracks are studio-quality with rich vocals, smooth harmonies, and that signature R&B sound. You can download high-quality audio files ready for streaming, sharing, or further production.",
+    value: "item-4",
+  },
+  {
+    question: "How long does it take to generate a song?",
+    answer: "Our AI works incredibly fast! Most R&B tracks are generated within seconds to a few minutes, including composition, arrangement, lyrics, and vocals. You'll have your complete song ready to listen and download almost instantly.",
+    value: "item-5",
+  },
+  {
+    question: "Can I use the generated music commercially?",
+    answer: "Yes, you own the rights to the music you create with R&B Generator. You can use your generated tracks for personal projects, commercial releases, or any other purpose without additional licensing fees.",
+    value: "item-6",
+  },
+];
+
+export const FAQSection = () => {
+  return (
+    <section id="faq" className="container md:w-[700px] py-24 sm:py-32">
+      <div className="text-center mb-8">
+        <h2 className="text-lg text-primary text-center mb-2 tracking-wider">
+          FAQS
+        </h2>
+
+        <h2 className="text-3xl md:text-4xl text-center font-bold">
+          Common Questions
+        </h2>
+      </div>
+
+      <Accordion type="single" collapsible className="AccordionRoot">
+        {FAQList.map(({ question, answer, value }) => (
+          <AccordionItem key={value} value={value}>
+            <AccordionTrigger className="text-left">
+              {question}
+            </AccordionTrigger>
+
+            <AccordionContent>{answer}</AccordionContent>
+          </AccordionItem>
+        ))}
+      </Accordion>
+    </section>
+  );
+};

@@ -1,0 +1,49 @@
+{
+  "genres": [
+    { "id": "new-jack-swing", "name": "New Jack Swing", "description": "Fusion of R&B, hip hop, and dance-pop" },
+    { "id": "hip-hop-soul", "name": "Hip-Hop Soul", "description": "R&B with hip-hop influenced beats" },
+    { "id": "quiet-storm", "name": "Quiet Storm", "description": "Smooth, mellow R&B for late-night listening" },
+    { "id": "neo-soul", "name": "Neo-Soul", "description": "Soulful R&B with jazz and funk influences" }
+  ],
+  "vibes": [
+    { "id": "slow-jam", "name": "Slow Jam", "description": "Smooth, romantic slow tempo" },
+    { "id": "upbeat", "name": "Upbeat", "description": "Energetic and danceable" },
+    { "id": "chill", "name": "Chill", "description": "Relaxed and laid-back" },
+    { "id": "raw", "name": "Raw", "description": "Authentic, unpolished sound" },
+    { "id": "polished", "name": "Polished", "description": "Refined professional production quality" },
+    { "id": "groovy", "name": "Groovy", "description": "Funky rhythmic dance vibes" }
+  ],
+  "grooveTypes": [
+    { "id": "swing", "name": "Swing", "description": "Jazzy swing feel with triplet subdivisions" },
+    { "id": "straight", "name": "Straight", "description": "Even 8th note feel, classic R&B" },
+    { "id": "shuffle", "name": "Shuffle", "description": "Bluesy shuffle rhythm" }
+  ],
+  "leadInstruments": [
+    { "id": "saxophone", "name": "Saxophone", "description": "Smooth jazz saxophone lead" },
+    { "id": "rhodes-piano", "name": "Rhodes Piano", "description": "Warm electric piano tones" },
+    { "id": "smooth-electric-guitar", "name": "Smooth Electric Guitar", "description": "Clean, melodic guitar lines" },
+    { "id": "synth-lead", "name": "Synth Lead", "description": "Modern synthesizer melodies" }
+  ],
+  "drumKits": [
+    { "id": "acoustic-kit", "name": "Acoustic Kit", "description": "Classic drum set sound" },
+    { "id": "electronic-kit", "name": "Electronic Kit", "description": "80s/90s drum machine beats" },
+    { "id": "boom-bap-kit", "name": "90s Boom Bap Kit", "description": "Hip-hop influenced drums" },
+    { "id": "lo-fi-kit", "name": "Lo-fi Kit", "description": "Vintage, warm drum sounds" }
+  ],
+  "bassTones": [
+    { "id": "slap", "name": "Slap", "description": "Funk slap bass technique" },
+    { "id": "sub", "name": "Sub", "description": "Deep, rumbling sub bass" },
+    { "id": "synth", "name": "Synth", "description": "Synthesizer bass lines" },
+    { "id": "electric", "name": "Electric", "description": "Classic electric bass guitar" }
+  ],
+  "vocalGenders": [
+    { "id": "male", "name": "♂ Male" },
+    { "id": "female", "name": "♀ Female" }
+  ],
+  "harmonyPalettes": [
+    { "id": "simple", "name": "Simple", "emoji": "🎵", "description": "Basic harmonies and chord progressions" },
+    { "id": "gospel", "name": "Gospel", "emoji": "🙏", "description": "Rich gospel chords and harmonies" },
+    { "id": "jazzy", "name": "Jazzy", "emoji": "🎷", "description": "Complex jazz harmonies and progressions" },
+    { "id": "soulful", "name": "Soulful", "emoji": "💙", "description": "Deep soul-inspired harmonies" }
+  ]
+} 
