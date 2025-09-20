@@ -10,7 +10,7 @@ export const r2Client = new S3Client({
   },
 });
 
-export const BUCKET_NAME = '90s-rnb-gen';
+export const BUCKET_NAME = 'rnb-music-gen';
 const PUBLIC_DOMAIN = process.env.R2_PUBLIC_DOMAIN;
 
 /**
