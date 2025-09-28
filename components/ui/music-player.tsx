@@ -80,7 +80,7 @@ export const MusicPlayer: React.FC<MusicPlayerProps> = ({
     canGoNext = true,
     sideLetter = 'A',
     cassetteDuration,
-    style,
+    tags,
     showLyrics = true
 }) => {
 
@@ -181,10 +181,10 @@ export const MusicPlayer: React.FC<MusicPlayerProps> = ({
                             </div>
 
                             {/* 中间：Style 标签 - 横向滚动显示 */}
-                            {style && (
+                            {tags && (
                                 <div className="flex-1 mx-3 max-w-xs overflow-hidden relative">
                                     <div className="text-sm text-muted-foreground whitespace-nowrap animate-scroll">
-                                        {style} &nbsp;&nbsp;&nbsp;&nbsp; {style}
+                                        {tags} &nbsp;&nbsp;&nbsp;&nbsp; {tags}
                                     </div>
                                 </div>
                             )}

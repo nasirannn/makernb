@@ -120,6 +120,7 @@ export const pool = {
     await client.connect();
     return {
       ...client,
+      query: client.query.bind(client),
       release: () => client.end()
     };
   },

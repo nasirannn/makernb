@@ -192,7 +192,7 @@ const LibraryContent = () => {
             // 直接调用而不作为依赖，避免循环依赖
             handleLibraryTrackSelect(nextTrack.id);
         }
-    }, [selectedLibraryTrack, getAllTracks]);
+    }, [selectedLibraryTrack, getAllTracks]); // eslint-disable-line react-hooks/exhaustive-deps
 
     const handleAudioEnd = React.useCallback(() => {
         setIsPlaying(false);
@@ -782,7 +782,7 @@ const LibraryContent = () => {
                     <AlertDialogHeader>
                         <AlertDialogTitle>Delete Track</AlertDialogTitle>
                         <AlertDialogDescription>
-                            Are you sure you want to delete "{trackToDelete?.title}"? This action cannot be undone.
+                            Are you sure you want to delete &quot;{trackToDelete?.title}&quot;? This action cannot be undone.
                         </AlertDialogDescription>
                     </AlertDialogHeader>
                     <AlertDialogFooter>

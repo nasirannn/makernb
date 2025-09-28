@@ -477,7 +477,7 @@ const StudioContent = () => {
                 }, 1000); // 延迟1秒，确保数据库已更新
             }
         }
-    }, [allGeneratedTracks, currentPlayingTrack]);
+    }, [allGeneratedTracks, currentPlayingTrack, fetchUserTracks, setAllGeneratedTracks]);
 
     // 监听封面图生成完成，替换磁带占位图
     React.useEffect(() => {
@@ -834,7 +834,7 @@ const StudioContent = () => {
                     <AlertDialogHeader>
                         <AlertDialogTitle>Delete Track</AlertDialogTitle>
                         <AlertDialogDescription>
-                            Are you sure you want to delete "{trackToDelete?.title}"? This action cannot be undone.
+                            Are you sure you want to delete &quot;{trackToDelete?.title}&quot;? This action cannot be undone.
                         </AlertDialogDescription>
                     </AlertDialogHeader>
                     <AlertDialogFooter>

@@ -52,7 +52,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       if (cachedAdminStatus === undefined) {
         // 直接检查环境变量，避免依赖外部函数
         const adminId = process.env.NEXT_PUBLIC_ADMIN_ID || process.env.ADMIN_ID;
-        const adminStatus = adminId && user.id === adminId;
+        const adminStatus = Boolean(adminId && user.id === adminId);
         console.log(`Checking admin status for user ${user.id} against ${adminId}: ${adminStatus}`);
 
         // 缓存结果
