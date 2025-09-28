@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getPinnedTracks } from '@/lib/tracks-db';
+import { query } from '@/lib/neon';
 
 // 强制动态渲染
 export const dynamic = 'force-dynamic';
@@ -9,21 +9,45 @@ export async function GET(request: NextRequest) {
     const { searchParams } = new URL(request.url);
     const limit = parseInt(searchParams.get('limit') || '20');
     const offset = parseInt(searchParams.get('offset') || '0');
-
-    console.log('Fetching pinned tracks with limit:', limit, 'offset:', offset);
     
-    const pinnedTracks = await getPinnedTracks();
-    
-    // 应用分页
-    const paginatedTracks = pinnedTracks.slice(offset, offset + limit);
-    const hasMore = offset + limit < pinnedTracks.length;
+    // 直接查询置顶的歌曲
+    const result = await query(`
+      SELECT 
+        mt.id,
+        mt.audio_url,
+        mt.duration,
+        mt.side_letter,
+        mt.created_at,
+        mt.updated_at,
+        mg.id as music_generation_id,
+        mg.title,
+        mg.genre,
+        mg.tags,
+        mg.prompt,
+        mg.created_at as generation_created_at,
+        mg.user_id as track_owner_id,
+        (
+          SELECT ci.r2_url
+          FROM cover_images ci
+          WHERE ci.music_track_id = mt.id
+          ORDER BY ci.created_at ASC
+          LIMIT 1
+        ) as cover_r2_url
+      FROM music_tracks mt
+      JOIN music_generations mg ON mt.music_generation_id = mg.id
+      WHERE mt.is_pinned = TRUE
+        AND mg.is_deleted = FALSE
+      ORDER BY mt.created_at DESC
+      LIMIT $1 OFFSET $2
+    `, [limit, offset]);
 
-    console.log(`Found ${pinnedTracks.length} pinned tracks, returning ${paginatedTracks.length}`);
+    const pinnedTracks = result.rows;
+    const hasMore = pinnedTracks.length === limit;
 
     return NextResponse.json({
       success: true,
       data: {
-        tracks: paginatedTracks,
+        tracks: pinnedTracks,
         count: pinnedTracks.length,
         limit,
         offset,

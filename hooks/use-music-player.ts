@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useRef, useCallback, useEffect } from 'react';
+import { toast } from 'sonner';
 
 interface Track {
     id: string;
@@ -216,7 +217,9 @@ export const useMusicPlayer = ({
         if (!currentTrack?.audioUrl) return;
         
         if (process.env.NODE_ENV === 'development') {
-            alert('下载功能将在实际部署时启用');
+            toast('Download feature disabled in development', {
+                description: 'Download will be available in production environment.'
+            });
             return;
         }
         

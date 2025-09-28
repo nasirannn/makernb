@@ -40,7 +40,7 @@ export async function getMusicTracksByGenerationId(musicGenerationId: string): P
       ml.content as lyrics_content,
       mg.title as music_title,
       mg.genre,
-      mg.style,
+      mg.tags,
       mg.prompt
     FROM music_tracks mt
     LEFT JOIN music_lyrics ml ON mt.music_generation_id = ml.music_generation_id
@@ -80,51 +80,16 @@ export async function updateMusicTrack(trackId: string, updates: Partial<MusicTr
   `, updateValues);
 }
 
-// 切换 track 的置顶状态
+// 切换 track 的置顶状态 (已废弃 - 使用新的 pinned-tracks-db.ts)
+// 保留此函数以保持向后兼容，但建议使用新的 pinned-tracks-db.ts
 export async function toggleTrackPin(trackId: string): Promise<boolean> {
-  try {
-    const result = await query(`
-      UPDATE music_tracks 
-      SET is_pinned = NOT is_pinned, updated_at = NOW()
-      WHERE id = $1
-      RETURNING is_pinned
-    `, [trackId]);
-    
-    return result.rows.length > 0 ? result.rows[0].is_pinned : false;
-  } catch (error) {
-    console.error('Error toggling track pin:', error);
-    throw error;
-  }
+  console.warn('toggleTrackPin is deprecated. Please use pinned-tracks-db.ts instead.');
+  return false;
 }
 
-// 获取所有置顶的 tracks
+// 获取所有置顶的 tracks (已废弃 - 使用新的 pinned-tracks-db.ts)
+// 保留此函数以保持向后兼容，但建议使用新的 pinned-tracks-db.ts
 export async function getPinnedTracks(): Promise<any[]> {
-  try {
-    const result = await query(`
-      SELECT 
-        t.*,
-        mg.title as music_title,
-        mg.genre,
-        mg.style,
-        mg.prompt,
-        mg.created_at as generation_created_at,
-        mg.user_id,
-        (
-          SELECT ci.r2_url
-          FROM cover_images ci
-          WHERE ci.music_track_id = t.id
-          ORDER BY ci.created_at ASC
-          LIMIT 1
-        ) as cover_r2_url
-      FROM music_tracks t
-      LEFT JOIN music_generations mg ON t.music_generation_id = mg.id
-      WHERE t.is_pinned = TRUE AND mg.is_deleted = FALSE
-      ORDER BY t.updated_at DESC
-    `);
-    
-    return result.rows;
-  } catch (error) {
-    console.error('Error getting pinned tracks:', error);
-    throw error;
-  }
+  console.warn('getPinnedTracks is deprecated. Please use pinned-tracks-db.ts instead.');
+  return [];
 }

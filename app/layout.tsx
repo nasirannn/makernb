@@ -11,8 +11,8 @@ import { Toaster } from "@/components/ui/sonner";
 const inter = Inter({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
-  title: "R&B Generator - AI-Powered Music Creation for R&B",
-  description: "Create authentic 90s R&B music with AI. Generate professional-quality tracks in New Jack Swing, Hip-Hop Soul, Quiet Storm, and Neo-Soul genres.",
+  title: "R&B  Music Generator - AI-Powered Music Creation for R&B",
+  description: "Create authentic R&B music with AI. Generate professional-quality tracks in New Jack Swing, Hip-Hop Soul, Quiet Storm, and Neo-Soul genres.",
   icons: {
     icon: [
       { url: '/favicon.ico', sizes: '32x32', type: 'image/x-icon' },
@@ -38,8 +38,9 @@ export default function RootLayout({
 
               {children}
               
-              <Toaster 
-                position="top-center"
+              <Toaster
+                position="top-right"
+                expand={false}
               />
             </ThemeProvider>
           </CreditsProvider>

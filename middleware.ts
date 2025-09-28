@@ -3,6 +3,11 @@ import { NextResponse } from 'next/server'
 import type { NextRequest } from 'next/server'
 
 export async function middleware(req: NextRequest) {
+  // Skip middleware for static files
+  if (req.nextUrl.pathname.match(/\.(svg|png|jpg|jpeg|gif|webp|ico|css|js)$/)) {
+    return NextResponse.next()
+  }
+
   let response = NextResponse.next({
     request: {
       headers: req.headers,
@@ -34,29 +39,21 @@ export async function middleware(req: NextRequest) {
     }
   )
 
-  // Refresh session if needed
-  await supabase.auth.getSession()
+  // Get session and refresh if needed
+  const {
+    data: { session },
+    error
+  } = await supabase.auth.getSession()
 
-  // Protect /studio route
+  // Allow access to /studio route but add auth status to headers
   if (req.nextUrl.pathname.startsWith('/studio')) {
-    // Check for Supabase session cookies
-    const authCookies = req.cookies.getAll().filter(cookie =>
-      cookie.name.includes('sb-') && cookie.name.includes('auth-token')
-    )
-
-    // If no auth cookies, redirect to home
-    if (authCookies.length === 0) {
-      return NextResponse.redirect(new URL('/', req.url))
-    }
-
-    // Try to get session
-    const {
-      data: { session },
-    } = await supabase.auth.getSession()
-
-    // If no session and no valid auth tokens, redirect to home
-    if (!session && !authCookies.some(c => c.value && c.value.length > 10)) {
-      return NextResponse.redirect(new URL('/', req.url))
+    // Add auth status to response headers for the page to handle
+    // Note: We allow access regardless of session status since studio page handles auth internally
+    if (!session) {
+      // Don't log this as it's expected behavior - studio page is accessible without auth
+      response.headers.set('x-auth-required', 'true')
+    } else {
+      response.headers.set('x-auth-required', 'false')
     }
   }
 
@@ -64,5 +61,7 @@ export async function middleware(req: NextRequest) {
 }
 
 export const config = {
-  matcher: ['/studio(.*)']
+  matcher: [
+    '/studio/:path*'
+  ]
 }

@@ -6,7 +6,13 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint"
+    "lint": "next lint",
+    "analyze-db": "npx tsx scripts/analyze-db-files.ts",
+    "test-r2": "npx tsx scripts/test-r2-connection.ts",
+    "test-db": "npx tsx scripts/test-db-connection.ts",
+    "cleanup-r2": "npx tsx scripts/cleanup-r2-storage.ts",
+    "cleanup-r2:delete": "npx tsx scripts/cleanup-r2-storage.ts --delete",
+    "debug-text-callback": "npx tsx scripts/debug-text-callback.ts"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.882.0",
@@ -19,6 +25,7 @@
     "@radix-ui/react-alert-dialog": "^1.1.15",
     "@radix-ui/react-avatar": "^1.0.4",
     "@radix-ui/react-dialog": "^1.1.15",
+    "@radix-ui/react-dropdown-menu": "^2.1.16",
     "@radix-ui/react-label": "^2.1.0",
     "@radix-ui/react-select": "^2.1.1",
     "@radix-ui/react-separator": "^1.0.3",

@@ -13,7 +13,7 @@ interface BlogClientProps {
 export default function BlogClient({ allPosts }: BlogClientProps) {
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900">
+    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-600/80 to-slate-900">
       {/* Main Content */}
       <main className="container mx-auto px-4 pt-32 pb-12">
         {/* Page Header */}
@@ -37,7 +37,7 @@ export default function BlogClient({ allPosts }: BlogClientProps) {
               href={`/blog/${post.slug}`}
               target="_blank"
               rel="noopener noreferrer"
-              className="group bg-white/5 backdrop-blur-sm border border-white/10 rounded-2xl overflow-hidden hover:bg-white/10 transition-all duration-300 hover:shadow-2xl hover:shadow-purple-500/10 block"
+              className="group bg-white/5 backdrop-blur-sm border border-white/10 rounded-2xl overflow-hidden hover:bg-white/10 transition-all duration-300 hover:shadow-2xl hover:shadow-purple-600/10 block"
             >
               {/* Image with Title Overlay */}
               <div className="relative h-48 overflow-hidden">
@@ -49,7 +49,7 @@ export default function BlogClient({ allPosts }: BlogClientProps) {
                 
                 {/* Title Overlay */}
                 <div className="absolute bottom-4 left-4 right-4">
-                  <h3 className="text-lg font-bold text-white group-hover:text-purple-300 transition-colors duration-200 line-clamp-2 drop-shadow-lg">
+                  <h3 className="text-lg font-bold text-white group-hover:text-purple-600 transition-colors duration-200 line-clamp-2 drop-shadow-lg">
                     {post.title}
                   </h3>
                 </div>
@@ -63,7 +63,7 @@ export default function BlogClient({ allPosts }: BlogClientProps) {
 
                 {/* Meta Info */}
                 <div className="flex items-center justify-between text-xs text-white/50 mb-4">
-                  <span className="px-2 py-1 bg-purple-600/20 text-purple-300 text-xs font-medium rounded-full border border-purple-500/30">
+                  <span className="px-2 py-1 bg-purple-600/20 text-purple-600 text-xs font-medium rounded-full border border-purple-600/30">
                     {post.category}
                   </span>
                   <div className="flex items-center gap-2">
@@ -78,7 +78,7 @@ export default function BlogClient({ allPosts }: BlogClientProps) {
                     <span>{post.readTime}</span>
                   </div>
                   
-                  <div className="text-xs text-purple-300 hover:text-purple-200 transition-colors duration-200 flex items-center gap-1">
+                  <div className="text-xs text-purple-600 hover:text-purple-600/80 transition-colors duration-200 flex items-center gap-1">
                     <span>Read More</span>
                     <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />

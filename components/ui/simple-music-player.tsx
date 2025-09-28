@@ -36,6 +36,9 @@ interface SimpleMusicPlayerProps {
   volume: number;
   isMuted: boolean;
 
+  // 外部控制的收起状态
+  isCollapsed?: boolean;
+
   // 控制回调
   onPlayPause: () => void;
   onPrevious: () => void;
@@ -48,7 +51,7 @@ interface SimpleMusicPlayerProps {
 }
 
 const formatTime = (seconds: number): string => {
-  if (!seconds || isNaN(seconds) || !isFinite(seconds)) return '00:00';
+  if (!seconds || isNaN(seconds) || !isFinite(seconds)) return '--:--';
   const mins = Math.floor(seconds / 60);
   const secs = Math.floor(seconds % 60);
   return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
@@ -63,6 +66,7 @@ export const SimpleMusicPlayer: React.FC<SimpleMusicPlayerProps> = ({
   duration,
   volume,
   isMuted,
+  isCollapsed: externalIsCollapsed,
   onPlayPause,
   onPrevious,
   onNext,
@@ -74,7 +78,10 @@ export const SimpleMusicPlayer: React.FC<SimpleMusicPlayerProps> = ({
 }) => {
   const currentTrack = tracks[currentTrackIndex];
   const [showTip, setShowTip] = useState(false);
-  const [isCollapsed, setIsCollapsed] = useState(false);
+  const [internalIsCollapsed, setInternalIsCollapsed] = useState(false);
+
+  // 使用外部传入的isCollapsed，如果没有则使用内部状态
+  const isCollapsed = externalIsCollapsed !== undefined ? externalIsCollapsed : internalIsCollapsed;
 
   // 检查当前歌曲是否有多个tracks
   const hasMultipleTracks = currentTrack?.allTracks && currentTrack.allTracks.length > 1;
@@ -164,12 +171,12 @@ export const SimpleMusicPlayer: React.FC<SimpleMusicPlayerProps> = ({
       <div className="flex items-center space-x-4 max-w-6xl mx-auto">
         
         {/* 左侧：歌曲信息 */}
-        <div className={`flex items-center space-x-3 min-w-0 flex-shrink-0 ${isCollapsed ? 'w-0' : 'w-64'}`}>
+        <div className={`flex items-center space-x-3 min-w-0 flex-shrink-0 ${isCollapsed ? 'w-0' : 'w-52'}`}>
           {currentCoverImage && !isCollapsed && (
             <div className="relative w-12 h-12 flex-shrink-0 group">
               {/* 封面图片容器 */}
-              <div 
-                className={`relative w-12 h-12 rounded overflow-hidden transition-all duration-500 ease-out ${
+              <div
+                className={`relative w-12 h-12 rounded-md overflow-hidden transition-all duration-500 ease-out ${
                   showTip ? 'transform -rotate-12 -translate-y-2' : 'transform rotate-0 translate-y-0'
                 }`}
                 style={{
@@ -181,32 +188,19 @@ export const SimpleMusicPlayer: React.FC<SimpleMusicPlayerProps> = ({
                   alt={currentTrack?.title || 'Track'}
                   width={48}
                   height={48}
-                  className="w-12 h-12 rounded object-cover"
+                  className="w-12 h-12 rounded-md object-cover"
                 />
 
                 {/* Side Change Button - 切换side按钮 */}
                 {hasMultipleTracks && (
                   <div
-                    className="absolute inset-0 flex items-center justify-center bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity duration-300 rounded cursor-pointer"
+                    className="absolute inset-0 flex items-center justify-center bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity duration-300 rounded-md cursor-pointer"
                     onClick={handleSideChange}
                   >
                     <RotateCcw className="w-4 h-4 text-white" />
                   </div>
                 )}
 
-                {/* Playing Wave Effect - 播放时音波效果 (只在没有悬停时显示) */}
-                {isPlaying && !hasMultipleTracks && (
-                  <div className="absolute inset-0 flex items-center justify-center bg-black/20 rounded">
-                    <div className="flex items-end gap-0.5">
-                      <div className="w-0.5 h-2 bg-white animate-pulse" style={{ animationDelay: '0ms' }}></div>
-                      <div className="w-0.5 h-3 bg-white animate-pulse" style={{ animationDelay: '100ms' }}></div>
-                      <div className="w-0.5 h-1.5 bg-white animate-pulse" style={{ animationDelay: '200ms' }}></div>
-                      <div className="w-0.5 h-3.5 bg-white animate-pulse" style={{ animationDelay: '300ms' }}></div>
-                      <div className="w-0.5 h-2.5 bg-white animate-pulse" style={{ animationDelay: '400ms' }}></div>
-                      <div className="w-0.5 h-3 bg-white animate-pulse" style={{ animationDelay: '500ms' }}></div>
-                    </div>
-                  </div>
-                )}
               </div>
 
               {/* 提示文字 */}
@@ -224,11 +218,6 @@ export const SimpleMusicPlayer: React.FC<SimpleMusicPlayerProps> = ({
             <div className={`text-white font-medium truncate ${isCollapsed ? 'text-sm' : 'text-sm'}`}>
               {currentTrack?.title || 'No track selected'}
             </div>
-            {currentArtist && !isCollapsed && (
-              <div className="text-gray-400 text-xs truncate">
-                {currentArtist}
-              </div>
-            )}
           </div>
         </div>
 
@@ -254,12 +243,12 @@ export const SimpleMusicPlayer: React.FC<SimpleMusicPlayerProps> = ({
             {/* 播放按钮 */}
             <button
               onClick={onPlayPause}
-              className="bg-white text-black rounded-full p-1.5 hover:scale-105 transition-transform"
+              className="text-white rounded-full p-2 hover:bg-white/10 transition-all duration-200"
             >
               {isPlaying ? (
                 <Pause className="w-4 h-4" />
               ) : (
-                <Play className="w-4 h-4 ml-0.5" />
+                <Play className="w-4 h-4" />
               )}
             </button>
 
@@ -288,7 +277,7 @@ export const SimpleMusicPlayer: React.FC<SimpleMusicPlayerProps> = ({
                 {isPlaying ? (
                   <Pause className="w-6 h-6" />
                 ) : (
-                  <Play className="w-6 h-6 ml-0.5" />
+                  <Play className="w-6 h-6" />
                 )}
               </button>
 
@@ -325,7 +314,7 @@ export const SimpleMusicPlayer: React.FC<SimpleMusicPlayerProps> = ({
         )}
 
         {/* 右侧：音量控制和收起/展开按钮 */}
-        <div className={`flex items-center justify-end space-x-4 flex-shrink-0 ${isCollapsed ? 'w-12' : 'w-48'}`}>
+        <div className={`flex items-center justify-end space-x-3 flex-shrink-0 ${isCollapsed ? 'w-12' : 'w-36'}`}>
           {!isCollapsed && (
             <>
               <button
@@ -339,7 +328,7 @@ export const SimpleMusicPlayer: React.FC<SimpleMusicPlayerProps> = ({
                 )}
               </button>
 
-              <div className="w-24">
+              <div className="w-20">
                 <Slider
                   value={[isMuted ? 0 : volume * 100]}
                   onValueChange={handleVolumeChange}
@@ -350,19 +339,23 @@ export const SimpleMusicPlayer: React.FC<SimpleMusicPlayerProps> = ({
               </div>
             </>
           )}
-          
-          {/* 收起/展开按钮 */}
-          <button
-            onClick={() => setIsCollapsed(!isCollapsed)}
-            className="text-gray-400 hover:text-white transition-colors"
-            title={isCollapsed ? '展开播放器' : '收起播放器'}
-          >
-            {isCollapsed ? (
-              <ChevronUp className="w-5 h-5" />
-            ) : (
-              <ChevronDown className="w-5 h-5" />
-            )}
-          </button>
+
+
+
+          {/* 收起/展开按钮 - 只在没有外部控制时显示 */}
+          {externalIsCollapsed === undefined && (
+            <button
+              onClick={() => setInternalIsCollapsed(!internalIsCollapsed)}
+              className="text-gray-400 hover:text-white transition-colors"
+              title={isCollapsed ? '展开播放器' : '收起播放器'}
+            >
+              {isCollapsed ? (
+                <ChevronUp className="w-5 h-5" />
+              ) : (
+                <ChevronDown className="w-5 h-5" />
+              )}
+            </button>
+          )}
         </div>
       </div>
     </div>

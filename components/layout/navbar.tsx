@@ -96,12 +96,12 @@ export const Navbar = ({ credits = null }: NavbarProps) => {
       <Link href="/" className="font-bold text-xl flex items-center">
         <Image
           src="/logo.svg"
-          alt="90s R&B Logo"
+          alt="R&B Logo"
           width={44}
           height={44}
           className="mr-3"
         />
-        R&B Generator
+        R&B  Music Generator
       </Link>
       
       {/* <!-- Desktop Navigation --> */}
@@ -146,12 +146,12 @@ export const Navbar = ({ credits = null }: NavbarProps) => {
                 <Link href="/" className="flex items-center" onClick={() => setIsOpen(false)}>
                   <Image
                     src="/logo.svg"
-                    alt="90s R&B Logo"
+                    alt="R&B Logo"
                     width={48}
                     height={48}
                     className="mr-2"
                   />
-                  90s R&B
+                  R&B
                 </Link>
                 <button onClick={() => setIsOpen(false)} className="text-2xl">×</button>
               </div>
@@ -201,13 +201,13 @@ export const Navbar = ({ credits = null }: NavbarProps) => {
             >
             {/* User Avatar */}
             <Avatar 
-              className="cursor-pointer hover:scale-105 transition-transform duration-200 border-2 border-purple-400/30"
+              className="cursor-pointer hover:scale-105 transition-transform duration-200 border-2 border-purple-600/30"
             >
               <AvatarImage
                 src={user.user_metadata?.avatar_url || user.user_metadata?.picture || `https://api.dicebear.com/7.x/initials/svg?seed=${user.email}`}
                 alt="User Avatar"
               />
-              <AvatarFallback className="bg-gradient-to-br from-purple-400 to-purple-600 text-white font-semibold text-sm">
+              <AvatarFallback className="bg-gradient-to-br from-purple-600 to-purple-600 text-white font-semibold text-sm">
                 {user.user_metadata?.full_name?.charAt(0)?.toUpperCase() ||
                  user.user_metadata?.name?.charAt(0)?.toUpperCase() ||
                  user.email?.charAt(0).toUpperCase()}
@@ -220,12 +220,12 @@ export const Navbar = ({ credits = null }: NavbarProps) => {
                 {/* User Info */}
                 <div className="px-4 py-3 border-b border-white/10">
                   <div className="flex items-center gap-3">
-                    <Avatar className="w-8 h-8 border border-purple-400/30">
+                    <Avatar className="w-8 h-8 border border-purple-600/30">
                       <AvatarImage
                         src={user.user_metadata?.avatar_url || user.user_metadata?.picture || `https://api.dicebear.com/7.x/initials/svg?seed=${user.email}`}
                         alt="User Avatar"
                       />
-                      <AvatarFallback className="bg-gradient-to-br from-purple-400 to-purple-600 text-white font-semibold text-xs">
+                      <AvatarFallback className="bg-gradient-to-br from-purple-600 to-purple-600 text-white font-semibold text-xs">
                         {user.user_metadata?.full_name?.charAt(0)?.toUpperCase() ||
                          user.user_metadata?.name?.charAt(0)?.toUpperCase() ||
                          user.email?.charAt(0).toUpperCase()}
@@ -245,7 +245,7 @@ export const Navbar = ({ credits = null }: NavbarProps) => {
                 {/* Menu Items */}
                 <div className="py-1">
                   <Link
-                    href="/studio?tab=library"
+                    href="/library"
                     onClick={() => setIsUserMenuOpen(false)}
                     className="w-full flex items-center gap-3 px-4 py-2 text-sm text-white/80 hover:bg-white/10 hover:text-white transition-colors"
                   >

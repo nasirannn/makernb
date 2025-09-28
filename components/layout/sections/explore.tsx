@@ -4,10 +4,11 @@ import React, { useState, useRef, useEffect } from 'react';
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Play, Pause, Volume2, VolumeX, ArrowRight, Music } from "lucide-react";
+import { Play, Pause, ArrowRight, Music } from "lucide-react";
 import Link from "next/link";
-import Image from "next/image";
+import { SafeImage } from '@/components/ui/safe-image';
 import { SimpleMusicPlayer } from "@/components/ui/simple-music-player";
+import { LoadingDots } from "@/components/ui/loading-dots";
 
 interface Track {
   id: string;
@@ -15,13 +16,14 @@ interface Track {
   duration: number;
   side_letter: string;
   cover_r2_url?: string;
+  artist?: string;
 }
 
 interface MusicGeneration {
   id: string;
   title: string;
   genre: string;
-  style: string;
+  tags: string;
   prompt?: string;
   lyrics?: string;
   createdAt: string;
@@ -59,22 +61,29 @@ export const ExploreSection = () => {
     fetchExploreData();
   }, []);
 
+  // 格式化时长
+  const formatDuration = (seconds: number) => {
+    const minutes = Math.floor(seconds / 60);
+    const remainingSeconds = Math.floor(seconds % 60);
+    return `${minutes.toString().padStart(2, '0')}:${remainingSeconds.toString().padStart(2, '0')}`;
+  };
+
   const fetchExploreData = async () => {
     try {
       setLoading(true);
-      const response = await fetch('/api/pinned-tracks?limit=4&offset=0');
+      const response = await fetch('/api/pinned-tracks?limit=8&offset=0');
       const data = await response.json();
       
       if (data.success) {
         // 将pinned tracks转换为MusicGeneration格式
         const musicGenerations = data.data.tracks.map((track: any) => ({
-          id: track.music_generation_id,
-          title: track.music_title,
+          id: track.id, // 直接使用track.id作为唯一标识
+          title: track.title,
           genre: track.genre,
-          style: track.style,
+          style: track.tags,
           prompt: track.prompt,
           lyrics: null,
-          createdAt: track.generation_created_at,
+          createdAt: track.created_at,
           updatedAt: track.updated_at,
           primaryTrack: {
             id: track.id,
@@ -249,7 +258,7 @@ export const ExploreSection = () => {
           </h2>
 
           <h2 className="text-3xl md:text-4xl text-center font-bold mb-4">
-            Listen to The AI-Generated Contemporary & 90s R&B Songs
+            Listen to The AI-Generated R&B Songs
           </h2>
 
           <h3 className="md:w-1/2 mx-auto text-xl text-center text-muted-foreground mb-8">
@@ -257,103 +266,107 @@ export const ExploreSection = () => {
           </h3>
         </div>
 
-        {/* Music Grid */}
-        {loading ? (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-6 mb-12">
-            {[1, 2, 3, 4].map((i) => (
-              <div
-                key={i}
-                className="bg-black/20 backdrop-blur-sm rounded-xl overflow-hidden border border-white/10"
-              >
-                <div className="relative aspect-square bg-gradient-to-br from-purple-500 to-pink-500 overflow-hidden">
-                  <div className="absolute inset-0 flex items-center justify-center">
-                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-white"></div>
-                  </div>
+        {/* Music List */}
+        <div className="max-w-4xl mx-auto">
+          {loading ? (
+            <div className="space-y-2 mb-12">
+              {[1, 2, 3, 4, 5, 6, 7, 8].map((i) => (
+                <div
+                  key={i}
+                  className="flex items-center gap-4 p-4 rounded-lg hover:bg-white/10 transition-colors duration-200"
+                >
+
+                {/* 封面 */}
+                <div className="w-16 h-16 bg-gradient-to-br from-purple-600 to-purple-600 rounded-md overflow-hidden flex items-center justify-center flex-shrink-0">
+                  <LoadingDots size="sm" color="white" />
                 </div>
-                <div className="p-4 space-y-2">
-                  <div className="h-4 bg-white/20 rounded animate-pulse"></div>
+
+                {/* 歌曲信息 */}
+                <div className="flex-1 min-w-0">
+                  <div className="h-4 bg-white/20 rounded animate-pulse mb-1"></div>
                   <div className="h-3 bg-white/20 rounded animate-pulse w-2/3"></div>
-                  <div className="h-3 bg-white/20 rounded animate-pulse w-1/3"></div>
+                </div>
+
+                {/* 时长 */}
+                <div className="text-white/60">
+                  <div className="h-3 bg-white/20 rounded animate-pulse w-12"></div>
                 </div>
               </div>
             ))}
-          </div>
-        ) : exploreData && exploreData.music.length > 0 ? (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-6 mb-12">
-            {exploreData.music.map((music) => (
-              <div
-                key={music.id}
-                className="bg-black/20 backdrop-blur-sm rounded-xl overflow-hidden hover:bg-black/30 transition-all duration-300 group cursor-pointer border border-white/10"
-              >
-                {/* Cover Image */}
-                <div className="relative aspect-square">
+            </div>
+          ) : exploreData && exploreData.music.length > 0 ? (
+            <div className="space-y-2 mb-12">
+              {exploreData.music.map((music, index) => (
+                <div
+                  key={music.id}
+                  className={`flex items-center gap-4 p-4 rounded-lg transition-colors duration-200 group cursor-pointer ${
+                    currentlyPlaying === music.primaryTrack.id
+                      ? 'bg-primary/20 shadow-sm'
+                      : 'hover:bg-white/10'
+                  }`}
+                  onClick={() => handlePlayPause(music.primaryTrack.id, music.primaryTrack.audio_url, music)}
+                >
+
+                {/* 封面 */}
+                <div className="relative w-16 h-16 rounded-md overflow-hidden flex-shrink-0 group/cover">
                   {music.primaryTrack.cover_r2_url ? (
-                    <Image
+                    <SafeImage
                       src={music.primaryTrack.cover_r2_url}
                       alt={music.title}
-                      fill
-                      className="object-cover"
+                      width={64}
+                      height={64}
+                      className="w-full h-full object-cover"
+                      fallbackContent={<Music className="w-6 h-6 text-primary/60" />}
                     />
                   ) : (
-                    <div className="w-full h-full bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center">
-                      <Music className="w-16 h-16 text-white/50" />
+                    <div className="w-full h-full bg-gradient-to-br from-primary/20 to-primary/40 flex items-center justify-center">
+                      <Music className="w-6 h-6 text-primary/60" />
                     </div>
                   )}
 
-
-                  {/* Playing Wave Effect - 播放时音波效果 */}
-                  {currentlyPlaying === music.primaryTrack.id && isPlaying && (
-                    <div className="absolute inset-0 flex items-center justify-center bg-black/20 group-hover:opacity-0 transition-opacity duration-300">
-                      <div className="flex items-end gap-1">
-                        <div className="w-1 h-4 bg-white animate-pulse" style={{ animationDelay: '0ms' }}></div>
-                        <div className="w-1 h-6 bg-white animate-pulse" style={{ animationDelay: '100ms' }}></div>
-                        <div className="w-1 h-3 bg-white animate-pulse" style={{ animationDelay: '200ms' }}></div>
-                        <div className="w-1 h-8 bg-white animate-pulse" style={{ animationDelay: '300ms' }}></div>
-                        <div className="w-1 h-5 bg-white animate-pulse" style={{ animationDelay: '400ms' }}></div>
-                        <div className="w-1 h-7 bg-white animate-pulse" style={{ animationDelay: '500ms' }}></div>
-                        <div className="w-1 h-2 bg-white animate-pulse" style={{ animationDelay: '600ms' }}></div>
-                        <div className="w-1 h-4 bg-white animate-pulse" style={{ animationDelay: '700ms' }}></div>
-                      </div>
-                    </div>
-                  )}
-
-                  {/* Play Button Overlay */}
-                  <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-center justify-center">
+                  {/* Play Button Overlay - 鼠标悬浮时显示 */}
+                  <div className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover/cover:opacity-100 transition-opacity">
                     <Button
-                      onClick={() => handlePlayPause(music.primaryTrack.id, music.primaryTrack.audio_url, music)}
-                      size="lg"
-                      className="rounded-full bg-white/90 hover:bg-white text-black hover:text-black border-0 shadow-lg"
+                      variant="ghost"
+                      size="sm"
+                      className="h-10 w-10 p-0 bg-white/20 hover:bg-white/30 backdrop-blur-sm"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handlePlayPause(music.primaryTrack.id, music.primaryTrack.audio_url, music);
+                      }}
                     >
                       {currentlyPlaying === music.primaryTrack.id && isPlaying ? (
-                        <Pause className="w-6 h-6" />
+                        <Pause className="h-4 w-4 text-white" />
                       ) : (
-                        <Play className="w-6 h-6 ml-1" />
+                        <Play className="h-4 w-4 text-white" />
                       )}
                     </Button>
                   </div>
+
                 </div>
 
-                {/* Track Info */}
-                <div className="p-4">
-                  <h3 className="text-white font-bold text-base mb-1 truncate">
+                {/* 歌曲信息 */}
+                <div className="flex-1 min-w-0">
+                  <h3 className="text-foreground font-medium text-sm mb-1 truncate group-hover:text-primary transition-colors">
                     {music.title}
                   </h3>
-                  <p className="text-white/70 text-sm mb-2 truncate capitalize whitespace-nowrap overflow-hidden">
-                    {music.style}
+                  <p className="text-muted-foreground text-xs mb-1 truncate capitalize">
+                    {music.tags} • {music.genre}
                   </p>
-                  <div className="flex items-center text-white/50 text-xs">
-                    <span className="capitalize">{music.genre}</span>
+                  <div className="flex items-center text-muted-foreground text-xs">
+                    <span>{formatDuration(music.totalDuration)}</span>
                   </div>
                 </div>
               </div>
             ))}
-          </div>
-        ) : (
-          <div className="text-center py-12">
-            <Music className="w-16 h-16 text-muted-foreground/30 mx-auto mb-4" />
-            <p className="text-muted-foreground text-lg">No music available yet</p>
-          </div>
-        )}
+            </div>
+          ) : (
+            <div className="text-center py-12">
+              <Music className="w-16 h-16 text-muted-foreground/30 mx-auto mb-4" />
+              <p className="text-muted-foreground text-lg">No music available yet</p>
+            </div>
+          )}
+        </div>
 
         {/* Explore More Button */}
         <div className="text-center">
@@ -375,7 +388,7 @@ export const ExploreSection = () => {
               audioUrl: music.primaryTrack.audio_url,
               duration: music.totalDuration,
               coverImage: music.primaryTrack.cover_r2_url,
-              artist: music.genre,
+              artist: music.primaryTrack.artist || 'Unknown Artist',
               allTracks: music.allTracks
             }))}
             currentTrackIndex={currentTrackIndex}

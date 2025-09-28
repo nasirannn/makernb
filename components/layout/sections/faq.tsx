@@ -13,8 +13,8 @@ interface FAQProps {
 
 const FAQList: FAQProps[] = [
   {
-    question: "Is R&B Generator really free to use?",
-    answer: "Yes! R&B Generator offers free daily credits that allow you to create original R&B tracks without any subscription fees. You get fresh credits every day to continue your music creation journey.",
+    question: "Is R&B  Music Generator really free to use?",
+    answer: "Yes! R&B  Music Generator offers free daily credits that allow you to create original R&B tracks without any subscription fees. You get fresh credits every day to continue your music creation journey.",
     value: "item-1",
   },
   {
@@ -39,32 +39,38 @@ const FAQList: FAQProps[] = [
   },
   {
     question: "Can I use the generated music commercially?",
-    answer: "Yes, you own the rights to the music you create with R&B Generator. You can use your generated tracks for personal projects, commercial releases, or any other purpose without additional licensing fees.",
+    answer: "Yes, you own the rights to the music you create with R&B  Music Generator. You can use your generated tracks for personal projects, commercial releases, or any other purpose without additional licensing fees.",
     value: "item-6",
   },
 ];
 
 export const FAQSection = () => {
   return (
-    <section id="faq" className="container md:w-[700px] py-24 sm:py-32">
-      <div className="text-center mb-8">
-        <h2 className="text-lg text-primary text-center mb-2 tracking-wider">
-          FAQS
+    <section id="faq" className="container max-w-4xl py-24 sm:py-32">
+      <div className="text-center mb-16">
+        <h2 className="text-2xl text-primary text-center mb-4 tracking-wider font-semibold">
+          Frequently Asked Questions
         </h2>
 
-        <h2 className="text-3xl md:text-4xl text-center font-bold">
-          Common Questions
+        <h2 className="text-4xl md:text-5xl text-center font-bold mb-6">
+          Everything You Need to Know
         </h2>
+        
+        <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
+          Get answers to common questions about our AI-powered R&B music generation platform
+        </p>
       </div>
 
-      <Accordion type="single" collapsible className="AccordionRoot">
+      <Accordion type="single" collapsible className="space-y-4">
         {FAQList.map(({ question, answer, value }) => (
-          <AccordionItem key={value} value={value}>
-            <AccordionTrigger className="text-left">
+          <AccordionItem key={value} value={value} className="border-b border-border px-6 py-2">
+            <AccordionTrigger className="text-left text-lg font-semibold py-6 hover:no-underline [&[data-state=open]]:text-primary">
               {question}
             </AccordionTrigger>
 
-            <AccordionContent>{answer}</AccordionContent>
+            <AccordionContent className="text-base text-muted-foreground pb-6 leading-relaxed">
+              {answer}
+            </AccordionContent>
           </AccordionItem>
         ))}
       </Accordion>

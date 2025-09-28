@@ -1,7 +1,6 @@
 "use client";
 import React from "react";
 import { Button } from "./button";
-import { AlertTriangle, Info } from "lucide-react";
 
 interface ConfirmDialogProps {
   isOpen: boolean;
@@ -43,23 +42,12 @@ export const ConfirmDialog: React.FC<ConfirmDialogProps> = ({
       onClick={handleBackdropClick}
     >
       {/* Backdrop - 使用登录界面的样式 */}
-      <div className="absolute inset-0 bg-gradient-to-br from-slate-900/90 via-purple-900/80 to-slate-900/90 backdrop-blur-md" />
+      <div className="absolute inset-0 bg-gradient-to-br from-slate-900/90 via-purple-600/80 to-slate-900/90 backdrop-blur-md" />
 
       {/* Dialog - 使用登录界面的样式 */}
       <div className="relative bg-white/10 backdrop-blur-lg border border-white/20 shadow-2xl rounded-2xl p-8 max-w-md w-full mx-4 animate-in zoom-in-95 slide-in-from-bottom-4 duration-300">
-        {/* Icon & Header */}
+        {/* Header */}
         <div className="mb-6 text-center">
-          <div className="mb-4 flex justify-center">
-            {variant === "destructive" ? (
-              <div className="w-12 h-12 rounded-full bg-red-500/20 flex items-center justify-center">
-                <AlertTriangle className="w-6 h-6 text-red-400" />
-              </div>
-            ) : (
-              <div className="w-12 h-12 rounded-full bg-blue-500/20 flex items-center justify-center">
-                <Info className="w-6 h-6 text-blue-400" />
-              </div>
-            )}
-          </div>
           <h3 className="text-xl font-bold text-white">
             {title}
           </h3>
@@ -89,7 +77,7 @@ export const ConfirmDialog: React.FC<ConfirmDialogProps> = ({
             className={`flex-1 max-w-[120px] h-12 px-6 rounded-xl font-medium text-sm transition-all duration-200 ${
               variant === "destructive"
                 ? "bg-gradient-to-r from-red-600 to-red-700 hover:from-red-700 hover:to-red-800 text-white shadow-lg hover:shadow-red-500/25"
-                : "bg-gradient-to-r from-purple-600 to-purple-700 hover:from-purple-700 hover:to-purple-800 text-white shadow-lg hover:shadow-purple-500/25"
+                : "bg-gradient-to-r from-purple-600 to-purple-600 hover:from-purple-700 hover:to-purple-700 text-white shadow-lg hover:shadow-purple-600/25"
             }`}
           >
             {confirmText}

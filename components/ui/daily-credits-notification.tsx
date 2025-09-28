@@ -41,7 +41,7 @@ export default function DailyCreditsNotification({
     <div className={`fixed top-4 right-4 z-50 transition-all duration-300 ${
       isVisible ? 'translate-x-0 opacity-100' : 'translate-x-full opacity-0'
     }`}>
-      <div className="bg-gradient-to-r from-purple-500 to-pink-500 text-white rounded-lg shadow-lg p-4 max-w-sm">
+      <div className="bg-gradient-to-r from-purple-600 to-purple-600 text-white rounded-lg shadow-lg p-4 max-w-sm">
         <div className="flex items-start justify-between">
           <div className="flex items-center space-x-3">
             <div className="flex-shrink-0">

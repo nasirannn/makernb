@@ -152,12 +152,12 @@ export const IntroductionSection = () => {
         </div>
       </div>
 
-      {/* 90s R&B Golden Era Section */}
+      {/* R&B Golden Era Section */}
       <div className="mt-24 grid lg:grid-cols-2 place-items-center lg:gap-24">
         {/* YouTube Video Player */}
         <div className="order-2 lg:order-1 w-full max-w-lg">
           <div className="px-6 py-6">
-            <div className="relative aspect-video bg-gradient-to-br from-primary/20 to-purple-500/20 rounded-lg overflow-hidden">
+            <div className="relative aspect-video bg-gradient-to-br from-purple-600/20 to-purple-600/20 rounded-lg overflow-hidden">
               {currentGenre?.youtubeId ? (
                 <iframe 
                   width="100%" 
@@ -171,7 +171,7 @@ export const IntroductionSection = () => {
                   className="w-full h-full rounded-lg"
                 ></iframe>
               ) : (
-                <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-primary/20 to-purple-500/20 rounded-lg">
+                <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-purple-600/20 to-purple-600/20 rounded-lg">
                   <div className="text-center">
                     <div className="w-20 h-20 bg-white/10 backdrop-blur-sm rounded-full flex items-center justify-center mx-auto mb-4">
                       <span className="text-3xl">🎵</span>

@@ -1,12 +1,12 @@
-# 90s R&B Music Generator
+# R&B Music Generator
 
-A complete AI-powered music generation platform for creating authentic 90s R&B and Contemporary R&B music. Generate professional-quality tracks with custom prompts, multiple genres, and real-time playback.
+A complete AI-powered music generation platform for creating authentic R&B and Contemporary R&B music. Generate professional-quality tracks with custom prompts, multiple genres, and real-time playback.
 
-![90s R&B Generator](./public/only-90s-rnb-background.png)
+![R&B Music Generator](./public/only-90s-rnb-background.png)
 
 ## ✨ Features
 
-- **🎵 AI Music Generation**: Create authentic 90s R&B tracks using advanced AI
+- **🎵 AI Music Generation**: Create authentic R&B tracks using advanced AI
 - **🎭 Multiple Genres**: New Jack Swing, Hip-Hop Soul, Contemporary R&B, Quiet Storm, Neo-Soul
 - **🎨 Custom Prompts**: Add specific details to customize your music generation
 - **🎧 Real-time Playback**: Built-in audio player with waveform visualization
@@ -83,10 +83,10 @@ npm run dev
 ## 🎯 How to Use
 
 1. **Sign Up/Login**: Create an account or sign in
-2. **Select Genre**: Choose from 5 authentic 90s R&B subgenres
+2. **Select Genre**: Choose from 5 authentic R&B subgenres
 3. **Pick Style**: Select the musical style and mood
 4. **Add Prompt**: Customize with specific details (optional)
-5. **Generate**: Click to create your unique 90s R&B track
+5. **Generate**: Click to create your unique R&B track
 6. **Play & Download**: Listen to your creation and save it
 7. **Manage Library**: Organize your tracks and pin favorites
 
@@ -230,6 +230,6 @@ If you have any questions or need help, please:
 
 ---
 
-**Made with ❤️ for 90s R&B music lovers**
+**Made with ❤️ for R&B music lovers**
 
-*Bringing back the golden era of R&B, one AI-generated track at a time.*
+*Creating authentic R&B music, one AI-generated track at a time.*

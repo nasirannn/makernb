@@ -20,7 +20,7 @@ export default function PrivacyPolicy() {
         <section className="mb-8">
           <h2 className="text-2xl font-semibold mb-4">Introduction</h2>
           <p className="mb-4">
-            Welcome to R&B Generator (&quot;we,&quot; &quot;our,&quot; or &quot;us&quot;). We are committed to protecting your privacy and ensuring the security of your personal information. This Privacy Policy explains how we collect, use, disclose, and safeguard your information when you use our AI-powered R&B music generation service.
+            Welcome to R&B  Music Generator (&quot;we,&quot; &quot;our,&quot; or &quot;us&quot;). We are committed to protecting your privacy and ensuring the security of your personal information. This Privacy Policy explains how we collect, use, disclose, and safeguard your information when you use our AI-powered R&B music generation service.
           </p>
         </section>
 
@@ -59,6 +59,41 @@ export default function PrivacyPolicy() {
             <li>Send important service updates and notifications</li>
             <li>Analyze usage patterns to enhance user experience</li>
             <li>Ensure platform security and prevent abuse</li>
+            <li>Display your generated music in our public explore section (with your consent)</li>
+            <li>Showcase community-created content to promote platform engagement</li>
+          </ul>
+        </section>
+
+        <section className="mb-8">
+          <h2 className="text-2xl font-semibold mb-4">User-Generated Content and Public Display</h2>
+          <p className="mb-4">
+            When you create music using our service, you have the option to make your creations public and share them with our community. Here&apos;s how we handle your user-generated content:
+          </p>
+          
+          <h3 className="text-xl font-medium mb-3">Public Display of Your Content</h3>
+          <ul className="list-disc pl-6 mb-4">
+            <li><strong>Music Tracks:</strong> If you choose to make your generated music public, it may be displayed in our explore section for other users to discover and enjoy</li>
+            <li><strong>Author Information:</strong> When you opt to show authorship, your display name and profile picture may be displayed alongside your music</li>
+            <li><strong>Music Metadata:</strong> Information such as genre, style, and creation date may be shown to help other users discover your content</li>
+          </ul>
+
+          <h3 className="text-xl font-medium mb-3">Your Control and Consent</h3>
+          <ul className="list-disc pl-6 mb-4">
+            <li><strong>Opt-in Only:</strong> Your content will only be displayed publicly if you explicitly choose to make it public</li>
+            <li><strong>Revocable Consent:</strong> You can change your privacy settings at any time to make your content private or public</li>
+            <li><strong>Author Attribution:</strong> You can choose whether to display your name and profile picture with your music</li>
+            <li><strong>Content Removal:</strong> You can request removal of your content from public display at any time</li>
+          </ul>
+
+          <h3 className="text-xl font-medium mb-3">Community Benefits</h3>
+          <p className="mb-4">
+            Public display of user-generated content helps build our community by:
+          </p>
+          <ul className="list-disc pl-6 mb-4">
+            <li>Showcasing the creative potential of our AI music generation</li>
+            <li>Allowing users to discover and enjoy music created by others</li>
+            <li>Building a vibrant community of music creators and enthusiasts</li>
+            <li>Providing inspiration and examples for new users</li>
           </ul>
         </section>
 
@@ -97,6 +132,10 @@ export default function PrivacyPolicy() {
             <li>Request deletion of your account and associated data</li>
             <li>Export your generated music and data</li>
             <li>Opt out of non-essential communications</li>
+            <li>Control the public visibility of your generated music</li>
+            <li>Choose whether to display your name and profile with your content</li>
+            <li>Request removal of your content from public display at any time</li>
+            <li>Change your privacy preferences for future content</li>
           </ul>
         </section>
 
@@ -128,7 +167,7 @@ export default function PrivacyPolicy() {
           </p>
           <div className="bg-muted p-4 rounded-lg">
             <p><strong>Email:</strong> privacy@rbgenerator.com</p>
-            <p><strong>Address:</strong> R&B Generator Privacy Team</p>
+            <p><strong>Address:</strong> R&B  Music Generator Privacy Team</p>
           </div>
         </section>
       </div>

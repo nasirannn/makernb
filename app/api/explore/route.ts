@@ -9,6 +9,7 @@ export async function GET(request: NextRequest) {
     const { searchParams } = new URL(request.url);
     const limit = parseInt(searchParams.get('limit') || '20');
     const offset = parseInt(searchParams.get('offset') || '0');
+    const genre = searchParams.get('genre');
 
     // 获取公开的音乐生成记录及其tracks
     const result = await query(`
@@ -16,7 +17,7 @@ export async function GET(request: NextRequest) {
         mg.id,
         mg.title,
         mg.genre,
-        mg.style,
+        mg.tags,
         mg.prompt,
         mg.created_at,
         mg.updated_at,
@@ -79,11 +80,16 @@ export async function GET(request: NextRequest) {
         ) as track_count
       FROM music_generations mg
       LEFT JOIN music_lyrics ml ON mg.id = ml.music_generation_id
-      WHERE mg.is_private = false 
+      LEFT JOIN music_tracks mt ON mg.id = mt.music_generation_id
+      WHERE mt.is_published = TRUE  -- 只显示已发布的歌曲
         AND mg.status = 'complete'
-      ORDER BY mg.created_at DESC
+        AND (mt.is_deleted IS NULL OR mt.is_deleted = FALSE)
+        ${genre && genre !== 'all' ? `AND mg.genre = $3` : ''}
+      ORDER BY 
+        CASE WHEN mt.is_pinned = TRUE THEN 0 ELSE 1 END,
+        mt.created_at DESC
       LIMIT $1 OFFSET $2
-    `, [limit, offset]);
+    `, genre && genre !== 'all' ? [limit, offset, genre] : [limit, offset]);
 
     // 过滤掉没有tracks的记录
     const musicGenerations = result.rows
@@ -92,7 +98,7 @@ export async function GET(request: NextRequest) {
         id: row.id,
         title: row.title,
         genre: row.genre,
-        style: row.style,
+        tags: row.tags,
         prompt: row.prompt,
         lyrics: row.lyrics_content,
         createdAt: row.created_at,

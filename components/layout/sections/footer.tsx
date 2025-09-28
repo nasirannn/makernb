@@ -1,8 +1,20 @@
+"use client";
+
 import { Separator } from "@/components/ui/separator";
 import Link from "next/link";
 import Image from "next/image";
+import { toast } from "sonner";
 
 export const FooterSection = () => {
+  const handleGithubClick = (e: React.MouseEvent) => {
+    e.preventDefault();
+    toast("🎁 Daily Login Bonus!", {
+      description: "You have received 15 credits as a daily login bonus. They are only valid today (UTC) - just use them up.",
+      duration: 5000,
+      className: 'bg-purple-600 text-white border-none shadow-2xl',
+    });
+  };
+
   return (
     <footer id="footer" className="container py-24 sm:py-32">
       <div className="p-10 bg-card rounded-2xl">
@@ -11,15 +23,15 @@ export const FooterSection = () => {
             <Link href="/" className="flex font-bold items-center mb-4">
               <Image
                 src="/logo.svg"
-                alt="90s R&B Logo"
+                alt="R&B Logo"
                 width={44}
                 height={44}
                 className="mr-3"
               />
-              <h3 className="text-2xl">R&B Generator</h3>
+              <h3 className="text-2xl">R&B  Music Generator</h3>
             </Link>
             <p className="text-sm text-muted-foreground leading-relaxed max-w-md">
-              Professional AI-powered R&B music generator specializing in authentic 90s soul, contemporary vibes, and smooth ballads. Create original R&B tracks with the signature sound and emotion that defines the genre.
+              Professional AI-powered R&B music generator specializing in authentic soul, contemporary vibes, and smooth ballads. Create original R&B tracks with the signature sound and emotion that defines the genre.
             </p>
           </div>
 
@@ -29,7 +41,11 @@ export const FooterSection = () => {
           <div className="flex flex-col gap-2">
             <h3 className="font-bold text-lg">Contact</h3>
             <div>
-              <Link href="#" className="opacity-60 hover:opacity-100">
+              <Link 
+                href="#" 
+                className="opacity-60 hover:opacity-100 cursor-pointer"
+                onClick={handleGithubClick}
+              >
                 Github
               </Link>
             </div>
@@ -72,7 +88,7 @@ export const FooterSection = () => {
         <Separator className="my-6" />
         <section className="flex flex-col sm:flex-row justify-between items-center gap-4">
           <h3 className="">
-            &copy; 2025 R&B Generator. All rights reserved.
+            &copy; 2025 R&B  Music Generator. All rights reserved.
           </h3>
           <div className="flex gap-6">
             <Link href="/privacy" className="text-sm opacity-60 hover:opacity-100 transition-opacity">

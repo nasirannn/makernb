@@ -47,7 +47,7 @@ interface MusicPlayerProps {
     cassetteDuration?: string;
 
     // 标签信息
-    style?: string;
+    tags?: string;
     
     // 歌词显示状态
     showLyrics?: boolean;
@@ -83,25 +83,7 @@ export const MusicPlayer: React.FC<MusicPlayerProps> = ({
     style,
     showLyrics = true
 }) => {
-    const [showVolumeSlider, setShowVolumeSlider] = useState(false);
-    const volumeRef = useRef<HTMLDivElement>(null);
 
-    // 点击外部关闭音量条
-    useEffect(() => {
-        const handleClickOutside = (event: MouseEvent) => {
-            if (volumeRef.current && !volumeRef.current.contains(event.target as Node)) {
-                setShowVolumeSlider(false);
-            }
-        };
-
-        if (showVolumeSlider) {
-            document.addEventListener('mousedown', handleClickOutside);
-        }
-
-        return () => {
-            document.removeEventListener('mousedown', handleClickOutside);
-        };
-    }, [showVolumeSlider]);
 
     const handleProgressClick = (e: React.MouseEvent<HTMLDivElement>) => {
         if (duration > 0) {
@@ -118,7 +100,7 @@ export const MusicPlayer: React.FC<MusicPlayerProps> = ({
     };
 
     return (
-        <div className="w-full px-2 pt-1 pb-2 relative z-30">
+        <div className="w-full px-2 pt-1 pb-2 relative z-30 bg-transparent">
             <div className="max-w-7xl mx-auto p-4 bg-gradient-to-r from-card/80 via-card/60 to-card/80 rounded-3xl backdrop-blur-md border border-border/30 shadow-2xl hover:shadow-3xl transition-all duration-500">
                 {/* 播放器布局 - 磁带和控制区域 */}
                 <div className="flex gap-6">
@@ -148,10 +130,10 @@ export const MusicPlayer: React.FC<MusicPlayerProps> = ({
                     </div>
 
                     {/* 右侧：控制区域 - 垂直居中，上下两行布局，间距紧凑 */}
-                    <div className="flex-1 flex items-center h-32">
-                        <div className="w-full space-y-8">
+                    <div className="flex-1 flex items-center h-32 bg-transparent">
+                        <div className="w-full space-y-8 bg-transparent">
                             {/* 第一行：播放控制按钮、音量控制、下载按钮 */}
-                            <div className="flex items-center justify-between">
+                            <div className="flex items-center justify-between bg-transparent">
                             {/* 左侧：播放控制按钮组 */}
                             <div className="flex items-center gap-3">
                                 {/* 上一首 */}
@@ -210,15 +192,11 @@ export const MusicPlayer: React.FC<MusicPlayerProps> = ({
                             {/* 右侧：音量控制和歌词按钮 */}
                             <div className="flex items-center gap-4">
                                 {/* 音量控制 */}
-                                <div className="relative" ref={volumeRef}>
+                                <div className="flex items-center gap-3">
                                     <button
-                                        onClick={() => setShowVolumeSlider(!showVolumeSlider)}
-                                        className={`w-10 h-10 rounded-xl transition-all duration-300 flex items-center justify-center hover:scale-105 active:scale-95 ${
-                                            showVolumeSlider 
-                                                ? 'bg-primary/20 text-primary shadow-sm' 
-                                                : 'text-muted-foreground hover:text-foreground hover:bg-muted/50'
-                                        }`}
-                                        title="Volume Control"
+                                        onClick={onMuteToggle}
+                                        className="w-10 h-10 rounded-xl transition-all duration-300 flex items-center justify-center hover:scale-105 active:scale-95 text-muted-foreground hover:text-foreground hover:bg-muted/50"
+                                        title={isMuted ? "Unmute" : "Mute"}
                                     >
                                         {isMuted || volume === 0 ? (
                                             <VolumeX className="w-4 h-4" />
@@ -228,36 +206,15 @@ export const MusicPlayer: React.FC<MusicPlayerProps> = ({
                                             <Volume2 className="w-4 h-4" />
                                         )}
                                     </button>
-                                    
-                                    {/* 音量条 - 点击按钮后显示 */}
-                                    {showVolumeSlider && (
-                                        <div className="absolute right-0 top-12 bg-card/95 backdrop-blur-md border border-border/30 rounded-xl p-3 shadow-xl z-50">
-                                            <div className="flex items-center gap-3">
-                                                <button
-                                                    onClick={onMuteToggle}
-                                                    className="w-8 h-8 rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-all duration-200 flex items-center justify-center"
-                                                    title={isMuted ? "Unmute" : "Mute"}
-                                                >
-                                                    {isMuted || volume === 0 ? (
-                                                        <VolumeX className="w-3 h-3" />
-                                                    ) : volume < 0.5 ? (
-                                                        <Volume1 className="w-3 h-3" />
-                                                    ) : (
-                                                        <Volume2 className="w-3 h-3" />
-                                                    )}
-                                                </button>
-                                                <div className="w-24">
-                                                    <Slider
-                                                        value={[isMuted ? 0 : volume * 100]}
-                                                        onValueChange={handleVolumeChange}
-                                                        max={100}
-                                                        step={1}
-                                                        className="w-full"
-                                                    />
-                                                </div>
-                                            </div>
-                                        </div>
-                                    )}
+                                    <div className="w-24">
+                                        <Slider
+                                            value={[isMuted ? 0 : volume * 100]}
+                                            onValueChange={handleVolumeChange}
+                                            max={100}
+                                            step={1}
+                                            className="w-full"
+                                        />
+                                    </div>
                                 </div>
 
                                 {/* 歌词按钮 */}
@@ -277,7 +234,7 @@ export const MusicPlayer: React.FC<MusicPlayerProps> = ({
                         </div>
 
                             {/* 第二行：进度条 */}
-                            <div className="flex items-center gap-4">
+                            <div className="flex items-center gap-4 bg-transparent">
                             {/* 当前时间 */}
                             <div className="text-sm text-muted-foreground min-w-[3rem] text-right">
                                 {formatTime(currentTime, !!currentTrack)}
@@ -290,13 +247,11 @@ export const MusicPlayer: React.FC<MusicPlayerProps> = ({
                                     onClick={handleProgressClick}
                                 >
                                     <div
-                                        className="h-full bg-gradient-to-r from-primary via-primary/90 to-primary/80 rounded-full transition-all duration-200 shadow-sm group-hover:shadow-lg relative"
+                                        className="h-full bg-gradient-to-r from-primary via-primary/90 to-primary/80 rounded-l-full transition-all duration-200 shadow-sm group-hover:shadow-lg"
                                         style={{
                                             width: duration > 0 ? `${(currentTime / duration) * 100}%` : '0%'
                                         }}
                                     >
-                                        {/* 进度条上的小圆点指示器 */}
-                                        <div className="absolute right-0 top-1/2 transform translate-x-1/2 -translate-y-1/2 w-3 h-3 bg-primary-foreground rounded-full shadow-md border border-primary/30 opacity-0 group-hover:opacity-100 transition-opacity duration-200"></div>
                                     </div>
                                 </div>
                             </div>

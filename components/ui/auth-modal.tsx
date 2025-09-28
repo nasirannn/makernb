@@ -8,6 +8,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { supabase } from '@/lib/supabase';
 import { Loader2, Mail, X } from 'lucide-react';
 import Image from 'next/image';
+import { LoadingDots } from './loading-dots';
 import { useRouter } from 'next/navigation';
 
 interface AuthModalProps {
@@ -57,7 +58,7 @@ export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
       const { error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
         options: {
-          redirectTo: `${window.location.origin}/`
+          redirectTo: window.location.href
         }
       });
       if (error) throw error;
@@ -81,7 +82,7 @@ export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
     <div className="fixed inset-0 z-50 flex items-center justify-center animate-in fade-in duration-300">
       {/* Backdrop */}
       <div 
-        className="fixed inset-0 bg-gradient-to-br from-slate-900/90 via-purple-900/80 to-slate-900/90 backdrop-blur-md animate-in fade-in duration-300" 
+        className="fixed inset-0 bg-gradient-to-br from-slate-900/90 via-primary/80 to-slate-900/90 backdrop-blur-md animate-in fade-in duration-300"
         onClick={handleClose}
       />
       
@@ -101,7 +102,7 @@ export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
             <div className="flex justify-center mb-4">
               <Image
                 src="/logo.svg"
-                alt="90s R&B Logo"
+                alt="R&B Logo"
                 width={48}
                 height={48}
                 className="h-12 w-12"
@@ -109,12 +110,12 @@ export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
             </div>
             
             <CardTitle className="text-2xl font-bold text-white">
-              {isLogin ? 'Welcome Back' : 'Create Account'}
+              {isLogin ? 'Sign In' : 'Create Account'}
             </CardTitle>
             <CardDescription className="text-white/70">
-              {isLogin 
-                ? 'Sign in to start creating amazing 90s R&B music' 
-                : 'Join us to create authentic 90s R&B tracks with AI'
+              {isLogin
+                ? 'Access your account to start creating amazing R&B music'
+                : 'Join us to create authentic R&B tracks with AI'
               }
             </CardDescription>
           </CardHeader>
@@ -145,7 +146,7 @@ export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
                 <span className="w-full border-t border-white/20" />
               </div>
               <div className="relative flex justify-center text-xs uppercase">
-                <span className="bg-gradient-to-br from-slate-900/90 via-purple-900/80 to-slate-900/90 px-3 py-1 text-white/50 rounded-full">Or continue with email</span>
+                <span className="bg-gradient-to-br from-slate-900/90 via-purple-600/80 to-slate-900/90 px-3 py-1 text-white/50 rounded-full">Or continue with email</span>
               </div>
             </div>
 
@@ -160,7 +161,7 @@ export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   required
-                  className="bg-white/10 border-white/20 text-white placeholder:text-white/50 focus:border-purple-500/50"
+                  className="bg-white/10 border-white/20 text-white placeholder:text-white/50 focus:border-purple-600/50"
                 />
               </div>
               <div className="space-y-2">
@@ -172,16 +173,16 @@ export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   required
-                  className="bg-white/10 border-white/20 text-white placeholder:text-white/50 focus:border-purple-500/50"
+                  className="bg-white/10 border-white/20 text-white placeholder:text-white/50 focus:border-purple-600/50"
                 />
               </div>
               <Button
                 type="submit"
                 disabled={loading}
-                className="w-full h-12 bg-gradient-to-r from-purple-600 to-purple-700 hover:from-purple-700 hover:to-purple-800 text-white font-medium rounded-xl transition-all duration-200 disabled:opacity-50"
+                className="w-full h-12 bg-gradient-to-r from-purple-600 to-purple-600 hover:from-purple-700 hover:to-purple-700 text-white font-medium rounded-xl transition-all duration-200 disabled:opacity-50"
               >
                 {loading ? (
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  <LoadingDots size="sm" color="white" className="mr-2" />
                 ) : (
                   <Mail className="mr-2 h-4 w-4" />
                 )}

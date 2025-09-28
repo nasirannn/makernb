@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect } from "react";
+import { toast } from 'sonner';
 
 export const useAudioPlayer = () => {
   // Audio Player States
@@ -195,7 +196,9 @@ export const useAudioPlayer = () => {
       document.body.removeChild(a);
     } catch (error) {
       console.error('Download failed:', error);
-      alert('Download failed, please try again');
+      toast('Download failed', {
+        description: 'Please check your internet connection and try again.'
+      });
     }
   };
 

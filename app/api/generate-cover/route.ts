@@ -1,24 +1,35 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getUserIdFromRequest } from '@/lib/auth-utils';
 import { createCoverGeneration, updateCoverGeneration } from '@/lib/cover-db';
-import { getMusicGenerationByTaskId } from '@/lib/music-db';
 import MusicApiService from '@/lib/music-api';
 import { downloadFromUrl, uploadCoverImage } from '@/lib/r2-storage';
 
 export async function POST(request: NextRequest) {
   try {
+    // 先解析请求体
+    const body = await request.json();
+    const { musicTaskId, userId: bodyUserId } = body;
+    
     // 检查用户是否登录
     let userId = await getUserIdFromRequest(request);
+    
+    // 如果从Authorization header获取不到用户ID，尝试从请求体中获取
     if (!userId) {
-      // 开发环境：使用默认用户ID进行测试
-      if (process.env.NODE_ENV === 'development') {
-        console.log('Development mode: using default user ID');
-        userId = '00000000-0000-0000-0000-000000000000';
+      userId = bodyUserId;
+      
+      if (!userId) {
+        // 开发环境：使用默认用户ID进行测试
+        if (process.env.NODE_ENV === 'development') {
+          console.log('Development mode: using default user ID');
+          userId = '00000000-0000-0000-0000-000000000000';
+        } else {
+          return NextResponse.json(
+            { error: 'Authentication required' },
+            { status: 401 }
+          );
+        }
       } else {
-        return NextResponse.json(
-          { error: 'Authentication required' },
-          { status: 401 }
-        );
+        console.log(`Using userId from request body: ${userId}`);
       }
     }
 
@@ -31,8 +42,6 @@ export async function POST(request: NextRequest) {
       );
     }
     const musicApi = new MusicApiService(apiKey);
-
-    const { musicTaskId } = await request.json();
 
     if (!musicTaskId) {
       return NextResponse.json(
@@ -94,11 +103,22 @@ export async function POST(request: NextRequest) {
           // 保存封面图片到数据库
           for (let i = 0; i < coverStatus.data.images.length; i++) {
             try {
+              const imageUrl = coverStatus.data.images[i];
               // 下载图片
-              const imageBuffer = await downloadFromUrl(coverStatus.data.images[i]);
+              const imageBuffer = await downloadFromUrl(imageUrl);
               
-              // 上传到R2
-              const filename = `cover_${i + 1}.png`;
+              // 从URL中提取原始文件名，确保使用图片的唯一ID
+              const urlParts = imageUrl.split('/');
+              let filename = urlParts[urlParts.length - 1];
+
+              // 确保文件名有效，如果提取失败则使用时间戳+索引作为备用
+              if (!filename || filename.trim() === '') {
+                console.warn(`Failed to extract filename from URL: ${imageUrl}, using fallback`);
+                filename = `cover_${Date.now()}_${i + 1}.png`;
+              }
+
+              console.log(`Extracted filename: ${filename} from URL: ${imageUrl}`);
+              
               const r2Url = await uploadCoverImage(
                 imageBuffer,
                 result.data.taskId,

@@ -31,7 +31,7 @@ const featureList: FeaturesProps[] = [
     icon: "Music",
     title: "Authentic R&B Styles",
     description:
-      "From classic 90s slow jams to contemporary R&B vibes and everything between",
+      "From classic slow jams to contemporary R&B vibes and everything between",
   },
   {
     icon: "Download",

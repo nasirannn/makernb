@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getUserMusicGenerations } from '@/lib/music-db';
+import { getUserIdFromRequest } from '@/lib/auth-utils';
 
 // 强制动态渲染
 export const dynamic = 'force-dynamic';
@@ -21,7 +22,10 @@ export async function GET(
       );
     }
 
-    const music = await getUserMusicGenerations(userId, limit, offset);
+    // 获取请求用户ID（用于收藏状态检查）
+    const requestUserId = await getUserIdFromRequest(request);
+
+    const music = await getUserMusicGenerations(userId, limit, offset, requestUserId || undefined);
     
     return NextResponse.json({
       success: true,

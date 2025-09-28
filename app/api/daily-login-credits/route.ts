@@ -20,12 +20,23 @@ export async function POST(request: NextRequest) {
     
     // 验证token
     const { data: { user }, error } = await supabase.auth.getUser(token);
-    
+
     if (error || !user) {
       return NextResponse.json(
         { error: 'Authentication required' },
         { status: 401 }
       );
+    }
+
+    // 检查是否是管理员用户，如果是则直接返回
+    const adminId = process.env.ADMIN_ID;
+    if (adminId && user.id === adminId) {
+      console.log('Admin user, skipping daily login credits');
+      return NextResponse.json({
+        success: false,
+        message: 'Admin users are not eligible for daily login credits',
+        alreadyReceived: false
+      });
     }
 
     // 尝试发放每日登录积分

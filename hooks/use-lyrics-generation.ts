@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import { supabase } from '@/lib/supabase';
+import { toast } from 'sonner';
 
 export const useLyricsGeneration = () => {
   // Lyrics Generation States
@@ -27,7 +28,9 @@ export const useLyricsGeneration = () => {
 
   const handleGenerateLyrics = async (setCustomPrompt: (value: string) => void, userId: string) => {
     if (!lyricsPrompt.trim()) {
-      alert("Please enter a prompt for lyrics generation");
+      toast("Please enter a prompt for lyrics generation", {
+        description: "Describe what kind of lyrics you want to generate."
+      });
       return;
     }
 
@@ -37,7 +40,9 @@ export const useLyricsGeneration = () => {
       const creditsData = await creditsResponse.json();
       const userCredits = creditsData.user?.credits || 0;
       if (userCredits < 1) {
-        alert("Insufficient credits! Lyrics generation requires 1 credit.");
+        toast("Insufficient credits for lyrics generation", {
+          description: "You need 1 credit to generate lyrics. Purchase more credits or wait for daily bonus."
+        });
         return;
       }
     }
@@ -107,7 +112,9 @@ export const useLyricsGeneration = () => {
                 setIsGeneratingLyrics(false);
                 cleanupResources();
                 // 显示错误信息
-                alert('Lyrics generation failed. This may be due to sensitive content in your prompt.');
+                toast('Lyrics generation failed', {
+                  description: 'This may be due to sensitive content in your prompt. Please try with different wording.'
+                });
               }
             } catch (e) {
               // 网络错误时保持轮询，等待下一次
@@ -120,7 +127,9 @@ export const useLyricsGeneration = () => {
 
           // 显示友好的错误信息
           const errorMessage = result.data?.errorMessage || 'Lyrics generation failed - may contain sensitive content';
-          alert(`Lyrics generation failed: ${errorMessage}\n\nNo credits were consumed.`);
+          toast('Lyrics generation failed', {
+            description: `${errorMessage}. No credits were consumed.`
+          });
         } else {
           throw new Error('Failed to start lyrics generation');
         }
@@ -130,7 +139,10 @@ export const useLyricsGeneration = () => {
 
     } catch (error) {
       console.error("Lyrics generation failed:", error);
-      alert(error instanceof Error ? error instanceof Error ? error.message : 'Unknown error' : "Lyrics generation failed, please try again");
+      const errorMessage = error instanceof Error ? error.message : "Lyrics generation failed, please try again";
+      toast('Lyrics generation failed', {
+        description: errorMessage
+      });
       setIsGeneratingLyrics(false);
     }
   };

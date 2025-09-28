@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect, useRef } from 'react'
+import { LoadingDots } from './loading-dots'
 
 interface CassetteTapeProps {
   sideLetter?: string
@@ -12,33 +13,53 @@ interface CassetteTapeProps {
 }
 
 export const CassetteTape = ({
-  sideLetter = 'A',
-  duration = '5min',
-  title = '',
+  sideLetter = '',
   className = '',
   isPlaying = false,
   onSideClick
 }: CassetteTapeProps) => {
   const [svgContent, setSvgContent] = useState('')
-  const [isFlipping, setIsFlipping] = useState(false)
+  const [currentSideLetter, setCurrentSideLetter] = useState(sideLetter)
   const containerRef = useRef<HTMLDivElement>(null)
   const rafRef = useRef<number | null>(null)
   const angleRef = useRef<number>(0)
   const lastTsRef = useRef<number | null>(null)
+  const sideSwitchRef = useRef<number | null>(null)
 
-  // 处理磁带点击和翻转动画
+  // 当 sideLetter prop 变化时，更新 currentSideLetter
+  useEffect(() => {
+    setCurrentSideLetter(sideLetter)
+  }, [sideLetter])
+
+  // 处理磁带点击
   const handleClick = () => {
     if (!onSideClick) return
-
-    // 开始翻转动画
-    setIsFlipping(true)
-
-    // 动画完成后调用回调并重置状态
-    setTimeout(() => {
-      onSideClick()
-      setIsFlipping(false)
-    }, 600) // 600ms 翻转动画时长
+    onSideClick()
   }
+
+  // 自动切换 side letter（每30秒切换一次）
+  useEffect(() => {
+    if (isPlaying) {
+      const switchSide = () => {
+        setCurrentSideLetter(prev => prev === 'A' ? 'B' : 'A')
+      }
+      
+      // 每30秒切换一次
+      sideSwitchRef.current = window.setInterval(switchSide, 30000)
+    } else {
+      if (sideSwitchRef.current) {
+        clearInterval(sideSwitchRef.current)
+        sideSwitchRef.current = null
+      }
+    }
+
+    return () => {
+      if (sideSwitchRef.current) {
+        clearInterval(sideSwitchRef.current)
+        sideSwitchRef.current = null
+      }
+    }
+  }, [isPlaying])
 
   // 加载SVG内容
   useEffect(() => {
@@ -48,9 +69,7 @@ export const CassetteTape = ({
         let svgText = await response.text()
         
         // 替换SVG模板中的变量
-        svgText = svgText.replace('{{SIDE_LETTER}}', sideLetter)
-        svgText = svgText.replace('{{DURATION}}', duration)
-        svgText = svgText.replace('{{TITLE}}', title)
+        svgText = svgText.replace('{{SIDE_LETTER}}', currentSideLetter)
         
         // 添加样式确保SVG填满容器
         svgText = svgText.replace(
@@ -65,7 +84,7 @@ export const CassetteTape = ({
     }
 
     loadSVG()
-  }, [sideLetter, duration, title])
+  }, [currentSideLetter])
 
   // 使用 rAF 同步旋转（与音频播放状态一致）
   useEffect(() => {
@@ -112,9 +131,12 @@ export const CassetteTape = ({
         const svgLeft = containerRef.current.querySelector('.reel-left') as HTMLElement
         const svgRight = containerRef.current.querySelector('.reel-right') as HTMLElement
         
-        if (svgLeft && svgRight) {
+        if (svgLeft) {
           svgLeft.style.transform = ''
           svgLeft.style.transformOrigin = ''
+        }
+        
+        if (svgRight) {
           svgRight.style.transform = ''
           svgRight.style.transformOrigin = ''
         }
@@ -130,8 +152,8 @@ export const CassetteTape = ({
 
   if (!svgContent) {
     return (
-      <div className={`w-full h-full bg-muted/50 rounded-lg flex items-center justify-center ${className}`}>
-        <div className="animate-pulse text-muted-foreground">Loading...</div>
+      <div className={`flex items-center justify-center ${className}`}>
+        <LoadingDots size="sm" color="muted" />
       </div>
     )
   }
@@ -139,13 +161,8 @@ export const CassetteTape = ({
   return (
     <div
       ref={containerRef}
-      className={`w-full h-full flex items-center justify-center ${className} ${onSideClick ? 'cursor-pointer' : ''} ${
-        isFlipping ? 'animate-flip' : ''
-      }`}
+      className={`flex items-center justify-center ${className} ${onSideClick ? 'cursor-pointer' : ''}`}
       onClick={handleClick}
-      style={{
-        transformStyle: 'preserve-3d'
-      }}
       dangerouslySetInnerHTML={{ __html: svgContent }}
     />
   )

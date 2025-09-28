@@ -6,9 +6,26 @@ import { useTheme } from "next-themes";
 import Image from "next/image";
 import Link from "next/link";
 import { AnimatedBackground } from "@/components/ui/animated-background";
+import { useAuth } from "@/contexts/AuthContext";
+import AuthModal from "@/components/ui/auth-modal";
+import { useRouter } from "next/navigation";
 
 export const HeroSection = () => {
   const { theme } = useTheme();
+  const { user } = useAuth();
+  const router = useRouter();
+  const [isAuthModalOpen, setIsAuthModalOpen] = React.useState(false);
+
+  const handleStudioClick = () => {
+    if (user) {
+      // User is logged in, navigate to studio
+      router.push('/studio');
+    } else {
+      // User is not logged in, show auth modal
+      setIsAuthModalOpen(true);
+    }
+  };
+
   return (
     <section className="relative w-full min-h-screen pt-20">
 
@@ -16,7 +33,7 @@ export const HeroSection = () => {
       <div className="absolute inset-0 z-0">
         <Image
           src="/only-90s-rnb-background.png"
-          alt="90s R&B Background"
+          alt="R&B Background"
           fill
           className="object-cover object-center select-none"
           priority
@@ -68,7 +85,7 @@ export const HeroSection = () => {
             <div className="max-w-screen-lg mx-auto text-center">
               <h1 className="text-4xl md:text-6xl lg:text-7xl font-bold text-white leading-tight mb-6">
                 Free Online
-                <span className="text-transparent px-2 bg-gradient-to-r from-primary via-purple-400 to-blue-400 bg-clip-text">
+                <span className="text-transparent px-2 bg-gradient-to-r from-primary via-purple-300 to-cyan-400 bg-clip-text">
                   R&B
                 </span>
                 AI Music Generator
@@ -105,18 +122,25 @@ export const HeroSection = () => {
             </div>
 
             <div className="flex items-center justify-center">
-              <Link href="/studio">
-                <button className="inline-flex items-center gap-2 px-6 py-2 bg-primary text-white font-semibold rounded-xl hover:bg-primary/80 transition-all duration-300 transform hover:shadow-none overflow-hidden shadow-[2px_2px_0_0_rgba(255,255,255,0.8)] hover:translate-x-[3px] hover:translate-y-[3px] hover:shadow-[0px_0px_0_0_rgba(255,255,255,0)] border border-primary/20 text-lg">
-                  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19V6l12-3v13M9 19c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zm12-3c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zM9 10l12-3" />
-                  </svg>
-                  <span>Try It On</span>
-                </button>
-              </Link>
+              <button
+                onClick={handleStudioClick}
+                className="inline-flex items-center gap-2 px-6 py-2 bg-primary text-white font-semibold rounded-xl hover:bg-primary/80 transition-all duration-300 transform hover:shadow-none overflow-hidden shadow-[2px_2px_0_0_rgba(255,255,255,0.8)] hover:translate-x-[3px] hover:translate-y-[3px] hover:shadow-[0px_0px_0_0_rgba(255,255,255,0)] border border-primary/20 text-lg"
+              >
+                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19V6l12-3v13M9 19c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zm12-3c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zM9 10l12-3" />
+                </svg>
+                <span>Try It On</span>
+              </button>
             </div>
           </div>
         </div>
       </div>
+
+      {/* Auth Modal */}
+      <AuthModal
+        isOpen={isAuthModalOpen}
+        onClose={() => setIsAuthModalOpen(false)}
+      />
     </section>
   );
 };

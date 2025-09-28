@@ -49,10 +49,15 @@ export async function isAuthenticated(request: NextRequest): Promise<boolean> {
  * @returns 是否为管理员
  */
 export function isAdmin(userId: string): boolean {
-  // 在客户端使用 NEXT_PUBLIC_ 前缀的环境变量
-  const adminId = typeof window !== 'undefined' 
-    ? process.env.NEXT_PUBLIC_ADMIN_ID 
+  // 在服务端使用 ADMIN_ID，在客户端使用 NEXT_PUBLIC_ADMIN_ID
+  const adminId = typeof window !== 'undefined'
+    ? process.env.NEXT_PUBLIC_ADMIN_ID
     : process.env.ADMIN_ID;
-  console.log('isAdmin check - userId:', userId, 'adminId:', adminId, 'match:', adminId ? userId === adminId : false);
-  return adminId ? userId === adminId : false;
+  
+  // 如果没有设置 ADMIN_ID，返回 false
+  if (!adminId) {
+    return false;
+  }
+  
+  return userId === adminId;
 }

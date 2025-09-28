@@ -140,58 +140,89 @@ async function processCallbackAsync(callbackData: any) {
       // 音乐数据直接在 data.data 数组中
       const tracks = data.data;
 
-      // 🎯 code=200已经确认音乐生成成功，可以开始封面生成
-      // 使用标记避免重复调用封面生成
-      const coverTaskKey = `${taskId}_cover_started`;
-      if (!processedTasks.has(coverTaskKey)) {
-        processedTasks.add(coverTaskKey);
-
-        // 异步开始封面生成，不阻塞回调处理
-        setImmediate(async () => {
-          try {
-            console.log(`Starting cover generation for successful music task: ${taskId}`);
-
-            const coverResponse = await fetch(`${process.env.BASE_URL}/api/generate-cover`, {
-              method: 'POST',
-              headers: {
-                'Content-Type': 'application/json',
-              },
-              body: JSON.stringify({
-                musicTaskId: taskId
-              })
-            });
-
-            if (coverResponse.ok) {
-              const coverResult = await coverResponse.json();
-              console.log(`Cover generation started for music task ${taskId}:`, coverResult);
-            } else {
-              const errorText = await coverResponse.text();
-              console.error(`Failed to start cover generation for music task ${taskId}:`, errorText);
-            }
-          } catch (coverError) {
-            console.error(`Error starting cover generation for music task ${taskId}:`, coverError);
-          }
-        });
-      }
-
       // 4. 根据不同的回调类型处理
       if (callbackType === 'text') {
+        // 🎯 text回调时开始封面生成
+        // 使用标记避免重复调用封面生成
+        const coverTaskKey = `${taskId}_cover_started`;
+        if (!processedTasks.has(coverTaskKey)) {
+          processedTasks.add(coverTaskKey);
+
+          // 异步开始封面生成，不阻塞回调处理
+          setImmediate(async () => {
+            try {
+              console.log(`Starting cover generation for text callback - music task: ${taskId}`);
+
+              // 从音乐生成记录中获取用户ID
+              let userId = null;
+              try {
+                const musicGenQuery = await query(
+                  'SELECT user_id FROM music_generations WHERE task_id = $1',
+                  [taskId]
+                );
+                
+                if (musicGenQuery.rows.length > 0) {
+                  userId = musicGenQuery.rows[0].user_id;
+                  console.log(`Found user_id for cover generation: ${userId}`);
+                } else {
+                  console.error(`No music generation record found for task_id: ${taskId}`);
+                }
+              } catch (dbError) {
+                console.error(`Failed to query user_id for task_id ${taskId}:`, dbError);
+              }
+
+              const coverResponse = await fetch(`${process.env.BASE_URL}/api/generate-cover`, {
+                method: 'POST',
+                headers: {
+                  'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                  musicTaskId: taskId,
+                  userId: userId // 直接传递用户ID
+                })
+              });
+
+              if (coverResponse.ok) {
+                console.log(`Cover generation started for music task ${taskId}`);
+              } else {
+                const errorText = await coverResponse.text();
+                console.error(`Failed to start cover generation for music task ${taskId}:`, errorText);
+              }
+            } catch (coverError) {
+              console.error(`Error starting cover generation for music task ${taskId}:`, coverError);
+            }
+          });
+        }
         // 4.1 text回调：只存储数据到数据库
         console.log(`Task ${taskId} - text callback, storing metadata for ${tracks.length} tracks`);
 
         // 使用第一个track的元数据更新数据库（除了audio_url以外的所有值）
         const firstTrack = tracks[0];
 
-        // 调试日志：查看text回调中的字段
-        console.log('Text callback firstTrack fields:', {
-          id: firstTrack.id,
-          title: firstTrack.title,
-          tags: firstTrack.tags
-        });
-        
         // 4.1.1 更新音乐生成记录的元数据
         // style 仅使用接口返回的 tags；如果没有 tags 则不更新 style 字段
         const styleFromTags = (firstTrack.tags && firstTrack.tags.trim() !== '') ? firstTrack.tags : undefined;
+
+        // 提取标题 - 优先使用track.title，如果没有则尝试从歌词内容中提取
+        let extractedTitle = firstTrack.title;
+        if (!extractedTitle || extractedTitle.trim() === '') {
+          // 尝试从歌词内容中提取标题（通常在第一行或者[Title]标签中）
+          const lyricsContent = firstTrack.prompt;
+          if (lyricsContent) {
+            // 查找 [Title: xxx] 或 [title: xxx] 格式
+            const titleMatch = lyricsContent.match(/\[title:\s*([^\]]+)\]/i);
+            if (titleMatch) {
+              extractedTitle = titleMatch[1].trim();
+            } else {
+              // 查找第一行非空行作为标题（如果不是verse/chorus等标签）
+              const lines = lyricsContent.split('\n').map((line: string) => line.trim()).filter((line: string) => line);
+              const firstLine = lines[0];
+              if (firstLine && !firstLine.match(/^\[(verse|chorus|bridge|pre-?chorus|outro|intro)/i)) {
+                extractedTitle = firstLine.replace(/^\[|\]$/g, ''); // 移除可能的方括号
+              }
+            }
+          }
+        }
 
         // 构建更新对象，只包含有值的字段
         const updateData: any = {
@@ -199,25 +230,25 @@ async function processCallbackAsync(callbackData: any) {
         };
 
         // 只有当title有值时才更新
-        if (firstTrack.title && firstTrack.title.trim() !== '') {
-          updateData.title = firstTrack.title;
+        if (extractedTitle && extractedTitle.trim() !== '') {
+          updateData.title = extractedTitle.trim();
         }
         // 只有当tags有值时才更新 style
         if (styleFromTags) {
-          updateData.style = styleFromTags;
+          updateData.tags = styleFromTags;
         }
 
         try {
           await updateMusicGenerationByTaskId(taskId, updateData);
-          console.log(`Updated music generation record with text data - title: ${firstTrack.title || 'not updated'}, style: ${styleFromTags || 'not updated'}`);
+          console.log(`Updated music generation record with text data - title: ${extractedTitle || 'not updated'}, tags: ${styleFromTags || 'not updated'}`);
         } catch (dbError) {
           console.error('Failed to update music generation record with text data:', dbError);
         }
-        
+
         // 4.1.2 存储歌词到music_lyrics表（音乐生成中的歌词）
         // 歌词可能在多个字段中，按优先级检查
         const lyricsContent = firstTrack.prompt;
-        
+
         if (lyricsContent && lyricsContent.trim() !== '') {
           try {
             // 获取music_generation_id
@@ -225,22 +256,23 @@ async function processCallbackAsync(callbackData: any) {
               'SELECT id FROM music_generations WHERE task_id = $1',
               [taskId]
             );
-            
+
             if (musicGenQuery.rows.length > 0) {
               const musicGenerationId = musicGenQuery.rows[0].id;
-              
-              // 创建音乐歌词记录
+
+              // 创建音乐歌词记录 - 使用提取的标题
+              const lyricsTitle = extractedTitle || 'Generated Lyrics';
               const lyricsRecord = await query(
                 `INSERT INTO music_lyrics (music_generation_id, title, content)
                  VALUES ($1, $2, $3)
                  RETURNING *`,
-                [musicGenerationId, firstTrack.title || 'Generated Lyrics', lyricsContent]
+                [musicGenerationId, lyricsTitle, lyricsContent]
               );
-              console.log(`Created music_lyrics record:`, lyricsRecord.rows[0]);
+              console.log(`Created music_lyrics record with title: ${lyricsTitle}`);
             } else {
               console.log('No music generation record found for task_id:', taskId);
             }
-            
+
           } catch (lyricsError) {
             console.error('Failed to create music lyrics record:', lyricsError);
           }

@@ -2,8 +2,76 @@
 @tailwind components;
 @tailwind utilities;
 
-/* Line clamp utilities for blog posts */
+/* ==========================================================================
+   GLOBAL STYLES
+   ========================================================================== */
+
+html {
+  scroll-behavior: smooth;
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+  
+  body {
+    @apply bg-background text-foreground;
+  }
+}
+
+/* ==========================================================================
+   THEME VARIABLES
+   ========================================================================== */
+
+@layer base {
+  :root {
+    /* Background & Foreground */
+    --background: 240 10% 3.9%;
+    --foreground: 0 0% 98%;
+
+    /* Cards & Popovers */
+    --card: 240 10% 3.9%;
+    --card-foreground: 0 0% 98%;
+    --popover: 240 10% 3.9%;
+    --popover-foreground: 0 0% 98%;
+
+    /* Primary Colors */
+    --primary: 262 45% 58%;
+    --primary-foreground: 0 0% 98%;
+
+    /* Secondary Colors */
+    --secondary: 240 3.7% 15.9%;
+    --secondary-foreground: 0 0% 98%;
+
+    /* Muted Colors */
+    --muted: 240 3.7% 15.9%;
+    --muted-foreground: 240 5% 64.9%;
+
+    /* Accent Colors */
+    --accent: 240 3.7% 15.9%;
+    --accent-foreground: 0 0% 98%;
+
+    /* Destructive Colors */
+    --destructive: 0 62.8% 30.6%;
+    --destructive-foreground: 0 0% 98%;
+
+    /* Borders & Inputs */
+    --border: 240 3.7% 15.9%;
+    --input: 240 3.7% 15.9%;
+    --ring: 262 60% 58%;
+
+    /* Border Radius */
+    --radius: 1rem;
+  }
+}
+
+/* ==========================================================================
+   UTILITY CLASSES
+   ========================================================================== */
+
 @layer utilities {
+  /* Line Clamp Utilities */
   .line-clamp-2 {
     display: -webkit-box;
     -webkit-line-clamp: 2;
@@ -18,7 +86,15 @@
     overflow: hidden;
   }
 
-  /* 横向滚动动画 - 无缝跑马灯效果 */
+  .line-clamp-4 {
+    display: -webkit-box;
+    -webkit-line-clamp: 4;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  /* Marquee Animation */
   .animate-scroll {
     animation: marquee 60s linear infinite;
     display: inline-block;
@@ -29,122 +105,34 @@
     animation-play-state: paused;
   }
 
-  @keyframes marquee {
-    0% {
-      transform: translateX(0);
-    }
-    100% {
-      transform: translateX(-50%);
-    }
+  /* Shooting Star Animation */
+  .animate-shooting-star {
+    animation: shooting-star linear infinite;
+  }
+
+  /* Text Highlight Animation */
+  .animate-text-highlight {
+    background: linear-gradient(
+      90deg,
+      #a855f7 0%,
+      #a855f7 40%,
+      #ffffff 50%,
+      #a855f7 60%,
+      #a855f7 100%
+    );
+    background-size: 200% 100%;
+    background-position: -100% 0;
+    background-clip: text;
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    animation: text-highlight 6s linear infinite;
+    animation-delay: 1s;
   }
 }
 
-html {
-  scroll-behavior: smooth;
-}
-
-/* *=========== Default theme =========== */
-/* @layer base {
-  :root {
-    --background: 0 0% 100%;
-    --foreground: 240 10% 3.9%;
-
-    --muted: 240 4.8% 95.9%;
-    --muted-foreground: 240 3.8% 46.1%;
-
-    --popover: 0 0% 100%;
-    --popover-foreground: 240 10% 3.9%;
-
-    --card: 0 0% 100%;
-    --card-foreground: 240 10% 3.9%;
-
-    --border: 240 5.9% 90%;
-    --input: 240 5.9% 90%;
-
-    --primary: 240 5.9% 10%;
-    --primary-foreground: 0 0% 98%;
-
-    --secondary: 240 4.8% 95.9%;
-    --secondary-foreground: 240 5.9% 10%;
-
-    --accent: 240 4.8% 95.9%;
-    --accent-foreground: 240 5.9% 10%;
-
-    --destructive: 0 84.2% 60.2%;
-    --destructive-foreground: 0 0% 98%;
-
-    --ring: 240 10% 3.9%;
-
-    --radius: 0.5rem;
-  }
-
-  .dark {
-    --background: 240 10% 3.9%;
-    --foreground: 0 0% 98%;
-
-    --muted: 240 3.7% 15.9%;
-    --muted-foreground: 240 5% 64.9%;
-
-    --popover: 240 10% 3.9%;
-    --popover-foreground: 0 0% 98%;
-
-    --card: 240 10% 3.9%;
-    --card-foreground: 0 0% 98%;
-
-    --border: 240 3.7% 15.9%;
-    --input: 240 3.7% 15.9%;
-
-    --primary: 0 0% 98%;
-    --primary-foreground: 240 5.9% 10%;
-
-    --secondary: 240 3.7% 15.9%;
-    --secondary-foreground: 0 0% 98%;
-
-    --accent: 240 3.7% 15.9%;
-    --accent-foreground: 0 0% 98%;
-
-    --destructive: 0 62.8% 30.6%;
-    --destructive-foreground: 0 0% 98%;
-
-    --ring: 240 4.9% 83.9%;
-  }
-} */
-
-/* *=========== 90s R&B Purple theme (Dark Only) =========== */
-@layer base {
-  :root {
-    --background: 240 10% 3.9%;
-    --foreground: 0 0% 98%;
-
-    --card: 240 10% 3.9%;
-    --card-foreground: 0 0% 98%;
-
-    --popover: 240 10% 3.9%;
-    --popover-foreground: 0 0% 98%;
-
-    --primary: 262 45% 58%;
-    --primary-foreground: 0 0% 98%;
-
-    --secondary: 240 3.7% 15.9%;
-    --secondary-foreground: 0 0% 98%;
-
-    --muted: 240 3.7% 15.9%;
-    --muted-foreground: 240 5% 64.9%;
-
-    --accent: 240 3.7% 15.9%;
-    --accent-foreground: 0 0% 98%;
-
-    --destructive: 0 62.8% 30.6%;
-    --destructive-foreground: 0 0% 98%;
-
-    --border: 240 3.7% 15.9%;
-    --input: 240 3.7% 15.9%;
-    --ring: 262 60% 58%;
-    --radius: 1rem;
-  }
-
-
-}
+/* ==========================================================================
+   CUSTOM SHADOWS
+   ========================================================================== */
 
 .shadow-light {
   box-shadow: inset 0 0 5px rgba(0, 0, 0, 0.085);
@@ -154,16 +142,19 @@ html {
   box-shadow: inset 0 0 5px rgba(255, 255, 255, 0.141);
 }
 
-@layer base {
-  * {
-    @apply border-border;
+/* ==========================================================================
+   KEYFRAME ANIMATIONS
+   ========================================================================== */
+
+@keyframes marquee {
+  0% {
+    transform: translateX(0);
   }
-  body {
-    @apply bg-background text-foreground;
+  100% {
+    transform: translateX(-50%);
   }
 }
 
-/* Custom animations */
 @keyframes shooting-star {
   0% {
     transform: translateX(0) translateY(0) rotate(45deg);
@@ -178,11 +169,6 @@ html {
   }
 }
 
-.animate-shooting-star {
-  animation: shooting-star linear infinite;
-}
-
-/* Text highlight animation - left to right */
 @keyframes text-highlight {
   0% {
     background-position: 100% 0;
@@ -192,29 +178,51 @@ html {
   }
 }
 
-.animate-text-highlight {
-  background: linear-gradient(
-    90deg,
-    #a855f7 0%,
-    #a855f7 40%,
-    #ffffff 50%,
-    #a855f7 60%,
-    #a855f7 100%
-  );
-  background-size: 200% 100%;
-  background-position: -100% 0;
-  background-clip: text;
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  animation: text-highlight 6s linear infinite;
-  animation-delay: 1s;
+/* ==========================================================================
+   AUDIO WAVE ANIMATIONS
+   ========================================================================== */
+
+@keyframes audio-wave-1 {
+  0%, 100% { height: 20%; }
+  50% { height: 60%; }
 }
 
-/* Line clamp utilities */
-.line-clamp-4 {
-  display: -webkit-box;
-  -webkit-line-clamp: 4;
-  -webkit-box-orient: vertical;
-  overflow: hidden;
-  text-overflow: ellipsis;
+@keyframes audio-wave-2 {
+  0%, 100% { height: 25%; }
+  50% { height: 70%; }
+}
+
+@keyframes audio-wave-3 {
+  0%, 100% { height: 30%; }
+  50% { height: 80%; }
+}
+
+@keyframes audio-wave-4 {
+  0%, 100% { height: 35%; }
+  50% { height: 90%; }
+}
+
+@keyframes audio-wave-5 {
+  0%, 100% { height: 40%; }
+  50% { height: 100%; }
+}
+
+.audio-wave-bar-1 {
+  animation: audio-wave-1 0.6s ease-in-out infinite;
+}
+
+.audio-wave-bar-2 {
+  animation: audio-wave-2 0.6s ease-in-out infinite 0.1s;
+}
+
+.audio-wave-bar-3 {
+  animation: audio-wave-3 0.6s ease-in-out infinite 0.2s;
+}
+
+.audio-wave-bar-4 {
+  animation: audio-wave-4 0.6s ease-in-out infinite 0.3s;
+}
+
+.audio-wave-bar-5 {
+  animation: audio-wave-5 0.6s ease-in-out infinite 0.4s;
 }

@@ -1,8 +1,9 @@
 "use client";
 
-import React, { createContext, useContext, useEffect, useState } from 'react';
+import React, { createContext, useContext, useEffect, useState, useRef } from 'react';
 import { User, Session } from '@supabase/supabase-js';
 import { supabase } from '@/lib/supabase';
+import { isAdmin } from '@/lib/auth-utils';
 import DailyCreditsNotification from '@/components/ui/daily-credits-notification';
 import { useRouter } from 'next/navigation';
 
@@ -25,6 +26,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [showRewardNotification, setShowRewardNotification] = useState(false);
   const [rewardCredits, setRewardCredits] = useState(0);
   const [hasCheckedInitialCredits, setHasCheckedInitialCredits] = useState(false);
+  const creditsCheckInProgress = useRef(false);
+  const lastCreditsCheckTime = useRef(0);
+  const [isUserAdmin, setIsUserAdmin] = useState<boolean | null>(null);
+  const adminCheckCache = useRef<Map<string, boolean>>(new Map());
 
   // 定义checkDailyCredits函数
   const checkDailyCredits = async (sessionToken?: string) => {
@@ -32,6 +37,59 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     if (!token) {
       console.log('No token available for daily credits check');
       return;
+    }
+
+    // 检查是否是管理员用户，如果是则直接跳过
+    if (user?.id) {
+      // 检查缓存
+      const cachedAdminStatus = adminCheckCache.current.get(user.id);
+      if (cachedAdminStatus === true) {
+        console.log('Admin user detected (cached), skipping daily credits check');
+        return;
+      }
+
+      // 如果没有缓存，进行检查
+      if (cachedAdminStatus === undefined) {
+        // 直接检查环境变量，避免依赖外部函数
+        const adminId = process.env.NEXT_PUBLIC_ADMIN_ID || process.env.ADMIN_ID;
+        const adminStatus = adminId && user.id === adminId;
+        console.log(`Checking admin status for user ${user.id} against ${adminId}: ${adminStatus}`);
+
+        // 缓存结果
+        adminCheckCache.current.set(user.id, adminStatus);
+
+        if (adminStatus) {
+          console.log('Admin user detected, skipping daily credits check');
+          return;
+        }
+      }
+    } else {
+      console.log('User ID not available yet, proceeding with API call');
+    }
+
+    // 防止重复调用 - 检查进行中状态
+    if (creditsCheckInProgress.current) {
+      console.log('Daily credits check already in progress, skipping...');
+      return;
+    }
+
+    // 防止短时间内重复调用 - 使用sessionStorage持久化
+    const now = Date.now();
+    const lastCheckKey = `lastCreditsCheck_${user?.id || 'unknown'}`;
+    const lastCheckTime = typeof window !== 'undefined'
+      ? parseInt(sessionStorage.getItem(lastCheckKey) || '0')
+      : lastCreditsCheckTime.current;
+
+    if (now - lastCheckTime < 300000) { // 5分钟 = 300000ms
+      console.log('Daily credits check called too recently, skipping...');
+      return;
+    }
+
+    creditsCheckInProgress.current = true;
+    lastCreditsCheckTime.current = now;
+    // 持久化时间戳
+    if (typeof window !== 'undefined') {
+      sessionStorage.setItem(lastCheckKey, now.toString());
     }
 
     try {
@@ -75,6 +133,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       }
     } catch (error) {
       console.error('Error checking daily credits:', error);
+    } finally {
+      creditsCheckInProgress.current = false;
     }
   };
 
@@ -103,13 +163,29 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         setUser(session?.user ?? null);
         setLoading(false);
 
-        // 如果用户已经登录，检查每日登录积分（只在初始加载时检查一次）
-        if (session?.access_token && !hasCheckedInitialCredits) {
-          console.log('Initial session found, checking daily credits...');
-          setHasCheckedInitialCredits(true);
-          setTimeout(() => {
-            checkDailyCredits(session.access_token);
-          }, 1500); // 增加延迟确保token有效
+        // 如果用户已经登录，检查每日登录积分（使用持久化状态避免重复检查）
+        if (session?.access_token && session.user?.id) {
+          const today = new Date().toISOString().split('T')[0]; // YYYY-MM-DD
+          const checkKey = `dailyCreditsChecked_${session.user.id}_${today}`;
+          const hasCheckedToday = typeof window !== 'undefined'
+            ? sessionStorage.getItem(checkKey) === 'true'
+            : false;
+
+          console.log(`Daily credits check status: hasCheckedToday=${hasCheckedToday}, creditsCheckInProgress=${creditsCheckInProgress.current}, checkKey=${checkKey}`);
+
+          if (!hasCheckedToday && !creditsCheckInProgress.current) {
+            console.log('Initial session found, checking daily credits...');
+            // 标记今天已经检查过
+            if (typeof window !== 'undefined') {
+              sessionStorage.setItem(checkKey, 'true');
+            }
+            setHasCheckedInitialCredits(true);
+            setTimeout(() => {
+              checkDailyCredits(session.access_token);
+            }, 1500); // 增加延迟确保token有效
+          } else {
+            console.log('Daily credits already checked today or in progress');
+          }
         }
       }
     };
@@ -131,23 +207,39 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           // Clear any cached data
           setUser(null);
           setSession(null);
-          router.push('/');
-        } else if (event === 'SIGNED_IN' && session?.access_token) {
-          // 当用户登录时，检查每日登录积分（只在真正的登录事件时检查）
-          console.log('User signed in, checking daily credits...');
-          setHasCheckedInitialCredits(true); // 标记已检查，避免重复
-          setTimeout(() => {
-            checkDailyCredits(session.access_token);
-          }, 2000); // 增加延迟确保登录流程完成
-        } else if (event === 'TOKEN_REFRESHED' && session?.access_token) {
-          // Token刷新后，如果还没检查过积分，则检查一次
-          if (!hasCheckedInitialCredits) {
-            console.log('Token refreshed, checking daily credits...');
-            setHasCheckedInitialCredits(true);
+          setIsUserAdmin(null); // 重置管理员状态
+
+          // 只在非studio页面时重定向到首页
+          const currentPath = window.location.pathname;
+          if (!currentPath.startsWith('/studio')) {
+            router.push('/');
+          }
+        } else if (event === 'SIGNED_IN' && session?.access_token && session.user?.id) {
+          // 重置管理员状态，让新用户重新检查
+          setIsUserAdmin(null);
+          // 当用户登录时，检查每日登录积分（使用持久化状态避免重复检查）
+          const today = new Date().toISOString().split('T')[0]; // YYYY-MM-DD
+          const checkKey = `dailyCreditsChecked_${session.user.id}_${today}`;
+          const hasCheckedToday = typeof window !== 'undefined'
+            ? sessionStorage.getItem(checkKey) === 'true'
+            : false;
+
+          if (!hasCheckedToday && !creditsCheckInProgress.current) {
+            console.log('User signed in, checking daily credits...');
+            // 标记今天已经检查过
+            if (typeof window !== 'undefined') {
+              sessionStorage.setItem(checkKey, 'true');
+            }
+            setHasCheckedInitialCredits(true); // 标记已检查，避免重复
             setTimeout(() => {
               checkDailyCredits(session.access_token);
-            }, 1000);
+            }, 2000); // 增加延迟确保登录流程完成
+          } else {
+            console.log('User signed in, but daily credits already checked today or in progress');
           }
+        } else if (event === 'TOKEN_REFRESHED' && session?.access_token) {
+          // Token刷新时不再自动检查积分，避免窗口焦点变化时的重复调用
+          console.log('Token refreshed, but skipping daily credits check to avoid duplicate calls');
         }
       }
     });

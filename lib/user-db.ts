@@ -1,4 +1,4 @@
-import { query, pool } from './neon';
+import { query, pool, withTransaction } from './neon';
 import { createCreditTransaction } from './credit-transactions-db';
 
 export interface UserCredits {
@@ -57,51 +57,37 @@ export const updateUserCredits = async (userId: string, credits: number): Promis
 
 // 消费用户积分
 export const consumeUserCredit = async (
-  userId: string, 
+  userId: string,
   creditAmount: number = 1,
-  description?: string, 
-  referenceId?: string, 
+  description?: string,
+  referenceId?: string,
   referenceType?: string
 ): Promise<boolean> => {
   try {
-    // 使用事务确保数据一致性
-    const client = await pool.connect();
-    
-    try {
-      await client.query('BEGIN');
-      
+    return await withTransaction(async (queryFn) => {
       // 检查并更新积分
-      const result = await client.query(
+      const result = await queryFn(
         'UPDATE user_credits SET credits = credits - $1, total_spent = total_spent + $1, updated_at = NOW() WHERE user_id = $2 AND credits >= $1 RETURNING *',
         [creditAmount, userId]
       );
 
       if (result.rows.length === 0) {
-        await client.query('ROLLBACK');
         return false;
       }
 
       const newBalance = result.rows[0].credits;
 
       // 创建交易记录
-      await createCreditTransaction(
-        userId,
-        'spend',
-        -creditAmount,
-        newBalance,
-        description || 'Music generation',
-        referenceId,
-        referenceType
+      await queryFn(
+        `INSERT INTO credit_transactions (
+          user_id, transaction_type, amount, balance_after,
+          description, reference_id, reference_type
+        ) VALUES ($1, $2, $3, $4, $5, $6, $7)`,
+        [userId, 'spend', -creditAmount, newBalance, description || 'Music generation', referenceId, referenceType]
       );
 
-      await client.query('COMMIT');
       return true;
-    } catch (error) {
-      await client.query('ROLLBACK');
-      throw error;
-    } finally {
-      client.release();
-    }
+    });
   } catch (error) {
     console.error('Error consuming user credit:', error);
     throw error;
@@ -132,44 +118,30 @@ export const addUserCredits = async (
   referenceType?: string
 ): Promise<boolean> => {
   try {
-    // 使用事务确保数据一致性
-    const client = await pool.connect();
-    
-    try {
-      await client.query('BEGIN');
-      
+    return await withTransaction(async (queryFn) => {
       // 更新积分和total_earned
-      const result = await client.query(
+      const result = await queryFn(
         'UPDATE user_credits SET credits = credits + $1, total_earned = total_earned + $1, updated_at = NOW() WHERE user_id = $2 RETURNING *',
         [amount, userId]
       );
 
       if (result.rows.length === 0) {
-        await client.query('ROLLBACK');
         return false;
       }
 
       const newBalance = result.rows[0].credits;
 
       // 创建交易记录
-      await createCreditTransaction(
-        userId,
-        'earn',
-        amount,
-        newBalance,
-        description || 'Credits added',
-        referenceId,
-        referenceType
+      await queryFn(
+        `INSERT INTO credit_transactions (
+          user_id, transaction_type, amount, balance_after,
+          description, reference_id, reference_type
+        ) VALUES ($1, $2, $3, $4, $5, $6, $7)`,
+        [userId, 'earn', amount, newBalance, description || 'Credits added', referenceId, referenceType]
       );
 
-      await client.query('COMMIT');
       return true;
-    } catch (error) {
-      await client.query('ROLLBACK');
-      throw error;
-    } finally {
-      client.release();
-    }
+    });
   } catch (error) {
     console.error('Error adding user credits:', error);
     throw error;

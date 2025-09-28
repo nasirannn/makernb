@@ -41,8 +41,8 @@ export const createCoverImages = async (
     
     for (let i = 0; i < r2Urls.length; i++) {
       const r2Url = r2Urls[i];
-      // 使用原始文件名，如果没有则使用默认命名
-      const filename = originalFilenames?.[i] || `cover_${i + 1}.png`;
+      // 使用原始文件名，如果没有则使用时间戳+索引作为备用
+      const filename = originalFilenames?.[i] || `cover_${Date.now()}_${i + 1}.png`;
       
       const result = await createCoverImage(coverGenerationId, r2Url, filename);
       results.push(result);

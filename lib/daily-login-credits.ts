@@ -1,22 +1,16 @@
 import { query, pool } from './neon';
 import { addUserCredits } from './user-db';
 
-export interface DailyCredits {
-  id: string;
-  user_id: string;
-  daily_credits: number;
-  last_login_date: string; // YYYY-MM-DD format
-  created_at: string;
-  updated_at: string;
-}
-
 // 检查用户今天是否已经获得登录积分
 export const hasReceivedTodayCredits = async (userId: string): Promise<boolean> => {
   try {
     const today = new Date().toISOString().split('T')[0]; // YYYY-MM-DD format
     
     const result = await query(
-      'SELECT id FROM daily_credits WHERE user_id = $1 AND last_login_date = $2 AND daily_credits > 0',
+      `SELECT id FROM credit_transactions 
+       WHERE user_id = $1 
+       AND reference_type = 'daily_login' 
+       AND DATE(created_at) = $2`,
       [userId, today]
     );
 
@@ -28,7 +22,7 @@ export const hasReceivedTodayCredits = async (userId: string): Promise<boolean> 
 };
 
 // 给用户发放每日登录积分
-export const grantDailyLoginCredits = async (userId: string): Promise<DailyCredits | null> => {
+export const grantDailyLoginCredits = async (userId: string): Promise<{ id: string; daily_credits: number; last_login_date: string } | null> => {
   try {
     // 检查是否是管理员
     const adminId = process.env.ADMIN_ID;
@@ -52,30 +46,6 @@ export const grantDailyLoginCredits = async (userId: string): Promise<DailyCredi
       const today = new Date().toISOString().split('T')[0]; // YYYY-MM-DD
       const creditsAmount = 15;
 
-      // 创建或更新每日积分记录
-      const creditsResult = await client.query(
-        `INSERT INTO daily_credits (user_id, daily_credits, last_login_date) 
-         VALUES ($1, $2, $3) 
-         ON CONFLICT (user_id) 
-         DO UPDATE SET 
-           daily_credits = CASE 
-             WHEN daily_credits.last_login_date < $3 THEN $2 
-             ELSE daily_credits.daily_credits 
-           END,
-           last_login_date = $3,
-           updated_at = NOW()
-         RETURNING *`,
-        [userId, creditsAmount, today]
-      );
-
-      const credits = creditsResult.rows[0];
-      
-      // 如果今天已经有积分了，说明已经获得过积分
-      if (credits.daily_credits === 0) {
-        await client.query('ROLLBACK');
-        return null;
-      }
-
       // 添加积分到用户账户
       const userCreditsResult = await client.query(
         'UPDATE user_credits SET credits = credits + $1, total_earned = total_earned + $1, updated_at = NOW() WHERE user_id = $2 RETURNING *',
@@ -90,19 +60,20 @@ export const grantDailyLoginCredits = async (userId: string): Promise<DailyCredi
         );
       }
 
+      const newBalance = userCreditsResult.rows[0]?.credits || creditsAmount;
+
       // 创建积分交易记录
-      await client.query(
+      const transactionResult = await client.query(
         `INSERT INTO credit_transactions (
           user_id, transaction_type, amount, balance_after, 
-          description, reference_id, reference_type
-        ) VALUES ($1, $2, $3, $4, $5, $6, $7)`,
+          description, reference_type
+        ) VALUES ($1, $2, $3, $4, $5, $6) RETURNING id`,
         [
           userId, 
           'bonus', 
           creditsAmount, 
-          userCreditsResult.rows[0]?.credits || creditsAmount,
+          newBalance,
           'Daily login credits',
-          credits.id,
           'daily_login'
         ]
       );
@@ -110,7 +81,13 @@ export const grantDailyLoginCredits = async (userId: string): Promise<DailyCredi
       await client.query('COMMIT');
       
       console.log(`Daily login credits granted: ${creditsAmount} credits to user ${userId}`);
-      return credits;
+      
+      // 返回类似原来的结构，但使用 transaction id
+      return {
+        id: transactionResult.rows[0].id,
+        daily_credits: creditsAmount,
+        last_login_date: today
+      };
       
     } catch (error) {
       await client.query('ROLLBACK');
@@ -134,36 +111,31 @@ export const cleanupExpiredDailyCredits = async (): Promise<number> => {
       
       const today = new Date().toISOString().split('T')[0];
       
-      // 查找所有过期的每日积分（不是今天的且有积分的）
+      // 查找所有过期的每日登录积分（不是今天的且有积分的）
       const expiredCredits = await client.query(
-        `SELECT dc.*, uc.credits 
-         FROM daily_credits dc
-         JOIN user_credits uc ON dc.user_id = uc.user_id
-         WHERE dc.last_login_date < $1 
-         AND dc.daily_credits > 0
+        `SELECT ct.*, uc.credits 
+         FROM credit_transactions ct
+         JOIN user_credits uc ON ct.user_id = uc.user_id
+         WHERE ct.reference_type = 'daily_login' 
+         AND DATE(ct.created_at) < $1 
+         AND ct.amount > 0
          AND NOT EXISTS (
-           SELECT 1 FROM credit_transactions ct 
-           WHERE ct.reference_id = dc.id 
-           AND ct.reference_type = 'daily_login_expired'
+           SELECT 1 FROM credit_transactions ct2 
+           WHERE ct2.reference_id = ct.id 
+           AND ct2.reference_type = 'daily_login_expired'
          )`,
         [today]
       );
 
       let cleanedCount = 0;
 
-      for (const credits of expiredCredits.rows) {
+      for (const credit of expiredCredits.rows) {
         // 检查用户当前积分是否足够扣除
-        if (credits.credits >= credits.daily_credits) {
+        if (credit.credits >= credit.amount) {
           // 扣除过期的每日登录积分
           await client.query(
             'UPDATE user_credits SET credits = credits - $1, updated_at = NOW() WHERE user_id = $2',
-            [credits.daily_credits, credits.user_id]
-          );
-
-          // 清零每日积分
-          await client.query(
-            'UPDATE daily_credits SET daily_credits = 0, updated_at = NOW() WHERE user_id = $1',
-            [credits.user_id]
+            [credit.amount, credit.user_id]
           );
 
           // 创建过期扣除的交易记录
@@ -173,12 +145,12 @@ export const cleanupExpiredDailyCredits = async (): Promise<number> => {
               description, reference_id, reference_type
             ) VALUES ($1, $2, $3, $4, $5, $6, $7)`,
             [
-              credits.user_id,
+              credit.user_id,
               'spend',
-              -credits.daily_credits,
-              credits.credits - credits.daily_credits,
+              -credit.amount,
+              credit.credits - credit.amount,
               'Daily login credits expired',
-              credits.id,
+              credit.id,
               'daily_login_expired'
             ]
           );
@@ -211,10 +183,13 @@ export const cleanupExpiredDailyCredits = async (): Promise<number> => {
 export const getUserDailyLoginHistory = async (
   userId: string, 
   limit: number = 30
-): Promise<DailyCredits[]> => {
+): Promise<{ id: string; daily_credits: number; last_login_date: string; created_at: string }[]> => {
   try {
     const result = await query(
-      'SELECT * FROM daily_credits WHERE user_id = $1 ORDER BY last_login_date DESC LIMIT $2',
+      `SELECT id, amount as daily_credits, DATE(created_at) as last_login_date, created_at 
+       FROM credit_transactions 
+       WHERE user_id = $1 AND reference_type = 'daily_login' 
+       ORDER BY created_at DESC LIMIT $2`,
       [userId, limit]
     );
 
@@ -226,10 +201,13 @@ export const getUserDailyLoginHistory = async (
 };
 
 // 获取用户当前的每日积分状态
-export const getUserDailyCreditsStatus = async (userId: string): Promise<DailyCredits | null> => {
+export const getUserDailyCreditsStatus = async (userId: string): Promise<{ id: string; daily_credits: number; last_login_date: string; created_at: string } | null> => {
   try {
     const result = await query(
-      'SELECT * FROM daily_credits WHERE user_id = $1',
+      `SELECT id, amount as daily_credits, DATE(created_at) as last_login_date, created_at 
+       FROM credit_transactions 
+       WHERE user_id = $1 AND reference_type = 'daily_login' 
+       ORDER BY created_at DESC LIMIT 1`,
       [userId]
     );
 

@@ -8,13 +8,13 @@ import { FAQSection } from "@/components/layout/sections/faq";
 
 export const metadata = {
   metadataBase: new URL('https://only-90s-rnb.com'),
-  title: "R&B Music Generator | Create Contemporary & 90s R&B AI Songs",
-  description: "Generate authentic 90s Black R&B music with AI. Choose from New Jack Swing, Hip-Hop Soul, Contemporary R&B and more classic genres.",
+  title: "R&B Music Generator | Create Classic & Contemporary R&B AI Songs",
+  description: "Generate authentic R&B music with AI. Choose from New Jack Swing, Hip-Hop Soul, Contemporary R&B and more classic genres.",
   openGraph: {
     type: "website",
     url: "https://only-90s-rnb.com",
-    title: "R&B Music Generator | Create Contemporary & 90s R&B AI Songs",
-    description: "Generate authentic 90s Black R&B music with AI. Choose from New Jack Swing, Hip-Hop Soul, Contemporary R&B and more classic genres.",
+    title: "R&B Music Generator | Create Classic & Contemporary R&B AI Songs",
+    description: "Generate authentic R&B music with AI. Choose from New Jack Swing, Hip-Hop Soul, Contemporary R&B and more classic genres.",
     images: [
       {
         url: "/hero-image-dark.jpeg",
@@ -27,8 +27,8 @@ export const metadata = {
   twitter: {
     card: "summary_large_image",
     site: "https://only-90s-rnb.com",
-    title: "R&B Music Generator | Create Contemporary & 90s R&B AI Songs",
-    description: "Generate authentic 90s Black R&B music with AI. Choose from New Jack Swing, Hip-Hop Soul, Contemporary R&B and more classic genres.",
+    title: "R&B Music Generator | Create Classic & Contemporary R&B AI Songs",
+    description: "Generate authentic R&B music with AI. Choose from New Jack Swing, Hip-Hop Soul, Contemporary R&B and more classic genres.",
     images: [
       "/hero-image-dark.jpeg",
     ],

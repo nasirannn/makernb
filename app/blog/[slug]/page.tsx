@@ -25,7 +25,7 @@ export default function BlogPostPage({ params }: BlogPostPageProps) {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900">
+    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-600/80 to-slate-900">
       {/* Hero Section with Background Image */}
       <section className="relative pt-20 pb-8 min-h-[60vh] flex items-center">
         {/* Background Image */}
@@ -51,7 +51,7 @@ export default function BlogPostPage({ params }: BlogPostPageProps) {
             {/* Author, Date & Category */}
             <div className="flex items-center justify-center gap-6 text-white/90 flex-wrap">
               <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-full bg-gradient-to-br from-purple-400 to-purple-600 flex items-center justify-center">
+                <div className="w-10 h-10 rounded-full bg-gradient-to-br from-purple-600 to-purple-600 flex items-center justify-center">
                   <span className="text-white font-semibold text-sm">
                     {post.author.charAt(0)}
                   </span>

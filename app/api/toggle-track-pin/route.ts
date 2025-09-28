@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getUserIdFromRequest, isAdmin } from '@/lib/auth-utils';
-import { toggleTrackPin } from '@/lib/tracks-db';
+import { query } from '@/lib/neon';
 
 export async function POST(request: NextRequest) {
   try {
@@ -37,7 +37,24 @@ export async function POST(request: NextRequest) {
 
     console.log('Toggle pin for track:', trackId, 'by admin:', userId);
     
-    const isPinned = await toggleTrackPin(trackId);
+    // 使用单个SQL语句进行toggle操作，减少查询次数
+    const result = await query(`
+      UPDATE music_tracks 
+      SET is_pinned = NOT COALESCE(is_pinned, false), 
+          updated_at = NOW()
+      WHERE id = $1
+      RETURNING is_pinned, 
+                CASE WHEN id IS NOT NULL THEN true ELSE false END as track_exists
+    `, [trackId]);
+
+    if (result.rows.length === 0 || !result.rows[0].track_exists) {
+      return NextResponse.json(
+        { success: false, error: 'Track not found' },
+        { status: 404 }
+      );
+    }
+
+    const isPinned = result.rows[0].is_pinned;
     console.log('Track pin status after toggle:', isPinned);
 
     return NextResponse.json({

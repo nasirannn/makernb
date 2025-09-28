@@ -20,14 +20,14 @@ export default function TermsOfService() {
         <section className="mb-8">
           <h2 className="text-2xl font-semibold mb-4">Agreement to Terms</h2>
           <p className="mb-4">
-            By accessing and using R&B Generator (&quot;Service&quot;), you agree to be bound by these Terms of Service (&quot;Terms&quot;). If you disagree with any part of these terms, you may not access the Service.
+            By accessing and using R&B  Music Generator (&quot;Service&quot;), you agree to be bound by these Terms of Service (&quot;Terms&quot;). If you disagree with any part of these terms, you may not access the Service.
           </p>
         </section>
 
         <section className="mb-8">
           <h2 className="text-2xl font-semibold mb-4">Description of Service</h2>
           <p className="mb-4">
-            R&B Generator is an AI-powered music generation platform that specializes in creating authentic R&B tracks. Our service allows users to generate original music in various R&B styles including 90s soul, contemporary R&B, and other related genres.
+            R&B  Music Generator is an AI-powered music generation platform that specializes in creating authentic R&B tracks. Our service allows users to generate original music in various R&B styles including classic soul, contemporary R&B, and other related genres.
           </p>
         </section>
 
@@ -64,7 +64,7 @@ export default function TermsOfService() {
 
           <h3 className="text-xl font-medium mb-3">Our Technology</h3>
           <p className="mb-4">
-            The R&B Generator platform, including our AI models, algorithms, and software, remains our exclusive property. You may not copy, modify, or create derivative works based on our technology.
+            The R&B  Music Generator platform, including our AI models, algorithms, and software, remains our exclusive property. You may not copy, modify, or create derivative works based on our technology.
           </p>
 
           <h3 className="text-xl font-medium mb-3">Input Content</h3>
@@ -103,7 +103,7 @@ export default function TermsOfService() {
         <section className="mb-8">
           <h2 className="text-2xl font-semibold mb-4">Limitation of Liability</h2>
           <p className="mb-4">
-            To the maximum extent permitted by law, R&B Generator shall not be liable for any indirect, incidental, special, consequential, or punitive damages, including loss of profits, data, or other intangible losses.
+            To the maximum extent permitted by law, R&B  Music Generator shall not be liable for any indirect, incidental, special, consequential, or punitive damages, including loss of profits, data, or other intangible losses.
           </p>
         </section>
 
@@ -124,7 +124,7 @@ export default function TermsOfService() {
         <section className="mb-8">
           <h2 className="text-2xl font-semibold mb-4">Governing Law</h2>
           <p className="mb-4">
-            These Terms shall be governed by and construed in accordance with the laws of the jurisdiction in which R&B Generator operates, without regard to conflict of law principles.
+            These Terms shall be governed by and construed in accordance with the laws of the jurisdiction in which R&B  Music Generator operates, without regard to conflict of law principles.
           </p>
         </section>
 
@@ -135,7 +135,7 @@ export default function TermsOfService() {
           </p>
           <div className="bg-muted p-4 rounded-lg">
             <p><strong>Email:</strong> legal@rbgenerator.com</p>
-            <p><strong>Address:</strong> R&B Generator Legal Team</p>
+            <p><strong>Address:</strong> R&B  Music Generator Legal Team</p>
           </div>
         </section>
       </div>

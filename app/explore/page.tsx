@@ -3,8 +3,9 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { PageLoading } from '@/components/ui/loading-dots';
 import { Play, Pause, Music } from 'lucide-react';
-import Image from 'next/image';
+import { SafeImage } from '@/components/ui/safe-image';
 import { SimpleMusicPlayer } from '@/components/ui/simple-music-player';
 
 interface Track {
@@ -19,7 +20,7 @@ interface MusicGeneration {
   id: string;
   title: string;
   genre: string;
-  style: string;
+  tags: string;
   prompt?: string;
   lyrics?: string;
   createdAt: string;
@@ -37,12 +38,25 @@ interface ExploreData {
   offset: number;
 }
 
+// Genre options for filtering
+const GENRE_OPTIONS = [
+  { id: 'all', name: 'All Genres' },
+  { id: 'New Jack Swing', name: 'New Jack Swing' },
+  { id: 'Hip-Hop Soul', name: 'Hip-Hop Soul' },
+  { id: 'Quiet Storm', name: 'Quiet Storm' },
+  { id: 'Neo-Soul', name: 'Neo-Soul' },
+  { id: 'R&B', name: 'Contemporary R&B' }
+];
+
 export default function ExplorePage() {
   const [exploreData, setExploreData] = useState<ExploreData | null>(null);
   const [loading, setLoading] = useState(true);
   const [loadingMore, setLoadingMore] = useState(false);
+  const [filterLoading, setFilterLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [currentlyPlaying, setCurrentlyPlaying] = useState<string | null>(null);
+  const [selectedGenre, setSelectedGenre] = useState<string>('all');
+  const [isInitialLoad, setIsInitialLoad] = useState(true);
 
   // 播放器状态
   const [currentTrackIndex, setCurrentTrackIndex] = useState(0);
@@ -58,8 +72,15 @@ export default function ExplorePage() {
   useEffect(() => {
     const loadData = async () => {
       try {
-        setLoading(true);
-        const response = await fetch(`/api/explore?limit=20&offset=0`);
+        // 区分初始加载和筛选加载
+        if (isInitialLoad) {
+          setLoading(true);
+        } else {
+          setFilterLoading(true);
+        }
+
+        const genreParam = selectedGenre !== 'all' ? `&genre=${selectedGenre}` : '';
+        const response = await fetch(`/api/explore?limit=20&offset=0${genreParam}`);
         if (response.ok) {
           const result = await response.json();
           if (result.success && result.data) {
@@ -75,12 +96,17 @@ export default function ExplorePage() {
         console.error('Error fetching explore data:', error);
         setError('Failed to load music data');
       } finally {
-        setLoading(false);
+        if (isInitialLoad) {
+          setLoading(false);
+          setIsInitialLoad(false);
+        } else {
+          setFilterLoading(false);
+        }
       }
     };
 
     loadData();
-  }, []);
+  }, [selectedGenre, isInitialLoad]);
 
   const fetchExploreData = async (offset = 0, append = false) => {
     try {
@@ -90,7 +116,8 @@ export default function ExplorePage() {
         setLoading(true);
       }
       
-      const response = await fetch(`/api/explore?limit=20&offset=${offset}`);
+      const genreParam = selectedGenre !== 'all' ? `&genre=${selectedGenre}` : '';
+      const response = await fetch(`/api/explore?limit=20&offset=${offset}${genreParam}`);
       const data = await response.json();
       
       if (data.success) {
@@ -260,10 +287,7 @@ export default function ExplorePage() {
     return (
       <div className="min-h-screen bg-black pt-24">
         <div className="container mx-auto px-4 py-8">
-          <div className="text-center">
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-white mx-auto mb-4"></div>
-            <p className="text-white/70">Loading music...</p>
-          </div>
+          <PageLoading message="Loading music" className="text-white" />
         </div>
       </div>
     );
@@ -288,19 +312,52 @@ export default function ExplorePage() {
     <div className="min-h-screen bg-black pt-24">
       <div className={`container mx-auto px-4 py-8 ${playlist.length > 0 && currentlyPlaying ? 'pb-32' : ''}`}>
         {/* Header */}
-        <div className="text-center mb-12">
+        <div className="text-center mb-8">
           <h1 className="text-3xl md:text-4xl font-bold text-primary mb-4">
-            Listen to The AI-Generated Contemporary & 90s R&B Songs
+            Listen to The AI-Generated R&B Songs
           </h1>
-          <p className="text-white/70 text-lg max-w-2xl mx-auto">
+          <p className="text-white/70 text-lg max-w-2xl mx-auto mb-8">
             Explore soulful tracks crafted by artificial intelligence
           </p>
+        </div>
+
+        {/* Genre Filter - 左对齐 */}
+        <div className="mb-8">
+          <div className="flex flex-wrap gap-2">
+            {GENRE_OPTIONS.map((genre) => (
+              <Button
+                key={genre.id}
+                variant={selectedGenre === genre.id ? "default" : "outline"}
+                size="sm"
+                onClick={() => setSelectedGenre(genre.id)}
+                disabled={filterLoading}
+                className={`transition-all duration-200 ${
+                  selectedGenre === genre.id
+                    ? 'bg-primary text-primary-foreground hover:bg-primary/90'
+                    : 'bg-black/20 border-white/20 text-white hover:bg-white/10 hover:border-white/30'
+                } ${filterLoading ? 'opacity-50 cursor-not-allowed' : ''}`}
+              >
+                {genre.name}
+              </Button>
+            ))}
+          </div>
         </div>
 
         {/* Music Grid */}
         {exploreData && exploreData.music && exploreData.music.length > 0 ? (
           <>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-6">
+            <div className="relative">
+              {/* Filter Loading Overlay */}
+              {filterLoading && (
+                <div className="absolute inset-0 bg-black/50 backdrop-blur-sm z-10 flex items-center justify-center rounded-xl">
+                  <div className="text-center">
+                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-white mx-auto mb-2"></div>
+                    <span className="text-white/90">Filtering music...</span>
+                  </div>
+                </div>
+              )}
+
+              <div className={`grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-6 ${filterLoading ? 'opacity-50' : ''}`}>
               {exploreData.music.map((music) => (
                 <div
                   key={music.id}
@@ -309,14 +366,15 @@ export default function ExplorePage() {
                   {/* Cover Image */}
                   <div className="relative aspect-square">
                     {music.primaryTrack.cover_r2_url ? (
-                      <Image
+                      <SafeImage
                         src={music.primaryTrack.cover_r2_url}
                         alt={music.title}
                         fill
                         className="object-cover"
+                        fallbackContent={<Music className="w-16 h-16 text-white/50" />}
                       />
                     ) : (
-                      <div className="w-full h-full bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center">
+                      <div className="w-full h-full bg-gradient-to-br from-purple-600 to-purple-600 flex items-center justify-center">
                         <Music className="w-16 h-16 text-white/50" />
                       </div>
                     )}
@@ -366,7 +424,7 @@ export default function ExplorePage() {
                       {music.title}
                     </h3>
                     <p className="text-white/70 text-sm mb-2 truncate capitalize whitespace-nowrap overflow-hidden">
-                      {music.style}
+                      {music.tags}
                     </p>
                     <div className="flex items-center text-white/50 text-xs">
                       <span>{music.trackCount} tracks</span>
@@ -374,8 +432,9 @@ export default function ExplorePage() {
                   </div>
                 </div>
               ))}
+              </div>
             </div>
-            
+
             {/* Load More Button */}
             {exploreData && exploreData.music && exploreData.music.length < exploreData.count && (
               <div className="text-center mt-12">
@@ -393,6 +452,18 @@ export default function ExplorePage() {
                     'Load More'
                   )}
                 </Button>
+              </div>
+            )}
+
+            {/* No More Music Message */}
+            {exploreData && exploreData.music && exploreData.music.length > 0 && exploreData.music.length >= exploreData.count && (
+              <div className="text-center mt-12 py-8">
+                <div className="inline-flex items-center justify-center w-12 h-12 rounded-full bg-white/5 mb-4">
+                  <Music className="w-6 h-6 text-white/40" />
+                </div>
+                <p className="text-white/60 text-sm">
+                  All the music is here ✨
+                </p>
               </div>
             )}
           </>

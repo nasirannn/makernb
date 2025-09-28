@@ -19,15 +19,16 @@ export async function GET(request: NextRequest) {
 
     // 查询任务记录
     const genResult = await query(
-      'SELECT id, status, title, genre, style FROM music_generations WHERE task_id = $1',
+      'SELECT id, status, title, genre, tags FROM music_generations WHERE task_id = $1',
       [taskId]
     );
 
     if (genResult.rows.length === 0) {
+      console.error(`No music generation record found for task_id: ${taskId}`);
       return NextResponse.json({
-        code: 202,
-        msg: 'Task not found or not started',
-        data: { taskId, status: 'generating', tracks: [] }
+        code: 404,
+        msg: `No music generation record found for task_id: ${taskId}`,
+        data: { taskId, status: 'not_found', tracks: [] }
       });
     }
 
@@ -44,7 +45,7 @@ export async function GET(request: NextRequest) {
         mt.side_letter,
         mg.title as title,
         mg.genre as genre,
-        mg.style as style,
+        mg.tags as tags,
         (
           SELECT ci.r2_url FROM cover_images ci
           WHERE ci.music_track_id = mt.id
@@ -73,7 +74,7 @@ export async function GET(request: NextRequest) {
       
       // 文本数据 - text回调时就有
       title: row.title || '',
-      tags: row.style || '',
+      tags: row.tags || '',
       genre: row.genre || null,
       lyrics: row.lyrics_content || '',
       streamAudioUrl: row.stream_audio_url || '',
@@ -118,6 +119,7 @@ export async function GET(request: NextRequest) {
       msg: 'Success',
       data: {
         taskId,
+        generationId: generation.id, // 添加generationId
         status,
         tracks,
         errorInfo: errorInfo ? {

@@ -171,9 +171,17 @@ async function processCoverCallbackAsync(callbackData: any) {
             console.log(`Downloading cover image ${i + 1}: ${imageUrl}`);
             const imageBuffer = await downloadFromUrl(imageUrl);
             
-            // 从URL中提取原始文件名
+            // 从URL中提取原始文件名，确保使用图片的唯一ID
             const urlParts = imageUrl.split('/');
-            const originalFilename = urlParts[urlParts.length - 1] || `cover_${i + 1}.png`;
+            let originalFilename = urlParts[urlParts.length - 1];
+
+            // 确保文件名有效，如果提取失败则使用时间戳+索引作为备用
+            if (!originalFilename || originalFilename.trim() === '') {
+              console.warn(`Failed to extract filename from URL: ${imageUrl}, using fallback`);
+              originalFilename = `cover_${Date.now()}_${i + 1}.png`;
+            }
+
+            console.log(`Extracted filename: ${originalFilename} from URL: ${imageUrl}`);
             originalFilenames.push(originalFilename);
             
             console.log(`About to upload cover image ${i + 1} with userId: "${finalUserId}" (type: ${typeof finalUserId})`);
