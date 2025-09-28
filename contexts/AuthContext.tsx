@@ -48,8 +48,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
       // 如果没有缓存，进行检查
       if (cachedAdminStatus === undefined) {
-        // 直接检查环境变量，避免依赖外部函数
-        const adminId = process.env.NEXT_PUBLIC_ADMIN_ID || process.env.ADMIN_ID;
+        // 在客户端只能访问 NEXT_PUBLIC_ 开头的环境变量
+        const adminId = process.env.NEXT_PUBLIC_ADMIN_ID;
         const adminStatus = Boolean(adminId && user.id === adminId);
 
         // 缓存结果
