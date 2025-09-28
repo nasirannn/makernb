@@ -27,14 +27,12 @@ export const grantDailyLoginCredits = async (userId: string): Promise<{ id: stri
     // 检查是否是管理员
     const adminId = process.env.ADMIN_ID;
     if (adminId && userId === adminId) {
-      console.log('Admin user, skipping daily login credits');
       return null;
     }
 
     // 检查今天是否已经获得积分
     const hasCredits = await hasReceivedTodayCredits(userId);
     if (hasCredits) {
-      console.log('User already received today credits');
       return null;
     }
 
@@ -80,7 +78,6 @@ export const grantDailyLoginCredits = async (userId: string): Promise<{ id: stri
 
       await client.query('COMMIT');
       
-      console.log(`Daily login credits granted: ${creditsAmount} credits to user ${userId}`);
       
       // 返回类似原来的结构，但使用 transaction id
       return {
@@ -162,7 +159,6 @@ export const cleanupExpiredDailyCredits = async (): Promise<number> => {
       await client.query('COMMIT');
       
       if (cleanedCount > 0) {
-        console.log(`Cleaned up ${cleanedCount} expired daily login credits`);
       }
       
       return cleanedCount;

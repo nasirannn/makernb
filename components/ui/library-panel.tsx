@@ -130,13 +130,10 @@ export const LibraryPanel = ({
   };
 
   const handleTrackAction = (track: Track, action: 'play' | 'select') => {
-    console.log('handleTrackAction called:', { trackId: track.id, action, hasOnTrackPlay: !!onTrackPlay });
     
     if (action === 'play' && onTrackPlay) {
-      console.log('Calling onTrackPlay');
       onTrackPlay(track);
     } else if (action === 'select' && onTrackSelect) {
-      console.log('Calling onTrackSelect');
       onTrackSelect(track);
       // Only show lyrics panel if it's not already open
       if (!showLyrics) {
@@ -396,12 +393,6 @@ export const LibraryPanel = ({
                       : `${index % 2 === 0 ? 'bg-white/5' : 'bg-transparent'} hover:bg-white/10`
                   }`}
                   onClick={(e) => {
-                    console.log('Track row clicked!', {
-                      trackId: track.id,
-                      target: e.target,
-                      currentTarget: e.currentTarget,
-                      event: e
-                    });
                     handleTrackAction(track, 'select');
                   }}
                 >
@@ -436,12 +427,6 @@ export const LibraryPanel = ({
                         size="sm"
                         className="h-10 w-10 p-0 bg-white/20 hover:bg-white/30 backdrop-blur-sm"
                         onClick={(e) => {
-                          console.log('Button clicked!', {
-                            trackId: track.id,
-                            isPlaying,
-                            currentPlayingTrack,
-                            event: e
-                          });
                           e.stopPropagation();
                           handleTrackAction(track, 'play');
                         }}

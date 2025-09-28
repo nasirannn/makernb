@@ -124,13 +124,11 @@ export const useAudioPlayer = () => {
     return new Promise<void>((resolve, reject) => {
       const audio = audioRef.current!;
 
-      console.log('Playing stream audio:', streamUrl);
 
       // 为流式音频优化设置
       audio.preload = 'none';
 
       const handleCanPlay = () => {
-        console.log('Stream audio ready to play');
         audio.removeEventListener('canplay', handleCanPlay);
         audio.removeEventListener('error', handleError);
         resolve();
@@ -153,7 +151,6 @@ export const useAudioPlayer = () => {
       // 尝试播放
       audio.play().then(() => {
         setIsPlaying(true);
-        console.log('Stream audio playing successfully');
       }).catch((playError) => {
         console.error('Stream audio play error:', playError);
         setIsPlaying(false);

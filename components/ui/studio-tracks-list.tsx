@@ -78,12 +78,9 @@ export const StudioTracksList: React.FC<StudioTracksListProps> = ({
   };
 
   // 将所有 tracks 展平，过滤掉已删除的tracks
-  console.log('StudioTracksList userTracks:', userTracks);
   const allTracks = userTracks.flatMap(music => {
-    console.log('Processing music:', music);
     // 安全检查：确保 allTracks 存在且是数组
     if (!music.allTracks || !Array.isArray(music.allTracks)) {
-      console.log('Music without allTracks:', music);
       return [];
     }
     return music.allTracks
@@ -111,34 +108,17 @@ export const StudioTracksList: React.FC<StudioTracksListProps> = ({
 
   // 处理歌曲选择（点击歌曲行）
   const handleTrackSelect = (track: any) => {
-    console.log('handleTrackSelect called:', {
-      track,
-      onTrackSelect: !!onTrackSelect,
-      musicGeneration: track.musicGeneration,
-      trackId: track.id
-    });
     if (onTrackSelect) {
-      console.log('Calling onTrackSelect with:', track, track.musicGeneration);
       onTrackSelect(track, track.musicGeneration);
     } else {
-      console.log('onTrackSelect is not available');
     }
   };
 
   // 处理播放/暂停（点击播放按钮）
   const handlePlayPause = (track: any) => {
-    console.log('handlePlayPause called:', {
-      track,
-      onTrackPlay: !!onTrackPlay,
-      musicGeneration: track.musicGeneration,
-      trackId: track.id,
-      audioUrl: track.audio_url
-    });
     if (onTrackPlay) {
-      console.log('Calling onTrackPlay with:', track, track.musicGeneration);
       onTrackPlay(track, track.musicGeneration);
     } else {
-      console.log('onTrackPlay is not available');
     }
   };
 
@@ -299,7 +279,6 @@ export const StudioTracksList: React.FC<StudioTracksListProps> = ({
                           onClick={(e) => {
                             e.stopPropagation();
                             // 处理新生成歌曲的播放逻辑
-                            console.log('Generated track play button clicked:', track);
                             if (onGeneratedTrackSelect) {
                               // 直接传递生成的track数据，不需要mock
                               onGeneratedTrackSelect(track);

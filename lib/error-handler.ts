@@ -101,7 +101,6 @@ export async function retryOperation<T>(
   
   for (let attempt = 1; attempt <= maxRetries; attempt++) {
     try {
-      console.log(`Attempt ${attempt}/${maxRetries} for ${context.operation}`);
       return await operation();
     } catch (error) {
       lastError = error;
@@ -111,7 +110,6 @@ export async function retryOperation<T>(
         throw error;
       }
       
-      console.log(`Retrying in ${delay}ms...`);
       await new Promise(resolve => setTimeout(resolve, delay));
       delay *= 2; // 指数退避
     }

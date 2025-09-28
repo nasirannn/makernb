@@ -35,7 +35,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const checkDailyCredits = async (sessionToken?: string) => {
     const token = sessionToken || session?.access_token;
     if (!token) {
-      console.log('No token available for daily credits check');
       return;
     }
 
@@ -44,7 +43,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       // 检查缓存
       const cachedAdminStatus = adminCheckCache.current.get(user.id);
       if (cachedAdminStatus === true) {
-        console.log('Admin user detected (cached), skipping daily credits check');
         return;
       }
 
@@ -53,23 +51,18 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         // 直接检查环境变量，避免依赖外部函数
         const adminId = process.env.NEXT_PUBLIC_ADMIN_ID || process.env.ADMIN_ID;
         const adminStatus = Boolean(adminId && user.id === adminId);
-        console.log(`Checking admin status for user ${user.id} against ${adminId}: ${adminStatus}`);
 
         // 缓存结果
         adminCheckCache.current.set(user.id, adminStatus);
 
         if (adminStatus) {
-          console.log('Admin user detected, skipping daily credits check');
           return;
         }
       }
-    } else {
-      console.log('User ID not available yet, proceeding with API call');
     }
 
     // 防止重复调用 - 检查进行中状态
     if (creditsCheckInProgress.current) {
-      console.log('Daily credits check already in progress, skipping...');
       return;
     }
 
@@ -81,7 +74,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       : lastCreditsCheckTime.current;
 
     if (now - lastCheckTime < 300000) { // 5分钟 = 300000ms
-      console.log('Daily credits check called too recently, skipping...');
       return;
     }
 
@@ -93,7 +85,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
 
     try {
-      console.log('Checking daily credits with token...');
       const response = await fetch('/api/daily-login-credits', {
         method: 'POST',
         headers: {
@@ -102,27 +93,23 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         },
       });
 
-      console.log('Daily credits API response:', response.status);
 
       if (response.ok) {
         const data = await response.json();
-        console.log('Daily credits response data:', data);
         if (data.success && data.reward) {
-          console.log('Daily login credits granted:', data.reward);
           // 显示每日登录积分通知
           setRewardCredits(data.reward.credits_awarded);
           setShowRewardNotification(true);
         } else if (data.alreadyReceived) {
-          console.log('User already received today\'s credits');
+          // User already received today's credits
         } else if (data.message?.includes('Not eligible')) {
-          console.log('User not eligible for daily credits (likely admin user)');
+          // User not eligible for daily credits (likely admin user)
         }
       } else if (response.status === 401) {
         console.error('Authentication failed for daily credits check - token may be invalid');
         // Token可能过期，尝试刷新session
         const { data: { session: newSession } } = await supabase.auth.getSession();
         if (newSession?.access_token && newSession.access_token !== token) {
-          console.log('Retrying with refreshed token...');
           // 用新token重试
           setTimeout(() => {
             checkDailyCredits(newSession.access_token);
@@ -140,11 +127,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   // 手动检查积分（用于调试或重试）
   const manualCheckCredits = async () => {
-    console.log('Manual daily credits check triggered');
     if (session?.access_token) {
       await checkDailyCredits(session.access_token);
-    } else {
-      console.log('No session available for manual check');
     }
   };
 
@@ -171,10 +155,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             ? sessionStorage.getItem(checkKey) === 'true'
             : false;
 
-          console.log(`Daily credits check status: hasCheckedToday=${hasCheckedToday}, creditsCheckInProgress=${creditsCheckInProgress.current}, checkKey=${checkKey}`);
-
           if (!hasCheckedToday && !creditsCheckInProgress.current) {
-            console.log('Initial session found, checking daily credits...');
             // 标记今天已经检查过
             if (typeof window !== 'undefined') {
               sessionStorage.setItem(checkKey, 'true');
@@ -183,8 +164,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             setTimeout(() => {
               checkDailyCredits(session.access_token);
             }, 1500); // 增加延迟确保token有效
-          } else {
-            console.log('Daily credits already checked today or in progress');
           }
         }
       }
@@ -196,7 +175,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const {
       data: { subscription },
     } = supabase.auth.onAuthStateChange(async (event, session) => {
-      console.log('Auth state change:', event, session?.user?.email);
 
       if (mounted) {
         setSession(session);
@@ -225,7 +203,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             : false;
 
           if (!hasCheckedToday && !creditsCheckInProgress.current) {
-            console.log('User signed in, checking daily credits...');
             // 标记今天已经检查过
             if (typeof window !== 'undefined') {
               sessionStorage.setItem(checkKey, 'true');
@@ -234,12 +211,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             setTimeout(() => {
               checkDailyCredits(session.access_token);
             }, 2000); // 增加延迟确保登录流程完成
-          } else {
-            console.log('User signed in, but daily credits already checked today or in progress');
           }
         } else if (event === 'TOKEN_REFRESHED' && session?.access_token) {
           // Token刷新时不再自动检查积分，避免窗口焦点变化时的重复调用
-          console.log('Token refreshed, but skipping daily credits check to avoid duplicate calls');
         }
       }
     });

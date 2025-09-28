@@ -202,48 +202,35 @@ const LibraryContent = () => {
     }, [handleNext]);
 
     const handlePlay = React.useCallback(() => {
-        console.log('Audio play event triggered');
         setIsPlaying(true);
     }, []);
 
     const handlePause = React.useCallback(() => {
-        console.log('Audio pause event triggered');
         setIsPlaying(false);
     }, []);
 
     // 播放/暂停控制
     const togglePlayPause = React.useCallback(() => {
-        console.log('togglePlayPause called:', {
-            isPlaying,
-            audioRef: !!audioRef.current,
-            audioSrc: audioRef.current?.src,
-            audioPaused: audioRef.current?.paused
-        });
         
         if (audioRef.current) {
             if (isPlaying) {
-                console.log('Pausing audio');
                 audioRef.current.pause();
                 // 手动更新状态作为备用
                 setTimeout(() => {
                     if (audioRef.current?.paused) {
-                        console.log('Manually setting isPlaying to false');
                         setIsPlaying(false);
                     }
                 }, 100);
             } else {
-                console.log('Playing audio');
                 audioRef.current.play().catch(console.error);
                 // 手动更新状态作为备用
                 setTimeout(() => {
                     if (!audioRef.current?.paused) {
-                        console.log('Manually setting isPlaying to true');
                         setIsPlaying(true);
                     }
                 }, 100);
             }
         } else {
-            console.log('No audioRef available');
         }
     }, [isPlaying]);
 
@@ -251,11 +238,9 @@ const LibraryContent = () => {
     React.useEffect(() => {
         const audio = audioRef.current;
         if (!audio) {
-            console.log('No audio element available for event binding');
             return;
         }
 
-        console.log('Binding audio event listeners');
         audio.addEventListener('loadedmetadata', handleAudioLoad);
         audio.addEventListener('timeupdate', handleTimeUpdate);
         audio.addEventListener('ended', handleAudioEnd);
@@ -263,7 +248,6 @@ const LibraryContent = () => {
         audio.addEventListener('pause', handlePause);
 
         return () => {
-            console.log('Removing audio event listeners');
             audio.removeEventListener('loadedmetadata', handleAudioLoad);
             audio.removeEventListener('timeupdate', handleTimeUpdate);
             audio.removeEventListener('ended', handleAudioEnd);
@@ -460,21 +444,12 @@ const LibraryContent = () => {
                                 setShowLyrics(true);
                             }}
                             onTrackPlay={(track) => {
-                                console.log('onTrackPlay called:', {
-                                    trackId: track.id,
-                                    currentTrackId: currentTrack?.id,
-                                    isPlaying,
-                                    audioRef: !!audioRef.current,
-                                    audioPaused: audioRef.current?.paused,
-                                    audioSrc: audioRef.current?.src
-                                });
 
                                 // 检查是否是同一首歌
                                 const isSameTrack = currentTrack?.id === track.id;
 
                                 if (isSameTrack && audioRef.current) {
                                     // 同一首歌：切换播放/暂停
-                                    console.log('Same track - toggling play/pause');
                                     if (isPlaying) {
                                         audioRef.current.pause();
                                         setIsPlaying(false);
@@ -488,7 +463,6 @@ const LibraryContent = () => {
                                     }
                                 } else {
                                     // 不同的歌或没有当前歌曲：加载并播放新歌
-                                    console.log('Different track - loading and playing');
 
                                     // 设置选中状态
                                     setSelectedLibraryTrack(track.id);
@@ -546,7 +520,6 @@ const LibraryContent = () => {
                             }}
                             onTrackAction={(track, action) => {
                                 // Handle other track actions like pin, delete, etc.
-                                console.log('Track action:', action, track.id);
                                 
                                 if (action === 'pin') {
                                     // 更新本地tracks数据中的置顶状态
@@ -657,7 +630,6 @@ const LibraryContent = () => {
                         }}
                         onPublishToggle={() => {
                             // TODO: 实现发布/取消发布功能
-                            console.log('Publish toggle');
                         }}
                         onPinToggle={async () => {
                             const track = getSelectedTrackForLyrics();
@@ -709,7 +681,6 @@ const LibraryContent = () => {
                         }}
                         onDelete={() => {
                             // 删除功能通过onTrackAction处理
-                            console.log('Delete action triggered');
                         }}
                     />
                 </div>

@@ -50,7 +50,6 @@ export const useLyricsGeneration = () => {
     setIsGeneratingLyrics(true);
 
     try {
-      console.log('Starting AI lyrics generation with prompt:', lyricsPrompt);
 
       // 获取Supabase session token
       const { data: { session } } = await supabase.auth.getSession();
@@ -77,15 +76,12 @@ export const useLyricsGeneration = () => {
       }
 
       const result = await response.json();
-      console.log('Lyrics API result:', result);
 
       if (result.success) {
         if (result.data?.taskId) {
-          console.log('Lyrics generation started, taskId:', result.data.taskId);
 
           // 轮询查询歌词状态，填充到 textarea
           const taskId = result.data.taskId as string;
-          console.log('Lyrics generation started (taskId):', taskId);
 
           // 清理已有轮询避免重复
           cleanupResources();
@@ -122,7 +118,6 @@ export const useLyricsGeneration = () => {
           }, 2000);
         } else if (result.data?.generationFailed) {
           // 没有taskId，说明生成失败（可能包含敏感词等）
-          console.log('Lyrics generation failed - no taskId received');
           setIsGeneratingLyrics(false);
 
           // 显示友好的错误信息

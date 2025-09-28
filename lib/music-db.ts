@@ -116,7 +116,6 @@ export const createMusicGeneration = async (
 export const softDeleteMusicGeneration = async (generationId: string, userId: string): Promise<boolean> => {
   try {
     validateRequiredParams({ generationId, userId }, ['generationId', 'userId']);
-    console.log('softDeleteMusicGeneration called with:', { generationId, userId });
 
     return await withTransaction(async (queryFn) => {
       // 1. Soft delete music_generation record
@@ -128,7 +127,6 @@ export const softDeleteMusicGeneration = async (generationId: string, userId: st
         [generationId, userId]
       );
 
-      console.log('Generation soft delete result:', generationResult.rows);
 
       if (generationResult.rows.length === 0) {
         return false;
@@ -143,8 +141,6 @@ export const softDeleteMusicGeneration = async (generationId: string, userId: st
         [generationId]
       );
 
-      console.log('Tracks soft delete result:', tracksResult.rows);
-      console.log(`Soft deleted ${tracksResult.rows.length} tracks for generation ${generationId}`);
 
       return true;
     });
@@ -160,7 +156,6 @@ export const softDeleteMusicGeneration = async (generationId: string, userId: st
 export const softDeleteMusicTrack = async (trackId: string, userId: string): Promise<boolean> => {
   try {
     validateRequiredParams({ trackId, userId }, ['trackId', 'userId']);
-    console.log('softDeleteMusicTrack called with:', { trackId, userId });
 
     // Verify user owns the track and soft delete it
     const result = await query(
@@ -175,8 +170,6 @@ export const softDeleteMusicTrack = async (trackId: string, userId: string): Pro
       [trackId, userId]
     );
 
-    console.log('Track soft delete result:', result.rows);
-    console.log('Rows affected:', result.rows.length);
 
     return result.rows.length > 0;
   } catch (error) {
@@ -576,7 +569,6 @@ export const fixMissingTitlesFromLyrics = async (): Promise<{ updated: number; e
         AND ml.title != 'Generated Lyrics'
     `);
 
-    console.log(`Found ${result.rows.length} records to fix`);
 
     for (const row of result.rows) {
       try {
@@ -587,7 +579,6 @@ export const fixMissingTitlesFromLyrics = async (): Promise<{ updated: number; e
           [row.lyrics_title, row.generation_id]
         );
 
-        console.log(`Updated generation ${row.generation_id} with title: ${row.lyrics_title}`);
         updated++;
       } catch (error) {
         const errorMsg = `Failed to update generation ${row.generation_id}: ${error}`;

@@ -43,7 +43,6 @@ export const query = async (text: string, params?: any[], retries = 2) => {
       // 如果不是最后一次尝试，等待后重试
       if (attempt < retries) {
         const delay = 1000 * attempt; // 1秒, 2秒
-        console.log(`Retrying in ${delay}ms...`);
         await new Promise(resolve => setTimeout(resolve, delay));
       }
     } finally {
@@ -63,10 +62,6 @@ export const query = async (text: string, params?: any[], retries = 2) => {
 export const testConnection = async () => {
   try {
     const result = await query('SELECT NOW() as current_time, version() as db_version');
-    console.log('Database connected successfully:', {
-      time: result.rows[0].current_time,
-      version: result.rows[0].db_version.split(' ')[0] // 只显示PostgreSQL版本号
-    });
     return true;
   } catch (error) {
     console.error('Database connection failed:', error instanceof Error ? error.message : String(error));
@@ -125,6 +120,6 @@ export const pool = {
     };
   },
   async end() {
-    console.log('Connection pool ended (no-op)');
+    // Connection pool ended (no-op)
   }
 };

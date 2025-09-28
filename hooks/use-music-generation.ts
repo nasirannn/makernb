@@ -430,10 +430,7 @@ export const useMusicGeneration = () => {
             updateTracksDisplay(tracksInfo, setIsPlaying);
           } else {
             // 没有 tracks 数据时，继续显示skeleton，等待真实数据
-            console.log('Text callback complete but no tracks data yet, keeping skeleton state');
           }
-        } else {
-          console.log('Text callback not complete yet, keeping skeleton state');
         }
 
         handleStatusUpdates(status, tracks);
@@ -489,7 +486,6 @@ export const useMusicGeneration = () => {
         throw new Error('No valid session found');
       }
 
-      console.log('=== Calling Music Generation API ===');
 
       // Call real API
       const response = await fetch('/api/generate-music', {
@@ -523,10 +519,8 @@ export const useMusicGeneration = () => {
         }
 
         if (result.data?.taskId) {
-          console.log('Music generation started, taskId:', result.data.taskId);
           startPollingStatus(result.data.taskId, setIsPlaying);
         } else {
-          console.log('Music generation failed - no taskId received');
           throw new Error('No task ID received from server');
         }
       } else {

@@ -145,21 +145,6 @@ class MusicApiService {
     apiParams.styleWeight = 1.0;
     apiParams.weirdnessConstraint = 0.1;
     apiParams.audioWeight = 0.0;
-    console.log('=== 发送到KIE AI API的最终参数 ===');
-    console.log('API URL:', `${this.baseUrl}/api/v1/generate`);
-    console.log('API参数:', JSON.stringify(apiParams, null, 2));
-    console.log('参数类型验证:', {
-      'prompt类型': typeof apiParams.prompt,
-      'prompt长度': apiParams.prompt ? apiParams.prompt.length : 0,
-      'style类型': typeof apiParams.style,
-      'style值': apiParams.style,
-      'bpm类型': typeof apiParams.bpm,
-      'bpm值': apiParams.bpm,
-      'vocalGender类型': typeof apiParams.vocalGender,
-      'vocalGender值': apiParams.vocalGender,
-      'title类型': typeof apiParams.title,
-      'title值': apiParams.title
-    });
 
     const response = await fetch(`${this.baseUrl}/api/v1/generate`, {
       method: 'POST',
@@ -177,8 +162,6 @@ class MusicApiService {
 
     const data = await response.json();
 
-    console.log('Raw API response:', JSON.stringify(data, null, 2));
-
     // Check for API success
     if (data.code === 200) {
       return {
@@ -188,7 +171,6 @@ class MusicApiService {
       };
     } else {
       // API返回错误，但不抛出异常，而是返回错误信息
-      console.log(`API returned error (${data.code}): ${data.msg}`);
       return {
         status: 'error',
         error: `API error (${data.code})`,
@@ -234,14 +216,11 @@ class MusicApiService {
 
   // Generate cover for existing music task
   async generateCover(request: GenerateCoverRequest): Promise<CoverApiResponse> {
-    console.log(`Generating cover for taskId: ${request.taskId}`);
 
     const apiParams = {
       taskId: request.taskId,
       callBackUrl: request.callBackUrl || process.env.COVER_CALLBACK_URL,
     };
-    
-    console.log('Cover API request params:', JSON.stringify(apiParams, null, 2));
     
     const response = await fetch(`${this.baseUrl}/api/v1/suno/cover/generate`, {
       method: 'POST',
@@ -259,7 +238,6 @@ class MusicApiService {
     }
 
     const data = await response.json();
-    console.log('Cover API response:', JSON.stringify(data, null, 2));
     
     // 根据官方文档处理响应
     if (data.code === 200) {
@@ -274,7 +252,6 @@ class MusicApiService {
       };
     } else if (data.code === 400) {
       // 重复请求：该音乐任务已生成过Cover
-      console.log(`Cover already exists for taskId: ${request.taskId}`);
       return {
         code: data.code,
         msg: data.msg || 'Cover already exists for this music task',

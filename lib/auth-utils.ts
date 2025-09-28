@@ -12,7 +12,6 @@ export async function getUserIdFromRequest(request: NextRequest): Promise<string
     const authHeader = request.headers.get('authorization');
 
     if (!authHeader || !authHeader.startsWith('Bearer ')) {
-      console.log('No valid Authorization header found');
       return null;
     }
 
@@ -22,7 +21,6 @@ export async function getUserIdFromRequest(request: NextRequest): Promise<string
     const { data: { user }, error: authError } = await supabase.auth.getUser(token);
 
     if (authError || !user) {
-      console.log('Invalid token or user not found:', authError);
       return null;
     }
 

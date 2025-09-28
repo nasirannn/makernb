@@ -32,7 +32,6 @@ export const createCoverGeneration = async (
   } catch (error) {
     // 如果是重复键错误，尝试获取现有记录
     if (error instanceof Error && error.message.includes('duplicate key value violates unique constraint')) {
-      console.log(`Cover generation with task_id ${coverTaskId} already exists, fetching existing record`);
       const existingResult = await query(
         `SELECT * FROM cover_generations WHERE task_id = $1`,
         [coverTaskId]

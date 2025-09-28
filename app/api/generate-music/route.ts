@@ -110,7 +110,6 @@ export async function POST(request: NextRequest) {
         );
       }
 
-      console.log(`User has sufficient credits: ${userCredits} >= ${creditCost}`);
     } catch (error) {
       console.error('Failed to check user credits:', error);
       return NextResponse.json(
@@ -135,7 +134,6 @@ export async function POST(request: NextRequest) {
 
     // 积分验证通过，调用音乐生成API
     const musicApi = new MusicApiService(apiKey);
-    console.log('Full request data:', requestData);
 
     // 构造完整的请求对象传递给API
     const musicRequest = {
@@ -157,7 +155,6 @@ export async function POST(request: NextRequest) {
 
     // Generate music
     const result = await musicApi.generateMusic(musicRequest);
-    console.log('API Response:', JSON.stringify(result, null, 2));
 
     // 创建数据库记录和扣除积分（只有API调用成功才执行）
     if (result.taskId) {
@@ -173,7 +170,6 @@ export async function POST(request: NextRequest) {
         }
 
         // 创建音乐生成记录
-        console.log(`Creating music generation record with genre: "${genreForDb}" (mode: ${mode})`);
         await createMusicGeneration(userId, {
           title: musicRequest.songTitle || null,
           genre: genreForDb,
@@ -181,7 +177,6 @@ export async function POST(request: NextRequest) {
           task_id: result.taskId,
           status: 'generating'
         });
-        console.log(`Music generation record created for taskId: ${result.taskId}`);
 
         // 扣除积分（这里应该不会失败，因为我们已经预先检查了）
         const creditConsumed = await consumeUserCredit(
@@ -198,7 +193,6 @@ export async function POST(request: NextRequest) {
           // 但如果发生了，我们记录错误但不阻止流程
         }
 
-        console.log('Music generation started successfully');
       } catch (dbError) {
         console.error('Failed to create music generation record after API call:', dbError);
         // API已经调用成功，但数据库操作失败
@@ -207,11 +201,9 @@ export async function POST(request: NextRequest) {
       }
     } else {
       // 没有taskId，说明生成失败（可能包含敏感词等）
-      console.log('Music generation failed - no taskId received');
 
       try {
         // 生成失败不扣除积分，因为用户没有得到任何结果
-        console.log('Generation failed - credits not consumed');
 
         // 创建失败记录到数据库
         let genreForDb;
@@ -238,7 +230,6 @@ export async function POST(request: NextRequest) {
           result.error
         );
 
-        console.log('Failed music generation record created');
 
         // 修改result以包含失败信息和积分信息
         (result as any).creditConsumed = 0; // 失败时不扣除积分

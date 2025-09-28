@@ -61,7 +61,6 @@ export async function generateTrackCoversDirectly(taskId: string, userId: string
         });
         
         // 封面数据现在通过cover_images表管理，不需要更新music_tracks表
-        console.log(`Cover data managed through cover_images table for track: ${track.id}`);
         
         // 调用封面生成API
         const coverResult = await musicApi.generateCover({
@@ -76,7 +75,6 @@ export async function generateTrackCoversDirectly(taskId: string, userId: string
           coverResult
         });
         
-        console.log(`Cover generation started for track ${i + 1}: ${track.title}`);
         
       } catch (error) {
         console.error(`Failed to generate cover for track ${i + 1}:`, error);

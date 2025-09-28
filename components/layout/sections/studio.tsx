@@ -541,7 +541,6 @@ const StudioContent = () => {
                 });
             } else {
                 // 场景2：删除单个track
-                console.log('Deleting single track:', trackToDelete.id);
                 response = await fetch(`/api/delete-track/${trackToDelete.id}`, {
                     method: 'DELETE',
                     headers: {

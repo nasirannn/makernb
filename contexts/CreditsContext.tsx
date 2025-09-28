@@ -22,16 +22,13 @@ export function CreditsProvider({ children }: { children: React.ReactNode }) {
 
   // 从后端获取积分余额
   const refreshCredits = useCallback(async () => {
-    console.log('refreshCredits called, user:', user?.id, 'isRefreshing:', isRefreshing);
     
     // 防止重复调用
     if (isRefreshing) {
-      console.log('refreshCredits already in progress, skipping');
       return;
     }
     
     if (!user) {
-      console.log('CreditsContext - No user, not fetching credits');
       setCredits(null);
       return;
     }
@@ -59,7 +56,6 @@ export function CreditsProvider({ children }: { children: React.ReactNode }) {
       if (response.ok) {
         const data = await response.json();
         setCredits(data.user?.credits || 0);
-        console.log('Fetched user credits:', data.user?.credits);
       } else {
         console.error('Failed to fetch credits:', response.statusText);
         setCredits(null);

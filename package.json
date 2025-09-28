@@ -12,7 +12,6 @@
     "test-db": "npx tsx scripts/test-db-connection.ts",
     "cleanup-r2": "npx tsx scripts/cleanup-r2-storage.ts",
     "cleanup-r2:delete": "npx tsx scripts/cleanup-r2-storage.ts --delete",
-    "debug-text-callback": "npx tsx scripts/debug-text-callback.ts"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.882.0",

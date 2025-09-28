@@ -1,4 +1,4 @@
-import { S3Client, PutObjectCommand, GetObjectCommand, DeleteObjectCommand, ListObjectsV2Command } from '@aws-sdk/client-s3';
+import { S3Client, PutObjectCommand, DeleteObjectCommand, ListObjectsV2Command } from '@aws-sdk/client-s3';
 
 // R2客户端配置
 export const r2Client = new S3Client({
@@ -10,7 +10,7 @@ export const r2Client = new S3Client({
   },
 });
 
-export const BUCKET_NAME = process.env.R2_BUCKET_NAME || 'rnb-music-gen';
+export const BUCKET_NAME = process.env.R2_BUCKET_NAME;
 const PUBLIC_DOMAIN = process.env.R2_PUBLIC_DOMAIN;
 
 /**
@@ -70,11 +70,6 @@ export async function uploadAudioFile(
     
     // 返回公开访问URL
     const publicUrl = `${PUBLIC_DOMAIN}/${key}`;
-    console.log('Generated audio URL:', {
-      PUBLIC_DOMAIN,
-      key,
-      publicUrl
-    });
     return publicUrl;
   } catch (error) {
     console.error('Error uploading audio file:', error);
@@ -240,7 +235,6 @@ export async function deleteAudioFiles(fileKeys: string[]): Promise<void> {
     });
 
     await Promise.all(deletePromises);
-    console.log(`Successfully deleted ${fileKeys.length} audio files`);
   } catch (error) {
     console.error('Error deleting audio files:', error);
     throw error;

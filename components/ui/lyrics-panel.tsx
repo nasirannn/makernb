@@ -49,14 +49,6 @@ export const LyricsPanel: React.FC<LyricsPanelProps> = ({
   const [isTagsExpanded, setIsTagsExpanded] = useState(false);
 
 
-  // 调试歌词数据
-  console.log('LyricsPanel props:', {
-    isOpen,
-    title,
-    hasLyrics: !!lyrics,
-    lyricsLength: lyrics?.length || 0,
-    lyricsPreview: lyrics?.substring(0, 100) || 'No lyrics'
-  });
 
   return (
     <div
