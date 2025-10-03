@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { query } from '@/lib/neon';
+import { query } from '@/lib/db-query-builder';
 import { getGenerationErrorByReferenceId } from '@/lib/generation-errors-db';
 
 // 强制动态渲染

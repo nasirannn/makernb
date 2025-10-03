@@ -66,9 +66,7 @@ export const StudioTracksList: React.FC<StudioTracksListProps> = ({
   onGeneratedTrackSelect
 }) => {
   
-  // 分页状态
-  const [currentPage, setCurrentPage] = useState(1);
-  const tracksPerPage = 10;
+  // 移除分页状态，显示所有歌曲
 
   // 格式化时长
   const formatDuration = (seconds: number) => {
@@ -95,16 +93,8 @@ export const StudioTracksList: React.FC<StudioTracksListProps> = ({
       }));
   });
 
-  // 计算分页数据
-  const totalPages = Math.ceil(allTracks.length / tracksPerPage);
-  const startIndex = (currentPage - 1) * tracksPerPage;
-  const endIndex = startIndex + tracksPerPage;
-  const currentTracks = allTracks.slice(startIndex, endIndex);
-
-  // 重置到第一页当数据变化时
-  useEffect(() => {
-    setCurrentPage(1);
-  }, [allTracks.length]);
+  // 显示所有歌曲，不分页
+  const currentTracks = allTracks;
 
   // 处理歌曲选择（点击歌曲行）
   const handleTrackSelect = (track: any) => {
@@ -150,85 +140,28 @@ export const StudioTracksList: React.FC<StudioTracksListProps> = ({
   }
 
   return (
-    <div className="h-full flex flex-col">
-      {/* Header */}
-      <div className="flex-shrink-0 px-6 pt-6 pb-4">
-        <div className="flex items-center justify-between mb-2">
-          <div className="flex items-center gap-3">
-            {/* Expand Panel Button - Only show when panel is closed */}
-            {!panelOpen && onExpandPanel && (
-              <button
-                onClick={onExpandPanel}
-                className="flex items-center justify-center w-8 h-8 rounded-lg bg-muted/50 hover:bg-muted/70 text-muted-foreground hover:text-foreground transition-all duration-200 hover:scale-110"
-                title="Open Studio Panel"
-              >
-                <ChevronRight className="h-4 w-4" />
-              </button>
-            )}
-            <h2 className="text-2xl font-semibold text-foreground">Studio Tracks</h2>
-          </div>
-          {/* Pagination - Only show if more than 1 page */}
-          {totalPages > 1 && (
-            <div className="flex items-center justify-between p-2 bg-gradient-to-r from-card/80 via-card/60 to-card/80 rounded-2xl backdrop-blur-md border border-border/30 shadow-lg">
-              {/* Previous Button */}
-              <button
-                onClick={() => setCurrentPage(Math.max(1, currentPage - 1))}
-                disabled={currentPage === 1}
-                className="flex items-center justify-center w-6 h-6 rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-all duration-200 disabled:opacity-30 disabled:cursor-not-allowed hover:scale-105 active:scale-95"
-                title="Previous Page"
-              >
-                <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2.5}>
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
-                </svg>
-              </button>
+    <div className="flex flex-col h-full min-h-0">
 
-              {/* Page Info */}
-              <div className="flex items-center gap-2 text-xs">
-                <span className="font-semibold text-foreground">
-                  {((currentPage - 1) * tracksPerPage) + 1} - {Math.min(currentPage * tracksPerPage, allTracks.length)}
-                </span>
-                <span className="w-1 h-1 bg-muted-foreground rounded-full"></span>
-                <span className="text-muted-foreground">
-                  <span className="font-semibold">total</span> {allTracks.length}
-                </span>
-              </div>
-
-              {/* Next Button */}
-              <button
-                onClick={() => setCurrentPage(Math.min(totalPages, currentPage + 1))}
-                disabled={currentPage >= totalPages}
-                className="flex items-center justify-center w-6 h-6 rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-all duration-200 disabled:opacity-30 disabled:cursor-not-allowed hover:scale-105 active:scale-95"
-                title="Next Page"
-              >
-                <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2.5}>
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
-                </svg>
-              </button>
-            </div>
-          )}
-        </div>
-      </div>
-
-      {/* Studio Tracks */}
-      <div className="flex-1 overflow-y-auto px-6 pb-6">
-        <div className="space-y-1">
+      {/* Studio Tracks - 可滚动区域 */}
+      <div className="flex-1 overflow-hidden">
+        <div className="h-full overflow-y-auto px-6 pb-3 relative">
+        <div className="relative space-y-3 pt-6">
           {/* Generated Tracks - 新生成的歌曲 */}
           {allGeneratedTracks.length > 0 && (
-            <div className="space-y-1 mb-4">
+            <div className="space-y-3">
               {allGeneratedTracks.map((track, index) => (
                 <div
                   key={`generated-${index}`}
-                  className={`flex items-center gap-4 p-4 transition-all duration-300 group relative bg-gradient-to-r from-card/80 via-card/60 to-card/80 rounded-3xl border border-border/30 shadow-lg ${
+                  className={`flex items-center gap-4 p-5 transition-all duration-300 group cursor-pointer backdrop-blur-sm border rounded-2xl ${
                     track.isLoading || track.isError
-                      ? 'cursor-default'
-                      : `cursor-pointer hover:-translate-y-1 hover:scale-[1.02] hover:shadow-xl ${currentlyPlaying === `generated-${index}`
-                        ? 'shadow-xl'
-                        : 'hover:shadow-2xl'
-                      }`
+                      ? 'cursor-default bg-black/20 border-border/10'
+                      : `${currentlyPlaying === `generated-${index}`
+                          ? 'bg-black/40 shadow-lg border-white/20'
+                          : 'bg-black/20 hover:bg-black/30 border-border/10 hover:border-border/30 hover:shadow-md'
+                        }`
                     } ${track.isError ? 'border-red-500/30' : ''}`}
                   onClick={() => {
                     if (!track.isLoading && !track.isError && onGeneratedTrackSelect) {
-                      // 直接传递生成的track数据，不需要mock
                       onGeneratedTrackSelect(track);
                     }
                   }}
@@ -299,7 +232,7 @@ export const StudioTracksList: React.FC<StudioTracksListProps> = ({
                       <div className="absolute inset-0 flex items-center justify-center opacity-100 group-hover:opacity-0 transition-opacity pointer-events-none">
                         <CustomAudioWaveIndicator
                           isPlaying={isPlaying}
-                          size="md"
+                          size="sm"
                           className="text-white"
                         />
                       </div>
@@ -340,7 +273,7 @@ export const StudioTracksList: React.FC<StudioTracksListProps> = ({
                             {track.isGenerating || !track.duration ? (
                               '--:--'
                             ) : (
-                              `${Math.floor(track.duration / 60)}:${Math.floor(track.duration % 60).toString().padStart(2, '0')}`
+                              formatDuration(track.duration)
                             )}
                           </div>
                         )}
@@ -354,9 +287,9 @@ export const StudioTracksList: React.FC<StudioTracksListProps> = ({
 
           {/* Skeleton Loading State - 在生成过程中显示 */}
           {pendingTasksCount > 0 && (
-            <div className="space-y-1 mb-4">
+            <div className="space-y-3 mb-6">
               {Array.from({ length: pendingTasksCount }).map((_, index) => (
-                <div key={index} className="flex items-center gap-4 p-4 bg-gradient-to-r from-card/80 via-card/60 to-card/80 rounded-3xl backdrop-blur-md shadow-lg">
+                <div key={index} className="flex items-center gap-4 p-5 bg-gradient-to-r from-card/95 via-card/85 to-card/95 backdrop-blur-sm rounded-3xl border border-border/50 shadow-lg">
                   <Skeleton className="w-12 h-12 rounded-lg flex-shrink-0" />
                   <div className="flex-1 space-y-2">
                     <div className="flex items-center">
@@ -374,10 +307,10 @@ export const StudioTracksList: React.FC<StudioTracksListProps> = ({
           {currentTracks.map((track) => (
             <div
               key={track.id}
-              className={`flex items-center gap-4 p-4 rounded-lg transition-colors duration-200 group cursor-pointer ${
+              className={`flex items-center gap-4 p-5 rounded-2xl transition-all duration-300 group cursor-pointer backdrop-blur-sm border ${
                 selectedTrack === track.id
-                  ? 'bg-primary/20 shadow-sm'
-                  : 'hover:bg-white/10'
+                  ? 'bg-black/40 shadow-lg border-white/20'
+                  : 'bg-black/20 hover:bg-black/30 border border-border/10 hover:border-border/30 hover:shadow-md'
               }`}
               onClick={() => handleTrackSelect(track)}
             >
@@ -423,7 +356,7 @@ export const StudioTracksList: React.FC<StudioTracksListProps> = ({
                   <div className="absolute inset-0 flex items-center justify-center opacity-100 group-hover:opacity-0 transition-opacity pointer-events-none">
                     <CustomAudioWaveIndicator
                       isPlaying={isPlaying}
-                      size="md"
+                      size="sm"
                       className="text-white"
                     />
                   </div>
@@ -436,7 +369,7 @@ export const StudioTracksList: React.FC<StudioTracksListProps> = ({
                 <h3 className="text-foreground font-medium text-sm mb-1 truncate">
                   {track.musicTitle}
                 </h3>
-                <p className="text-muted-foreground text-xs mb-1 truncate capitalize">
+                <p className="text-muted-foreground text-xs mb-1 truncate">
                   {track.musicTags}
                 </p>
                 <div className="flex items-center text-muted-foreground text-xs">
@@ -445,6 +378,7 @@ export const StudioTracksList: React.FC<StudioTracksListProps> = ({
               </div>
             </div>
           ))}
+        </div>
         </div>
       </div>
     </div>

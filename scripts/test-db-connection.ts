@@ -1,7 +1,8 @@
 #!/usr/bin/env tsx
 
-import dotenv from 'dotenv';
-import { query, testConnection, pool } from '../lib/neon';
+import * as dotenv from 'dotenv';
+import { query, testConnection, getPoolStats } from '../lib/db-query-builder';
+import { closePool } from '../lib/db-pool';
 
 // 加载环境变量
 dotenv.config({ path: '.env.local' });
@@ -47,7 +48,7 @@ async function testDatabaseConnection() {
     // 3. 测试其他重要表
     const tables = [
       'music_generations',
-      'tracks',
+      'music_tracks',
       'credit_transactions',
       'generation_errors'
     ];
@@ -65,9 +66,21 @@ async function testDatabaseConnection() {
 
     // 4. 测试连接池状态
     console.log('4. Connection pool status:');
-    console.log(`   Total connections: ${pool.totalCount}`);
-    console.log(`   Idle connections: ${pool.idleCount}`);
-    console.log(`   Waiting clients: ${pool.waitingCount}`);
+    const poolStats = getPoolStats();
+    if (poolStats) {
+      console.log(`   Status: ${poolStats.status}`);
+      if (poolStats.totalCount !== undefined) {
+        console.log(`   Total connections: ${poolStats.totalCount}`);
+        console.log(`   Idle connections: ${poolStats.idleCount}`);
+        console.log(`   Waiting clients: ${poolStats.waitingCount}`);
+      }
+      console.log(`   Consecutive errors: ${poolStats.consecutiveErrors}`);
+      if (poolStats.lastError) {
+        console.log(`   Last error: ${poolStats.lastError}`);
+      }
+    } else {
+      console.log('   Pool not initialized');
+    }
     console.log('');
 
     // 5. 测试多个并发查询
@@ -107,7 +120,7 @@ async function testDatabaseConnection() {
     console.error('💥 Database connection test failed:', error);
   } finally {
     // 关闭连接池
-    await pool.end();
+    await closePool();
     console.log('🔌 Connection pool closed.');
   }
 }

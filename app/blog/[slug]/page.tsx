@@ -1,4 +1,5 @@
 import React from 'react';
+import Image from 'next/image';
 import { getPostBySlug, getAllPosts } from '@/lib/mdx';
 import { MDXRemote } from 'next-mdx-remote/rsc';
 import { notFound } from 'next/navigation';
@@ -25,7 +26,7 @@ export default function BlogPostPage({ params }: BlogPostPageProps) {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-600/80 to-slate-900">
+    <div className="min-h-screen bg-background">
       {/* Hero Section with Background Image */}
       <section className="relative pt-20 pb-8 min-h-[60vh] flex items-center">
         {/* Background Image */}
@@ -51,10 +52,18 @@ export default function BlogPostPage({ params }: BlogPostPageProps) {
             {/* Author, Date & Category */}
             <div className="flex items-center justify-center gap-6 text-white/90 flex-wrap">
               <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-full bg-gradient-to-br from-purple-600 to-purple-600 flex items-center justify-center">
-                  <span className="text-white font-semibold text-sm">
-                    {post.author.charAt(0)}
-                  </span>
+                <div className="w-10 h-10 rounded-full overflow-hidden bg-gradient-to-br from-purple-600 to-purple-600 flex items-center justify-center">
+                  {post.author === 'Darius Coleman' ? (
+                    <Image src="/avatars/Darius_Coleman.png" alt={post.author} width={40} height={40} className="w-full h-full object-cover" />
+                  ) : post.author === 'Keisha Thompson' ? (
+                    <Image src="/avatars/Keisha_Thompson.png" alt={post.author} width={40} height={40} className="w-full h-full object-cover" />
+                  ) : post.author === 'Malik Washington' ? (
+                    <Image src="/avatars/Malik_Washington.png" alt={post.author} width={40} height={40} className="w-full h-full object-cover" />
+                  ) : (
+                    <span className="text-white font-semibold text-sm">
+                      {post.author.charAt(0)}
+                    </span>
+                  )}
                 </div>
                 <span className="font-medium">{post.author}</span>
               </div>

@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getUserIdFromRequest } from '@/lib/auth-utils';
+import { getUserIdFromRequest } from '@/lib/auth-utils-optimized';
 import { togglePinned } from '@/lib/pinned-tracks-db';
 
 // 强制动态渲染

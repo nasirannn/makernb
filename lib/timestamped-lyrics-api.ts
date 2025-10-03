@@ -36,10 +36,10 @@ export interface GetTimestampedLyricsRequest {
 export async function getTimestampedLyrics(
   request: GetTimestampedLyricsRequest
 ): Promise<TimestampedLyricsResponse> {
-  const apiKey = process.env.KIE_API_KEY;
+  const apiKey = process.env.SUNO_API_KEY;
   
   if (!apiKey) {
-    throw new Error('KIE_API_KEY is not configured');
+    throw new Error('SUNO_API_KEY is not configured');
   }
 
   const response = await fetch('https://api.kie.ai/api/v1/generate/get-timestamped-lyrics', {

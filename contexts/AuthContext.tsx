@@ -3,7 +3,7 @@
 import React, { createContext, useContext, useEffect, useState, useRef } from 'react';
 import { User, Session } from '@supabase/supabase-js';
 import { supabase } from '@/lib/supabase';
-import { isAdmin } from '@/lib/auth-utils';
+import { isAdmin } from '@/lib/auth-utils-optimized';
 import DailyCreditsNotification from '@/components/ui/daily-credits-notification';
 import { useRouter } from 'next/navigation';
 

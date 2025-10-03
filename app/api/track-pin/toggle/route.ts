@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { query } from '@/lib/neon';
+import { query } from '@/lib/db-query-builder';
 import { supabase } from '@/lib/supabase';
-import { isAdmin } from '@/lib/auth-utils';
+import { isAdmin } from '@/lib/auth-utils-optimized';
 
 // 强制动态渲染
 export const dynamic = 'force-dynamic';

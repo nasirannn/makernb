@@ -37,8 +37,8 @@
     { "id": "electric", "name": "Electric", "description": "Classic electric bass guitar" }
   ],
   "vocalGenders": [
-    { "id": "male", "name": "♂ Male" },
-    { "id": "female", "name": "♀ Female" }
+    { "id": "male", "name": "Male" },
+    { "id": "female", "name": "Female" }
   ],
   "harmonyPalettes": [
     { "id": "simple", "name": "Simple", "emoji": "🎵", "description": "Basic harmonies and chord progressions" },

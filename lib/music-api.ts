@@ -1,4 +1,4 @@
-import { generateBasicRnBStyle, generateCustomRnBStyle } from './rnb-style-generator';
+import { generateCustomRnBStyle } from './rnb-style-generator';
 
 // API service configuration
 export interface GenerateMusicRequest {
@@ -65,11 +65,46 @@ export interface CoverApiResponse {
 }
 
 class MusicApiService {
-  private baseUrl = 'https://api.kie.ai';
+  private baseUrl: string;
   private apiKey: string;
+  private maxRetries: number = 3;
+  private retryDelay: number = 1000; // 1秒
 
   constructor(apiKey: string) {
     this.apiKey = apiKey;
+    this.baseUrl = process.env.SUNO_API_BASE_URL || 'https://api.kie.ai';
+  }
+
+  /**
+   * 重试fetch请求的辅助方法
+   */
+  private async fetchWithRetry(url: string, options: RequestInit, retries: number = this.maxRetries): Promise<Response> {
+    let lastError: Error | null = null;
+    
+    for (let attempt = 1; attempt <= retries; attempt++) {
+      try {
+        const response = await fetch(url, options);
+        
+        // 如果是5xx错误，可以重试
+        if (response.status >= 500 && attempt < retries) {
+          console.warn(`API call failed with status ${response.status}, attempt ${attempt}/${retries}`);
+          await new Promise(resolve => setTimeout(resolve, this.retryDelay * attempt));
+          continue;
+        }
+        
+        return response;
+      } catch (error) {
+        lastError = error as Error;
+        console.error(`Network error on attempt ${attempt}/${retries}:`, error);
+        
+        if (attempt < retries) {
+          // 指数退避
+          await new Promise(resolve => setTimeout(resolve, this.retryDelay * Math.pow(2, attempt - 1)));
+        }
+      }
+    }
+    
+    throw new Error(`API call failed after ${retries} attempts: ${lastError?.message || 'Unknown error'}`);
   }
   
   // Generate music
@@ -77,35 +112,37 @@ class MusicApiService {
 
     // 根据文档设置正确的API参数
     const apiParams: any = {
-      model: 'V3_5',
-      callBackUrl: process.env.SUNO_CALLBACK_URL,
+      callBackUrl: `${process.env.CallBackURL}/api/suno-callback`,
     };
 
     // negativeTags - 避免不符合R&B风格的元素（通用设置）
-    apiParams.negativeTags = "edm, techno, trance, dubstep, synthpop, electronic, house, distorted noise, pop, rock, metal, country, jazz, classical";
+    apiParams.negativeTags = "edm, techno, trance, dubstep, synthpop, electronic, house, distorted noise, pop, rock, metal, country, jazz, classical, folk, indie, alternative, punk, blues, reggae, hip hop, rap";
 
     if (request.mode === 'basic') {
-      // Basic模式: customMode: false
+      // Basic模式: customMode: false（style 等参数将被忽略）
       apiParams.customMode = false;
       apiParams.instrumental = request.instrumentalMode || false;
+      apiParams.model = process.env.BASIC_MODE_MODEL || 'V3_5'; // Basic Mode使用配置的模型
 
-      // Basic Mode生成简单的R&B风格style
-      const rnbStyle = generateBasicRnBStyle();
-      apiParams.style = rnbStyle;
+      // 拼接一个≤100字符的R&B风格短语到prompt
+      const styleHint = 'Create in R&B style with soulful vocals.'; // ~50 chars
 
-      // Basic Mode的prompt就是用户输入的内容（作为歌词或主题）
+      // Basic Mode的prompt：用户输入 + 风格短语
       if (request.customPrompt && request.customPrompt.trim()) {
-        apiParams.prompt = request.customPrompt.trim();
+        const base = request.customPrompt.trim().slice(0, 400);
+        // 若拼接后超过500，优先保证用户400字符，再截断整体至500以内
+        const combined = `${base} | ${styleHint}`;
+        apiParams.prompt = combined.slice(0, 500);
       }
     } else {
       // Custom模式: customMode: true
       apiParams.customMode = true;
       apiParams.instrumental = request.instrumentalMode || false;
-      apiParams.model = 'V4_5'; // Custom Mode使用V4_5模型
+      apiParams.model = process.env.CUSTOM_MODE_MODEL || 'V4_5'; // Custom Mode使用配置的模型
 
       // Custom Mode使用generateCustomRnBStyle函数生成详细的style
       const customStyle = generateCustomRnBStyle({
-        genre: request.genre || 'quiet-storm',
+        genre: request.genre,
         vibe: request.vibe,
         bpm: request.bpm,
         grooveType: request.grooveType,
@@ -143,10 +180,10 @@ class MusicApiService {
     }
     // 权重参数 - 最大styleWeight来更强制地遵循R&B风格
     apiParams.styleWeight = 1.0;
-    apiParams.weirdnessConstraint = 0.1;
+    apiParams.weirdnessConstraint = 0.05; // 降低到0.05，更严格遵循风格
     apiParams.audioWeight = 0.0;
 
-    const response = await fetch(`${this.baseUrl}/api/v1/generate`, {
+    const response = await this.fetchWithRetry(`${this.baseUrl}/api/v1/generate`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -219,10 +256,10 @@ class MusicApiService {
 
     const apiParams = {
       taskId: request.taskId,
-      callBackUrl: request.callBackUrl || process.env.COVER_CALLBACK_URL,
+      callBackUrl: request.callBackUrl || `${process.env.CallBackURL}/api/cover-callback`,
     };
     
-    const response = await fetch(`${this.baseUrl}/api/v1/suno/cover/generate`, {
+    const response = await this.fetchWithRetry(`${this.baseUrl}/api/v1/suno/cover/generate`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',

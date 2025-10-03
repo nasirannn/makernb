@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { consumeUserCredit } from '@/lib/user-db';
 import { createGenerationError } from '@/lib/generation-errors-db';
-import { pool } from '@/lib/neon';
+import { query, withTransaction } from '@/lib/db-query-builder';
 
 
 // Cache for processed tasks to handle idempotency
@@ -94,18 +94,13 @@ async function processLyricsCallbackAsync(callbackData: any) {
           // 更新数据库中的歌词内容与状态
           try {
             const { title, text } = successfulLyrics;
-            const client = await pool.connect();
-            try {
-              await client.query(
-                `UPDATE lyrics_generations
-                 SET title = $1, content = $2, status = 'complete', updated_at = NOW()
-                 WHERE task_id = $3`,
-                [title || 'Lyrics', (text || '').trim(), taskId]
-              );
-              console.log(`Lyrics record updated for task ${taskId}`);
-            } finally {
-              client.release();
-            }
+            await query(
+              `UPDATE lyrics_generations
+               SET title = $1, content = $2, status = 'complete', updated_at = NOW()
+               WHERE task_id = $3`,
+              [title || 'Lyrics', (text || '').trim(), taskId]
+            );
+            console.log(`Lyrics record updated for task ${taskId}`);
           } catch (err) {
             console.error('Failed to update lyrics record:', err);
           }
@@ -113,36 +108,32 @@ async function processLyricsCallbackAsync(callbackData: any) {
           // 扣减0.4积分
           try {
             // 从数据库获取taskId对应的userId
-            const client = await pool.connect();
-            try {
-              const result = await client.query(
-                'SELECT user_id FROM lyrics_generations WHERE task_id = $1',
-                [taskId]
+            const result = await query(
+              'SELECT user_id FROM lyrics_generations WHERE task_id = $1',
+              [taskId]
+            );
+
+            if (result.rows.length > 0) {
+              const userId = result.rows[0].user_id;
+              const lyricsCreditCost = parseFloat(process.env.LYRICS_GENERATION_CREDITS || '0.4');
+              console.log(`Deducting ${lyricsCreditCost} credits for lyrics generation success, userId: ${userId}`);
+
+              // 扣减歌词生成积分
+              const creditConsumed = await consumeUserCredit(
+                userId,
+                lyricsCreditCost,
+                'Lyrics generation',
+                taskId,
+                'lyrics_generation'
               );
-              
-              if (result.rows.length > 0) {
-                const userId = result.rows[0].user_id;
-                console.log(`Deducting 1 credit for lyrics generation success, userId: ${userId}`);
-                
-                // 扣减1积分
-                const creditConsumed = await consumeUserCredit(
-                  userId,
-                  1,
-                  'Lyrics generation',
-                  taskId,
-                  'lyrics_generation'
-                );
-                
-                if (creditConsumed) {
-                  console.log(`Successfully deducted 1 credit for lyrics generation task ${taskId}`);
-                } else {
-                  console.warn(`Failed to deduct credits for lyrics generation task ${taskId}`);
-                }
+
+              if (creditConsumed) {
+                console.log(`Successfully deducted ${lyricsCreditCost} credits for lyrics generation task ${taskId}`);
               } else {
-                console.warn(`No user found for lyrics task ${taskId}`);
+                console.warn(`Failed to deduct credits for lyrics generation task ${taskId}`);
               }
-            } finally {
-              client.release();
+            } else {
+              console.warn(`No user found for lyrics task ${taskId}`);
             }
           } catch (error) {
             console.error('Error deducting credits for lyrics generation:', error);
@@ -154,45 +145,7 @@ async function processLyricsCallbackAsync(callbackData: any) {
 
           try {
             // 更新数据库状态为错误
-            const client = await pool.connect();
-            try {
-              const result = await client.query(
-                `UPDATE lyrics_generations
-                 SET status = 'error', updated_at = NOW()
-                 WHERE task_id = $1
-                 RETURNING id, user_id`,
-                [taskId]
-              );
-
-              if (result.rows.length > 0) {
-                const lyricsGeneration = result.rows[0];
-
-                // 创建错误记录
-                await createGenerationError(
-                  'lyrics_generation',
-                  lyricsGeneration.id,
-                  'All lyrics generation attempts failed',
-                  'GENERATION_FAILED'
-                );
-
-                console.log(`Error record created for failed lyrics generation: ${lyricsGeneration.id}`);
-              }
-            } finally {
-              client.release();
-            }
-          } catch (error) {
-            console.error('Failed to update lyrics generation status:', error);
-          }
-        }
-      } else {
-        // data.data 为 null 或空数组，说明生成失败（如moderation failed）
-        console.log(`Lyrics generation failed for task ${taskId}: ${msg}`);
-
-        try {
-          // 更新数据库状态为错误
-          const client = await pool.connect();
-          try {
-            const result = await client.query(
+            const result = await query(
               `UPDATE lyrics_generations
                SET status = 'error', updated_at = NOW()
                WHERE task_id = $1
@@ -207,29 +160,23 @@ async function processLyricsCallbackAsync(callbackData: any) {
               await createGenerationError(
                 'lyrics_generation',
                 lyricsGeneration.id,
-                msg || 'Lyrics generation failed - content moderation failed',
-                'MODERATION_FAILED'
+                'All lyrics generation attempts failed',
+                'GENERATION_FAILED'
               );
 
-              console.log(`Error record created for moderation failed lyrics: ${lyricsGeneration.id}`);
+              console.log(`Error record created for failed lyrics generation: ${lyricsGeneration.id}`);
             }
-          } finally {
-            client.release();
+          } catch (error) {
+            console.error('Failed to update lyrics generation status:', error);
           }
-        } catch (error) {
-          console.error('Failed to update lyrics generation status:', error);
         }
-      }
-      
-    } else {
-      // Handle failed callback (非200状态码)
-      console.log(`Lyrics task ${taskId} generation failed: ${msg}`);
+      } else {
+        // data.data 为 null 或空数组，说明生成失败（如moderation failed）
+        console.log(`Lyrics generation failed for task ${taskId}: ${msg}`);
 
-      try {
-        // 更新数据库状态为错误
-        const client = await pool.connect();
         try {
-          const result = await client.query(
+          // 更新数据库状态为错误
+          const result = await query(
             `UPDATE lyrics_generations
              SET status = 'error', updated_at = NOW()
              WHERE task_id = $1
@@ -244,14 +191,43 @@ async function processLyricsCallbackAsync(callbackData: any) {
             await createGenerationError(
               'lyrics_generation',
               lyricsGeneration.id,
-              msg || 'Lyrics generation API call failed',
-              `API_ERROR_${code}`
+              msg || 'Lyrics generation failed - content moderation failed',
+              'MODERATION_FAILED'
             );
 
-            console.log(`Error record created for API failed lyrics: ${lyricsGeneration.id}`);
+            console.log(`Error record created for moderation failed lyrics: ${lyricsGeneration.id}`);
           }
-        } finally {
-          client.release();
+        } catch (error) {
+          console.error('Failed to update lyrics generation status:', error);
+        }
+      }
+
+    } else {
+      // Handle failed callback (非200状态码)
+      console.log(`Lyrics task ${taskId} generation failed: ${msg}`);
+
+      try {
+        // 更新数据库状态为错误
+        const result = await query(
+          `UPDATE lyrics_generations
+           SET status = 'error', updated_at = NOW()
+           WHERE task_id = $1
+           RETURNING id, user_id`,
+          [taskId]
+        );
+
+        if (result.rows.length > 0) {
+          const lyricsGeneration = result.rows[0];
+
+          // 创建错误记录
+          await createGenerationError(
+            'lyrics_generation',
+            lyricsGeneration.id,
+            msg || 'Lyrics generation API call failed',
+            `API_ERROR_${code}`
+          );
+
+          console.log(`Error record created for API failed lyrics: ${lyricsGeneration.id}`);
         }
       } catch (error) {
         console.error('Failed to update lyrics generation status:', error);

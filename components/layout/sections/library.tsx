@@ -1,7 +1,6 @@
 "use client";
 
 import React, { useState, useRef, useEffect, Suspense } from "react";
-import Image from "next/image";
 import { useRouter } from "next/navigation";
 
 // Custom Hooks
@@ -10,14 +9,13 @@ import { useCredits } from "@/contexts/CreditsContext";
 
 // Supabase
 import { supabase } from "@/lib/supabase";
-import { isAdmin } from "@/lib/auth-utils";
+import { isAdmin } from "@/lib/auth-utils-optimized";
 
 // Components
 import { CommonSidebar } from "@/components/ui/sidebar";
 import { LibraryPanel } from "@/components/ui/library-panel";
-import { SimpleMusicPlayer } from "@/components/ui/simple-music-player";
+import { MusicPlayer } from "@/components/ui/music-player";
 import { LyricsPanel } from "@/components/ui/lyrics-panel";
-import { Button } from "@/components/ui/button";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -35,15 +33,12 @@ import { toast } from "sonner";
 const LibraryContent = () => {
     // Custom Hooks
     const { user } = useAuth();
-    const { refreshCredits } = useCredits();
-    const router = useRouter();
 
     // UI States
-    const [selectedLibraryTrack, setSelectedLibraryTrack] = useState<string | null>(null);
+    const [selectedLibraryTrack, setSelectedLibraryTrack] = useState<any>(null);
     const [selectedForLyrics, setSelectedForLyrics] = useState<string | null>(null);
     const [libraryTracks, setLibraryTracks] = useState<any[]>([]);
     const [isLoadingLibrary, setIsLoadingLibrary] = useState(false);
-    const [currentLibraryTrack, setCurrentLibraryTrack] = useState<any>(null);
     const [currentSide, setCurrentSide] = useState<'A' | 'B'>('A');
     const [showLyrics, setShowLyrics] = useState(false);
     const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
@@ -79,7 +74,6 @@ const LibraryContent = () => {
                 });
             }
         });
-
 
         // 按创建时间排序
         return allTracks.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
@@ -371,10 +365,18 @@ const LibraryContent = () => {
         if (!trackToDelete) return;
 
         try {
+            // 获取当前session的access token
+            const { data: { session } } = await supabase.auth.getSession();
+            if (!session?.access_token) {
+                toast('Please log in to delete tracks');
+                return;
+            }
+
             const response = await fetch(`/api/delete-track/${trackToDelete.id}`, {
                 method: 'DELETE',
                 headers: {
                     'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${session.access_token}`
                 },
             });
 
@@ -399,15 +401,15 @@ const LibraryContent = () => {
                     setIsPlaying(false);
                 }
 
-                toast('歌曲已删除', {
+                toast('Track deleted successfully', {
                     icon: <CheckCircle className="h-4 w-4 text-green-500" />
                 });
             } else {
-                toast(data.error || '删除失败');
+                toast(data.error || 'Failed to delete track');
             }
         } catch (error) {
             console.error('Error deleting track:', error);
-            toast('删除失败，请重试');
+            toast('Failed to delete track, please try again');
         } finally {
             setDeleteDialogOpen(false);
             setTrackToDelete(null);
@@ -418,7 +420,7 @@ const LibraryContent = () => {
         <>
             <section 
                 id="library" 
-                className="h-screen flex bg-background relative"
+                className="h-screen flex bg-background relative overflow-hidden"
             >
 
                 {/* Common Sidebar */}
@@ -427,16 +429,14 @@ const LibraryContent = () => {
                 </div>
 
                 {/* Main Library Interface */}
-                <div className="flex-1 h-full flex overflow-hidden relative z-10">
-                    <div 
-                        className={`h-full transition-all duration-300 ease-in-out ${
-                            showLyrics ? 'flex-1 min-w-0' : 'w-full'
-                        }`}
-                        style={{ minWidth: showLyrics ? '300px' : 'auto' }}
-                    >
+                <div className="flex-1 h-full flex z-10">
+                    <div className="min-w-0 h-full flex flex-col" style={{
+                        width: showLyrics ? 'calc(100% - 20rem)' : '100%'
+                    }}>
                         <LibraryPanel
                             tracks={getAllTracks()}
                             isLoading={isLoadingLibrary}
+                            hasPlayer={!!currentTrack}
                             onTrackSelect={(track) => {
                                 // Set both selectedLibraryTrack and selectedForLyrics
                                 setSelectedLibraryTrack(track.id);
@@ -521,7 +521,26 @@ const LibraryContent = () => {
                             onTrackAction={(track, action) => {
                                 // Handle other track actions like pin, delete, etc.
                                 
-                                if (action === 'pin') {
+                                if (action === 'publish_toggle') {
+                                    // 更新本地tracks数据中的发布状态
+                                    setLibraryTracks(prevTracks =>
+                                        prevTracks.map(generation => ({
+                                            ...generation,
+                                            allTracks: generation.allTracks.map((t: any) =>
+                                                t.id === track.id
+                                                    ? { ...t, is_published: !t.is_published }
+                                                    : t
+                                            )
+                                        }))
+                                    );
+                                    
+                                    // 同时更新selectedLibraryTrack中的状态
+                                    setSelectedLibraryTrack((prev: any) => 
+                                        prev && prev.id === track.id
+                                            ? { ...prev, is_published: !prev.is_published }
+                                            : prev
+                                    );
+                                } else if (action === 'pin') {
                                     // 更新本地tracks数据中的置顶状态
                                     setLibraryTracks(prevTracks =>
                                         prevTracks.map(generation => ({
@@ -534,48 +553,24 @@ const LibraryContent = () => {
                                         }))
                                     );
                                 } else if (action === 'delete') {
-                                    // 直接执行删除操作，不显示对话框（因为已经在library-panel中显示了）
-                                    (async () => {
-                                        try {
-                                            const response = await fetch(`/api/delete-track/${track.id}`, {
-                                                method: 'DELETE',
-                                                headers: {
-                                                    'Content-Type': 'application/json',
-                                                },
-                                            });
+                                    // 删除操作已经在 library-panel.tsx 中处理，这里只需要更新本地状态
+                                    // 更新本地tracks数据中的删除状态
+                                    setLibraryTracks(prevTracks =>
+                                        prevTracks.map(generation => ({
+                                            ...generation,
+                                            allTracks: generation.allTracks.map((t: any) =>
+                                                t.id === track.id
+                                                    ? { ...t, is_deleted: true }
+                                                    : t
+                                            )
+                                        }))
+                                    );
 
-                                            const data = await response.json();
-
-                                            if (data.success) {
-                                                // 更新本地tracks数据中的删除状态
-                                                setLibraryTracks(prevTracks =>
-                                                    prevTracks.map(generation => ({
-                                                        ...generation,
-                                                        allTracks: generation.allTracks.map((t: any) =>
-                                                            t.id === track.id
-                                                                ? { ...t, is_deleted: true }
-                                                                : t
-                                                        )
-                                                    }))
-                                                );
-
-                                                // 如果当前播放的是被删除的歌曲，停止播放
-                                                if (selectedLibraryTrack === track.id) {
-                                                    setSelectedLibraryTrack(null);
-                                                    setIsPlaying(false);
-                                                }
-
-                                                toast('Track deleted successfully', {
-                                                    icon: <CheckCircle className="h-4 w-4 text-green-500" />
-                                                });
-                                            } else {
-                                                toast(data.error || 'Failed to delete track');
-                                            }
-                                        } catch (error) {
-                                            console.error('Error deleting track:', error);
-                                            toast('Failed to delete track, please try again');
-                                        }
-                                    })();
+                                    // 如果当前播放的是被删除的歌曲，停止播放
+                                    if (selectedLibraryTrack === track.id) {
+                                        setSelectedLibraryTrack(null);
+                                        setIsPlaying(false);
+                                    }
                                 }
                             }}
                             currentPlayingTrack={currentTrack?.id || null}
@@ -600,8 +595,10 @@ const LibraryContent = () => {
                         />
                     </div>
 
-                    {/* Lyrics Panel - Inline */}
-                    <LyricsPanel
+                    {/* Lyrics Panel */}
+                    {showLyrics && (
+                        <div className="w-80 h-full flex-shrink-0">
+                        <LyricsPanel
                         isOpen={showLyrics}
                         onClose={() => {
                             setShowLyrics(false);
@@ -628,8 +625,52 @@ const LibraryContent = () => {
                                 document.body.removeChild(link);
                             }
                         }}
-                        onPublishToggle={() => {
-                            // TODO: 实现发布/取消发布功能
+                        onPublishToggle={async () => {
+                            const track = getSelectedTrackForLyrics();
+                            if (!track) return;
+                            
+                            try {
+                                // 获取当前session的access token
+                                const { data: { session } } = await supabase.auth.getSession();
+                                if (!session?.access_token) {
+                                    toast('Please log in to publish tracks');
+                                    return;
+                                }
+
+                                const response = await fetch('/api/track-publish/toggle', {
+                                    method: 'POST',
+                                    headers: {
+                                        'Content-Type': 'application/json',
+                                        'Authorization': `Bearer ${session.access_token}`
+                                    },
+                                    body: JSON.stringify({ trackId: track.id })
+                                });
+
+                                const result = await response.json();
+                                
+                                if (result.success) {
+                                    // 更新本地状态
+                                    setLibraryTracks((prevTracks: any[]) => 
+                                        prevTracks.map((t: any) => 
+                                            t.id === track.id 
+                                                ? { ...t, is_published: result.isPublished }
+                                                : t
+                                        )
+                                    );
+                                    
+                                    // 更新选中的track状态
+                                    setSelectedLibraryTrack((prev: any) => 
+                                        prev ? { ...prev, is_published: result.isPublished } : null
+                                    );
+                                    
+                                    toast(result.message);
+                                } else {
+                                    toast(result.error || 'Failed to toggle publication');
+                                }
+                            } catch (error) {
+                                console.error('Error toggling publication:', error);
+                                toast('Failed to toggle publication');
+                            }
                         }}
                         onPinToggle={async () => {
                             const track = getSelectedTrackForLyrics();
@@ -683,31 +724,32 @@ const LibraryContent = () => {
                             // 删除功能通过onTrackAction处理
                         }}
                     />
+                        </div>
+                    )}
                 </div>
 
                 {/* Music Player - Fixed at bottom when track is loaded */}
                 {currentTrack && (
                     <div className={`fixed bottom-0 left-16 z-50 transition-all duration-300 ease-in-out ${
-                        showLyrics ? 'right-56 sm:right-60 md:right-64 lg:right-72' : 'right-0'
+                        showLyrics ? 'right-80' : 'right-0'
                     }`}>
-                        <div className="relative">
-                            <SimpleMusicPlayer
-                                tracks={[{
-                                    id: currentTrack.id || '',
-                                    title: currentTrack.title || '',
-                                    audioUrl: currentTrack.audioUrl || '',
-                                    duration: currentTrack.duration || 0,
-                                    coverImage: currentTrack.coverImage,
-                                    artist: 'AI Generated',
+                        <MusicPlayer
+                                tracks={getAllTracks().map(track => ({
+                                    id: track.id,
+                                    title: track.title,
+                                    audioUrl: track.audio_url,
+                                    duration: track.duration,
+                                    coverImage: track.coverUrl, // 使用正确的字段名
+                                    artist: track.genre || 'Unknown Artist',
                                     allTracks: [{
-                                        id: currentTrack.id || '',
-                                        audio_url: currentTrack.audioUrl || '',
-                                        duration: currentTrack.duration || 0,
-                                        side_letter: currentSide,
-                                        cover_r2_url: currentTrack.coverImage
+                                        id: track.id,
+                                        audio_url: track.audio_url,
+                                        duration: track.duration,
+                                        side_letter: track.side_letter,
+                                        cover_r2_url: track.coverUrl // 使用正确的字段名
                                     }]
-                                }]}
-                                currentTrackIndex={0}
+                                }))}
+                                currentTrackIndex={Math.max(0, getAllTracks().findIndex(track => track.id === selectedLibraryTrack))}
                                 currentPlayingTrack={currentTrack ? { trackId: currentTrack.id || '', audioUrl: currentTrack.audioUrl || '' } : null}
                                 isPlaying={isPlaying}
                                 currentTime={currentTime}
@@ -726,11 +768,17 @@ const LibraryContent = () => {
                                     changeVolume(newVolume);
                                 }}
                                 onMuteToggle={handleMuteToggle}
-                                isCollapsed={showLyrics}
-                            onTrackChange={() => {}}
-                            onSideChange={() => {}}
-                        />
-                        </div>
+                                hideProgress={showLyrics}
+                                onTrackChange={(newIndex) => {
+                                    const allTracks = getAllTracks();
+                                    if (newIndex >= 0 && newIndex < allTracks.length) {
+                                        const newTrack = allTracks[newIndex];
+                                        setSelectedLibraryTrack(newTrack.id);
+                                        handleLibraryTrackSelect(newTrack.id);
+                                    }
+                                }}
+                                onSideChange={() => {}}
+                            />
                     </div>
                 )}
 

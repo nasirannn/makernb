@@ -18,8 +18,8 @@ const FAQList: FAQProps[] = [
     value: "item-1",
   },
   {
-    question: "What R&B styles can I generate?",
-    answer: "Our AI specializes in authentic R&B styles including New Jack Swing, Hip-Hop Soul, Neo-Soul, Quiet Storm, and Contemporary R&B. Each style captures the unique characteristics, rhythms, and production techniques that define these distinct R&B genres.",
+    question: "Can I generate AI cover songs or create music based on specific artists?",
+    answer: "RnB Music Generator doesn't create direct copies of existing songs, our AI music generator can create original music inspired by different genres and styles. This ensures your creations are unique while maintaining professional quality.",
     value: "item-2",
   },
   {
@@ -34,7 +34,7 @@ const FAQList: FAQProps[] = [
   },
   {
     question: "How long does it take to generate a song?",
-    answer: "Our AI works incredibly fast! Most R&B tracks are generated within seconds to a few minutes, including composition, arrangement, lyrics, and vocals. You'll have your complete song ready to listen and download almost instantly.",
+    answer: "Our AI works incredibly fast! You can preview your R&B track in about 40 seconds, and the complete high-quality version will be ready for download in approximately 3 minutes.",
     value: "item-5",
   },
   {

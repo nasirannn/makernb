@@ -11,7 +11,7 @@ export const useLyricsGeneration = () => {
 
 
 
-  // 清理函数（SSE移除后暂无需要清理的资源）
+  // 清理函数
   const cleanupResources = () => {
     if (pollingRef.current) {
       clearInterval(pollingRef.current as unknown as number);
@@ -39,9 +39,10 @@ export const useLyricsGeneration = () => {
     if (creditsResponse.ok) {
       const creditsData = await creditsResponse.json();
       const userCredits = creditsData.user?.credits || 0;
-      if (userCredits < 1) {
+      const lyricsCreditCost = parseFloat(process.env.NEXT_PUBLIC_LYRICS_GENERATION_CREDITS || '0.4');
+      if (userCredits < lyricsCreditCost) {
         toast("Insufficient credits for lyrics generation", {
-          description: "You need 1 credit to generate lyrics. Purchase more credits or wait for daily bonus."
+          description: `You need ${lyricsCreditCost} credits to generate lyrics. Purchase more credits or wait for daily bonus.`
         });
         return;
       }

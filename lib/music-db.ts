@@ -1,4 +1,4 @@
-import { query, withTransaction } from './neon';
+import { query, withTransaction } from './db-query-builder';
 import { checkMultipleFavorites } from './favorites-db';
 
 // ============================================================================

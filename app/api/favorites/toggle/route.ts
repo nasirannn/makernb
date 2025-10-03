@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getUserIdFromRequest } from '@/lib/auth-utils';
+import { getUserIdFromRequest } from '@/lib/auth-utils-optimized';
 import { toggleFavorite } from '@/lib/favorites-db';
 
 // 强制动态渲染

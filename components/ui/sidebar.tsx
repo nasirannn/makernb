@@ -3,7 +3,7 @@
 import React from "react";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
-import { Music, Library, Sparkles, LogOut, User } from "lucide-react";
+import { Music, Library, Sparkles, LogOut, User, BookOpen, Compass } from "lucide-react";
 import { usePathname, useRouter } from "next/navigation";
 import {
   AlertDialog,
@@ -97,22 +97,35 @@ export const CommonSidebar = ({}: CommonSidebarProps) => {
               </Button>
             </Tooltip>
 
-            {/* Library Button */}
-            <Tooltip content="🎶 Library" position="right">
+            {/* Explore Button */}
+            <Tooltip content="🔍 Explore" position="right">
               <Button
-                onClick={() => router.push('/library')}
+                onClick={() => router.push('/explore')}
                 variant="ghost"
                 size="sm"
-                className={`w-12 h-12 flex items-center justify-center hover:bg-muted/50 hover:text-white hover:scale-110 transition-all duration-300 rounded-lg ${pathname === '/library' ? 'bg-primary/20 text-primary shadow-sm' : 'text-muted-foreground'}`}
+                className={`w-12 h-12 flex items-center justify-center hover:bg-muted/50 hover:text-white hover:scale-110 transition-all duration-300 rounded-lg ${pathname === '/explore' ? 'bg-primary/20 text-primary shadow-sm' : 'text-muted-foreground'}`}
               >
-                <Library className="h-5 w-5" />
+                <Compass className="h-5 w-5" />
+              </Button>
+            </Tooltip>
+
+            {/* Blog Button */}
+            <Tooltip content="📝 Blog" position="right">
+              <Button
+                onClick={() => router.push('/blog')}
+                variant="ghost"
+                size="sm"
+                className={`w-12 h-12 flex items-center justify-center hover:bg-muted/50 hover:text-white hover:scale-110 transition-all duration-300 rounded-lg ${pathname === '/blog' ? 'bg-primary/20 text-primary shadow-sm' : 'text-muted-foreground'}`}
+              >
+                <BookOpen className="h-5 w-5" />
               </Button>
             </Tooltip>
           </div>
 
-          {/* Credits Display */}
-          {user && (
-            <div className="flex flex-col items-center px-4 py-2">
+          {/* User Avatar or Sign In Button - Fixed at bottom */}
+          <div className="mt-auto mb-4 flex flex-col items-center gap-2">
+            {/* Credits Display */}
+            {user && (
               <Tooltip
                 content={
                   <div className="flex items-center gap-1">
@@ -132,11 +145,8 @@ export const CommonSidebar = ({}: CommonSidebarProps) => {
                   <Sparkles className="h-5 w-5" />
                 </Button>
               </Tooltip>
-            </div>
-          )}
-
-          {/* User Avatar or Sign In Button - Fixed at bottom */}
-          <div className="mt-auto mb-4 flex justify-center">
+            )}
+            
             {user ? (
               <div className="relative user-menu-container">
                 <Avatar
@@ -166,6 +176,16 @@ export const CommonSidebar = ({}: CommonSidebarProps) => {
                     </div>
 
                     <div className="border-t border-border/30 p-2">
+                      <button
+                        onClick={() => {
+                          router.push('/library');
+                          setUserMenuOpen(false);
+                        }}
+                        className="w-full flex items-center space-x-2 px-3 py-2 text-sm text-muted-foreground hover:text-foreground hover:bg-muted/50 rounded-md transition-colors"
+                      >
+                        <Library className="w-4 h-4" />
+                        <span>Library</span>
+                      </button>
                       <button
                         onClick={() => {
                           setSignOutDialogOpen(true);

@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getUserIdFromRequest } from '@/lib/auth-utils';
+import { getUserIdFromRequest } from '@/lib/auth-utils-optimized';
 import { createCoverGeneration, updateCoverGeneration } from '@/lib/cover-db';
 import MusicApiService from '@/lib/music-api';
 import { downloadFromUrl, uploadCoverImage } from '@/lib/r2-storage';
@@ -56,7 +56,7 @@ export async function POST(request: NextRequest) {
     // 调用封面生成API
     const result = await musicApi.generateCover({ 
       taskId: musicTaskId,
-      callBackUrl: process.env.COVER_CALLBACK_URL
+      callBackUrl: `${process.env.CallBackURL}/api/cover-callback`
     });
     console.log('KIE API cover generation response:', result);
     console.log('Processing result code:', result.code);

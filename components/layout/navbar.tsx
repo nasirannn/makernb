@@ -1,5 +1,5 @@
 "use client";
-import { Menu } from "lucide-react";
+import { Menu, Sparkles } from "lucide-react";
 import React from "react";
 import { Button } from "../ui/button";
 import { Avatar, AvatarImage, AvatarFallback } from "../ui/avatar";
@@ -38,10 +38,6 @@ const routeList: RouteProps[] = [
     href: "/blog",
     label: "Blog",
   },
-  {
-    href: "#faq",
-    label: "FAQ",
-  },
 ];
 
 interface NavbarProps {
@@ -72,6 +68,28 @@ export const Navbar = ({ credits = null }: NavbarProps) => {
     return () => window.removeEventListener('scroll', handleScroll);
   }, [isUserMenuOpen]);
 
+  // 移动端菜单打开时锁定滚动
+  React.useEffect(() => {
+    if (isOpen) {
+      // 锁定背景滚动
+      document.body.style.overflow = 'hidden';
+      document.body.style.position = 'fixed';
+      document.body.style.width = '100%';
+    } else {
+      // 恢复滚动
+      document.body.style.overflow = '';
+      document.body.style.position = '';
+      document.body.style.width = '';
+    }
+
+    // 清理函数
+    return () => {
+      document.body.style.overflow = '';
+      document.body.style.position = '';
+      document.body.style.width = '';
+    };
+  }, [isOpen]);
+
   // Close user menu when clicking outside
   React.useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -88,7 +106,7 @@ export const Navbar = ({ credits = null }: NavbarProps) => {
   }, [isUserMenuOpen]);
 
   return (
-    <header className={`shadow-inner w-full z-50 flex items-center px-20 py-5 fixed top-0 left-0 transition-all duration-300 ${
+    <header className={`shadow-inner w-full z-50 flex items-center px-6 lg:px-20 py-3 fixed top-0 left-0 transition-all duration-300 ${
       isScrolled 
         ? 'bg-background/30 backdrop-blur-md border-b border-border/20' 
         : 'bg-transparent'
@@ -141,7 +159,7 @@ export const Navbar = ({ credits = null }: NavbarProps) => {
         {isOpen && (
           <div className="fixed inset-0 z-50 lg:hidden">
             <div className="fixed inset-0 bg-black/50" onClick={() => setIsOpen(false)} />
-            <div className="fixed left-0 top-0 h-full w-80 bg-card border-r border-border p-6">
+            <div className="fixed right-0 top-0 h-full w-80 bg-card border-l border-border p-6">
               <div className="flex items-center justify-between mb-6">
                 <Link href="/" className="flex items-center" onClick={() => setIsOpen(false)}>
                   <Image
@@ -151,10 +169,81 @@ export const Navbar = ({ credits = null }: NavbarProps) => {
                     height={48}
                     className="mr-2"
                   />
-                  R&B
+                  <span className="font-bold text-lg">R&B Music Generator</span>
                 </Link>
                 <button onClick={() => setIsOpen(false)} className="text-2xl">×</button>
               </div>
+              
+              {/* Mobile User Section */}
+              {user ? (
+                <div className="mb-6 pb-6 border-b border-border/20">
+                  {/* User Info */}
+                  <div className="flex items-center gap-3 mb-4">
+                    <Avatar className="w-12 h-12 border border-purple-600/30">
+                      <AvatarImage
+                        src={user.user_metadata?.avatar_url || user.user_metadata?.picture || `https://api.dicebear.com/7.x/initials/svg?seed=${user.email}`}
+                        alt="User Avatar"
+                      />
+                      <AvatarFallback className="bg-gradient-to-br from-purple-600 to-purple-600 text-white font-semibold">
+                        {user.user_metadata?.full_name?.charAt(0)?.toUpperCase() ||
+                         user.user_metadata?.name?.charAt(0)?.toUpperCase() ||
+                         user.email?.charAt(0).toUpperCase()}
+                      </AvatarFallback>
+                    </Avatar>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-white font-medium text-sm truncate">
+                        {user.user_metadata?.full_name || user.user_metadata?.name || user.email?.split('@')[0] || 'User'}
+                      </p>
+                      <p className="text-white/70 text-xs truncate">
+                        {user.email}
+                      </p>
+                    </div>
+                  </div>
+                  
+                  {/* Credits Display */}
+                  <div className="flex items-center gap-2 px-3 py-2 bg-white/10 backdrop-blur-sm border border-white/20 rounded-lg">
+                    <Sparkles className="h-4 w-4 text-white" />
+                    <span className="text-sm font-medium text-white">
+                      {credits === null ? '...' : credits} Credits
+                    </span>
+                  </div>
+                  
+                  {/* Mobile Menu Items */}
+                  <div className="mt-4 space-y-2">
+                    <Link
+                      href="/library"
+                      onClick={() => setIsOpen(false)}
+                      className="w-full flex items-center gap-3 px-3 py-2 text-sm text-white/80 hover:bg-white/10 hover:text-white transition-colors rounded-lg"
+                    >
+                      <Library className="w-4 h-4" />
+                      <span>Library</span>
+                    </Link>
+                    <button
+                      onClick={() => {
+                        setIsSignOutConfirmOpen(true);
+                        setIsOpen(false);
+                      }}
+                      className="w-full flex items-center gap-3 px-3 py-2 text-sm text-white/80 hover:bg-white/10 hover:text-white transition-colors rounded-lg"
+                    >
+                      <LogOut className="w-4 h-4" />
+                      <span>Sign Out</span>
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <div className="mb-6 pb-6 border-b border-border/20">
+                  <Button 
+                    onClick={() => {
+                      setIsAuthModalOpen(true);
+                      setIsOpen(false);
+                    }}
+                    size="default" 
+                    className="w-full bg-primary hover:bg-primary/90 text-primary-foreground px-8 py-2 rounded-xl font-medium"
+                  >
+                    Get Started
+                  </Button>
+                </div>
+              )}
               
               <div className="flex flex-col gap-2">
                 {routeList.map(({ href, label }) => {
@@ -189,7 +278,7 @@ export const Navbar = ({ credits = null }: NavbarProps) => {
           <>
             {/* Credits Display */}
             <div className="flex items-center gap-2 px-3 py-2 bg-white/10 backdrop-blur-sm border border-white/20 rounded-lg">
-              <span className="text-sm">⚡</span>
+              <Sparkles className="h-4 w-4 text-white" />
               <span className="text-sm font-medium text-white">
                 {credits === null ? '...' : credits}
               </span>

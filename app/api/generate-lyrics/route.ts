@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createLyricsGeneration } from '@/lib/lyrics-db';
 import { createGenerationError } from '@/lib/generation-errors-db';
-import { getUserIdFromRequest } from '@/lib/auth-utils';
+import { getUserIdFromRequest } from '@/lib/auth-utils-optimized';
 
 export async function POST(request: NextRequest) {
   try {
@@ -54,7 +54,7 @@ export async function POST(request: NextRequest) {
       },
       body: JSON.stringify({
         prompt,
-        callBackUrl: process.env.LYRICS_CALLBACK_URL,
+        callBackUrl: `${process.env.CallBackURL}/api/lyrics-callback`,
       }),
     });
 

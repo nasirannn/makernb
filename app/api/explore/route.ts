@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { query } from '@/lib/neon';
+import { query } from '@/lib/db-query-builder';
 
 // 强制动态渲染
 export const dynamic = 'force-dynamic';
@@ -11,77 +11,29 @@ export async function GET(request: NextRequest) {
     const offset = parseInt(searchParams.get('offset') || '0');
     const genre = searchParams.get('genre');
 
-    // 获取公开的音乐生成记录及其tracks
+    // 获取公开的音乐tracks
     const result = await query(`
       SELECT 
-        mg.id,
+        mt.id as track_id,
+        mt.audio_url,
+        mt.duration,
+        mt.side_letter,
+        mt.is_pinned,
+        mt.created_at as track_created_at,
+        mg.id as generation_id,
         mg.title,
         mg.genre,
         mg.tags,
         mg.prompt,
-        mg.created_at,
+        mg.created_at as generation_created_at,
         mg.updated_at,
         ml.content as lyrics_content,
-        -- 获取第一个track的信息作为主要展示
-        (
-          SELECT json_build_object(
-            'id', mt.id,
-            'audio_url', mt.audio_url,
-            'duration', mt.duration,
-            'side_letter', mt.side_letter,
-            'cover_r2_url', (
-              SELECT ci.r2_url
-              FROM cover_images ci
-              WHERE ci.music_track_id = mt.id
-              ORDER BY ci.created_at ASC
-              LIMIT 1
-            )
-          )
-          FROM music_tracks mt
-          WHERE mt.music_generation_id = mg.id
-            AND (mt.is_deleted IS NULL OR mt.is_deleted = FALSE)
-          ORDER BY mt.side_letter ASC
-          LIMIT 1
-        ) as primary_track,
-        -- 获取所有tracks信息
-        (
-          SELECT json_agg(
-            json_build_object(
-              'id', mt.id,
-              'audio_url', mt.audio_url,
-              'duration', mt.duration,
-              'side_letter', mt.side_letter,
-              'cover_r2_url', (
-                SELECT ci.r2_url
-                FROM cover_images ci
-                WHERE ci.music_track_id = mt.id
-                ORDER BY ci.created_at ASC
-                LIMIT 1
-              )
-            ) ORDER BY mt.side_letter ASC
-          )
-          FROM music_tracks mt
-          WHERE mt.music_generation_id = mg.id
-            AND (mt.is_deleted IS NULL OR mt.is_deleted = FALSE)
-        ) as all_tracks,
-        -- 获取所有tracks的总时长
-        (
-          SELECT COALESCE(SUM(CAST(mt.duration AS NUMERIC)), 0)
-          FROM music_tracks mt
-          WHERE mt.music_generation_id = mg.id
-            AND (mt.is_deleted IS NULL OR mt.is_deleted = FALSE)
-        ) as total_duration,
-        -- 获取tracks数量
-        (
-          SELECT COUNT(*)
-          FROM music_tracks mt
-          WHERE mt.music_generation_id = mg.id
-            AND (mt.is_deleted IS NULL OR mt.is_deleted = FALSE)
-        ) as track_count
-      FROM music_generations mg
+        ci.r2_url as cover_r2_url
+      FROM music_tracks mt
+      JOIN music_generations mg ON mt.music_generation_id = mg.id
       LEFT JOIN music_lyrics ml ON mg.id = ml.music_generation_id
-      LEFT JOIN music_tracks mt ON mg.id = mt.music_generation_id
-      WHERE mt.is_published = TRUE  -- 只显示已发布的歌曲
+      LEFT JOIN cover_images ci ON mt.id = ci.music_track_id
+      WHERE mt.is_published = TRUE
         AND mg.status = 'complete'
         AND (mt.is_deleted IS NULL OR mt.is_deleted = FALSE)
         ${genre && genre !== 'all' ? `AND mg.genre = $3` : ''}
@@ -91,29 +43,39 @@ export async function GET(request: NextRequest) {
       LIMIT $1 OFFSET $2
     `, genre && genre !== 'all' ? [limit, offset, genre] : [limit, offset]);
 
-    // 过滤掉没有tracks的记录
-    const musicGenerations = result.rows
-      .filter(row => row.primary_track)
-      .map(row => ({
-        id: row.id,
-        title: row.title,
-        genre: row.genre,
-        tags: row.tags,
-        prompt: row.prompt,
-        lyrics: row.lyrics_content,
-        createdAt: row.created_at,
-        updatedAt: row.updated_at,
-        primaryTrack: row.primary_track,
-        allTracks: row.all_tracks || [row.primary_track],
-        totalDuration: parseFloat(row.total_duration) || 0,
-        trackCount: parseInt(row.track_count) || 1
-      }));
+    // 将tracks数据转换为前端需要的格式
+    const tracks = result.rows.map(row => ({
+      id: row.track_id,
+      title: row.title,
+      genre: row.genre,
+      tags: row.tags,
+      prompt: row.prompt,
+      lyrics: row.lyrics_content,
+      createdAt: row.generation_created_at,
+      updatedAt: row.updated_at,
+      primaryTrack: {
+        id: row.track_id,
+        audio_url: row.audio_url,
+        duration: row.duration,
+        side_letter: row.side_letter,
+        cover_r2_url: row.cover_r2_url
+      },
+      allTracks: [{
+        id: row.track_id,
+        audio_url: row.audio_url,
+        duration: row.duration,
+        side_letter: row.side_letter,
+        cover_r2_url: row.cover_r2_url
+      }],
+      totalDuration: parseFloat(row.duration) || 0,
+      trackCount: 1
+    }));
 
     return NextResponse.json({
       success: true,
       data: {
-        music: musicGenerations,
-        count: musicGenerations.length,
+        music: tracks,
+        count: tracks.length,
         limit,
         offset
       }

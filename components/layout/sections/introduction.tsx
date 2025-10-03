@@ -17,9 +17,6 @@ interface GenreData {
   id: string;
   title: string;
   description: string;
-  audioUrl?: string;
-  youtubeId?: string;
-  duration: string;
 }
 
 const genreData: GenreData[] = [
@@ -27,29 +24,21 @@ const genreData: GenreData[] = [
     id: "new-jack-swing",
     title: "New Jack Swing",
     description: "Fused R&B melodies with hip-hop beats, giving R&B a harder, funkier edge. Key artists: Guy, Bobby Brown, Janet Jackson.",
-    youtubeId: "gLdX4soAyTQ", // 你提供的YouTube视频ID
-    duration: "3:45",
   },
   {
     id: "hip-hop-soul",
     title: "Hip-Hop Soul",
     description: "Blended hip-hop's gritty beats with emotional storytelling, making it the \"real voice of the streets.\" Key artists: Mary J. Blige, Jodeci.",
-    youtubeId: "oCF9C10sVqQ",
-    duration: "4:12",
   },
   {
     id: "neo-soul",
     title: "Neo-Soul",
     description: "Mixed classic soul with modern R&B, jazz, and funk. Poetic, organic, and deeply introspective. Key artists: Erykah Badu, D'Angelo.",
-    youtubeId: "K-zxa-qTyfI",
-    duration: "3:28",
   },
   {
     id: "quiet-storm",
     title: "Quiet Storm",
     description: "Slow tempos, lush arrangements, intimate lyrics. The soundtrack of late nights — silky, romantic, and designed for candlelit moods. Key artists: Babyface, Anita Baker, Toni Braxton.",
-    youtubeId: "OJ_EOCxPotY",
-    duration: "4:05",
   },
 ];
 
@@ -83,19 +72,11 @@ const benefitList: IntroductionProps[] = [
 export const IntroductionSection = () => {
   const [currentTrack, setCurrentTrack] = useState<string>("new-jack-swing");
 
-
   const handleAccordionChange = (value: string) => {
-    // 切换显示流派信息，但不切换音频播放
     if (value) {
       setCurrentTrack(value);
     }
   };
-
-  const handleTrackChange = (genreId: string) => {
-    setCurrentTrack(genreId);
-  };
-
-  const currentGenre = genreData.find(g => g.id === currentTrack);
 
   return (
     <section id="introduction" className="container py-24 sm:py-32">
@@ -153,40 +134,9 @@ export const IntroductionSection = () => {
       </div>
 
       {/* R&B Golden Era Section */}
-      <div className="mt-24 grid lg:grid-cols-2 place-items-center lg:gap-24">
-        {/* YouTube Video Player */}
-        <div className="order-2 lg:order-1 w-full max-w-lg">
-          <div className="px-6 py-6">
-            <div className="relative aspect-video bg-gradient-to-br from-purple-600/20 to-purple-600/20 rounded-lg overflow-hidden">
-              {currentGenre?.youtubeId ? (
-                <iframe 
-                  width="100%" 
-                  height="100%" 
-                  src={`https://www.youtube.com/embed/${currentGenre.youtubeId}?si=tTf6Yo_IA5P0ej3N&controls=0`}
-                  title="YouTube video player" 
-                  frameBorder="0" 
-                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" 
-                  referrerPolicy="strict-origin-when-cross-origin" 
-                  allowFullScreen
-                  className="w-full h-full rounded-lg"
-                ></iframe>
-              ) : (
-                <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-purple-600/20 to-purple-600/20 rounded-lg">
-                  <div className="text-center">
-                    <div className="w-20 h-20 bg-white/10 backdrop-blur-sm rounded-full flex items-center justify-center mx-auto mb-4">
-                      <span className="text-3xl">🎵</span>
-                    </div>
-                    <h3 className="text-white font-semibold text-lg mb-2">{currentGenre?.title}</h3>
-                    <p className="text-white/70 text-sm">{currentGenre?.duration}</p>
-                  </div>
-                </div>
-              )}
-            </div>
-          </div>
-        </div>
-
+      <div className="mt-24">
         {/* Genre Accordion */}
-        <div className="order-1 lg:order-2 w-full">
+        <div className="w-full">
                       <div className="mb-6">
               <div className="flex items-center justify-between mb-4">
                 <Link href="/blog/golden-era-90s-rnb-genres">
@@ -216,15 +166,7 @@ export const IntroductionSection = () => {
               <AccordionItem key={genre.id} value={genre.id} className="border-border/50">
                 <AccordionTrigger className="text-left hover:no-underline">
                   <div className="flex items-center gap-2">
-                    <span 
-                      className={`font-semibold cursor-pointer hover:text-primary transition-colors ${
-                        currentTrack === genre.id ? 'text-primary' : 'text-foreground'
-                      }`}
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handleTrackChange(genre.id);
-                      }}
-                    >
+                    <span className="font-semibold">
                       {index + 1}. {genre.title}
                     </span>
                   </div>

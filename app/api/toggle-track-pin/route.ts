@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getUserIdFromRequest, isAdmin } from '@/lib/auth-utils';
-import { query } from '@/lib/neon';
+import { getUserIdFromRequest, isAdmin } from '@/lib/auth-utils-optimized';
+import { query } from '@/lib/db-query-builder';
 
 export async function POST(request: NextRequest) {
   try {

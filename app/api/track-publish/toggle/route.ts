@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { query } from '@/lib/neon';
+import { query } from '@/lib/db-query-builder';
 import { supabase } from '@/lib/supabase';
 
 // 强制动态渲染
@@ -17,16 +17,27 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // 获取当前用户
-    const { data: { session } } = await supabase.auth.getSession();
-    if (!session?.user) {
+    // 从请求头获取Authorization token
+    const authHeader = request.headers.get('Authorization');
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
       return NextResponse.json(
         { success: false, error: 'Unauthorized' },
         { status: 401 }
       );
     }
 
-    const userId = session.user.id;
+    const token = authHeader.substring(7); // 移除 'Bearer ' 前缀
+    
+    // 验证token并获取用户信息
+    const { data: { user }, error } = await supabase.auth.getUser(token);
+    if (error || !user) {
+      return NextResponse.json(
+        { success: false, error: 'Unauthorized' },
+        { status: 401 }
+      );
+    }
+
+    const userId = user.id;
     
     // 检查用户是否拥有这个歌曲
     const trackOwnership = await query(`
@@ -72,11 +83,15 @@ export async function POST(request: NextRequest) {
         isPublished: newPublishedStatus
       },
       message: newPublishedStatus ? 'Track published successfully' : 'Track unpublished successfully'
-    });
+    }, { status: 200 });
   } catch (error) {
     console.error('Error toggling track publication:', error);
     return NextResponse.json(
-      { success: false, error: 'Internal server error' },
+      { 
+        success: false, 
+        error: 'Internal server error',
+        details: error instanceof Error ? error.message : 'Unknown error'
+      },
       { status: 500 }
     );
   }

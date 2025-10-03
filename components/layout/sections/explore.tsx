@@ -2,12 +2,10 @@
 
 import React, { useState, useRef, useEffect } from 'react';
 import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
 import { Play, Pause, ArrowRight, Music } from "lucide-react";
 import Link from "next/link";
 import { SafeImage } from '@/components/ui/safe-image';
-import { SimpleMusicPlayer } from "@/components/ui/simple-music-player";
+import { MusicPlayer } from "@/components/ui/music-player";
 import { LoadingDots } from "@/components/ui/loading-dots";
 
 interface Track {
@@ -45,6 +43,7 @@ export const ExploreSection = () => {
   const [exploreData, setExploreData] = useState<ExploreData | null>(null);
   const [loading, setLoading] = useState(true);
   const [currentlyPlaying, setCurrentlyPlaying] = useState<string | null>(null);
+  const [isMobile, setIsMobile] = useState(false);
   
   // 播放器状态
   const [currentTrackIndex, setCurrentTrackIndex] = useState(0);
@@ -59,6 +58,29 @@ export const ExploreSection = () => {
 
   useEffect(() => {
     fetchExploreData();
+  }, []);
+
+  // 检测移动端
+  useEffect(() => {
+    const checkMobile = () => {
+      setIsMobile(window.innerWidth < 768);
+    };
+
+    checkMobile();
+    window.addEventListener('resize', checkMobile);
+    return () => window.removeEventListener('resize', checkMobile);
+  }, []);
+
+  // 组件卸载时清理音频
+  useEffect(() => {
+    const audio = audioRef.current;
+    return () => {
+      if (audio) {
+        audio.pause();
+        audio.src = '';
+        audio.load();
+      }
+    };
   }, []);
 
   // 格式化时长
@@ -80,7 +102,7 @@ export const ExploreSection = () => {
           id: track.id, // 直接使用track.id作为唯一标识
           title: track.title,
           genre: track.genre,
-          style: track.tags,
+          tags: track.tags,
           prompt: track.prompt,
           lyrics: null,
           createdAt: track.created_at,
@@ -266,98 +288,86 @@ export const ExploreSection = () => {
           </h3>
         </div>
 
-        {/* Music List */}
-        <div className="max-w-4xl mx-auto">
+        {/* Music Grid */}
+        <div className="max-w-7xl mx-auto">
           {loading ? (
-            <div className="space-y-2 mb-12">
-              {[1, 2, 3, 4, 5, 6, 7, 8].map((i) => (
-                <div
-                  key={i}
-                  className="flex items-center gap-4 p-4 rounded-lg hover:bg-white/10 transition-colors duration-200"
-                >
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 mb-12">
+              {[1, 2, 3, 4].map((i) => (
+                <div key={i} className="group">
+                  {/* 封面骨架 */}
+                  <div className="aspect-square bg-gradient-to-br from-purple-600 to-purple-600 rounded-xl flex items-center justify-center">
+                    <LoadingDots size="sm" color="white" />
+                  </div>
 
-                {/* 封面 */}
-                <div className="w-16 h-16 bg-gradient-to-br from-purple-600 to-purple-600 rounded-md overflow-hidden flex items-center justify-center flex-shrink-0">
-                  <LoadingDots size="sm" color="white" />
+                  {/* 歌曲信息骨架 - 居中显示 */}
+                  <div className="mt-3 text-center">
+                    <div className="h-4 bg-white/20 rounded animate-pulse mb-2 mx-auto w-3/4"></div>
+                    <div className="h-3 bg-white/20 rounded animate-pulse w-1/2 mx-auto"></div>
+                  </div>
                 </div>
-
-                {/* 歌曲信息 */}
-                <div className="flex-1 min-w-0">
-                  <div className="h-4 bg-white/20 rounded animate-pulse mb-1"></div>
-                  <div className="h-3 bg-white/20 rounded animate-pulse w-2/3"></div>
-                </div>
-
-                {/* 时长 */}
-                <div className="text-white/60">
-                  <div className="h-3 bg-white/20 rounded animate-pulse w-12"></div>
-                </div>
-              </div>
-            ))}
+              ))}
             </div>
           ) : exploreData && exploreData.music.length > 0 ? (
-            <div className="space-y-2 mb-12">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 mb-12">
               {exploreData.music.map((music, index) => (
                 <div
                   key={music.id}
-                  className={`flex items-center gap-4 p-4 rounded-lg transition-colors duration-200 group cursor-pointer ${
-                    currentlyPlaying === music.primaryTrack.id
-                      ? 'bg-primary/20 shadow-sm'
-                      : 'hover:bg-white/10'
-                  }`}
+                  className="group cursor-pointer transition-all duration-300"
                   onClick={() => handlePlayPause(music.primaryTrack.id, music.primaryTrack.audio_url, music)}
                 >
+                  {/* Cover Image */}
+                  <div className="relative aspect-square rounded-xl overflow-hidden">
+                    {music.primaryTrack.cover_r2_url ? (
+                      <SafeImage
+                        src={music.primaryTrack.cover_r2_url}
+                        alt={music.title}
+                        fill
+                        className="object-cover"
+                        fallbackContent={<Music className="w-16 h-16 text-white/50" />}
+                      />
+                    ) : (
+                      <div className="w-full h-full bg-gradient-to-br from-purple-600 to-purple-600 flex items-center justify-center">
+                        <Music className="w-16 h-16 text-white/50" />
+                      </div>
+                    )}
 
-                {/* 封面 */}
-                <div className="relative w-16 h-16 rounded-md overflow-hidden flex-shrink-0 group/cover">
-                  {music.primaryTrack.cover_r2_url ? (
-                    <SafeImage
-                      src={music.primaryTrack.cover_r2_url}
-                      alt={music.title}
-                      width={64}
-                      height={64}
-                      className="w-full h-full object-cover"
-                      fallbackContent={<Music className="w-6 h-6 text-primary/60" />}
-                    />
-                  ) : (
-                    <div className="w-full h-full bg-gradient-to-br from-primary/20 to-primary/40 flex items-center justify-center">
-                      <Music className="w-6 h-6 text-primary/60" />
+                    {/* Duration - 右上角 */}
+                    <div className="absolute top-2 right-2 bg-black/70 backdrop-blur-sm rounded-md px-2 py-1">
+                      <span className="text-white text-xs font-medium">
+                        {formatDuration(music.totalDuration)}
+                      </span>
                     </div>
-                  )}
 
-                  {/* Play Button Overlay - 鼠标悬浮时显示 */}
-                  <div className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover/cover:opacity-100 transition-opacity">
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      className="h-10 w-10 p-0 bg-white/20 hover:bg-white/30 backdrop-blur-sm"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handlePlayPause(music.primaryTrack.id, music.primaryTrack.audio_url, music);
-                      }}
-                    >
-                      {currentlyPlaying === music.primaryTrack.id && isPlaying ? (
-                        <Pause className="h-4 w-4 text-white" />
-                      ) : (
-                        <Play className="h-4 w-4 text-white" />
-                      )}
-                    </Button>
+                    {/* Play Button Overlay */}
+                    <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-center justify-center">
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="h-12 w-12 p-0 bg-white/20 hover:bg-white/30 backdrop-blur-sm"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handlePlayPause(music.primaryTrack.id, music.primaryTrack.audio_url, music);
+                        }}
+                      >
+                        {currentlyPlaying === music.primaryTrack.id && isPlaying ? (
+                          <Pause className="h-5 w-5 text-white" />
+                        ) : (
+                          <Play className="h-5 w-5 text-white" />
+                        )}
+                      </Button>
+                    </div>
                   </div>
 
-                </div>
-
-                {/* 歌曲信息 */}
-                <div className="flex-1 min-w-0">
-                  <h3 className="text-foreground font-medium text-sm mb-1 truncate group-hover:text-primary transition-colors">
-                    {music.title}
-                  </h3>
-                  <p className="text-muted-foreground text-xs mb-1 truncate capitalize">
-                    {music.tags} • {music.genre}
-                  </p>
-                  <div className="flex items-center text-muted-foreground text-xs">
-                    <span>{formatDuration(music.totalDuration)}</span>
+                  {/* Track Info - 居中显示 */}
+                  <div className="mt-3 text-center">
+                    <h3 className="text-white font-bold text-base mb-1 truncate">
+                      {music.title}
+                    </h3>
+                    <p className="text-white/70 text-sm truncate capitalize">
+                      {music.tags}
+                    </p>
                   </div>
                 </div>
-              </div>
             ))}
             </div>
           ) : (
@@ -381,7 +391,7 @@ export const ExploreSection = () => {
       {/* 播放器 - 固定在底部 */}
       {playlist.length > 0 && currentlyPlaying && (
         <div className="fixed bottom-0 left-0 right-0 z-50">
-          <SimpleMusicPlayer
+                            <MusicPlayer
             tracks={playlist.map(music => ({
               id: music.primaryTrack.id,
               title: music.title,
@@ -398,6 +408,7 @@ export const ExploreSection = () => {
             duration={duration}
             volume={volume}
             isMuted={isMuted}
+            hideProgress={isMobile}
             onPlayPause={handlePlayerPlayPause}
             onPrevious={handlePrevious}
             onNext={handleNext}

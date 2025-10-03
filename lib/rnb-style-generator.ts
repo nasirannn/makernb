@@ -33,15 +33,6 @@ export const R_AND_B_STYLES: StyleInfo[] = [
 export function getStyleById(styleId: string): StyleInfo | undefined {
   return R_AND_B_STYLES.find(style => style.id === styleId);
 }
-
-/**
- * Basic Mode: 生成简单的R&B风格style
- * @returns 简单的R&B风格style字符串
- */
-export function generateBasicRnBStyle(): string {
-  return 'Traditional R&B with soulful vocals, classic chord progressions, warm bass lines. Avoid electronic elements, synthesizers, modern pop. Focus on organic instruments and authentic R&B sound.';
-}
-
 /**
  * Custom Mode: 根据用户选择的参数生成详细的style
  * 模板：A [vibe] [genre] track at [BPM] BPM with a [groove type] groove,
@@ -50,7 +41,7 @@ export function generateBasicRnBStyle(): string {
  * Vocals are [vocal gender] (if not instrumental).
  */
 export function generateCustomRnBStyle(params: {
-  genre: string;
+  genre?: string;
   vibe?: string;
   bpm?: number;
   grooveType?: string;
@@ -63,8 +54,11 @@ export function generateCustomRnBStyle(params: {
   instrumentalMode?: boolean;
   customPrompt?: string;
 }): string {
-  const style = getStyleById(params.genre);
-  const genreName = style ? style.name : 'Contemporary R&B';
+  const style = getStyleById(params.genre!);
+  if (!style) {
+    throw new Error(`Invalid genre: ${params.genre}`);
+  }
+  const genreName = style.name;
 
   // 映射vibe到形容词
   const vibeMap: { [key: string]: string } = {

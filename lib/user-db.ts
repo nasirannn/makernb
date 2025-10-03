@@ -1,5 +1,4 @@
-import { query, pool, withTransaction } from './neon';
-import { createCreditTransaction } from './credit-transactions-db';
+import { query, withTransaction } from './db-query-builder';
 
 export interface UserCredits {
   user_id: string;

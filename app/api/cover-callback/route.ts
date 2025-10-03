@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createCoverGeneration, updateCoverGeneration } from '@/lib/cover-db';
 import { createCoverImages } from '@/lib/cover-images-db';
-import { query } from '@/lib/neon';
+import { query } from '@/lib/db-query-builder';
 import { downloadFromUrl, uploadCoverImage } from '@/lib/r2-storage';
 
 import { handleError, createErrorNotification, retryOperation, ErrorContext } from '@/lib/error-handler';

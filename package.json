@@ -11,7 +11,15 @@
     "test-r2": "npx tsx scripts/test-r2-connection.ts",
     "test-db": "npx tsx scripts/test-db-connection.ts",
     "cleanup-r2": "npx tsx scripts/cleanup-r2-storage.ts",
-    "cleanup-r2:delete": "npx tsx scripts/cleanup-r2-storage.ts --delete"
+    "cleanup-r2:delete": "npx tsx scripts/cleanup-r2-storage.ts --delete",
+    "backup": "npx tsx scripts/backup-restore.ts",
+    "backup:create": "npx tsx scripts/backup-restore.ts create",
+    "backup:list": "npx tsx scripts/backup-restore.ts list",
+    "physical-delete": "npx tsx scripts/physical-delete-cleanup.ts",
+    "physical-delete:preview": "npx tsx scripts/physical-delete-cleanup.ts",
+    "physical-delete:db-only": "npx tsx scripts/physical-delete-cleanup.ts --delete --skip-r2 --force",
+    "physical-delete:r2-only": "npx tsx scripts/physical-delete-cleanup.ts --delete --skip-db --force",
+    "physical-delete:execute": "npx tsx scripts/physical-delete-cleanup.ts --delete --force"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.882.0",

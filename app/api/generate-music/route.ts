@@ -3,16 +3,22 @@ import MusicApiService from '@/lib/music-api';
 import { createMusicGeneration } from '@/lib/music-db';
 import { createGenerationError } from '@/lib/generation-errors-db';
 import { consumeUserCredit } from '@/lib/user-db';
-import { getUserIdFromRequest } from '@/lib/auth-utils';
+import { getUserIdFromRequest } from '@/lib/auth-utils-optimized';
 import { R_AND_B_STYLES } from '@/lib/rnb-style-generator';
 
 export async function POST(request: NextRequest) {
+  const requestId = `req_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+  console.log(`[MUSIC-GEN-${requestId}] Starting music generation request`);
+
   try {
     // 检查用户是否登录 - 使用统一的身份验证方式
     const userId = await getUserIdFromRequest(request);
+    console.log(`[MUSIC-GEN-${requestId}] User authentication: ${userId ? 'SUCCESS' : 'FAILED'}`);
+
     if (!userId) {
+      console.log(`[MUSIC-GEN-${requestId}] Authentication failed - no userId`);
       return NextResponse.json(
-        { 
+        {
           error: 'Authentication required',
           message: 'Please log in to generate music'
         },
@@ -21,12 +27,20 @@ export async function POST(request: NextRequest) {
     }
 
     const requestData = await request.json();
-    
+    console.log(`[MUSIC-GEN-${requestId}] Request data received:`, {
+      mode: requestData.mode,
+      genre: requestData.genre,
+      instrumentalMode: requestData.instrumentalMode,
+      hasCustomPrompt: !!requestData.customPrompt,
+      songTitle: requestData.songTitle
+    });
+
     // 从前端获取所有参数
     const {
       mode,
       customPrompt,
       instrumentalMode,
+      isPublished,
       genre,
       vibe,
       songTitle,
@@ -41,14 +55,18 @@ export async function POST(request: NextRequest) {
     } = requestData;
     // 根据模式处理参数
     let selectedGenre = genre;
-    
+    console.log(`[MUSIC-GEN-${requestId}] Processing mode: ${mode}`);
+
     if (mode === 'basic') {
       // Basic mode: 固定设置genre为"Contemporary R&B"
       selectedGenre = 'R&B'; // 固定设置为Contemporary R&B
+      console.log(`[MUSIC-GEN-${requestId}] Basic mode - using fixed genre: ${selectedGenre}`);
 
     } else if (mode === 'custom') {
+      console.log(`[MUSIC-GEN-${requestId}] Custom mode - validating parameters`);
       // Custom mode: 使用用户选择的所有参数
       if (!genre || !vibe) {
+        console.log(`[MUSIC-GEN-${requestId}] Custom mode validation failed - missing genre or vibe`);
         return NextResponse.json(
           { error: 'Please select genre and vibe for custom mode' },
           { status: 400 }
@@ -58,27 +76,29 @@ export async function POST(request: NextRequest) {
       // 验证genre ID是否有效
       const selectedStyle = R_AND_B_STYLES.find(style => style.id === genre);
       if (!selectedStyle) {
+        console.log(`[MUSIC-GEN-${requestId}] Invalid genre: ${genre}`);
         return NextResponse.json(
           { error: `Invalid genre: ${genre}` },
           { status: 400 }
         );
       }
       selectedGenre = genre; // 保持ID不变，music-api.ts需要ID
-      
+      console.log(`[MUSIC-GEN-${requestId}] Custom mode - using genre: ${selectedGenre}, vibe: ${vibe}`);
+
     } else {
+      console.log(`[MUSIC-GEN-${requestId}] Invalid mode: ${mode}`);
       return NextResponse.json(
         { error: 'Please select a valid mode (basic or custom)' },
         { status: 400 }
       );
     }
 
-    // 根据模式和模型版本确定积分成本
-    const modelVersion = mode === 'custom' ? 'V4_5' : 'V3_5';
-    const creditCost = modelVersion.startsWith('V4') ? 10 : 7;
+    // 根据模式确定积分成本
+    const modelVersion = mode === 'custom' ? (process.env.CUSTOM_MODE_MODEL || 'V4_5') : (process.env.BASIC_MODE_MODEL || 'V3_5');
+    const creditCost = mode === 'custom' ? parseInt(process.env.CUSTOM_MODE_CREDITS || '12') : parseInt(process.env.BASIC_MODE_CREDITS || '7');
 
-    // 先验证积分是否足够，避免浪费API调用
     try {
-      const { query } = await import('@/lib/neon');
+      const { query } = await import('@/lib/db-query-builder');
       const creditResult = await query(
         'SELECT credits FROM user_credits WHERE user_id = $1',
         [userId]
@@ -96,8 +116,8 @@ export async function POST(request: NextRequest) {
       }
 
       const userCredits = creditResult.rows[0].credits;
+
       if (userCredits < creditCost) {
-        console.warn(`Insufficient credits: user has ${userCredits}, needs ${creditCost}`);
         return NextResponse.json(
           {
             error: 'Insufficient credits',
@@ -111,7 +131,6 @@ export async function POST(request: NextRequest) {
       }
 
     } catch (error) {
-      console.error('Failed to check user credits:', error);
       return NextResponse.json(
         {
           error: 'Service temporarily unavailable',
@@ -154,12 +173,28 @@ export async function POST(request: NextRequest) {
     };
 
     // Generate music
+    console.log(`[MUSIC-GEN-${requestId}] Calling musicApi.generateMusic with request:`, {
+      mode: musicRequest.mode,
+      genre: musicRequest.genre,
+      instrumentalMode: musicRequest.instrumentalMode,
+      hasCustomPrompt: !!musicRequest.customPrompt,
+      songTitle: musicRequest.songTitle
+    });
+
     const result = await musicApi.generateMusic(musicRequest);
+    console.log(`[MUSIC-GEN-${requestId}] Music API response:`, {
+      hasTaskId: !!result.taskId,
+      taskId: result.taskId,
+      success: !result.error,
+      error: result.error || result.errorMessage
+    });
 
     // 创建数据库记录和扣除积分（只有API调用成功才执行）
     if (result.taskId) {
-      // 成功获得taskId，创建记录并扣除积分
+      // 成功获得taskId，分步骤处理以减少单个事务时间
       try {
+        console.log(`[MUSIC-GEN-${requestId}] Starting database operations for successful generation`);
+
         // 准备数据库存储的genre
         let genreForDb;
         if (mode === 'basic') {
@@ -169,7 +204,25 @@ export async function POST(request: NextRequest) {
           genreForDb = styleForDb ? styleForDb.name : selectedGenre;
         }
 
-        // 创建音乐生成记录
+        // 步骤1: 先扣除积分（最关键的操作，优先执行）
+        console.log(`[MUSIC-GEN-${requestId}] Step 1: Consuming user credits`);
+        const creditStartTime = Date.now();
+
+        await consumeUserCredit(
+          userId,
+          creditCost,
+          `Music generation (${modelVersion})`,
+          result.taskId,
+          'music_generation'
+        );
+
+        const creditTime = Date.now() - creditStartTime;
+        console.log(`[MUSIC-GEN-${requestId}] Credits consumed successfully in ${creditTime}ms`);
+
+        // 步骤2: 创建音乐生成记录（分离出来，减少事务复杂度）
+        console.log(`[MUSIC-GEN-${requestId}] Step 2: Creating music generation record`);
+        const recordStartTime = Date.now();
+
         await createMusicGeneration(userId, {
           title: musicRequest.songTitle || null,
           genre: genreForDb,
@@ -178,33 +231,79 @@ export async function POST(request: NextRequest) {
           status: 'generating'
         });
 
-        // 扣除积分（这里应该不会失败，因为我们已经预先检查了）
-        const creditConsumed = await consumeUserCredit(
-          userId,
-          creditCost,
-          `Music generation (${modelVersion})`,
-          result.taskId,
-          'music_generation'
-        );
+        const recordTime = Date.now() - recordStartTime;
+        console.log(`[MUSIC-GEN-${requestId}] Music generation record created successfully in ${recordTime}ms`);
 
-        if (!creditConsumed) {
-          console.error('Failed to consume credits after API call - this should not happen');
-          // 这种情况理论上不应该发生，因为我们已经预先检查了积分
-          // 但如果发生了，我们记录错误但不阻止流程
-        }
+        const totalDbTime = Date.now() - creditStartTime;
+        console.log(`[MUSIC-GEN-${requestId}] All database operations completed successfully in ${totalDbTime}ms`);
 
       } catch (dbError) {
-        console.error('Failed to create music generation record after API call:', dbError);
-        // API已经调用成功，但数据库操作失败
-        // 这种情况比较复杂，我们记录错误但不阻止返回成功响应
-        console.error('Warning: Music generation API succeeded but database record creation failed');
+        console.error(`[MUSIC-GEN-${requestId}] Database operation failed after API call:`, {
+          error: dbError instanceof Error ? dbError.message : String(dbError),
+          taskId: result.taskId,
+          stack: dbError instanceof Error ? dbError.stack : undefined
+        });
+
+        // 数据库操作失败的补偿逻辑
+        // 尝试回滚积分（如果积分扣除成功但记录创建失败）
+        try {
+          const { query } = await import('@/lib/db-query-builder');
+
+          // 检查是否有积分交易记录
+          const creditCheckResult = await query(
+            'SELECT id FROM credit_transactions WHERE reference_id = $1 AND reference_type = $2',
+            [result.taskId, 'music_generation']
+          );
+
+          if (creditCheckResult.rows.length > 0) {
+            console.log(`[MUSIC-GEN-${requestId}] Credit transaction found, attempting compensation`);
+
+            // 创建补偿积分记录
+            await query(`
+              INSERT INTO credit_transactions (
+                user_id, transaction_type, amount,
+                balance_after, description, reference_id, reference_type
+              )
+              SELECT
+                user_id, 'credit', $2,
+                (SELECT credits FROM user_credits WHERE user_id = $1) + $2,
+                'Compensation for failed generation: ' || $3,
+                $3, 'compensation'
+              FROM credit_transactions
+              WHERE reference_id = $3 AND reference_type = 'music_generation'
+              LIMIT 1
+            `, [userId, creditCost, result.taskId]);
+
+            // 更新用户积分
+            await query(
+              'UPDATE user_credits SET credits = credits + $2, updated_at = NOW() WHERE user_id = $1',
+              [userId, creditCost]
+            );
+
+            console.log(`[MUSIC-GEN-${requestId}] Credit compensation completed`);
+          }
+
+        } catch (compensationError) {
+          console.error(`[MUSIC-GEN-${requestId}] Credit compensation failed:`, compensationError);
+        }
+
+        // 返回带有详细错误信息的响应
+        return NextResponse.json(
+          {
+            error: 'Database operation failed',
+            message: 'Music generation started but database operation failed. Your credits have been restored. Please try again or contact support.',
+            success: false,
+            taskId: result.taskId,
+            technical_details: dbError instanceof Error ? dbError.message : 'Unknown database error'
+          },
+          { status: 500 }
+        );
       }
     } else {
+      console.log(`[MUSIC-GEN-${requestId}] API call failed - no taskId returned. Error: ${result.error || result.errorMessage}`);
       // 没有taskId，说明生成失败（可能包含敏感词等）
 
       try {
-        // 生成失败不扣除积分，因为用户没有得到任何结果
-
         // 创建失败记录到数据库
         let genreForDb;
         if (mode === 'basic') {
@@ -237,9 +336,16 @@ export async function POST(request: NextRequest) {
         (result as any).generationId = failedGeneration.id; // 返回generationId供前端删除使用
 
       } catch (dbError) {
-        console.error('Failed to create failed music generation record:', dbError);
+        console.error(`[MUSIC-GEN-${requestId}] Failed to create failed music generation record:`, dbError);
       }
     }
+
+    console.log(`[MUSIC-GEN-${requestId}] Returning response to client`, {
+      success: true,
+      hasTaskId: !!result.taskId,
+      taskId: result.taskId,
+      requestProcessingTime: Date.now() - parseInt(requestId.split('_')[1])
+    });
 
     return NextResponse.json({
       success: true,
@@ -247,12 +353,12 @@ export async function POST(request: NextRequest) {
     });
 
   } catch (error) {
-    console.error('Music generation error:', error);
-    
+    console.error(`[MUSIC-GEN-${requestId}] Music generation error:`, error);
+
     return NextResponse.json(
-      { 
-        error: error instanceof Error ? error instanceof Error ? error.message : 'Unknown error' : 'Error occurred during music generation',
-        success: false 
+      {
+        error: error instanceof Error ? error.message : 'Error occurred during music generation',
+        success: false
       },
       { status: 500 }
     );

@@ -48,7 +48,7 @@ export const useMusicGeneration = () => {
   const [customPrompt, setCustomPrompt] = useState("");
   const [songTitle, setSongTitle] = useState("");
   const [instrumentalMode, setInstrumentalMode] = useState(false);
-  const [keepPrivate, setKeepPrivate] = useState(false);
+  const [isPublished, setIsPublished] = useState(true);
 
   // Advanced Music Options
   const [bpm, setBpm] = useState([60]);
@@ -74,9 +74,11 @@ export const useMusicGeneration = () => {
   const generationTimerRef = useRef<NodeJS.Timeout | null>(null);
   const pollingRef = useRef<NodeJS.Timeout | null>(null);
   const pollingDelayRef = useRef<NodeJS.Timeout | null>(null);
+  const pollingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const hasAutoplayedRef = useRef(false);
   const currentPollingMsRef = useRef<number>(1000);
   const hasAutoPlayedRef = useRef<boolean>(false);
+  const pollingStartTimeRef = useRef<number>(0);
 
   // Expose hasAutoPlayedRef to global scope for other components
   if (typeof window !== 'undefined') {
@@ -103,6 +105,10 @@ export const useMusicGeneration = () => {
     if (pollingDelayRef.current) {
       clearTimeout(pollingDelayRef.current);
       pollingDelayRef.current = null;
+    }
+    if (pollingTimeoutRef.current) {
+      clearTimeout(pollingTimeoutRef.current);
+      pollingTimeoutRef.current = null;
     }
   };
 
@@ -337,6 +343,10 @@ export const useMusicGeneration = () => {
         clearInterval(generationTimerRef.current);
         generationTimerRef.current = null;
       }
+      if (pollingTimeoutRef.current) {
+        clearTimeout(pollingTimeoutRef.current);
+        pollingTimeoutRef.current = null;
+      }
       setIsGenerating(false);
 
       setAllGeneratedTracks(prev => prev.map((t, idx) => {
@@ -378,12 +388,15 @@ export const useMusicGeneration = () => {
    * Adjusts polling frequency based on generation status
    */
   const adjustPollingFrequency = (status: GenerationStatus, pollFunction: () => Promise<void>) => {
-    if ((status === 'text' || status === 'first' || hasAutoplayedRef.current) && currentPollingMsRef.current !== 3000) {
+    // 根据状态调整轮询频率
+    // text/first状态后降低频率，减少服务器压力
+    if ((status === 'text' || status === 'first' || hasAutoplayedRef.current) && currentPollingMsRef.current !== 5000) {
       if (pollingRef.current) {
         clearInterval(pollingRef.current);
       }
-      currentPollingMsRef.current = 3000;
+      currentPollingMsRef.current = 5000; // 从3秒增加到5秒
       pollingRef.current = setInterval(pollFunction, currentPollingMsRef.current);
+      console.log('Polling frequency adjusted to 5s');
     }
   };
 
@@ -400,12 +413,35 @@ export const useMusicGeneration = () => {
       clearTimeout(pollingDelayRef.current);
       pollingDelayRef.current = null;
     }
+    if (pollingTimeoutRef.current) {
+      clearTimeout(pollingTimeoutRef.current);
+      pollingTimeoutRef.current = null;
+    }
 
     hasAutoplayedRef.current = false;
     hasAutoPlayedRef.current = false;
+    pollingStartTimeRef.current = Date.now();
+
+    // 设置3分钟超时（音乐生成通常应该在2-3分钟内完成）
+    pollingTimeoutRef.current = setTimeout(() => {
+      console.error('Music generation timeout after 3 minutes');
+      cleanupResources();
+      setIsGenerating(false);
+      setPendingTasksCount(0);
+      
+      const errorTrack = createFailedTrack('Generation timeout. Please try again.');
+      setAllGeneratedTracks([errorTrack]);
+      toast.error('Music generation timeout. Please try again.');
+    }, 5 * 60 * 1000); // 5分钟
 
     const poll = async () => {
       try {
+        // 检查网络连接
+        if (typeof navigator !== 'undefined' && !navigator.onLine) {
+          console.warn('No internet connection, skipping poll');
+          return;
+        }
+
         const res = await fetch(`/api/music-status?taskId=${taskId}`);
         if (!res.ok) return;
         const payload = await res.json();
@@ -441,9 +477,10 @@ export const useMusicGeneration = () => {
     };
 
     // Start polling with delay
+    // 30秒延迟后开始轮询，给API时间开始处理
     pollingDelayRef.current = setTimeout(() => {
       poll();
-      currentPollingMsRef.current = 1000;
+      currentPollingMsRef.current = 3000; // 初始轮询间隔3秒，更合理
       pollingRef.current = setInterval(poll, currentPollingMsRef.current);
     }, 30000);
   };
@@ -561,7 +598,7 @@ export const useMusicGeneration = () => {
     customPrompt, setCustomPrompt,
     songTitle, setSongTitle,
     instrumentalMode, setInstrumentalMode,
-    keepPrivate, setKeepPrivate,
+    isPublished, setIsPublished,
 
     // Advanced Options
     bpm, setBpm,

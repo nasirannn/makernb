@@ -6,7 +6,8 @@ import { Badge } from '@/components/ui/badge';
 import { PageLoading } from '@/components/ui/loading-dots';
 import { Play, Pause, Music } from 'lucide-react';
 import { SafeImage } from '@/components/ui/safe-image';
-import { SimpleMusicPlayer } from '@/components/ui/simple-music-player';
+import { MusicPlayer } from '@/components/ui/music-player';
+import { CustomAudioWaveIndicator } from '@/components/ui/audio-wave-indicator';
 
 interface Track {
   id: string;
@@ -38,25 +39,14 @@ interface ExploreData {
   offset: number;
 }
 
-// Genre options for filtering
-const GENRE_OPTIONS = [
-  { id: 'all', name: 'All Genres' },
-  { id: 'New Jack Swing', name: 'New Jack Swing' },
-  { id: 'Hip-Hop Soul', name: 'Hip-Hop Soul' },
-  { id: 'Quiet Storm', name: 'Quiet Storm' },
-  { id: 'Neo-Soul', name: 'Neo-Soul' },
-  { id: 'R&B', name: 'Contemporary R&B' }
-];
 
 export default function ExplorePage() {
   const [exploreData, setExploreData] = useState<ExploreData | null>(null);
   const [loading, setLoading] = useState(true);
   const [loadingMore, setLoadingMore] = useState(false);
-  const [filterLoading, setFilterLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [currentlyPlaying, setCurrentlyPlaying] = useState<string | null>(null);
-  const [selectedGenre, setSelectedGenre] = useState<string>('all');
-  const [isInitialLoad, setIsInitialLoad] = useState(true);
+  const [isMobile, setIsMobile] = useState(false);
 
   // 播放器状态
   const [currentTrackIndex, setCurrentTrackIndex] = useState(0);
@@ -72,15 +62,8 @@ export default function ExplorePage() {
   useEffect(() => {
     const loadData = async () => {
       try {
-        // 区分初始加载和筛选加载
-        if (isInitialLoad) {
-          setLoading(true);
-        } else {
-          setFilterLoading(true);
-        }
-
-        const genreParam = selectedGenre !== 'all' ? `&genre=${selectedGenre}` : '';
-        const response = await fetch(`/api/explore?limit=20&offset=0${genreParam}`);
+        setLoading(true);
+        const response = await fetch(`/api/explore?limit=20&offset=0`);
         if (response.ok) {
           const result = await response.json();
           if (result.success && result.data) {
@@ -96,17 +79,34 @@ export default function ExplorePage() {
         console.error('Error fetching explore data:', error);
         setError('Failed to load music data');
       } finally {
-        if (isInitialLoad) {
-          setLoading(false);
-          setIsInitialLoad(false);
-        } else {
-          setFilterLoading(false);
-        }
+        setLoading(false);
       }
     };
 
     loadData();
-  }, [selectedGenre, isInitialLoad]);
+  }, []);
+
+  // 检测移动端
+  useEffect(() => {
+    const checkMobile = () => {
+      setIsMobile(window.innerWidth < 768);
+    };
+
+    checkMobile();
+    window.addEventListener('resize', checkMobile);
+    return () => window.removeEventListener('resize', checkMobile);
+  }, []);
+
+  // 组件卸载时清理音频
+  useEffect(() => {
+    return () => {
+      if (audioRef.current) {
+        audioRef.current.pause();
+        audioRef.current.src = '';
+        audioRef.current.load();
+      }
+    };
+  }, []);
 
   const fetchExploreData = async (offset = 0, append = false) => {
     try {
@@ -116,8 +116,7 @@ export default function ExplorePage() {
         setLoading(true);
       }
       
-      const genreParam = selectedGenre !== 'all' ? `&genre=${selectedGenre}` : '';
-      const response = await fetch(`/api/explore?limit=20&offset=${offset}${genreParam}`);
+      const response = await fetch(`/api/explore?limit=20&offset=${offset}`);
       const data = await response.json();
       
       if (data.success) {
@@ -285,7 +284,7 @@ export default function ExplorePage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-black pt-24">
+      <div className="min-h-screen bg-background pt-24">
         <div className="container mx-auto px-4 py-8">
           <PageLoading message="Loading music" className="text-white" />
         </div>
@@ -295,7 +294,7 @@ export default function ExplorePage() {
 
   if (error) {
     return (
-      <div className="min-h-screen bg-black pt-24">
+      <div className="min-h-screen bg-background pt-24">
         <div className="container mx-auto px-4 py-8">
           <div className="text-center">
             <p className="text-red-400 mb-4">{error}</p>
@@ -309,7 +308,7 @@ export default function ExplorePage() {
   }
 
   return (
-    <div className="min-h-screen bg-black pt-24">
+    <div className="min-h-screen bg-background pt-24">
       <div className={`container mx-auto px-4 py-8 ${playlist.length > 0 && currentlyPlaying ? 'pb-32' : ''}`}>
         {/* Header */}
         <div className="text-center mb-8">
@@ -321,43 +320,13 @@ export default function ExplorePage() {
           </p>
         </div>
 
-        {/* Genre Filter - 左对齐 */}
-        <div className="mb-8">
-          <div className="flex flex-wrap gap-2">
-            {GENRE_OPTIONS.map((genre) => (
-              <Button
-                key={genre.id}
-                variant={selectedGenre === genre.id ? "default" : "outline"}
-                size="sm"
-                onClick={() => setSelectedGenre(genre.id)}
-                disabled={filterLoading}
-                className={`transition-all duration-200 ${
-                  selectedGenre === genre.id
-                    ? 'bg-primary text-primary-foreground hover:bg-primary/90'
-                    : 'bg-black/20 border-white/20 text-white hover:bg-white/10 hover:border-white/30'
-                } ${filterLoading ? 'opacity-50 cursor-not-allowed' : ''}`}
-              >
-                {genre.name}
-              </Button>
-            ))}
-          </div>
-        </div>
 
         {/* Music Grid */}
         {exploreData && exploreData.music && exploreData.music.length > 0 ? (
           <>
             <div className="relative">
-              {/* Filter Loading Overlay */}
-              {filterLoading && (
-                <div className="absolute inset-0 bg-black/50 backdrop-blur-sm z-10 flex items-center justify-center rounded-xl">
-                  <div className="text-center">
-                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-white mx-auto mb-2"></div>
-                    <span className="text-white/90">Filtering music...</span>
-                  </div>
-                </div>
-              )}
 
-              <div className={`grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-6 ${filterLoading ? 'opacity-50' : ''}`}>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-6">
               {exploreData.music.map((music) => (
                 <div
                   key={music.id}
@@ -379,40 +348,30 @@ export default function ExplorePage() {
                       </div>
                     )}
 
-                    {/* Genre Badge - 右上角 */}
-                    <div className="absolute top-2 right-2">
-                      <Badge variant="secondary" className="text-xs bg-black/70 text-white border-white/20">
-                        {music.genre}
-                      </Badge>
-                    </div>
 
                     {/* Playing Wave Effect - 播放时音波效果 */}
                     {currentlyPlaying === music.primaryTrack.id && isPlaying && (
                       <div className="absolute inset-0 flex items-center justify-center bg-black/20 group-hover:opacity-0 transition-opacity duration-300">
-                        <div className="flex items-end gap-1">
-                          <div className="w-1 h-4 bg-white animate-pulse" style={{ animationDelay: '0ms' }}></div>
-                          <div className="w-1 h-6 bg-white animate-pulse" style={{ animationDelay: '100ms' }}></div>
-                          <div className="w-1 h-3 bg-white animate-pulse" style={{ animationDelay: '200ms' }}></div>
-                          <div className="w-1 h-8 bg-white animate-pulse" style={{ animationDelay: '300ms' }}></div>
-                          <div className="w-1 h-5 bg-white animate-pulse" style={{ animationDelay: '400ms' }}></div>
-                          <div className="w-1 h-7 bg-white animate-pulse" style={{ animationDelay: '500ms' }}></div>
-                          <div className="w-1 h-2 bg-white animate-pulse" style={{ animationDelay: '600ms' }}></div>
-                          <div className="w-1 h-4 bg-white animate-pulse" style={{ animationDelay: '700ms' }}></div>
-                        </div>
+                        <CustomAudioWaveIndicator
+                          isPlaying={isPlaying}
+                          size="lg"
+                          className="text-white"
+                        />
                       </div>
                     )}
 
                     {/* Play Button Overlay */}
                     <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-center justify-center">
                       <Button
+                        variant="ghost"
+                        size="sm"
+                        className="h-12 w-12 p-0 bg-white/20 hover:bg-white/30 backdrop-blur-sm"
                         onClick={() => handlePlayPause(music.primaryTrack.id, music.primaryTrack.audio_url, music)}
-                        size="lg"
-                        className="rounded-full bg-white/90 hover:bg-white text-black hover:text-black border-0 shadow-lg"
                       >
                         {currentlyPlaying === music.primaryTrack.id && isPlaying ? (
-                          <Pause className="w-6 h-6" />
+                          <Pause className="h-5 w-5 text-white" />
                         ) : (
-                          <Play className="w-6 h-6 ml-1" />
+                          <Play className="h-5 w-5 text-white" />
                         )}
                       </Button>
                     </div>
@@ -427,7 +386,7 @@ export default function ExplorePage() {
                       {music.tags}
                     </p>
                     <div className="flex items-center text-white/50 text-xs">
-                      <span>{music.trackCount} tracks</span>
+                      <span>{formatDuration(music.totalDuration)}</span>
                     </div>
                   </div>
                 </div>
@@ -457,13 +416,14 @@ export default function ExplorePage() {
 
             {/* No More Music Message */}
             {exploreData && exploreData.music && exploreData.music.length > 0 && exploreData.music.length >= exploreData.count && (
-              <div className="text-center mt-12 py-8">
-                <div className="inline-flex items-center justify-center w-12 h-12 rounded-full bg-white/5 mb-4">
-                  <Music className="w-6 h-6 text-white/40" />
-                </div>
-                <p className="text-white/60 text-sm">
+              <div className="text-center mt-16 py-8">
+                <div className="inline-flex items-center gap-2 px-4 py-2 bg-muted/30 rounded-full">
+                  <div className="w-2 h-2 bg-muted-foreground/40 rounded-full"></div>
+                  <span className="text-sm text-muted-foreground font-medium">
                   All the music is here ✨
-                </p>
+                  </span>
+                  <div className="w-2 h-2 bg-muted-foreground/40 rounded-full"></div>
+                </div>
               </div>
             )}
           </>
@@ -478,7 +438,7 @@ export default function ExplorePage() {
       {/* 播放器 - 固定在底部 */}
       {playlist.length > 0 && currentlyPlaying && (
         <div className="fixed bottom-0 left-0 right-0 z-50">
-          <SimpleMusicPlayer
+          <MusicPlayer
             tracks={playlist.map(music => ({
               id: music.primaryTrack.id,
               title: music.title,
@@ -495,6 +455,7 @@ export default function ExplorePage() {
             duration={duration}
             volume={volume}
             isMuted={isMuted}
+            hideProgress={isMobile}
             onPlayPause={handlePlayerPlayPause}
             onPrevious={handlePrevious}
             onNext={handleNext}

@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { softDeleteMusicTrack } from '@/lib/music-db';
-import { getUserIdFromRequest } from '@/lib/auth-utils';
+import { getUserIdFromRequest } from '@/lib/auth-utils-optimized';
 
 // 强制动态渲染
 export const dynamic = 'force-dynamic';

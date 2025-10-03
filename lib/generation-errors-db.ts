@@ -1,4 +1,4 @@
-import { query } from './neon';
+import { query } from './db-query-builder';
 
 export interface GenerationError {
   id: string;

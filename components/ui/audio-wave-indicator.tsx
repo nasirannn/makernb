@@ -31,8 +31,8 @@ export const AudioWaveIndicator: React.FC<AudioWaveIndicatorProps> = ({
         <div
           key={index}
           className={`${barClasses[size]} bg-white rounded-full transition-all duration-200 ${
-            isPlaying 
-              ? 'animate-bounce' 
+            isPlaying
+              ? 'animate-bounce'
               : 'opacity-30'
           }`}
           style={{
@@ -71,8 +71,8 @@ export const AdvancedAudioWaveIndicator: React.FC<AudioWaveIndicatorProps> = ({
         <div
           key={index}
           className={`${barClasses[size]} bg-white rounded-full transition-all duration-200 ${
-            isPlaying 
-              ? 'animate-bounce' 
+            isPlaying
+              ? 'animate-bounce'
               : 'opacity-40'
           }`}
           style={{
@@ -101,22 +101,22 @@ export const PulseAudioWaveIndicator: React.FC<AudioWaveIndicatorProps> = ({
   return (
     <div className={`relative ${sizeClasses[size]} ${className}`}>
       {/* 中心圆点 */}
-      <div 
+      <div
         className={`absolute inset-0 bg-white rounded-full transition-all duration-300 ${
-          isPlaying 
-            ? 'animate-pulse scale-100' 
+          isPlaying
+            ? 'animate-pulse scale-100'
             : 'opacity-50 scale-75'
         }`}
       />
-      
+
       {/* 脉冲环 */}
       {isPlaying && (
         <>
-          <div 
+          <div
             className="absolute inset-0 bg-white rounded-full animate-ping opacity-20"
             style={{ animationDuration: '1s' }}
           />
-          <div 
+          <div
             className="absolute inset-0 bg-white rounded-full animate-ping opacity-10"
             style={{ animationDuration: '1.5s', animationDelay: '0.2s' }}
           />
@@ -126,45 +126,45 @@ export const PulseAudioWaveIndicator: React.FC<AudioWaveIndicatorProps> = ({
   );
 };
 
-// 自定义音波动画组件
+// 统一的音波动画组件 - 基于explore页面的设计
 export const CustomAudioWaveIndicator: React.FC<AudioWaveIndicatorProps> = ({
   isPlaying,
   className = '',
   size = 'sm'
 }) => {
-  const sizeClasses = {
-    sm: 'w-3 h-3',
-    md: 'w-4 h-4',
-    lg: 'w-5 h-5'
+  // 根据尺寸选择不同的配置
+  const config = {
+    sm: {
+      // 小尺寸：适用于64x64px封面，使用5个条形
+      heights: ['h-2', 'h-3', 'h-1.5', 'h-4', 'h-2.5'],
+      barWidth: 'w-0.5',
+      gap: 'gap-0.5'
+    },
+    md: {
+      // 中等尺寸：适用于较大封面，使用6个条形
+      heights: ['h-3', 'h-4', 'h-2', 'h-5', 'h-3', 'h-4'],
+      barWidth: 'w-0.5',
+      gap: 'gap-0.5'
+    },
+    lg: {
+      // 大尺寸：适用于explore页面，使用完整8个条形
+      heights: ['h-4', 'h-6', 'h-3', 'h-8', 'h-5', 'h-7', 'h-2', 'h-4'],
+      barWidth: 'w-1',
+      gap: 'gap-1'
+    }
   };
 
-  const barClasses = {
-    sm: 'w-0.5',
-    md: 'w-0.5',
-    lg: 'w-1'
-  };
-
-  const waveClasses = [
-    'audio-wave-bar-1',
-    'audio-wave-bar-2', 
-    'audio-wave-bar-3',
-    'audio-wave-bar-4',
-    'audio-wave-bar-5'
-  ];
+  const currentConfig = config[size];
 
   return (
-    <div className={`flex items-end justify-center space-x-0.5 ${sizeClasses[size]} ${className}`}>
-      {[...Array(5)].map((_, index) => (
+    <div className={`flex items-end ${currentConfig.gap} ${className}`}>
+      {currentConfig.heights.map((height, index) => (
         <div
           key={index}
-          className={`${barClasses[size]} bg-white rounded-full transition-opacity duration-200 shadow-lg ${
-            isPlaying 
-              ? waveClasses[index]
-              : 'opacity-40'
-          }`}
+          className={`${currentConfig.barWidth} ${height} bg-white animate-pulse`}
           style={{
-            height: isPlaying ? '20%' : '20%',
-            boxShadow: isPlaying ? '0 0 4px rgba(255, 255, 255, 0.5)' : 'none'
+            animationDelay: `${index * 100}ms`,
+            opacity: isPlaying ? 1 : 0.3
           }}
         />
       ))}
