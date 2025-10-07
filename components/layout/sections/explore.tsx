@@ -74,12 +74,14 @@ export const ExploreSection = () => {
 
   // 组件卸载时清理音频
   useEffect(() => {
+    const audioElement = audioRef.current;
+    
     return () => {
       // 立即停止音频播放
-      if (audioRef.current) {
-        audioRef.current.pause();
-        audioRef.current.src = '';
-        audioRef.current.load();
+      if (audioElement) {
+        audioElement.pause();
+        audioElement.src = '';
+        audioElement.load();
       }
       // 重置所有播放状态
       setIsPlaying(false);
