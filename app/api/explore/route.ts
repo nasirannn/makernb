@@ -7,9 +7,22 @@ export const dynamic = 'force-dynamic';
 export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
-    const limit = parseInt(searchParams.get('limit') || '20');
+    const limit = parseInt(searchParams.get('limit') || '50'); // 增加默认limit
     const offset = parseInt(searchParams.get('offset') || '0');
     const genre = searchParams.get('genre');
+
+    // 首先获取总数
+    const countResult = await query(`
+      SELECT COUNT(*) as total
+      FROM music_tracks mt
+      JOIN music_generations mg ON mt.music_generation_id = mg.id
+      WHERE mt.is_published = TRUE
+        AND mg.status = 'complete'
+        AND (mt.is_deleted IS NULL OR mt.is_deleted = FALSE)
+        ${genre && genre !== 'all' ? `AND mg.genre = $1` : ''}
+    `, genre && genre !== 'all' ? [genre] : []);
+
+    const totalCount = parseInt(countResult.rows[0].total);
 
     // 获取公开的音乐tracks
     const result = await query(`
@@ -75,7 +88,7 @@ export async function GET(request: NextRequest) {
       success: true,
       data: {
         music: tracks,
-        count: tracks.length,
+        count: totalCount, // 使用实际的总数
         limit,
         offset
       }

@@ -63,7 +63,7 @@ export default function ExplorePage() {
     const loadData = async () => {
       try {
         setLoading(true);
-        const response = await fetch(`/api/explore?limit=20&offset=0`);
+        const response = await fetch(`/api/explore?limit=50&offset=0`);
         if (response.ok) {
           const result = await response.json();
           if (result.success && result.data) {
@@ -123,7 +123,7 @@ export default function ExplorePage() {
         setLoading(true);
       }
       
-      const response = await fetch(`/api/explore?limit=20&offset=${offset}`);
+      const response = await fetch(`/api/explore?limit=50&offset=${offset}`);
       const data = await response.json();
       
       if (data.success) {
