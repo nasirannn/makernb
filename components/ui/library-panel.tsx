@@ -381,20 +381,15 @@ export const LibraryPanel = ({
         </div>
 
         {/* Tabs and Search Row */}
-        <div className="flex items-center justify-between gap-4">
+        <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
           {/* Navigation Tabs */}
-          <div className="bg-muted/30 rounded-xl p-1 inline-flex">
-            <div className={`grid gap-1 ${
-              TABS.length === 5 ? 'grid-cols-5' : 
-              TABS.length === 4 ? 'grid-cols-4' : 
-              TABS.length === 3 ? 'grid-cols-3' : 
-              'grid-cols-2'
-            }`}>
+          <div className="bg-muted/30 rounded-xl p-1 inline-flex w-full md:w-auto">
+            <div className="flex gap-1 w-full">
               {TABS.map((tab) => (
                 <button
                   key={tab}
                   onClick={() => setActiveTab(tab)}
-                  className={`py-2 px-3 text-sm font-medium transition-all duration-200 rounded-lg whitespace-nowrap ${
+                  className={`py-2 px-3 text-sm font-medium transition-all duration-200 rounded-lg whitespace-nowrap flex-1 ${
                     activeTab === tab
                       ? 'bg-primary/20 border-transparent text-primary shadow-sm'
                       : 'text-muted-foreground hover:text-foreground hover:bg-muted/50'
@@ -407,7 +402,7 @@ export const LibraryPanel = ({
           </div>
 
           {/* Search Input */}
-          <div className="relative">
+          <div className="relative w-full md:w-auto">
             <div className="relative">
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
               <input
@@ -415,7 +410,7 @@ export const LibraryPanel = ({
                 placeholder="Search tracks..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="pl-10 pr-10 py-2 w-64 bg-muted/30 border border-border/20 rounded-xl text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary/30 transition-all duration-200"
+                className="pl-10 pr-10 py-2 w-full md:w-64 bg-muted/30 border border-border/20 rounded-xl text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary/30 transition-all duration-200"
               />
               {searchQuery && (
                 <button
@@ -431,7 +426,7 @@ export const LibraryPanel = ({
       </div>
 
       {/* Content - 正确的flex布局 */}
-      <div className={`flex-1 overflow-y-auto px-6 relative ${hasPlayer ? 'pb-20' : 'pb-3'}`}>
+      <div className={`flex-1 overflow-y-auto px-3 md:px-6 relative ${hasPlayer ? 'pb-20' : 'pb-3'}`}>
         {isLoading ? (
           <div className="flex items-center justify-center h-full relative">
             <LoadingState message="Loading your music library" size="lg" vertical />
@@ -447,7 +442,7 @@ export const LibraryPanel = ({
               {paginatedTracks.map((track, index) => (
                 <div
                   key={track.id}
-                  className={`flex items-center gap-4 p-5 rounded-2xl transition-all duration-300 group cursor-pointer backdrop-blur-sm border ${
+                  className={`flex items-center gap-3 md:gap-4 p-3 md:p-5 rounded-2xl transition-all duration-300 group cursor-pointer backdrop-blur-sm border ${
                     selectedLibraryTrack === track.id
                       ? 'bg-black/40 shadow-lg border-white/20'
                       : 'bg-black/20 hover:bg-black/30 border border-border/10 hover:border-border/30 hover:shadow-md'
@@ -458,7 +453,7 @@ export const LibraryPanel = ({
                 >
 
                   {/* Cover Image */}
-                  <div className="relative w-16 h-16 rounded-md overflow-hidden flex-shrink-0 group/cover">
+                  <div className="relative w-12 h-12 md:w-16 md:h-16 rounded-md overflow-hidden flex-shrink-0 group/cover">
                     {track.cover_r2_url ? (
                       <SafeImage
                         src={track.cover_r2_url}
@@ -512,39 +507,48 @@ export const LibraryPanel = ({
                   </div>
 
                   {/* Track Info */}
-                  <div className="flex-1 min-w-0 flex items-center gap-4">
+                  <div className="flex-1 min-w-0 flex flex-col md:flex-row md:items-center gap-1 md:gap-4">
                     <div className="flex-1 min-w-0">
-                      <h3 className="font-medium text-foreground truncate mb-1">
+                      <h3 className="font-medium text-foreground truncate mb-1 text-sm md:text-base">
                         {track.title}
                       </h3>
-                      <p className="text-sm text-muted-foreground truncate">
+                      {/* 桌面端显示完整的tags */}
+                      <p className="hidden md:block text-sm text-muted-foreground truncate">
                         {(() => {
                           const tags = track.tags;
                           return tags && tags.length > 100 ? `${tags.substring(0, 100)}...` : tags;
                         })()}
                       </p>
+                      {/* 移动端显示更短的tags */}
+                      <p className="block md:hidden text-xs text-muted-foreground truncate">
+                        {(() => {
+                          const tags = track.tags;
+                          return tags && tags.length > 30 ? `${tags.substring(0, 30)}...` : tags;
+                        })()}
+                      </p>
                     </div>
 
-                  </div>
-
-                  {/* Duration */}
-                  <div className="text-sm text-muted-foreground flex-shrink-0 w-16 text-center mr-2">
-                    {formatDuration(track.duration)}
-                  </div>
-
-                  {/* Created Date */}
-                  <div className="text-sm text-muted-foreground flex-shrink-0 w-24 text-center mr-2">
-                    {formatDate(track.created_at)}
+                    {/* Date - Hidden on mobile */}
+                    <div className="hidden md:flex items-center gap-4">
+                      <div className="text-sm text-muted-foreground flex-shrink-0 w-24 text-center">
+                        {formatDate(track.created_at)}
+                      </div>
+                    </div>
                   </div>
 
                    {/* Action Buttons - Only show when lyrics panel is closed */}
                    {!showLyrics && (
                      <div className="flex items-center gap-1 flex-shrink-0">
+                       {/* Duration */}
+                       <div className="text-xs md:text-sm text-muted-foreground flex-shrink-0 w-12 md:w-16 text-center mr-1">
+                         {formatDuration(track.duration)}
+                       </div>
+                       
                        {/* Favorite Button */}
                        <Button
                          variant="ghost"
                          size="sm"
-                         className="h-8 w-8 p-0"
+                         className="h-7 w-7 md:h-8 md:w-8 p-0"
                          title={track.is_favorited ? "Remove from favourites" : "Add to favourites"}
                          onClick={(e) => {
                            e.stopPropagation();
@@ -575,7 +579,7 @@ export const LibraryPanel = ({
                          <Button
                            variant="ghost"
                            size="sm"
-                           className="h-8 w-8 p-0"
+                           className="h-7 w-7 md:h-8 md:w-8 p-0"
                            title="More actions"
                            onClick={(e) => e.stopPropagation()}
                          >

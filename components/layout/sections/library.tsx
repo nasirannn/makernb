@@ -420,18 +420,13 @@ const LibraryContent = () => {
         <>
             <section 
                 id="library" 
-                className="h-screen flex bg-background relative overflow-hidden"
+                className="h-screen flex flex-col md:flex-row bg-background relative overflow-hidden"
             >
 
-                {/* Common Sidebar */}
-                <div className="relative z-50">
-                    <CommonSidebar />
-                </div>
-
                 {/* Main Library Interface */}
-                <div className="flex-1 h-full flex z-10">
+                <div className="flex-1 h-full flex z-10 md:order-2 pb-20 md:pb-0">
                     <div className="min-w-0 h-full flex flex-col" style={{
-                        width: showLyrics ? 'calc(100% - 20rem)' : '100%'
+                        width: showLyrics ? 'calc(100% - 0rem)' : '100%'
                     }}>
                         <LibraryPanel
                             tracks={getAllTracks()}
@@ -597,7 +592,17 @@ const LibraryContent = () => {
 
                     {/* Lyrics Panel */}
                     {showLyrics && (
-                        <div className="w-80 h-full flex-shrink-0">
+                        <>
+                        {/* Backdrop for mobile */}
+                        <div 
+                            className="fixed inset-0 bg-black/50 z-40 md:hidden transition-opacity duration-300"
+                            onClick={() => {
+                                setShowLyrics(false);
+                                setSelectedForLyrics(null);
+                                setSelectedLibraryTrack(null);
+                            }}
+                        />
+                        <div className="fixed md:relative bottom-0 left-0 right-0 md:left-auto md:right-auto w-full md:w-80 h-[calc(95dvh-4rem)] md:h-full flex-shrink-0 z-50 md:z-auto">
                         <LyricsPanel
                         isOpen={showLyrics}
                         onClose={() => {
@@ -725,14 +730,15 @@ const LibraryContent = () => {
                         }}
                     />
                         </div>
+                        </>
                     )}
                 </div>
 
                 {/* Music Player - Fixed at bottom when track is loaded */}
                 {currentTrack && (
-                    <div className={`fixed bottom-0 left-16 z-50 transition-all duration-300 ease-in-out ${
-                        showLyrics ? 'right-80' : 'right-0'
-                    }`}>
+                    <div className={`fixed md:bottom-0 left-0 right-0 md:left-16 ${showLyrics ? 'md:right-80' : 'md:right-0'} z-40 transition-all duration-300 ease-in-out`} style={{
+                        bottom: 'var(--mobile-nav-height, 0px)'
+                    }}>
                         <MusicPlayer
                                 tracks={getAllTracks().map(track => ({
                                     id: track.id,
@@ -793,6 +799,11 @@ const LibraryContent = () => {
                     onPause={handlePause}
                     preload="metadata"
                 />
+
+                {/* Common Sidebar - Fixed bottom navigation on mobile, Left sidebar on desktop */}
+                <div className="md:relative md:z-50 md:order-1">
+                    <CommonSidebar hideMobileNav={showLyrics} />
+                </div>
             </section>
 
             {/* Delete Confirmation Dialog */}

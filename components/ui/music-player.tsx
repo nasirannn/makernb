@@ -77,6 +77,24 @@ export const MusicPlayer: React.FC<MusicPlayerProps> = ({
   onSideChange
 }) => {
   const currentTrack = tracks[currentTrackIndex];
+  const [isMobile, setIsMobile] = useState(false);
+
+  // 检测屏幕尺寸
+  useEffect(() => {
+    const checkScreenSize = () => {
+      setIsMobile(window.innerWidth < 768);
+    };
+
+    // 初始检查
+    checkScreenSize();
+
+    // 监听窗口大小变化
+    window.addEventListener('resize', checkScreenSize);
+
+    return () => {
+      window.removeEventListener('resize', checkScreenSize);
+    };
+  }, []);
 
   // 检查当前歌曲是否有多个tracks
   const hasMultipleTracks = currentTrack?.allTracks && currentTrack.allTracks.length > 1;
@@ -106,7 +124,6 @@ export const MusicPlayer: React.FC<MusicPlayerProps> = ({
   const currentCoverImage = getCurrentCoverImage();
   const currentArtist = getCurrentArtist();
 
-
   const handleProgressChange = (value: number[]) => {
     const newTime = (value[0] / 100) * duration;
     onSeek(newTime);
@@ -119,17 +136,59 @@ export const MusicPlayer: React.FC<MusicPlayerProps> = ({
 
   const progressPercentage = duration > 0 ? (currentTime / duration) * 100 : 0;
 
+  // 动态测量播放器高度，设置 CSS 变量 --player-height
+  const rootRef = React.useRef<HTMLDivElement | null>(null);
+  React.useEffect(() => {
+    const el = rootRef.current;
+
+    const updateHeight = () => {
+      const height = el ? el.offsetHeight : 0;
+      if (typeof document !== 'undefined') {
+        document.documentElement.style.setProperty('--player-height', `${height}px`);
+      }
+    };
+
+    // 初次和下一帧更新，确保布局稳定后取值
+    updateHeight();
+    const raf = requestAnimationFrame(updateHeight);
+
+    // 监听窗口变化
+    window.addEventListener('resize', updateHeight);
+
+    // 使用 ResizeObserver 监听自身高度变化（例如样式切换/字体变化）
+    let ro: ResizeObserver | null = null;
+    if (typeof ResizeObserver !== 'undefined' && el) {
+      ro = new ResizeObserver(updateHeight);
+      ro.observe(el);
+    }
+
+    return () => {
+      cancelAnimationFrame(raf);
+      window.removeEventListener('resize', updateHeight);
+      if (ro && el) ro.disconnect();
+    };
+  }, []);
+
+  // 在布局模式变化/播放状态变化时刷新一次（圆环模式高度不同）
+  React.useEffect(() => {
+    const el = rootRef.current;
+    const height = el ? el.offsetHeight : 0;
+    if (typeof document !== 'undefined') {
+      document.documentElement.style.setProperty('--player-height', `${height}px`);
+    }
+  }, [hideProgress, isPlaying]);
+
   return (
-    <div className="bg-background/30 backdrop-blur-md border-t border-border/20 px-4 py-2">
-      <div className="flex items-center space-x-4 max-w-6xl mx-auto h-12">
+    <div ref={rootRef} className="bg-background/30 backdrop-blur-md border-t border-border/20 px-3 sm:px-4 py-2 sm:py-3">
+      <div className="flex items-center space-x-3 sm:space-x-4 w-full sm:max-w-6xl sm:mx-auto h-16 sm:h-12">
         
         {/* 左侧：歌曲信息 */}
-        <div className="flex items-center space-x-3 min-w-0 flex-shrink-0 w-48">
+        <div className="flex items-center space-x-3 sm:space-x-3 min-w-0 flex-shrink-0 w-40 sm:w-48">
           {currentCoverImage && (
-            <div className="relative w-12 h-12 flex-shrink-0 group">
+            <div className="relative w-12 h-12 sm:w-12 sm:h-12 flex-shrink-0 group">
               {/* 封面图片容器 */}
               <div
-                className="relative w-12 h-12 rounded-md overflow-hidden"
+                className="relative w-12 h-12 sm:w-12 sm:h-12 rounded-md overflow-hidden"
                 style={{
                   transformOrigin: 'left bottom'
                 }}
@@ -139,21 +198,73 @@ export const MusicPlayer: React.FC<MusicPlayerProps> = ({
                   alt={currentTrack?.title || 'Track'}
                   width={48}
                   height={48}
-                  className="w-12 h-12 rounded-md object-cover"
+                  className="w-12 h-12 sm:w-12 sm:h-12 rounded-md object-cover"
                 />
-
               </div>
             </div>
           )}
           <div className="min-w-0 flex-1">
-            <div className="text-sm font-medium text-white truncate">
+            <div className="text-sm sm:text-sm font-medium text-white truncate">
               {currentTrack?.title || 'Unknown Track'}
             </div>
           </div>
         </div>
 
-        {hideProgress ? (
-          /* 收起模式：圆环内部播放按钮设计 */
+        {/* 移动端：始终显示圆环模式 */}
+        {isMobile && (
+          <div className="flex items-center justify-center space-x-4 flex-1 min-w-0 h-full">
+            {/* 上一首按钮 */}
+            <button
+              onClick={onPrevious}
+              disabled={currentTrackIndex === 0}
+              className="text-gray-400 hover:text-white disabled:opacity-50 disabled:cursor-not-allowed transition-colors p-2"
+            >
+              <SkipBack className="w-5 h-5" />
+            </button>
+
+            {/* 圆环内部播放按钮 */}
+            <div className="relative">
+              {/* 外圆环 */}
+              <div className="w-12 h-12 rounded-full border-2 border-white/30 flex items-center justify-center">
+                {/* 内圆环 - 始终显示进度 */}
+                <div 
+                  className="absolute inset-0 rounded-full transition-all duration-300"
+                  style={{
+                    border: 'none',
+                    background: `conic-gradient(from 0deg, hsl(var(--primary)) 0deg, hsl(var(--primary)) ${progressPercentage * 3.6}deg, transparent ${progressPercentage * 3.6}deg)`,
+                    WebkitMask: 'radial-gradient(circle, transparent 16px, black 16px)',
+                    mask: 'radial-gradient(circle, transparent 16px, black 16px)'
+                  }}
+                />
+                
+                {/* 播放/暂停按钮 */}
+                <button
+                  onClick={onPlayPause}
+                  className="relative z-10 bg-white text-black rounded-full w-7 h-7 flex items-center justify-center hover:scale-105 transition-transform duration-200 shadow-lg"
+                >
+                  {isPlaying ? (
+                    <Pause className="w-3 h-3" />
+                  ) : (
+                    <Play className="w-3 h-3 ml-0.5" />
+                  )}
+                </button>
+              </div>
+            </div>
+
+            {/* 下一首按钮 */}
+            <button
+              onClick={onNext}
+              disabled={currentTrackIndex === tracks.length - 1}
+              className="text-gray-400 hover:text-white disabled:opacity-50 disabled:cursor-not-allowed transition-colors p-2"
+            >
+              <SkipForward className="w-5 h-5" />
+            </button>
+          </div>
+        )}
+
+        {/* 桌面端：根据hideProgress决定显示模式 */}
+        {!isMobile && hideProgress && (
+          /* 桌面端圆环模式（歌词面板打开时） */
           <div className="flex items-center justify-center space-x-6 flex-1 min-w-0 h-full">
             {/* 上一首按钮 */}
             <button
@@ -174,8 +285,8 @@ export const MusicPlayer: React.FC<MusicPlayerProps> = ({
                   style={{
                     border: 'none',
                     background: `conic-gradient(from 0deg, hsl(var(--primary)) 0deg, hsl(var(--primary)) ${progressPercentage * 3.6}deg, transparent ${progressPercentage * 3.6}deg)`,
-                    WebkitMask: 'radial-gradient(circle, transparent 16px, black 16px)',
-                    mask: 'radial-gradient(circle, transparent 16px, black 16px)'
+                    WebkitMask: 'radial-gradient(circle, transparent 12px, black 12px)',
+                    mask: 'radial-gradient(circle, transparent 12px, black 12px)'
                   }}
                 />
                 
@@ -202,8 +313,10 @@ export const MusicPlayer: React.FC<MusicPlayerProps> = ({
               <SkipForward className="w-5 h-5" />
             </button>
           </div>
-        ) : (
-          /* 展开状态：完整的播放控制 */
+        )}
+
+        {!isMobile && !hideProgress && (
+          /* 桌面端完整模式（歌词面板关闭时） */
           <div className="flex items-center space-x-4 flex-1 min-w-0">
             {/* 控制按钮 */}
             <div className="flex items-center space-x-3 flex-shrink-0">
@@ -259,19 +372,19 @@ export const MusicPlayer: React.FC<MusicPlayerProps> = ({
         )}
 
         {/* 右侧：音量控制 */}
-        <div className="flex items-center justify-end space-x-3 flex-shrink-0 w-32">
+        <div className="flex items-center justify-end space-x-3 sm:space-x-3 flex-shrink-0 w-24 sm:w-32">
           <button
             onClick={onMuteToggle}
             className="text-gray-400 hover:text-white transition-colors"
           >
             {isMuted || volume === 0 ? (
-              <VolumeX className="w-5 h-5" />
+              <VolumeX className="w-5 h-5 sm:w-5 sm:h-5" />
             ) : (
-              <Volume2 className="w-5 h-5" />
+              <Volume2 className="w-5 h-5 sm:w-5 sm:h-5" />
             )}
           </button>
 
-          <div className="w-16">
+          <div className="w-16 sm:w-16">
             <Slider
               value={[isMuted ? 0 : volume * 100]}
               onValueChange={handleVolumeChange}

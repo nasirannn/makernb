@@ -6,7 +6,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
-import { Music, RotateCcw, ChevronRight, Wand2, Play, Pause } from "lucide-react";
+import { Music, RotateCcw, ChevronRight, ChevronDown, Wand2, Play, Pause } from "lucide-react";
 import musicOptions from '@/data/music-options.json';
 import { useAuth } from '@/contexts/AuthContext';
 import { useCredits } from '@/contexts/CreditsContext';
@@ -64,11 +64,20 @@ interface StudioPanelProps {
   pendingTasksCount: number;
   onGenerationStart?: () => void;
   onGenerateLyrics?: () => void;
+  // 新增：在移动端强制可见（用于移动端Tab中的创作页）
+  forceVisibleOnMobile?: boolean;
+  // 新增：点击收起并显示tracks列表
+  onCollapseToTracks?: () => void;
+  // 新增：收起（关闭）面板
+  onCollapse?: () => void;
 }
 
 export const StudioPanel = (props: StudioPanelProps) => {
   const {
     panelOpen,
+    forceVisibleOnMobile = false,
+    onCollapseToTracks,
+    onCollapse,
     mode,
     setMode,
     selectedGenre,
@@ -176,26 +185,43 @@ export const StudioPanel = (props: StudioPanelProps) => {
   };
 
   return (
-    <div className={`transition-all duration-300 ease-in-out bg-muted/30 ${panelOpen ? 'w-[28rem]' : 'w-0'} h-full flex flex-col overflow-hidden`}>
+    <div className={`transition-all duration-300 ease-in-out bg-muted/30 ${
+      // 桌面：左侧固定宽度；移动端：当 forceVisibleOnMobile=true 时占满宽度
+      panelOpen ? (forceVisibleOnMobile ? 'w-full md:w-[28rem]' : 'w-[28rem]') : 'w-0'
+    } h-full flex flex-col overflow-hidden ${forceVisibleOnMobile ? 'flex md:flex' : 'hidden md:flex'}`}>
       {panelOpen && (
         <>
           {/* Header */}
-          <div className="flex-shrink-0 px-6 pt-6 pb-4 backdrop-blur-sm">
-            <div className="flex items-center gap-3 mb-4">
-              <Music className="h-8 w-8 text-primary" />
-              <h1 className="text-4xl font-semibold">Studio</h1>
+          <div className="flex-shrink-0 px-4 md:px-6 pt-4 md:pt-6 pb-3 md:pb-4 backdrop-blur-sm">
+            <div className="flex items-center justify-between gap-3 mb-4 md:mb-4">
+              <div className="flex items-center gap-3">
+                <Music className="h-8 w-8 text-primary" />
+                <h1 className="text-4xl font-semibold">Studio</h1>
+              </div>
+              {/* Collapse button in the same row as title (mobile only) */}
+              {onCollapse && (
+                <button
+                  type="button"
+                  className="md:hidden h-8 w-8 p-0 bg-muted/50 border border-border/30 text-foreground shadow-sm hover:bg-muted/70 hover:text-foreground transition-all duration-300 rounded-lg flex items-center justify-center"
+                  onClick={onCollapse}
+                  aria-label="Collapse panel"
+                  title="Collapse"
+                >
+                  <ChevronDown className="h-4 w-4" />
+                </button>
+              )}
             </div>
           </div>
 
-          <div className="flex-1 overflow-y-auto px-6 pb-6">
+          <div className="flex-1 overflow-y-auto px-4 md:px-6 pb-5 md:pb-6">
             {/* Mode Tabs - Internal at top */}
-            <div className="mb-6 mt-4">
+            <div className="mb-4 md:mb-6 mt-3 md:mt-4">
                 <div className="bg-muted/30 rounded-lg p-1">
                   <div className="grid grid-cols-2 gap-1">
                     <button
                       onClick={() => setMode("basic")}
               title="Create random R&B songs with polished production in 90s style. Simple and fast setup."
-                      className={`py-2 px-4 text-sm font-medium transition-all duration-200 rounded-md ${mode === "basic"
+                      className={`py-2 px-3 md:px-4 text-sm font-medium transition-all duration-200 rounded-md ${mode === "basic"
                           ? "bg-primary/20 border-transparent text-primary shadow-sm"
                           : "text-muted-foreground hover:text-foreground hover:bg-muted/50"
                         }`}
@@ -205,7 +231,7 @@ export const StudioPanel = (props: StudioPanelProps) => {
                     <button
                       onClick={() => setMode("custom")}
                       title="Fine-tune every aspect of your track with detailed controls for genre, instruments, and style."
-                      className={`py-2 px-4 text-sm font-medium transition-all duration-200 rounded-md ${mode === "custom"
+                      className={`py-2 px-3 md:px-4 text-sm font-medium transition-all duration-200 rounded-md ${mode === "custom"
                           ? "bg-primary/20 border-transparent text-primary shadow-sm"
                           : "text-muted-foreground hover:text-foreground hover:bg-muted/50"
                         }`}
@@ -219,13 +245,13 @@ export const StudioPanel = (props: StudioPanelProps) => {
       {mode === "basic" ? (
         <>
           {/* Basic Mode Content - 流式布局 */}
-                <div className="space-y-6">
+                <div className="space-y-5 md:space-y-6">
             {/* Basic Settings Section */}
-            <section className="pb-4 border-b border-border/20">
+            <section className="pb-4 md:pb-4 border-b border-border/20">
 
               {/* Instrumental Mode */}
-              <div className="space-y-4">
-                <div className="flex items-start py-3">
+              <div className="space-y-3 md:space-y-4">
+                <div className="flex items-start py-3 md:py-3">
                   <div className="flex-1">
                     <div className="font-medium text-foreground">
                       Instrumental
@@ -248,8 +274,8 @@ export const StudioPanel = (props: StudioPanelProps) => {
             </section>
             
             {/* Custom Prompt Section */}
-            <section className="pb-6 border-b border-border/20">
-              <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
+            <section className="pb-5 md:pb-6 border-b border-border/20">
+              <h3 className="text-lg font-semibold mb-3 md:mb-4 flex items-center gap-2">
                 Description
                 <span className="text-white text-sm">*</span>
               </h3>
@@ -260,7 +286,7 @@ export const StudioPanel = (props: StudioPanelProps) => {
                     value={customPrompt}
                     onChange={(e) => setCustomPrompt(e.target.value)}
                     maxLength={400}
-                    className="min-h-[120px] resize-none pr-16 border-0 focus-visible:ring-0 focus-visible:ring-offset-0"
+                    className="min-h-[104px] md:min-h-[120px] resize-none pr-16 border-0 focus-visible:ring-0 focus-visible:ring-offset-0"
                   />
                   <div className="absolute bottom-2 right-2 text-xs text-muted-foreground bg-background/80 px-2 py-1 rounded">
                     {customPrompt.length}/400
@@ -297,11 +323,11 @@ export const StudioPanel = (props: StudioPanelProps) => {
       ) : (
         <>
           {/* Tune Mode Content - 流式布局 */}
-          <div className="space-y-6">
+          <div className="space-y-5 md:space-y-6">
             {/* Basic Settings Section */}
-            <section className="pb-4 border-b border-border/20">
+            <section className="pb-4 md:pb-4 border-b border-border/20">
               {/* Instrumental Mode */}
-              <div className="py-3">
+              <div className="py-3 md:py-3">
                 <div className="flex items-center justify-between">
                   <div className="font-medium text-foreground">
                     Instrumental
@@ -367,8 +393,8 @@ export const StudioPanel = (props: StudioPanelProps) => {
             </section>
 
             {/* Song Title Section */}
-            <section className="pb-4 border-b border-border/20">
-              <h3 className="text-lg font-semibold mb-3 flex items-center gap-2">
+              <section className="pb-4 md:pb-4 border-b border-border/20">
+              <h3 className="text-lg font-semibold mb-3 md:mb-3 flex items-center gap-2">
                 Title
                 <span className="text-white text-sm">*</span>
               </h3>
@@ -379,7 +405,7 @@ export const StudioPanel = (props: StudioPanelProps) => {
                     value={songTitle}
                     onChange={(e) => setSongTitle(e.target.value)}
                     maxLength={80}
-                    className="min-h-[120px] resize-none pr-16 pb-6 border-0 focus-visible:ring-0 focus-visible:ring-offset-0"
+                    className="min-h-[104px] md:min-h-[120px] resize-none pr-16 pb-6 border-0 focus-visible:ring-0 focus-visible:ring-offset-0"
                   />
                   <div className="absolute bottom-2 right-2 text-xs text-muted-foreground bg-background/80 px-2 py-1 rounded">
                     {songTitle.length}/80
@@ -418,7 +444,7 @@ export const StudioPanel = (props: StudioPanelProps) => {
               </div>
 
               {/* Style Input Field */}
-              <div className="mb-4">
+              <div className="mb-4 md:mb-4">
                   <div className="relative">
                   <Textarea
                     placeholder="Enter style of music"
@@ -429,7 +455,7 @@ export const StudioPanel = (props: StudioPanelProps) => {
                       handleUpdateStatesFromTextarea(newValue);
                     }}
                     maxLength={200}
-                    className="min-h-[120px] resize-none pr-16 pb-6 border-0 focus-visible:ring-0 focus-visible:ring-offset-0"
+                    className="min-h-[104px] md:min-h-[120px] resize-none pr-16 pb-6 border-0 focus-visible:ring-0 focus-visible:ring-offset-0"
                   />
                   <div className="absolute bottom-2 right-3 text-xs text-muted-foreground">
                     {styleText.length}/200
@@ -1001,7 +1027,7 @@ export const StudioPanel = (props: StudioPanelProps) => {
 
             {/* Lyrics Section */}
             {!instrumentalMode && (
-              <section className="pb-6 border-b border-border/20">
+            <section className="pb-5 md:pb-6 border-b border-border/20">
                 <div className="flex items-center justify-between mb-3">
                   <h3 className="text-lg font-semibold flex items-center gap-2">
                     Lyrics
@@ -1020,12 +1046,12 @@ export const StudioPanel = (props: StudioPanelProps) => {
                 </div>
                 <div className="space-y-3">
                   <div className="relative">
-                    <Textarea
+                   <Textarea
                       placeholder="Write your song lyrics here..."
                       value={customPrompt}
                       onChange={(e) => setCustomPrompt(e.target.value)}
                       maxLength={5000}
-                      className="min-h-[120px] resize-none pr-16 pb-6 border-0 focus-visible:ring-0 focus-visible:ring-offset-0"
+                    className="min-h-[104px] md:min-h-[120px] resize-none pr-16 pb-6 border-0 focus-visible:ring-0 focus-visible:ring-offset-0"
                     />
                     {/* Character count - Inside textarea, bottom right */}
                     <div className="absolute bottom-2 right-2 text-xs text-muted-foreground bg-background/80 px-2 py-1 rounded">

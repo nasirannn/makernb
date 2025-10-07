@@ -44,6 +44,28 @@ const StudioContent = () => {
     // UI States
     const [panelOpen, setPanelOpen] = useState(true);
     const [showLyrics, setShowLyrics] = useState(false);
+    // 移动端：底部弹出创作面板
+    const [mobilePanelOpen, setMobilePanelOpen] = useState(false);
+
+    // 进入 Studio 时：移动端默认打开 Create 弹窗
+    useEffect(() => {
+        if (typeof window !== 'undefined' && window.innerWidth < 768) {
+            setMobilePanelOpen(true);
+        }
+    }, []);
+
+    // 监听从导航触发的打开事件
+    useEffect(() => {
+        const handler = () => setMobilePanelOpen(true);
+        window.addEventListener('studio:openCreate' as any, handler as any);
+        // 监听全局登录弹窗事件
+        const openAuthHandler = () => setIsAuthModalOpen(true);
+        window.addEventListener('auth:open' as any, openAuthHandler as any);
+        return () => {
+            window.removeEventListener('studio:openCreate' as any, handler as any);
+            window.removeEventListener('auth:open' as any, openAuthHandler as any);
+        };
+    }, []);
     const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
     const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
     const [trackToDelete, setTrackToDelete] = useState<any>(null);
@@ -214,6 +236,8 @@ const StudioContent = () => {
         setCurrentPlayingTrack(playingTrack);
         setSelectedStudioTrack(playingTrack);
         setShowLyrics(true);
+        // 关闭移动端创作抽屉，避免遮挡播放器
+        setMobilePanelOpen(false);
         
         playAudioWithDelay(track.audioUrl);
     }, [createTrackObject, playAudioWithDelay]);
@@ -455,8 +479,10 @@ const StudioContent = () => {
         } else {
             const playingTrack = createUserTrackObject(track, music);
             setCurrentPlayingTrack(playingTrack);
-            setSelectedStudioTrack(playingTrack);
-            setShowLyrics(true);
+        setSelectedStudioTrack(playingTrack);
+        setShowLyrics(true);
+        // 关闭移动端创作抽屉，避免遮挡播放器
+        setMobilePanelOpen(false);
 
             playAudioWithDelay(playingTrack.audioUrl);
         }
@@ -502,6 +528,8 @@ const StudioContent = () => {
 
         setSelectedStudioTrack(selectedTrack);
         setShowLyrics(true);
+        // 关闭移动端创作抽屉，避免遮挡播放器
+        setMobilePanelOpen(false);
 
         // 自动播放生成的歌曲
         playAudioWithDelay(audioUrl);
@@ -538,6 +566,8 @@ const StudioContent = () => {
             setSelectedStudioTrack(generatedTrack);
             setGeneratingTrack(generatedTrack);
             setShowLyrics(true);
+            // 关闭移动端创作抽屉，避免遮挡播放器
+            setMobilePanelOpen(false);
 
             if (!currentPlayingTrack) {
                 const playingTrack = {
@@ -804,11 +834,14 @@ const StudioContent = () => {
 
     return (
         <>
-            <section id="studio" className="h-screen flex bg-background">
+            <section id="studio" className="h-screen flex flex-col md:flex-row bg-background">
                 {/* Common Sidebar */}
-                <CommonSidebar />
+                <CommonSidebar hideMobileNav={mobilePanelOpen || showLyrics} />
 
-                {/* Studio Control Panel */}
+                {/* Mobile Tabs removed per requirement */}
+
+                {/* Studio Control Panel - 桌面左侧固定；移动端底部抽屉 */}
+                <div className="hidden md:block">
                 <StudioPanel
                     panelOpen={panelOpen}
                     setPanelOpen={setPanelOpen}
@@ -847,9 +880,83 @@ const StudioContent = () => {
                     onGenerationStart={handleGenerationStart}
                     onGenerateLyrics={handleGenerateLyrics}
                 />
+                </div>
+
+                
+
+                {/* Mobile bottom sheet for StudioPanel */}
+                {mobilePanelOpen && (
+                    <div className="md:hidden fixed inset-0 z-50">
+                        <div className="absolute inset-0 bg-black/50" onClick={() => setMobilePanelOpen(false)} />
+                        <div className="absolute bottom-0 left-0 right-0 max-h-[85vh] h-[85vh] bg-background border-t border-border/30 rounded-t-2xl shadow-2xl overflow-hidden transform-gpu transition-transform duration-300 ease-out will-change-transform" id="mobile-create-sheet" style={{ bottom: currentPlayingTrack ? 'var(--player-height, 64px)' : '0px', height: currentPlayingTrack ? 'calc(85vh - var(--player-height, 64px))' : '85vh' }}>
+                            <div className="h-full overflow-hidden">
+                                <StudioPanel
+                                    forceVisibleOnMobile
+                                    onCollapse={() => {
+                                        // 动效：吸入到 Studio 导航按钮
+                                        try {
+                                            const sheet = document.getElementById('mobile-create-sheet');
+                                            const target = document.getElementById('mobile-studio-nav');
+                                            if (sheet && target) {
+                                                const sheetRect = sheet.getBoundingClientRect();
+                                                const targetRect = target.getBoundingClientRect();
+                                                const translateX = targetRect.left + targetRect.width/2 - (sheetRect.left + sheetRect.width/2);
+                                                const translateY = targetRect.top + targetRect.height/2 - (sheetRect.top + sheetRect.height/2);
+                                                sheet.style.transform = `translate3d(${translateX}px, ${translateY}px, 0) scale(0.1)`;
+                                                sheet.style.opacity = '0.6';
+                                                setTimeout(() => setMobilePanelOpen(false), 250);
+                                            } else {
+                                                setMobilePanelOpen(false);
+                                            }
+                                        } catch {
+                                            setMobilePanelOpen(false);
+                                        }
+                                    }}
+                                    panelOpen={true}
+                                    setPanelOpen={() => {}}
+                                    mode={mode}
+                                    setMode={setMode}
+                                    selectedGenre={selectedGenre}
+                                    setSelectedGenre={setSelectedGenre}
+                                    selectedVibe={selectedVibe}
+                                    setSelectedVibe={setSelectedVibe}
+                                    customPrompt={customPrompt}
+                                    setCustomPrompt={setCustomPrompt}
+                                    songTitle={songTitle}
+                                    setSongTitle={setSongTitle}
+                                    instrumentalMode={instrumentalMode}
+                                    setInstrumentalMode={setInstrumentalMode}
+                                    isPublished={isPublished}
+                                    setIsPublished={setIsPublished}
+                                    bpm={bpm}
+                                    setBpm={setBpm}
+                                    grooveType={grooveType}
+                                    setGrooveType={setGrooveType}
+                                    leadInstrument={leadInstrument}
+                                    setLeadInstrument={setLeadInstrument}
+                                    drumKit={drumKit}
+                                    setDrumKit={setDrumKit}
+                                    bassTone={bassTone}
+                                    setBassTone={setBassTone}
+                                    vocalGender={vocalGender}
+                                    setVocalGender={setVocalGender}
+                                    harmonyPalette={harmonyPalette}
+                                    setHarmonyPalette={setHarmonyPalette}
+                                    bpmMode={bpmMode}
+                                    setBpmMode={setBpmMode}
+                                    isGenerating={isGenerating}
+                                    pendingTasksCount={pendingTasksCount}
+                                    onGenerationStart={handleGenerationStart}
+                                    onGenerateLyrics={handleGenerateLyrics}
+                                />
+                            </div>
+                            
+                        </div>
+                    </div>
+                )}
 
                 {/* MAIN CONTENT - STUDIO */}
-                <div className="flex-1 flex relative min-w-0 overflow-hidden h-screen">
+                <div className="flex-1 flex flex-col md:flex-row relative min-w-0 overflow-hidden h-screen">
                     {/* Background Image for Studio Area */}
                     <div 
                         className="absolute inset-0 bg-cover bg-center bg-no-repeat opacity-20"
@@ -858,11 +965,12 @@ const StudioContent = () => {
                         }}
                     />
 
-                    {/* 歌曲列表区域 - 左侧 */}
-                    <div className={`h-full flex flex-col relative min-w-0 transition-all duration-300 ${showLyrics ? 'w-2/3' : 'w-full'}`}>
+                    {/* 歌曲列表区域 - 移动端默认显示；桌面端在歌词面板显示时占 2/3 */}
+                    <div className={`h-full flex flex-col relative min-w-0 transition-all duration-300 w-full ${showLyrics ? 'md:w-2/3' : 'md:w-full'}`}>
                         {/* 歌曲列表区域 - 可滚动 */}
                         <div className="flex-1 min-h-0 overflow-y-auto scrollbar-thin scrollbar-thumb-gray-400 scrollbar-track-gray-200" style={{ 
-                            paddingBottom: currentPlayingTrack ? '56px' : '0px'
+                            // 仅预留播放器高度；播放器本身已上移到底部导航之上
+                            paddingBottom: 'var(--player-height, 64px)'
                         }}>
                             <StudioTracksList
                                 userTracks={userTracks}
@@ -882,7 +990,7 @@ const StudioContent = () => {
 
                         {/* Music Player - 固定在歌曲列表底部 */}
                         {currentPlayingTrack && (
-                            <div className="absolute bottom-0 left-0 right-0 z-10">
+                        <div className={`fixed md:absolute left-0 right-0 z-[60] transition-all duration-300 ease-in-out md:bottom-0`} style={{ bottom: showLyrics ? '0px' : 'var(--mobile-nav-height, 0px)' }}>
                                 <MusicPlayer
                                 tracks={allTracks.map(track => ({
                                     id: track.id,
@@ -943,9 +1051,26 @@ const StudioContent = () => {
                         />
                     </div>
 
-                    {/* Lyrics Panel - 右侧 */}
-                    {showLyrics && selectedStudioTrack && (
-                        <div className="w-1/3 h-full flex flex-col relative border-l border-border/30">
+                    {/* Lyrics Panel - 右侧（移动端：浮层；桌面端：右侧栏） */}
+                    {(showLyrics && selectedStudioTrack) && (
+                        <>
+                        {/* Backdrop for mobile - 只覆盖到播放器上缘 */}
+                        <div
+                            className="fixed left-0 right-0 top-0 bg-black/50 z-[50] md:hidden transition-opacity duration-300"
+                            style={{ bottom: showLyrics ? 'var(--player-height, 64px)' : 'calc(var(--mobile-nav-height, 0px) + var(--player-height, 64px))' }}
+                            onClick={() => {
+                                setShowLyrics(false);
+                                setSelectedStudioTrack(null);
+                                setGeneratingTrack(null);
+                            }}
+                        />
+                        <div
+                            className="fixed md:relative left-0 right-0 md:left-auto md:right-auto w-full md:w-1/3 md:h-full flex-shrink-0 z-[55] md:z-auto"
+                            style={{
+                                bottom: showLyrics ? '0px' : 'var(--mobile-nav-height, 0px)',
+                                height: showLyrics ? 'calc(100vh - var(--player-height, 64px))' : 'calc(100vh - var(--mobile-nav-height, 0px) - var(--player-height, 64px))'
+                            }}
+                        >
                             {/* 歌词内容区域 */}
                             <div className="flex-1 min-h-0">
                                 <LyricsPanel
@@ -988,6 +1113,7 @@ const StudioContent = () => {
                             />
                             </div>
                         </div>
+                        </>
                     )}
                 </div>
 

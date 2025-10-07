@@ -25,9 +25,10 @@ import { Tooltip } from '@/components/ui/tooltip';
 
 interface CommonSidebarProps {
   // 移除 isGenerating 参数，因为不再需要显示生成状态
+  hideMobileNav?: boolean; // 新增：是否隐藏移动端底部导航栏
 }
 
-export const CommonSidebar = ({}: CommonSidebarProps) => {
+export const CommonSidebar = ({ hideMobileNav = false }: CommonSidebarProps) => {
   const pathname = usePathname();
   const router = useRouter();
   const { user, signOut } = useAuth();
@@ -36,6 +37,7 @@ export const CommonSidebar = ({}: CommonSidebarProps) => {
   const [userMenuOpen, setUserMenuOpen] = React.useState(false);
   const [signOutDialogOpen, setSignOutDialogOpen] = React.useState(false);
   const [isAuthModalOpen, setIsAuthModalOpen] = React.useState(false);
+  const mobileNavRef = React.useRef<HTMLDivElement | null>(null);
 
   // 点击外部关闭用户菜单
   React.useEffect(() => {
@@ -59,9 +61,25 @@ export const CommonSidebar = ({}: CommonSidebarProps) => {
     }
   };
 
+  // 动态测量移动端底部导航高度，设置 CSS 变量 --mobile-nav-height
+  React.useEffect(() => {
+    const updateNavHeight = () => {
+      const isDesktop = typeof window !== 'undefined' && window.innerWidth >= 768;
+      const el = mobileNavRef.current;
+      const height = (!isDesktop && el && !hideMobileNav) ? el.offsetHeight : 0;
+      if (typeof document !== 'undefined') {
+        document.documentElement.style.setProperty('--mobile-nav-height', `${height}px`);
+      }
+    };
+
+    updateNavHeight();
+    window.addEventListener('resize', updateNavHeight);
+    return () => window.removeEventListener('resize', updateNavHeight);
+  }, [hideMobileNav]);
+
   return (
     <>
-      <div className="w-16 h-full flex flex-col bg-muted/30">
+      <div className="hidden md:flex w-16 h-full flex-col bg-muted/30">
           {/* Home Button */}
           <div className="p-4 flex justify-center">
             <Tooltip content="🏠 Home" position="right">
@@ -106,6 +124,18 @@ export const CommonSidebar = ({}: CommonSidebarProps) => {
                 className={`w-12 h-12 flex items-center justify-center hover:bg-muted/50 hover:text-white hover:scale-110 transition-all duration-300 rounded-lg ${pathname === '/explore' ? 'bg-primary/20 text-primary shadow-sm' : 'text-muted-foreground'}`}
               >
                 <Compass className="h-5 w-5" />
+              </Button>
+            </Tooltip>
+
+            {/* Library Button */}
+            <Tooltip content="📚 Library" position="right">
+              <Button
+                onClick={() => router.push('/library')}
+                variant="ghost"
+                size="sm"
+                className={`w-12 h-12 flex items-center justify-center hover:bg-muted/50 hover:text-white hover:scale-110 transition-all duration-300 rounded-lg ${pathname === '/library' ? 'bg-primary/20 text-primary shadow-sm' : 'text-muted-foreground'}`}
+              >
+                <Library className="h-5 w-5" />
               </Button>
             </Tooltip>
 
@@ -214,6 +244,145 @@ export const CommonSidebar = ({}: CommonSidebarProps) => {
             )}
           </div>
         </div>
+
+      {/* Mobile Bottom Navigation */}
+      <div ref={mobileNavRef} className={`md:hidden fixed bottom-0 left-0 right-0 bg-background/95 backdrop-blur-sm border-t border-border/30 z-50 transition-transform duration-300 ${hideMobileNav ? 'translate-y-full' : 'translate-y-0'}`}>
+        <div className="flex items-center justify-around py-2">
+          {/* Home Button */}
+          <Button
+            asChild
+            variant="ghost"
+            size="sm"
+            className={`h-12 w-12 flex items-center justify-center hover:bg-muted/50 transition-all duration-300 rounded-lg ${pathname === '/' ? 'bg-primary/20 text-primary shadow-sm' : 'text-muted-foreground'}`}
+          >
+            <Link href="/">
+              <Image
+                src="/logo.svg"
+                alt="Logo"
+                width={24}
+                height={24}
+                className="h-7 w-7"
+              />
+            </Link>
+          </Button>
+
+          {/* Studio Button */}
+          <Button
+            onClick={() => {
+              if (pathname === '/studio') {
+                if (typeof window !== 'undefined') {
+                  window.dispatchEvent(new CustomEvent('studio:openCreate'));
+                }
+              } else {
+                router.push('/studio');
+              }
+            }}
+            variant="ghost"
+            size="sm"
+            className={`h-12 w-12 flex items-center justify-center hover:bg-muted/50 transition-all duration-300 rounded-lg ${pathname === '/studio' ? 'bg-primary/20 text-primary shadow-sm' : 'text-muted-foreground'}`}
+            id="mobile-studio-nav"
+          >
+            {pathname === '/studio' ? (
+              <Image src="/icons/studio-create.svg" alt="Studio" width={28} height={28} className="h-7 w-7" />
+            ) : (
+              <Music className="h-7 w-7" />
+            )}
+          </Button>
+
+          {/* Explore Button */}
+          <Button
+            onClick={() => router.push('/explore')}
+            variant="ghost"
+            size="sm"
+            className={`h-12 w-12 flex items-center justify-center hover:bg-muted/50 transition-all duration-300 rounded-lg ${pathname === '/explore' ? 'bg-primary/20 text-primary shadow-sm' : 'text-muted-foreground'}`}
+          >
+            <Compass className="h-7 w-7" />
+          </Button>
+
+          {/* Library Button */}
+          <Button
+            onClick={() => router.push('/library')}
+            variant="ghost"
+            size="sm"
+            className={`h-12 w-12 flex items-center justify-center hover:bg-muted/50 transition-all duration-300 rounded-lg ${pathname === '/library' ? 'bg-primary/20 text-primary shadow-sm' : 'text-muted-foreground'}`}
+          >
+            <Library className="h-7 w-7" />
+          </Button>
+
+          {/* User Button */}
+          {user ? (
+            <div className="relative user-menu-container">
+              <Button
+                onClick={() => setUserMenuOpen(!userMenuOpen)}
+                variant="ghost"
+                size="sm"
+                className="h-12 w-12 flex items-center justify-center hover:bg-muted/50 transition-all duration-300 rounded-lg"
+              >
+                <Avatar className="w-7 h-7">
+                  <AvatarImage
+                    src={user.user_metadata?.avatar_url || user.user_metadata?.picture}
+                    alt="User Avatar"
+                  />
+                  <AvatarFallback className="bg-primary/20 text-primary text-sm font-semibold">
+                    {user.user_metadata?.full_name?.charAt(0) || user.email?.charAt(0) || 'U'}
+                  </AvatarFallback>
+                </Avatar>
+              </Button>
+              
+              {/* User Menu Dropdown */}
+              {userMenuOpen && (
+                <div className="absolute bottom-12 left-1/2 transform -translate-x-1/2 bg-background border border-border/30 rounded-lg shadow-lg p-2 min-w-48 z-50">
+                  <div className="flex flex-col gap-1">
+                    <div className="px-3 py-2 text-sm font-medium text-foreground border-b border-border/20 mb-2">
+                      {user.user_metadata?.full_name || user.email}
+                    </div>
+                    
+                    <div className="px-3 py-1 text-xs text-muted-foreground">
+                      Credits: {credits !== null ? credits.toLocaleString() : '...'}
+                    </div>
+                    
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="justify-start text-sm text-muted-foreground hover:text-foreground"
+                      onClick={() => {
+                        setUserMenuOpen(false);
+                        // 可以添加用户设置页面
+                      }}
+                    >
+                      <User className="mr-2 h-4 w-4" />
+                      Profile
+                    </Button>
+                    
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="justify-start text-sm text-red-500 hover:text-red-400 hover:bg-red-500/10"
+                      onClick={() => {
+                        setUserMenuOpen(false);
+                        setSignOutDialogOpen(true);
+                      }}
+                    >
+                      <LogOut className="mr-2 h-4 w-4" />
+                      Sign Out
+                    </Button>
+                  </div>
+                </div>
+              )}
+            </div>
+          ) : (
+            <Button
+              onClick={() => setIsAuthModalOpen(true)}
+              variant="ghost"
+              size="sm"
+              className="h-12 px-4 flex items-center justify-center hover:bg-muted/50 transition-all duration-300 rounded-lg text-muted-foreground font-medium"
+              aria-label="Sign in"
+            >
+              Sign in
+            </Button>
+          )}
+        </div>
+      </div>
 
       {/* Sign Out Confirmation Dialog */}
       <AlertDialog open={signOutDialogOpen} onOpenChange={setSignOutDialogOpen}>

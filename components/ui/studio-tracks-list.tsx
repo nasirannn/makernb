@@ -7,6 +7,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { CustomAudioWaveIndicator } from './audio-wave-indicator';
 import { LoadingDots, LoadingState } from './loading-dots';
 import Image from "next/image";
+import { useAuth } from "@/contexts/AuthContext";
 
 interface Track {
   id: string;
@@ -67,6 +68,7 @@ export const StudioTracksList: React.FC<StudioTracksListProps> = ({
 }) => {
   
   // 移除分页状态，显示所有歌曲
+  const { user } = useAuth();
 
   // 格式化时长
   const formatDuration = (seconds: number) => {
@@ -123,11 +125,31 @@ export const StudioTracksList: React.FC<StudioTracksListProps> = ({
   if (!userTracks || userTracks.length === 0 || allTracks.length === 0) {
     return (
       <div className="flex flex-col items-center justify-center h-full space-y-8">
-        <div className="space-y-4">
-          <p className="text-lg text-muted-foreground max-w-md mx-auto leading-relaxed text-center">
-            🌹 Tell us the vibe. We&apos;ll handle the candlelight.
-          </p>
-        </div>
+        {user?.id ? (
+          <div className="space-y-4">
+            <p className="text-lg text-muted-foreground max-w-md mx-auto leading-relaxed text-center">
+              🌹 Tell us the vibe. We&apos;ll handle the candlelight.
+            </p>
+          </div>
+        ) : (
+          <div className="space-y-2 flex flex-col items-center">
+            <p className="text-lg text-muted-foreground max-w-md mx-auto leading-relaxed text-center">
+              Ready to create? Just {' '}
+              <button
+                type="button"
+                onClick={() => {
+                  if (typeof window !== 'undefined') {
+                    window.dispatchEvent(new Event('auth:open'));
+                  }
+                }}
+                className="underline underline-offset-2 text-primary hover:text-primary/80"
+                aria-label="Sign in"
+              >
+                Sign in
+              </button>{' '}and let’s make something soulful.
+            </p>
+          </div>
+        )}
       </div>
     );
   }
@@ -137,7 +159,7 @@ export const StudioTracksList: React.FC<StudioTracksListProps> = ({
 
       {/* Studio Tracks - 可滚动区域 */}
       <div className="flex-1 overflow-hidden">
-        <div className="h-full overflow-y-auto px-6 pb-3 relative">
+        <div className="h-full overflow-y-auto px-4 md:px-6 relative" style={{ paddingBottom: 'var(--player-height, 64px)' }}>
         <div className="relative space-y-3 pt-6">
           {/* Generated Tracks - 新生成的歌曲 */}
           {allGeneratedTracks.length > 0 && (
