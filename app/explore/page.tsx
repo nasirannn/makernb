@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { PageLoading } from '@/components/ui/loading-dots';
@@ -8,6 +8,7 @@ import { Play, Pause, Music } from 'lucide-react';
 import { SafeImage } from '@/components/ui/safe-image';
 import { MusicPlayer } from '@/components/ui/music-player';
 import { CustomAudioWaveIndicator } from '@/components/ui/audio-wave-indicator';
+import { Skeleton } from '@/components/ui/skeleton';
 
 interface Track {
   id: string;
@@ -45,6 +46,7 @@ export default function ExplorePage() {
   const [loading, setLoading] = useState(true);
   const [loadingMore, setLoadingMore] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [hasMore, setHasMore] = useState(true);
   const [currentlyPlaying, setCurrentlyPlaying] = useState<string | null>(null);
   const [isMobile, setIsMobile] = useState(false);
 
@@ -63,7 +65,7 @@ export default function ExplorePage() {
     const loadData = async () => {
       try {
         setLoading(true);
-        const response = await fetch(`/api/explore?limit=50&offset=0`);
+        const response = await fetch(`/api/explore?limit=20&offset=0`);
         if (response.ok) {
           const result = await response.json();
           if (result.success && result.data) {
@@ -115,7 +117,7 @@ export default function ExplorePage() {
     };
   }, []);
 
-  const fetchExploreData = async (offset = 0, append = false) => {
+  const fetchExploreData = useCallback(async (offset = 0, append = false) => {
     try {
       if (append) {
         setLoadingMore(true);
@@ -123,7 +125,7 @@ export default function ExplorePage() {
         setLoading(true);
       }
       
-      const response = await fetch(`/api/explore?limit=50&offset=${offset}`);
+      const response = await fetch(`/api/explore?limit=20&offset=${offset}`);
       const data = await response.json();
       
       if (data.success) {
@@ -134,9 +136,13 @@ export default function ExplorePage() {
           };
           setExploreData(newData);
           setPlaylist(newData.music);
+          // 检查是否还有更多数据
+          setHasMore(newData.music.length < data.data.count);
         } else {
           setExploreData(data.data);
           setPlaylist(data.data.music);
+          // 检查是否还有更多数据
+          setHasMore(data.data.music.length < data.data.count);
         }
       } else {
         setError(data.error || 'Failed to load music');
@@ -148,19 +154,55 @@ export default function ExplorePage() {
       setLoading(false);
       setLoadingMore(false);
     }
-  };
+  }, [exploreData]);
 
-  const loadMore = () => {
-    if (exploreData && exploreData.music && !loadingMore) {
+  const loadMore = useCallback(() => {
+    if (exploreData && exploreData.music && !loadingMore && hasMore) {
       fetchExploreData(exploreData.music.length, true);
     }
-  };
+  }, [exploreData, loadingMore, hasMore, fetchExploreData]);
+
+  // 滚动监听 - 自动加载更多
+  useEffect(() => {
+    const handleScroll = () => {
+      if (loadingMore || !hasMore) return;
+
+      const scrollTop = window.pageYOffset || document.documentElement.scrollTop;
+      const windowHeight = window.innerHeight;
+      const docHeight = document.documentElement.scrollHeight;
+
+      // 当滚动到距离底部100px时触发加载
+      if (scrollTop + windowHeight >= docHeight - 100) {
+        loadMore();
+      }
+    };
+
+    window.addEventListener('scroll', handleScroll);
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, [loadingMore, hasMore, loadMore]);
 
   const formatDuration = (seconds: number) => {
     const mins = Math.floor(seconds / 60);
     const secs = Math.floor(seconds % 60);
     return `${mins}:${secs.toString().padStart(2, '0')}`;
   };
+
+  // 歌曲卡片Skeleton组件
+  const SongCardSkeleton = () => (
+    <div className="bg-black/20 backdrop-blur-sm rounded-xl overflow-hidden">
+      {/* Cover Image Skeleton */}
+      <div className="relative aspect-square">
+        <Skeleton className="w-full h-full bg-white/10" />
+      </div>
+      
+      {/* Track Info Skeleton */}
+      <div className="p-4">
+        <Skeleton className="h-4 w-3/4 mb-2 bg-white/10" />
+        <Skeleton className="h-3 w-1/2 mb-2 bg-white/10" />
+        <Skeleton className="h-3 w-1/4 bg-white/10" />
+      </div>
+    </div>
+  );
 
   const handlePlayPause = (trackId: string, audioUrl: string, music: MusicGeneration) => {
     // 找到歌曲在播放列表中的索引
@@ -293,7 +335,25 @@ export default function ExplorePage() {
     return (
       <div className="min-h-screen bg-background pt-24">
         <div className="container mx-auto px-4 py-8">
-          <PageLoading message="Loading music" className="text-white" />
+          {/* Header */}
+          <div className="text-center mb-8">
+            <p className="text-sm font-medium text-white/60 uppercase tracking-wider mb-4">
+              MUSIC & CREATIVITY RESOURCES
+            </p>
+            <h1 className="text-3xl md:text-4xl font-bold text-foreground mb-4">
+              Listen to The AI-Generated R&B Songs
+            </h1>
+            <p className="text-white/70 text-lg max-w-2xl mx-auto mb-8">
+              Explore soulful tracks crafted by artificial intelligence
+            </p>
+          </div>
+
+          {/* Skeleton Grid - 显示一行的数量 */}
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-6">
+            {Array.from({ length: 4 }).map((_, index) => (
+              <SongCardSkeleton key={index} />
+            ))}
+          </div>
         </div>
       </div>
     );
@@ -340,7 +400,7 @@ export default function ExplorePage() {
               {exploreData.music.map((music) => (
                 <div
                   key={music.id}
-                  className="bg-black/20 backdrop-blur-sm rounded-xl overflow-hidden hover:bg-black/30 transition-all duration-300 group cursor-pointer border border-white/10"
+                  className="bg-black/20 backdrop-blur-sm rounded-xl overflow-hidden hover:bg-black/30 transition-all duration-300 group cursor-pointer"
                 >
                   {/* Cover Image */}
                   <div className="relative aspect-square">
@@ -404,35 +464,22 @@ export default function ExplorePage() {
               </div>
             </div>
 
-            {/* Load More Button */}
-            {exploreData && exploreData.music && exploreData.music.length < exploreData.count && (
-              <div className="text-center mt-12">
-                <Button
-                  onClick={loadMore}
-                  disabled={loadingMore}
-                  className="bg-white/10 hover:bg-white/20 text-white border border-white/20 px-8 py-3 rounded-xl backdrop-blur-sm"
-                >
-                  {loadingMore ? (
-                    <>
-                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
-                      Loading...
-                    </>
-                  ) : (
-                    'Load More'
-                  )}
-                </Button>
+            {/* Loading More Skeleton */}
+            {loadingMore && (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-6 mt-6">
+                {Array.from({ length: 4 }).map((_, index) => (
+                  <SongCardSkeleton key={`loading-${index}`} />
+                ))}
               </div>
             )}
 
-            {/* No More Music Message */}
-            {exploreData && exploreData.music && exploreData.music.length > 0 && exploreData.music.length >= exploreData.count && (
+            {/* Show total count when all loaded */}
+            {exploreData && exploreData.music && !hasMore && exploreData.music.length > 0 && (
               <div className="text-center mt-16 py-8">
                 <div className="inline-flex items-center gap-2 px-4 py-2 bg-muted/30 rounded-full">
-                  <div className="w-2 h-2 bg-muted-foreground/40 rounded-full"></div>
                   <span className="text-sm text-muted-foreground font-medium">
-                  All the music is here ✨
+                    All songs loaded ✨
                   </span>
-                  <div className="w-2 h-2 bg-muted-foreground/40 rounded-full"></div>
                 </div>
               </div>
             )}

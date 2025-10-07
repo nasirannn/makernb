@@ -102,24 +102,36 @@ export const ExploreSection = () => {
   const fetchExploreData = async () => {
     try {
       setLoading(true);
-      const response = await fetch('/api/explore?limit=8&offset=0');
+      const response = await fetch('/api/pinned-tracks?limit=8&offset=0');
       const data = await response.json();
       
       if (data.success) {
-        // 使用explore API返回的数据格式
-        const musicGenerations = data.data.music.map((music: any) => ({
-          id: music.id,
-          title: music.title,
-          genre: music.genre,
-          tags: music.tags,
-          prompt: music.prompt,
-          lyrics: music.lyrics,
-          createdAt: music.createdAt,
-          updatedAt: music.updatedAt,
-          primaryTrack: music.primaryTrack,
-          allTracks: music.allTracks,
-          totalDuration: music.totalDuration,
-          trackCount: music.trackCount
+        // 将pinned tracks转换为MusicGeneration格式
+        const musicGenerations = data.data.tracks.map((track: any) => ({
+          id: track.id, // 直接使用track.id作为唯一标识
+          title: track.title,
+          genre: track.genre,
+          tags: track.tags,
+          prompt: track.prompt,
+          lyrics: null,
+          createdAt: track.created_at,
+          updatedAt: track.updated_at,
+          primaryTrack: {
+            id: track.id,
+            audio_url: track.audio_url,
+            duration: track.duration,
+            side_letter: track.side_letter,
+            cover_r2_url: track.cover_r2_url
+          },
+          allTracks: [{
+            id: track.id,
+            audio_url: track.audio_url,
+            duration: track.duration,
+            side_letter: track.side_letter,
+            cover_r2_url: track.cover_r2_url
+          }],
+          totalDuration: track.duration,
+          trackCount: 1
         }));
         
         setExploreData({
@@ -131,7 +143,7 @@ export const ExploreSection = () => {
         setPlaylist(musicGenerations);
       }
     } catch (err) {
-      console.error('Error fetching explore data:', err);
+      console.error('Error fetching pinned tracks:', err);
     } finally {
       setLoading(false);
     }

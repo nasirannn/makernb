@@ -7,7 +7,7 @@ export const dynamic = 'force-dynamic';
 export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
-    const limit = parseInt(searchParams.get('limit') || '50'); // 增加默认limit
+    const limit = parseInt(searchParams.get('limit') || '20');
     const offset = parseInt(searchParams.get('offset') || '0');
     const genre = searchParams.get('genre');
 
@@ -24,7 +24,7 @@ export async function GET(request: NextRequest) {
 
     const totalCount = parseInt(countResult.rows[0].total);
 
-    // 获取公开的音乐tracks
+    // 获取公开的音乐tracks（分页）
     const result = await query(`
       SELECT 
         mt.id as track_id,
