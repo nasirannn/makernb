@@ -32,7 +32,7 @@ export const HeroSection = () => {
       {/* Background Image */}
       <div className="absolute inset-0 z-0">
         <Image
-          src="/only-90s-rnb-background.png"
+          src="/only-90s-rnb-background.webp"
           alt="R&B Background"
           fill
           className="object-cover object-center select-none"
@@ -124,7 +124,7 @@ export const HeroSection = () => {
             <div className="flex items-center justify-center">
               <button
                 onClick={handleStudioClick}
-                className="inline-flex items-center gap-2 px-6 py-2 bg-primary text-white font-semibold rounded-xl hover:bg-primary/80 transition-all duration-300 transform hover:shadow-none overflow-hidden shadow-[2px_2px_0_0_rgba(255,255,255,0.8)] hover:translate-x-[3px] hover:translate-y-[3px] hover:shadow-[0px_0px_0_0_rgba(255,255,255,0)] border border-primary/20 text-lg"
+                className="inline-flex items-center gap-2 px-6 py-2 bg-primary text-white font-semibold rounded-lg hover:bg-primary/80 transition-all duration-300 transform hover:shadow-none overflow-hidden shadow-[2px_2px_0_0_rgba(255,255,255,0.8)] hover:translate-x-[3px] hover:translate-y-[3px] hover:shadow-[0px_0px_0_0_rgba(255,255,255,0)] border border-primary/20 text-lg"
               >
                 <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19V6l12-3v13M9 19c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zm12-3c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zM9 10l12-3" />

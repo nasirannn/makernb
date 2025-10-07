@@ -7,6 +7,7 @@ import Link from "next/link";
 import { SafeImage } from '@/components/ui/safe-image';
 import { MusicPlayer } from "@/components/ui/music-player";
 import { LoadingDots } from "@/components/ui/loading-dots";
+import { Skeleton } from "@/components/ui/skeleton";
 
 interface Track {
   id: string;
@@ -73,13 +74,19 @@ export const ExploreSection = () => {
 
   // 组件卸载时清理音频
   useEffect(() => {
-    const audio = audioRef.current;
     return () => {
-      if (audio) {
-        audio.pause();
-        audio.src = '';
-        audio.load();
+      // 立即停止音频播放
+      if (audioRef.current) {
+        audioRef.current.pause();
+        audioRef.current.src = '';
+        audioRef.current.load();
       }
+      // 重置所有播放状态
+      setIsPlaying(false);
+      setCurrentlyPlaying(null);
+      setCurrentPlayingTrack(null);
+      setCurrentTime(0);
+      setDuration(0);
     };
   }, []);
 
@@ -295,14 +302,12 @@ export const ExploreSection = () => {
               {[1, 2, 3, 4].map((i) => (
                 <div key={i} className="group">
                   {/* 封面骨架 */}
-                  <div className="aspect-square bg-gradient-to-br from-purple-600 to-purple-600 rounded-xl flex items-center justify-center">
-                    <LoadingDots size="sm" color="white" />
-                  </div>
+                  <Skeleton className="aspect-square rounded-xl" />
 
                   {/* 歌曲信息骨架 - 居中显示 */}
                   <div className="mt-3 text-center">
-                    <div className="h-4 bg-white/20 rounded animate-pulse mb-2 mx-auto w-3/4"></div>
-                    <div className="h-3 bg-white/20 rounded animate-pulse w-1/2 mx-auto"></div>
+                    <Skeleton className="h-4 mb-2 mx-auto w-1/2" />
+                    <Skeleton className="h-3 w-3/4 mx-auto" />
                   </div>
                 </div>
               ))}
@@ -381,7 +386,7 @@ export const ExploreSection = () => {
         {/* Explore More Button */}
         <div className="text-center">
           <Link href="/explore">
-            <Button className="bg-primary hover:bg-primary/90 text-white px-8 py-3 rounded-lg">
+            <Button className="border border-primary text-primary bg-muted/50 hover:bg-primary hover:text-white px-8 py-3 rounded-lg transition-colors">
               Explore More Tracks
               <ArrowRight className="w-4 h-4 ml-2" />
             </Button>

@@ -854,7 +854,7 @@ const StudioContent = () => {
                     <div 
                         className="absolute inset-0 bg-cover bg-center bg-no-repeat opacity-20"
                         style={{
-                            backgroundImage: "url('/bg-studio-background.png')"
+                            backgroundImage: "url('/bg-studio-background.webp')"
                         }}
                     />
 

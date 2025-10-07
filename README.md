@@ -2,7 +2,7 @@
 
 A complete AI-powered music generation platform for creating authentic R&B and Contemporary R&B music. Generate professional-quality tracks with custom prompts, multiple genres, and real-time playback.
 
-![R&B Music Generator](./public/only-90s-rnb-background.png)
+![R&B Music Generator](./public/only-90s-rnb-background.webp)
 
 ## ✨ Features
 

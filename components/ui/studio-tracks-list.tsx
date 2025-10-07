@@ -124,13 +124,6 @@ export const StudioTracksList: React.FC<StudioTracksListProps> = ({
     return (
       <div className="flex flex-col items-center justify-center h-full space-y-8">
         <div className="space-y-4">
-          <Image
-            src="/studio-right-icon.svg"
-            alt="Studio Icon"
-            width={64}
-            height={64}
-            className="mx-auto"
-          />
           <p className="text-lg text-muted-foreground max-w-md mx-auto leading-relaxed text-center">
             🌹 Tell us the vibe. We&apos;ll handle the candlelight.
           </p>

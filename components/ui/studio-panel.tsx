@@ -190,12 +190,12 @@ export const StudioPanel = (props: StudioPanelProps) => {
           <div className="flex-1 overflow-y-auto px-6 pb-6">
             {/* Mode Tabs - Internal at top */}
             <div className="mb-6 mt-4">
-                <div className="bg-muted/30 rounded-xl p-1">
+                <div className="bg-muted/30 rounded-lg p-1">
                   <div className="grid grid-cols-2 gap-1">
                     <button
                       onClick={() => setMode("basic")}
               title="Create random R&B songs with polished production in 90s style. Simple and fast setup."
-                      className={`py-2 px-4 text-sm font-medium transition-all duration-200 rounded-xl ${mode === "basic"
+                      className={`py-2 px-4 text-sm font-medium transition-all duration-200 rounded-md ${mode === "basic"
                           ? "bg-primary/20 border-transparent text-primary shadow-sm"
                           : "text-muted-foreground hover:text-foreground hover:bg-muted/50"
                         }`}
@@ -205,7 +205,7 @@ export const StudioPanel = (props: StudioPanelProps) => {
                     <button
                       onClick={() => setMode("custom")}
                       title="Fine-tune every aspect of your track with detailed controls for genre, instruments, and style."
-                      className={`py-2 px-4 text-sm font-medium transition-all duration-200 rounded-xl ${mode === "custom"
+                      className={`py-2 px-4 text-sm font-medium transition-all duration-200 rounded-md ${mode === "custom"
                           ? "bg-primary/20 border-transparent text-primary shadow-sm"
                           : "text-muted-foreground hover:text-foreground hover:bg-muted/50"
                         }`}
@@ -323,7 +323,7 @@ export const StudioPanel = (props: StudioPanelProps) => {
               {!instrumentalMode && (
                 <div className="mt-3 flex items-center justify-between">
                   <Label className="text-sm font-medium text-foreground">Vocal Gender</Label>
-                  <div className="bg-muted/30 rounded-xl p-1">
+                  <div className="bg-muted/30 rounded-lg p-1">
                     <div className="flex gap-1">
                       {vocalGenders.map((gender: any) => (
                         <Tooltip 
@@ -344,7 +344,7 @@ export const StudioPanel = (props: StudioPanelProps) => {
                         >
                           <button
                             onClick={() => setVocalGender(gender.id)}
-                            className={`py-1.5 px-3 text-sm font-medium transition-all duration-200 rounded-xl flex items-center gap-2 ${vocalGender === gender.id
+                            className={`py-1.5 px-3 text-sm font-medium transition-all duration-200 rounded-md flex items-center gap-2 ${vocalGender === gender.id
                               ? "bg-primary/20 border-transparent text-primary shadow-sm"
                               : "text-muted-foreground hover:text-foreground hover:bg-muted/50"
                               }`}

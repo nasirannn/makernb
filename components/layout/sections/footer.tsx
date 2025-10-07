@@ -18,8 +18,8 @@ export const FooterSection = () => {
   return (
     <footer id="footer" className="container py-24 sm:py-32">
       <div className="p-10 bg-card rounded-2xl">
-        <div className="grid grid-cols-2 md:grid-cols-6 gap-x-4 gap-y-8">
-          <div className="col-span-full md:col-span-3">
+        <div className="flex flex-col items-center justify-between gap-10 text-center lg:flex-row lg:text-left">
+          <div className="flex w-full max-w-96 shrink flex-col items-center justify-between gap-6 lg:items-start">
             <Link href="/" className="flex font-bold items-center mb-4">
               <Image
                 src="/logo.svg"
@@ -35,52 +35,53 @@ export const FooterSection = () => {
             </p>
           </div>
 
-          {/* 空列用于间距控制 */}
-          <div className="hidden md:block"></div>
+          <div className="grid grid-cols-2 gap-6 lg:gap-20">
+            {/* Contact */}
+            <div className="flex flex-col gap-3 sm:gap-4 items-start text-left">
+              <h3 className="font-bold text-lg">Contact</h3>
+              <div>
+                <Link 
+                  href="#" 
+                  className="opacity-60 hover:opacity-100 cursor-pointer"
+                  onClick={handleGithubClick}
+                >
+                  Github
+                </Link>
+              </div>
 
-          <div className="flex flex-col gap-2">
-            <h3 className="font-bold text-lg">Contact</h3>
-            <div>
-              <Link 
-                href="#" 
-                className="opacity-60 hover:opacity-100 cursor-pointer"
-                onClick={handleGithubClick}
-              >
-                Github
-              </Link>
+              <div>
+                <Link href="#" className="opacity-60 hover:opacity-100">
+                  Twitter
+                </Link>
+              </div>
+
+              <div>
+                <Link href="#" className="opacity-60 hover:opacity-100">
+                  Instagram
+                </Link>
+              </div>
             </div>
 
-            <div>
-              <Link href="#" className="opacity-60 hover:opacity-100">
-                Twitter
-              </Link>
-            </div>
+            {/* Help */}
+            <div className="flex flex-col gap-3 sm:gap-4 items-start text-left">
+              <h3 className="font-bold text-lg">Help</h3>
+              <div>
+                <Link href="#" className="opacity-60 hover:opacity-100">
+                  Contact Us
+                </Link>
+              </div>
 
-            <div>
-              <Link href="#" className="opacity-60 hover:opacity-100">
-                Instagram
-              </Link>
-            </div>
-          </div>
+              <div>
+                <Link href="#" className="opacity-60 hover:opacity-100">
+                  FAQ
+                </Link>
+              </div>
 
-          <div className="flex flex-col gap-2">
-            <h3 className="font-bold text-lg">Help</h3>
-            <div>
-              <Link href="#" className="opacity-60 hover:opacity-100">
-                Contact Us
-              </Link>
-            </div>
-
-            <div>
-              <Link href="#" className="opacity-60 hover:opacity-100">
-                FAQ
-              </Link>
-            </div>
-
-            <div>
-              <Link href="#" className="opacity-60 hover:opacity-100">
-                Feedback
-              </Link>
+              <div>
+                <Link href="#" className="opacity-60 hover:opacity-100">
+                  Feedback
+                </Link>
+              </div>
             </div>
           </div>
         </div>

@@ -18,13 +18,13 @@ export default function BlogClient({ allPosts }: BlogClientProps) {
         {/* Page Header */}
         <div className="text-center mb-16">
           <p className="text-sm font-medium text-white/60 uppercase tracking-wider mb-4">
-            MUSIC & CREATIVITY RESOURCES
+            MUSIC KNOWLEDGE & HISTORY
           </p>
           <h1 className="text-5xl md:text-6xl font-bold text-white mb-6 tracking-tight">
             R&B Music Blog
           </h1>
           <p className="text-lg text-white/80 max-w-2xl mx-auto leading-relaxed">
-            Discover remarkable R&B songs, albums, and artists from the unforgettable golden era.
+            Discover remarkable R&B songs, albums, and artists from the golden era
           </p>
         </div>
 

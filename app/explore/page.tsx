@@ -100,11 +100,18 @@ export default function ExplorePage() {
   // 组件卸载时清理音频
   useEffect(() => {
     return () => {
+      // 立即停止音频播放
       if (audioRef.current) {
         audioRef.current.pause();
         audioRef.current.src = '';
         audioRef.current.load();
       }
+      // 重置所有播放状态
+      setIsPlaying(false);
+      setCurrentlyPlaying(null);
+      setCurrentPlayingTrack(null);
+      setCurrentTime(0);
+      setDuration(0);
     };
   }, []);
 
@@ -312,7 +319,10 @@ export default function ExplorePage() {
       <div className={`container mx-auto px-4 py-8 ${playlist.length > 0 && currentlyPlaying ? 'pb-32' : ''}`}>
         {/* Header */}
         <div className="text-center mb-8">
-          <h1 className="text-3xl md:text-4xl font-bold text-primary mb-4">
+          <p className="text-sm font-medium text-white/60 uppercase tracking-wider mb-4">
+            MUSIC & CREATIVITY RESOURCES
+          </p>
+          <h1 className="text-3xl md:text-4xl font-bold text-foreground mb-4">
             Listen to The AI-Generated R&B Songs
           </h1>
           <p className="text-white/70 text-lg max-w-2xl mx-auto mb-8">
