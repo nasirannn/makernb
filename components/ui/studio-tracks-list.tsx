@@ -125,31 +125,11 @@ export const StudioTracksList: React.FC<StudioTracksListProps> = ({
   if (!userTracks || userTracks.length === 0 || allTracks.length === 0) {
     return (
       <div className="flex flex-col items-center justify-center h-full space-y-8">
-        {user?.id ? (
-          <div className="space-y-4">
-            <p className="text-lg text-muted-foreground max-w-md mx-auto leading-relaxed text-center">
-              🌹 Tell us the vibe. We&apos;ll handle the candlelight.
-            </p>
-          </div>
-        ) : (
-          <div className="space-y-2 flex flex-col items-center">
-            <p className="text-lg text-muted-foreground max-w-md mx-auto leading-relaxed text-center">
-              Ready to create? Just {' '}
-              <button
-                type="button"
-                onClick={() => {
-                  if (typeof window !== 'undefined') {
-                    window.dispatchEvent(new Event('auth:open'));
-                  }
-                }}
-                className="underline underline-offset-2 text-primary hover:text-primary/80"
-                aria-label="Sign in"
-              >
-                Sign in
-              </button>{' '}and let’s make something soulful.
-            </p>
-          </div>
-        )}
+        <div className="space-y-4">
+          <p className="text-lg text-muted-foreground max-w-md mx-auto leading-relaxed text-center">
+            🌹 Tell us the vibe. We&apos;ll handle the candlelight.
+          </p>
+        </div>
       </div>
     );
   }

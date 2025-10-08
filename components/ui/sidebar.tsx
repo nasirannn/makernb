@@ -3,18 +3,8 @@
 import React from "react";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
-import { Music, Library, Sparkles, LogOut, User, BookOpen, Compass } from "lucide-react";
+import { Music, Library, Sparkles, LogOut, User, BookOpen, Compass, LogIn } from "lucide-react";
 import { usePathname, useRouter } from "next/navigation";
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from "@/components/ui/alert-dialog";
 import Image from "next/image";
 import Link from "next/link";
 import { useAuth } from '@/contexts/AuthContext';
@@ -35,7 +25,6 @@ export const CommonSidebar = ({ hideMobileNav = false }: CommonSidebarProps) => 
   const { credits } = useCredits();
 
   const [userMenuOpen, setUserMenuOpen] = React.useState(false);
-  const [signOutDialogOpen, setSignOutDialogOpen] = React.useState(false);
   const [isAuthModalOpen, setIsAuthModalOpen] = React.useState(false);
   const mobileNavRef = React.useRef<HTMLDivElement | null>(null);
 
@@ -54,7 +43,6 @@ export const CommonSidebar = ({ hideMobileNav = false }: CommonSidebarProps) => 
   const handleSignOut = async () => {
     try {
       await signOut();
-      setSignOutDialogOpen(false);
       router.push('/');
     } catch (error) {
       console.error('Error signing out:', error);
@@ -79,7 +67,7 @@ export const CommonSidebar = ({ hideMobileNav = false }: CommonSidebarProps) => 
 
   return (
     <>
-      <div className="hidden md:flex w-16 h-full flex-col bg-muted/30">
+      <div className="hidden md:flex w-16 h-full flex-col bg-muted/30 border-r border-border/30">
           {/* Home Button */}
           <div className="p-4 flex justify-center">
             <Tooltip content="🏠 Home" position="right">
@@ -127,17 +115,7 @@ export const CommonSidebar = ({ hideMobileNav = false }: CommonSidebarProps) => 
               </Button>
             </Tooltip>
 
-            {/* Library Button */}
-            <Tooltip content="📚 Library" position="right">
-              <Button
-                onClick={() => router.push('/library')}
-                variant="ghost"
-                size="sm"
-                className={`w-12 h-12 flex items-center justify-center hover:bg-muted/50 hover:text-white hover:scale-110 transition-all duration-300 rounded-lg ${pathname === '/library' ? 'bg-primary/20 text-primary shadow-sm' : 'text-muted-foreground'}`}
-              >
-                <Library className="h-5 w-5" />
-              </Button>
-            </Tooltip>
+            {/* Library entry removed from sidebar (moved into avatar menu) */}
 
             {/* Blog Button */}
             <Tooltip content="📝 Blog" position="right">
@@ -178,7 +156,7 @@ export const CommonSidebar = ({ hideMobileNav = false }: CommonSidebarProps) => 
             )}
             
             {user ? (
-              <div className="relative user-menu-container">
+              <div className="relative user-menu-container z-[40]">
                 <Avatar
                   onClick={() => setUserMenuOpen(!userMenuOpen)}
                   className="w-10 h-10 cursor-pointer hover:scale-110 transition-all duration-300 border-2 border-transparent hover:border-white/20"
@@ -195,7 +173,7 @@ export const CommonSidebar = ({ hideMobileNav = false }: CommonSidebarProps) => 
 
                 {/* User Menu Dropdown */}
                 {userMenuOpen && (
-                  <div className="absolute bottom-0 left-full ml-2 w-64 bg-card/95 backdrop-blur-md border border-border/50 rounded-lg shadow-xl z-[100]">
+                  <div className="absolute bottom-0 left-full ml-2 w-64 bg-card/95 backdrop-blur-md border border-border/50 rounded-lg shadow-xl z-[40]">
                     <div className="p-4">
                       <div className="text-sm font-medium text-foreground truncate">
                         {user.user_metadata?.full_name || user.email}
@@ -205,10 +183,23 @@ export const CommonSidebar = ({ hideMobileNav = false }: CommonSidebarProps) => 
                       </div>
                     </div>
 
+                    <div className="px-2 pb-2">
+                      <button
+                        onClick={() => {
+                          router.push('/library');
+                          setUserMenuOpen(false);
+                        }}
+                        className="w-full flex items-center space-x-2 px-3 py-2 text-sm text-muted-foreground hover:text-foreground hover:bg-muted/50 rounded-md transition-colors"
+                      >
+                        <Library className="w-4 h-4" />
+                        <span>Library</span>
+                      </button>
+                    </div>
+
                     <div className="border-t border-border/30 p-2">
                       <button
                         onClick={() => {
-                          setSignOutDialogOpen(true);
+                          handleSignOut();
                           setUserMenuOpen(false);
                         }}
                         className="w-full flex items-center space-x-2 px-3 py-2 text-sm text-muted-foreground hover:text-foreground hover:bg-muted/50 rounded-md transition-colors"
@@ -221,14 +212,14 @@ export const CommonSidebar = ({ hideMobileNav = false }: CommonSidebarProps) => 
                 )}
               </div>
             ) : (
-              <Tooltip content="👤 Sign In" position="right">
+              <Tooltip content="Sign In" position="right">
                 <Button
                   onClick={() => setIsAuthModalOpen(true)}
                   variant="ghost"
                   size="sm"
                   className="w-12 h-12 flex items-center justify-center hover:bg-muted/50 hover:text-white hover:scale-110 transition-all duration-300 rounded-lg text-muted-foreground"
                 >
-                  <User className="h-5 w-5" />
+                  <LogIn className="h-5 w-5" />
                 </Button>
               </Tooltip>
             )}
@@ -269,7 +260,7 @@ export const CommonSidebar = ({ hideMobileNav = false }: CommonSidebarProps) => 
             }}
             variant="ghost"
             size="sm"
-            className={`h-12 w-12 flex items-center justify-center hover:bg-muted/50 transition-all duration-300 rounded-lg ${pathname === '/studio' ? 'bg-primary/20 text-primary shadow-sm' : 'text-muted-foreground'}`}
+            className={`h-12 w-12 flex items-center justify-center hover:bg-muted/50 transition-all duration-300 rounded-lg ${pathname === '/studio' ? 'text-primary' : 'text-muted-foreground'}`}
             id="mobile-studio-nav"
           >
             {pathname === '/studio' ? (
@@ -289,19 +280,11 @@ export const CommonSidebar = ({ hideMobileNav = false }: CommonSidebarProps) => 
             <Compass className="h-7 w-7" />
           </Button>
 
-          {/* Library Button */}
-          <Button
-            onClick={() => router.push('/library')}
-            variant="ghost"
-            size="sm"
-            className={`h-12 w-12 flex items-center justify-center hover:bg-muted/50 transition-all duration-300 rounded-lg ${pathname === '/library' ? 'bg-primary/20 text-primary shadow-sm' : 'text-muted-foreground'}`}
-          >
-            <Library className="h-7 w-7" />
-          </Button>
+          {/* Library entry removed from mobile bottom nav (moved into user menu) */}
 
           {/* User Button */}
           {user ? (
-            <div className="relative user-menu-container">
+            <div className="relative user-menu-container z-[40]">
               <Button
                 onClick={() => setUserMenuOpen(!userMenuOpen)}
                 variant="ghost"
@@ -321,14 +304,15 @@ export const CommonSidebar = ({ hideMobileNav = false }: CommonSidebarProps) => 
               
               {/* User Menu Dropdown */}
               {userMenuOpen && (
-                <div className="absolute bottom-12 left-1/2 transform -translate-x-1/2 bg-background border border-border/30 rounded-lg shadow-lg p-2 min-w-48 z-50">
+                <div className="absolute bottom-12 left-1/2 transform -translate-x-1/2 bg-background border border-border/30 rounded-lg shadow-lg p-2 min-w-48 z-[40]">
                   <div className="flex flex-col gap-1">
-                    <div className="px-3 py-2 text-sm font-medium text-foreground border-b border-border/20 mb-2">
-                      {user.user_metadata?.full_name || user.email}
-                    </div>
-                    
-                    <div className="px-3 py-1 text-xs text-muted-foreground">
-                      Credits: {credits !== null ? credits.toLocaleString() : '...'}
+                    <div className="px-3 py-2 border-b border-border/20 mb-2">
+                      <div className="text-sm font-medium text-foreground">
+                        {user.user_metadata?.full_name || 'User'}
+                      </div>
+                      <div className="text-xs text-muted-foreground mt-1">
+                        {user.email}
+                      </div>
                     </div>
                     
                     <Button
@@ -337,20 +321,20 @@ export const CommonSidebar = ({ hideMobileNav = false }: CommonSidebarProps) => 
                       className="justify-start text-sm text-muted-foreground hover:text-foreground"
                       onClick={() => {
                         setUserMenuOpen(false);
-                        // 可以添加用户设置页面
+                        router.push('/library');
                       }}
                     >
-                      <User className="mr-2 h-4 w-4" />
-                      Profile
+                      <Library className="mr-2 h-4 w-4" />
+                      Library
                     </Button>
                     
                     <Button
                       variant="ghost"
                       size="sm"
-                      className="justify-start text-sm text-red-500 hover:text-red-400 hover:bg-red-500/10"
+                      className="justify-start text-sm text-muted-foreground hover:text-foreground hover:bg-muted/50"
                       onClick={() => {
                         setUserMenuOpen(false);
-                        setSignOutDialogOpen(true);
+                        handleSignOut();
                       }}
                     >
                       <LogOut className="mr-2 h-4 w-4" />
@@ -365,30 +349,15 @@ export const CommonSidebar = ({ hideMobileNav = false }: CommonSidebarProps) => 
               onClick={() => setIsAuthModalOpen(true)}
               variant="ghost"
               size="sm"
-              className="h-12 px-4 flex items-center justify-center hover:bg-muted/50 transition-all duration-300 rounded-lg text-muted-foreground font-medium"
+              className="h-12 w-12 flex items-center justify-center hover:bg-muted/50 transition-all duration-300 rounded-lg text-muted-foreground"
               aria-label="Sign in"
             >
-              Sign in
+              <LogIn className="h-7 w-7" />
             </Button>
           )}
         </div>
       </div>
 
-      {/* Sign Out Confirmation Dialog */}
-      <AlertDialog open={signOutDialogOpen} onOpenChange={setSignOutDialogOpen}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Sign Out</AlertDialogTitle>
-            <AlertDialogDescription>
-              Are you sure you want to sign out? You&apos;ll need to sign in again to access your music library and generate new tracks.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction onClick={handleSignOut}>Sign Out</AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
 
       {/* Auth Modal */}
       <AuthModal

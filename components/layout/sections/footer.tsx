@@ -88,9 +88,9 @@ export const FooterSection = () => {
 
         <Separator className="my-6" />
         <section className="flex flex-col sm:flex-row justify-between items-center gap-4">
-          <h3 className="">
+          <p className="text-sm text-muted-foreground">
             &copy; 2025 R&B  Music Generator. All rights reserved.
-          </h3>
+          </p>
           <div className="flex gap-6">
             <Link href="/privacy" className="text-sm opacity-60 hover:opacity-100 transition-opacity">
               Privacy Policy

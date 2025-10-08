@@ -70,6 +70,9 @@ interface StudioPanelProps {
   onCollapseToTracks?: () => void;
   // 新增：收起（关闭）面板
   onCollapse?: () => void;
+  // AuthModal相关
+  isAuthModalOpen?: boolean;
+  setIsAuthModalOpen?: (open: boolean) => void;
 }
 
 export const StudioPanel = (props: StudioPanelProps) => {
@@ -78,6 +81,9 @@ export const StudioPanel = (props: StudioPanelProps) => {
     forceVisibleOnMobile = false,
     onCollapseToTracks,
     onCollapse,
+    // AuthModal相关
+    isAuthModalOpen = false,
+    setIsAuthModalOpen,
     mode,
     setMode,
     selectedGenre,
@@ -158,7 +164,7 @@ export const StudioPanel = (props: StudioPanelProps) => {
   // Handle generate button click with auth and credits check
   const handleGenerateWithAuth = () => {
     if (!user) {
-      toast("Please sign in to generate music");
+      setIsAuthModalOpen?.(true);
       return;
     }
     
@@ -193,16 +199,29 @@ export const StudioPanel = (props: StudioPanelProps) => {
         <>
           {/* Header */}
           <div className="flex-shrink-0 px-4 md:px-6 pt-4 md:pt-6 pb-3 md:pb-4 backdrop-blur-sm">
-            <div className="flex items-center justify-between gap-3 mb-4 md:mb-4">
+            <div className="flex items-center justify-center md:justify-between gap-3 mb-4 md:mb-4 relative">
+              {/* Mobile: Credits on left */}
+              <div className="md:hidden absolute left-0 flex items-center gap-2">
+                <div className="bg-muted/50 px-2 py-1 rounded-md">
+                  <div className="flex items-center gap-1">
+                    <span className="text-sm text-muted-foreground">Credits</span>
+                    <span className="text-base font-medium text-foreground">
+                      {credits !== null ? credits.toLocaleString() : '...'}
+                    </span>
+                  </div>
+                </div>
+              </div>
+              
               <div className="flex items-center gap-3">
                 <Music className="h-8 w-8 text-primary" />
                 <h1 className="text-4xl font-semibold">Studio</h1>
               </div>
+              
               {/* Collapse button in the same row as title (mobile only) */}
               {onCollapse && (
                 <button
                   type="button"
-                  className="md:hidden h-8 w-8 p-0 bg-muted/50 border border-border/30 text-foreground shadow-sm hover:bg-muted/70 hover:text-foreground transition-all duration-300 rounded-lg flex items-center justify-center"
+                  className="md:hidden absolute right-0 h-8 w-8 p-0 bg-muted/50 border border-border/30 text-foreground shadow-sm hover:bg-muted/70 hover:text-foreground transition-all duration-300 rounded-lg flex items-center justify-center"
                   onClick={onCollapse}
                   aria-label="Collapse panel"
                   title="Collapse"

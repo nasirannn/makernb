@@ -1,6 +1,5 @@
 "use client";
 
-import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import Image from "next/image";
 import Link from "next/link";
 import { useState, useEffect, useRef } from "react";
@@ -45,7 +44,7 @@ const genreData: GenreData[] = [
   },
 ];
 
-const benefitList: IntroductionProps[] = [
+const timelineEras: IntroductionProps[] = [
   {
     icon: "/icons/1940s-1960s.svg",
     title: "The Origins",
@@ -73,59 +72,6 @@ const benefitList: IntroductionProps[] = [
 ];
 
 export const IntroductionSection = () => {
-  const [currentTrack, setCurrentTrack] = useState<string>("new-jack-swing");
-  const isAutoAdvancingRef = useRef<boolean>(false);
-  const accordionContainerRef = useRef<HTMLDivElement | null>(null);
-  const [progress, setProgress] = useState<number>(0);
-  const currentIndex = genreData.findIndex((g) => g.id === currentTrack);
-  const prevIndexRef = useRef<number>(currentIndex);
-
-  const handleAccordionChange = (value: string) => {
-    if (value) {
-      setCurrentTrack(value);
-    }
-  };
-
-  // 自动轮播效果：每 5 秒切换一个条目（带滚动锁与失焦保护）
-  useEffect(() => {
-    const interval = setInterval(() => {
-      const currentScrollTop = window.scrollY;
-      const startTop = accordionContainerRef.current?.getBoundingClientRect().top ?? 0;
-      isAutoAdvancingRef.current = true;
-      setCurrentTrack((prev) => {
-        const index = genreData.findIndex((g) => g.id === prev);
-        const next = (index + 1) % genreData.length;
-        return genreData[next].id;
-      });
-      // 恢复滚动位置，避免展开时页面跳动
-      requestAnimationFrame(() => {
-        const endTop = accordionContainerRef.current?.getBoundingClientRect().top ?? 0;
-        const delta = endTop - startTop;
-        if (Math.abs(delta) > 0.5) {
-          window.scrollTo({ top: currentScrollTop + delta });
-        }
-        // 若自动切换期间某个触发器获得焦点，主动取消焦点以避免视口对齐
-        const active = document.activeElement as HTMLElement | null;
-        if (isAutoAdvancingRef.current && active && active.blur) {
-          active.blur();
-        }
-        isAutoAdvancingRef.current = false;
-      });
-    }, 5000);
-
-    return () => clearInterval(interval);
-  }, []);
-
-  useEffect(() => {
-    // 重置并触发 5s 进度动画
-    setProgress(0);
-    requestAnimationFrame(() => setProgress(100));
-  }, [currentTrack]);
-
-  // 记录上一个索引用于判断是否为首尾跳转
-  useEffect(() => {
-    prevIndexRef.current = currentIndex;
-  }, [currentIndex]);
 
 
   return (
@@ -149,13 +95,13 @@ export const IntroductionSection = () => {
               <div>
                 <h3 className="text-2xl font-bold mb-4 text-left">What Is R&B?</h3>
               <Link href="/blog/a-journey-through-the-eras-of-rnb">
-                <p className="text-xl text-muted-foreground mb-0 text-left hover:underline cursor-pointer line-clamp-4 overflow-hidden">
+                <p className="text-lg text-muted-foreground mb-0 text-left hover:underline cursor-pointer line-clamp-4 overflow-hidden">
                   Rhythm and Blues (R&B) is a genre that blends soulful vocals with rhythm-driven grooves. Emerging in the 1940s and evolving through soul, funk, and disco, R&B became one of the most influential genres shaping modern popular music.
                 </p>
               </Link>
               
               <div className="flex items-center justify-between gap-4 mt-6 mb-0">
-                {benefitList.map(({ icon, title }) => (
+                {timelineEras.map(({ icon, title }, index) => (
                   <div key={title} className="flex flex-col items-center">
                     <Image
                       src={icon}
@@ -163,7 +109,10 @@ export const IntroductionSection = () => {
                       width={96}
                       height={96}
                     />
-                    <h3 className="text-sm font-semibold mt-4 text-center">{title}</h3>
+                    <div className="flex items-center gap-2 mt-4">
+                      <span className="text-foreground text-sm font-bold">{index + 1}.</span>
+                      <h3 className="text-sm font-semibold text-center">{title}</h3>
+                    </div>
                   </div>
                 ))}
               </div>
@@ -171,7 +120,7 @@ export const IntroductionSection = () => {
             </div>
 
             <div className="w-full">
-              {benefitList.map(({ icon, title, description }) => (
+              {timelineEras.map(({ icon, title, description }, index) => (
                 <div key={title} className="bg-muted/50 dark:bg-card p-4 rounded-lg">
                   <div className="mb-2">
                     <h3 className="text-lg font-semibold">{title}</h3>
@@ -189,69 +138,45 @@ export const IntroductionSection = () => {
 
           {/* R&B Golden Era Section */}
           <div className="mt-32">
-            {/* Genre Accordion and Image Display */}
-            <div className="grid lg:grid-cols-2 gap-8">
-              {/* Left Side - Genre Accordion and Header */}
-              <div className="w-full" ref={accordionContainerRef}>
-                <div className="mb-6">
-                  <div className="mb-4">
-                    <Link href="/blog/golden-era-90s-rnb-genres">
-                        <h2 className="text-2xl md:text-3xl font-bold cursor-pointer hover:underline transition-all">
-                          4 Classic R&B Genres Of Golden Age
-                        </h2>
-                    </Link>
-                    <p className="text-muted-foreground mt-4 line-clamp-1">
-                      The 1990s were the golden era of R&B — a decade that gave us smooth love ballads, dance-floor anthems, and soulful grooves that still inspire artists today. But R&B in the 90s was not just one sound. It was a family of genres, each with its own style, story, and stars.
+            <div className="mb-6">
+              <div className="mb-4">
+                <Link href="/blog/golden-era-90s-rnb-genres">
+                  <h2 className="text-2xl md:text-3xl font-bold cursor-pointer hover:underline transition-all">
+                    4 Classic R&B Genres Of The Golden Age
+                  </h2>
+                </Link>
+                <p className="text-muted-foreground mt-4 line-clamp-1">
+                  The 1990s were the golden era of R&B — a decade that gave us smooth love ballads, dance-floor anthems, and soulful grooves that still inspire artists today. But R&B in the 90s was not just one sound. It was a family of genres, each with its own style, story, and stars.
+                </p>
+              </div>
+            </div>
+
+            {/* Genre Cards Grid */}
+            <div className="grid gap-8">
+              {genreData.map((genre, index) => (
+                <div key={genre.id} className={`grid lg:grid-cols-2 gap-8 items-center ${index % 2 === 1 ? 'lg:grid-flow-col-dense' : ''}`}>
+                  {/* Content */}
+                  <div className={`${index % 2 === 1 ? 'lg:col-start-2' : ''}`}>
+                    <h3 className="text-2xl font-bold mb-4 text-primary">{genre.title}</h3>
+                    <p className="text-muted-foreground text-base leading-relaxed">
+                      {genre.description}
                     </p>
                   </div>
-                </div>
-                
-                <Accordion 
-                  type="single" 
-                  collapsible 
-                  value={currentTrack}
-                  onValueChange={handleAccordionChange}
-                  className="w-full"
-                  style={{ overflowAnchor: 'none' }}
-                >
-                  {genreData.map((genre) => (
-                    <AccordionItem key={genre.id} value={genre.id} className={`border-0 scroll-m-20`}>
-                      <AccordionTrigger className="flex w-full items-center justify-between py-4 font-medium text-left transition-all hover:underline data-[state=closed]:text-muted-foreground">
-                        <div className="flex items-center justify-between gap-2">
-                          <span className={`font-semibold ${currentTrack === genre.id ? 'text-primary' : ''}`}>
-                            {genre.title}
-                          </span>
-                        </div>
-                      </AccordionTrigger>
-                      <AccordionContent className="text-muted-foreground pt-0">
-                        <div className="pb-4 text-sm md:text-base">
-                          <p className="line-clamp-2 overflow-hidden">{genre.description}</p>
-                        </div>
-                      </AccordionContent>
-                    </AccordionItem>
-                  ))}
-                </Accordion>
-              </div>
-
-              {/* Right Side - Image crossfade */}
-              <div className="h-full flex items-center justify-center">
-                <div className="relative w-full max-w-md" role="region" aria-roledescription="carousel">
-                  <div className="relative w-full aspect-square">
-                    {genreData.map((genre) => (
+                  
+                  {/* Image */}
+                  <div className={`${index % 2 === 1 ? 'lg:col-start-1' : ''}`}>
+                    <div className="relative w-full max-w-sm mx-auto aspect-square">
                       <Image
-                        key={genre.id}
                         src={genre.image}
                         alt={genre.title}
-                        width={800}
-                        height={800}
-                        className={`absolute inset-0 w-full h-full rounded-md object-cover transition-opacity duration-500 ${
-                          currentTrack === genre.id ? 'opacity-100' : 'opacity-0'
-                        }`}
+                        width={400}
+                        height={400}
+                        className="w-full h-full rounded-lg object-cover"
                       />
-                    ))}
+                    </div>
                   </div>
                 </div>
-              </div>
+              ))}
             </div>
           </div>
         </div>

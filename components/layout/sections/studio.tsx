@@ -879,6 +879,8 @@ const StudioContent = () => {
                     pendingTasksCount={pendingTasksCount}
                     onGenerationStart={handleGenerationStart}
                     onGenerateLyrics={handleGenerateLyrics}
+                    isAuthModalOpen={isAuthModalOpen}
+                    setIsAuthModalOpen={setIsAuthModalOpen}
                 />
                 </div>
 
@@ -948,6 +950,8 @@ const StudioContent = () => {
                                     pendingTasksCount={pendingTasksCount}
                                     onGenerationStart={handleGenerationStart}
                                     onGenerateLyrics={handleGenerateLyrics}
+                                    isAuthModalOpen={isAuthModalOpen}
+                                    setIsAuthModalOpen={setIsAuthModalOpen}
                                 />
                             </div>
                             

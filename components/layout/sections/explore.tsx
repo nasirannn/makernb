@@ -292,7 +292,7 @@ export const ExploreSection = () => {
             Listen to The AI-Generated R&B Songs
           </h2>
 
-          <h3 className="md:w-1/2 mx-auto text-xl text-center text-muted-foreground mb-8">
+          <h3 className="md:w-1/2 mx-auto text-lg text-center text-muted-foreground mb-8">
             Experience soulful R&B music crafted by artificial intelligence
           </h3>
         </div>

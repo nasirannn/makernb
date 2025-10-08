@@ -24,6 +24,25 @@ export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState('');
 
+  // 阻止背景滚动和交互
+  React.useEffect(() => {
+    if (isOpen) {
+      document.body.style.overflow = 'hidden';
+      document.body.style.position = 'fixed';
+      document.body.style.width = '100%';
+    } else {
+      document.body.style.overflow = '';
+      document.body.style.position = '';
+      document.body.style.width = '';
+    }
+
+    return () => {
+      document.body.style.overflow = '';
+      document.body.style.position = '';
+      document.body.style.width = '';
+    };
+  }, [isOpen]);
+
   const handleEmailAuth = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
@@ -79,15 +98,21 @@ export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center animate-in fade-in duration-300">
+    <div 
+      className="fixed inset-0 z-[110] flex items-center justify-center animate-in fade-in duration-300"
+      style={{ pointerEvents: 'auto' }}
+    >
       {/* Backdrop */}
       <div 
-        className="fixed inset-0 bg-gradient-to-br from-slate-900/90 via-primary/80 to-slate-900/90 backdrop-blur-md animate-in fade-in duration-300"
+        className="fixed inset-0 bg-black/50 backdrop-blur-sm animate-in fade-in duration-300 z-[110]"
         onClick={handleClose}
+        onMouseDown={(e) => e.preventDefault()}
+        onTouchStart={(e) => e.preventDefault()}
+        style={{ pointerEvents: 'auto' }}
       />
       
       {/* Modal */}
-      <div className="relative w-full max-w-md mx-4 animate-in zoom-in-95 slide-in-from-bottom-4 duration-300">
+      <div className="relative w-full max-w-md mx-4 animate-in zoom-in-95 slide-in-from-bottom-4 duration-300 z-[111]">
         <Card className="bg-white/10 backdrop-blur-lg border-white/20 shadow-2xl">
           {/* Close Button */}
           <button
@@ -114,7 +139,7 @@ export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
             </CardTitle>
             <CardDescription className="text-white/70">
               {isLogin
-                ? 'Access your account to start creating amazing R&B music'
+                ? 'Sign in to your account to create R&B music'
                 : 'Join us to create authentic R&B tracks with AI'
               }
             </CardDescription>
@@ -146,7 +171,7 @@ export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
                 <span className="w-full border-t border-white/20" />
               </div>
               <div className="relative flex justify-center text-xs uppercase">
-                <span className="bg-gradient-to-br from-slate-900/90 via-purple-600/80 to-slate-900/90 px-3 py-1 text-white/50 rounded-full">Or continue with email</span>
+                <span className="bg-gradient-to-br from-slate-900/90 via-slate-800/80 to-slate-900/90 px-3 py-1 text-white/50 rounded-full">Or continue with email</span>
               </div>
             </div>
 
@@ -161,7 +186,7 @@ export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   required
-                  className="bg-white/10 border-white/20 text-white placeholder:text-white/50 focus:border-purple-600/50"
+                  className="bg-white/10 border-white/20 text-white placeholder:text-white/50 focus:border-blue-500/50"
                 />
               </div>
               <div className="space-y-2">
@@ -173,13 +198,13 @@ export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   required
-                  className="bg-white/10 border-white/20 text-white placeholder:text-white/50 focus:border-purple-600/50"
+                  className="bg-white/10 border-white/20 text-white placeholder:text-white/50 focus:border-blue-500/50"
                 />
               </div>
               <Button
                 type="submit"
                 disabled={loading}
-                className="w-full h-12 bg-gradient-to-r from-purple-600 to-purple-600 hover:from-purple-700 hover:to-purple-700 text-white font-medium rounded-xl transition-all duration-200 disabled:opacity-50"
+                className="w-full h-12 bg-primary hover:bg-primary/90 text-primary-foreground font-medium rounded-xl transition-all duration-200 disabled:opacity-50"
               >
                 {loading ? (
                   <LoadingDots size="sm" color="white" className="mr-2" />

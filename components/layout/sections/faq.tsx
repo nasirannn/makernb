@@ -48,11 +48,11 @@ export const FAQSection = () => {
   return (
     <section id="faq" className="container max-w-4xl py-12 sm:py-16">
       <div className="text-center mb-8">
-        <h2 className="text-2xl text-primary text-center mb-4 tracking-wider font-semibold">
+        <h2 className="text-lg text-primary text-center mb-2 tracking-wider">
           Frequently Asked Questions
         </h2>
 
-        <h2 className="text-4xl md:text-5xl text-center font-bold mb-6">
+        <h2 className="text-3xl md:text-4xl text-center font-bold mb-4">
           Everything You Need to Know
         </h2>
         

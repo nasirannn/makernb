@@ -49,7 +49,7 @@ export const TutorialSection = () => {
             <h2 className="text-4xl font-bold text-foreground mb-4">
               How To Create a R&B Song With AI
             </h2>
-            <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
+            <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
               Create your own R&B music in just three simple steps
             </p>
           </div>
@@ -64,11 +64,11 @@ export const TutorialSection = () => {
                 {/* Step Number - separate row */}
                 <div className="mb-4 flex justify-start">
                   <div className="relative">
-                    <div className="w-16 h-16 rounded-full bg-gradient-to-r from-primary to-primary/70 flex items-center justify-center shadow-lg">
-                      <span className="text-white text-2xl font-bold">{index + 1}</span>
+                    <div className="w-12 h-12 rounded-full bg-gradient-to-r from-primary to-primary/70 flex items-center justify-center shadow-lg">
+                      <span className="text-white text-lg font-bold">{index + 1}</span>
                     </div>
                     {/* Glow effect */}
-                    <div className="absolute inset-0 w-16 h-16 rounded-full bg-gradient-to-r from-primary to-primary/70 opacity-30 blur-md"></div>
+                    <div className="absolute inset-0 w-12 h-12 rounded-full bg-gradient-to-r from-primary to-primary/70 opacity-30 blur-md"></div>
                   </div>
                 </div>
                 

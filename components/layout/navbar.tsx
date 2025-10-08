@@ -8,7 +8,6 @@ import Image from "next/image";
 import { usePathname } from "next/navigation";
 import { useAuth } from "@/contexts/AuthContext";
 import AuthModal from "../ui/auth-modal";
-import { ConfirmDialog } from "../ui/confirm-dialog";
 import { Library, LogOut } from "lucide-react";
 
 interface RouteProps {
@@ -49,7 +48,6 @@ export const Navbar = ({ credits = null }: NavbarProps) => {
   const [isAuthModalOpen, setIsAuthModalOpen] = React.useState(false);
   const [isUserMenuOpen, setIsUserMenuOpen] = React.useState(false);
   const [isScrolled, setIsScrolled] = React.useState(false);
-  const [isSignOutConfirmOpen, setIsSignOutConfirmOpen] = React.useState(false);
   const pathname = usePathname();
   const { user, signOut } = useAuth();
 
@@ -219,9 +217,13 @@ export const Navbar = ({ credits = null }: NavbarProps) => {
                       <span>Library</span>
                     </Link>
                     <button
-                      onClick={() => {
-                        setIsSignOutConfirmOpen(true);
-                        setIsOpen(false);
+                      onClick={async () => {
+                        try {
+                          await signOut();
+                          setIsOpen(false);
+                        } catch (error) {
+                          console.error('Sign out error:', error);
+                        }
                       }}
                       className="w-full flex items-center gap-3 px-3 py-2 text-sm text-white/80 hover:bg-white/10 hover:text-white transition-colors rounded-lg"
                     >
@@ -342,8 +344,13 @@ export const Navbar = ({ credits = null }: NavbarProps) => {
                     <span>Library</span>
                   </Link>
                   <button
-                    onClick={() => {
-                      setIsSignOutConfirmOpen(true);
+                    onClick={async () => {
+                      try {
+                        await signOut();
+                        setIsUserMenuOpen(false);
+                      } catch (error) {
+                        console.error('Sign out error:', error);
+                      }
                     }}
                     className="w-full flex items-center gap-3 px-4 py-2 text-sm text-white/80 hover:bg-white/10 hover:text-white transition-colors"
                   >
@@ -372,25 +379,6 @@ export const Navbar = ({ credits = null }: NavbarProps) => {
         onClose={() => setIsAuthModalOpen(false)} 
       />
 
-      {/* Sign Out Confirmation Dialog */}
-      <ConfirmDialog
-        isOpen={isSignOutConfirmOpen}
-        onClose={() => setIsSignOutConfirmOpen(false)}
-        onConfirm={async () => {
-          try {
-            await signOut();
-          } catch (error) {
-            console.error('Sign out error:', error);
-          } finally {
-            setIsUserMenuOpen(false);
-          }
-        }}
-        title="Sign Out"
-        message="Are you sure you want to sign out?"
-        confirmText="Sign Out"
-        cancelText="Cancel"
-        variant="destructive"
-      />
     </header>
   );
 };
