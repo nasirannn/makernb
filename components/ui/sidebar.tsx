@@ -208,16 +208,6 @@ export const CommonSidebar = ({ hideMobileNav = false }: CommonSidebarProps) => 
                     <div className="border-t border-border/30 p-2">
                       <button
                         onClick={() => {
-                          router.push('/library');
-                          setUserMenuOpen(false);
-                        }}
-                        className="w-full flex items-center space-x-2 px-3 py-2 text-sm text-muted-foreground hover:text-foreground hover:bg-muted/50 rounded-md transition-colors"
-                      >
-                        <Library className="w-4 h-4" />
-                        <span>Library</span>
-                      </button>
-                      <button
-                        onClick={() => {
                           setSignOutDialogOpen(true);
                           setUserMenuOpen(false);
                         }}

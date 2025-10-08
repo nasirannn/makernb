@@ -200,7 +200,7 @@ export const IntroductionSection = () => {
                           4 Classic R&B Genres Of Golden Age
                         </h2>
                     </Link>
-                    <p className="text-muted-foreground mt-4 line-clamp-2">
+                    <p className="text-muted-foreground mt-4 line-clamp-1">
                       The 1990s were the golden era of R&B — a decade that gave us smooth love ballads, dance-floor anthems, and soulful grooves that still inspire artists today. But R&B in the 90s was not just one sound. It was a family of genres, each with its own style, story, and stars.
                     </p>
                   </div>

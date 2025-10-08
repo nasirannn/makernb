@@ -59,24 +59,34 @@ export const TutorialSection = () => {
             {steps.map((step, index) => (
               <div
                 key={index}
-                className="text-center"
+                className="text-left"
               >
-                {/* Icon */}
-                <div className="mb-6 flex justify-center">
+                {/* Step Number - separate row */}
+                <div className="mb-4 flex justify-start">
+                  <div className="relative">
+                    <div className="w-16 h-16 rounded-full bg-gradient-to-r from-primary to-primary/70 flex items-center justify-center shadow-lg">
+                      <span className="text-white text-2xl font-bold">{index + 1}</span>
+                    </div>
+                    {/* Glow effect */}
+                    <div className="absolute inset-0 w-16 h-16 rounded-full bg-gradient-to-r from-primary to-primary/70 opacity-30 blur-md"></div>
+                  </div>
+                </div>
+                
+                {/* Icon and Title in same row */}
+                <div className="mb-4 flex items-center justify-start gap-3">
                   <Image
                     src={step.icon}
                     alt={step.title}
-                    width={128}
-                    height={128}
-                    className="w-32 h-32"
+                    width={48}
+                    height={48}
+                    className="w-12 h-12"
                   />
+                  
+                  {/* Title */}
+                  <h3 className="text-xl font-semibold text-foreground">
+                    {step.title}
+                  </h3>
                 </div>
-                
-                {/* Title with Step Number */}
-                <h3 className="text-xl font-semibold text-foreground mb-4">
-                  {index + 1}.
-                  {step.title}
-                </h3>
                 
                 {/* Description */}
                 <p className="text-muted-foreground leading-relaxed">

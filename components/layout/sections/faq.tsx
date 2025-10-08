@@ -46,8 +46,8 @@ const FAQList: FAQProps[] = [
 
 export const FAQSection = () => {
   return (
-    <section id="faq" className="container max-w-4xl py-24 sm:py-32">
-      <div className="text-center mb-16">
+    <section id="faq" className="container max-w-4xl py-12 sm:py-16">
+      <div className="text-center mb-8">
         <h2 className="text-2xl text-primary text-center mb-4 tracking-wider font-semibold">
           Frequently Asked Questions
         </h2>
@@ -61,14 +61,14 @@ export const FAQSection = () => {
         </p>
       </div>
 
-      <Accordion type="single" collapsible className="space-y-4">
+      <Accordion type="single" collapsible className="space-y-2">
         {FAQList.map(({ question, answer, value }) => (
-          <AccordionItem key={value} value={value} className="border-b border-border px-6 py-2">
-            <AccordionTrigger className="text-left text-lg font-semibold py-6 hover:no-underline [&[data-state=open]]:text-primary">
+          <AccordionItem key={value} value={value} className="border-b border-border px-4 py-1">
+            <AccordionTrigger className="text-left text-lg font-semibold py-4 hover:no-underline [&[data-state=open]]:text-primary">
               {question}
             </AccordionTrigger>
 
-            <AccordionContent className="text-base text-muted-foreground pb-6 leading-relaxed">
+            <AccordionContent className="text-base text-muted-foreground pb-4 leading-relaxed">
               {answer}
             </AccordionContent>
           </AccordionItem>

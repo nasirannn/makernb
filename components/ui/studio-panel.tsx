@@ -304,7 +304,7 @@ export const StudioPanel = (props: StudioPanelProps) => {
                   </div>
                   <div className="text-sm text-muted-foreground mt-1">
                     {isPublished
-                      ? "Visible in explore"
+                      ? "Your song are visible in explore"
                       : "Private in library"
                     }
                   </div>
@@ -352,39 +352,16 @@ export const StudioPanel = (props: StudioPanelProps) => {
                   <div className="bg-muted/30 rounded-lg p-1">
                     <div className="flex gap-1">
                       {vocalGenders.map((gender: any) => (
-                        <Tooltip 
+                        <button
                           key={gender.id}
-                          content={
-                            <div className="flex flex-col items-center gap-2 p-2">
-                              <Image
-                                src={`/icons/${gender.id === 'male' ? 'Male-Singer' : 'Female-Singer'}.svg`}
-                                alt={gender.name}
-                                width={64}
-                                height={64}
-                                className="w-16 h-16"
-                              />
-                              <span className="text-sm font-medium">{gender.name}</span>
-                            </div>
-                          }
-                          position="top"
+                          onClick={() => setVocalGender(gender.id)}
+                          className={`py-1.5 px-3 text-sm font-medium transition-all duration-200 rounded-md ${vocalGender === gender.id
+                            ? "bg-primary/20 border-transparent text-primary shadow-sm"
+                            : "text-muted-foreground hover:text-foreground hover:bg-muted/50"
+                            }`}
                         >
-                          <button
-                            onClick={() => setVocalGender(gender.id)}
-                            className={`py-1.5 px-3 text-sm font-medium transition-all duration-200 rounded-md flex items-center gap-2 ${vocalGender === gender.id
-                              ? "bg-primary/20 border-transparent text-primary shadow-sm"
-                              : "text-muted-foreground hover:text-foreground hover:bg-muted/50"
-                              }`}
-                          >
-                            <Image
-                              src={`/icons/${gender.id === 'male' ? 'Male-Singer' : 'Female-Singer'}.svg`}
-                              alt={gender.name}
-                              width={16}
-                              height={16}
-                              className="w-4 h-4"
-                            />
-                            {gender.name}
-                          </button>
-                        </Tooltip>
+                          {gender.name}
+                        </button>
                       ))}
                     </div>
                   </div>
@@ -454,11 +431,11 @@ export const StudioPanel = (props: StudioPanelProps) => {
                       setStyleText(newValue);
                       handleUpdateStatesFromTextarea(newValue);
                     }}
-                    maxLength={200}
+                    maxLength={1000}
                     className="min-h-[104px] md:min-h-[120px] resize-none pr-16 pb-6 border-0 focus-visible:ring-0 focus-visible:ring-offset-0"
                   />
                   <div className="absolute bottom-2 right-3 text-xs text-muted-foreground">
-                    {styleText.length}/200
+                    {styleText.length}/1000
                               </div>
                             </div>
                   </div>
@@ -1071,8 +1048,8 @@ export const StudioPanel = (props: StudioPanelProps) => {
                   </div>
                   <div className="text-sm text-muted-foreground mt-1">
                     {isPublished
-                      ? "Visible in explore"
-                      : "Private in library"
+                      ? "Your song will be visible in explore"
+                      : "Your song will be private in library"
                     }
                   </div>
                 </div>

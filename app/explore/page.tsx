@@ -9,6 +9,7 @@ import { SafeImage } from '@/components/ui/safe-image';
 import { MusicPlayer } from '@/components/ui/music-player';
 import { CustomAudioWaveIndicator } from '@/components/ui/audio-wave-indicator';
 import { Skeleton } from '@/components/ui/skeleton';
+import { FooterSection } from '@/components/layout/sections/footer';
 
 interface Track {
   id: string;
@@ -491,6 +492,9 @@ export default function ExplorePage() {
           </div>
         )}
       </div>
+
+      {/* Footer */}
+      <FooterSection />
 
       {/* 播放器 - 固定在底部 */}
       {playlist.length > 0 && currentlyPlaying && (

@@ -383,13 +383,13 @@ export const LibraryPanel = ({
         {/* Tabs and Search Row */}
         <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
           {/* Navigation Tabs */}
-          <div className="bg-muted/30 rounded-xl p-1 inline-flex w-full md:w-auto">
+          <div className="bg-muted/30 rounded-lg p-1 inline-flex w-full md:w-auto">
             <div className="flex gap-1 w-full">
               {TABS.map((tab) => (
                 <button
                   key={tab}
                   onClick={() => setActiveTab(tab)}
-                  className={`py-2 px-3 text-sm font-medium transition-all duration-200 rounded-lg whitespace-nowrap flex-1 ${
+                  className={`py-2 px-3 text-sm font-medium transition-all duration-200 rounded-md whitespace-nowrap flex-1 ${
                     activeTab === tab
                       ? 'bg-primary/20 border-transparent text-primary shadow-sm'
                       : 'text-muted-foreground hover:text-foreground hover:bg-muted/50'
