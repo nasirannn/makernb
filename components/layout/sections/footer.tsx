@@ -9,7 +9,7 @@ export const FooterSection = () => {
   const handleGithubClick = (e: React.MouseEvent) => {
     e.preventDefault();
     toast("🎁 Daily Login Bonus!", {
-      description: "You have received 15 credits as a daily login bonus. They are only valid today (UTC) - just use them up.",
+      description: "You have received 15 credits as a daily login bonus. They are only valid today (UTC) - use them up ASAP.",
       duration: 5000,
       className: 'bg-purple-600 text-white border-none shadow-2xl',
     });
@@ -36,28 +36,21 @@ export const FooterSection = () => {
           </div>
 
           <div className="grid grid-cols-2 gap-6 lg:gap-20">
-            {/* Contact */}
+            {/* About */}
             <div className="flex flex-col gap-3 sm:gap-4 items-start text-left">
-              <h3 className="font-bold text-lg">Contact</h3>
+              <h3 className="font-bold text-lg">About</h3>
               <div>
                 <Link 
-                  href="#" 
-                  className="opacity-60 hover:opacity-100 cursor-pointer"
-                  onClick={handleGithubClick}
+                  href="#features" 
+                  className="opacity-60 hover:opacity-100"
                 >
-                  Github
+                  Features
                 </Link>
               </div>
 
               <div>
-                <Link href="#" className="opacity-60 hover:opacity-100">
-                  Twitter
-                </Link>
-              </div>
-
-              <div>
-                <Link href="#" className="opacity-60 hover:opacity-100">
-                  Instagram
+                <Link href="#tutorial" className="opacity-60 hover:opacity-100">
+                  How It Works
                 </Link>
               </div>
             </div>

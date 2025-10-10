@@ -200,17 +200,19 @@ export const StudioPanel = (props: StudioPanelProps) => {
           {/* Header */}
           <div className="flex-shrink-0 px-4 md:px-6 pt-4 md:pt-6 pb-3 md:pb-4 backdrop-blur-sm">
             <div className="flex items-center justify-center md:justify-between gap-3 mb-4 md:mb-4 relative">
-              {/* Mobile: Credits on left */}
-              <div className="md:hidden absolute left-0 flex items-center gap-2">
-                <div className="bg-muted/50 px-2 py-1 rounded-md">
-                  <div className="flex items-center gap-1">
-                    <span className="text-sm text-muted-foreground">Credits</span>
-                    <span className="text-base font-medium text-foreground">
-                      {credits !== null ? credits.toLocaleString() : '...'}
-                    </span>
+              {/* Mobile: Credits on left - only show when user is logged in */}
+              {user && (
+                <div className="md:hidden absolute left-0 flex items-center gap-2">
+                  <div className="bg-muted/50 px-2 py-1 rounded-md">
+                    <div className="flex items-center gap-1">
+                      <span className="text-sm text-muted-foreground">Credits</span>
+                      <span className="text-base font-medium text-foreground">
+                        {credits !== null ? credits.toLocaleString() : '...'}
+                      </span>
+                    </div>
                   </div>
                 </div>
-              </div>
+              )}
               
               <div className="flex items-center gap-3">
                 <Music className="h-8 w-8 text-primary" />

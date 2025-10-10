@@ -1,5 +1,5 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Settings, MessageSquare, FileText, Music, Download, Heart } from "lucide-react";
+import Image from "next/image";
 
 interface FeaturesProps {
   icon: React.ComponentType<{ className?: string }>;
@@ -9,37 +9,37 @@ interface FeaturesProps {
 
 const featureList: FeaturesProps[] = [
   {
-    icon: Settings,
+    icon: () => <Image src="/icons/Two-Flexible-Creation-Modes.svg" alt="Studio Create" width={48} height={48} className="h-12 w-12" />,
     title: "Two Flexible Creation Modes",
     description:
       "Simple Mode for instant hits or Custom Mode for complete creative control",
   },
   {
-    icon: MessageSquare,
+    icon: () => <Image src="/icons/Natural-Language-Input.svg" alt="Natural Language Input" width={48} height={48} className="h-12 w-12" />,
     title: "Natural Language Input",
     description:
       "Describe your vision in plain English and watch AI transform words into music",
   },
   {
-    icon: FileText,
+    icon: () => <Image src="/icons/Custom-Lyrics-Support.svg" alt="Custom Lyrics Support" width={48} height={48} className="h-12 w-12" />,
     title: "Custom Lyrics Support",
     description:
-      "Input your own lyrics to create authentic songs with your unique voice",
+      "Input your own lyrics to create authentic songs with your unique ideas",
   },
   {
-    icon: Music,
+    icon: () => <Image src="/icons/Authentic-RnB-Styles.svg" alt="Authentic R&B Styles" width={48} height={48} className="h-12 w-12" />,
     title: "Authentic R&B Styles",
     description:
       "From classic slow jams to contemporary R&B vibes and everything between",
   },
   {
-    icon: Download,
+    icon: () => <Image src="/icons/Studio-Quality-Output.svg" alt="Studio-Quality Output" width={48} height={48} className="h-12 w-12" />,
     title: "Studio-Quality Output",
     description:
       "Professional-grade tracks with rich vocals and smooth R&B harmonies",
   },
   {
-    icon: Heart,
+    icon: () => <Image src="/icons/Free-Daily-Credits.svg" alt="Free Daily Credits" width={48} height={48} className="h-12 w-12" />,
     title: "Free Daily Credits",
     description:
       "Start creating immediately with daily credits - no subscriptions required",
@@ -65,12 +65,12 @@ export const FeaturesSection = () => {
         {featureList.map(({ icon: IconComponent, title, description }) => (
           <div key={title}>
             <Card className="h-full border-0 shadow-none bg-transparent">
-              <CardHeader className="flex justify-center items-center">
-                <div className="bg-primary/10 p-3 rounded-full mb-4">
-                  <IconComponent className="h-6 w-6 text-primary" />
+              <CardHeader className="flex justify-center items-center pb-2">
+                <div className="p-3 rounded-full mb-1">
+                  <IconComponent className="h-8 w-8 text-primary" />
                 </div>
 
-                <CardTitle>{title}</CardTitle>
+                <CardTitle className="text-lg">{title}</CardTitle>
               </CardHeader>
 
               <CardContent className="text-muted-foreground text-center">

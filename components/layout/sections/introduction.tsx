@@ -94,11 +94,9 @@ export const IntroductionSection = () => {
               </div>
               <div>
                 <h3 className="text-2xl font-bold mb-4 text-left">What Is R&B?</h3>
-              <Link href="/blog/a-journey-through-the-eras-of-rnb">
-                <p className="text-lg text-muted-foreground mb-0 text-left hover:underline cursor-pointer line-clamp-4 overflow-hidden">
+                <p className="text-lg text-muted-foreground mb-0 text-left line-clamp-4 overflow-hidden">
                   Rhythm and Blues (R&B) is a genre that blends soulful vocals with rhythm-driven grooves. Emerging in the 1940s and evolving through soul, funk, and disco, R&B became one of the most influential genres shaping modern popular music.
                 </p>
-              </Link>
               
               <div className="flex items-center justify-between gap-4 mt-6 mb-0">
                 {timelineEras.map(({ icon, title }, index) => (
@@ -115,6 +113,12 @@ export const IntroductionSection = () => {
                     </div>
                   </div>
                 ))}
+              </div>
+              
+              <div className="mt-6">
+                <Link href="/blog/a-journey-through-the-eras-of-rnb" className="text-primary hover:underline text-sm font-medium">
+                  Read full article →
+                </Link>
               </div>
               </div>
             </div>

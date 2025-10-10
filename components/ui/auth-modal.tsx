@@ -23,6 +23,7 @@ export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState('');
+  const [useMagicLink, setUseMagicLink] = useState(false);
 
   // 阻止背景滚动和交互
   React.useEffect(() => {
@@ -49,7 +50,18 @@ export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
     setMessage('');
 
     try {
-      if (isLogin) {
+      if (isLogin && useMagicLink) {
+        // Magic Link login
+        const { error } = await supabase.auth.signInWithOtp({
+          email,
+          options: {
+            emailRedirectTo: window.location.href
+          }
+        });
+        if (error) throw error;
+        setMessage('Check your email for the sign-in link!');
+      } else if (isLogin) {
+        // Password login
         const { error } = await supabase.auth.signInWithPassword({
           email,
           password,
@@ -57,6 +69,7 @@ export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
         if (error) throw error;
         onClose();
       } else {
+        // Sign up
         const { error } = await supabase.auth.signUp({
           email,
           password,
@@ -92,6 +105,7 @@ export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
     setEmail('');
     setPassword('');
     setIsLogin(true);
+    setUseMagicLink(false);
     onClose();
   };
 
@@ -189,18 +203,38 @@ export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
                   className="bg-white/10 border-white/20 text-white placeholder:text-white/50 focus:border-blue-500/50"
                 />
               </div>
-              <div className="space-y-2">
-                <Label htmlFor="password" className="text-white">Password</Label>
-                <Input
-                  id="password"
-                  type="password"
-                  placeholder="Enter your password"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  required
-                  className="bg-white/10 border-white/20 text-white placeholder:text-white/50 focus:border-blue-500/50"
-                />
-              </div>
+              
+              {/* Password field - only show for password login/signup */}
+              {!useMagicLink && (
+                <div className="space-y-2">
+                  <Label htmlFor="password" className="text-white">Password</Label>
+                  <Input
+                    id="password"
+                    type="password"
+                    placeholder="Enter your password"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    required
+                    className="bg-white/10 border-white/20 text-white placeholder:text-white/50 focus:border-blue-500/50"
+                  />
+                </div>
+              )}
+              
+              {/* Magic Link toggle - only show for login */}
+              {isLogin && (
+                <div className="flex items-center space-x-2">
+                  <input
+                    type="checkbox"
+                    id="magicLink"
+                    checked={useMagicLink}
+                    onChange={(e) => setUseMagicLink(e.target.checked)}
+                    className="rounded border-white/20 bg-white/10 text-blue-500 focus:ring-blue-500/50"
+                  />
+                  <Label htmlFor="magicLink" className="text-sm text-white/70 cursor-pointer">
+                    Send me a sign-in link instead
+                  </Label>
+                </div>
+              )}
               <Button
                 type="submit"
                 disabled={loading}
@@ -211,14 +245,17 @@ export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
                 ) : (
                   <Mail className="mr-2 h-4 w-4" />
                 )}
-                {isLogin ? 'Sign In' : 'Create Account'}
+{isLogin 
+                  ? (useMagicLink ? 'Send Sign-In Link' : 'Sign In')
+                  : 'Create Account'
+                }
               </Button>
             </form>
 
             {/* Message */}
             {message && (
               <div className={`text-sm text-center p-3 rounded-lg ${
-                message.includes('Check your email') 
+                message.includes('Check your email') || message.includes('sign-in link')
                   ? 'bg-green-500/20 text-green-300 border border-green-500/30' 
                   : 'bg-red-500/20 text-red-300 border border-red-500/30'
               }`}>

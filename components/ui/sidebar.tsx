@@ -264,7 +264,7 @@ export const CommonSidebar = ({ hideMobileNav = false }: CommonSidebarProps) => 
             id="mobile-studio-nav"
           >
             {pathname === '/studio' ? (
-              <Image src="/icons/studio-create.svg" alt="Studio" width={28} height={28} className="h-7 w-7" />
+              <Image src="/icons/Two-Flexible-Creation-Modes.svg" alt="Studio" width={28} height={28} className="h-7 w-7" />
             ) : (
               <Music className="h-7 w-7" />
             )}

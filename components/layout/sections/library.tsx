@@ -755,7 +755,7 @@ const LibraryContent = () => {
                                         cover_r2_url: track.coverUrl // 使用正确的字段名
                                     }]
                                 }))}
-                                currentTrackIndex={Math.max(0, getAllTracks().findIndex(track => track.id === selectedLibraryTrack))}
+                                currentTrackIndex={Math.max(0, getAllTracks().findIndex(track => track.id === currentTrack?.id))}
                                 currentPlayingTrack={currentTrack ? { trackId: currentTrack.id || '', audioUrl: currentTrack.audioUrl || '' } : null}
                                 isPlaying={isPlaying}
                                 currentTime={currentTime}
