@@ -1,4 +1,17 @@
 import Link from "next/link";
+import type { Metadata } from 'next';
+
+export const metadata: Metadata = {
+  metadataBase: new URL('https://makernb.com'),
+  title: "Privacy Policy - MakeRNB",
+  description: "Privacy Policy for MakeRNB - AI-powered R&B music creation platform.",
+  alternates: {
+    canonical: 'https://makernb.com/privacy',
+  },
+  openGraph: {
+    url: 'https://makernb.com/privacy',
+  },
+};
 
 export default function PrivacyPolicy() {
   return (

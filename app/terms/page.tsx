@@ -1,4 +1,17 @@
 import Link from "next/link";
+import type { Metadata } from 'next';
+
+export const metadata: Metadata = {
+  metadataBase: new URL('https://makernb.com'),
+  title: "Terms of Service - MakeRNB",
+  description: "Terms of Service for MakeRNB - AI-powered R&B music creation platform.",
+  alternates: {
+    canonical: 'https://makernb.com/terms',
+  },
+  openGraph: {
+    url: 'https://makernb.com/terms',
+  },
+};
 
 export default function TermsOfService() {
   return (

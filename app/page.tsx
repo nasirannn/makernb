@@ -7,12 +7,15 @@ import { FeaturesSection } from "@/components/layout/sections/features";
 import { FAQSection } from "@/components/layout/sections/faq";
 
 export const metadata = {
-  metadataBase: new URL('https://only-90s-rnb.com'),
+  metadataBase: new URL('https://makernb.com'),
   title: "MakeRNB | Create Classic & Contemporary R&B AI Songs",
   description: "Generate authentic R&B music with AI. Choose from New Jack Swing, Hip-Hop Soul, Contemporary R&B and more classic genres.",
+  alternates: {
+    canonical: 'https://makernb.com',
+  },
   openGraph: {
     type: "website",
-    url: "https://only-90s-rnb.com",
+    url: "https://makernb.com",
     title: "MakeRNB | Create Classic & Contemporary R&B AI Songs",
     description: "Generate authentic R&B music with AI. Choose from New Jack Swing, Hip-Hop Soul, Contemporary R&B and more classic genres.",
     images: [
@@ -26,7 +29,7 @@ export const metadata = {
   },
   twitter: {
     card: "summary_large_image",
-    site: "https://only-90s-rnb.com",
+    site: "https://makernb.com",
     title: "MakeRNB | Create Classic & Contemporary R&B AI Songs",
     description: "Generate authentic R&B music with AI. Choose from New Jack Swing, Hip-Hop Soul, Contemporary R&B and more classic genres.",
     images: [
