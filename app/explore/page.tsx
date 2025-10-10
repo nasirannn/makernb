@@ -404,20 +404,18 @@ export default function ExplorePage() {
                   className="bg-black/20 backdrop-blur-sm rounded-xl overflow-hidden hover:bg-black/30 transition-all duration-300 group cursor-pointer"
                 >
                   {/* Cover Image */}
-                  <div className="relative aspect-square">
-                    {music.primaryTrack.cover_r2_url ? (
-                      <SafeImage
-                        src={music.primaryTrack.cover_r2_url}
-                        alt={music.title}
-                        fill
-                        className="object-cover"
-                        fallbackContent={<Music className="w-16 h-16 text-white/50" />}
-                      />
-                    ) : (
-                      <div className="w-full h-full bg-gradient-to-br from-purple-600 to-purple-600 flex items-center justify-center">
-                        <Music className="w-16 h-16 text-white/50" />
-                      </div>
-                    )}
+                  <div className="relative aspect-square overflow-hidden">
+                    <SafeImage
+                      src={music.primaryTrack.cover_r2_url || ''}
+                      alt={music.title}
+                      fill
+                      className="object-cover transition-transform duration-300 group-hover:scale-105"
+                      fallbackContent={
+                        <div className="absolute inset-0 w-full h-full bg-gradient-to-br from-purple-600/80 via-purple-700/60 to-purple-800/80 flex items-center justify-center">
+                          <Music className="w-16 h-16 text-white/70" />
+                        </div>
+                      }
+                    />
 
 
                     {/* Playing Wave Effect - 播放时音波效果 */}

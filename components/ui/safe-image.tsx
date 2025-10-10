@@ -43,8 +43,15 @@ export const SafeImage: React.FC<SafeImageProps> = ({
   // 如果图片加载失败，显示fallback内容
   if (hasError) {
     return (
-      <div className={`bg-gradient-to-br from-primary/20 to-primary/40 flex items-center justify-center ${className}`}>
-        {fallbackContent || <Music className="w-6 h-6 text-primary" />}
+      <div className={className}>
+        {fallbackContent || (
+          <div className="bg-gradient-to-br from-gray-600/20 to-gray-500/40 flex items-center justify-center h-full">
+            <div className="text-center">
+              <Music className="w-8 h-8 text-gray-400 mx-auto mb-1" />
+              <p className="text-xs text-gray-500">Failed to load</p>
+            </div>
+          </div>
+        )}
       </div>
     );
   }
@@ -52,8 +59,15 @@ export const SafeImage: React.FC<SafeImageProps> = ({
   // 检查URL是否有效
   if (!src || src.trim() === '') {
     return (
-      <div className={`bg-gradient-to-br from-primary/20 to-primary/40 flex items-center justify-center ${className}`}>
-        {fallbackContent || <Music className="w-6 h-6 text-primary" />}
+      <div className={className}>
+        {fallbackContent || (
+          <div className="bg-gradient-to-br from-gray-600/20 to-gray-500/40 flex items-center justify-center h-full">
+            <div className="text-center">
+              <Music className="w-8 h-8 text-gray-400 mx-auto mb-1" />
+              <p className="text-xs text-gray-500">No image</p>
+            </div>
+          </div>
+        )}
       </div>
     );
   }
@@ -62,7 +76,10 @@ export const SafeImage: React.FC<SafeImageProps> = ({
     <>
       {isLoading && (
         <div className={`bg-gradient-to-br from-gray-600/20 to-gray-500/40 flex items-center justify-center animate-pulse ${className}`}>
-          <Music className="w-6 h-6 text-gray-400" />
+          <div className="text-center">
+            <Music className="w-8 h-8 text-gray-400 mx-auto mb-1" />
+            <p className="text-xs text-gray-500">Loading...</p>
+          </div>
         </div>
       )}
       <Image
