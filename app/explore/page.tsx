@@ -476,12 +476,10 @@ export default function ExplorePage() {
 
             {/* Show total count when all loaded */}
             {exploreData && exploreData.music && !hasMore && exploreData.music.length > 0 && (
-              <div className="text-center mt-16 py-8">
-                <div className="inline-flex items-center gap-2 px-4 py-2 bg-muted/30 rounded-full">
-                  <span className="text-sm text-muted-foreground font-medium">
-                    All songs loaded ✨
-                  </span>
-                </div>
+              <div className="text-center mt-8 py-4">
+                <span className="text-sm text-muted-foreground font-medium">
+                  All songs loaded
+                </span>
               </div>
             )}
           </>

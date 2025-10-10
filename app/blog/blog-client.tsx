@@ -76,14 +76,10 @@ export default function BlogClient({ allPosts }: BlogClientProps) {
           </div>
 
           {/* No More Data Indicator */}
-          <div className="text-center mt-16 py-8">
-            <div className="inline-flex items-center gap-2 px-4 py-2 bg-muted/30 rounded-full">
-              <div className="w-2 h-2 bg-muted-foreground/40 rounded-full"></div>
-              <span className="text-sm text-muted-foreground font-medium">
-                All content loaded
-              </span>
-              <div className="w-2 h-2 bg-muted-foreground/40 rounded-full"></div>
-            </div>
+          <div className="text-center mt-8 py-4">
+            <span className="text-sm text-muted-foreground font-medium">
+              All content loaded
+            </span>
           </div>
         </div>
 

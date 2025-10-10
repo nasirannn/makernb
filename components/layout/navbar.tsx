@@ -109,12 +109,12 @@ export const Navbar = ({ credits = null }: NavbarProps) => {
         ? 'bg-background/30 backdrop-blur-md border-b border-border/20' 
         : 'bg-transparent'
     }`}>
-      <Link href="/" className="font-bold text-xl flex items-center">
+      <Link href="/" className="font-bold text-lg flex items-center">
         <Image
           src="/logo.svg"
           alt="R&B Logo"
-          width={44}
-          height={44}
+          width={36}
+          height={36}
           className="mr-3"
         />
         R&B  Music Generator
@@ -163,11 +163,11 @@ export const Navbar = ({ credits = null }: NavbarProps) => {
                   <Image
                     src="/logo.svg"
                     alt="R&B Logo"
-                    width={48}
-                    height={48}
+                    width={40}
+                    height={40}
                     className="mr-2"
                   />
-                  <span className="font-bold text-lg">R&B Music Generator</span>
+                  <span className="font-bold text-base">R&B Music Generator</span>
                 </Link>
                 <button onClick={() => setIsOpen(false)} className="text-2xl">×</button>
               </div>
@@ -177,7 +177,7 @@ export const Navbar = ({ credits = null }: NavbarProps) => {
                 <div className="mb-6 pb-6 border-b border-border/20">
                   {/* User Info */}
                   <div className="flex items-center gap-3 mb-4">
-                    <Avatar className="w-12 h-12 border border-purple-600/30">
+                    <Avatar className="w-10 h-10 border border-purple-600/30">
                       <AvatarImage
                         src={user.user_metadata?.avatar_url || user.user_metadata?.picture || `https://api.dicebear.com/7.x/initials/svg?seed=${user.email}`}
                         alt="User Avatar"
@@ -199,8 +199,8 @@ export const Navbar = ({ credits = null }: NavbarProps) => {
                   </div>
                   
                   {/* Credits Display */}
-                  <div className="flex items-center gap-2 px-3 py-2 bg-white/10 backdrop-blur-sm border border-white/20 rounded-lg">
-                    <Sparkles className="h-4 w-4 text-white" />
+                  <div className="flex items-center gap-2 px-3 py-1.5 bg-white/10 backdrop-blur-sm border border-white/20 rounded-lg">
+                    <Sparkles className="h-3.5 w-3.5 text-white" />
                     <span className="text-sm font-medium text-white">
                       {credits === null ? '...' : credits} Credits
                     </span>
@@ -240,7 +240,7 @@ export const Navbar = ({ credits = null }: NavbarProps) => {
                       setIsOpen(false);
                     }}
                     size="default" 
-                    className="w-full bg-primary hover:bg-primary/90 text-primary-foreground px-8 py-2 rounded-xl font-medium"
+                    className="w-full bg-primary hover:bg-primary/90 text-primary-foreground px-6 py-1.5 rounded-lg font-medium"
                   >
                     Get Started
                   </Button>
@@ -279,8 +279,8 @@ export const Navbar = ({ credits = null }: NavbarProps) => {
         {user ? (
           <>
             {/* Credits Display */}
-            <div className="flex items-center gap-2 px-3 py-2 bg-white/10 backdrop-blur-sm border border-white/20 rounded-lg">
-              <Sparkles className="h-4 w-4 text-white" />
+            <div className="flex items-center gap-2 px-3 py-1.5 bg-white/10 backdrop-blur-sm border border-white/20 rounded-lg">
+              <Sparkles className="h-3.5 w-3.5 text-white" />
               <span className="text-sm font-medium text-white">
                 {credits === null ? '...' : credits}
               </span>
@@ -292,7 +292,7 @@ export const Navbar = ({ credits = null }: NavbarProps) => {
             >
             {/* User Avatar */}
             <Avatar 
-              className="cursor-pointer hover:scale-105 transition-transform duration-200 border-2 border-purple-600/30"
+              className="w-9 h-9 cursor-pointer hover:scale-105 transition-transform duration-200 border-2 border-purple-600/30"
             >
               <AvatarImage
                 src={user.user_metadata?.avatar_url || user.user_metadata?.picture || `https://api.dicebear.com/7.x/initials/svg?seed=${user.email}`}
@@ -311,7 +311,7 @@ export const Navbar = ({ credits = null }: NavbarProps) => {
                 {/* User Info */}
                 <div className="px-4 py-3 border-b border-white/10">
                   <div className="flex items-center gap-3">
-                    <Avatar className="w-8 h-8 border border-purple-600/30">
+                    <Avatar className="w-7 h-7 border border-purple-600/30">
                       <AvatarImage
                         src={user.user_metadata?.avatar_url || user.user_metadata?.picture || `https://api.dicebear.com/7.x/initials/svg?seed=${user.email}`}
                         alt="User Avatar"
@@ -366,7 +366,7 @@ export const Navbar = ({ credits = null }: NavbarProps) => {
           <Button 
             onClick={() => setIsAuthModalOpen(true)}
             size="default" 
-            className="bg-primary hover:bg-primary/90 text-primary-foreground px-8 py-2 rounded-xl font-medium"
+            className="bg-primary hover:bg-primary/90 text-primary-foreground px-6 py-1.5 rounded-lg font-medium"
           >
             Get Started
           </Button>

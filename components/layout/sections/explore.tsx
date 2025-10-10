@@ -388,7 +388,7 @@ export const ExploreSection = () => {
         {/* Explore More Button */}
         <div className="text-center">
           <Link href="/explore">
-            <Button className="text-primary bg-muted/50 hover:bg-primary hover:text-white px-8 py-3 rounded-lg transition-colors">
+            <Button className="text-primary border border-primary hover:bg-primary hover:text-white px-8 py-3 rounded-lg transition-colors bg-transparent">
               Explore More Tracks
               <ArrowRight className="w-4 h-4 ml-2" />
             </Button>

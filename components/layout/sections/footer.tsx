@@ -24,14 +24,14 @@ export const FooterSection = () => {
               <Image
                 src="/logo.svg"
                 alt="R&B Logo"
-                width={44}
-                height={44}
+                width={32}
+                height={32}
                 className="mr-3"
               />
-              <h3 className="text-2xl">R&B  Music Generator</h3>
+              <h3 className="text-xl">R&B  Music Generator</h3>
             </Link>
             <p className="text-sm text-muted-foreground leading-relaxed max-w-md">
-              Professional AI-powered R&B music generator specializing in authentic soul, contemporary vibes, and smooth ballads. Create original R&B tracks with the signature sound and emotion that defines the genre.
+              Create authentic R&B music with AI. From soulful ballads to contemporary grooves, generate professional tracks that capture the essence of rhythm and blues.
             </p>
           </div>
 
@@ -41,7 +41,7 @@ export const FooterSection = () => {
               <h3 className="font-bold text-lg">About</h3>
               <div>
                 <Link 
-                  href="#features" 
+                  href="/#features" 
                   className="opacity-60 hover:opacity-100"
                 >
                   Features
@@ -49,7 +49,7 @@ export const FooterSection = () => {
               </div>
 
               <div>
-                <Link href="#tutorial" className="opacity-60 hover:opacity-100">
+                <Link href="/#tutorial" className="opacity-60 hover:opacity-100">
                   How It Works
                 </Link>
               </div>
@@ -64,11 +64,6 @@ export const FooterSection = () => {
                 </Link>
               </div>
 
-              <div>
-                <Link href="#" className="opacity-60 hover:opacity-100">
-                  FAQ
-                </Link>
-              </div>
 
               <div>
                 <Link href="#" className="opacity-60 hover:opacity-100">

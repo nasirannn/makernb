@@ -79,7 +79,7 @@ export const IntroductionSection = () => {
       <div className="container">
         <div className="max-w-7xl mx-auto">
           <div className="text-center mb-16">
-            <p className="text-primary text-sm font-medium mb-2">Introduction</p>
+            <p className="text-primary text-lg font-medium mb-2 tracking-wider">Introduction</p>
             <h2 className="text-3xl md:text-4xl font-bold mb-4">
               Discover The Rich History of R&B
             </h2>

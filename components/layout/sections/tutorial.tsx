@@ -61,26 +61,16 @@ export const TutorialSection = () => {
                 key={index}
                 className="text-left"
               >
-                {/* Step Number - separate row */}
-                <div className="mb-4 flex justify-start">
+                {/* Step Number and Title in same row */}
+                <div className="mb-4 flex items-center justify-start gap-3">
+                  {/* Step Number */}
                   <div className="relative">
-                    <div className="w-12 h-12 rounded-full bg-gradient-to-r from-primary to-primary/70 flex items-center justify-center shadow-lg">
-                      <span className="text-white text-lg font-bold">{index + 1}</span>
+                    <div className="w-10 h-10 rounded-full bg-gradient-to-r from-primary to-primary/70 flex items-center justify-center shadow-lg">
+                      <span className="text-white text-sm font-bold">{index + 1}</span>
                     </div>
                     {/* Glow effect */}
-                    <div className="absolute inset-0 w-12 h-12 rounded-full bg-gradient-to-r from-primary to-primary/70 opacity-30 blur-md"></div>
+                    <div className="absolute inset-0 w-10 h-10 rounded-full bg-gradient-to-r from-primary to-primary/70 opacity-30 blur-md"></div>
                   </div>
-                </div>
-                
-                {/* Icon and Title in same row */}
-                <div className="mb-4 flex items-center justify-start gap-3">
-                  <Image
-                    src={step.icon}
-                    alt={step.title}
-                    width={48}
-                    height={48}
-                    className="w-12 h-12"
-                  />
                   
                   {/* Title */}
                   <h3 className="text-xl font-semibold text-foreground">
