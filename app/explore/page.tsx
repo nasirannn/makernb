@@ -3,7 +3,6 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { PageLoading } from '@/components/ui/loading-dots';
 import { Play, Pause, Music } from 'lucide-react';
 import { SafeImage } from '@/components/ui/safe-image';
 import { MusicPlayer } from '@/components/ui/music-player';
@@ -429,21 +428,23 @@ export default function ExplorePage() {
                       </div>
                     )}
 
-                    {/* Play Button Overlay */}
-                    <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-center justify-center">
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        className="h-12 w-12 p-0 bg-white/20 hover:bg-white/30 backdrop-blur-sm"
-                        onClick={() => handlePlayPause(music.primaryTrack.id, music.primaryTrack.audio_url, music)}
-                      >
-                        {currentlyPlaying === music.primaryTrack.id && isPlaying ? (
-                          <Pause className="h-5 w-5 text-white" />
-                        ) : (
-                          <Play className="h-5 w-5 text-white" />
-                        )}
-                      </Button>
-                    </div>
+                    {/* Play Button Overlay - 只在有封面图时显示 */}
+                    {music.primaryTrack.cover_r2_url && (
+                      <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-center justify-center">
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="h-12 w-12 p-0 bg-white/20 hover:bg-white/30 backdrop-blur-sm"
+                          onClick={() => handlePlayPause(music.primaryTrack.id, music.primaryTrack.audio_url, music)}
+                        >
+                          {currentlyPlaying === music.primaryTrack.id && isPlaying ? (
+                            <Pause className="h-5 w-5 text-white" />
+                          ) : (
+                            <Play className="h-5 w-5 text-white" />
+                          )}
+                        </Button>
+                      </div>
+                    )}
                   </div>
 
                   {/* Track Info */}
