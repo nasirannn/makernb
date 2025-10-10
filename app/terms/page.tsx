@@ -134,7 +134,7 @@ export default function TermsOfService() {
             If you have any questions about these Terms of Service, please contact us at:
           </p>
           <div className="bg-muted p-4 rounded-lg">
-            <p><strong>Email:</strong> legal@rbgenerator.com</p>
+            <p><strong>Email:</strong> <a href="mailto:contact@makernb.com" className="text-primary hover:underline">contact@makernb.com</a></p>
             <p><strong>Address:</strong> MakeRNB Legal Team</p>
           </div>
         </section>

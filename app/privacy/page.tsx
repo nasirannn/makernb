@@ -166,7 +166,7 @@ export default function PrivacyPolicy() {
             If you have any questions about this Privacy Policy or our data practices, please contact us at:
           </p>
           <div className="bg-muted p-4 rounded-lg">
-            <p><strong>Email:</strong> privacy@rbgenerator.com</p>
+            <p><strong>Email:</strong> <a href="mailto:contact@makernb.com" className="text-primary hover:underline">contact@makernb.com</a></p>
             <p><strong>Address:</strong> MakeRNB Privacy Team</p>
           </div>
         </section>

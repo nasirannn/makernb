@@ -59,9 +59,12 @@ export const FooterSection = () => {
             <div className="flex flex-col gap-3 sm:gap-4 items-start text-left">
               <h3 className="font-bold text-lg">Help</h3>
               <div>
-                <Link href="#" className="opacity-60 hover:opacity-100">
+                <a 
+                  href="mailto:contact@makernb.com?subject=Contact from MakeRNB Website&body=Hello MakeRNB Team,%0D%0A%0D%0AI would like to get in touch with you regarding:%0D%0A%0D%0A%0D%0A%0D%0ABest regards," 
+                  className="opacity-60 hover:opacity-100 transition-opacity"
+                >
                   Contact Us
-                </Link>
+                </a>
               </div>
 
 
