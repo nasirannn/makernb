@@ -1,12 +1,12 @@
-# R&B Music Generator
+# MakeRNB
 
-A complete AI-powered music generation platform for creating authentic R&B and Contemporary R&B music. Generate professional-quality tracks with custom prompts, multiple genres, and real-time playback.
+**MakeRNB** is an AI-powered music generation platform that specializes in creating authentic R&B tracks. Generate professional-quality music with custom prompts, multiple genres, and real-time playback - all powered by advanced artificial intelligence.
 
-![R&B Music Generator](./public/only-90s-rnb-background.webp)
+![MakeRNB](./public/only-90s-rnb-background.webp)
 
 ## ✨ Features
 
-- **🎵 AI Music Generation**: Create authentic R&B tracks using advanced AI
+- **🎵 AI Music Generation**: Create authentic R&B tracks using advanced AI technology
 - **🎭 Multiple Genres**: New Jack Swing, Hip-Hop Soul, Contemporary R&B, Quiet Storm, Neo-Soul
 - **🎨 Custom Prompts**: Add specific details to customize your music generation
 - **🎧 Real-time Playback**: Built-in audio player with waveform visualization
@@ -232,4 +232,4 @@ If you have any questions or need help, please:
 
 **Made with ❤️ for R&B music lovers**
 
-*Creating authentic R&B music, one AI-generated track at a time.*
+*Creating authentic R&B music, one AI-generated track at a time with MakeRNB.*

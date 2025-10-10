@@ -112,12 +112,12 @@ export const Navbar = ({ credits = null }: NavbarProps) => {
       <Link href="/" className="font-bold text-lg flex items-center">
         <Image
           src="/logo.svg"
-          alt="R&B Logo"
+          alt="MakeRNB Logo"
           width={36}
           height={36}
           className="mr-3"
         />
-        R&B  Music Generator
+        MakeRNB
       </Link>
       
       {/* <!-- Desktop Navigation --> */}
@@ -162,12 +162,12 @@ export const Navbar = ({ credits = null }: NavbarProps) => {
                 <Link href="/" className="flex items-center" onClick={() => setIsOpen(false)}>
                   <Image
                     src="/logo.svg"
-                    alt="R&B Logo"
+                    alt="MakeRNB Logo"
                     width={40}
                     height={40}
                     className="mr-2"
                   />
-                  <span className="font-bold text-base">R&B Music Generator</span>
+                  <span className="font-bold text-base">MakeRNB</span>
                 </Link>
                 <button onClick={() => setIsOpen(false)} className="text-2xl">×</button>
               </div>

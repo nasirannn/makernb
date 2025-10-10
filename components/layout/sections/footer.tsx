@@ -23,12 +23,12 @@ export const FooterSection = () => {
             <Link href="/" className="flex font-bold items-center mb-4">
               <Image
                 src="/logo.svg"
-                alt="R&B Logo"
+                alt="MakeRNB Logo"
                 width={32}
                 height={32}
                 className="mr-3"
               />
-              <h3 className="text-xl">R&B  Music Generator</h3>
+              <h3 className="text-xl">MakeRNB</h3>
             </Link>
             <p className="text-sm text-muted-foreground leading-relaxed max-w-md">
               Create authentic R&B music with AI. From soulful ballads to contemporary grooves, generate professional tracks that capture the essence of rhythm and blues.
@@ -77,7 +77,7 @@ export const FooterSection = () => {
         <Separator className="my-6" />
         <section className="flex flex-col sm:flex-row justify-between items-center gap-4">
           <p className="text-sm text-muted-foreground">
-            &copy; 2025 R&B  Music Generator. All rights reserved.
+            &copy; 2025 MakeRNB. All rights reserved.
           </p>
           <div className="flex gap-6">
             <Link href="/privacy" className="text-sm opacity-60 hover:opacity-100 transition-opacity">

@@ -20,7 +20,7 @@ export default function PrivacyPolicy() {
         <section className="mb-8">
           <h2 className="text-2xl font-semibold mb-4">Introduction</h2>
           <p className="mb-4">
-            Welcome to R&B  Music Generator (&quot;we,&quot; &quot;our,&quot; or &quot;us&quot;). We are committed to protecting your privacy and ensuring the security of your personal information. This Privacy Policy explains how we collect, use, disclose, and safeguard your information when you use our AI-powered R&B music generation service.
+            Welcome to MakeRNB (&quot;we,&quot; &quot;our,&quot; or &quot;us&quot;). We are committed to protecting your privacy and ensuring the security of your personal information. This Privacy Policy explains how we collect, use, disclose, and safeguard your information when you use our AI-powered R&B music generation service.
           </p>
         </section>
 
@@ -167,7 +167,7 @@ export default function PrivacyPolicy() {
           </p>
           <div className="bg-muted p-4 rounded-lg">
             <p><strong>Email:</strong> privacy@rbgenerator.com</p>
-            <p><strong>Address:</strong> R&B  Music Generator Privacy Team</p>
+            <p><strong>Address:</strong> MakeRNB Privacy Team</p>
           </div>
         </section>
       </div>

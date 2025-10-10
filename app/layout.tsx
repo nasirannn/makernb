@@ -11,7 +11,7 @@ import { Toaster } from "@/components/ui/sonner";
 const inter = Inter({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
-  title: "R&B  Music Generator - AI-Powered Music Creation for R&B",
+  title: "MakeRNB - AI-Powered Music Creation for R&B",
   description: "Create authentic R&B music with AI. Generate professional-quality tracks in New Jack Swing, Hip-Hop Soul, Quiet Storm, and Neo-Soul genres.",
   icons: {
     icon: [

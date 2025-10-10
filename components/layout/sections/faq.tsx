@@ -13,13 +13,13 @@ interface FAQProps {
 
 const FAQList: FAQProps[] = [
   {
-    question: "Is R&B  Music Generator really free to use?",
-    answer: "Yes! R&B  Music Generator offers free daily credits that allow you to create original R&B tracks without any subscription fees. You get fresh credits every day to continue your music creation journey.",
+    question: "Is MakeRNB really free to use?",
+    answer: "Yes! MakeRNB offers free daily credits that allow you to create original R&B tracks without any subscription fees. You get fresh credits every day to continue your music creation journey.",
     value: "item-1",
   },
   {
     question: "Can I generate AI cover songs or create music based on specific artists?",
-    answer: "RnB Music Generator doesn't create direct copies of existing songs, our AI music generator can create original music inspired by different genres and styles. This ensures your creations are unique while maintaining professional quality.",
+    answer: "MakeRNB doesn't create direct copies of existing songs, our AI music generator can create original music inspired by different genres and styles. This ensures your creations are unique while maintaining professional quality.",
     value: "item-2",
   },
   {
@@ -39,7 +39,7 @@ const FAQList: FAQProps[] = [
   },
   {
     question: "Can I use the generated music commercially?",
-    answer: "Yes, you own the rights to the music you create with R&B  Music Generator. You can use your generated tracks for personal projects, commercial releases, or any other purpose without additional licensing fees.",
+    answer: "Yes, you own the rights to the music you create with MakeRNB. You can use your generated tracks for personal projects, commercial releases, or any other purpose without additional licensing fees.",
     value: "item-6",
   },
 ];

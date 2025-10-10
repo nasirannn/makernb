@@ -141,7 +141,7 @@ export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
             <div className="flex justify-center mb-4">
               <Image
                 src="/logo.svg"
-                alt="R&B Logo"
+                alt="MakeRNB Logo"
                 width={48}
                 height={48}
                 className="h-12 w-12"
