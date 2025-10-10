@@ -66,13 +66,6 @@ export const FooterSection = () => {
                   Contact Us
                 </a>
               </div>
-
-
-              <div>
-                <Link href="#" className="opacity-60 hover:opacity-100">
-                  Feedback
-                </Link>
-              </div>
             </div>
           </div>
         </div>
