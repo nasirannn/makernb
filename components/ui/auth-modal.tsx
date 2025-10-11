@@ -159,18 +159,11 @@ export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
 
   return (
     <div 
-      className="fixed inset-0 z-[110] flex md:items-center md:justify-center items-end justify-center animate-in fade-in duration-300"
+      className="fixed inset-0 z-[110] flex md:items-center md:justify-center items-end animate-in fade-in duration-300"
       style={{ 
         pointerEvents: 'auto',
         touchAction: 'none',
-        WebkitOverflowScrolling: 'touch',
         overscrollBehavior: 'contain'
-      }}
-      onTouchMove={(e) => {
-        // 阻止外层容器的滚动
-        if (e.target === e.currentTarget) {
-          e.preventDefault();
-        }
       }}
     >
       {/* Backdrop */}
@@ -178,35 +171,32 @@ export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
         className="fixed inset-0 bg-black/50 backdrop-blur-sm z-[110]"
         onClick={handleClose}
         onTouchMove={(e) => {
-          // 阻止遮罩层的滚动事件
           e.preventDefault();
           e.stopPropagation();
         }}
         style={{ 
           pointerEvents: 'auto',
-          touchAction: 'none',
-          overscrollBehavior: 'none'
+          touchAction: 'none'
         }}
       />
       
-      {/* Modal Container - 移动端从底部弹出 */}
+      {/* Modal Container - 移动端固定底部，桌面端居中 */}
       <div 
-        className="relative w-full md:max-w-md md:mx-4 z-[111] animate-in slide-in-from-bottom md:zoom-in-95 duration-300 mobile-modal-container"
+        className="relative w-full max-w-md mx-0 md:mx-4 z-[111] animate-in slide-in-from-bottom md:zoom-in-95 md:slide-in-from-bottom-4 duration-300"
         onTouchMove={(e) => {
-          // 允许弹窗内容滚动
           e.stopPropagation();
         }}
       >
         <div 
-          className="max-h-full overflow-y-auto"
+          className="flex flex-col max-h-[85vh] md:max-h-[90vh]"
           style={{
             overscrollBehavior: 'contain',
             WebkitOverflowScrolling: 'touch'
           }}
         >
-          <Card className="bg-white/10 backdrop-blur-lg border-white/20 shadow-2xl rounded-t-3xl md:rounded-xl rounded-b-none md:rounded-b-xl">
+          <Card className="bg-white/10 backdrop-blur-lg border-white/20 shadow-2xl rounded-t-3xl md:rounded-xl rounded-b-none md:rounded-b-xl flex flex-col overflow-hidden">
           {/* Mobile Drag Handle */}
-          <div className="flex md:hidden justify-center pt-3 pb-2">
+          <div className="flex md:hidden justify-center pt-3 pb-2 flex-shrink-0">
             <div className="w-12 h-1 bg-white/30 rounded-full"></div>
           </div>
           
@@ -218,22 +208,22 @@ export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
             <X className="h-5 w-5" />
           </button>
 
-          <CardHeader className="text-center pb-3 px-4 pt-2 md:px-6 md:pt-6">
+          <CardHeader className="text-center pb-2 px-4 pt-2 md:pb-4 md:px-6 md:pt-6 flex-shrink-0">
             {/* Logo */}
-            <div className="flex justify-center mb-3">
+            <div className="flex justify-center mb-2 md:mb-4">
               <Image
                 src="/logo.svg"
                 alt="MakeRNB Logo"
-                width={40}
-                height={40}
-                className="h-10 w-10 md:h-12 md:w-12"
+                width={48}
+                height={48}
+                className="h-9 w-9 md:h-12 md:w-12"
               />
             </div>
             
-            <CardTitle className="text-xl md:text-2xl font-bold text-white mb-2">
+            <CardTitle className="text-lg md:text-2xl font-bold text-white mb-1.5 md:mb-2">
               {isForgotPassword ? 'Reset Password' : (isLogin ? 'Sign In' : 'Create Account')}
             </CardTitle>
-            <CardDescription className="text-white/70 text-sm">
+            <CardDescription className="text-white/70 text-xs md:text-base">
               {isForgotPassword
                 ? 'Enter your email to receive a password reset link'
                 : (isLogin
@@ -243,14 +233,19 @@ export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
             </CardDescription>
           </CardHeader>
           
-          <CardContent className="space-y-4 md:space-y-6 px-4 pb-4 md:px-6 md:pb-6">
+          <CardContent className="space-y-3 md:space-y-5 px-4 pb-3 md:px-6 md:pb-6 overflow-y-auto flex-1"
+            style={{
+              overscrollBehavior: 'contain',
+              WebkitOverflowScrolling: 'touch'
+            }}
+          >
             {!isForgotPassword && (
               <>
                 {/* Google Sign In */}
                 <Button
                   onClick={handleGoogleAuth}
                   disabled={loading}
-                  className="w-full h-11 md:h-12 bg-white hover:bg-white/90 text-black font-medium rounded-xl transition-all duration-200 disabled:opacity-50 text-base"
+                  className="w-full h-10 md:h-12 bg-white hover:bg-white/90 text-black font-medium rounded-xl transition-all duration-200 disabled:opacity-50 text-base"
                 >
                   {loading ? (
                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />
@@ -288,7 +283,7 @@ export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   required
-                  className="bg-white/10 border-white/20 text-white placeholder:text-white/50 focus:border-blue-500/50 h-11 text-base"
+                  className="bg-white/10 border-white/20 text-white placeholder:text-white/50 focus:border-blue-500/50 h-10 text-base"
                 />
               </div>
               
@@ -314,7 +309,7 @@ export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
                     required
-                    className="bg-white/10 border-white/20 text-white placeholder:text-white/50 focus:border-blue-500/50 h-11 text-base"
+                    className="bg-white/10 border-white/20 text-white placeholder:text-white/50 focus:border-blue-500/50 h-10 text-base"
                   />
                 </div>
               )}
@@ -337,7 +332,7 @@ export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
               <Button
                 type="submit"
                 disabled={loading}
-                className="w-full h-11 md:h-12 bg-primary hover:bg-primary/90 text-primary-foreground font-medium rounded-xl transition-all duration-200 disabled:opacity-50 text-base"
+                className="w-full h-10 md:h-12 bg-primary hover:bg-primary/90 text-primary-foreground font-medium rounded-xl transition-all duration-200 disabled:opacity-50 text-base"
               >
                 {loading ? (
                   <LoadingDots size="sm" color="white" className="mr-2" />
@@ -387,11 +382,11 @@ export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
             </div>
 
             {/* Mobile Close Button - 移动端显示在底部 */}
-            <div className="md:hidden pt-2">
+            <div className="md:hidden pt-2 flex-shrink-0">
               <Button
                 onClick={handleClose}
                 variant="outline"
-                className="w-full h-11 bg-white/10 hover:bg-white/20 text-white border-white/20 hover:border-white/30 rounded-xl font-medium"
+                className="w-full h-10 bg-white/10 hover:bg-white/20 text-white border-white/20 hover:border-white/30 rounded-xl font-medium"
               >
                 Close
               </Button>
