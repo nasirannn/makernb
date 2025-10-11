@@ -249,7 +249,7 @@ export const CommonSidebar = ({ hideMobileNav = false }: CommonSidebarProps) => 
             onClick={() => router.push('/studio')}
             variant="ghost"
             size="sm"
-            className={`h-12 w-12 flex items-center justify-center hover:bg-muted/50 transition-all duration-300 rounded-lg ${pathname === '/studio' ? 'text-primary' : 'text-muted-foreground'}`}
+            className={`h-12 w-12 flex items-center justify-center hover:bg-muted/50 transition-all duration-300 rounded-lg ${pathname === '/studio' ? 'bg-primary/20 text-primary shadow-sm' : 'text-muted-foreground'}`}
             id="mobile-studio-nav"
           >
             <Music className="h-7 w-7" />
