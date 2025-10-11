@@ -1,0 +1,23 @@
+User-agent: *
+Allow: /
+
+# Sitemap
+Sitemap: https://makernb.com/sitemap.xml
+
+# Disallow admin and API routes
+Disallow: /api/
+Disallow: /admin/
+Disallow: /_next/
+Disallow: /studio/api/
+Disallow: /library/api/
+Disallow: /explore/api/
+Disallow: /blog/api/
+
+# Allow important pages
+Allow: /
+Allow: /studio
+Allow: /library
+Allow: /explore
+Allow: /blog
+Allow: /privacy
+Allow: /terms
