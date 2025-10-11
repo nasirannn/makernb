@@ -9,7 +9,6 @@ import { supabase } from '@/lib/supabase';
 import { Loader2, Mail, X } from 'lucide-react';
 import Image from 'next/image';
 import { LoadingDots } from './loading-dots';
-import { useRouter } from 'next/navigation';
 
 interface AuthModalProps {
   isOpen: boolean;
@@ -17,7 +16,6 @@ interface AuthModalProps {
 }
 
 export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
-  const router = useRouter();
   const [isLogin, setIsLogin] = useState(true);
   const [isForgotPassword, setIsForgotPassword] = useState(false);
   const [email, setEmail] = useState('');
@@ -25,48 +23,96 @@ export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState('');
   const [useMagicLink, setUseMagicLink] = useState(false);
+  const [viewportHeight, setViewportHeight] = useState<number | null>(null);
+  const [viewportOffsetTop, setViewportOffsetTop] = useState<number>(0);
+  const modalContentRef = React.useRef<HTMLDivElement>(null);
+  const scrollPositionRef = React.useRef<number>(0);
 
-  // 阻止背景滚动和交互（强化的移动端支持）
+  // 监听视口变化（键盘弹出/收起）
+  React.useEffect(() => {
+    if (!isOpen) return;
+
+    const updateViewportHeight = () => {
+      if (window.visualViewport) {
+        const height = window.visualViewport.height;
+        const offsetTop = window.visualViewport.offsetTop || 0;
+        setViewportHeight(height);
+        setViewportOffsetTop(offsetTop);
+      } else {
+        setViewportHeight(window.innerHeight);
+        setViewportOffsetTop(0);
+      }
+    };
+
+    updateViewportHeight();
+
+    if (window.visualViewport) {
+      window.visualViewport.addEventListener('resize', updateViewportHeight);
+      window.visualViewport.addEventListener('scroll', updateViewportHeight);
+    } else {
+      window.addEventListener('resize', updateViewportHeight);
+    }
+
+    return () => {
+      if (window.visualViewport) {
+        window.visualViewport.removeEventListener('resize', updateViewportHeight);
+        window.visualViewport.removeEventListener('scroll', updateViewportHeight);
+      } else {
+        window.removeEventListener('resize', updateViewportHeight);
+      }
+    };
+  }, [isOpen]);
+
+  // 阻止背景滚动并锁定位置
   React.useEffect(() => {
     if (isOpen) {
       // 保存当前滚动位置
-      const scrollY = window.scrollY;
+      scrollPositionRef.current = window.scrollY;
       
-      // 锁定 body 和 html
       const body = document.body;
-      const html = document.documentElement;
       
-      body.style.overflow = 'hidden';
+      // 使用 fixed 定位彻底锁定页面
       body.style.position = 'fixed';
-      body.style.top = `-${scrollY}px`;
+      body.style.top = `-${scrollPositionRef.current}px`;
       body.style.left = '0';
       body.style.right = '0';
       body.style.width = '100%';
-      
-      // 同时锁定 html（某些移动设备需要）
-      html.style.overflow = 'hidden';
-      html.style.position = 'relative';
-      html.style.height = '100%';
+      body.style.overflow = 'hidden';
       
       return () => {
-        // 恢复 body 样式
-        body.style.overflow = '';
+        // 恢复样式
         body.style.position = '';
         body.style.top = '';
         body.style.left = '';
         body.style.right = '';
         body.style.width = '';
-        
-        // 恢复 html 样式
-        html.style.overflow = '';
-        html.style.position = '';
-        html.style.height = '';
+        body.style.overflow = '';
         
         // 恢复滚动位置
-        window.scrollTo(0, scrollY);
+        window.scrollTo(0, scrollPositionRef.current);
       };
     }
   }, [isOpen]);
+
+  // 输入框获得焦点时滚动到可见区域
+  const handleInputFocus = (e: React.FocusEvent<HTMLInputElement>) => {
+    const isMobile = window.innerWidth < 768;
+    if (!isMobile) return;
+    
+    // 延迟执行，确保键盘已完全弹出和视口调整完成
+    setTimeout(() => {
+      const inputElement = e.target;
+      
+      // 使用 scrollIntoView 确保输入框可见
+      if (inputElement) {
+        inputElement.scrollIntoView({
+          behavior: 'smooth',
+          block: 'center',
+          inline: 'nearest'
+        });
+      }
+    }, 300);
+  };
 
   const handleEmailAuth = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -157,18 +203,14 @@ export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
 
   if (!isOpen) return null;
 
+  // 计算移动端键盘弹出时的偏移
+  const isMobile = typeof window !== 'undefined' && window.innerWidth < 768;
+
   return (
-    <div 
-      className="fixed inset-0 z-[110] flex md:items-center md:justify-center items-end animate-in fade-in duration-300"
-      style={{ 
-        pointerEvents: 'auto',
-        touchAction: 'none',
-        overscrollBehavior: 'contain'
-      }}
-    >
-      {/* Backdrop */}
+    <>
+      {/* Backdrop - 始终覆盖整个屏幕 */}
       <div 
-        className="fixed inset-0 bg-black/50 backdrop-blur-sm z-[110]"
+        className="fixed inset-0 z-[110] animate-in fade-in duration-300"
         onClick={handleClose}
         onTouchMove={(e) => {
           e.preventDefault();
@@ -176,54 +218,72 @@ export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
         }}
         style={{ 
           pointerEvents: 'auto',
-          touchAction: 'none'
+          touchAction: 'none',
+          backgroundColor: 'rgba(0, 0, 0, 0.85)',
+          backdropFilter: 'blur(16px)',
+          WebkitBackdropFilter: 'blur(16px)',
+          height: '100vh',
+          width: '100vw'
         }}
       />
       
       {/* Modal Container - 移动端固定底部，桌面端居中 */}
       <div 
-        className="relative w-full max-w-md mx-0 md:mx-4 z-[111] animate-in slide-in-from-bottom md:zoom-in-95 md:slide-in-from-bottom-4 duration-300"
+        className="fixed z-[111] left-0 right-0 md:inset-0 flex items-center justify-center animate-in slide-in-from-bottom md:zoom-in-95 md:slide-in-from-bottom-4 duration-200"
+        style={{
+          top: isMobile ? `${viewportOffsetTop}px` : undefined,
+          height: isMobile && viewportHeight ? `${viewportHeight}px` : undefined,
+          alignItems: isMobile ? 'flex-end' : undefined,
+          pointerEvents: 'none',
+          transition: 'top 0.2s ease-out, height 0.2s ease-out'
+        }}
         onTouchMove={(e) => {
           e.stopPropagation();
         }}
       >
         <div 
-          className="flex flex-col max-h-[85vh] md:max-h-[90vh]"
+          ref={modalContentRef}
+          className="w-full max-w-md mx-0 md:mx-4 flex flex-col"
           style={{
+            maxHeight: isMobile && viewportHeight 
+              ? `${viewportHeight}px` 
+              : '85vh',
             overscrollBehavior: 'contain',
-            WebkitOverflowScrolling: 'touch'
+            WebkitOverflowScrolling: 'touch',
+            transition: 'max-height 0.2s ease-out',
+            pointerEvents: 'auto'
           }}
         >
-          <Card className="bg-white/10 backdrop-blur-lg border-white/20 shadow-2xl rounded-t-3xl md:rounded-xl rounded-b-none md:rounded-b-xl flex flex-col overflow-hidden">
+          <Card className="bg-card border-0 shadow-2xl rounded-t-3xl md:rounded-xl rounded-b-none md:rounded-b-xl flex flex-col overflow-hidden">
           {/* Mobile Drag Handle */}
-          <div className="flex md:hidden justify-center pt-3 pb-2 flex-shrink-0">
-            <div className="w-12 h-1 bg-white/30 rounded-full"></div>
+          <div className="flex md:hidden justify-center pt-2.5 pb-1.5 flex-shrink-0">
+            <div className="w-12 h-1 bg-muted-foreground/30 rounded-full"></div>
           </div>
           
           {/* Close Button - 桌面端显示在右上角 */}
           <button
             onClick={handleClose}
-            className="hidden md:block absolute top-4 right-4 z-10 text-white/70 hover:text-white transition-colors bg-white/10 hover:bg-white/20 rounded-full p-1.5"
+            className="hidden md:block absolute top-4 right-4 z-10 text-muted-foreground hover:text-foreground transition-colors bg-muted/50 hover:bg-muted rounded-full p-1.5"
           >
             <X className="h-5 w-5" />
           </button>
 
-          <CardHeader className="text-center pb-2 px-4 pt-2 md:pb-4 md:px-6 md:pt-6 flex-shrink-0">
+          <CardHeader className="text-center pb-1.5 px-4 pt-1.5 md:pb-4 md:px-6 md:pt-6 flex-shrink-0">
             {/* Logo */}
-            <div className="flex justify-center mb-2 md:mb-4">
+            <div className="flex justify-center mb-1.5 md:mb-4">
               <Image
                 src="/logo.svg"
                 alt="MakeRNB Logo"
                 width={48}
                 height={48}
-                className="h-9 w-9 md:h-12 md:w-12"
+                className="h-8 w-8 md:h-12 md:w-12"
               />
             </div>
             
-            <CardTitle className="text-lg md:text-2xl font-bold text-white mb-1.5 md:mb-2">
+            <CardTitle className="text-lg md:text-2xl font-bold text-foreground mb-1 md:mb-2">
               {isForgotPassword ? 'Reset Password' : (isLogin ? 'Sign In' : 'Create Account')}
             </CardTitle>
-            <CardDescription className="text-white/70 text-xs md:text-base">
+            <CardDescription className="text-muted-foreground text-xs md:text-base leading-snug">
               {isForgotPassword
                 ? 'Enter your email to receive a password reset link'
                 : (isLogin
@@ -233,10 +293,11 @@ export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
             </CardDescription>
           </CardHeader>
           
-          <CardContent className="space-y-3 md:space-y-5 px-4 pb-3 md:px-6 md:pb-6 overflow-y-auto flex-1"
+          <CardContent className="space-y-2.5 md:space-y-5 px-4 pb-3 md:px-6 md:pb-6 overflow-y-auto flex-1"
             style={{
               overscrollBehavior: 'contain',
-              WebkitOverflowScrolling: 'touch'
+              WebkitOverflowScrolling: 'touch',
+              scrollPaddingTop: '20px'
             }}
           >
             {!isForgotPassword && (
@@ -245,7 +306,7 @@ export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
                 <Button
                   onClick={handleGoogleAuth}
                   disabled={loading}
-                  className="w-full h-10 md:h-12 bg-white hover:bg-white/90 text-black font-medium rounded-xl transition-all duration-200 disabled:opacity-50 text-base"
+                  className="w-full h-11 md:h-12 bg-white hover:bg-white/90 text-black font-medium rounded-xl transition-all duration-200 disabled:opacity-50 text-sm md:text-base"
                 >
                   {loading ? (
                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />
@@ -261,29 +322,30 @@ export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
                 </Button>
 
                 {/* Divider */}
-                <div className="relative">
+                <div className="relative py-1">
                   <div className="absolute inset-0 flex items-center">
-                    <span className="w-full border-t border-white/20" />
+                    <span className="w-full border-t border-border" />
                   </div>
                   <div className="relative flex justify-center text-xs uppercase">
-                    <span className="bg-gradient-to-br from-slate-900/90 via-slate-800/80 to-slate-900/90 px-3 py-1 text-white/50 rounded-full">Or continue with email</span>
+                    <span className="bg-card px-3 py-0.5 text-muted-foreground rounded-full">Or continue with email</span>
                   </div>
                 </div>
               </>
             )}
 
             {/* Email Form */}
-            <form onSubmit={isForgotPassword ? handleForgotPassword : handleEmailAuth} className="space-y-3 md:space-y-4">
+            <form onSubmit={isForgotPassword ? handleForgotPassword : handleEmailAuth} className="space-y-2.5 md:space-y-4">
               <div className="space-y-1.5">
-                <Label htmlFor="email" className="text-white text-sm">Email</Label>
+                <Label htmlFor="email" className="text-foreground text-sm">Email</Label>
                 <Input
                   id="email"
                   type="email"
                   placeholder="Enter your email"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
+                  onFocus={handleInputFocus}
                   required
-                  className="bg-white/10 border-white/20 text-white placeholder:text-white/50 focus:border-blue-500/50 h-10 text-base"
+                  className="bg-muted/50 border-0 text-foreground placeholder:text-muted-foreground focus:ring-2 focus:ring-primary h-11 text-base"
                 />
               </div>
               
@@ -291,7 +353,7 @@ export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
               {!isForgotPassword && !useMagicLink && (
                 <div className="space-y-1.5">
                   <div className="flex items-center justify-between">
-                    <Label htmlFor="password" className="text-white text-sm">Password</Label>
+                    <Label htmlFor="password" className="text-foreground text-sm">Password</Label>
                     {isLogin && (
                       <button
                         type="button"
@@ -308,8 +370,9 @@ export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
                     placeholder="Enter your password"
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
+                    onFocus={handleInputFocus}
                     required
-                    className="bg-white/10 border-white/20 text-white placeholder:text-white/50 focus:border-blue-500/50 h-10 text-base"
+                    className="bg-muted/50 border-0 text-foreground placeholder:text-muted-foreground focus:ring-2 focus:ring-primary h-11 text-base"
                   />
                 </div>
               )}
@@ -322,9 +385,9 @@ export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
                     id="magicLink"
                     checked={useMagicLink}
                     onChange={(e) => setUseMagicLink(e.target.checked)}
-                    className="rounded border-white/20 bg-white/10 text-blue-500 focus:ring-blue-500/50"
+                    className="rounded border-0 bg-muted/50 text-primary focus:ring-primary"
                   />
-                  <Label htmlFor="magicLink" className="text-sm text-white/70 cursor-pointer">
+                  <Label htmlFor="magicLink" className="text-sm text-muted-foreground cursor-pointer">
                     Send me a sign-in link instead
                   </Label>
                 </div>
@@ -332,7 +395,7 @@ export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
               <Button
                 type="submit"
                 disabled={loading}
-                className="w-full h-10 md:h-12 bg-primary hover:bg-primary/90 text-primary-foreground font-medium rounded-xl transition-all duration-200 disabled:opacity-50 text-base"
+                className="w-full h-11 md:h-12 bg-primary hover:bg-primary/90 text-primary-foreground font-medium rounded-xl transition-all duration-200 disabled:opacity-50 text-sm md:text-base"
               >
                 {loading ? (
                   <LoadingDots size="sm" color="white" className="mr-2" />
@@ -364,14 +427,14 @@ export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
               {isForgotPassword ? (
                 <button
                   onClick={() => setIsForgotPassword(false)}
-                  className="text-sm text-white/70 hover:text-white transition-colors"
+                  className="text-sm text-muted-foreground hover:text-foreground transition-colors"
                 >
                   ← Back to sign in
                 </button>
               ) : (
                 <button
                   onClick={() => setIsLogin(!isLogin)}
-                  className="text-sm text-white/70 hover:text-white transition-colors"
+                  className="text-sm text-muted-foreground hover:text-foreground transition-colors"
                 >
                   {isLogin 
                     ? "Don't have an account? Sign up" 
@@ -382,11 +445,11 @@ export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
             </div>
 
             {/* Mobile Close Button - 移动端显示在底部 */}
-            <div className="md:hidden pt-2 flex-shrink-0">
+            <div className="md:hidden pt-1.5 flex-shrink-0">
               <Button
                 onClick={handleClose}
                 variant="outline"
-                className="w-full h-10 bg-white/10 hover:bg-white/20 text-white border-white/20 hover:border-white/30 rounded-xl font-medium"
+                className="w-full h-11 bg-muted/50 hover:bg-muted text-foreground border-0 rounded-xl font-medium text-sm"
               >
                 Close
               </Button>
@@ -395,6 +458,6 @@ export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
         </Card>
         </div>
       </div>
-    </div>
+    </>
   );
 }
