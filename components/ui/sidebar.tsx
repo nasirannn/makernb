@@ -40,6 +40,16 @@ export const CommonSidebar = ({ hideMobileNav = false }: CommonSidebarProps) => 
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, [userMenuOpen]);
 
+  // 监听来自 Studio 标题栏的菜单切换事件
+  React.useEffect(() => {
+    const handleToggleMenu = () => {
+      setUserMenuOpen(prev => !prev);
+    };
+
+    window.addEventListener('toggle-mobile-user-menu' as any, handleToggleMenu);
+    return () => window.removeEventListener('toggle-mobile-user-menu' as any, handleToggleMenu);
+  }, []);
+
   const handleSignOut = async () => {
     try {
       await signOut();
@@ -275,8 +285,8 @@ export const CommonSidebar = ({ hideMobileNav = false }: CommonSidebarProps) => 
             <Library className="h-7 w-7" />
           </Button>
 
-          {/* User Button */}
-          {user ? (
+          {/* User Button - Hidden on Studio and Library pages (avatar is in header) */}
+          {user && pathname !== '/studio' && pathname !== '/library' ? (
             <div className="relative user-menu-container z-[40]">
               <Button
                 onClick={() => setUserMenuOpen(!userMenuOpen)}
@@ -324,7 +334,7 @@ export const CommonSidebar = ({ hideMobileNav = false }: CommonSidebarProps) => 
                 </div>
               )}
             </div>
-          ) : (
+          ) : pathname !== '/studio' && pathname !== '/library' ? (
             <Button
               onClick={() => setIsAuthModalOpen(true)}
               variant="ghost"
@@ -334,7 +344,7 @@ export const CommonSidebar = ({ hideMobileNav = false }: CommonSidebarProps) => 
             >
               <LogIn className="h-7 w-7" />
             </Button>
-          )}
+          ) : null}
         </div>
       </div>
 

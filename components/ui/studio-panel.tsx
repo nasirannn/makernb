@@ -6,7 +6,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
-import { Music, RotateCcw, ChevronRight, ChevronDown, Wand2, Play, Pause } from "lucide-react";
+import { Music, RotateCcw, ChevronRight, ChevronDown, Wand2, Play, Pause, X } from "lucide-react";
 import musicOptions from '@/data/music-options.json';
 import { useAuth } from '@/contexts/AuthContext';
 import { useCredits } from '@/contexts/CreditsContext';
@@ -199,10 +199,38 @@ export const StudioPanel = (props: StudioPanelProps) => {
         <>
           {/* Header */}
           <div className="flex-shrink-0 px-4 md:px-6 pt-4 md:pt-6 pb-3 md:pb-4 backdrop-blur-sm">
-            <div className="flex items-center justify-center md:justify-between gap-3 mb-4 md:mb-4 relative">
-              {/* Mobile: Credits on left - only show when user is logged in */}
+            {/* Desktop: Title and Credits */}
+            <div className="hidden md:flex items-center justify-between gap-3 mb-4">
+              <div className="flex items-center gap-3">
+                <Music className="h-8 w-8 text-primary" />
+                <h1 className="text-4xl font-semibold">Studio</h1>
+              </div>
+            </div>
+            
+            {/* Mobile: Title and Collapse button */}
+            <div className="md:hidden mb-2">
+              {/* Title and Collapse button row */}
+              <div className="flex items-center justify-between mb-2 relative">
+                <div className="w-8"></div>
+                <h2 className="text-xl font-semibold text-foreground absolute left-1/2 transform -translate-x-1/2">Create Tracks</h2>
+                
+                {/* Close button */}
+                {onCollapse && (
+                  <button
+                    type="button"
+                    className="h-8 w-8 p-0 text-muted-foreground hover:text-foreground transition-all duration-300 flex items-center justify-center ml-auto"
+                    onClick={onCollapse}
+                    aria-label="Close panel"
+                    title="Close"
+                  >
+                    <X className="h-5 w-5" />
+                  </button>
+                )}
+              </div>
+              
+              {/* Credits row */}
               {user && (
-                <div className="md:hidden absolute left-0 flex items-center gap-2">
+                <div className="flex items-center gap-2">
                   <div className="bg-muted/50 px-2 py-1 rounded-md">
                     <div className="flex items-center gap-1">
                       <span className="text-sm text-muted-foreground">Credits</span>
@@ -213,30 +241,12 @@ export const StudioPanel = (props: StudioPanelProps) => {
                   </div>
                 </div>
               )}
-              
-              <div className="flex items-center gap-3">
-                <Music className="h-8 w-8 text-primary" />
-                <h1 className="text-4xl font-semibold">Studio</h1>
-              </div>
-              
-              {/* Collapse button in the same row as title (mobile only) */}
-              {onCollapse && (
-                <button
-                  type="button"
-                  className="md:hidden absolute right-0 h-8 w-8 p-0 bg-muted/50 border border-border/30 text-foreground shadow-sm hover:bg-muted/70 hover:text-foreground transition-all duration-300 rounded-lg flex items-center justify-center"
-                  onClick={onCollapse}
-                  aria-label="Collapse panel"
-                  title="Collapse"
-                >
-                  <ChevronDown className="h-4 w-4" />
-                </button>
-              )}
             </div>
           </div>
 
           <div className="flex-1 overflow-y-auto px-4 md:px-6 pb-5 md:pb-6">
             {/* Mode Tabs - Internal at top */}
-            <div className="mb-4 md:mb-6 mt-3 md:mt-4">
+            <div className="mb-4 md:mb-6 mt-1 md:mt-4">
                 <div className="bg-muted/30 rounded-lg p-1">
                   <div className="grid grid-cols-2 gap-1">
                     <button

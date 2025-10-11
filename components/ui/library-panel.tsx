@@ -21,8 +21,10 @@ import {
   HeartCrack,
   ArrowDown,
   Search,
-  X
+  X,
+  LogIn
 } from 'lucide-react';
+import Image from 'next/image';
 import { isAdmin } from '@/lib/auth-utils-optimized';
 import { supabase } from '@/lib/supabase';
 import { toast } from 'sonner';
@@ -72,10 +74,13 @@ interface LibraryPanelProps {
   selectedLibraryTrack?: string | null;
   isPlaying?: boolean;
   userId?: string | null;
+  user?: any;
   onFavoriteToggle?: (trackId: string, isFavorited: boolean) => void;
   onLyricsToggle?: () => void;
   showLyrics?: boolean;
   hasPlayer?: boolean; // 新增：是否有播放器显示
+  isAuthModalOpen?: boolean;
+  setIsAuthModalOpen?: (open: boolean) => void;
 }
 
 export const LibraryPanel = ({
@@ -88,10 +93,13 @@ export const LibraryPanel = ({
   selectedLibraryTrack,
   isPlaying = false,
   userId,
+  user,
   onFavoriteToggle,
   onLyricsToggle,
   showLyrics = false,
-  hasPlayer = false
+  hasPlayer = false,
+  isAuthModalOpen = false,
+  setIsAuthModalOpen
 }: LibraryPanelProps) => {
   const [activeTab, setActiveTab] = useState('All Tracks');
   const [favoriteLoading, setFavoriteLoading] = useState<Record<string, boolean>>({});
@@ -375,9 +383,51 @@ export const LibraryPanel = ({
     <div className="h-full flex flex-col bg-transparent">
       {/* Header */}
       <div className="flex-shrink-0 px-6 pt-6 pb-4 bg-background/60 backdrop-blur-sm">
-        <div className="flex items-center gap-3 mb-4">
-          <Library className="h-8 w-8 text-primary" />
-          <h1 className="text-4xl font-semibold">Library</h1>
+        <div className="flex items-center justify-between mb-4">
+          <div className="flex items-center gap-3">
+            <Library className="h-8 w-8 text-primary" />
+            <h1 className="text-4xl font-semibold">Library</h1>
+          </div>
+          
+          {/* User Avatar Button - Mobile only */}
+          <div className="md:hidden">
+            {user ? (
+              <div className="relative user-menu-container z-[40]">
+                <button
+                  onClick={() => {
+                    const event = new CustomEvent('toggle-mobile-user-menu');
+                    window.dispatchEvent(event);
+                  }}
+                  className="h-10 w-10 flex items-center justify-center hover:bg-muted/50 transition-all duration-300 rounded-full"
+                >
+                  <div className="w-9 h-9 rounded-full overflow-hidden border-2 border-primary/20">
+                    {user.user_metadata?.avatar_url || user.user_metadata?.picture ? (
+                      <Image
+                        src={user.user_metadata.avatar_url || user.user_metadata.picture}
+                        alt="User Avatar"
+                        width={36}
+                        height={36}
+                        className="w-full h-full object-cover"
+                      />
+                    ) : (
+                      <div className="w-full h-full bg-primary/20 text-primary text-sm font-semibold flex items-center justify-center">
+                        {user.user_metadata?.full_name?.charAt(0) || user.email?.charAt(0) || 'U'}
+                      </div>
+                    )}
+                  </div>
+                </button>
+              </div>
+            ) : (
+              setIsAuthModalOpen && (
+                <button
+                  onClick={() => setIsAuthModalOpen(true)}
+                  className="h-10 w-10 flex items-center justify-center hover:bg-muted/50 transition-all duration-300 rounded-lg text-muted-foreground"
+                >
+                  <LogIn className="h-6 w-6" />
+                </button>
+              )
+            )}
+          </div>
         </div>
 
         {/* Tabs and Search Row */}

@@ -572,8 +572,11 @@ const LibraryContent = () => {
                             selectedLibraryTrack={selectedLibraryTrack}
                             isPlaying={isPlaying}
                             userId={user?.id}
+                            user={user}
                             onLyricsToggle={() => setShowLyrics(!showLyrics)}
                             showLyrics={showLyrics}
+                            isAuthModalOpen={isAuthModalOpen}
+                            setIsAuthModalOpen={setIsAuthModalOpen}
                             onFavoriteToggle={(trackId, isFavorited) => {
                                 // 更新本地tracks数据中的收藏状态
                                 setLibraryTracks(prevTracks =>

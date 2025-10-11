@@ -28,7 +28,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import AuthModal from "@/components/ui/auth-modal";
-import { CheckCircle, Heart, HeartCrack } from "lucide-react";
+import { CheckCircle, Heart, HeartCrack, Music, LogIn } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 import { toast } from "sonner";
 import { isAdmin } from "@/lib/auth-utils-optimized";
@@ -890,26 +890,7 @@ const StudioContent = () => {
                             <div className="h-full overflow-hidden">
                                 <StudioPanel
                                     forceVisibleOnMobile
-                                    onCollapse={() => {
-                                        // 动效：吸入到 Studio 导航按钮
-                                        try {
-                                            const sheet = document.getElementById('mobile-create-sheet');
-                                            const target = document.getElementById('mobile-studio-nav');
-                                            if (sheet && target) {
-                                                const sheetRect = sheet.getBoundingClientRect();
-                                                const targetRect = target.getBoundingClientRect();
-                                                const translateX = targetRect.left + targetRect.width/2 - (sheetRect.left + sheetRect.width/2);
-                                                const translateY = targetRect.top + targetRect.height/2 - (sheetRect.top + sheetRect.height/2);
-                                                sheet.style.transform = `translate3d(${translateX}px, ${translateY}px, 0) scale(0.1)`;
-                                                sheet.style.opacity = '0.6';
-                                                setTimeout(() => setMobilePanelOpen(false), 250);
-                                            } else {
-                                                setMobilePanelOpen(false);
-                                            }
-                                        } catch {
-                                            setMobilePanelOpen(false);
-                                        }
-                                    }}
+                                    onCollapse={() => setMobilePanelOpen(false)}
                                     panelOpen={true}
                                     setPanelOpen={() => {}}
                                     mode={mode}
@@ -967,6 +948,52 @@ const StudioContent = () => {
 
                     {/* 歌曲列表区域 - 移动端默认显示；桌面端在歌词面板显示时占 2/3 */}
                     <div className={`h-full flex flex-col relative min-w-0 transition-all duration-300 w-full ${showLyrics ? 'md:w-2/3' : 'md:w-full'}`}>
+                        {/* 移动端标题 */}
+                        <div className="md:hidden flex-shrink-0 px-6 pt-6 pb-4 bg-background/60 backdrop-blur-sm">
+                            <div className="flex items-center justify-between">
+                                <div className="flex items-center gap-3">
+                                    <Music className="h-8 w-8 text-primary" />
+                                    <h1 className="text-4xl font-semibold">Studio</h1>
+                                </div>
+                                
+                                {/* User Avatar Button */}
+                                {user ? (
+                                    <div className="relative user-menu-container z-[40]">
+                                        <button
+                                            onClick={() => {
+                                                const event = new CustomEvent('toggle-mobile-user-menu');
+                                                window.dispatchEvent(event);
+                                            }}
+                                            className="h-10 w-10 flex items-center justify-center hover:bg-muted/50 transition-all duration-300 rounded-full"
+                                        >
+                                            <div className="w-9 h-9 rounded-full overflow-hidden border-2 border-primary/20">
+                                                {user.user_metadata?.avatar_url || user.user_metadata?.picture ? (
+                                                    <Image
+                                                        src={user.user_metadata.avatar_url || user.user_metadata.picture}
+                                                        alt="User Avatar"
+                                                        width={36}
+                                                        height={36}
+                                                        className="w-full h-full object-cover"
+                                                    />
+                                                ) : (
+                                                    <div className="w-full h-full bg-primary/20 text-primary text-sm font-semibold flex items-center justify-center">
+                                                        {user.user_metadata?.full_name?.charAt(0) || user.email?.charAt(0) || 'U'}
+                                                    </div>
+                                                )}
+                                            </div>
+                                        </button>
+                                    </div>
+                                ) : (
+                                    <button
+                                        onClick={() => setIsAuthModalOpen(true)}
+                                        className="h-10 w-10 flex items-center justify-center hover:bg-muted/50 transition-all duration-300 rounded-lg text-muted-foreground"
+                                    >
+                                        <LogIn className="h-6 w-6" />
+                                    </button>
+                                )}
+                            </div>
+                        </div>
+                        
                         {/* 歌曲列表区域 - 可滚动 */}
                         <div className="flex-1 min-h-0 overflow-y-auto scrollbar-thin scrollbar-thumb-gray-400 scrollbar-track-gray-200" style={{ 
                             // 仅预留播放器高度；播放器本身已上移到底部导航之上
@@ -1121,9 +1148,9 @@ const StudioContent = () => {
                 {!mobilePanelOpen && (
                     <button
                         onClick={() => setMobilePanelOpen(true)}
-                        className="md:hidden fixed right-6 z-50 w-14 h-14 bg-primary hover:bg-primary/90 text-white rounded-full shadow-lg hover:shadow-xl flex items-center justify-center transition-all duration-300 hover:scale-110"
+                        className="md:hidden fixed right-6 z-50 w-12 h-12 bg-primary hover:bg-primary/90 text-white rounded-full shadow-lg hover:shadow-xl flex items-center justify-center transition-all duration-300 hover:scale-110"
                         style={{
-                            bottom: currentPlayingTrack ? 'calc(5rem + var(--mobile-nav-height, 0px))' : 'calc(1rem + var(--mobile-nav-height, 0px))'
+                            bottom: currentPlayingTrack ? 'calc(5rem + var(--mobile-nav-height, 0px) + 0.5rem)' : 'calc(var(--mobile-nav-height, 0px) + 0.5rem)'
                         }}
                         aria-label="Open create panel"
                     >
