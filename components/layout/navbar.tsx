@@ -279,8 +279,8 @@ export const Navbar = ({ credits = null }: NavbarProps) => {
         {user ? (
           <>
             {/* Credits Display */}
-            <div className="flex items-center gap-2 px-3 py-1.5 bg-white/10 backdrop-blur-sm border border-white/20 rounded-lg">
-              <Sparkles className="h-3.5 w-3.5 text-white" />
+            <div className="flex items-center gap-2 px-3 py-2 bg-white/10 backdrop-blur-sm border border-white/20 rounded-lg">
+              <Sparkles className="h-4 w-4 text-white" />
               <span className="text-sm font-medium text-white">
                 {credits === null ? '...' : credits}
               </span>
@@ -292,7 +292,7 @@ export const Navbar = ({ credits = null }: NavbarProps) => {
             >
             {/* User Avatar */}
             <Avatar 
-              className="w-9 h-9 cursor-pointer hover:scale-105 transition-transform duration-200 border-2 border-purple-600/30"
+              className="w-10 h-10 cursor-pointer hover:scale-105 transition-transform duration-200 border-2 border-purple-600/30"
             >
               <AvatarImage
                 src={user.user_metadata?.avatar_url || user.user_metadata?.picture || `https://api.dicebear.com/7.x/initials/svg?seed=${user.email}`}
@@ -366,7 +366,7 @@ export const Navbar = ({ credits = null }: NavbarProps) => {
           <Button 
             onClick={() => setIsAuthModalOpen(true)}
             size="default" 
-            className="bg-primary hover:bg-primary/90 text-primary-foreground px-6 py-1.5 rounded-lg font-medium"
+            className="bg-primary hover:bg-primary/90 text-primary-foreground px-6 py-2 rounded-lg font-medium h-10"
           >
             Get Started
           </Button>
