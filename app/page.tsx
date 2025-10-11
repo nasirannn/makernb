@@ -8,16 +8,16 @@ import { FAQSection } from "@/components/layout/sections/faq";
 
 export const metadata = {
   metadataBase: new URL('https://makernb.com'),
-  title: "MakeRNB | Create Classic & Contemporary R&B AI Songs",
-  description: "Generate classic and contemporary R&B music with AI. Choose from New Jack Swing, Hip-Hop Soul, Neo-Soul, Quiet Storm and more r&b genres.",
+  title: "MakeRNB | Free Online AI R&B Music Generator",
+  description: "MakeRNB is a free online AI-powered R&B music generator. Choose from New Jack Swing, Neo-Soul, Quiet Storm & more. Create, listen, and download studio-quality R&B tracks instantly with no subscription.",
   alternates: {
-    canonical: 'https://makernb.com',
+    canonical: 'https://makernb.com/',
   },
   openGraph: {
     type: "website",
-    url: "https://makernb.com",
-    title: "MakeRNB | Create Classic & Contemporary R&B AI Songs",
-    description: "Generate classic and contemporary R&B music with AI. Choose from New Jack Swing, Hip-Hop Soul, Neo-Soul, Quiet Storm and more r&b genres.",
+    url: "https://makernb.com/",
+    title: "MakeRNB | Free Online AI R&B Music Generator",
+    description: "MakeRNB is a free online AI-powered R&B music generator. Choose from New Jack Swing, Neo-Soul, Quiet Storm & more. Create, listen, and download studio-quality R&B tracks instantly with no subscription.",
     images: [
       {
         url: "/hero-image-dark.jpeg",
@@ -29,9 +29,9 @@ export const metadata = {
   },
   twitter: {
     card: "summary_large_image",
-    site: "https://makernb.com",
-    title: "MakeRNB | Create Classic & Contemporary R&B AI Songs",
-    description: "Generate classic and contemporary R&B music with AI. Choose from New Jack Swing, Hip-Hop Soul, Neo-Soul, Quiet Storm and more r&bgenres.",
+    site: "https://makernb.com/",
+    title: "MakeRNB | Free Online AI R&B Music Generator",
+    description: "MakeRNB is a free online AI-powered R&B music generator. Choose from New Jack Swing, Neo-Soul, Quiet Storm & more. Create, listen, and download studio-quality R&B tracks instantly with no subscription.",
     images: [
       "/hero-image-dark.jpeg",
     ],
