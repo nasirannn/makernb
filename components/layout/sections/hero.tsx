@@ -85,10 +85,10 @@ export const HeroSection = () => {
             <div className="max-w-screen-lg mx-auto text-center">
               <h1 className="text-4xl md:text-6xl lg:text-7xl font-bold text-white leading-tight mb-6">
                 Free Online
+                AI
                 <span className="text-transparent px-2 bg-gradient-to-r from-purple-400 via-purple-500 to-purple-600 bg-clip-text">
                   R&B
-                </span>
-                AI Music Generator
+                </span>Music Generator
               </h1>
             </div>
 

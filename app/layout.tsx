@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { Inter } from "next/font/google";
+import Script from "next/script";
 import "./globals.css";
 import { cn } from "@/lib/utils";
 import { ThemeProvider } from "@/components/layout/theme-provider";
@@ -37,31 +38,28 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" suppressHydrationWarning className="dark">
-      <head>
+      <body className={cn("min-h-screen bg-background", inter.className)}>
         {/* Google Analytics */}
-        <script
-          async
+        <Script
           src="https://www.googletagmanager.com/gtag/js?id=G-VFWQ5T4YWG"
+          strategy="afterInteractive"
         />
-        <script
-          dangerouslySetInnerHTML={{
-            __html: `
-              window.dataLayer = window.dataLayer || [];
-              function gtag(){dataLayer.push(arguments);}
-              gtag('js', new Date());
-              gtag('config', 'G-VFWQ5T4YWG');
-            `,
-          }}
-        />
+        <Script id="google-analytics" strategy="afterInteractive">
+          {`
+            window.dataLayer = window.dataLayer || [];
+            function gtag(){dataLayer.push(arguments);}
+            gtag('js', new Date());
+            gtag('config', 'G-VFWQ5T4YWG');
+          `}
+        </Script>
         
         {/* Google AdSense */}
-        <script
-          async
+        <Script
           src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-4929701767055366"
+          strategy="afterInteractive"
           crossOrigin="anonymous"
         />
-      </head>
-      <body className={cn("min-h-screen bg-background", inter.className)}>
+
         <AuthProvider>
           <CreditsProvider>
             <ThemeProvider>
