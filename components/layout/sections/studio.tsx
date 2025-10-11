@@ -1118,22 +1118,24 @@ const StudioContent = () => {
                 </div>
 
                 {/* Floating Action Button - Mobile Only - 右下角悬浮按钮 */}
-                <button
-                    onClick={() => setMobilePanelOpen(true)}
-                    className="md:hidden fixed right-6 z-50 w-14 h-14 bg-primary hover:bg-primary/90 text-white rounded-full shadow-lg hover:shadow-xl flex items-center justify-center transition-all duration-300 hover:scale-110"
-                    style={{
-                        bottom: currentPlayingTrack ? 'calc(5rem + var(--mobile-nav-height, 0px))' : 'calc(1rem + var(--mobile-nav-height, 0px))'
-                    }}
-                    aria-label="Open create panel"
-                >
-                    <Image 
-                        src="/icons/Two-Flexible-Creation-Modes.svg" 
-                        alt="Create" 
-                        width={28} 
-                        height={28} 
-                        className="h-7 w-7"
-                    />
-                </button>
+                {!mobilePanelOpen && (
+                    <button
+                        onClick={() => setMobilePanelOpen(true)}
+                        className="md:hidden fixed right-6 z-50 w-14 h-14 bg-primary hover:bg-primary/90 text-white rounded-full shadow-lg hover:shadow-xl flex items-center justify-center transition-all duration-300 hover:scale-110"
+                        style={{
+                            bottom: currentPlayingTrack ? 'calc(5rem + var(--mobile-nav-height, 0px))' : 'calc(1rem + var(--mobile-nav-height, 0px))'
+                        }}
+                        aria-label="Open create panel"
+                    >
+                        <Image 
+                            src="/icons/Two-Flexible-Creation-Modes.svg" 
+                            alt="Create" 
+                            width={28} 
+                            height={28} 
+                            className="h-7 w-7"
+                        />
+                    </button>
+                )}
 
             </section>
 
