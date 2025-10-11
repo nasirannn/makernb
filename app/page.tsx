@@ -9,7 +9,7 @@ import { FAQSection } from "@/components/layout/sections/faq";
 export const metadata = {
   metadataBase: new URL('https://makernb.com'),
   title: "MakeRNB | Create Classic & Contemporary R&B AI Songs",
-  description: "Generate authentic R&B music with AI. Choose from New Jack Swing, Hip-Hop Soul, Contemporary R&B and more classic genres.",
+  description: "Generate classic and contemporary R&B music with AI. Choose from New Jack Swing, Hip-Hop Soul, Neo-Soul, Quiet Storm and more r&b genres.",
   alternates: {
     canonical: 'https://makernb.com',
   },
@@ -17,7 +17,7 @@ export const metadata = {
     type: "website",
     url: "https://makernb.com",
     title: "MakeRNB | Create Classic & Contemporary R&B AI Songs",
-    description: "Generate authentic R&B music with AI. Choose from New Jack Swing, Hip-Hop Soul, Contemporary R&B and more classic genres.",
+    description: "Generate classic and contemporary R&B music with AI. Choose from New Jack Swing, Hip-Hop Soul, Neo-Soul, Quiet Storm and more r&b genres.",
     images: [
       {
         url: "/hero-image-dark.jpeg",
@@ -31,7 +31,7 @@ export const metadata = {
     card: "summary_large_image",
     site: "https://makernb.com",
     title: "MakeRNB | Create Classic & Contemporary R&B AI Songs",
-    description: "Generate authentic R&B music with AI. Choose from New Jack Swing, Hip-Hop Soul, Contemporary R&B and more classic genres.",
+    description: "Generate classic and contemporary R&B music with AI. Choose from New Jack Swing, Hip-Hop Soul, Neo-Soul, Quiet Storm and more r&bgenres.",
     images: [
       "/hero-image-dark.jpeg",
     ],
