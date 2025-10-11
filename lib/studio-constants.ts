@@ -23,7 +23,7 @@ export const STYLES = {
 
 // BPM values for different tempo modes
 export const BPM_VALUES = {
-  slow: [60],
-  moderate: [90],
-  medium: [110]
+  slow: [60, 65, 70, 75, 80],
+  moderate: [85, 90, 95, 100],
+  medium: [105, 110, 115, 120]
 };

@@ -300,7 +300,7 @@ export const ExploreSection = () => {
         {/* Music Grid */}
         <div className="max-w-7xl mx-auto">
           {loading ? (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 mb-12">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-10 mb-12">
               {[1, 2, 3, 4].map((i) => (
                 <div key={i} className="group">
                   {/* 封面骨架 */}
@@ -315,7 +315,7 @@ export const ExploreSection = () => {
               ))}
             </div>
           ) : exploreData && exploreData.music.length > 0 ? (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 mb-12">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-10 mb-12">
               {exploreData.music.map((music, index) => (
                 <div
                   key={music.id}

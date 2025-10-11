@@ -14,7 +14,7 @@ import { toast } from 'sonner';
 import { Tooltip } from '@/components/ui/tooltip';
 import Image from 'next/image';
 import { getInstrumentIcon, getInstrumentAudio, getDrumKitIcon, getDrumKitAudio } from '@/lib/music-resources';
-import { replaceTextInStyle, updateStatesFromTextarea } from '@/lib/studio-utils';
+import { replaceTextInStyle, updateStatesFromTextarea, getRandomBpm } from '@/lib/studio-utils';
 import { TEMPO_KEYWORDS, BUTTON_CLASSES, STYLES, BPM_VALUES } from '@/lib/studio-constants';
 import { useAudioPlayer } from '@/hooks/use-audio-player';
 
@@ -659,7 +659,8 @@ export const StudioPanel = (props: StudioPanelProps) => {
                         <Tooltip content="60-80 BPM" position="top">
                     <button
                       onClick={() => {
-                              setBpm([...BPM_VALUES.slow]);
+                              const randomBpm = getRandomBpm('slow');
+                              setBpm([randomBpm]);
                         setBpmMode('slow');
                               // Replace tempo in textarea (only one tempo allowed)
                               const newText = replaceTextInStyle(styleText, [...TEMPO_KEYWORDS], 'Slow');
@@ -677,7 +678,8 @@ export const StudioPanel = (props: StudioPanelProps) => {
                         <Tooltip content="80-100 BPM" position="top">
                     <button
                       onClick={() => {
-                              setBpm([...BPM_VALUES.moderate]);
+                              const randomBpm = getRandomBpm('moderate');
+                              setBpm([randomBpm]);
                         setBpmMode('moderate');
                               // Replace tempo in textarea (only one tempo allowed)
                               const newText = replaceTextInStyle(styleText, [...TEMPO_KEYWORDS], 'Moderate');
@@ -695,7 +697,8 @@ export const StudioPanel = (props: StudioPanelProps) => {
                         <Tooltip content="100-120 BPM" position="top">
                     <button
                       onClick={() => {
-                              setBpm([...BPM_VALUES.medium]);
+                              const randomBpm = getRandomBpm('medium');
+                              setBpm([randomBpm]);
                         setBpmMode('medium');
                               // Replace tempo in textarea (only one tempo allowed)
                               const newText = replaceTextInStyle(styleText, [...TEMPO_KEYWORDS], 'Medium');

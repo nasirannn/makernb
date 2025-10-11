@@ -4,9 +4,21 @@
  */
 
 import musicOptions from '@/data/music-options.json';
+import { BPM_VALUES } from './studio-constants';
 
 // Extract options from musicOptions
 const { genres, vibes, grooveTypes, leadInstruments, drumKits, bassTones, harmonyPalettes } = musicOptions;
+
+/**
+ * Get a random BPM value from the specified tempo mode
+ * @param tempoMode - The tempo mode ('slow', 'moderate', 'medium')
+ * @returns A random BPM value from the mode's range
+ */
+export const getRandomBpm = (tempoMode: 'slow' | 'moderate' | 'medium'): number => {
+  const bpmOptions = BPM_VALUES[tempoMode];
+  const randomIndex = Math.floor(Math.random() * bpmOptions.length);
+  return bpmOptions[randomIndex];
+};
 
 /**
  * Replace text in style textarea, removing existing keywords and adding new text
@@ -81,16 +93,16 @@ export const updateStatesFromTextarea = (
   // Check for tempo options
   if (textLower.includes('slow') && currentStates.bpmMode !== 'slow') {
     setters.setBpmMode('slow');
-    setters.setBpm([60]);
+    setters.setBpm([getRandomBpm('slow')]);
   } else if (textLower.includes('moderate') && currentStates.bpmMode !== 'moderate') {
     setters.setBpmMode('moderate');
-    setters.setBpm([90]);
+    setters.setBpm([getRandomBpm('moderate')]);
   } else if (textLower.includes('medium') && currentStates.bpmMode !== 'medium') {
     setters.setBpmMode('medium');
-    setters.setBpm([110]);
+    setters.setBpm([getRandomBpm('medium')]);
   } else if (!textLower.includes('slow') && !textLower.includes('moderate') && !textLower.includes('medium') && currentStates.bpmMode) {
     setters.setBpmMode('');
-    setters.setBpm([60]);
+    setters.setBpm([getRandomBpm('slow')]);
   }
   
   // Check for instrument options

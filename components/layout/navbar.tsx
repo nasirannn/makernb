@@ -133,7 +133,7 @@ export const Navbar = ({ credits = null }: NavbarProps) => {
               <li key={href}>
                 <Link
                   href={href}
-                  className={`text-sm px-5 py-3 rounded-xl transition-all duration-200 ${
+                  className={`text-sm px-5 py-3 rounded-lg transition-all duration-200 ${
                     isActive
                       ? 'text-primary bg-primary/10 font-medium'
                       : 'hover:text-primary hover:bg-primary/10'

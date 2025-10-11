@@ -17,6 +17,9 @@ export const metadata: Metadata = {
   alternates: {
     canonical: 'https://makernb.com',
   },
+  other: {
+    'google-adsense-account': 'ca-pub-4929701767055366',
+  },
   icons: {
     icon: [
       { url: '/favicon.ico', sizes: '32x32', type: 'image/x-icon' },
@@ -34,6 +37,13 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="pt-br" suppressHydrationWarning className="dark">
+      <head>
+        <script
+          async
+          src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-4929701767055366"
+          crossOrigin="anonymous"
+        />
+      </head>
       <body className={cn("min-h-screen bg-background", inter.className)}>
         <AuthProvider>
           <CreditsProvider>
