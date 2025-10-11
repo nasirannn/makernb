@@ -209,7 +209,7 @@ export const LyricsPanel: React.FC<LyricsPanelProps> = ({
         {/* Scrollable Content */}
         <div 
           ref={scrollContainerRef}
-          className="flex-1 overflow-y-auto pb-20 md:pb-0" 
+          className="flex-1 overflow-y-auto pb-6 md:pb-0" 
           style={{ maxHeight: 'calc(100vh - 120px)' }}
         >
           {/* Mobile Layout */}

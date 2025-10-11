@@ -207,30 +207,12 @@ export const StudioPanel = (props: StudioPanelProps) => {
               </div>
             </div>
             
-            {/* Mobile: Title and Collapse button */}
+            {/* Mobile: Title, Credits and Close button */}
             <div className="md:hidden mb-2">
-              {/* Title and Collapse button row */}
-              <div className="flex items-center justify-between mb-2 relative">
-                <div className="w-8"></div>
-                <h2 className="text-xl font-semibold text-foreground absolute left-1/2 transform -translate-x-1/2">Create Tracks</h2>
-                
-                {/* Close button */}
-                {onCollapse && (
-                  <button
-                    type="button"
-                    className="h-8 w-8 p-0 text-muted-foreground hover:text-foreground transition-all duration-300 flex items-center justify-center ml-auto"
-                    onClick={onCollapse}
-                    aria-label="Close panel"
-                    title="Close"
-                  >
-                    <X className="h-5 w-5" />
-                  </button>
-                )}
-              </div>
-              
-              {/* Credits row */}
-              {user && (
-                <div className="flex items-center gap-2">
+              {/* Title, Credits badge and Close button row */}
+              <div className="flex items-center justify-between relative">
+                {/* Credits badge - Left */}
+                {user ? (
                   <div className="bg-muted/50 px-2 py-1 rounded-md">
                     <div className="flex items-center gap-1">
                       <span className="text-sm text-muted-foreground">Credits</span>
@@ -239,8 +221,26 @@ export const StudioPanel = (props: StudioPanelProps) => {
                       </span>
                     </div>
                   </div>
-                </div>
-              )}
+                ) : (
+                  <div className="w-16"></div>
+                )}
+                
+                {/* Title - Center */}
+                <h2 className="text-xl font-semibold text-foreground absolute left-1/2 transform -translate-x-1/2">Create Tracks</h2>
+                
+                {/* Close button - Right */}
+                {onCollapse && (
+                  <button
+                    type="button"
+                    className="h-8 w-8 p-0 text-muted-foreground hover:text-foreground transition-all duration-300 flex items-center justify-center"
+                    onClick={onCollapse}
+                    aria-label="Close panel"
+                    title="Close"
+                  >
+                    <X className="h-5 w-5" />
+                  </button>
+                )}
+              </div>
             </div>
           </div>
 
