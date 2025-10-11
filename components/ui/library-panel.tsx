@@ -433,8 +433,31 @@ export const LibraryPanel = ({
           </div>
         ) : paginatedTracks.length === 0 ? (
           <div className="flex items-center justify-center h-full relative">
-            <div className="text-center">
-              <div className="text-muted-foreground mb-2">No tracks found</div>
+            <div className="text-center max-w-md px-6 py-12">
+              <div className="mb-6 flex justify-center">
+                <div className="relative">
+                  <Library className="h-20 w-20 text-muted-foreground/30" strokeWidth={1.5} />
+                  <div className="absolute inset-0 bg-gradient-to-br from-primary/10 to-transparent rounded-full blur-2xl" />
+                </div>
+              </div>
+              <h3 className="text-xl font-semibold text-foreground mb-3">
+                {searchQuery ? 'No matching tracks' : 'Your library is empty'}
+              </h3>
+              <p className="text-muted-foreground mb-6 leading-relaxed">
+                {searchQuery 
+                  ? `No tracks found for "${searchQuery}". Try a different search term.`
+                  : 'Start creating your first R&B track in the Studio and it will appear here.'
+                }
+              </p>
+              {!searchQuery && (
+                <Button
+                  onClick={() => window.location.href = '/studio'}
+                  className="group bg-gradient-to-r from-primary to-primary/90 hover:from-primary/90 hover:to-primary text-primary-foreground px-8 py-3 rounded-2xl font-semibold transition-all duration-300 hover:scale-105 hover:shadow-lg hover:shadow-primary/25 inline-flex items-center gap-2"
+                >
+                  <span>Go to Studio</span>
+                  <ArrowDown className="h-4 w-4 rotate-[-90deg] group-hover:translate-x-1 transition-transform" />
+                </Button>
+              )}
             </div>
           </div>
         ) : (
