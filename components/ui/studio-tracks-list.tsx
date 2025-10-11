@@ -124,11 +124,23 @@ export const StudioTracksList: React.FC<StudioTracksListProps> = ({
 
   if (!userTracks || userTracks.length === 0 || allTracks.length === 0) {
     return (
-      <div className="flex flex-col items-center justify-center h-full space-y-8">
-        <div className="space-y-4">
-          <p className="text-lg text-muted-foreground max-w-md mx-auto leading-relaxed text-center">
-            🌹 Tell us the vibe. We&apos;ll handle the candlelight.
-          </p>
+      <div className="flex flex-col items-center justify-center h-full px-6 py-12">
+        <div className="text-center max-w-md space-y-6">
+          <div className="flex justify-center mb-6">
+            <div className="relative">
+              <Music className="h-20 w-20 text-muted-foreground/30" strokeWidth={1.5} />
+              <div className="absolute inset-0 bg-gradient-to-br from-primary/10 to-transparent rounded-full blur-2xl" />
+            </div>
+          </div>
+          
+          <div className="space-y-3">
+            <h3 className="text-2xl font-bold text-foreground">
+              Your tracks will appear here
+            </h3>
+            <p className="text-base text-muted-foreground leading-relaxed">
+            Choose your style, describe the vibe, and create your track.
+            </p>
+          </div>
         </div>
       </div>
     );

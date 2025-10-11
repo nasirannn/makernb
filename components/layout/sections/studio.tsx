@@ -54,15 +54,11 @@ const StudioContent = () => {
         }
     }, []);
 
-    // 监听从导航触发的打开事件
+    // 监听全局登录弹窗事件
     useEffect(() => {
-        const handler = () => setMobilePanelOpen(true);
-        window.addEventListener('studio:openCreate' as any, handler as any);
-        // 监听全局登录弹窗事件
         const openAuthHandler = () => setIsAuthModalOpen(true);
         window.addEventListener('auth:open' as any, openAuthHandler as any);
         return () => {
-            window.removeEventListener('studio:openCreate' as any, handler as any);
             window.removeEventListener('auth:open' as any, openAuthHandler as any);
         };
     }, []);
@@ -1120,6 +1116,18 @@ const StudioContent = () => {
                         </>
                     )}
                 </div>
+
+                {/* Floating Action Button - Mobile Only - 右下角悬浮按钮 */}
+                <button
+                    onClick={() => setMobilePanelOpen(true)}
+                    className="md:hidden fixed right-6 z-50 w-14 h-14 bg-primary hover:bg-primary/90 text-white rounded-full shadow-lg hover:shadow-xl flex items-center justify-center transition-all duration-300 hover:scale-110"
+                    style={{
+                        bottom: currentPlayingTrack ? 'calc(5rem + var(--mobile-nav-height, 0px))' : 'calc(1rem + var(--mobile-nav-height, 0px))'
+                    }}
+                    aria-label="Open create panel"
+                >
+                    <Music className="h-6 w-6" />
+                </button>
 
             </section>
 

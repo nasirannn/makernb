@@ -115,7 +115,17 @@ export const CommonSidebar = ({ hideMobileNav = false }: CommonSidebarProps) => 
               </Button>
             </Tooltip>
 
-            {/* Library entry removed from sidebar (moved into avatar menu) */}
+            {/* Library Button */}
+            <Tooltip content="📚 Library" position="right">
+              <Button
+                onClick={() => router.push('/library')}
+                variant="ghost"
+                size="sm"
+                className={`w-12 h-12 flex items-center justify-center hover:bg-muted/50 hover:text-white hover:scale-110 transition-all duration-300 rounded-lg ${pathname === '/library' ? 'bg-primary/20 text-primary shadow-sm' : 'text-muted-foreground'}`}
+              >
+                <Library className="h-5 w-5" />
+              </Button>
+            </Tooltip>
 
             {/* Blog Button */}
             <Tooltip content="📝 Blog" position="right">
@@ -183,20 +193,7 @@ export const CommonSidebar = ({ hideMobileNav = false }: CommonSidebarProps) => 
                       </div>
                     </div>
 
-                    <div className="px-2 pb-2">
-                      <button
-                        onClick={() => {
-                          router.push('/library');
-                          setUserMenuOpen(false);
-                        }}
-                        className="w-full flex items-center space-x-2 px-3 py-2 text-sm text-muted-foreground hover:text-foreground hover:bg-muted/50 rounded-md transition-colors"
-                      >
-                        <Library className="w-4 h-4" />
-                        <span>Library</span>
-                      </button>
-                    </div>
-
-                    <div className="border-t border-border/30 p-2">
+                    <div className="p-2">
                       <button
                         onClick={() => {
                           handleSignOut();
@@ -249,15 +246,7 @@ export const CommonSidebar = ({ hideMobileNav = false }: CommonSidebarProps) => 
 
           {/* Studio Button */}
           <Button
-            onClick={() => {
-              if (pathname === '/studio') {
-                if (typeof window !== 'undefined') {
-                  window.dispatchEvent(new CustomEvent('studio:openCreate'));
-                }
-              } else {
-                router.push('/studio');
-              }
-            }}
+            onClick={() => router.push('/studio')}
             variant="ghost"
             size="sm"
             className={`h-12 w-12 flex items-center justify-center hover:bg-muted/50 transition-all duration-300 rounded-lg ${pathname === '/studio' ? 'text-primary' : 'text-muted-foreground'}`}
@@ -280,7 +269,15 @@ export const CommonSidebar = ({ hideMobileNav = false }: CommonSidebarProps) => 
             <Compass className="h-7 w-7" />
           </Button>
 
-          {/* Library entry removed from mobile bottom nav (moved into user menu) */}
+          {/* Library Button */}
+          <Button
+            onClick={() => router.push('/library')}
+            variant="ghost"
+            size="sm"
+            className={`h-12 w-12 flex items-center justify-center hover:bg-muted/50 transition-all duration-300 rounded-lg ${pathname === '/library' ? 'bg-primary/20 text-primary shadow-sm' : 'text-muted-foreground'}`}
+          >
+            <Library className="h-7 w-7" />
+          </Button>
 
           {/* User Button */}
           {user ? (
@@ -314,19 +311,6 @@ export const CommonSidebar = ({ hideMobileNav = false }: CommonSidebarProps) => 
                         {user.email}
                       </div>
                     </div>
-                    
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      className="justify-start text-sm text-muted-foreground hover:text-foreground"
-                      onClick={() => {
-                        setUserMenuOpen(false);
-                        router.push('/library');
-                      }}
-                    >
-                      <Library className="mr-2 h-4 w-4" />
-                      Library
-                    </Button>
                     
                     <Button
                       variant="ghost"
