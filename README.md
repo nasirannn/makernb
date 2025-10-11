@@ -2,8 +2,6 @@
 
 **MakeRNB** is an AI-powered music generation platform that specializes in creating authentic R&B tracks. Generate professional-quality music with custom prompts, multiple genres, and real-time playback - all powered by advanced artificial intelligence.
 
-![MakeRNB](./public/only-90s-rnb-background.webp)
-
 ## ✨ Features
 
 - **🎵 AI Music Generation**: Create authentic R&B tracks using advanced AI technology
@@ -32,8 +30,8 @@
 
 1. **Clone the repository:**
 ```bash
-git clone https://github.com/nasirannn/rnb-music-gen.git
-cd rnb-music-gen
+git clone https://github.com/nasirannn/makernb.git
+cd makernb
 ```
 
 2. **Install dependencies:**
@@ -224,7 +222,7 @@ Contributions are welcome! Please feel free to submit a Pull Request.
 
 If you have any questions or need help, please:
 
-1. Check the [Issues](https://github.com/nasirannn/rnb-music-gen/issues) page
+1. Check the [Issues](https://github.com/nasirannn/makernb/issues) page
 2. Create a new issue if your problem isn't already addressed
 3. Contact us for support
 
