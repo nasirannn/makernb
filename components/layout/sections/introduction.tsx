@@ -98,6 +98,12 @@ export const IntroductionSection = () => {
                   Rhythm and Blues (R&B) is a genre that blends soulful vocals with rhythm-driven grooves. Emerging in the 1940s and evolving through soul, funk, and disco, R&B became one of the most influential genres shaping modern popular music.
                 </p>
               
+              <div className="mt-4 text-left">
+                <Link href="/blog/a-journey-through-the-eras-of-rnb" className="text-primary hover:underline text-sm font-medium">
+                  Read full article →
+                </Link>
+              </div>
+              
               <div className="flex items-center justify-between gap-4 mt-6 mb-0">
                 {timelineEras.map(({ icon, title }, index) => (
                   <div key={title} className="flex flex-col items-center">
@@ -107,18 +113,8 @@ export const IntroductionSection = () => {
                       width={96}
                       height={96}
                     />
-                    <div className="flex items-center gap-2 mt-4">
-                      <span className="text-foreground text-sm font-bold">{index + 1}.</span>
-                      <h3 className="text-sm font-semibold text-center">{title}</h3>
-                    </div>
                   </div>
                 ))}
-              </div>
-              
-              <div className="mt-6">
-                <Link href="/blog/a-journey-through-the-eras-of-rnb" className="text-primary hover:underline text-sm font-medium">
-                  Read full article →
-                </Link>
               </div>
               </div>
             </div>
@@ -127,7 +123,10 @@ export const IntroductionSection = () => {
               {timelineEras.map(({ icon, title, description }, index) => (
                 <div key={title} className="bg-muted/50 dark:bg-card p-4 rounded-lg">
                   <div className="mb-2">
-                    <h3 className="text-lg font-semibold">{title}</h3>
+                    <h3 className="text-lg font-semibold">
+                      <span className="mr-2">{index + 1}.</span>
+                      {title}
+                    </h3>
                   </div>
 
                   <div className="text-muted-foreground text-sm">

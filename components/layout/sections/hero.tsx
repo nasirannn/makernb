@@ -6,24 +6,15 @@ import { useTheme } from "next-themes";
 import Image from "next/image";
 import Link from "next/link";
 import { AnimatedBackground } from "@/components/ui/animated-background";
-import { useAuth } from "@/contexts/AuthContext";
-import AuthModal from "@/components/ui/auth-modal";
 import { useRouter } from "next/navigation";
 
 export const HeroSection = () => {
   const { theme } = useTheme();
-  const { user } = useAuth();
   const router = useRouter();
-  const [isAuthModalOpen, setIsAuthModalOpen] = React.useState(false);
 
   const handleStudioClick = () => {
-    if (user) {
-      // User is logged in, navigate to studio
-      router.push('/studio');
-    } else {
-      // User is not logged in, show auth modal
-      setIsAuthModalOpen(true);
-    }
+    // Navigate to studio regardless of login status
+    router.push('/studio');
   };
 
   return (
@@ -135,12 +126,6 @@ export const HeroSection = () => {
           </div>
         </div>
       </div>
-
-      {/* Auth Modal */}
-      <AuthModal
-        isOpen={isAuthModalOpen}
-        onClose={() => setIsAuthModalOpen(false)}
-      />
     </section>
   );
 };

@@ -10,6 +10,19 @@ html {
   scroll-behavior: smooth;
 }
 
+/* 移动端弹窗支持 - 处理键盘弹出时的视口高度 */
+@supports (height: 100dvh) {
+  .mobile-modal-container {
+    max-height: 90dvh;
+  }
+}
+
+@supports not (height: 100dvh) {
+  .mobile-modal-container {
+    max-height: 90vh;
+  }
+}
+
 @layer base {
   * {
     @apply border-border;

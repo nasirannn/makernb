@@ -26,23 +26,46 @@ export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
   const [message, setMessage] = useState('');
   const [useMagicLink, setUseMagicLink] = useState(false);
 
-  // 阻止背景滚动和交互
+  // 阻止背景滚动和交互（强化的移动端支持）
   React.useEffect(() => {
     if (isOpen) {
-      document.body.style.overflow = 'hidden';
-      document.body.style.position = 'fixed';
-      document.body.style.width = '100%';
-    } else {
-      document.body.style.overflow = '';
-      document.body.style.position = '';
-      document.body.style.width = '';
+      // 保存当前滚动位置
+      const scrollY = window.scrollY;
+      
+      // 锁定 body 和 html
+      const body = document.body;
+      const html = document.documentElement;
+      
+      body.style.overflow = 'hidden';
+      body.style.position = 'fixed';
+      body.style.top = `-${scrollY}px`;
+      body.style.left = '0';
+      body.style.right = '0';
+      body.style.width = '100%';
+      
+      // 同时锁定 html（某些移动设备需要）
+      html.style.overflow = 'hidden';
+      html.style.position = 'relative';
+      html.style.height = '100%';
+      
+      return () => {
+        // 恢复 body 样式
+        body.style.overflow = '';
+        body.style.position = '';
+        body.style.top = '';
+        body.style.left = '';
+        body.style.right = '';
+        body.style.width = '';
+        
+        // 恢复 html 样式
+        html.style.overflow = '';
+        html.style.position = '';
+        html.style.height = '';
+        
+        // 恢复滚动位置
+        window.scrollTo(0, scrollY);
+      };
     }
-
-    return () => {
-      document.body.style.overflow = '';
-      document.body.style.position = '';
-      document.body.style.width = '';
-    };
   }, [isOpen]);
 
   const handleEmailAuth = async (e: React.FormEvent) => {
@@ -136,21 +159,52 @@ export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
 
   return (
     <div 
-      className="fixed inset-0 z-[110] flex items-center justify-center animate-in fade-in duration-300"
-      style={{ pointerEvents: 'auto' }}
+      className="fixed inset-0 z-[110] flex items-center justify-center p-4 animate-in fade-in duration-300"
+      style={{ 
+        pointerEvents: 'auto',
+        touchAction: 'none',
+        WebkitOverflowScrolling: 'touch',
+        overscrollBehavior: 'contain'
+      }}
+      onTouchMove={(e) => {
+        // 阻止外层容器的滚动
+        if (e.target === e.currentTarget) {
+          e.preventDefault();
+        }
+      }}
     >
       {/* Backdrop */}
       <div 
-        className="fixed inset-0 bg-black/50 backdrop-blur-sm animate-in fade-in duration-300 z-[110]"
+        className="fixed inset-0 bg-black/50 backdrop-blur-sm z-[110]"
         onClick={handleClose}
-        onMouseDown={(e) => e.preventDefault()}
-        onTouchStart={(e) => e.preventDefault()}
-        style={{ pointerEvents: 'auto' }}
+        onTouchMove={(e) => {
+          // 阻止遮罩层的滚动事件
+          e.preventDefault();
+          e.stopPropagation();
+        }}
+        style={{ 
+          pointerEvents: 'auto',
+          touchAction: 'none',
+          overscrollBehavior: 'none'
+        }}
       />
       
-      {/* Modal */}
-      <div className="relative w-full max-w-md mx-4 animate-in zoom-in-95 slide-in-from-bottom-4 duration-300 z-[111]">
-        <Card className="bg-white/10 backdrop-blur-lg border-white/20 shadow-2xl">
+      {/* Modal Container - 改进移动端布局 */}
+      <div 
+        className="relative w-full max-w-md z-[111] animate-in zoom-in-95 slide-in-from-bottom-4 duration-300 mobile-modal-container"
+        onTouchMove={(e) => {
+          // 允许弹窗内容滚动
+          e.stopPropagation();
+        }}
+      >
+        <div 
+          className="max-h-full overflow-y-auto"
+          style={{
+            overscrollBehavior: 'contain',
+            WebkitOverflowScrolling: 'touch'
+          }}
+        >
+          <Card className="bg-white/10 backdrop-blur-lg border-white/20 shadow-2xl">
           {/* Close Button */}
           <button
             onClick={handleClose}
@@ -328,6 +382,7 @@ export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
             </div>
           </CardContent>
         </Card>
+        </div>
       </div>
     </div>
   );
