@@ -6,7 +6,7 @@ import type { Metadata } from 'next';
 export const metadata: Metadata = {
   metadataBase: new URL('https://makernb.com'),
   title: "MakeRNB Blog - R&B Music Knowledge & History",
-  description: "Discover remarkable R&B songs, albums, and artists from the golden era. Learn about the history and culture of R&B music.",
+  description: "MakeRNB lets you instantly create and download studio-quality R&B songs with AI. Explore Neo-Soul, Quiet Storm & more — free, online, and easy to use.",
   alternates: {
     canonical: 'https://makernb.com/blog',
   },

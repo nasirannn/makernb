@@ -4,7 +4,7 @@ import type { Metadata } from 'next';
 export const metadata: Metadata = {
   metadataBase: new URL('https://makernb.com'),
   title: "Privacy Policy - MakeRNB",
-  description: "Privacy Policy for MakeRNB - AI-powered R&B music creation platform.",
+  description: "MakeRNB lets you instantly create and download studio-quality R&B songs with AI. Explore Neo-Soul, Quiet Storm & more — free, online, and easy to use.",
   alternates: {
     canonical: 'https://makernb.com/privacy',
   },

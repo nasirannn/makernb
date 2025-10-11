@@ -3,7 +3,7 @@ import { LibrarySection } from "@/components/layout/sections/library";
 export const metadata = {
   metadataBase: new URL('https://makernb.com'),
   title: "MakeRNB - Library - Classic & Contemporary R&B",
-  description: "Browse and manage your AI-generated R&B music collection. Play, download, and organize your classic and contemporary R&B tracks.",
+  description: "MakeRNB lets you instantly create and download studio-quality R&B songs with AI. Explore Neo-Soul, Quiet Storm & more — free, online, and easy to use.",
   alternates: {
     canonical: 'https://makernb.com/library',
   },

@@ -13,7 +13,7 @@ const inter = Inter({ subsets: ["latin"] });
 export const metadata: Metadata = {
   metadataBase: new URL('https://makernb.com'),
   title: "MakeRNB - AI-Powered Music Creation for R&B",
-  description: "Create authentic R&B music with AI. Generate professional-quality tracks in New Jack Swing, Hip-Hop Soul, Quiet Storm, and Neo-Soul genres.",
+  description: "MakeRNB lets you instantly create and download studio-quality R&B songs with AI. Explore Neo-Soul, Quiet Storm & more — free, online, and easy to use.",
   alternates: {
     canonical: 'https://makernb.com',
   },
