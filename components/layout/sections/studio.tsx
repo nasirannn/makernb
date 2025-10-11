@@ -28,7 +28,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import AuthModal from "@/components/ui/auth-modal";
-import { CheckCircle, Heart, HeartCrack } from "lucide-react";
+import { CheckCircle, Heart, HeartCrack, Music } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 import { toast } from "sonner";
 import { isAdmin } from "@/lib/auth-utils-optimized";
