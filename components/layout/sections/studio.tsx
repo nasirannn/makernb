@@ -1017,7 +1017,7 @@ const StudioContent = () => {
 
                         {/* Music Player - 固定在歌曲列表底部 */}
                         {currentPlayingTrack && (
-                        <div className={`fixed md:absolute left-0 right-0 z-[60] transition-all duration-300 ease-in-out md:bottom-0`} style={{ bottom: showLyrics ? '0px' : 'var(--mobile-nav-height, 0px)' }}>
+                        <div className={`fixed md:absolute left-0 right-0 z-40 transition-all duration-300 ease-in-out md:bottom-0`} style={{ bottom: showLyrics ? '0px' : 'var(--mobile-nav-height, 0px)' }}>
                                 <MusicPlayer
                                 tracks={allTracks.map(track => ({
                                     id: track.id,
@@ -1081,10 +1081,9 @@ const StudioContent = () => {
                     {/* Lyrics Panel - 右侧（移动端：浮层；桌面端：右侧栏） */}
                     {(showLyrics && selectedStudioTrack) && (
                         <>
-                        {/* Backdrop for mobile - 只覆盖到播放器上缘 */}
+                        {/* Backdrop for mobile */}
                         <div
-                            className="fixed left-0 right-0 top-0 bg-black/50 z-[50] md:hidden transition-opacity duration-300"
-                            style={{ bottom: showLyrics ? 'var(--player-height, 64px)' : 'calc(var(--mobile-nav-height, 0px) + var(--player-height, 64px))' }}
+                            className="fixed inset-0 bg-black/50 z-40 md:hidden transition-opacity duration-300"
                             onClick={() => {
                                 setShowLyrics(false);
                                 setSelectedStudioTrack(null);
@@ -1092,11 +1091,7 @@ const StudioContent = () => {
                             }}
                         />
                         <div
-                            className="fixed md:relative left-0 right-0 md:left-auto md:right-auto w-full md:w-1/3 md:h-full flex-shrink-0 z-[55] md:z-auto"
-                            style={{
-                                bottom: showLyrics ? '0px' : 'var(--mobile-nav-height, 0px)',
-                                height: showLyrics ? 'calc(100vh - var(--player-height, 64px))' : 'calc(100vh - var(--mobile-nav-height, 0px) - var(--player-height, 64px))'
-                            }}
+                            className="fixed md:relative bottom-0 left-0 right-0 md:left-auto md:right-auto w-full md:w-1/3 h-[calc(95dvh-4rem)] md:h-full flex-shrink-0 z-50 md:z-auto"
                         >
                             {/* 歌词内容区域 */}
                             <div className="flex-1 min-h-0">

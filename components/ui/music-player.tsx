@@ -212,7 +212,7 @@ export const MusicPlayer: React.FC<MusicPlayerProps> = ({
 
         {/* 移动端：始终显示圆环模式 */}
         {isMobile && (
-          <div className="flex items-center justify-center space-x-4 flex-1 min-w-0 h-full">
+          <div className="flex items-center justify-center space-x-2 flex-1 min-w-0 h-full">
             {/* 上一首按钮 */}
             <button
               onClick={onPrevious}
@@ -225,22 +225,22 @@ export const MusicPlayer: React.FC<MusicPlayerProps> = ({
             {/* 圆环内部播放按钮 */}
             <div className="relative">
               {/* 外圆环 */}
-              <div className="w-12 h-12 rounded-full border-2 border-white/30 flex items-center justify-center">
+              <div className="w-11 h-11 rounded-full border-2 border-white/30 flex items-center justify-center">
                 {/* 内圆环 - 始终显示进度 */}
                 <div 
                   className="absolute inset-0 rounded-full transition-all duration-300"
                   style={{
                     border: 'none',
                     background: `conic-gradient(from 0deg, hsl(var(--primary)) 0deg, hsl(var(--primary)) ${progressPercentage * 3.6}deg, transparent ${progressPercentage * 3.6}deg)`,
-                    WebkitMask: 'radial-gradient(circle, transparent 16px, black 16px)',
-                    mask: 'radial-gradient(circle, transparent 16px, black 16px)'
+                    WebkitMask: 'radial-gradient(circle, transparent 15px, black 15px)',
+                    mask: 'radial-gradient(circle, transparent 15px, black 15px)'
                   }}
                 />
                 
                 {/* 播放/暂停按钮 */}
                 <button
                   onClick={onPlayPause}
-                  className="relative z-10 bg-white text-black rounded-full w-7 h-7 flex items-center justify-center hover:scale-105 transition-transform duration-200 shadow-lg"
+                  className="relative z-10 bg-white text-black rounded-full w-6 h-6 flex items-center justify-center hover:scale-105 transition-transform duration-200 shadow-lg"
                 >
                   {isPlaying ? (
                     <Pause className="w-3 h-3" />
