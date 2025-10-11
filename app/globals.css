@@ -13,11 +13,18 @@ html {
 /* 移动端弹窗支持 - 处理键盘弹出时的视口高度 */
 @supports (height: 100dvh) {
   .mobile-modal-container {
-    max-height: 90dvh;
+    max-height: 95dvh;
   }
 }
 
 @supports not (height: 100dvh) {
+  .mobile-modal-container {
+    max-height: 95vh;
+  }
+}
+
+/* 桌面端弹窗样式 */
+@media (min-width: 768px) {
   .mobile-modal-container {
     max-height: 90vh;
   }

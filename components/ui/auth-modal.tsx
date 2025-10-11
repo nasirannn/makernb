@@ -159,7 +159,7 @@ export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
 
   return (
     <div 
-      className="fixed inset-0 z-[110] flex items-center justify-center p-4 animate-in fade-in duration-300"
+      className="fixed inset-0 z-[110] flex md:items-center md:justify-center items-end justify-center animate-in fade-in duration-300"
       style={{ 
         pointerEvents: 'auto',
         touchAction: 'none',
@@ -189,9 +189,9 @@ export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
         }}
       />
       
-      {/* Modal Container - 改进移动端布局 */}
+      {/* Modal Container - 移动端从底部弹出 */}
       <div 
-        className="relative w-full max-w-md z-[111] animate-in zoom-in-95 slide-in-from-bottom-4 duration-300 mobile-modal-container"
+        className="relative w-full md:max-w-md md:mx-4 z-[111] animate-in slide-in-from-bottom md:zoom-in-95 duration-300 mobile-modal-container"
         onTouchMove={(e) => {
           // 允许弹窗内容滚动
           e.stopPropagation();
@@ -204,31 +204,36 @@ export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
             WebkitOverflowScrolling: 'touch'
           }}
         >
-          <Card className="bg-white/10 backdrop-blur-lg border-white/20 shadow-2xl">
-          {/* Close Button */}
+          <Card className="bg-white/10 backdrop-blur-lg border-white/20 shadow-2xl rounded-t-3xl md:rounded-xl rounded-b-none md:rounded-b-xl">
+          {/* Mobile Drag Handle */}
+          <div className="flex md:hidden justify-center pt-3 pb-2">
+            <div className="w-12 h-1 bg-white/30 rounded-full"></div>
+          </div>
+          
+          {/* Close Button - 桌面端显示在右上角 */}
           <button
             onClick={handleClose}
-            className="absolute top-4 right-4 z-10 text-white/70 hover:text-white transition-colors"
+            className="hidden md:block absolute top-4 right-4 z-10 text-white/70 hover:text-white transition-colors bg-white/10 hover:bg-white/20 rounded-full p-1.5"
           >
             <X className="h-5 w-5" />
           </button>
 
-          <CardHeader className="text-center pb-4">
+          <CardHeader className="text-center pb-3 px-4 pt-2 md:px-6 md:pt-6">
             {/* Logo */}
-            <div className="flex justify-center mb-4">
+            <div className="flex justify-center mb-3">
               <Image
                 src="/logo.svg"
                 alt="MakeRNB Logo"
-                width={48}
-                height={48}
-                className="h-12 w-12"
+                width={40}
+                height={40}
+                className="h-10 w-10 md:h-12 md:w-12"
               />
             </div>
             
-            <CardTitle className="text-2xl font-bold text-white">
+            <CardTitle className="text-xl md:text-2xl font-bold text-white mb-2">
               {isForgotPassword ? 'Reset Password' : (isLogin ? 'Sign In' : 'Create Account')}
             </CardTitle>
-            <CardDescription className="text-white/70">
+            <CardDescription className="text-white/70 text-sm">
               {isForgotPassword
                 ? 'Enter your email to receive a password reset link'
                 : (isLogin
@@ -238,14 +243,14 @@ export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
             </CardDescription>
           </CardHeader>
           
-          <CardContent className="space-y-6">
+          <CardContent className="space-y-4 md:space-y-6 px-4 pb-4 md:px-6 md:pb-6">
             {!isForgotPassword && (
               <>
                 {/* Google Sign In */}
                 <Button
                   onClick={handleGoogleAuth}
                   disabled={loading}
-                  className="w-full h-12 bg-white hover:bg-white/90 text-black font-medium rounded-xl transition-all duration-200 disabled:opacity-50"
+                  className="w-full h-11 md:h-12 bg-white hover:bg-white/90 text-black font-medium rounded-xl transition-all duration-200 disabled:opacity-50 text-base"
                 >
                   {loading ? (
                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />
@@ -273,9 +278,9 @@ export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
             )}
 
             {/* Email Form */}
-            <form onSubmit={isForgotPassword ? handleForgotPassword : handleEmailAuth} className="space-y-4">
-              <div className="space-y-2">
-                <Label htmlFor="email" className="text-white">Email</Label>
+            <form onSubmit={isForgotPassword ? handleForgotPassword : handleEmailAuth} className="space-y-3 md:space-y-4">
+              <div className="space-y-1.5">
+                <Label htmlFor="email" className="text-white text-sm">Email</Label>
                 <Input
                   id="email"
                   type="email"
@@ -283,15 +288,15 @@ export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   required
-                  className="bg-white/10 border-white/20 text-white placeholder:text-white/50 focus:border-blue-500/50"
+                  className="bg-white/10 border-white/20 text-white placeholder:text-white/50 focus:border-blue-500/50 h-11 text-base"
                 />
               </div>
               
               {/* Password field - only show for password login/signup and not in forgot password mode */}
               {!isForgotPassword && !useMagicLink && (
-                <div className="space-y-2">
+                <div className="space-y-1.5">
                   <div className="flex items-center justify-between">
-                    <Label htmlFor="password" className="text-white">Password</Label>
+                    <Label htmlFor="password" className="text-white text-sm">Password</Label>
                     {isLogin && (
                       <button
                         type="button"
@@ -309,7 +314,7 @@ export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
                     required
-                    className="bg-white/10 border-white/20 text-white placeholder:text-white/50 focus:border-blue-500/50"
+                    className="bg-white/10 border-white/20 text-white placeholder:text-white/50 focus:border-blue-500/50 h-11 text-base"
                   />
                 </div>
               )}
@@ -332,7 +337,7 @@ export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
               <Button
                 type="submit"
                 disabled={loading}
-                className="w-full h-12 bg-primary hover:bg-primary/90 text-primary-foreground font-medium rounded-xl transition-all duration-200 disabled:opacity-50"
+                className="w-full h-11 md:h-12 bg-primary hover:bg-primary/90 text-primary-foreground font-medium rounded-xl transition-all duration-200 disabled:opacity-50 text-base"
               >
                 {loading ? (
                   <LoadingDots size="sm" color="white" className="mr-2" />
@@ -379,6 +384,17 @@ export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
                   }
                 </button>
               )}
+            </div>
+
+            {/* Mobile Close Button - 移动端显示在底部 */}
+            <div className="md:hidden pt-2">
+              <Button
+                onClick={handleClose}
+                variant="outline"
+                className="w-full h-11 bg-white/10 hover:bg-white/20 text-white border-white/20 hover:border-white/30 rounded-xl font-medium"
+              >
+                Close
+              </Button>
             </div>
           </CardContent>
         </Card>
