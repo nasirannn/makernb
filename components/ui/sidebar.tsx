@@ -252,11 +252,7 @@ export const CommonSidebar = ({ hideMobileNav = false }: CommonSidebarProps) => 
             className={`h-12 w-12 flex items-center justify-center hover:bg-muted/50 transition-all duration-300 rounded-lg ${pathname === '/studio' ? 'text-primary' : 'text-muted-foreground'}`}
             id="mobile-studio-nav"
           >
-            {pathname === '/studio' ? (
-              <Image src="/icons/Two-Flexible-Creation-Modes.svg" alt="Studio" width={28} height={28} className="h-7 w-7" />
-            ) : (
-              <Music className="h-7 w-7" />
-            )}
+            <Music className="h-7 w-7" />
           </Button>
 
           {/* Explore Button */}

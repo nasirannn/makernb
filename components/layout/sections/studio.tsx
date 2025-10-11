@@ -28,7 +28,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import AuthModal from "@/components/ui/auth-modal";
-import { CheckCircle, Heart, HeartCrack, Music } from "lucide-react";
+import { CheckCircle, Heart, HeartCrack } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 import { toast } from "sonner";
 import { isAdmin } from "@/lib/auth-utils-optimized";
@@ -1126,7 +1126,13 @@ const StudioContent = () => {
                     }}
                     aria-label="Open create panel"
                 >
-                    <Music className="h-6 w-6" />
+                    <Image 
+                        src="/icons/Two-Flexible-Creation-Modes.svg" 
+                        alt="Create" 
+                        width={28} 
+                        height={28} 
+                        className="h-7 w-7"
+                    />
                 </button>
 
             </section>
