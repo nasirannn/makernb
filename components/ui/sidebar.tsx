@@ -300,10 +300,10 @@ export const CommonSidebar = ({ hideMobileNav = false }: CommonSidebarProps) => 
                 <div className="absolute bottom-12 left-1/2 transform -translate-x-1/2 bg-background border border-border/30 rounded-lg shadow-lg p-2 min-w-48 z-[40]">
                   <div className="flex flex-col gap-1">
                     <div className="px-3 py-2 border-b border-border/20 mb-2">
-                      <div className="text-sm font-medium text-foreground">
-                        {user.user_metadata?.full_name || 'User'}
+                      <div className="text-sm font-medium text-foreground truncate">
+                        {user.user_metadata?.full_name || user.email}
                       </div>
-                      <div className="text-xs text-muted-foreground mt-1">
+                      <div className="text-xs text-muted-foreground mt-1 truncate">
                         {user.email}
                       </div>
                     </div>
