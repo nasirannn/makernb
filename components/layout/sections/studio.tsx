@@ -33,6 +33,7 @@ import { supabase } from "@/lib/supabase";
 import { toast } from "sonner";
 import { isAdmin } from "@/lib/auth-utils-optimized";
 import Image from "next/image";
+import Link from "next/link";
 
 const StudioContent = () => {
     // Custom Hooks
@@ -894,12 +895,18 @@ const StudioContent = () => {
                 {/* Mobile Create Panel - 移动端常显 */}
                 <div className="md:hidden flex-1 relative overflow-hidden flex flex-col">
                     {/* Mobile Header */}
-                    <div className="flex-shrink-0 px-6 pt-6 pb-4 bg-background/60 backdrop-blur-sm">
+                    <div className="flex-shrink-0 px-6 py-3 bg-background/60 backdrop-blur-sm">
                         <div className="flex items-center justify-between gap-3">
-                            <div className="flex items-center gap-3">
-                                <Music className="h-8 w-8 text-primary" />
-                                <h1 className="text-4xl font-semibold">Studio</h1>
-                            </div>
+                            <Link href="/" className="font-bold text-lg flex items-center">
+                                <Image
+                                    src="/logo.svg"
+                                    alt="MakeRNB Logo"
+                                    width={36}
+                                    height={36}
+                                    className="mr-3"
+                                />
+                                MakeRNB
+                            </Link>
                             {/* Credits Display */}
                             <div className="flex items-center gap-2 px-3 py-1.5 bg-foreground/10 backdrop-blur-sm border border-foreground/20 rounded-lg">
                                 <Sparkles className="h-3.5 w-3.5 text-foreground" />

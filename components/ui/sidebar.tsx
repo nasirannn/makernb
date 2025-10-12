@@ -103,18 +103,6 @@ export const CommonSidebar = ({ hideMobileNav = false }: CommonSidebarProps) => 
               </Button>
             </Tooltip>
 
-            {/* Explore Button */}
-            <Tooltip content="🔍 Explore" position="right">
-              <Button
-                onClick={() => router.push('/explore')}
-                variant="ghost"
-                size="sm"
-                className={`w-12 h-12 flex items-center justify-center hover:bg-muted/50 hover:text-white hover:scale-110 transition-all duration-300 rounded-lg ${pathname === '/explore' ? 'bg-primary/20 text-primary shadow-sm' : 'text-muted-foreground'}`}
-              >
-                <Compass className="h-5 w-5" />
-              </Button>
-            </Tooltip>
-
             {/* Library Button */}
             <Tooltip content="📚 Library" position="right">
               <Button
@@ -124,6 +112,18 @@ export const CommonSidebar = ({ hideMobileNav = false }: CommonSidebarProps) => 
                 className={`w-12 h-12 flex items-center justify-center hover:bg-muted/50 hover:text-white hover:scale-110 transition-all duration-300 rounded-lg ${pathname === '/library' ? 'bg-primary/20 text-primary shadow-sm' : 'text-muted-foreground'}`}
               >
                 <Library className="h-5 w-5" />
+              </Button>
+            </Tooltip>
+
+            {/* Explore Button */}
+            <Tooltip content="🔍 Explore" position="right">
+              <Button
+                onClick={() => router.push('/explore')}
+                variant="ghost"
+                size="sm"
+                className={`w-12 h-12 flex items-center justify-center hover:bg-muted/50 hover:text-white hover:scale-110 transition-all duration-300 rounded-lg ${pathname === '/explore' ? 'bg-primary/20 text-primary shadow-sm' : 'text-muted-foreground'}`}
+              >
+                <Compass className="h-5 w-5" />
               </Button>
             </Tooltip>
 
@@ -226,24 +226,6 @@ export const CommonSidebar = ({ hideMobileNav = false }: CommonSidebarProps) => 
       {/* Mobile Bottom Navigation */}
       <div ref={mobileNavRef} className={`md:hidden fixed bottom-0 left-0 right-0 bg-background/95 backdrop-blur-sm border-t border-border/30 z-50 transition-transform duration-300 ${hideMobileNav ? 'translate-y-full' : 'translate-y-0'}`}>
         <div className="flex items-center justify-around py-2">
-          {/* Home Button */}
-          <Button
-            asChild
-            variant="ghost"
-            size="sm"
-            className={`h-12 w-12 flex items-center justify-center hover:bg-muted/50 transition-all duration-300 rounded-lg ${pathname === '/' ? 'bg-primary/20 text-primary shadow-sm' : 'text-muted-foreground'}`}
-          >
-            <Link href="/">
-              <Image
-                src="/logo.svg"
-                alt="Logo"
-                width={24}
-                height={24}
-                className="h-7 w-7"
-              />
-            </Link>
-          </Button>
-
           {/* Studio Button */}
           <Button
             onClick={() => router.push('/studio')}
@@ -253,6 +235,16 @@ export const CommonSidebar = ({ hideMobileNav = false }: CommonSidebarProps) => 
             id="mobile-studio-nav"
           >
             <Music className="h-7 w-7" />
+          </Button>
+
+          {/* Library Button */}
+          <Button
+            onClick={() => router.push('/library')}
+            variant="ghost"
+            size="sm"
+            className={`h-12 w-12 flex items-center justify-center hover:bg-muted/50 transition-all duration-300 rounded-lg ${pathname === '/library' ? 'bg-primary/20 text-primary shadow-sm' : 'text-muted-foreground'}`}
+          >
+            <Library className="h-7 w-7" />
           </Button>
 
           {/* Explore Button */}
@@ -265,14 +257,14 @@ export const CommonSidebar = ({ hideMobileNav = false }: CommonSidebarProps) => 
             <Compass className="h-7 w-7" />
           </Button>
 
-          {/* Library Button */}
+          {/* Blog Button */}
           <Button
-            onClick={() => router.push('/library')}
+            onClick={() => router.push('/blog')}
             variant="ghost"
             size="sm"
-            className={`h-12 w-12 flex items-center justify-center hover:bg-muted/50 transition-all duration-300 rounded-lg ${pathname === '/library' ? 'bg-primary/20 text-primary shadow-sm' : 'text-muted-foreground'}`}
+            className={`h-12 w-12 flex items-center justify-center hover:bg-muted/50 transition-all duration-300 rounded-lg ${pathname === '/blog' ? 'bg-primary/20 text-primary shadow-sm' : 'text-muted-foreground'}`}
           >
-            <Library className="h-7 w-7" />
+            <BookOpen className="h-7 w-7" />
           </Button>
 
           {/* User Button */}

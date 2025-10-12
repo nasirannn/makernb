@@ -1,6 +1,8 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
+import Image from 'next/image';
+import Link from 'next/link';
 import { SafeImage } from './safe-image';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -374,12 +376,20 @@ export const LibraryPanel = ({
   return (
     <div className="h-full flex flex-col bg-transparent">
       {/* Header */}
-      <div className="flex-shrink-0 px-6 pt-6 pb-4 bg-background/60 backdrop-blur-sm">
-        <div className="flex items-center gap-3 mb-4">
-          <Library className="h-8 w-8 text-primary" />
-          <h1 className="text-4xl font-semibold">Library</h1>
-        </div>
+      <div className="flex-shrink-0 px-6 py-3 bg-background/60 backdrop-blur-sm">
+        <Link href="/" className="font-bold text-lg flex items-center">
+          <Image
+            src="/logo.svg"
+            alt="MakeRNB Logo"
+            width={36}
+            height={36}
+            className="mr-3"
+          />
+          MakeRNB
+        </Link>
+      </div>
 
+      <div className="flex-shrink-0 px-6 pb-4 bg-transparent">
         {/* Tabs and Search Row */}
         <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
           {/* Navigation Tabs */}

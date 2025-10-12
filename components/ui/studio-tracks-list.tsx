@@ -384,13 +384,13 @@ export const StudioTracksList: React.FC<StudioTracksListProps> = ({
                     e.stopPropagation();
                     handlePlayPause(track);
                   }}
-                  className="md:hidden flex-shrink-0 h-8 w-8 flex items-center justify-center text-foreground hover:text-foreground/80 transition-colors mt-5"
+                  className="md:hidden flex-shrink-0 h-7 w-7 flex items-center justify-center text-foreground hover:text-foreground/80 transition-colors mt-5"
                   aria-label={currentlyPlaying === track.id && isPlaying ? "Pause" : "Play"}
                 >
                   {currentlyPlaying === track.id && isPlaying ? (
-                    <Pause className="h-5 w-5" />
+                    <Pause className="h-4 w-4" />
                   ) : (
-                    <Play className="h-5 w-5 ml-0.5" />
+                    <Play className="h-4 w-4 ml-0.5" />
                   )}
                 </button>
               </div>
