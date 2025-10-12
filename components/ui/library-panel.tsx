@@ -556,10 +556,10 @@ export const LibraryPanel = ({
                         {track.title}
                       </h3>
                       {/* Tags */}
-                      <p className="text-xs text-muted-foreground truncate mb-1">
+                      <p className="text-xs text-muted-foreground truncate md:line-clamp-2 mb-1">
                         {(() => {
                           const tags = track.tags;
-                          return tags && tags.length > 50 ? `${tags.substring(0, 50)}...` : tags;
+                          return tags && tags.length > 120 ? `${tags.substring(0, 120)}...` : tags;
                         })()}
                       </p>
                       {/* Duration */}
@@ -571,7 +571,7 @@ export const LibraryPanel = ({
 
                    {/* Action Buttons - Hidden on mobile, only show on desktop when lyrics panel is closed */}
                    {!showLyrics && (
-                     <div className="hidden md:flex items-center gap-3 flex-shrink-0 mt-5">
+                     <div className="hidden md:flex items-center gap-5 flex-shrink-0 mt-5">
                        {/* Favorite Button */}
                        <Button
                          variant="ghost"
