@@ -47,7 +47,6 @@ interface MusicPlayerProps {
   onVolumeChange: (volume: number) => void;
   onMuteToggle: () => void;
   onTrackChange: (index: number) => void;
-  onSideChange?: (trackId: string, audioUrl: string) => void;
 }
 
 const formatTime = (seconds: number): string => {
@@ -74,7 +73,6 @@ export const MusicPlayer: React.FC<MusicPlayerProps> = ({
   onVolumeChange,
   onMuteToggle,
   onTrackChange,
-  onSideChange
 }) => {
   const currentTrack = tracks[currentTrackIndex];
   const [isMobile, setIsMobile] = useState(false);

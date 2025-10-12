@@ -212,10 +212,6 @@ export const ExploreSection = () => {
     setIsPlaying(true);
   };
 
-  const handleSideChange = (trackId: string, audioUrl: string) => {
-    playTrack(currentTrackIndex, trackId, audioUrl);
-  };
-
   // 播放器控制函数
   const handlePlayerPlayPause = () => {
     if (audioRef.current) {
@@ -416,7 +412,6 @@ export const ExploreSection = () => {
                 onVolumeChange={handleVolumeChange}
                 onMuteToggle={handleMuteToggle}
                 onTrackChange={handleTrackChange}
-                onSideChange={handleSideChange}
               />
             </div>
           </div>
@@ -448,7 +443,6 @@ export const ExploreSection = () => {
               onVolumeChange={handleVolumeChange}
               onMuteToggle={handleMuteToggle}
               onTrackChange={handleTrackChange}
-              onSideChange={handleSideChange}
             />
           </div>
         </>

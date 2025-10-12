@@ -9,57 +9,18 @@ interface CassetteTapeProps {
   title?: string
   className?: string
   isPlaying?: boolean
-  onSideClick?: () => void
 }
 
 export const CassetteTape = ({
   sideLetter = '',
   className = '',
   isPlaying = false,
-  onSideClick
 }: CassetteTapeProps) => {
   const [svgContent, setSvgContent] = useState('')
-  const [currentSideLetter, setCurrentSideLetter] = useState(sideLetter)
   const containerRef = useRef<HTMLDivElement>(null)
   const rafRef = useRef<number | null>(null)
   const angleRef = useRef<number>(0)
   const lastTsRef = useRef<number | null>(null)
-  const sideSwitchRef = useRef<number | null>(null)
-
-  // 当 sideLetter prop 变化时，更新 currentSideLetter
-  useEffect(() => {
-    setCurrentSideLetter(sideLetter)
-  }, [sideLetter])
-
-  // 处理磁带点击
-  const handleClick = () => {
-    if (!onSideClick) return
-    onSideClick()
-  }
-
-  // 自动切换 side letter（每30秒切换一次）
-  useEffect(() => {
-    if (isPlaying) {
-      const switchSide = () => {
-        setCurrentSideLetter(prev => prev === 'A' ? 'B' : 'A')
-      }
-      
-      // 每30秒切换一次
-      sideSwitchRef.current = window.setInterval(switchSide, 30000)
-    } else {
-      if (sideSwitchRef.current) {
-        clearInterval(sideSwitchRef.current)
-        sideSwitchRef.current = null
-      }
-    }
-
-    return () => {
-      if (sideSwitchRef.current) {
-        clearInterval(sideSwitchRef.current)
-        sideSwitchRef.current = null
-      }
-    }
-  }, [isPlaying])
 
   // 加载SVG内容
   useEffect(() => {
@@ -69,7 +30,7 @@ export const CassetteTape = ({
         let svgText = await response.text()
         
         // 替换SVG模板中的变量
-        svgText = svgText.replace('{{SIDE_LETTER}}', currentSideLetter)
+        svgText = svgText.replace('{{SIDE_LETTER}}', sideLetter)
         
         // 添加样式确保SVG填满容器
         svgText = svgText.replace(
@@ -84,7 +45,7 @@ export const CassetteTape = ({
     }
 
     loadSVG()
-  }, [currentSideLetter])
+  }, [sideLetter])
 
   // 使用 rAF 同步旋转（与音频播放状态一致）
   useEffect(() => {
@@ -161,8 +122,7 @@ export const CassetteTape = ({
   return (
     <div
       ref={containerRef}
-      className={`flex items-center justify-center ${className} ${onSideClick ? 'cursor-pointer' : ''}`}
-      onClick={handleClick}
+      className={`flex items-center justify-center ${className}`}
       dangerouslySetInnerHTML={{ __html: svgContent }}
     />
   )

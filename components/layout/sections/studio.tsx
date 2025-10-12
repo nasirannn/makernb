@@ -1033,7 +1033,6 @@ const StudioContent = () => {
                                             switchToTrack(selectedTrack);
                                         }
                                     }}
-                                    onSideChange={() => {}}
                                 />
                             </div>
                         )}
@@ -1270,7 +1269,6 @@ const StudioContent = () => {
                                 switchToTrack(selectedTrack);
                             }
                         }}
-                        onSideChange={() => {}}
                         />
                         
                         {/* Mobile List Button - 移动端列表按钮（覆盖在播放器右侧） */}

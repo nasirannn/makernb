@@ -39,7 +39,6 @@ const LibraryContent = () => {
     const [selectedForLyrics, setSelectedForLyrics] = useState<string | null>(null);
     const [libraryTracks, setLibraryTracks] = useState<any[]>([]);
     const [isLoadingLibrary, setIsLoadingLibrary] = useState(false);
-    const [currentSide, setCurrentSide] = useState<'A' | 'B'>('A');
     const [showLyrics, setShowLyrics] = useState(false);
     const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
     const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
@@ -290,9 +289,6 @@ const LibraryContent = () => {
         // 检查是否是同一首歌，如果是同一首歌则不重新加载音频
         const isSameTrack = selectedLibraryTrack === trackId;
 
-        // 设置当前side
-        setCurrentSide(selectedTrack.side_letter || 'A');
-
         // 只有在切换到不同歌曲时才重新加载音频
         if (!isSameTrack) {
             const trackData = {
@@ -328,7 +324,6 @@ const LibraryContent = () => {
         // 切换到另一个track
         const otherTrack = sameSongTracks[0];
         setSelectedLibraryTrack(otherTrack.id);
-        setCurrentSide(otherTrack.sideLetter);
         updateCurrentTrackFromLibrary(otherTrack, true); // 自动播放
     };
 
@@ -493,7 +488,6 @@ const LibraryContent = () => {
                                         };
 
                                         setCurrentTrack(trackData);
-                                        setCurrentSide(selectedTrack.side_letter || 'A');
 
                                         // 加载并播放音频
                                         audioRef.current.pause();
@@ -635,9 +629,6 @@ const LibraryContent = () => {
                                             setSelectedLibraryTrack(newTrack.id);
                                             handleLibraryTrackSelect(newTrack.id);
                                         }
-                                    }}
-                                    onSideChange={(side: 'A' | 'B') => {
-                                        setCurrentSide(side);
                                     }}
                                 />
                             </div>
@@ -837,7 +828,6 @@ const LibraryContent = () => {
                                         handleLibraryTrackSelect(newTrack.id);
                                     }
                                 }}
-                                onSideChange={() => {}}
                             />
                         </div>
                     </div>
