@@ -375,8 +375,8 @@ export const LibraryPanel = ({
 
   return (
     <div className="h-full flex flex-col bg-transparent">
-      {/* Header */}
-      <div className="flex-shrink-0 px-6 py-3 bg-background/60 backdrop-blur-sm">
+      {/* Mobile Header - 移动端显示 logo 和品牌 */}
+      <div className="flex-shrink-0 md:hidden px-6 py-3 bg-background/60 backdrop-blur-sm">
         <Link href="/" className="font-bold text-lg flex items-center">
           <Image
             src="/logo.svg"
@@ -387,6 +387,14 @@ export const LibraryPanel = ({
           />
           MakeRNB
         </Link>
+      </div>
+
+      {/* Desktop Header - 桌面端显示 Library 标题 */}
+      <div className="hidden md:block flex-shrink-0 px-6 pt-6 pb-4 bg-background/60 backdrop-blur-sm">
+        <div className="flex items-center gap-3 mb-4">
+          <Library className="h-8 w-8 text-primary" />
+          <h1 className="text-4xl font-semibold">Library</h1>
+        </div>
       </div>
 
       <div className="flex-shrink-0 px-6 pb-4 bg-transparent">
