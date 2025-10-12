@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import Image from 'next/image';
-import { SkipBack, Play, Pause, SkipForward, Volume2, VolumeX } from 'lucide-react';
+import { Play, Pause, Rewind, FastForward, Volume2, VolumeX } from 'lucide-react';
 import { Slider } from '@/components/ui/slider';
 
 interface Track {
@@ -54,7 +54,7 @@ const formatTime = (seconds: number): string => {
   if (!seconds || isNaN(seconds) || !isFinite(seconds)) return '--:--';
   const mins = Math.floor(seconds / 60);
   const secs = Math.floor(seconds % 60);
-  return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+  return `${mins}:${secs.toString().padStart(2, '0')}`;
 };
 
 export const MusicPlayer: React.FC<MusicPlayerProps> = ({
@@ -179,11 +179,11 @@ export const MusicPlayer: React.FC<MusicPlayerProps> = ({
   }, [hideProgress, isPlaying]);
 
   return (
-    <div ref={rootRef} className="bg-background/30 backdrop-blur-md border-t border-border/20 px-3 sm:px-4 py-2 sm:py-3">
-      <div className="flex items-center space-x-3 sm:space-x-4 w-full sm:max-w-6xl sm:mx-auto h-16 sm:h-12">
+    <div ref={rootRef} className="bg-background/30 backdrop-blur-md border-t-0 md:border-t md:border-border/20 rounded-xl md:rounded-none pl-3 pr-14 py-2 md:px-4 md:py-3">
+      <div className="flex items-center space-x-3 sm:space-x-6 w-full sm:max-w-6xl sm:mx-auto h-full sm:h-12">
         
         {/* 左侧：歌曲信息 */}
-        <div className="flex items-center space-x-3 sm:space-x-3 min-w-0 flex-shrink-0 w-40 sm:w-48">
+        <div className="flex items-center space-x-3 sm:space-x-3 min-w-0 flex-1 sm:flex-initial sm:flex-shrink-0 sm:max-w-64">
           {currentCoverImage && (
             <div className="relative w-12 h-12 sm:w-12 sm:h-12 flex-shrink-0 group">
               {/* 封面图片容器 */}
@@ -212,28 +212,37 @@ export const MusicPlayer: React.FC<MusicPlayerProps> = ({
 
         {/* 移动端：始终显示圆环模式 */}
         {isMobile && (
-          <div className="flex items-center justify-center space-x-2 flex-1 min-w-0 h-full">
+          <div className="flex items-center justify-end space-x-2 flex-shrink-0 h-full pr-0">
             {/* 上一首按钮 */}
             <button
               onClick={onPrevious}
               disabled={currentTrackIndex === 0}
-              className="text-gray-400 hover:text-white disabled:opacity-50 disabled:cursor-not-allowed transition-colors p-2"
+              className="text-gray-400 hover:text-white disabled:opacity-50 disabled:cursor-not-allowed transition-colors p-1"
             >
-              <SkipBack className="w-5 h-5" />
+              <Rewind className="w-4.5 h-4.5" />
             </button>
 
             {/* 圆环内部播放按钮 */}
             <div className="relative">
               {/* 外圆环 */}
-              <div className="w-11 h-11 rounded-full border-2 border-white/30 flex items-center justify-center">
-                {/* 内圆环 - 始终显示进度 */}
+              <div className="w-8 h-8 rounded-full flex items-center justify-center">
+                {/* 背景圆环 - 未播放部分 */}
+                <div 
+                  className="absolute inset-0 rounded-full"
+                  style={{
+                    background: 'rgba(255, 255, 255, 0.2)',
+                    WebkitMask: 'radial-gradient(circle, transparent 14px, black 14px)',
+                    mask: 'radial-gradient(circle, transparent 14px, black 14px)'
+                  }}
+                />
+                {/* 进度圆环 - 已播放部分 */}
                 <div 
                   className="absolute inset-0 rounded-full transition-all duration-300"
                   style={{
                     border: 'none',
                     background: `conic-gradient(from 0deg, hsl(var(--primary)) 0deg, hsl(var(--primary)) ${progressPercentage * 3.6}deg, transparent ${progressPercentage * 3.6}deg)`,
-                    WebkitMask: 'radial-gradient(circle, transparent 15px, black 15px)',
-                    mask: 'radial-gradient(circle, transparent 15px, black 15px)'
+                    WebkitMask: 'radial-gradient(circle, transparent 14px, black 14px)',
+                    mask: 'radial-gradient(circle, transparent 14px, black 14px)'
                   }}
                 />
                 
@@ -255,9 +264,9 @@ export const MusicPlayer: React.FC<MusicPlayerProps> = ({
             <button
               onClick={onNext}
               disabled={currentTrackIndex === tracks.length - 1}
-              className="text-gray-400 hover:text-white disabled:opacity-50 disabled:cursor-not-allowed transition-colors p-2"
+              className="text-gray-400 hover:text-white disabled:opacity-50 disabled:cursor-not-allowed transition-colors p-1"
             >
-              <SkipForward className="w-5 h-5" />
+              <FastForward className="w-4.5 h-4.5" />
             </button>
           </div>
         )}
@@ -272,21 +281,30 @@ export const MusicPlayer: React.FC<MusicPlayerProps> = ({
               disabled={currentTrackIndex === 0}
               className="text-gray-400 hover:text-white disabled:opacity-50 disabled:cursor-not-allowed transition-colors p-2"
             >
-              <SkipBack className="w-5 h-5" />
+              <Rewind className="w-5 h-5" />
             </button>
 
             {/* 圆环内部播放按钮 */}
             <div className="relative">
               {/* 外圆环 */}
-              <div className="w-10 h-10 rounded-full border-2 border-white/30 flex items-center justify-center">
-                {/* 内圆环 - 始终显示进度 */}
+              <div className="w-10 h-10 rounded-full flex items-center justify-center">
+                {/* 背景圆环 - 未播放部分 */}
+                <div 
+                  className="absolute inset-0 rounded-full"
+                  style={{
+                    background: 'rgba(255, 255, 255, 0.2)',
+                    WebkitMask: 'radial-gradient(circle, transparent 16.5px, black 16.5px)',
+                    mask: 'radial-gradient(circle, transparent 16.5px, black 16.5px)'
+                  }}
+                />
+                {/* 进度圆环 - 已播放部分 */}
                 <div 
                   className="absolute inset-0 rounded-full transition-all duration-300"
                   style={{
                     border: 'none',
                     background: `conic-gradient(from 0deg, hsl(var(--primary)) 0deg, hsl(var(--primary)) ${progressPercentage * 3.6}deg, transparent ${progressPercentage * 3.6}deg)`,
-                    WebkitMask: 'radial-gradient(circle, transparent 12px, black 12px)',
-                    mask: 'radial-gradient(circle, transparent 12px, black 12px)'
+                    WebkitMask: 'radial-gradient(circle, transparent 16.5px, black 16.5px)',
+                    mask: 'radial-gradient(circle, transparent 16.5px, black 16.5px)'
                   }}
                 />
                 
@@ -310,7 +328,7 @@ export const MusicPlayer: React.FC<MusicPlayerProps> = ({
               disabled={currentTrackIndex === tracks.length - 1}
               className="text-gray-400 hover:text-white disabled:opacity-50 disabled:cursor-not-allowed transition-colors p-2"
             >
-              <SkipForward className="w-5 h-5" />
+              <FastForward className="w-5 h-5" />
             </button>
           </div>
         )}
@@ -325,7 +343,7 @@ export const MusicPlayer: React.FC<MusicPlayerProps> = ({
                 disabled={currentTrackIndex === 0}
                 className="text-gray-400 hover:text-white disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
               >
-                <SkipBack className="w-5 h-5" />
+                <Rewind className="w-5 h-5" />
               </button>
 
               <button
@@ -344,7 +362,7 @@ export const MusicPlayer: React.FC<MusicPlayerProps> = ({
                 disabled={currentTrackIndex === tracks.length - 1}
                 className="text-gray-400 hover:text-white disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
               >
-                <SkipForward className="w-5 h-5" />
+                <FastForward className="w-5 h-5" />
               </button>
             </div>
 
@@ -371,29 +389,31 @@ export const MusicPlayer: React.FC<MusicPlayerProps> = ({
           </div>
         )}
 
-        {/* 右侧：音量控制 */}
-        <div className="flex items-center justify-end space-x-3 sm:space-x-3 flex-shrink-0 w-24 sm:w-32">
-          <button
-            onClick={onMuteToggle}
-            className="text-gray-400 hover:text-white transition-colors"
-          >
-            {isMuted || volume === 0 ? (
-              <VolumeX className="w-5 h-5 sm:w-5 sm:h-5" />
-            ) : (
-              <Volume2 className="w-5 h-5 sm:w-5 sm:h-5" />
-            )}
-          </button>
+        {/* 右侧：音量控制 - 桌面端显示 */}
+        {!isMobile && (
+          <div className="flex items-center space-x-3 flex-shrink-0">
+            <button
+              onClick={onMuteToggle}
+              className="text-gray-400 hover:text-white transition-colors"
+            >
+              {isMuted || volume === 0 ? (
+                <VolumeX className="w-5 h-5 sm:w-5 sm:h-5" />
+              ) : (
+                <Volume2 className="w-5 h-5 sm:w-5 sm:h-5" />
+              )}
+            </button>
 
-          <div className="w-16 sm:w-16">
-            <Slider
-              value={[isMuted ? 0 : volume * 100]}
-              onValueChange={handleVolumeChange}
-              max={100}
-              step={1}
-              className="w-full"
-            />
+            <div className="w-16 sm:w-16">
+              <Slider
+                value={[isMuted ? 0 : volume * 100]}
+                onValueChange={handleVolumeChange}
+                max={100}
+                step={1}
+                className="w-full"
+              />
+            </div>
           </div>
-        </div>
+        )}
       </div>
     </div>
   );

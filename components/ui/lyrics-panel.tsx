@@ -79,6 +79,9 @@ export const LyricsPanel: React.FC<LyricsPanelProps> = ({
   const [isTagsExpanded, setIsTagsExpanded] = useState(false);
   const [isStickyHeaderVisible, setIsStickyHeaderVisible] = useState(false);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
+  const dragHandleRef = useRef<HTMLDivElement>(null);
+  const [dragStartY, setDragStartY] = useState<number | null>(null);
+  const [dragCurrentY, setDragCurrentY] = useState<number | null>(null);
 
   useEffect(() => {
     const scrollContainer = scrollContainerRef.current;
@@ -94,10 +97,54 @@ export const LyricsPanel: React.FC<LyricsPanelProps> = ({
     return () => scrollContainer.removeEventListener('scroll', handleScroll);
   }, []);
 
+  // 处理拖动手势
+  useEffect(() => {
+    const dragHandle = dragHandleRef.current;
+    if (!dragHandle) return;
+
+    const handleTouchStart = (e: TouchEvent) => {
+      setDragStartY(e.touches[0].clientY);
+      setDragCurrentY(e.touches[0].clientY);
+    };
+
+    const handleTouchMove = (e: TouchEvent) => {
+      if (dragStartY === null) return;
+      setDragCurrentY(e.touches[0].clientY);
+    };
+
+    const handleTouchEnd = () => {
+      if (dragStartY === null || dragCurrentY === null) {
+        setDragStartY(null);
+        setDragCurrentY(null);
+        return;
+      }
+
+      const dragDistance = dragCurrentY - dragStartY;
+      
+      // 如果向下拖动超过100px，关闭面板
+      if (dragDistance > 100) {
+        onClose();
+      }
+
+      setDragStartY(null);
+      setDragCurrentY(null);
+    };
+
+    dragHandle.addEventListener('touchstart', handleTouchStart);
+    dragHandle.addEventListener('touchmove', handleTouchMove);
+    dragHandle.addEventListener('touchend', handleTouchEnd);
+
+    return () => {
+      dragHandle.removeEventListener('touchstart', handleTouchStart);
+      dragHandle.removeEventListener('touchmove', handleTouchMove);
+      dragHandle.removeEventListener('touchend', handleTouchEnd);
+    };
+  }, [dragStartY, dragCurrentY, onClose]);
+
   return (
     <div
       className={`bg-background border-l border-border/30 shadow-lg flex-shrink-0 relative overflow-hidden transition-all duration-300 ease-out h-full ${
-        isOpen ? 'w-full p-4 sm:p-3 md:p-4 lg:p-6' : 'w-0 p-0 border-0'
+        isOpen ? 'w-full md:p-4 lg:p-6' : 'w-0 p-0 border-0'
       } md:border-l md:border-border/30 border-t md:border-t-0 border-border/30 rounded-t-3xl md:rounded-none`}
       style={{
         transform: isOpen ? 'translateX(0%)' : 'translateX(100%)',
@@ -106,11 +153,19 @@ export const LyricsPanel: React.FC<LyricsPanelProps> = ({
       }}
     >
       <div className="flex h-full flex-col">
-        {/* Mobile Header - Only show on mobile and when sticky */}
-        {isStickyHeaderVisible && (
-          <div className="md:hidden flex items-center gap-2 py-3 sm:py-4 border-b border-border/20 mb-4 sm:mb-5">
+        {/* Drag Handle - Mobile only */}
+        <div 
+          ref={dragHandleRef}
+          onClick={onClose}
+          className="md:hidden flex items-center justify-center py-3 cursor-pointer active:cursor-grabbing touch-none"
+        >
+          <div className="w-12 h-1 bg-border/50 rounded-full" />
+        </div>
+
+        {/* Mobile Header - Always visible on mobile */}
+        <div className="md:hidden flex items-center gap-3 py-3 px-4 sm:px-3 border-b border-border/20 mb-4 sm:mb-5">
             {/* Small Cover Image */}
-            <div className="relative w-12 h-12 flex-shrink-0 overflow-hidden rounded-md">
+            <div className="relative w-16 h-16 flex-shrink-0 overflow-hidden rounded-lg">
                 {coverImage ? (
                   <Image
                     src={coverImage}
@@ -193,135 +248,14 @@ export const LyricsPanel: React.FC<LyricsPanelProps> = ({
                   </button>
                 )}
               </div>
-              
-              {/* Close Button - Always on the right */}
-              <button
-                onClick={onClose}
-                className="h-8 px-3 text-xs font-semibold bg-muted/50 border border-border/30 text-foreground shadow-sm hover:bg-muted/70 hover:text-foreground transition-all duration-300 rounded-lg flex-shrink-0"
-              >
-                <div className="flex items-center justify-center gap-1">
-                  <ChevronDown className="h-3 w-3" />
-                </div>
-              </button>
             </div>
-          )}
 
         {/* Scrollable Content */}
         <div 
           ref={scrollContainerRef}
-          className="flex-1 overflow-y-auto pb-20 md:pb-0" 
-          style={{ maxHeight: 'calc(100vh - 120px)' }}
+          className="flex-1 overflow-y-auto pb-2 px-4 sm:px-3 md:px-0 md:pb-0 overscroll-contain"
+          style={{ WebkitOverflowScrolling: 'touch' }}
         >
-          {/* Mobile Layout */}
-          <div className="md:hidden">
-            {/* Cover Image and Info Row */}
-            <div className="flex items-center gap-4 mb-6">
-              {/* Cover Image - Smaller */}
-              <div className="relative w-24 h-24 flex-shrink-0 overflow-hidden rounded-lg">
-                {coverImage ? (
-                  <Image
-                    src={coverImage}
-                    alt={title || 'Track Cover'}
-                    fill
-                    className="object-cover"
-                  />
-                ) : (
-                  <CassetteTape
-                    sideLetter={sideLetter}
-                    duration="--:--"
-                    isPlaying={isPlaying}
-                    className="w-full h-full"
-                  />
-                )}
-              </div>
-
-              {/* Title and Tags Column */}
-              <div className="flex-1 min-w-0">
-                {/* Title Row with Buttons */}
-                <div className="flex items-center gap-2 mb-1">
-                  {title && (
-                    <h2 className="text-base font-semibold text-foreground truncate flex-1">
-                      {title}
-                    </h2>
-                  )}
-                  
-                  {/* Action Buttons */}
-                  <div className="flex gap-2 flex-shrink-0">
-                    {/* Publish Button */}
-                    {onPublishToggle && (
-                      <button
-                        onClick={onPublishToggle}
-                        className="h-8 px-3 text-xs font-semibold bg-muted/50 border border-border/30 text-foreground shadow-sm hover:bg-muted/70 hover:text-foreground transition-all duration-300 rounded-lg"
-                      >
-                        <div className="flex items-center justify-center gap-1">
-                          {isPublished ? (
-                            <EyeOff className="h-3 w-3" />
-                          ) : (
-                            <Eye className="h-3 w-3" />
-                          )}
-                        </div>
-                      </button>
-                    )}
-                    {/* Favorite Button */}
-                    {onFavoriteToggle && (
-                      <button
-                        onClick={onFavoriteToggle}
-                        className={`h-8 px-3 text-xs font-semibold border border-border/30 shadow-sm transition-all duration-300 rounded-lg ${
-                          isFavorited
-                            ? 'bg-red-500/20 text-red-500 hover:bg-red-500/30'
-                            : 'bg-muted/50 text-foreground hover:bg-muted/70 hover:text-foreground'
-                        }`}
-                        title={isFavorited ? 'Remove from favourites' : 'Add to favourites'}
-                      >
-                        <div className="flex items-center justify-center gap-1">
-                          <Heart className={`h-3 w-3 ${isFavorited ? 'fill-red-500 text-red-500' : ''}`} />
-                        </div>
-                      </button>
-                    )}
-                    
-                    {/* Download Button */}
-                    {onDownload && (
-                      <button
-                        onClick={onDownload}
-                        disabled={isGenerating || !coverImage}
-                        className={`h-8 px-3 text-xs font-semibold border border-border/30 shadow-sm transition-all duration-300 rounded-lg ${
-                          isGenerating || !coverImage
-                            ? 'bg-muted/30 text-muted-foreground cursor-not-allowed opacity-50'
-                            : 'bg-muted/50 text-foreground hover:bg-muted/70 hover:text-foreground'
-                        }`}
-                      >
-                        <div className="flex items-center justify-center gap-1">
-                          <Download className="h-3 w-3" />
-                        </div>
-                      </button>
-                    )}
-                  </div>
-                </div>
-
-                {/* Tags */}
-                {tags && (
-                  <div
-                    className="cursor-pointer transition-colors -ml-2 -mr-2 p-2"
-                    onClick={() => {
-                      setIsTagsExpanded(!isTagsExpanded);
-                    }}
-                    title="Click to expand/collapse"
-                  >
-                    <p
-                      className={`text-xs text-muted-foreground leading-relaxed break-words ${
-                        !isTagsExpanded ? 'line-clamp-2' : ''
-                      }`}
-                    >
-                      {tags}
-                    </p>
-                  </div>
-                )}
-              </div>
-            </div>
-          </div>
-
-          {/* Mobile spacing */}
-          <div className="md:hidden h-4"></div>
 
           {/* Desktop Layout */}
           <div className="hidden md:block">
@@ -391,13 +325,13 @@ export const LyricsPanel: React.FC<LyricsPanelProps> = ({
 
           {/* Lyrics */}
           {lyrics ? (
-            <div className="py-6">
+            <div className="pt-2 pb-3 md:py-6">
               <div className="text-foreground/85 text-sm md:text-sm text-lg leading-6 md:leading-6 leading-8 whitespace-pre-line font-normal tracking-wide">
                 {lyrics}
               </div>
             </div>
           ) : (
-            <div className="flex items-center justify-center py-8">
+            <div className="flex items-center justify-center py-6 md:py-8">
               <div className="text-center">
                 <p className="text-muted-foreground mb-2">Instrumental Music</p>
                 <p className="text-sm text-muted-foreground">

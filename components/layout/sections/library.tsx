@@ -425,7 +425,7 @@ const LibraryContent = () => {
 
                 {/* Main Library Interface */}
                 <div className="flex-1 h-full flex z-10 md:order-2 pb-20 md:pb-0">
-                    <div className="min-w-0 h-full flex flex-col" style={{
+                    <div className="min-w-0 h-full flex flex-col relative" style={{
                         width: showLyrics ? 'calc(100% - 0rem)' : '100%'
                     }}>
                         <LibraryPanel
@@ -572,11 +572,8 @@ const LibraryContent = () => {
                             selectedLibraryTrack={selectedLibraryTrack}
                             isPlaying={isPlaying}
                             userId={user?.id}
-                            user={user}
                             onLyricsToggle={() => setShowLyrics(!showLyrics)}
                             showLyrics={showLyrics}
-                            isAuthModalOpen={isAuthModalOpen}
-                            setIsAuthModalOpen={setIsAuthModalOpen}
                             onFavoriteToggle={(trackId, isFavorited) => {
                                 // 更新本地tracks数据中的收藏状态
                                 setLibraryTracks(prevTracks =>
@@ -591,6 +588,60 @@ const LibraryContent = () => {
                                 );
                             }}
                         />
+
+                        {/* Desktop Music Player - 桌面端播放器（在歌曲列表列底部） */}
+                        {currentTrack && (
+                            <div className="hidden md:block absolute left-0 right-0 bottom-0 z-40">
+                                <MusicPlayer
+                                    tracks={getAllTracks().map(track => ({
+                                        id: track.id,
+                                        title: track.title,
+                                        audioUrl: track.audio_url,
+                                        duration: track.duration,
+                                        coverImage: track.coverUrl,
+                                        artist: track.genre || 'Unknown Artist',
+                                        allTracks: [{
+                                            id: track.id,
+                                            audio_url: track.audio_url,
+                                            duration: track.duration,
+                                            side_letter: track.side_letter,
+                                            cover_r2_url: track.coverUrl
+                                        }]
+                                    }))}
+                                    currentTrackIndex={Math.max(0, getAllTracks().findIndex(track => track.id === currentTrack?.id))}
+                                    currentPlayingTrack={currentTrack ? { trackId: currentTrack.id || '', audioUrl: currentTrack.audioUrl || '' } : null}
+                                    isPlaying={isPlaying}
+                                    currentTime={currentTime}
+                                    duration={duration}
+                                    volume={volume}
+                                    isMuted={isMuted}
+                                    onPlayPause={togglePlayPause}
+                                    onPrevious={handlePrevious}
+                                    onNext={handleNext}
+                                    onSeek={(time) => {
+                                        if (audioRef.current && duration > 0 && currentTrack) {
+                                            audioRef.current.currentTime = time;
+                                        }
+                                    }}
+                                    onVolumeChange={(newVolume) => {
+                                        changeVolume(newVolume);
+                                    }}
+                                    onMuteToggle={handleMuteToggle}
+                                    hideProgress={showLyrics}
+                                    onTrackChange={(newIndex) => {
+                                        const allTracks = getAllTracks();
+                                        if (newIndex >= 0 && newIndex < allTracks.length) {
+                                            const newTrack = allTracks[newIndex];
+                                            setSelectedLibraryTrack(newTrack.id);
+                                            handleLibraryTrackSelect(newTrack.id);
+                                        }
+                                    }}
+                                    onSideChange={(side: 'A' | 'B') => {
+                                        setCurrentSide(side);
+                                    }}
+                                />
+                            </div>
+                        )}
                     </div>
 
                     {/* Lyrics Panel */}
@@ -605,7 +656,7 @@ const LibraryContent = () => {
                                 setSelectedLibraryTrack(null);
                             }}
                         />
-                        <div className="fixed md:relative bottom-0 left-0 right-0 md:left-auto md:right-auto w-full md:w-80 h-[calc(95dvh-4rem)] md:h-full flex-shrink-0 z-50 md:z-auto">
+                        <div className="fixed md:relative bottom-0 left-0 right-0 md:left-auto md:right-auto w-full md:w-80 h-dvh md:h-full flex-shrink-0 z-50 md:z-auto">
                         <LyricsPanel
                         isOpen={showLyrics}
                         onClose={() => {
@@ -737,12 +788,13 @@ const LibraryContent = () => {
                     )}
                 </div>
 
-                {/* Music Player - Fixed at bottom when track is loaded */}
-                {currentTrack && (
-                    <div className={`fixed md:bottom-0 left-0 right-0 md:left-16 ${showLyrics ? 'md:right-80' : 'md:right-0'} z-40 transition-all duration-300 ease-in-out`} style={{
-                        bottom: 'var(--mobile-nav-height, 0px)'
+                {/* Mobile Music Player - 移动端播放器（固定在底部） */}
+                {currentTrack && !showLyrics && (
+                    <div className="fixed md:hidden left-3 right-3 z-40" style={{
+                        bottom: 'calc(var(--mobile-nav-height, 0px) + 0.75rem)'
                     }}>
-                        <MusicPlayer
+                        <div className="[&>div]:!pr-3">
+                            <MusicPlayer
                                 tracks={getAllTracks().map(track => ({
                                     id: track.id,
                                     title: track.title,
@@ -777,7 +829,6 @@ const LibraryContent = () => {
                                     changeVolume(newVolume);
                                 }}
                                 onMuteToggle={handleMuteToggle}
-                                hideProgress={showLyrics}
                                 onTrackChange={(newIndex) => {
                                     const allTracks = getAllTracks();
                                     if (newIndex >= 0 && newIndex < allTracks.length) {
@@ -788,6 +839,7 @@ const LibraryContent = () => {
                                 }}
                                 onSideChange={() => {}}
                             />
+                        </div>
                     </div>
                 )}
 

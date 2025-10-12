@@ -74,7 +74,7 @@ export const StudioTracksList: React.FC<StudioTracksListProps> = ({
   const formatDuration = (seconds: number) => {
     const minutes = Math.floor(seconds / 60);
     const remainingSeconds = Math.floor(seconds % 60);
-    return `${minutes.toString().padStart(2, '0')}:${remainingSeconds.toString().padStart(2, '0')}`;
+    return `${minutes}:${remainingSeconds.toString().padStart(2, '0')}`;
   };
 
   // 将所有 tracks 展平，过滤掉已删除的tracks
@@ -151,22 +151,22 @@ export const StudioTracksList: React.FC<StudioTracksListProps> = ({
 
       {/* Studio Tracks - 可滚动区域 */}
       <div className="flex-1 overflow-hidden">
-        <div className="h-full overflow-y-auto px-4 md:px-6 relative" style={{ paddingBottom: 'var(--player-height, 64px)' }}>
-        <div className="relative space-y-3 pt-6">
+        <div className="h-full overflow-y-auto px-0 relative pb-6">
+        <div className="relative pt-6">
           {/* Generated Tracks - 新生成的歌曲 */}
           {allGeneratedTracks.length > 0 && (
-            <div className="space-y-3">
+            <div>
               {allGeneratedTracks.map((track, index) => (
                 <div
                   key={`generated-${index}`}
-                  className={`flex items-center gap-4 p-5 transition-all duration-300 group cursor-pointer backdrop-blur-sm border rounded-2xl ${
-                    track.isLoading || track.isError
-                      ? 'cursor-default bg-black/20 border-border/10'
+                  className={`flex items-start gap-4 px-4 py-2 transition-all duration-300 group cursor-pointer
+                    ${track.isLoading || track.isError
+                      ? 'cursor-default'
                       : `${currentlyPlaying === `generated-${index}`
-                          ? 'bg-black/40 shadow-lg border-white/20'
-                          : 'bg-black/20 hover:bg-black/30 border-border/10 hover:border-border/30 hover:shadow-md'
+                          ? 'bg-muted/30'
+                          : 'hover:bg-muted/20'
                         }`
-                    } ${track.isError ? 'border-red-500/30' : ''}`}
+                    }`}
                   onClick={() => {
                     if (!track.isLoading && !track.isError && onGeneratedTrackSelect) {
                       onGeneratedTrackSelect(track);
@@ -175,17 +175,17 @@ export const StudioTracksList: React.FC<StudioTracksListProps> = ({
                 >
                   {/* Loading 状态显示遮罩和 Progress indicators */}
                   {track.isLoading && (
-                    <div className="absolute inset-0 bg-black/60 flex items-center justify-center rounded-3xl pointer-events-none z-10">
+                    <div className="absolute inset-0 bg-black/60 flex items-center justify-center pointer-events-none z-10">
                       <LoadingDots size="md" color="white" />
                     </div>
                   )}
                   
                   {/* 选中状态遮罩 */}
                   {currentlyPlaying === `generated-${index}` && !track.isLoading && (
-                    <div className="absolute inset-0 bg-primary/10 rounded-3xl pointer-events-none z-5"></div>
+                    <div className="absolute inset-0 bg-primary/10 pointer-events-none z-5"></div>
                   )}
                   
-                  <div className={`relative w-16 h-16 rounded-md overflow-hidden flex-shrink-0 transition-transform duration-300 group/cover ${!track.isLoading && !track.isError ? 'group-hover:scale-105' : ''}`}>
+                  <div className={`relative w-16 h-16 rounded-md overflow-hidden flex-shrink-0 transition-transform duration-300 group/cover mt-1 ${!track.isLoading && !track.isError ? 'group-hover:scale-105' : ''}`}>
                     {track.isError ? (
                       // 错误状态直接显示logo图片作为封面
                       <Image
@@ -246,46 +246,37 @@ export const StudioTracksList: React.FC<StudioTracksListProps> = ({
                     )}
                   </div>
                   
-                  <div className="flex-1 min-w-0 w-0">
-                    <div className={`font-medium text-sm transition-colors ${
-                      track.isError
-                        ? 'text-red-400'
-                        : currentlyPlaying === `generated-${index}`
-                          ? 'text-primary'
-                          : track.isLoading ? '' : 'group-hover:text-primary'
-                      }`}>
-                      <span className="truncate block">
-                        {track.isError ? (track.originalPrompt || track.title || 'Unknown') : (track.title || 'Unknown')}
-                      </span>
-                    </div>
-                    {track.isError ? (
-                      <div className="text-xs text-muted-foreground mt-1 leading-relaxed w-full" style={{
-                        overflow: 'hidden',
-                        textOverflow: 'ellipsis',
-                        whiteSpace: 'nowrap'
-                      }}>
-                        {track.errorMessage || 'Generation failed'}
-                      </div>
-                    ) : (
-                      <>
-                        <div className="text-xs mt-1 leading-relaxed w-full text-muted-foreground" style={{
-                          overflow: 'hidden',
-                          textOverflow: 'ellipsis',
-                          whiteSpace: 'nowrap'
-                        }}>
-                          {track.tags}
+                  {/* Track Info */}
+                  <div className="flex-1 min-w-0 flex items-start gap-3">
+                    <div className="flex-1 min-w-0 border-b border-border/30">
+                      <div className="flex items-center justify-between gap-3 mb-1">
+                        <div className={`font-normal text-sm transition-colors flex-1 truncate ${
+                          track.isError
+                            ? 'text-red-400'
+                            : currentlyPlaying === `generated-${index}`
+                              ? 'text-primary'
+                              : track.isLoading ? '' : 'group-hover:text-primary'
+                          }`}>
+                          {track.isError ? (track.originalPrompt || track.title || 'Unknown') : (track.title || 'Unknown')}
                         </div>
-                        {!track.isLoading && !track.isError && (
-                          <div className="text-xs text-muted-foreground mt-1">
-                            {track.isGenerating || !track.duration ? (
-                              '--:--'
-                            ) : (
-                              formatDuration(track.duration)
-                            )}
+                      </div>
+                      {track.isError ? (
+                        <div className="text-xs text-muted-foreground leading-relaxed w-full truncate mb-2">
+                          {track.errorMessage || 'Generation failed'}
+                        </div>
+                      ) : (
+                        <>
+                          <div className={`text-xs leading-relaxed w-full text-muted-foreground truncate ${!track.isLoading && track.duration ? 'mb-1' : 'mb-2'}`}>
+                            {track.tags}
                           </div>
-                        )}
-                      </>
-                    )}
+                          {!track.isLoading && track.duration && (
+                            <span className="text-muted-foreground text-xs mb-2 block">
+                              {formatDuration(track.duration)}
+                            </span>
+                          )}
+                        </>
+                      )}
+                    </div>
                   </div>
                 </div>
               ))}
@@ -294,16 +285,16 @@ export const StudioTracksList: React.FC<StudioTracksListProps> = ({
 
           {/* Skeleton Loading State - 在生成过程中显示 */}
           {pendingTasksCount > 0 && (
-            <div className="space-y-3 mb-6">
+            <div>
               {Array.from({ length: pendingTasksCount }).map((_, index) => (
-                <div key={index} className="flex items-center gap-4 p-5 bg-gradient-to-r from-card/95 via-card/85 to-card/95 backdrop-blur-sm rounded-3xl border border-border/50 shadow-lg">
-                  <Skeleton className="w-12 h-12 rounded-lg flex-shrink-0" />
-                  <div className="flex-1 space-y-2">
-                    <div className="flex items-center">
-                      <Skeleton className="h-4 w-1/3" />
+                <div key={index} className="flex items-start gap-4 px-4 py-2">
+                  <Skeleton className="w-16 h-16 rounded-lg flex-shrink-0 mt-1" />
+                  <div className="flex-1 min-w-0 flex items-start gap-3">
+                    <div className="flex-1 border-b border-border/30 mb-2 pb-0">
+                      <Skeleton className="h-4 w-1/3 mb-2" />
+                      <Skeleton className="h-3 w-2/3 mb-1" />
+                      <Skeleton className="h-3 w-12 mb-2" />
                     </div>
-                    <Skeleton className="h-3 w-2/3" />
-                    <Skeleton className="h-3 w-12" />
                   </div>
                 </div>
               ))}
@@ -314,15 +305,15 @@ export const StudioTracksList: React.FC<StudioTracksListProps> = ({
           {currentTracks.map((track) => (
             <div
               key={track.id}
-              className={`flex items-center gap-4 p-5 rounded-2xl transition-all duration-300 group cursor-pointer backdrop-blur-sm border ${
-                selectedTrack === track.id
-                  ? 'bg-black/40 shadow-lg border-white/20'
-                  : 'bg-black/20 hover:bg-black/30 border border-border/10 hover:border-border/30 hover:shadow-md'
+              className={`flex items-start gap-4 px-4 py-2 transition-all duration-300 group cursor-pointer
+                ${selectedTrack === track.id
+                  ? 'bg-muted/30'
+                  : 'hover:bg-muted/20'
               }`}
               onClick={() => handleTrackSelect(track)}
             >
               {/* 封面 */}
-              <div className="relative w-16 h-16 rounded-md overflow-hidden flex-shrink-0 group/cover">
+              <div className="relative w-16 h-16 rounded-md overflow-hidden flex-shrink-0 group/cover mt-1">
                 {track.cover_r2_url ? (
                   <Image
                     src={track.cover_r2_url}
@@ -372,16 +363,36 @@ export const StudioTracksList: React.FC<StudioTracksListProps> = ({
               </div>
 
               {/* Track Info */}
-              <div className="flex-1 min-w-0">
-                <h3 className="text-foreground font-medium text-sm mb-1 truncate">
-                  {track.musicTitle}
-                </h3>
-                <p className="text-muted-foreground text-xs mb-1 truncate">
-                  {track.musicTags}
-                </p>
-                <div className="flex items-center text-muted-foreground text-xs">
-                  <span>{formatDuration(track.duration)}</span>
+              <div className="flex-1 min-w-0 flex items-start gap-3">
+                <div className="flex-1 min-w-0 border-b border-border/30">
+                  <div className="flex items-center justify-between gap-3 mb-1">
+                    <h3 className={`font-normal text-sm truncate flex-1 ${currentlyPlaying === track.id ? 'text-primary' : 'text-foreground'}`}>
+                      {track.musicTitle}
+                    </h3>
+                  </div>
+                  <p className="text-muted-foreground text-xs truncate mb-1">
+                    {track.musicTags}
+                  </p>
+                  <span className="text-muted-foreground text-xs mb-2 block">
+                    {formatDuration(track.duration)}
+                  </span>
                 </div>
+                
+                {/* Mobile Play Button - 移动端播放按钮 */}
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handlePlayPause(track);
+                  }}
+                  className="md:hidden flex-shrink-0 h-8 w-8 flex items-center justify-center text-foreground hover:text-foreground/80 transition-colors mt-5"
+                  aria-label={currentlyPlaying === track.id && isPlaying ? "Pause" : "Play"}
+                >
+                  {currentlyPlaying === track.id && isPlaying ? (
+                    <Pause className="h-5 w-5" />
+                  ) : (
+                    <Play className="h-5 w-5 ml-0.5" />
+                  )}
+                </button>
               </div>
             </div>
           ))}

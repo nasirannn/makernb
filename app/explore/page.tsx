@@ -2,7 +2,6 @@
 
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
 import { Play, Pause, Music } from 'lucide-react';
 import { SafeImage } from '@/components/ui/safe-image';
 import { MusicPlayer } from '@/components/ui/music-player';
@@ -48,7 +47,6 @@ export default function ExplorePage() {
   const [error, setError] = useState<string | null>(null);
   const [hasMore, setHasMore] = useState(true);
   const [currentlyPlaying, setCurrentlyPlaying] = useState<string | null>(null);
-  const [isMobile, setIsMobile] = useState(false);
 
   // 播放器状态
   const [currentTrackIndex, setCurrentTrackIndex] = useState(0);
@@ -86,17 +84,6 @@ export default function ExplorePage() {
     };
 
     loadData();
-  }, []);
-
-  // 检测移动端
-  useEffect(() => {
-    const checkMobile = () => {
-      setIsMobile(window.innerWidth < 768);
-    };
-
-    checkMobile();
-    window.addEventListener('resize', checkMobile);
-    return () => window.removeEventListener('resize', checkMobile);
   }, []);
 
   // 组件卸载时清理音频
@@ -376,7 +363,7 @@ export default function ExplorePage() {
 
   return (
     <div className="min-h-screen bg-background pt-24">
-      <div className={`container mx-auto px-4 py-8 ${playlist.length > 0 && currentlyPlaying ? 'pb-32' : ''}`}>
+      <div className={`container mx-auto px-4 py-8 ${playlist.length > 0 && currentlyPlaying ? 'pb-20 md:pb-20' : ''}`}>
         {/* Header */}
         <div className="text-center mb-8">
           <p className="text-sm font-medium text-white/60 uppercase tracking-wider mb-4">
@@ -495,35 +482,71 @@ export default function ExplorePage() {
 
       {/* 播放器 - 固定在底部 */}
       {playlist.length > 0 && currentlyPlaying && (
-        <div className="fixed bottom-0 left-0 right-0 z-50">
-          <MusicPlayer
-            tracks={playlist.map(music => ({
-              id: music.primaryTrack.id,
-              title: music.title,
-              audioUrl: music.primaryTrack.audio_url,
-              duration: music.totalDuration,
-              coverImage: music.primaryTrack.cover_r2_url,
-              artist: music.genre,
-              allTracks: music.allTracks
-            }))}
-            currentTrackIndex={currentTrackIndex}
-            currentPlayingTrack={currentPlayingTrack}
-            isPlaying={isPlaying}
-            currentTime={currentTime}
-            duration={duration}
-            volume={volume}
-            isMuted={isMuted}
-            hideProgress={isMobile}
-            onPlayPause={handlePlayerPlayPause}
-            onPrevious={handlePrevious}
-            onNext={handleNext}
-            onSeek={handleSeek}
-            onVolumeChange={handleVolumeChange}
-            onMuteToggle={handleMuteToggle}
-            onTrackChange={handleTrackChange}
-            onSideChange={handleSideChange}
-          />
-        </div>
+        <>
+          {/* Mobile Music Player - 移动端播放器 */}
+          <div className="fixed md:hidden left-3 right-3 bottom-6 z-50">
+            <div className="[&>div]:!pr-3">
+              <MusicPlayer
+                tracks={playlist.map(music => ({
+                  id: music.primaryTrack.id,
+                  title: music.title,
+                  audioUrl: music.primaryTrack.audio_url,
+                  duration: music.totalDuration,
+                  coverImage: music.primaryTrack.cover_r2_url,
+                  artist: music.genre,
+                  allTracks: music.allTracks
+                }))}
+                currentTrackIndex={currentTrackIndex}
+                currentPlayingTrack={currentPlayingTrack}
+                isPlaying={isPlaying}
+                currentTime={currentTime}
+                duration={duration}
+                volume={volume}
+                isMuted={isMuted}
+                hideProgress={true}
+                onPlayPause={handlePlayerPlayPause}
+                onPrevious={handlePrevious}
+                onNext={handleNext}
+                onSeek={handleSeek}
+                onVolumeChange={handleVolumeChange}
+                onMuteToggle={handleMuteToggle}
+                onTrackChange={handleTrackChange}
+                onSideChange={handleSideChange}
+              />
+            </div>
+          </div>
+
+          {/* Desktop Music Player - 桌面端播放器 */}
+          <div className="hidden md:block fixed bottom-0 left-0 right-0 z-50">
+            <MusicPlayer
+              tracks={playlist.map(music => ({
+                id: music.primaryTrack.id,
+                title: music.title,
+                audioUrl: music.primaryTrack.audio_url,
+                duration: music.totalDuration,
+                coverImage: music.primaryTrack.cover_r2_url,
+                artist: music.genre,
+                allTracks: music.allTracks
+              }))}
+              currentTrackIndex={currentTrackIndex}
+              currentPlayingTrack={currentPlayingTrack}
+              isPlaying={isPlaying}
+              currentTime={currentTime}
+              duration={duration}
+              volume={volume}
+              isMuted={isMuted}
+              hideProgress={false}
+              onPlayPause={handlePlayerPlayPause}
+              onPrevious={handlePrevious}
+              onNext={handleNext}
+              onSeek={handleSeek}
+              onVolumeChange={handleVolumeChange}
+              onMuteToggle={handleMuteToggle}
+              onTrackChange={handleTrackChange}
+              onSideChange={handleSideChange}
+            />
+          </div>
+        </>
       )}
     </div>
   );

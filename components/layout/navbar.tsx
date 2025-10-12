@@ -8,7 +8,7 @@ import Image from "next/image";
 import { usePathname } from "next/navigation";
 import { useAuth } from "@/contexts/AuthContext";
 import AuthModal from "../ui/auth-modal";
-import { Library, LogOut } from "lucide-react";
+import { LogOut } from "lucide-react";
 
 interface RouteProps {
   href: string;
@@ -28,6 +28,10 @@ const routeList: RouteProps[] = [
   {
     href: "/studio",
     label: "Studio",
+  },
+  {
+    href: "/library",
+    label: "Library",
   },
   {
     href: "/explore",
@@ -128,7 +132,8 @@ export const Navbar = ({ credits = null }: NavbarProps) => {
                            (href === "/" && pathname === "/") ||
                            (href === "/blog" && pathname.startsWith("/blog")) ||
                            (href === "/explore" && pathname.startsWith("/explore")) ||
-                           (href === "/studio" && pathname.startsWith("/studio"));
+                           (href === "/studio" && pathname.startsWith("/studio")) ||
+                           (href === "/library" && pathname.startsWith("/library"));
             return (
               <li key={href}>
                 <Link
@@ -199,23 +204,15 @@ export const Navbar = ({ credits = null }: NavbarProps) => {
                   </div>
                   
                   {/* Credits Display */}
-                  <div className="flex items-center gap-2 px-3 py-1.5 bg-white/10 backdrop-blur-sm border border-white/20 rounded-lg">
-                    <Sparkles className="h-3.5 w-3.5 text-white" />
-                    <span className="text-sm font-medium text-white">
+                  <div className="flex items-center gap-2 px-3 py-1.5 bg-foreground/10 backdrop-blur-sm border border-foreground/20 rounded-lg">
+                    <Sparkles className="h-3.5 w-3.5 text-foreground" />
+                    <span className="text-sm font-medium text-foreground">
                       {credits === null ? '...' : credits} Credits
                     </span>
                   </div>
                   
                   {/* Mobile Menu Items */}
                   <div className="mt-4 space-y-2">
-                    <Link
-                      href="/library"
-                      onClick={() => setIsOpen(false)}
-                      className="w-full flex items-center gap-3 px-3 py-2 text-sm text-white/80 hover:bg-white/10 hover:text-white transition-colors rounded-lg"
-                    >
-                      <Library className="w-4 h-4" />
-                      <span>Library</span>
-                    </Link>
                     <button
                       onClick={async () => {
                         try {
@@ -279,9 +276,9 @@ export const Navbar = ({ credits = null }: NavbarProps) => {
         {user ? (
           <>
             {/* Credits Display */}
-            <div className="flex items-center gap-2 px-3 py-2 bg-white/10 backdrop-blur-sm border border-white/20 rounded-lg">
-              <Sparkles className="h-4 w-4 text-white" />
-              <span className="text-sm font-medium text-white">
+            <div className="flex items-center gap-2 px-3 py-2 bg-foreground/10 backdrop-blur-sm border border-foreground/20 rounded-lg">
+              <Sparkles className="h-4 w-4 text-foreground" />
+              <span className="text-sm font-medium text-foreground">
                 {credits === null ? '...' : credits}
               </span>
             </div>
@@ -335,14 +332,6 @@ export const Navbar = ({ credits = null }: NavbarProps) => {
 
                 {/* Menu Items */}
                 <div className="py-1">
-                  <Link
-                    href="/library"
-                    onClick={() => setIsUserMenuOpen(false)}
-                    className="w-full flex items-center gap-3 px-4 py-2 text-sm text-white/80 hover:bg-white/10 hover:text-white transition-colors"
-                  >
-                    <Library className="w-4 h-4" />
-                    <span>Library</span>
-                  </Link>
                   <button
                     onClick={async () => {
                       try {

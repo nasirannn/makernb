@@ -21,10 +21,8 @@ import {
   HeartCrack,
   ArrowDown,
   Search,
-  X,
-  LogIn
+  X
 } from 'lucide-react';
-import Image from 'next/image';
 import { isAdmin } from '@/lib/auth-utils-optimized';
 import { supabase } from '@/lib/supabase';
 import { toast } from 'sonner';
@@ -74,13 +72,10 @@ interface LibraryPanelProps {
   selectedLibraryTrack?: string | null;
   isPlaying?: boolean;
   userId?: string | null;
-  user?: any;
   onFavoriteToggle?: (trackId: string, isFavorited: boolean) => void;
   onLyricsToggle?: () => void;
   showLyrics?: boolean;
   hasPlayer?: boolean; // 新增：是否有播放器显示
-  isAuthModalOpen?: boolean;
-  setIsAuthModalOpen?: (open: boolean) => void;
 }
 
 export const LibraryPanel = ({
@@ -93,13 +88,10 @@ export const LibraryPanel = ({
   selectedLibraryTrack,
   isPlaying = false,
   userId,
-  user,
   onFavoriteToggle,
   onLyricsToggle,
   showLyrics = false,
-  hasPlayer = false,
-  isAuthModalOpen = false,
-  setIsAuthModalOpen
+  hasPlayer = false
 }: LibraryPanelProps) => {
   const [activeTab, setActiveTab] = useState('All Tracks');
   const [favoriteLoading, setFavoriteLoading] = useState<Record<string, boolean>>({});
@@ -383,51 +375,9 @@ export const LibraryPanel = ({
     <div className="h-full flex flex-col bg-transparent">
       {/* Header */}
       <div className="flex-shrink-0 px-6 pt-6 pb-4 bg-background/60 backdrop-blur-sm">
-        <div className="flex items-center justify-between mb-4">
-          <div className="flex items-center gap-3">
-            <Library className="h-8 w-8 text-primary" />
-            <h1 className="text-4xl font-semibold">Library</h1>
-          </div>
-          
-          {/* User Avatar Button - Mobile only */}
-          <div className="md:hidden">
-            {user ? (
-              <div className="relative user-menu-container z-[40]">
-                <button
-                  onClick={() => {
-                    const event = new CustomEvent('toggle-mobile-user-menu');
-                    window.dispatchEvent(event);
-                  }}
-                  className="h-10 w-10 flex items-center justify-center hover:bg-muted/50 transition-all duration-300 rounded-full"
-                >
-                  <div className="w-9 h-9 rounded-full overflow-hidden border-2 border-primary/20">
-                    {user.user_metadata?.avatar_url || user.user_metadata?.picture ? (
-                      <Image
-                        src={user.user_metadata.avatar_url || user.user_metadata.picture}
-                        alt="User Avatar"
-                        width={36}
-                        height={36}
-                        className="w-full h-full object-cover"
-                      />
-                    ) : (
-                      <div className="w-full h-full bg-primary/20 text-primary text-sm font-semibold flex items-center justify-center">
-                        {user.user_metadata?.full_name?.charAt(0) || user.email?.charAt(0) || 'U'}
-                      </div>
-                    )}
-                  </div>
-                </button>
-              </div>
-            ) : (
-              setIsAuthModalOpen && (
-                <button
-                  onClick={() => setIsAuthModalOpen(true)}
-                  className="h-10 w-10 flex items-center justify-center hover:bg-muted/50 transition-all duration-300 rounded-lg text-muted-foreground"
-                >
-                  <LogIn className="h-6 w-6" />
-                </button>
-              )
-            )}
-          </div>
+        <div className="flex items-center gap-3 mb-4">
+          <Library className="h-8 w-8 text-primary" />
+          <h1 className="text-4xl font-semibold">Library</h1>
         </div>
 
         {/* Tabs and Search Row */}
@@ -511,14 +461,14 @@ export const LibraryPanel = ({
             </div>
           </div>
         ) : (
-          <div className="relative space-y-3">
+          <div className="relative space-y-0">
               {paginatedTracks.map((track, index) => (
                 <div
                   key={track.id}
-                  className={`flex items-center gap-3 md:gap-4 p-3 md:p-5 rounded-2xl transition-all duration-300 group cursor-pointer backdrop-blur-sm border ${
+                  className={`flex items-start gap-4 px-4 py-2 transition-all duration-300 group cursor-pointer ${
                     selectedLibraryTrack === track.id
-                      ? 'bg-black/40 shadow-lg border-white/20'
-                      : 'bg-black/20 hover:bg-black/30 border border-border/10 hover:border-border/30 hover:shadow-md'
+                      ? 'bg-muted/30'
+                      : 'hover:bg-muted/20'
                   }`}
                   onClick={(e) => {
                     handleTrackAction(track, 'select');
@@ -526,7 +476,7 @@ export const LibraryPanel = ({
                 >
 
                   {/* Cover Image */}
-                  <div className="relative w-12 h-12 md:w-16 md:h-16 rounded-md overflow-hidden flex-shrink-0 group/cover">
+                  <div className="relative w-16 h-16 rounded-md overflow-hidden flex-shrink-0 group/cover mt-1">
                     {track.cover_r2_url ? (
                       <SafeImage
                         src={track.cover_r2_url}
@@ -580,48 +530,35 @@ export const LibraryPanel = ({
                   </div>
 
                   {/* Track Info */}
-                  <div className="flex-1 min-w-0 flex flex-col md:flex-row md:items-center gap-1 md:gap-4">
-                    <div className="flex-1 min-w-0">
-                      <h3 className="font-medium text-foreground truncate mb-1 text-sm md:text-base">
+                  <div className="flex-1 min-w-0 flex items-start gap-3">
+                    <div className="flex-1 min-w-0 border-b border-border/30">
+                      <h3 className={`font-medium truncate mb-1 text-sm ${
+                        currentPlayingTrack === track.id ? 'text-primary' : 'text-foreground'
+                      }`}>
                         {track.title}
                       </h3>
-                      {/* 桌面端显示完整的tags */}
-                      <p className="hidden md:block text-sm text-muted-foreground truncate">
+                      {/* Tags */}
+                      <p className="text-xs text-muted-foreground truncate mb-1">
                         {(() => {
                           const tags = track.tags;
-                          return tags && tags.length > 100 ? `${tags.substring(0, 100)}...` : tags;
+                          return tags && tags.length > 50 ? `${tags.substring(0, 50)}...` : tags;
                         })()}
                       </p>
-                      {/* 移动端显示更短的tags */}
-                      <p className="block md:hidden text-xs text-muted-foreground truncate">
-                        {(() => {
-                          const tags = track.tags;
-                          return tags && tags.length > 30 ? `${tags.substring(0, 30)}...` : tags;
-                        })()}
-                      </p>
-                    </div>
-
-                    {/* Date - Hidden on mobile */}
-                    <div className="hidden md:flex items-center gap-4">
-                      <div className="text-sm text-muted-foreground flex-shrink-0 w-24 text-center">
-                        {formatDate(track.created_at)}
+                      {/* Duration */}
+                      <div className="text-xs text-muted-foreground mb-2">
+                        {formatDuration(track.duration)}
                       </div>
                     </div>
                   </div>
 
-                   {/* Action Buttons - Only show when lyrics panel is closed */}
+                   {/* Action Buttons - Hidden on mobile, only show on desktop when lyrics panel is closed */}
                    {!showLyrics && (
-                     <div className="flex items-center gap-1 flex-shrink-0">
-                       {/* Duration */}
-                       <div className="text-xs md:text-sm text-muted-foreground flex-shrink-0 w-12 md:w-16 text-center mr-1">
-                         {formatDuration(track.duration)}
-                       </div>
-                       
+                     <div className="hidden md:flex items-center gap-3 flex-shrink-0 mt-5">
                        {/* Favorite Button */}
                        <Button
                          variant="ghost"
                          size="sm"
-                         className="h-7 w-7 md:h-8 md:w-8 p-0"
+                         className="h-8 w-8 p-0"
                          title={track.is_favorited ? "Remove from favourites" : "Add to favourites"}
                          onClick={(e) => {
                            e.stopPropagation();
@@ -652,7 +589,7 @@ export const LibraryPanel = ({
                          <Button
                            variant="ghost"
                            size="sm"
-                           className="h-7 w-7 md:h-8 md:w-8 p-0"
+                           className="h-8 w-8 p-0"
                            title="More actions"
                            onClick={(e) => e.stopPropagation()}
                          >
@@ -712,6 +649,104 @@ export const LibraryPanel = ({
                          )}
                        </DropdownMenuContent>
                      </DropdownMenu>
+                   </div>
+                 )}
+
+                  {/* Mobile More Actions Button - 移动端更多按钮 */}
+                  {!showLyrics && (
+                    <div className="md:hidden flex items-center flex-shrink-0 mt-5">
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="h-8 w-8 p-0"
+                            title="More actions"
+                            onClick={(e) => e.stopPropagation()}
+                          >
+                            <MoreHorizontal className="h-5 w-5" />
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end" className="w-48">
+                          {/* Favorite */}
+                          <DropdownMenuItem
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleFavoriteToggle(track);
+                            }}
+                            className="cursor-pointer"
+                            disabled={favoriteLoading[track.id]}
+                          >
+                            <Heart className={`mr-2 h-4 w-4 ${track.is_favorited ? 'fill-red-500 text-red-500' : ''}`} />
+                            {track.is_favorited ? "Remove from favorites" : "Add to favorites"}
+                          </DropdownMenuItem>
+
+                          {/* Download */}
+                          <DropdownMenuItem
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleDownload(track);
+                            }}
+                            className="cursor-pointer"
+                          >
+                            <Download className="mr-2 h-4 w-4" />
+                            Download
+                          </DropdownMenuItem>
+
+                          <DropdownMenuSeparator />
+
+                          {/* Publish/Unpublish */}
+                          <DropdownMenuItem
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handlePublishToggle(track);
+                            }}
+                            className="cursor-pointer"
+                          >
+                            {track.is_published ? (
+                              <EyeOff className="mr-2 h-4 w-4" />
+                            ) : (
+                              <Eye className="mr-2 h-4 w-4" />
+                            )}
+                            {track.is_published ? "Unpublish" : "Publish"}
+                          </DropdownMenuItem>
+
+                          {/* Pin/Unpin - Only for admins */}
+                          {userIsAdmin && (
+                            <DropdownMenuItem
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handlePinToggle(track);
+                              }}
+                              className="cursor-pointer"
+                            >
+                              {track.is_pinned ? (
+                                <PinOff className="mr-2 h-4 w-4" />
+                              ) : (
+                                <Pin className="mr-2 h-4 w-4" />
+                              )}
+                              {track.is_pinned ? "Unpin" : "Pin"}
+                            </DropdownMenuItem>
+                          )}
+
+                          {/* Separator before delete */}
+                          {userIsAdmin && <DropdownMenuSeparator />}
+
+                          {/* Delete - Only for admins */}
+                          {userIsAdmin && (
+                            <DropdownMenuItem
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleDeleteClick(track);
+                              }}
+                              className="cursor-pointer text-destructive focus:text-destructive"
+                            >
+                              <Trash2 className="mr-2 h-4 w-4" />
+                              Delete
+                            </DropdownMenuItem>
+                          )}
+                        </DropdownMenuContent>
+                      </DropdownMenu>
                     </div>
                   )}
 
@@ -723,18 +758,18 @@ export const LibraryPanel = ({
 
       {/* Delete Confirmation Dialog */}
       <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Delete Track</AlertDialogTitle>
-            <AlertDialogDescription>
+        <AlertDialogContent className="max-w-[calc(100vw-2rem)] sm:max-w-[425px]">
+          <AlertDialogHeader className="space-y-2 sm:space-y-3">
+            <AlertDialogTitle className="text-lg sm:text-xl">Delete Track</AlertDialogTitle>
+            <AlertDialogDescription className="text-sm sm:text-base">
               Are you sure you want to delete &quot;{trackToDelete?.title}&quot;? This action cannot be undone.
             </AlertDialogDescription>
           </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
+          <AlertDialogFooter className="flex-col sm:flex-row gap-2 sm:gap-0">
+            <AlertDialogCancel className="w-full sm:w-auto">Cancel</AlertDialogCancel>
             <AlertDialogAction 
               onClick={handleDeleteConfirm}
-              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              className="w-full sm:w-auto bg-destructive text-destructive-foreground hover:bg-destructive/90"
             >
               Delete
             </AlertDialogAction>

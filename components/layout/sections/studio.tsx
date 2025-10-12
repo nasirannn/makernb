@@ -28,7 +28,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import AuthModal from "@/components/ui/auth-modal";
-import { CheckCircle, Heart, HeartCrack, Music, LogIn } from "lucide-react";
+import { CheckCircle, Heart, HeartCrack, Music, ListMusic, X, Sparkles } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 import { toast } from "sonner";
 import { isAdmin } from "@/lib/auth-utils-optimized";
@@ -39,20 +39,13 @@ const StudioContent = () => {
     const musicGeneration = useMusicGeneration();
     const lyricsGeneration = useLyricsGeneration();
     const { user } = useAuth();
-    const { refreshCredits } = useCredits();
+    const { credits, refreshCredits } = useCredits();
 
     // UI States
     const [panelOpen, setPanelOpen] = useState(true);
     const [showLyrics, setShowLyrics] = useState(false);
-    // 移动端：底部弹出创作面板
-    const [mobilePanelOpen, setMobilePanelOpen] = useState(false);
-
-    // 进入 Studio 时：移动端默认打开 Create 弹窗
-    useEffect(() => {
-        if (typeof window !== 'undefined' && window.innerWidth < 768) {
-            setMobilePanelOpen(true);
-        }
-    }, []);
+    // 移动端：底部弹出歌曲列表面板
+    const [mobileTracksOpen, setMobileTracksOpen] = useState(false);
 
     // 监听全局登录弹窗事件
     useEffect(() => {
@@ -229,11 +222,18 @@ const StudioContent = () => {
             track.side_letter
         );
         
+        const isMobile = typeof window !== 'undefined' && window.innerWidth < 768;
+        
         setCurrentPlayingTrack(playingTrack);
         setSelectedStudioTrack(playingTrack);
-        setShowLyrics(true);
-        // 关闭移动端创作抽屉，避免遮挡播放器
-        setMobilePanelOpen(false);
+        
+        // 桌面端：显示歌词面板；移动端：不显示歌词面板
+        if (!isMobile) {
+            setShowLyrics(true);
+        }
+        
+        // 不关闭移动端歌曲列表，让用户可以继续浏览
+        // setMobileTracksOpen(false);
         
         playAudioWithDelay(track.audioUrl);
     }, [createTrackObject, playAudioWithDelay]);
@@ -460,25 +460,34 @@ const StudioContent = () => {
             track.side_letter
         ), [createTrackObject]);
 
-    // 歌曲选择处理（点击歌曲行，不播放）
-    const handleUserTrackSelect = React.useCallback((track: any, music: any) => {     
+    // 歌曲选择处理（点击歌曲行，显示歌词面板，不播放歌曲）
+    const handleUserTrackSelect = React.useCallback((track: any, music: any) => {
         const selectedTrack = createUserTrackObject(track, music);
+        
         setSelectedStudioTrack(selectedTrack);
         setShowLyrics(true);
+        // 移动端不关闭歌曲列表，让歌词面板覆盖在上方
+        // setMobileTracksOpen(false);
+        
+        // 只显示歌词，不播放歌曲
     }, [createUserTrackObject]);
 
     // 歌曲播放处理（点击播放按钮）
     const handleUserTrackPlay = React.useCallback((track: any, music: any) => {
+        const isMobile = typeof window !== 'undefined' && window.innerWidth < 768;
+        
         // 如果点击的是当前播放的歌曲，则暂停/继续
         if (currentPlayingTrack?.id === track.id) {
             togglePlayPause();
         } else {
             const playingTrack = createUserTrackObject(track, music);
             setCurrentPlayingTrack(playingTrack);
-        setSelectedStudioTrack(playingTrack);
-        setShowLyrics(true);
-        // 关闭移动端创作抽屉，避免遮挡播放器
-        setMobilePanelOpen(false);
+            
+            // 移动端：只播放，不显示歌词，不关闭歌曲列表；桌面端：播放并显示歌词
+            if (!isMobile) {
+                setSelectedStudioTrack(playingTrack);
+                setShowLyrics(true);
+            }
 
             playAudioWithDelay(playingTrack.audioUrl);
         }
@@ -524,8 +533,8 @@ const StudioContent = () => {
 
         setSelectedStudioTrack(selectedTrack);
         setShowLyrics(true);
-        // 关闭移动端创作抽屉，避免遮挡播放器
-        setMobilePanelOpen(false);
+        // 不关闭移动端歌曲列表，歌词面板会覆盖在上方
+        // setMobileTracksOpen(false);
 
         // 自动播放生成的歌曲
         playAudioWithDelay(audioUrl);
@@ -562,8 +571,8 @@ const StudioContent = () => {
             setSelectedStudioTrack(generatedTrack);
             setGeneratingTrack(generatedTrack);
             setShowLyrics(true);
-            // 关闭移动端创作抽屉，避免遮挡播放器
-            setMobilePanelOpen(false);
+            // 不关闭移动端歌曲列表，歌词面板会覆盖在上方
+            // setMobileTracksOpen(false);
 
             if (!currentPlayingTrack) {
                 const playingTrack = {
@@ -830,9 +839,9 @@ const StudioContent = () => {
 
     return (
         <>
-            <section id="studio" className="h-screen flex flex-col md:flex-row bg-background">
+            <section id="studio" className="relative h-screen flex flex-col md:flex-row bg-background">
                 {/* Common Sidebar */}
-                <CommonSidebar hideMobileNav={mobilePanelOpen || showLyrics} />
+                <CommonSidebar hideMobileNav={mobileTracksOpen || showLyrics} />
 
                 {/* Mobile Tabs removed per requirement */}
 
@@ -882,15 +891,28 @@ const StudioContent = () => {
 
                 
 
-                {/* Mobile bottom sheet for StudioPanel */}
-                {mobilePanelOpen && (
-                    <div className="md:hidden fixed inset-0 z-50">
-                        <div className="absolute inset-0 bg-black/50" onClick={() => setMobilePanelOpen(false)} />
-                        <div className="absolute bottom-0 left-0 right-0 max-h-[85vh] h-[85vh] bg-background border-t border-border/30 rounded-t-2xl shadow-2xl overflow-hidden transform-gpu transition-transform duration-300 ease-out will-change-transform" id="mobile-create-sheet" style={{ bottom: currentPlayingTrack ? 'var(--player-height, 64px)' : '0px', height: currentPlayingTrack ? 'calc(85vh - var(--player-height, 64px))' : '85vh' }}>
-                            <div className="h-full overflow-hidden">
-                                <StudioPanel
+                {/* Mobile Create Panel - 移动端常显 */}
+                <div className="md:hidden flex-1 relative overflow-hidden flex flex-col">
+                    {/* Mobile Header */}
+                    <div className="flex-shrink-0 px-6 pt-6 pb-4 bg-background/60 backdrop-blur-sm">
+                        <div className="flex items-center justify-between gap-3">
+                            <div className="flex items-center gap-3">
+                                <Music className="h-8 w-8 text-primary" />
+                                <h1 className="text-4xl font-semibold">Studio</h1>
+                            </div>
+                            {/* Credits Display */}
+                            <div className="flex items-center gap-2 px-3 py-1.5 bg-foreground/10 backdrop-blur-sm border border-foreground/20 rounded-lg">
+                                <Sparkles className="h-3.5 w-3.5 text-foreground" />
+                                <span className="text-sm font-medium text-foreground">
+                                    {credits === null ? '...' : credits}
+                                </span>
+                            </div>
+                        </div>
+                    </div>
+                    <div className="flex-1 overflow-hidden">
+                        <StudioPanel
                                     forceVisibleOnMobile
-                                    onCollapse={() => setMobilePanelOpen(false)}
+                                    onCollapse={() => {}}
                                     panelOpen={true}
                                     setPanelOpen={() => {}}
                                     mode={mode}
@@ -930,75 +952,26 @@ const StudioContent = () => {
                                     isAuthModalOpen={isAuthModalOpen}
                                     setIsAuthModalOpen={setIsAuthModalOpen}
                                 />
-                            </div>
-                            
-                        </div>
                     </div>
-                )}
+                </div>
 
                 {/* MAIN CONTENT - STUDIO */}
-                <div className="flex-1 flex flex-col md:flex-row relative min-w-0 overflow-hidden h-screen">
+                <div className="hidden md:flex flex-1 flex-col md:flex-row relative min-w-0 overflow-hidden h-screen">
                     {/* Background Image for Studio Area */}
                     <div 
-                        className="absolute inset-0 bg-cover bg-center bg-no-repeat opacity-20"
+                        className="absolute inset-0 bg-cover bg-center bg-no-repeat opacity-5"
                         style={{
                             backgroundImage: "url('/bg-studio-background.webp')"
                         }}
                     />
 
-                    {/* 歌曲列表区域 - 移动端默认显示；桌面端在歌词面板显示时占 2/3 */}
-                    <div className={`h-full flex flex-col relative min-w-0 transition-all duration-300 w-full ${showLyrics ? 'md:w-2/3' : 'md:w-full'}`}>
-                        {/* 移动端标题 */}
-                        <div className="md:hidden flex-shrink-0 px-6 pt-6 pb-4 bg-background/60 backdrop-blur-sm">
-                            <div className="flex items-center justify-between">
-                                <div className="flex items-center gap-3">
-                                    <Music className="h-8 w-8 text-primary" />
-                                    <h1 className="text-4xl font-semibold">Studio</h1>
-                                </div>
-                                
-                                {/* User Avatar Button */}
-                                {user ? (
-                                    <div className="relative user-menu-container z-[40]">
-                                        <button
-                                            onClick={() => {
-                                                const event = new CustomEvent('toggle-mobile-user-menu');
-                                                window.dispatchEvent(event);
-                                            }}
-                                            className="h-10 w-10 flex items-center justify-center hover:bg-muted/50 transition-all duration-300 rounded-full"
-                                        >
-                                            <div className="w-9 h-9 rounded-full overflow-hidden border-2 border-primary/20">
-                                                {user.user_metadata?.avatar_url || user.user_metadata?.picture ? (
-                                                    <Image
-                                                        src={user.user_metadata.avatar_url || user.user_metadata.picture}
-                                                        alt="User Avatar"
-                                                        width={36}
-                                                        height={36}
-                                                        className="w-full h-full object-cover"
-                                                    />
-                                                ) : (
-                                                    <div className="w-full h-full bg-primary/20 text-primary text-sm font-semibold flex items-center justify-center">
-                                                        {user.user_metadata?.full_name?.charAt(0) || user.email?.charAt(0) || 'U'}
-                                                    </div>
-                                                )}
-                                            </div>
-                                        </button>
-                                    </div>
-                                ) : (
-                                    <button
-                                        onClick={() => setIsAuthModalOpen(true)}
-                                        className="h-10 w-10 flex items-center justify-center hover:bg-muted/50 transition-all duration-300 rounded-lg text-muted-foreground"
-                                    >
-                                        <LogIn className="h-6 w-6" />
-                                    </button>
-                                )}
-                            </div>
-                        </div>
+                    {/* 歌曲列表区域 - 桌面端显示；移动端在弹窗中 */}
+                    <div className={`hidden md:flex h-full flex-col relative min-w-0 transition-all duration-300 w-full ${showLyrics ? 'md:w-2/3' : 'md:w-full'}`}>
                         
                         {/* 歌曲列表区域 - 可滚动 */}
-                        <div className="flex-1 min-h-0 overflow-y-auto scrollbar-thin scrollbar-thumb-gray-400 scrollbar-track-gray-200" style={{ 
-                            // 仅预留播放器高度；播放器本身已上移到底部导航之上
-                            paddingBottom: 'var(--player-height, 64px)'
-                        }}>
+                        <div className={`flex-1 min-h-0 overflow-y-auto scrollbar-thin scrollbar-thumb-gray-400 scrollbar-track-gray-200 ${
+                            currentPlayingTrack ? 'pb-12' : 'pb-0'
+                        }`}>
                             <StudioTracksList
                                 userTracks={userTracks}
                                 isLoading={isLoadingUserTracks}
@@ -1015,86 +988,64 @@ const StudioContent = () => {
                             />
                         </div>
 
-                        {/* Music Player - 固定在歌曲列表底部 */}
+                        {/* Desktop Music Player - 桌面端播放器（在歌曲列表列底部） */}
                         {currentPlayingTrack && (
-                        <div className={`fixed md:absolute left-0 right-0 z-40 transition-all duration-300 ease-in-out md:bottom-0`} style={{ bottom: showLyrics ? '0px' : 'var(--mobile-nav-height, 0px)' }}>
+                            <div className="absolute left-0 right-0 bottom-0 z-40">
                                 <MusicPlayer
-                                tracks={allTracks.map(track => ({
-                                    id: track.id,
-                                    title: track.title,
-                                    audioUrl: track.audioUrl,
-                                    duration: track.duration,
-                                    coverImage: track.coverImage,
-                                    artist: track.genre,
-                                    allTracks: [{
+                                    tracks={allTracks.map(track => ({
                                         id: track.id,
-                                        audio_url: track.audioUrl,
+                                        title: track.title,
+                                        audioUrl: track.audioUrl,
                                         duration: track.duration,
-                                        side_letter: track.side_letter,
-                                        cover_r2_url: track.coverImage
-                                    }]
-                                }))}
-                                currentTrackIndex={allTracks.findIndex(track => track.id === currentPlayingTrack?.id)}
-                                currentPlayingTrack={currentPlayingTrack ? { trackId: currentPlayingTrack.id || '', audioUrl: currentPlayingTrack.audioUrl || '' } : null}
-                                isPlaying={isPlaying}
-                                currentTime={currentTime}
-                                duration={duration}
-                                volume={volume}
-                                isMuted={isMuted}
-                                onPlayPause={togglePlayPause}
-                                onPrevious={handlePrevious}
-                                onNext={handleNext}
-                                onSeek={(time) => {
-                                    if (audioRef.current && duration > 0 && currentPlayingTrack) {
-                                        audioRef.current.currentTime = time;
-                                    }
-                                }}
-                                onVolumeChange={(newVolume) => {
-                                    changeVolume(newVolume);
-                                }}
-                                onMuteToggle={handleMuteToggle}
-                                hideProgress={showLyrics}
-                                onTrackChange={(index) => {
-                                    // 修复：使用 allTracks 而不是 userTracks
-                                    const selectedTrack = allTracks[index];
-                                    if (selectedTrack) {
-                                        switchToTrack(selectedTrack);
-                                    }
-                                }}
-                                onSideChange={() => {}}
+                                        coverImage: track.coverImage,
+                                        artist: track.genre,
+                                        allTracks: [{
+                                            id: track.id,
+                                            audio_url: track.audioUrl,
+                                            duration: track.duration,
+                                            side_letter: track.side_letter,
+                                            cover_r2_url: track.coverImage
+                                        }]
+                                    }))}
+                                    currentTrackIndex={allTracks.findIndex(track => track.id === currentPlayingTrack?.id)}
+                                    currentPlayingTrack={currentPlayingTrack ? { trackId: currentPlayingTrack.id || '', audioUrl: currentPlayingTrack.audioUrl || '' } : null}
+                                    isPlaying={isPlaying}
+                                    currentTime={currentTime}
+                                    duration={duration}
+                                    volume={volume}
+                                    isMuted={isMuted}
+                                    onPlayPause={togglePlayPause}
+                                    onPrevious={handlePrevious}
+                                    onNext={handleNext}
+                                    onSeek={(time) => {
+                                        if (audioRef.current && duration > 0 && currentPlayingTrack) {
+                                            audioRef.current.currentTime = time;
+                                        }
+                                    }}
+                                    onVolumeChange={(newVolume) => {
+                                        changeVolume(newVolume);
+                                    }}
+                                    onMuteToggle={handleMuteToggle}
+                                    hideProgress={showLyrics}
+                                    onTrackChange={(index) => {
+                                        const selectedTrack = allTracks[index];
+                                        if (selectedTrack) {
+                                            switchToTrack(selectedTrack);
+                                        }
+                                    }}
+                                    onSideChange={() => {}}
                                 />
                             </div>
                         )}
-
-                        <audio
-                            ref={audioRef}
-                            src={currentPlayingTrack?.audioUrl || ''}
-                            onLoadedMetadata={handleAudioLoad}
-                            onTimeUpdate={handleTimeUpdate}
-                            onEnded={handleAudioEnd}
-                            onPlay={handlePlay}
-                            onPause={handlePause}
-                            preload="metadata"
-                        />
                     </div>
 
-                    {/* Lyrics Panel - 右侧（移动端：浮层；桌面端：右侧栏） */}
+                    {/* Desktop Lyrics Panel - 桌面端歌词面板（在 MAIN CONTENT 内） */}
                     {(showLyrics && selectedStudioTrack) && (
-                        <>
-                        {/* Backdrop for mobile */}
                         <div
-                            className="fixed inset-0 bg-black/50 z-40 md:hidden transition-opacity duration-300"
-                            onClick={() => {
-                                setShowLyrics(false);
-                                setSelectedStudioTrack(null);
-                                setGeneratingTrack(null);
-                            }}
-                        />
-                        <div
-                            className="fixed md:relative bottom-0 left-0 right-0 md:left-auto md:right-auto w-full md:w-1/3 h-[calc(95dvh-4rem)] md:h-full flex-shrink-0 z-50 md:z-auto"
+                            className="hidden md:block relative w-1/3 h-full flex-shrink-0"
                         >
                             {/* 歌词内容区域 */}
-                            <div className="flex-1 min-h-0">
+                            <div className="flex-1 min-h-0 h-full">
                                 <LyricsPanel
                                 isOpen={showLyrics}
                                 onClose={() => {
@@ -1135,53 +1086,239 @@ const StudioContent = () => {
                             />
                             </div>
                         </div>
-                        </>
                     )}
                 </div>
 
-                {/* Floating Action Button - Mobile Only - 右下角悬浮按钮 */}
-                {!mobilePanelOpen && (
-                    <button
-                        onClick={() => setMobilePanelOpen(true)}
-                        className="md:hidden fixed right-6 z-50 w-12 h-12 bg-primary hover:bg-primary/90 text-white rounded-full shadow-lg hover:shadow-xl flex items-center justify-center transition-all duration-300 hover:scale-110"
-                        style={{
-                            bottom: currentPlayingTrack ? 'calc(5rem + var(--mobile-nav-height, 0px) + 0.5rem)' : 'calc(var(--mobile-nav-height, 0px) + 0.5rem)'
-                        }}
-                        aria-label="Open create panel"
-                    >
-                        <Image 
-                            src="/icons/Two-Flexible-Creation-Modes.svg" 
-                            alt="Create" 
-                            width={28} 
-                            height={28} 
-                            className="h-7 w-7"
-                        />
-                    </button>
+                {/* Mobile Tracks List Panel - 移动端歌曲列表弹窗 */}
+                {mobileTracksOpen && (
+                    <div className="md:hidden fixed inset-0 z-50">
+                        <div className="absolute inset-0 bg-black/50" onClick={() => setMobileTracksOpen(false)} />
+                        <div className="absolute bottom-0 left-0 right-0 bg-background border-t border-border/30 rounded-t-2xl shadow-2xl overflow-hidden transform-gpu transition-transform duration-300 ease-out will-change-transform" style={{ bottom: 'var(--mobile-nav-height, 0px)', height: 'calc(85vh - var(--mobile-nav-height, 0px))' }}>
+                            <div className="h-full flex flex-col">
+                                {/* Header */}
+                                <div className="flex-shrink-0 px-6 pt-6 pb-4 bg-background/60 backdrop-blur-sm">
+                                    <div className="flex items-center justify-between gap-3">
+                                        <h1 className="text-2xl font-semibold">My Tracks</h1>
+                                        <button
+                                            onClick={() => setMobileTracksOpen(false)}
+                                            className="h-10 w-10 flex items-center justify-center text-foreground hover:text-primary transition-colors rounded-lg hover:bg-muted/50 active:bg-muted/70"
+                                            aria-label="Close tracks list"
+                                        >
+                                            <X className="w-6 h-6" />
+                                        </button>
+                                    </div>
+                                </div>
+
+                                {/* Tracks List */}
+                                <div className="flex-1 min-h-0 overflow-y-auto scrollbar-thin scrollbar-thumb-gray-400 scrollbar-track-gray-200">
+                                    <StudioTracksList
+                                        userTracks={userTracks}
+                                        isLoading={isLoadingUserTracks}
+                                        onTrackSelect={handleUserTrackSelect}
+                                        onTrackPlay={handleUserTrackPlay}
+                                        currentlyPlaying={currentPlayingTrack?.id}
+                                        selectedTrack={selectedStudioTrack?.id}
+                                        isPlaying={isPlaying && currentTime > 0}
+                                    />
+                                </div>
+                            </div>
+                        </div>
+                    </div>
                 )}
+
+                {/* Mobile Lyrics Panel - 移动端歌词面板（浮层） */}
+                {(showLyrics && selectedStudioTrack) && (
+                    <>
+                    {/* Backdrop for mobile */}
+                    <div
+                        className="md:hidden fixed inset-0 bg-black/50 z-[55] transition-opacity duration-300"
+                        onClick={() => {
+                            setShowLyrics(false);
+                            setSelectedStudioTrack(null);
+                            setGeneratingTrack(null);
+                        }}
+                        style={{ touchAction: 'none' }}
+                    />
+                    <div
+                        className="md:hidden fixed bottom-0 left-0 right-0 w-full h-dvh flex-shrink-0 z-[60]"
+                        style={{ touchAction: 'pan-y' }}
+                    >
+                        {/* 歌词内容区域 */}
+                        <div className="flex-1 min-h-0 h-full">
+                            <LyricsPanel
+                            isOpen={showLyrics}
+                            onClose={() => {
+                                setShowLyrics(false);
+                                setSelectedStudioTrack(null);
+                                setGeneratingTrack(null); // 清除生成中状态
+                            }}
+                            lyrics={selectedStudioTrack?.lyrics}
+                            title={selectedStudioTrack?.title}
+                            tags={selectedStudioTrack?.tags}
+                            genre={selectedStudioTrack?.genre}
+                            coverImage={selectedStudioTrack?.coverImage || selectedStudioTrack?.cover_r2_url}
+                            sideLetter={selectedStudioTrack?.side_letter || 'A'}
+                            isFavorited={selectedStudioTrack?.is_favorited || false}
+                            isAdmin={isAdmin(user?.id || '')}
+                            isGenerating={selectedStudioTrack?.isGenerating || false}
+                            isPlaying={isPlaying && currentPlayingTrack?.id === selectedStudioTrack?.id && currentTime > 0}
+                            onDownload={() => {
+                                if (selectedStudioTrack?.audioUrl) {
+                                    const link = document.createElement('a');
+                                    link.href = selectedStudioTrack.audioUrl;
+                                    link.download = `${selectedStudioTrack.title || 'track'}.mp3`;
+                                    document.body.appendChild(link);
+                                    link.click();
+                                    document.body.removeChild(link);
+                                }
+                            }}
+                            onFavoriteToggle={() => {
+                                if (selectedStudioTrack) {
+                                    handleFavoriteToggle(selectedStudioTrack);
+                                }
+                            }}
+                            onDelete={() => {
+                                if (selectedStudioTrack) {
+                                    handleDeleteClick(selectedStudioTrack);
+                                }
+                            }}
+                        />
+                        </div>
+                    </div>
+                    </>
+                )}
+
+                {/* Mobile Player Placeholder - 移动端播放器占位（始终显示，除非歌词面板或歌曲列表打开） */}
+                {!showLyrics && !currentPlayingTrack && !mobileTracksOpen && (
+                    <div className="md:hidden fixed left-3 right-3 z-30 bg-background/30 backdrop-blur-md rounded-xl pl-3 pr-3 py-2" style={{ bottom: 'calc(var(--mobile-nav-height, 0px) + 0.75rem)', height: 'var(--player-height, 60px)' }}>
+                        <div className="flex items-center space-x-3 h-full">
+                            {/* Left: Placeholder Cover and Song Info */}
+                            <div className="flex items-center space-x-3 min-w-0 flex-1">
+                                {/* Cassette Tape Icon */}
+                                <div className="relative w-12 h-12 flex-shrink-0 rounded-md overflow-hidden flex items-center justify-center">
+                                    <Image
+                                        src="/cassette-tape.svg"
+                                        alt="Cassette Tape"
+                                        width={48}
+                                        height={48}
+                                        className="w-full h-full object-contain opacity-70"
+                                    />
+                                </div>
+                                {/* Song Info */}
+                                <div className="min-w-0 flex-1">
+                                    <div className="text-sm font-medium text-muted-foreground truncate">
+                                        No track playing
+                                    </div>
+                                </div>
+                            </div>
+
+                            {/* Right: List Button */}
+                            <button
+                                onClick={() => setMobileTracksOpen(true)}
+                                className="flex-shrink-0 h-12 w-12 flex items-center justify-center text-foreground hover:text-primary transition-colors rounded-lg hover:bg-muted/50 active:bg-muted/70"
+                                aria-label="Open tracks list"
+                            >
+                                <ListMusic className="w-6 h-6" />
+                            </button>
+                        </div>
+                    </div>
+                )}
+
+                {/* Mobile Music Player - 移动端播放器 */}
+                {currentPlayingTrack && !mobileTracksOpen && (
+                <div className="md:hidden fixed left-3 right-3 z-40" style={{ bottom: 'calc(var(--mobile-nav-height, 0px) + 0.75rem)' }}>
+                    <div className="relative">
+                        <MusicPlayer
+                        tracks={allTracks.map(track => ({
+                            id: track.id,
+                            title: track.title,
+                            audioUrl: track.audioUrl,
+                            duration: track.duration,
+                            coverImage: track.coverImage,
+                            artist: track.genre,
+                            allTracks: [{
+                                id: track.id,
+                                audio_url: track.audioUrl,
+                                duration: track.duration,
+                                side_letter: track.side_letter,
+                                cover_r2_url: track.coverImage
+                            }]
+                        }))}
+                        currentTrackIndex={allTracks.findIndex(track => track.id === currentPlayingTrack?.id)}
+                        currentPlayingTrack={currentPlayingTrack ? { trackId: currentPlayingTrack.id || '', audioUrl: currentPlayingTrack.audioUrl || '' } : null}
+                        isPlaying={isPlaying}
+                        currentTime={currentTime}
+                        duration={duration}
+                        volume={volume}
+                        isMuted={isMuted}
+                        onPlayPause={togglePlayPause}
+                        onPrevious={handlePrevious}
+                        onNext={handleNext}
+                        onSeek={(time) => {
+                            if (audioRef.current && duration > 0 && currentPlayingTrack) {
+                                audioRef.current.currentTime = time;
+                            }
+                        }}
+                        onVolumeChange={(newVolume) => {
+                            changeVolume(newVolume);
+                        }}
+                        onMuteToggle={handleMuteToggle}
+                        hideProgress={showLyrics}
+                        onTrackChange={(index) => {
+                            const selectedTrack = allTracks[index];
+                            if (selectedTrack) {
+                                switchToTrack(selectedTrack);
+                            }
+                        }}
+                        onSideChange={() => {}}
+                        />
+                        
+                        {/* Mobile List Button - 移动端列表按钮（覆盖在播放器右侧） */}
+                        <button
+                            onClick={() => setMobileTracksOpen(true)}
+                            className="absolute right-1 top-1/2 -translate-y-1/2 h-12 w-12 flex items-center justify-center text-foreground hover:text-primary transition-colors rounded-lg hover:bg-black/20 active:bg-black/30 z-50"
+                            aria-label="Open tracks list"
+                        >
+                            <ListMusic className="w-6 h-6" />
+                        </button>
+                    </div>
+                    </div>
+                )}
+
+                <audio
+                    ref={audioRef}
+                    src={currentPlayingTrack?.audioUrl || ''}
+                    onLoadedMetadata={handleAudioLoad}
+                    onTimeUpdate={handleTimeUpdate}
+                    onEnded={handleAudioEnd}
+                    onPlay={handlePlay}
+                    onPause={handlePause}
+                    preload="metadata"
+                />
 
             </section>
 
             {/* Lyrics Generation Dialog */}
             <Dialog open={showLyricsDialog} onOpenChange={setShowLyricsDialog}>
-                <DialogContent className="sm:max-w-[600px] border-0">
-                    <DialogHeader>
-                        <DialogTitle>Generate Lyrics</DialogTitle>
+                <DialogContent className="max-w-[calc(100vw-2rem)] sm:max-w-[600px] border-0 p-4 sm:p-6 gap-4 sm:gap-6">
+                    <DialogHeader className="space-y-1.5 sm:space-y-3">
+                        <DialogTitle className="text-lg sm:text-xl">Generate Lyrics</DialogTitle>
                     </DialogHeader>
-                    <div className="space-y-4">
-                        <div>
-                            <label className="text-sm font-medium">Lyrics Prompt</label>
+                    <div className="space-y-4 sm:space-y-5">
+                        <div className="space-y-2 sm:space-y-3">
+                            <label className="text-sm font-medium block">Lyrics Prompt</label>
                             <Textarea
                                 value={lyricsPrompt}
                                 onChange={(e) => setLyricsPrompt(e.target.value)}
                                 placeholder="Describe the theme, mood, or story for your lyrics..."
-                                className="w-full mt-4 resize-none h-32 border focus-visible:ring-0 focus-visible:ring-offset-0"
+                                className="w-full resize-none h-28 sm:h-32 border focus-visible:ring-0 focus-visible:ring-offset-0 text-sm sm:text-base"
                             />
                         </div>
-                        <div className="w-full">
+                        <div className="w-full pt-2">
                             <Button
                                 onClick={() => handleGenerateLyricsHook(setCustomPrompt, user?.id || '')}
                                 disabled={isGeneratingLyrics || !lyricsPrompt.trim()}
-                                className="w-full"
+                                className="w-full h-11 sm:h-10 text-base sm:text-sm"
                             >
                                 {isGeneratingLyrics ? 'Generating...' : 'Generate Lyrics'}
                             </Button>
@@ -1198,18 +1335,18 @@ const StudioContent = () => {
 
             {/* Delete Confirmation Dialog */}
             <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
-                <AlertDialogContent>
-                    <AlertDialogHeader>
-                        <AlertDialogTitle>Delete Track</AlertDialogTitle>
-                        <AlertDialogDescription>
+                <AlertDialogContent className="max-w-[calc(100vw-2rem)] sm:max-w-[425px]">
+                    <AlertDialogHeader className="space-y-2 sm:space-y-3">
+                        <AlertDialogTitle className="text-lg sm:text-xl">Delete Track</AlertDialogTitle>
+                        <AlertDialogDescription className="text-sm sm:text-base">
                             Are you sure you want to delete &quot;{trackToDelete?.title}&quot;? This action cannot be undone.
                         </AlertDialogDescription>
                     </AlertDialogHeader>
-                    <AlertDialogFooter>
-                        <AlertDialogCancel>Cancel</AlertDialogCancel>
+                    <AlertDialogFooter className="flex-col sm:flex-row gap-2 sm:gap-0">
+                        <AlertDialogCancel className="w-full sm:w-auto">Cancel</AlertDialogCancel>
                         <AlertDialogAction
                             onClick={handleDeleteConfirm}
-                            className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                            className="w-full sm:w-auto bg-destructive text-destructive-foreground hover:bg-destructive/90"
                         >
                             Delete
                         </AlertDialogAction>
@@ -1219,7 +1356,7 @@ const StudioContent = () => {
 
             {/* Generation Confirmation Dialog */}
             {generationConfirmOpen && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center animate-in fade-in duration-300">
+                <div className="fixed inset-0 z-50 flex items-center justify-center animate-in fade-in duration-300 p-4">
                     {/* 自定义背景遮罩 - 使用登录界面的样式 */}
                     <div
                         className="fixed inset-0 bg-gradient-to-br from-slate-900/90 via-purple-900/80 to-slate-900/90 backdrop-blur-md animate-in fade-in duration-300"
@@ -1227,38 +1364,38 @@ const StudioContent = () => {
                     />
 
                     {/* 自定义弹窗内容 - 使用登录界面的样式 */}
-                    <div className="relative w-full max-w-md mx-4 animate-in zoom-in-95 slide-in-from-bottom-4 duration-300">
-                        <div className="bg-white/10 backdrop-blur-lg border-white/20 shadow-2xl text-white rounded-lg p-6">
+                    <div className="relative w-full max-w-md animate-in zoom-in-95 slide-in-from-bottom-4 duration-300">
+                        <div className="bg-white/10 backdrop-blur-lg border-white/20 shadow-2xl text-white rounded-xl sm:rounded-2xl p-5 sm:p-6">
                             {/* Header */}
-                            <div className="text-left mb-6">
-                                <div className="flex items-center gap-3 mb-2">
+                            <div className="text-left mb-5 sm:mb-6">
+                                <div className="flex items-center gap-2.5 sm:gap-3 mb-1.5 sm:mb-2">
                                     <Image
                                         src="/icons/Generate-Tip-Info-Coffee.svg"
                                         alt="Coffee with music notes"
-                                        width={32}
-                                        height={32}
-                                        className="w-8 h-8"
+                                        width={28}
+                                        height={28}
+                                        className="w-7 h-7 sm:w-8 sm:h-8"
                                     />
-                                    <h2 className="text-xl font-bold text-white">Music Generation Started</h2>
+                                    <h2 className="text-lg sm:text-xl font-bold text-white">Music Generation Started</h2>
                                 </div>
-                                <p className="text-white/70 text-base">
+                                <p className="text-white/70 text-sm sm:text-base">
                                     Grab a coffee while we generate your music...
                                 </p>
                             </div>
 
                             {/* Main Content Panel */}
-                            <div className="bg-white/5 rounded-xl p-6 space-y-6 mt-6">
+                            <div className="bg-white/5 rounded-xl p-5 sm:p-6 space-y-5 sm:space-y-6 mt-5 sm:mt-6">
                                 {/* Loading Indicator */}
                                 <div className="flex justify-center">
                                     <div className="flex items-center gap-2">
-                                        <div className="w-3 h-3 bg-purple-400 rounded-full animate-pulse"></div>
-                                        <div className="w-3 h-3 bg-purple-400/70 rounded-full animate-pulse" style={{ animationDelay: '0.3s' }}></div>
-                                        <div className="w-3 h-3 bg-purple-400/50 rounded-full animate-pulse" style={{ animationDelay: '0.6s' }}></div>
+                                        <div className="w-2.5 h-2.5 sm:w-3 sm:h-3 bg-purple-400 rounded-full animate-pulse"></div>
+                                        <div className="w-2.5 h-2.5 sm:w-3 sm:h-3 bg-purple-400/70 rounded-full animate-pulse" style={{ animationDelay: '0.3s' }}></div>
+                                        <div className="w-2.5 h-2.5 sm:w-3 sm:h-3 bg-purple-400/50 rounded-full animate-pulse" style={{ animationDelay: '0.6s' }}></div>
                                     </div>
                                 </div>
 
                                 {/* Primary Information */}
-                                <div className="text-center text-sm text-white/80 space-y-2">
+                                <div className="text-center text-xs sm:text-sm text-white/80 space-y-1.5 sm:space-y-2">
                                     <div>
                                         <span>Music generation in progress, you can preview in</span>
                                     </div>
@@ -1269,10 +1406,10 @@ const StudioContent = () => {
                             </div>
 
                             {/* Action Button */}
-                            <div className="flex justify-center pt-6">
+                            <div className="flex justify-center pt-5 sm:pt-6">
                                 <button
                                     onClick={() => setGenerationConfirmOpen(false)}
-                                    className="w-full px-6 py-3 bg-gradient-to-r from-purple-600 to-purple-700 hover:from-purple-700 hover:to-purple-800 text-white rounded-xl transition-all duration-200 font-medium"
+                                    className="w-full px-6 py-2.5 sm:py-3 bg-gradient-to-r from-purple-600 to-purple-700 hover:from-purple-700 hover:to-purple-800 text-white rounded-xl transition-all duration-200 font-medium text-sm sm:text-base"
                                 >
                                     Check it out
                                 </button>

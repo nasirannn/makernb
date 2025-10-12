@@ -40,16 +40,6 @@ export const CommonSidebar = ({ hideMobileNav = false }: CommonSidebarProps) => 
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, [userMenuOpen]);
 
-  // 监听来自 Studio 标题栏的菜单切换事件
-  React.useEffect(() => {
-    const handleToggleMenu = () => {
-      setUserMenuOpen(prev => !prev);
-    };
-
-    window.addEventListener('toggle-mobile-user-menu' as any, handleToggleMenu);
-    return () => window.removeEventListener('toggle-mobile-user-menu' as any, handleToggleMenu);
-  }, []);
-
   const handleSignOut = async () => {
     try {
       await signOut();
@@ -285,8 +275,8 @@ export const CommonSidebar = ({ hideMobileNav = false }: CommonSidebarProps) => 
             <Library className="h-7 w-7" />
           </Button>
 
-          {/* User Button - Hidden on Studio and Library pages (avatar is in header) */}
-          {user && pathname !== '/studio' && pathname !== '/library' ? (
+          {/* User Button */}
+          {user ? (
             <div className="relative user-menu-container z-[40]">
               <Button
                 onClick={() => setUserMenuOpen(!userMenuOpen)}
@@ -307,7 +297,7 @@ export const CommonSidebar = ({ hideMobileNav = false }: CommonSidebarProps) => 
               
               {/* User Menu Dropdown */}
               {userMenuOpen && (
-                <div className="absolute bottom-12 left-1/2 transform -translate-x-1/2 bg-background border border-border/30 rounded-lg shadow-lg p-2 min-w-48 z-[40]">
+                <div className="absolute bottom-12 right-2 bg-background border border-border/30 rounded-lg shadow-lg p-2 min-w-48 z-[40]">
                   <div className="flex flex-col gap-1">
                     <div className="px-3 py-2 border-b border-border/20 mb-2">
                       <div className="text-sm font-medium text-foreground truncate">
@@ -334,7 +324,7 @@ export const CommonSidebar = ({ hideMobileNav = false }: CommonSidebarProps) => 
                 </div>
               )}
             </div>
-          ) : pathname !== '/studio' && pathname !== '/library' ? (
+          ) : (
             <Button
               onClick={() => setIsAuthModalOpen(true)}
               variant="ghost"
@@ -344,7 +334,7 @@ export const CommonSidebar = ({ hideMobileNav = false }: CommonSidebarProps) => 
             >
               <LogIn className="h-7 w-7" />
             </Button>
-          ) : null}
+          )}
         </div>
       </div>
 

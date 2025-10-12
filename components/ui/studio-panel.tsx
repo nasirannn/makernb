@@ -6,7 +6,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
-import { Music, RotateCcw, ChevronRight, ChevronDown, Wand2, Play, Pause, X } from "lucide-react";
+import { Music, RotateCcw, ChevronRight, ChevronDown, Wand2, Play, Pause, X, Sparkles } from "lucide-react";
 import musicOptions from '@/data/music-options.json';
 import { useAuth } from '@/contexts/AuthContext';
 import { useCredits } from '@/contexts/CreditsContext';
@@ -197,56 +197,19 @@ export const StudioPanel = (props: StudioPanelProps) => {
     } h-full flex flex-col overflow-hidden ${forceVisibleOnMobile ? 'flex md:flex' : 'hidden md:flex'}`}>
       {panelOpen && (
         <>
-          {/* Header */}
-          <div className="flex-shrink-0 px-4 md:px-6 pt-4 md:pt-6 pb-3 md:pb-4 backdrop-blur-sm">
-            {/* Desktop: Title and Credits */}
-            <div className="hidden md:flex items-center justify-between gap-3 mb-4">
+          {/* Header - Desktop only */}
+          <div className="flex-shrink-0 hidden md:block px-6 pt-6 pb-4 backdrop-blur-sm">
+            <div className="flex items-center justify-between gap-3 mb-4">
               <div className="flex items-center gap-3">
                 <Music className="h-8 w-8 text-primary" />
                 <h1 className="text-4xl font-semibold">Studio</h1>
               </div>
             </div>
-            
-            {/* Mobile: Title, Credits and Close button */}
-            <div className="md:hidden mb-2">
-              {/* Title, Credits badge and Close button row */}
-              <div className="flex items-center justify-between relative">
-                {/* Credits badge - Left */}
-                {user ? (
-                  <div className="bg-muted/50 px-2 py-1 rounded-md">
-                    <div className="flex items-center gap-1">
-                      <span className="text-sm text-muted-foreground">Credits</span>
-                      <span className="text-base font-medium text-foreground">
-                        {credits !== null ? credits.toLocaleString() : '...'}
-                      </span>
-                    </div>
-                  </div>
-                ) : (
-                  <div className="w-16"></div>
-                )}
-                
-                {/* Title - Center */}
-                <h2 className="text-xl font-semibold text-foreground absolute left-1/2 transform -translate-x-1/2">Create Tracks</h2>
-                
-                {/* Close button - Right */}
-                {onCollapse && (
-                  <button
-                    type="button"
-                    className="h-8 w-8 p-0 text-muted-foreground hover:text-foreground transition-all duration-300 flex items-center justify-center"
-                    onClick={onCollapse}
-                    aria-label="Close panel"
-                    title="Close"
-                  >
-                    <X className="h-5 w-5" />
-                  </button>
-                )}
-              </div>
-            </div>
           </div>
 
-          <div className="flex-1 overflow-y-auto px-4 md:px-6 pb-5 md:pb-6">
+          <div className="flex-1 overflow-y-auto px-4 md:px-6 pb-36 md:pb-6 pt-4 md:pt-0">
             {/* Mode Tabs - Internal at top */}
-            <div className="mb-4 md:mb-6 mt-1 md:mt-4">
+            <div className="mb-4 md:mb-6">
                 <div className="bg-muted/30 rounded-lg p-1">
                   <div className="grid grid-cols-2 gap-1">
                     <button
@@ -1103,7 +1066,7 @@ export const StudioPanel = (props: StudioPanelProps) => {
 
 
       {/* Generate Button - Bottom of Panel */}
-      <div className="mt-8">
+      <div className="mt-8 mb-6 md:mb-0">
         {(() => {
           // 只根据prompt输入内容来禁用按钮，积分检查移到点击后
           let isDisabled = isGenerating;

@@ -16,7 +16,7 @@ export const FooterSection = () => {
   };
 
   return (
-    <footer id="footer" className="container py-24 sm:py-32">
+    <footer id="footer" className="container py-12 sm:py-16">
       <div className="p-10 bg-card rounded-2xl">
         <div className="flex flex-col items-center justify-between gap-10 text-center lg:flex-row lg:text-left">
           <div className="flex w-full max-w-96 shrink flex-col items-center justify-between gap-6 lg:items-start">
