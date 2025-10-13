@@ -537,7 +537,7 @@ const StudioContent = () => {
 
         // 自动播放生成的歌曲
         playAudioWithDelay(audioUrl);
-    }, [isPublished, playAudioWithDelay, setCurrentPlayingTrack, setSelectedStudioTrack, setShowLyrics]);
+    }, [isPublished, playAudioWithDelay]);
 
     // 监听生成状态变化，当text回调完成时自动显示歌词面板
     React.useEffect(() => {

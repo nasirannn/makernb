@@ -3,18 +3,8 @@
 import { Separator } from "@/components/ui/separator";
 import Link from "next/link";
 import Image from "next/image";
-import { toast } from "sonner";
 
 export const FooterSection = () => {
-  const handleGithubClick = (e: React.MouseEvent) => {
-    e.preventDefault();
-    toast("🎁 Daily Login Bonus!", {
-      description: "You have received 15 credits as a daily login bonus. They are only valid today (UTC) - use them up ASAP.",
-      duration: 5000,
-      className: 'bg-purple-600 text-white border-none shadow-2xl',
-    });
-  };
-
   return (
     <footer id="footer" className="container py-12 sm:py-16">
       <div className="p-10 bg-card rounded-2xl">

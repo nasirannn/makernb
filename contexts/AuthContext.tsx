@@ -3,8 +3,7 @@
 import React, { createContext, useContext, useEffect, useState, useRef } from 'react';
 import { User, Session } from '@supabase/supabase-js';
 import { supabase } from '@/lib/supabase';
-import { isAdmin } from '@/lib/auth-utils-optimized';
-import DailyCreditsNotification from '@/components/ui/daily-credits-notification';
+import { toast } from 'sonner';
 import { useRouter } from 'next/navigation';
 
 interface AuthContextType {
@@ -23,8 +22,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
-  const [showRewardNotification, setShowRewardNotification] = useState(false);
-  const [rewardCredits, setRewardCredits] = useState(0);
   const [hasCheckedInitialCredits, setHasCheckedInitialCredits] = useState(false);
   const creditsCheckInProgress = useRef(false);
   const lastCreditsCheckTime = useRef(0);
@@ -98,8 +95,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         const data = await response.json();
         if (data.success && data.reward) {
           // 显示每日登录积分通知
-          setRewardCredits(data.reward.credits_awarded);
-          setShowRewardNotification(true);
+          toast("🎁 Daily Login Bonus!", {
+            description: `You have received ${data.reward.credits_awarded} credits as a daily login bonus. They are only valid today (UTC) - use them up ASAP.`,
+            duration: 5000,
+          });
         } else if (data.alreadyReceived) {
           // User already received today's credits
         } else if (data.message?.includes('Not eligible')) {
@@ -251,11 +250,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   return (
     <AuthContext.Provider value={value}>
       {children}
-      <DailyCreditsNotification
-        show={showRewardNotification}
-        credits={rewardCredits}
-        onClose={() => setShowRewardNotification(false)}
-      />
     </AuthContext.Provider>
   );
 }
