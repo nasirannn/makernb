@@ -47,6 +47,12 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
 
 interface Track {
   id: string;
@@ -100,6 +106,8 @@ export const LibraryPanel = ({
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [trackToDelete, setTrackToDelete] = useState<Track | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [selectedTrackForMenu, setSelectedTrackForMenu] = useState<Track | null>(null);
 
   // Check if user is admin
   const userIsAdmin = userId ? isAdmin(userId) : false;
@@ -157,10 +165,7 @@ export const LibraryPanel = ({
       onTrackPlay(track);
     } else if (action === 'select' && onTrackSelect) {
       onTrackSelect(track);
-      // Only show lyrics panel if it's not already open
-      if (!showLyrics) {
-        onLyricsToggle?.();
-      }
+      // 不自动展开歌词面板，用户可以通过点击播放器中的歌曲信息来展开
     }
   };
 
@@ -673,98 +678,19 @@ export const LibraryPanel = ({
                   {/* Mobile More Actions Button - 移动端更多按钮 */}
                   {!showLyrics && (
                     <div className="md:hidden flex items-center flex-shrink-0 mt-5">
-                      <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            className="h-8 w-8 p-0"
-                            title="More actions"
-                            onClick={(e) => e.stopPropagation()}
-                          >
-                            <MoreHorizontal className="h-5 w-5" />
-                          </Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end" className="w-48">
-                          {/* Favorite */}
-                          <DropdownMenuItem
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              handleFavoriteToggle(track);
-                            }}
-                            className="cursor-pointer"
-                            disabled={favoriteLoading[track.id]}
-                          >
-                            <Heart className={`mr-2 h-4 w-4 ${track.is_favorited ? 'fill-red-500 text-red-500' : ''}`} />
-                            {track.is_favorited ? "Remove from favorites" : "Add to favorites"}
-                          </DropdownMenuItem>
-
-                          {/* Download */}
-                          <DropdownMenuItem
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              handleDownload(track);
-                            }}
-                            className="cursor-pointer"
-                          >
-                            <Download className="mr-2 h-4 w-4" />
-                            Download
-                          </DropdownMenuItem>
-
-                          <DropdownMenuSeparator />
-
-                          {/* Publish/Unpublish */}
-                          <DropdownMenuItem
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              handlePublishToggle(track);
-                            }}
-                            className="cursor-pointer"
-                          >
-                            {track.is_published ? (
-                              <EyeOff className="mr-2 h-4 w-4" />
-                            ) : (
-                              <Eye className="mr-2 h-4 w-4" />
-                            )}
-                            {track.is_published ? "Unpublish" : "Publish"}
-                          </DropdownMenuItem>
-
-                          {/* Pin/Unpin - Only for admins */}
-                          {userIsAdmin && (
-                            <DropdownMenuItem
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                handlePinToggle(track);
-                              }}
-                              className="cursor-pointer"
-                            >
-                              {track.is_pinned ? (
-                                <PinOff className="mr-2 h-4 w-4" />
-                              ) : (
-                                <Pin className="mr-2 h-4 w-4" />
-                              )}
-                              {track.is_pinned ? "Unpin" : "Pin"}
-                            </DropdownMenuItem>
-                          )}
-
-                          {/* Separator before delete */}
-                          {userIsAdmin && <DropdownMenuSeparator />}
-
-                          {/* Delete - Only for admins */}
-                          {userIsAdmin && (
-                            <DropdownMenuItem
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                handleDeleteClick(track);
-                              }}
-                              className="cursor-pointer text-destructive focus:text-destructive"
-                            >
-                              <Trash2 className="mr-2 h-4 w-4" />
-                              Delete
-                            </DropdownMenuItem>
-                          )}
-                        </DropdownMenuContent>
-                      </DropdownMenu>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="h-8 w-8 p-0"
+                        title="More actions"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setSelectedTrackForMenu(track);
+                          setMobileMenuOpen(true);
+                        }}
+                      >
+                        <MoreHorizontal className="h-5 w-5" />
+                      </Button>
                     </div>
                   )}
 
@@ -794,6 +720,117 @@ export const LibraryPanel = ({
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* Mobile Bottom Sheet Menu */}
+      <Dialog open={mobileMenuOpen} onOpenChange={setMobileMenuOpen}>
+        <DialogContent className="sm:max-w-md p-0 gap-0 [&>button]:hidden md:hidden bottom-0 top-auto translate-y-0 data-[state=closed]:slide-out-to-bottom data-[state=open]:slide-in-from-bottom">
+          <DialogHeader className="p-4 pb-3 border-b">
+            <div className="flex items-center gap-3">
+              {selectedTrackForMenu?.cover_r2_url && (
+                <SafeImage
+                  src={selectedTrackForMenu.cover_r2_url}
+                  alt={selectedTrackForMenu.title}
+                  width={48}
+                  height={48}
+                  className="w-12 h-12 rounded-md object-cover flex-shrink-0"
+                />
+              )}
+              <DialogTitle className="text-base font-semibold text-left flex-1 min-w-0">
+                <div className="truncate">{selectedTrackForMenu?.title}</div>
+              </DialogTitle>
+            </div>
+          </DialogHeader>
+          <div className="flex flex-col py-2">
+            {selectedTrackForMenu && (
+              <>
+                {/* Favorite */}
+                <button
+                  onClick={() => {
+                    handleFavoriteToggle(selectedTrackForMenu);
+                    setMobileMenuOpen(false);
+                  }}
+                  disabled={favoriteLoading[selectedTrackForMenu.id]}
+                  className="flex items-center gap-3 px-4 py-3.5 text-left hover:bg-accent transition-colors disabled:opacity-50"
+                >
+                  <Heart className={`h-5 w-5 ${selectedTrackForMenu.is_favorited ? 'fill-red-500 text-red-500' : ''}`} />
+                  <span className="text-sm">
+                    {selectedTrackForMenu.is_favorited ? "Remove from favorites" : "Add to favorites"}
+                  </span>
+                </button>
+
+                {/* Download */}
+                <button
+                  onClick={() => {
+                    handleDownload(selectedTrackForMenu);
+                    setMobileMenuOpen(false);
+                  }}
+                  className="flex items-center gap-3 px-4 py-3.5 text-left hover:bg-accent transition-colors"
+                >
+                  <Download className="h-5 w-5" />
+                  <span className="text-sm">Download</span>
+                </button>
+
+                <div className="h-px bg-border my-1" />
+
+                {/* Publish/Unpublish */}
+                <button
+                  onClick={() => {
+                    handlePublishToggle(selectedTrackForMenu);
+                    setMobileMenuOpen(false);
+                  }}
+                  className="flex items-center gap-3 px-4 py-3.5 text-left hover:bg-accent transition-colors"
+                >
+                  {selectedTrackForMenu.is_published ? (
+                    <EyeOff className="h-5 w-5" />
+                  ) : (
+                    <Eye className="h-5 w-5" />
+                  )}
+                  <span className="text-sm">
+                    {selectedTrackForMenu.is_published ? "Unpublish" : "Publish"}
+                  </span>
+                </button>
+
+                {/* Pin/Unpin - Only for admins */}
+                {userIsAdmin && (
+                  <button
+                    onClick={() => {
+                      handlePinToggle(selectedTrackForMenu);
+                      setMobileMenuOpen(false);
+                    }}
+                    className="flex items-center gap-3 px-4 py-3.5 text-left hover:bg-accent transition-colors"
+                  >
+                    {selectedTrackForMenu.is_pinned ? (
+                      <PinOff className="h-5 w-5" />
+                    ) : (
+                      <Pin className="h-5 w-5" />
+                    )}
+                    <span className="text-sm">
+                      {selectedTrackForMenu.is_pinned ? "Unpin" : "Pin"}
+                    </span>
+                  </button>
+                )}
+
+                {/* Delete - Only for admins */}
+                {userIsAdmin && (
+                  <>
+                    <div className="h-px bg-border my-1" />
+                    <button
+                      onClick={() => {
+                        handleDeleteClick(selectedTrackForMenu);
+                        setMobileMenuOpen(false);
+                      }}
+                      className="flex items-center gap-3 px-4 py-3.5 text-left hover:bg-accent transition-colors text-destructive"
+                    >
+                      <Trash2 className="h-5 w-5" />
+                      <span className="text-sm">Delete</span>
+                    </button>
+                  </>
+                )}
+              </>
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };

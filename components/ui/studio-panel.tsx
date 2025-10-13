@@ -1102,7 +1102,7 @@ export const StudioPanel = (props: StudioPanelProps) => {
                   <span>Creating...</span>
                     </div>
                   ) : (
-                'Generate Track'
+                'Create Track'
                   )}
             </button>
           );

@@ -47,6 +47,7 @@ interface MusicPlayerProps {
   onVolumeChange: (volume: number) => void;
   onMuteToggle: () => void;
   onTrackChange: (index: number) => void;
+  onTrackInfoClick?: () => void; // 点击歌曲信息区域的回调
 }
 
 const formatTime = (seconds: number): string => {
@@ -73,6 +74,7 @@ export const MusicPlayer: React.FC<MusicPlayerProps> = ({
   onVolumeChange,
   onMuteToggle,
   onTrackChange,
+  onTrackInfoClick,
 }) => {
   const currentTrack = tracks[currentTrackIndex];
   const [isMobile, setIsMobile] = useState(false);
@@ -177,11 +179,18 @@ export const MusicPlayer: React.FC<MusicPlayerProps> = ({
   }, [hideProgress, isPlaying]);
 
   return (
-    <div ref={rootRef} className="bg-background/30 backdrop-blur-md border-t-0 md:border-t md:border-border/20 rounded-xl md:rounded-none pl-3 pr-14 py-2 md:px-4 md:py-3">
-      <div className="flex items-center space-x-3 sm:space-x-6 w-full sm:max-w-6xl sm:mx-auto h-full sm:h-12">
+    <div ref={rootRef} className="relative bg-background/30 backdrop-blur-md border-t-0 md:border-t md:border-border/20 rounded-xl md:rounded-none pl-3 pr-14 py-2 md:px-4 md:py-3 pb-0 md:pb-3">
+      <div className="flex items-center space-x-3 sm:space-x-6 w-full sm:max-w-6xl sm:mx-auto h-full sm:h-12 pb-2 md:pb-0">
         
         {/* 左侧：歌曲信息 */}
-        <div className="flex items-center space-x-3 sm:space-x-3 min-w-0 flex-1 sm:flex-initial sm:flex-shrink-0 sm:max-w-64">
+        <div 
+          className="flex items-center space-x-3 sm:space-x-3 min-w-0 flex-1 sm:flex-initial sm:flex-shrink-0 sm:max-w-64 cursor-pointer hover:opacity-80 transition-opacity"
+          onClick={() => {
+            if (isMobile && onTrackInfoClick) {
+              onTrackInfoClick();
+            }
+          }}
+        >
           {currentCoverImage && (
             <div className="relative w-12 h-12 sm:w-12 sm:h-12 flex-shrink-0 group">
               {/* 封面图片容器 */}
@@ -208,7 +217,7 @@ export const MusicPlayer: React.FC<MusicPlayerProps> = ({
           </div>
         </div>
 
-        {/* 移动端：始终显示圆环模式 */}
+        {/* 移动端：简洁控制按钮 */}
         {isMobile && (
           <div className="flex items-center justify-end space-x-2 flex-shrink-0 h-full pr-0">
             {/* 上一首按钮 */}
@@ -220,43 +229,17 @@ export const MusicPlayer: React.FC<MusicPlayerProps> = ({
               <Rewind className="w-4.5 h-4.5" />
             </button>
 
-            {/* 圆环内部播放按钮 */}
-            <div className="relative">
-              {/* 外圆环 */}
-              <div className="w-8 h-8 rounded-full flex items-center justify-center">
-                {/* 背景圆环 - 未播放部分 */}
-                <div 
-                  className="absolute inset-0 rounded-full"
-                  style={{
-                    background: 'rgba(255, 255, 255, 0.2)',
-                    WebkitMask: 'radial-gradient(circle, transparent 14px, black 14px)',
-                    mask: 'radial-gradient(circle, transparent 14px, black 14px)'
-                  }}
-                />
-                {/* 进度圆环 - 已播放部分 */}
-                <div 
-                  className="absolute inset-0 rounded-full transition-all duration-300"
-                  style={{
-                    border: 'none',
-                    background: `conic-gradient(from 0deg, hsl(var(--primary)) 0deg, hsl(var(--primary)) ${progressPercentage * 3.6}deg, transparent ${progressPercentage * 3.6}deg)`,
-                    WebkitMask: 'radial-gradient(circle, transparent 14px, black 14px)',
-                    mask: 'radial-gradient(circle, transparent 14px, black 14px)'
-                  }}
-                />
-                
-                {/* 播放/暂停按钮 */}
-                <button
-                  onClick={onPlayPause}
-                  className="relative z-10 bg-white text-black rounded-full w-6 h-6 flex items-center justify-center hover:scale-105 transition-transform duration-200 shadow-lg"
-                >
-                  {isPlaying ? (
-                    <Pause className="w-3 h-3" />
-                  ) : (
-                    <Play className="w-3 h-3 ml-0.5" />
-                  )}
-                </button>
-              </div>
-            </div>
+            {/* 播放/暂停按钮 */}
+            <button
+              onClick={onPlayPause}
+              className="bg-white text-black rounded-full w-8 h-8 flex items-center justify-center hover:scale-105 transition-transform duration-200 shadow-lg"
+            >
+              {isPlaying ? (
+                <Pause className="w-4 h-4" />
+              ) : (
+                <Play className="w-4 h-4 ml-0.5" />
+              )}
+            </button>
 
             {/* 下一首按钮 */}
             <button
@@ -412,6 +395,14 @@ export const MusicPlayer: React.FC<MusicPlayerProps> = ({
             </div>
           </div>
         )}
+      </div>
+      
+      {/* Mobile Bottom Border Progress Bar */}
+      <div className="absolute bottom-0 left-3 right-3 h-1 bg-foreground/10 md:hidden rounded-full overflow-hidden">
+        <div 
+          className="absolute top-0 left-0 h-full bg-foreground/50 transition-all duration-300"
+          style={{ width: `${progressPercentage}%` }}
+        />
       </div>
     </div>
   );

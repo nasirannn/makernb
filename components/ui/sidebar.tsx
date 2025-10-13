@@ -70,7 +70,7 @@ export const CommonSidebar = ({ hideMobileNav = false }: CommonSidebarProps) => 
       <div className="hidden md:flex w-16 h-full flex-col bg-muted/30 border-r border-border/30">
           {/* Home Button */}
           <div className="p-4 flex justify-center">
-            <Tooltip content="🏠 Home" position="right">
+            <Tooltip content="Home" position="right">
               <Button
                 asChild
                 variant="ghost"
@@ -92,7 +92,7 @@ export const CommonSidebar = ({ hideMobileNav = false }: CommonSidebarProps) => 
 
           <div className="flex flex-col items-center gap-4 px-4 pt-0 pb-4">
             {/* Studio Button */}
-              <Tooltip content="🎵 Studio" position="right">
+              <Tooltip content="Studio" position="right">
               <Button
                 onClick={() => router.push('/studio')}
                 variant="ghost"
@@ -104,7 +104,7 @@ export const CommonSidebar = ({ hideMobileNav = false }: CommonSidebarProps) => 
             </Tooltip>
 
             {/* Library Button */}
-            <Tooltip content="📚 Library" position="right">
+            <Tooltip content="Library" position="right">
               <Button
                 onClick={() => router.push('/library')}
                 variant="ghost"
@@ -116,7 +116,7 @@ export const CommonSidebar = ({ hideMobileNav = false }: CommonSidebarProps) => 
             </Tooltip>
 
             {/* Explore Button */}
-            <Tooltip content="🔍 Explore" position="right">
+            <Tooltip content="Explore" position="right">
               <Button
                 onClick={() => router.push('/explore')}
                 variant="ghost"
@@ -128,7 +128,7 @@ export const CommonSidebar = ({ hideMobileNav = false }: CommonSidebarProps) => 
             </Tooltip>
 
             {/* Blog Button */}
-            <Tooltip content="📝 Blog" position="right">
+            <Tooltip content="Blog" position="right">
               <Button
                 onClick={() => router.push('/blog')}
                 variant="ghost"

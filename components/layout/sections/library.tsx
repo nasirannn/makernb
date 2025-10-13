@@ -344,11 +344,14 @@ const LibraryContent = () => {
     };
 
     const handleSelectedLibraryTrack = React.useCallback((id: string | null) => {
+        const isMobile = typeof window !== 'undefined' && window.innerWidth < 768;
         setSelectedLibraryTrack(id);
         if (id) {
             handleLibraryTrackSelect(id);
-            // Show lyrics area when a song is selected
-            setShowLyrics(true);
+            // 移动端：只播放，不显示歌词；桌面端：播放并显示歌词
+            if (!isMobile) {
+                setShowLyrics(true);
+            }
         } else {
             // Hide lyrics area when no song is selected
             setShowLyrics(false);
@@ -428,10 +431,12 @@ const LibraryContent = () => {
                             isLoading={isLoadingLibrary}
                             hasPlayer={!!currentTrack}
                             onTrackSelect={(track) => {
-                                // Set both selectedLibraryTrack and selectedForLyrics
-                                setSelectedLibraryTrack(track.id);
+                                // 播放歌曲
+                                const isMobile = typeof window !== 'undefined' && window.innerWidth < 768;
+                                handleSelectedLibraryTrack(track.id);
                                 setSelectedForLyrics(track.id);
-                                setShowLyrics(true);
+                                // 移动端不展开歌词（handleSelectedLibraryTrack 已处理）
+                                // 桌面端会自动展开（handleSelectedLibraryTrack 已处理）
                             }}
                             onTrackPlay={(track) => {
 
@@ -630,6 +635,9 @@ const LibraryContent = () => {
                                             handleLibraryTrackSelect(newTrack.id);
                                         }
                                     }}
+                                    onTrackInfoClick={() => {
+                                        setShowLyrics(true);
+                                    }}
                                 />
                             </div>
                         )}
@@ -643,8 +651,9 @@ const LibraryContent = () => {
                             className="fixed inset-0 bg-black/50 z-40 md:hidden transition-opacity duration-300"
                             onClick={() => {
                                 setShowLyrics(false);
-                                setSelectedForLyrics(null);
-                                setSelectedLibraryTrack(null);
+                                // 不清除选中的歌曲数据，保留以便再次打开
+                                // setSelectedForLyrics(null);
+                                // setSelectedLibraryTrack(null);
                             }}
                         />
                         <div className="fixed md:relative bottom-0 left-0 right-0 md:left-auto md:right-auto w-full md:w-80 h-dvh md:h-full flex-shrink-0 z-50 md:z-auto">
@@ -652,8 +661,9 @@ const LibraryContent = () => {
                         isOpen={showLyrics}
                         onClose={() => {
                             setShowLyrics(false);
-                            setSelectedForLyrics(null);
-                            setSelectedLibraryTrack(null);
+                            // 不清除选中的歌曲数据，保留以便再次打开
+                            // setSelectedForLyrics(null);
+                            // setSelectedLibraryTrack(null);
                         }}
                         lyrics={getSelectedTrackForLyrics()?.lyrics}
                         title={getSelectedTrackForLyrics()?.title}
@@ -827,6 +837,9 @@ const LibraryContent = () => {
                                         setSelectedLibraryTrack(newTrack.id);
                                         handleLibraryTrackSelect(newTrack.id);
                                     }
+                                }}
+                                onTrackInfoClick={() => {
+                                    setShowLyrics(true);
                                 }}
                             />
                         </div>

@@ -461,17 +461,27 @@ const StudioContent = () => {
             track.side_letter
         ), [createTrackObject]);
 
-    // 歌曲选择处理（点击歌曲行，显示歌词面板，不播放歌曲）
+    // 歌曲选择处理（点击歌曲行，播放歌曲）
     const handleUserTrackSelect = React.useCallback((track: any, music: any) => {
+        const isMobile = typeof window !== 'undefined' && window.innerWidth < 768;
         const selectedTrack = createUserTrackObject(track, music);
         
-        setSelectedStudioTrack(selectedTrack);
-        setShowLyrics(true);
-        // 移动端不关闭歌曲列表，让歌词面板覆盖在上方
-        // setMobileTracksOpen(false);
+        // 如果点击的是当前播放的歌曲，则暂停/继续
+        if (currentPlayingTrack?.id === track.id) {
+            togglePlayPause();
+            return;
+        }
         
-        // 只显示歌词，不播放歌曲
-    }, [createUserTrackObject]);
+        setSelectedStudioTrack(selectedTrack);
+        setCurrentPlayingTrack(selectedTrack);
+        
+        // 移动端：只播放，不显示歌词；桌面端：播放并显示歌词
+        if (!isMobile) {
+            setShowLyrics(true);
+        }
+        
+        playAudioWithDelay(selectedTrack.audioUrl);
+    }, [createUserTrackObject, currentPlayingTrack, togglePlayPause, playAudioWithDelay]);
 
     // 歌曲播放处理（点击播放按钮）
     const handleUserTrackPlay = React.useCallback((track: any, music: any) => {
@@ -571,9 +581,9 @@ const StudioContent = () => {
 
             setSelectedStudioTrack(generatedTrack);
             setGeneratingTrack(generatedTrack);
-            setShowLyrics(true);
-            // 不关闭移动端歌曲列表，歌词面板会覆盖在上方
-            // setMobileTracksOpen(false);
+            
+            // 不自动打开歌词面板，只有用户点击歌曲时才展开
+            // setShowLyrics(true);
 
             if (!currentPlayingTrack) {
                 const playingTrack = {
@@ -907,13 +917,15 @@ const StudioContent = () => {
                                 />
                                 MakeRNB
                             </Link>
-                            {/* Credits Display */}
-                            <div className="flex items-center gap-2 px-3 py-1.5 bg-foreground/10 backdrop-blur-sm border border-foreground/20 rounded-lg">
-                                <Sparkles className="h-3.5 w-3.5 text-foreground" />
-                                <span className="text-sm font-medium text-foreground">
-                                    {credits === null ? '...' : credits}
-                                </span>
-                            </div>
+                            {/* Credits Display - Only show when logged in */}
+                            {user && (
+                                <div className="flex items-center gap-2 px-3 py-1.5 bg-foreground/10 backdrop-blur-sm border border-foreground/20 rounded-lg">
+                                    <Sparkles className="h-3.5 w-3.5 text-foreground" />
+                                    <span className="text-sm font-medium text-foreground">
+                                        {credits === null ? '...' : credits}
+                                    </span>
+                                </div>
+                            )}
                         </div>
                     </div>
                     <div className="flex-1 overflow-hidden">
@@ -1040,6 +1052,9 @@ const StudioContent = () => {
                                             switchToTrack(selectedTrack);
                                         }
                                     }}
+                                    onTrackInfoClick={() => {
+                                        setShowLyrics(true);
+                                    }}
                                 />
                             </div>
                         )}
@@ -1056,8 +1071,9 @@ const StudioContent = () => {
                                 isOpen={showLyrics}
                                 onClose={() => {
                                     setShowLyrics(false);
-                                    setSelectedStudioTrack(null);
-                                    setGeneratingTrack(null); // 清除生成中状态
+                                    // 不清除 selectedStudioTrack，保留歌曲数据以便再次打开
+                                    // setSelectedStudioTrack(null);
+                                    // setGeneratingTrack(null);
                                 }}
                                 lyrics={selectedStudioTrack?.lyrics}
                                 title={selectedStudioTrack?.title}
@@ -1140,8 +1156,9 @@ const StudioContent = () => {
                         className="md:hidden fixed inset-0 bg-black/50 z-[55] transition-opacity duration-300"
                         onClick={() => {
                             setShowLyrics(false);
-                            setSelectedStudioTrack(null);
-                            setGeneratingTrack(null);
+                            // 不清除 selectedStudioTrack，保留歌曲数据以便再次打开
+                            // setSelectedStudioTrack(null);
+                            // setGeneratingTrack(null);
                         }}
                         style={{ touchAction: 'none' }}
                     />
@@ -1155,8 +1172,9 @@ const StudioContent = () => {
                             isOpen={showLyrics}
                             onClose={() => {
                                 setShowLyrics(false);
-                                setSelectedStudioTrack(null);
-                                setGeneratingTrack(null); // 清除生成中状态
+                                // 不清除 selectedStudioTrack，保留歌曲数据以便再次打开
+                                // setSelectedStudioTrack(null);
+                                // setGeneratingTrack(null);
                             }}
                             lyrics={selectedStudioTrack?.lyrics}
                             title={selectedStudioTrack?.title}
@@ -1218,13 +1236,17 @@ const StudioContent = () => {
                                 </div>
                             </div>
 
-                            {/* Right: List Button */}
+                            {/* Right: List Button / Loading Indicator */}
                             <button
                                 onClick={() => setMobileTracksOpen(true)}
                                 className="flex-shrink-0 h-12 w-12 flex items-center justify-center text-foreground hover:text-primary transition-colors rounded-lg hover:bg-muted/50 active:bg-muted/70"
                                 aria-label="Open tracks list"
                             >
-                                <ListMusic className="w-6 h-6" />
+                                {isGenerating ? (
+                                    <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-foreground"></div>
+                                ) : (
+                                    <ListMusic className="w-6 h-6" />
+                                )}
                             </button>
                         </div>
                     </div>
@@ -1276,15 +1298,22 @@ const StudioContent = () => {
                                 switchToTrack(selectedTrack);
                             }
                         }}
+                        onTrackInfoClick={() => {
+                            setShowLyrics(true);
+                        }}
                         />
                         
-                        {/* Mobile List Button - 移动端列表按钮（覆盖在播放器右侧） */}
+                        {/* Mobile List Button / Loading Indicator - 移动端列表按钮（覆盖在播放器右侧） */}
                         <button
                             onClick={() => setMobileTracksOpen(true)}
                             className="absolute right-1 top-1/2 -translate-y-1/2 h-12 w-12 flex items-center justify-center text-foreground hover:text-primary transition-colors rounded-lg hover:bg-black/20 active:bg-black/30 z-50"
                             aria-label="Open tracks list"
                         >
-                            <ListMusic className="w-6 h-6" />
+                            {isGenerating ? (
+                                <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-foreground"></div>
+                            ) : (
+                                <ListMusic className="w-6 h-6" />
+                            )}
                         </button>
                     </div>
                     </div>
