@@ -41,28 +41,28 @@ export default function DailyCreditsNotification({
     <div className={`fixed top-4 right-4 z-50 transition-all duration-300 ${
       isVisible ? 'translate-x-0 opacity-100' : 'translate-x-full opacity-0'
     }`}>
-      <div className="bg-gradient-to-r from-purple-600 to-purple-600 text-white rounded-lg shadow-lg p-4 max-w-sm">
+      <div className="bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 border border-gray-200 dark:border-gray-700 rounded-lg shadow-lg backdrop-blur-sm p-4 max-w-sm">
         <div className="flex items-start justify-between">
           <div className="flex items-center space-x-3">
             <div className="flex-shrink-0">
-              <div className="w-10 h-10 bg-white/20 rounded-full flex items-center justify-center">
-                <Gift className="w-5 h-5" />
+              <div className="w-10 h-10 bg-primary/20 rounded-full flex items-center justify-center">
+                <Gift className="w-5 h-5 text-primary" />
               </div>
             </div>
             <div>
-              <h3 className="font-semibold text-sm">每日登录积分</h3>
+              <h3 className="font-semibold text-sm">Daily Login Bonus</h3>
               <div className="flex items-center space-x-1 mt-1">
-                <Coins className="w-4 h-4" />
-                <span className="text-sm">+{credits} 积分</span>
+                <Coins className="w-4 h-4 text-primary" />
+                <span className="text-sm">+{credits} Credits</span>
               </div>
-              <p className="text-xs opacity-90 mt-1">
-                积分将在明天凌晨失效
+              <p className="text-xs text-gray-600 dark:text-gray-400 mt-1">
+                Credits will expire at midnight tomorrow
               </p>
             </div>
           </div>
           <button
             onClick={handleClose}
-            className="flex-shrink-0 text-white/80 hover:text-white transition-colors"
+            className="flex-shrink-0 text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100 transition-colors"
           >
             <X className="w-4 h-4" />
           </button>

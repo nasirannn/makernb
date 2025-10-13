@@ -122,10 +122,11 @@ export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
     try {
       if (isLogin && useMagicLink) {
         // Magic Link login
+        const currentPath = window.location.pathname;
         const { error } = await supabase.auth.signInWithOtp({
           email,
           options: {
-            emailRedirectTo: `${window.location.origin}/auth/callback`
+            emailRedirectTo: `${window.location.origin}/auth/callback?next=${encodeURIComponent(currentPath)}`
           }
         });
         if (error) throw error;
@@ -140,11 +141,12 @@ export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
         onClose();
       } else {
         // Sign up
+        const currentPath = window.location.pathname;
         const { error } = await supabase.auth.signUp({
           email,
           password,
           options: {
-            emailRedirectTo: `${window.location.origin}/auth/callback`
+            emailRedirectTo: `${window.location.origin}/auth/callback?next=${encodeURIComponent(currentPath)}`
           }
         });
         if (error) throw error;
@@ -160,10 +162,11 @@ export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
   const handleGoogleAuth = async () => {
     setLoading(true);
     try {
+      const currentPath = window.location.pathname;
       const { error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
         options: {
-          redirectTo: `${window.location.origin}/auth/callback`
+          redirectTo: `${window.location.origin}/auth/callback?next=${encodeURIComponent(currentPath)}`
         }
       });
       if (error) throw error;

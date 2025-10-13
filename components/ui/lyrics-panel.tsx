@@ -144,13 +144,14 @@ export const LyricsPanel: React.FC<LyricsPanelProps> = ({
   return (
     <div
       className={`bg-background border-l border-border/30 shadow-lg flex-shrink-0 relative overflow-hidden transition-all duration-300 ease-out h-full ${
-        isOpen ? 'w-full md:p-4 lg:p-6' : 'w-0 p-0 border-0'
+        isOpen ? 'w-full md:w-80 md:p-4 lg:p-6' : 'w-0 md:w-0 p-0 border-0'
       } md:border-l md:border-border/30 border-t md:border-t-0 border-border/30 rounded-t-3xl md:rounded-none`}
       style={{
         transform: isOpen ? 'translateX(0%)' : 'translateX(100%)',
         opacity: isOpen ? 1 : 0,
         pointerEvents: isOpen ? 'auto' : 'none'
       }}
+      data-mobile-panel
     >
       <div className="flex h-full flex-col">
         {/* Drag Handle - Mobile only */}
@@ -191,7 +192,15 @@ export const LyricsPanel: React.FC<LyricsPanelProps> = ({
                   </h3>
                 )}
                 {tags && (
-                  <p className="text-xs text-muted-foreground line-clamp-1">
+                  <p 
+                    className={`text-xs text-muted-foreground cursor-pointer hover:text-foreground transition-colors ${
+                      isTagsExpanded ? '' : 'line-clamp-1'
+                    }`}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setIsTagsExpanded(!isTagsExpanded);
+                    }}
+                  >
                     {tags}
                   </p>
                 )}

@@ -488,7 +488,7 @@ export const LibraryPanel = ({
               {paginatedTracks.map((track, index) => (
                 <div
                   key={track.id}
-                  className={`flex items-start gap-4 px-4 py-2 transition-all duration-300 group cursor-pointer ${
+                  className={`flex items-center gap-4 px-4 py-2 transition-all duration-300 group cursor-pointer ${
                     selectedLibraryTrack === track.id
                       ? 'bg-muted/30'
                       : 'hover:bg-muted/20'
@@ -499,7 +499,7 @@ export const LibraryPanel = ({
                 >
 
                   {/* Cover Image */}
-                  <div className="relative w-16 h-16 rounded-md overflow-hidden flex-shrink-0 group/cover mt-1">
+                  <div className="relative w-16 h-16 rounded-md overflow-hidden flex-shrink-0 group/cover">
                     {track.cover_r2_url ? (
                       <SafeImage
                         src={track.cover_r2_url}
@@ -553,30 +553,36 @@ export const LibraryPanel = ({
                   </div>
 
                   {/* Track Info */}
-                  <div className="flex-1 min-w-0 flex items-start gap-3">
-                    <div className="flex-1 min-w-0 border-b border-border/30">
-                      <h3 className={`font-medium truncate mb-1 text-sm ${
-                        currentPlayingTrack === track.id ? 'text-primary' : 'text-foreground'
-                      }`}>
-                        {track.title}
-                      </h3>
-                      {/* Tags */}
-                      <p className="text-xs text-muted-foreground truncate md:line-clamp-2 mb-1">
-                        {(() => {
-                          const tags = track.tags;
-                          return tags && tags.length > 120 ? `${tags.substring(0, 120)}...` : tags;
-                        })()}
-                      </p>
-                      {/* Duration */}
-                      <div className="text-xs text-muted-foreground mb-2">
-                        {formatDuration(track.duration)}
+                  <div className="flex-1 min-w-0 flex items-center gap-3">
+                    <div className="flex-1 min-w-0 flex items-center h-16 border-b border-border/30">
+                      <div className="flex items-center justify-between gap-3 w-full">
+                        <div className="flex-1 min-w-0 flex flex-col justify-center">
+                          <h3 className={`font-medium truncate text-sm ${
+                            currentPlayingTrack === track.id ? 'text-primary' : 'text-foreground'
+                          }`}>
+                            {track.title}
+                          </h3>
+                          {/* Tags */}
+                          {track.tags && (
+                            <p className="text-xs text-muted-foreground truncate md:line-clamp-2 mt-0.5">
+                              {(() => {
+                                const tags = track.tags;
+                                return tags && tags.length > 120 ? `${tags.substring(0, 120)}...` : tags;
+                              })()}
+                            </p>
+                          )}
+                        </div>
+                        {/* Duration */}
+                        <div className="text-xs text-muted-foreground flex-shrink-0">
+                          {formatDuration(track.duration)}
+                        </div>
                       </div>
                     </div>
                   </div>
 
                    {/* Action Buttons - Hidden on mobile, only show on desktop when lyrics panel is closed */}
                    {!showLyrics && (
-                     <div className="hidden md:flex items-center gap-5 flex-shrink-0 mt-5">
+                     <div className="hidden md:flex items-center gap-5 flex-shrink-0">
                        {/* Favorite Button */}
                        <Button
                          variant="ghost"
@@ -675,24 +681,24 @@ export const LibraryPanel = ({
                    </div>
                  )}
 
-                  {/* Mobile More Actions Button - 移动端更多按钮 */}
-                  {!showLyrics && (
-                    <div className="md:hidden flex items-center flex-shrink-0 mt-5">
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        className="h-8 w-8 p-0"
-                        title="More actions"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          setSelectedTrackForMenu(track);
-                          setMobileMenuOpen(true);
-                        }}
-                      >
-                        <MoreHorizontal className="h-5 w-5" />
-                      </Button>
-                    </div>
-                  )}
+                 {/* Mobile More Actions Button - 移动端更多按钮 */}
+                 {!showLyrics && (
+                   <div className="md:hidden flex items-center flex-shrink-0">
+                     <Button
+                       variant="ghost"
+                       size="sm"
+                       className="h-8 w-8 p-0"
+                       title="More actions"
+                       onClick={(e) => {
+                         e.stopPropagation();
+                         setSelectedTrackForMenu(track);
+                         setMobileMenuOpen(true);
+                       }}
+                     >
+                       <MoreHorizontal className="h-5 w-5" />
+                     </Button>
+                   </div>
+                 )}
 
                 </div>
               ))}

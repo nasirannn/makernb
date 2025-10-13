@@ -223,16 +223,10 @@ const StudioContent = () => {
             track.side_letter
         );
         
-        const isMobile = typeof window !== 'undefined' && window.innerWidth < 768;
-        
         setCurrentPlayingTrack(playingTrack);
         setSelectedStudioTrack(playingTrack);
         
-        // 桌面端：显示歌词面板；移动端：不显示歌词面板
-        if (!isMobile) {
-            setShowLyrics(true);
-        }
-        
+        // 只播放歌曲，不自动展开歌词面板
         // 不关闭移动端歌曲列表，让用户可以继续浏览
         // setMobileTracksOpen(false);
         
@@ -411,11 +405,11 @@ const StudioContent = () => {
             return false;
         }
 
-        // 清除之前的歌词面板状态
+        // 清除之前的歌词面板状态，但保留当前播放的歌曲
         setShowLyrics(false);
         setSelectedStudioTrack(null);
         setGeneratingTrack(null);
-        setCurrentPlayingTrack(null);
+        // 不清除 currentPlayingTrack，让当前播放的歌曲继续播放
 
         try {
             await musicGeneration.handleGenerate(
@@ -475,10 +469,7 @@ const StudioContent = () => {
         setSelectedStudioTrack(selectedTrack);
         setCurrentPlayingTrack(selectedTrack);
         
-        // 移动端：只播放，不显示歌词；桌面端：播放并显示歌词
-        if (!isMobile) {
-            setShowLyrics(true);
-        }
+        // 只播放歌曲，不自动展开歌词面板
         
         playAudioWithDelay(selectedTrack.audioUrl);
     }, [createUserTrackObject, currentPlayingTrack, togglePlayPause, playAudioWithDelay]);
@@ -493,12 +484,9 @@ const StudioContent = () => {
         } else {
             const playingTrack = createUserTrackObject(track, music);
             setCurrentPlayingTrack(playingTrack);
+            setSelectedStudioTrack(playingTrack);
             
-            // 移动端：只播放，不显示歌词，不关闭歌曲列表；桌面端：播放并显示歌词
-            if (!isMobile) {
-                setSelectedStudioTrack(playingTrack);
-                setShowLyrics(true);
-            }
+            // 只播放歌曲，不自动展开歌词面板
 
             playAudioWithDelay(playingTrack.audioUrl);
         }
@@ -543,7 +531,7 @@ const StudioContent = () => {
         };
 
         setSelectedStudioTrack(selectedTrack);
-        setShowLyrics(true);
+        // 只播放歌曲，不自动展开歌词面板
         // 不关闭移动端歌曲列表，歌词面板会覆盖在上方
         // setMobileTracksOpen(false);
 
@@ -1053,7 +1041,7 @@ const StudioContent = () => {
                                         }
                                     }}
                                     onTrackInfoClick={() => {
-                                        setShowLyrics(true);
+                                        setShowLyrics(!showLyrics);
                                     }}
                                 />
                             </div>
@@ -1141,6 +1129,9 @@ const StudioContent = () => {
                                         currentlyPlaying={currentPlayingTrack?.id}
                                         selectedTrack={selectedStudioTrack?.id}
                                         isPlaying={isPlaying && currentTime > 0}
+                                        allGeneratedTracks={allGeneratedTracks}
+                                        pendingTasksCount={pendingTasksCount}
+                                        onGeneratedTrackSelect={handleGeneratedTrackSelect}
                                     />
                                 </div>
                             </div>
@@ -1299,7 +1290,7 @@ const StudioContent = () => {
                             }
                         }}
                         onTrackInfoClick={() => {
-                            setShowLyrics(true);
+                            setShowLyrics(!showLyrics);
                         }}
                         />
                         

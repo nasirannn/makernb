@@ -159,7 +159,7 @@ export const StudioTracksList: React.FC<StudioTracksListProps> = ({
               {allGeneratedTracks.map((track, index) => (
                 <div
                   key={`generated-${index}`}
-                  className={`flex items-start gap-4 px-4 py-2 transition-all duration-300 group cursor-pointer
+                  className={`flex items-center gap-4 px-4 py-2 transition-all duration-300 group cursor-pointer
                     ${track.isLoading || track.isError
                       ? 'cursor-default'
                       : `${currentlyPlaying === `generated-${index}`
@@ -185,7 +185,7 @@ export const StudioTracksList: React.FC<StudioTracksListProps> = ({
                     <div className="absolute inset-0 bg-primary/10 pointer-events-none z-5"></div>
                   )}
                   
-                  <div className={`relative w-16 h-16 rounded-md overflow-hidden flex-shrink-0 transition-transform duration-300 group/cover mt-1 ${!track.isLoading && !track.isError ? 'group-hover:scale-105' : ''}`}>
+                  <div className={`relative w-16 h-16 rounded-md overflow-hidden flex-shrink-0 transition-transform duration-300 group/cover ${!track.isLoading && !track.isError ? 'group-hover:scale-105' : ''}`}>
                     {track.isError ? (
                       // 错误状态直接显示logo图片作为封面
                       <Image
@@ -247,35 +247,31 @@ export const StudioTracksList: React.FC<StudioTracksListProps> = ({
                   </div>
                   
                   {/* Track Info */}
-                  <div className="flex-1 min-w-0 flex items-start gap-3">
-                    <div className="flex-1 min-w-0 border-b border-border/30">
-                      <div className="flex items-center justify-between gap-3 mb-1">
-                        <div className={`font-normal text-sm transition-colors flex-1 truncate ${
-                          track.isError
-                            ? 'text-red-400'
-                            : currentlyPlaying === `generated-${index}`
-                              ? 'text-primary'
-                              : track.isLoading ? '' : 'group-hover:text-primary'
-                          }`}>
-                          {track.isError ? (track.originalPrompt || track.title || 'Unknown') : (track.title || 'Unknown')}
-                        </div>
-                      </div>
-                      {track.isError ? (
-                        <div className="text-xs text-muted-foreground leading-relaxed w-full truncate mb-2">
-                          {track.errorMessage || 'Generation failed'}
-                        </div>
-                      ) : (
-                        <>
-                          <div className={`text-xs leading-relaxed w-full text-muted-foreground truncate ${!track.isLoading && track.duration ? 'mb-1' : 'mb-2'}`}>
-                            {track.tags}
+                  <div className="flex-1 min-w-0 flex items-center">
+                    <div className="flex-1 min-w-0 flex items-center h-16 border-b border-border/30">
+                      <div className="flex items-center justify-between gap-3 w-full">
+                        <div className="flex-1 min-w-0 flex flex-col justify-center">
+                          <div className={`font-normal text-sm transition-colors truncate ${
+                            track.isError
+                              ? 'text-red-400'
+                              : currentlyPlaying === `generated-${index}`
+                                ? 'text-primary'
+                                : track.isLoading ? '' : 'group-hover:text-primary'
+                            }`}>
+                            {track.isError ? (track.originalPrompt || track.title || 'Unknown') : (track.title || 'Unknown')}
                           </div>
-                          {!track.isLoading && track.duration && (
-                            <span className="text-muted-foreground text-xs mb-2 block">
-                              {formatDuration(track.duration)}
-                            </span>
+                          {!track.isError && track.tags && (
+                            <p className="text-xs text-muted-foreground truncate mt-0.5">
+                              {track.tags}
+                            </p>
                           )}
-                        </>
-                      )}
+                        </div>
+                        {!track.isError && !track.isLoading && track.duration && (
+                          <span className="text-muted-foreground text-xs flex-shrink-0">
+                            {formatDuration(track.duration)}
+                          </span>
+                        )}
+                      </div>
                     </div>
                   </div>
                 </div>
@@ -287,13 +283,15 @@ export const StudioTracksList: React.FC<StudioTracksListProps> = ({
           {pendingTasksCount > 0 && (
             <div>
               {Array.from({ length: pendingTasksCount }).map((_, index) => (
-                <div key={index} className="flex items-start gap-4 px-4 py-2">
-                  <Skeleton className="w-16 h-16 rounded-lg flex-shrink-0 mt-1" />
-                  <div className="flex-1 min-w-0 flex items-start gap-3">
-                    <div className="flex-1 border-b border-border/30 mb-2 pb-0">
-                      <Skeleton className="h-4 w-1/3 mb-2" />
-                      <Skeleton className="h-3 w-2/3 mb-1" />
-                      <Skeleton className="h-3 w-12 mb-2" />
+                <div key={index} className="flex items-center gap-4 px-4 py-2">
+                  <Skeleton className="w-16 h-16 rounded-lg flex-shrink-0" />
+                  <div className="flex-1 min-w-0 flex items-center">
+                    <div className="flex-1 flex items-center justify-between h-16 border-b border-border/30">
+                      <div className="flex-1 flex flex-col justify-center gap-1">
+                        <Skeleton className="h-4 w-1/3" />
+                        <Skeleton className="h-3 w-2/3" />
+                      </div>
+                      <Skeleton className="h-3 w-12 flex-shrink-0" />
                     </div>
                   </div>
                 </div>
@@ -305,7 +303,7 @@ export const StudioTracksList: React.FC<StudioTracksListProps> = ({
           {currentTracks.map((track) => (
             <div
               key={track.id}
-              className={`flex items-start gap-4 px-4 py-2 transition-all duration-300 group cursor-pointer
+              className={`flex items-center gap-4 px-4 py-2 transition-all duration-300 group cursor-pointer
                 ${selectedTrack === track.id
                   ? 'bg-muted/30'
                   : 'hover:bg-muted/20'
@@ -313,7 +311,7 @@ export const StudioTracksList: React.FC<StudioTracksListProps> = ({
               onClick={() => handleTrackSelect(track)}
             >
               {/* 封面 */}
-              <div className="relative w-16 h-16 rounded-md overflow-hidden flex-shrink-0 group/cover mt-1">
+              <div className="relative w-16 h-16 rounded-md overflow-hidden flex-shrink-0 group/cover">
                 {track.cover_r2_url ? (
                   <Image
                     src={track.cover_r2_url}
@@ -363,19 +361,23 @@ export const StudioTracksList: React.FC<StudioTracksListProps> = ({
               </div>
 
               {/* Track Info */}
-              <div className="flex-1 min-w-0 flex items-start gap-3">
-                <div className="flex-1 min-w-0 border-b border-border/30">
-                  <div className="flex items-center justify-between gap-3 mb-1">
-                    <h3 className={`font-normal text-sm truncate flex-1 ${currentlyPlaying === track.id ? 'text-primary' : 'text-foreground'}`}>
-                      {track.musicTitle}
-                    </h3>
+              <div className="flex-1 min-w-0 flex items-center gap-3">
+                <div className="flex-1 min-w-0 flex items-center h-16 border-b border-border/30">
+                  <div className="flex items-center justify-between gap-3 w-full">
+                    <div className="flex-1 min-w-0 flex flex-col justify-center">
+                      <h3 className={`font-normal text-sm truncate ${currentlyPlaying === track.id ? 'text-primary' : 'text-foreground'}`}>
+                        {track.musicTitle}
+                      </h3>
+                      {track.musicTags && (
+                        <p className="text-xs text-muted-foreground truncate mt-0.5">
+                          {track.musicTags}
+                        </p>
+                      )}
+                    </div>
+                    <span className="text-muted-foreground text-xs flex-shrink-0">
+                      {formatDuration(track.duration)}
+                    </span>
                   </div>
-                  <p className="text-muted-foreground text-xs truncate mb-1">
-                    {track.musicTags}
-                  </p>
-                  <span className="text-muted-foreground text-xs mb-2 block">
-                    {formatDuration(track.duration)}
-                  </span>
                 </div>
                 
                 {/* Mobile Play Button - 移动端播放按钮 */}
@@ -384,7 +386,7 @@ export const StudioTracksList: React.FC<StudioTracksListProps> = ({
                     e.stopPropagation();
                     handlePlayPause(track);
                   }}
-                  className="md:hidden flex-shrink-0 h-7 w-7 flex items-center justify-center text-foreground hover:text-foreground/80 transition-colors mt-5"
+                  className="md:hidden flex-shrink-0 h-7 w-7 flex items-center justify-center text-foreground hover:text-foreground/80 transition-colors"
                   aria-label={currentlyPlaying === track.id && isPlaying ? "Pause" : "Play"}
                 >
                   {currentlyPlaying === track.id && isPlaying ? (
