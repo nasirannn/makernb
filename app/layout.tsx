@@ -63,8 +63,7 @@ export default function RootLayout({
         {/* Google AdSense */}
         <Script
           src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-4929701767055366"
-          strategy="afterInteractive"
-          crossOrigin="anonymous"
+          strategy="lazyOnload"
         />
 
         <AuthProvider>
