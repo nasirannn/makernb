@@ -4,7 +4,7 @@ import { FooterSection } from "@/components/layout/sections/footer";
 export const metadata = {
   metadataBase: new URL('https://makernb.com'),
   title: "MakeRNB - Create AI R&B Songs - Classic & Contemporary R&B",
-  description: "MakeRNB lets you instantly create and download studio-quality R&B songs with AI. Explore Neo-Soul, Quiet Storm & more — free, online, and easy to use.",
+  description: "MakeRNB lets you instantly create and download professional R&B songs with AI. Explore Neo-Soul, Quiet Storm & more — free, online, and easy to use.",
   alternates: {
     canonical: 'https://makernb.com/studio',
   },

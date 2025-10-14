@@ -9,7 +9,7 @@ import { FAQSection } from "@/components/layout/sections/faq";
 export const metadata = {
   metadataBase: new URL('https://makernb.com'),
   title: "MakeRNB | Free Online AI R&B Music Generator",
-  description: "MakeRNB lets you instantly create and download studio-quality R&B songs with AI. Explore Neo-Soul, Quiet Storm & more — free, online, and easy to use.",
+  description: "MakeRNB lets you instantly create and download professional R&B songs with AI. Explore Neo-Soul, Quiet Storm & more — free, online, and easy to use.",
   alternates: {
     canonical: 'https://makernb.com',
   },
@@ -17,7 +17,7 @@ export const metadata = {
     type: "website",
     url: "https://makernb.com",
     title: "MakeRNB | Free Online AI R&B Music Generator",
-    description: "MakeRNB lets you instantly create and download studio-quality R&B songs with AI. Explore Neo-Soul, Quiet Storm & more — free, online, and easy to use.",
+    description: "MakeRNB lets you instantly create and download professional R&B songs with AI. Explore Neo-Soul, Quiet Storm & more — free, online, and easy to use.",
     images: [
       {
         url: "/hero-image-dark.jpeg",
@@ -31,7 +31,7 @@ export const metadata = {
     card: "summary_large_image",
     site: "https://makernb.com",
     title: "MakeRNB | Free Online AI R&B Music Generator",
-    description: "MakeRNB lets you instantly create and download studio-quality R&B songs with AI. Explore Neo-Soul, Quiet Storm & more — free, online, and easy to use.",
+    description: "MakeRNB lets you instantly create and download professional R&B songs with AI. Explore Neo-Soul, Quiet Storm & more — free, online, and easy to use.",
     images: [
       "/hero-image-dark.jpeg",
     ],

@@ -44,7 +44,7 @@ const FAQList: FAQProps[] = [
   },
   {
     question: "🎧 What audio quality do I get when downloading?",
-    answer: "All generated tracks are studio-quality with rich vocals, smooth harmonies, and that signature R&B sound. You can download high-quality audio files ready for streaming, sharing, or further production.",
+    answer: "All generated tracks are professional quality with rich vocals, smooth harmonies, and that signature R&B sound. You can download high-quality audio files ready for streaming, sharing, or further production.",
     value: "item-7",
   },
   {
