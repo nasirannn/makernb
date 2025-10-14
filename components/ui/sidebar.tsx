@@ -24,6 +24,11 @@ export const CommonSidebar = ({ hideMobileNav = false }: CommonSidebarProps) => 
   const { user, signOut } = useAuth();
   const { credits } = useCredits();
 
+  // 判断是否选中某个路径
+  const isActive = (path: string) => {
+    return pathname === path || pathname?.startsWith(`${path}/`);
+  };
+
   const [userMenuOpen, setUserMenuOpen] = React.useState(false);
   const [isAuthModalOpen, setIsAuthModalOpen] = React.useState(false);
   const mobileNavRef = React.useRef<HTMLDivElement | null>(null);
@@ -97,7 +102,7 @@ export const CommonSidebar = ({ hideMobileNav = false }: CommonSidebarProps) => 
                 onClick={() => router.push('/studio')}
                 variant="ghost"
                 size="sm"
-                className={`w-12 h-12 flex items-center justify-center hover:bg-muted/50 hover:text-white hover:scale-110 transition-all duration-300 rounded-lg ${pathname === '/studio' ? 'bg-primary/20 text-primary shadow-sm' : 'text-muted-foreground'}`}
+                className={`w-12 h-12 flex items-center justify-center hover:bg-muted/50 hover:text-white hover:scale-110 transition-all duration-300 rounded-lg ${isActive('/studio') ? 'bg-primary/20 text-primary shadow-sm' : 'text-muted-foreground'}`}
               >
                 <Music className="h-5 w-5" />
               </Button>
@@ -109,7 +114,7 @@ export const CommonSidebar = ({ hideMobileNav = false }: CommonSidebarProps) => 
                 onClick={() => router.push('/library')}
                 variant="ghost"
                 size="sm"
-                className={`w-12 h-12 flex items-center justify-center hover:bg-muted/50 hover:text-white hover:scale-110 transition-all duration-300 rounded-lg ${pathname === '/library' ? 'bg-primary/20 text-primary shadow-sm' : 'text-muted-foreground'}`}
+                className={`w-12 h-12 flex items-center justify-center hover:bg-muted/50 hover:text-white hover:scale-110 transition-all duration-300 rounded-lg ${isActive('/library') ? 'bg-primary/20 text-primary shadow-sm' : 'text-muted-foreground'}`}
               >
                 <Library className="h-5 w-5" />
               </Button>
@@ -121,7 +126,7 @@ export const CommonSidebar = ({ hideMobileNav = false }: CommonSidebarProps) => 
                 onClick={() => router.push('/explore')}
                 variant="ghost"
                 size="sm"
-                className={`w-12 h-12 flex items-center justify-center hover:bg-muted/50 hover:text-white hover:scale-110 transition-all duration-300 rounded-lg ${pathname === '/explore' ? 'bg-primary/20 text-primary shadow-sm' : 'text-muted-foreground'}`}
+                className={`w-12 h-12 flex items-center justify-center hover:bg-muted/50 hover:text-white hover:scale-110 transition-all duration-300 rounded-lg ${isActive('/explore') ? 'bg-primary/20 text-primary shadow-sm' : 'text-muted-foreground'}`}
               >
                 <Compass className="h-5 w-5" />
               </Button>
@@ -133,7 +138,7 @@ export const CommonSidebar = ({ hideMobileNav = false }: CommonSidebarProps) => 
                 onClick={() => router.push('/blog')}
                 variant="ghost"
                 size="sm"
-                className={`w-12 h-12 flex items-center justify-center hover:bg-muted/50 hover:text-white hover:scale-110 transition-all duration-300 rounded-lg ${pathname === '/blog' ? 'bg-primary/20 text-primary shadow-sm' : 'text-muted-foreground'}`}
+                className={`w-12 h-12 flex items-center justify-center hover:bg-muted/50 hover:text-white hover:scale-110 transition-all duration-300 rounded-lg ${isActive('/blog') ? 'bg-primary/20 text-primary shadow-sm' : 'text-muted-foreground'}`}
               >
                 <BookOpen className="h-5 w-5" />
               </Button>
@@ -231,7 +236,7 @@ export const CommonSidebar = ({ hideMobileNav = false }: CommonSidebarProps) => 
             onClick={() => router.push('/studio')}
             variant="ghost"
             size="sm"
-            className={`h-12 w-12 flex items-center justify-center hover:bg-muted/50 transition-all duration-300 rounded-lg ${pathname === '/studio' ? 'bg-primary/20 text-primary shadow-sm' : 'text-muted-foreground'}`}
+            className={`h-12 w-12 flex items-center justify-center hover:bg-muted/50 transition-all duration-300 rounded-lg ${isActive('/studio') ? 'bg-primary/20 text-primary shadow-sm' : 'text-muted-foreground'}`}
             id="mobile-studio-nav"
           >
             <Music className="h-7 w-7" />
@@ -242,7 +247,7 @@ export const CommonSidebar = ({ hideMobileNav = false }: CommonSidebarProps) => 
             onClick={() => router.push('/library')}
             variant="ghost"
             size="sm"
-            className={`h-12 w-12 flex items-center justify-center hover:bg-muted/50 transition-all duration-300 rounded-lg ${pathname === '/library' ? 'bg-primary/20 text-primary shadow-sm' : 'text-muted-foreground'}`}
+            className={`h-12 w-12 flex items-center justify-center hover:bg-muted/50 transition-all duration-300 rounded-lg ${isActive('/library') ? 'bg-primary/20 text-primary shadow-sm' : 'text-muted-foreground'}`}
           >
             <Library className="h-7 w-7" />
           </Button>
@@ -252,7 +257,7 @@ export const CommonSidebar = ({ hideMobileNav = false }: CommonSidebarProps) => 
             onClick={() => router.push('/explore')}
             variant="ghost"
             size="sm"
-            className={`h-12 w-12 flex items-center justify-center hover:bg-muted/50 transition-all duration-300 rounded-lg ${pathname === '/explore' ? 'bg-primary/20 text-primary shadow-sm' : 'text-muted-foreground'}`}
+            className={`h-12 w-12 flex items-center justify-center hover:bg-muted/50 transition-all duration-300 rounded-lg ${isActive('/explore') ? 'bg-primary/20 text-primary shadow-sm' : 'text-muted-foreground'}`}
           >
             <Compass className="h-7 w-7" />
           </Button>
@@ -262,7 +267,7 @@ export const CommonSidebar = ({ hideMobileNav = false }: CommonSidebarProps) => 
             onClick={() => router.push('/blog')}
             variant="ghost"
             size="sm"
-            className={`h-12 w-12 flex items-center justify-center hover:bg-muted/50 transition-all duration-300 rounded-lg ${pathname === '/blog' ? 'bg-primary/20 text-primary shadow-sm' : 'text-muted-foreground'}`}
+            className={`h-12 w-12 flex items-center justify-center hover:bg-muted/50 transition-all duration-300 rounded-lg ${isActive('/blog') ? 'bg-primary/20 text-primary shadow-sm' : 'text-muted-foreground'}`}
           >
             <BookOpen className="h-7 w-7" />
           </Button>
