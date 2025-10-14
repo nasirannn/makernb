@@ -30,8 +30,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   // 定义checkDailyCredits函数
   const checkDailyCredits = async (sessionToken?: string) => {
-    const token = sessionToken || session?.access_token;
+    // 优先使用传入的token，否则尝试获取最新的session
+    let token = sessionToken;
     if (!token) {
+      const { data: { session: currentSession } } = await supabase.auth.getSession();
+      token = currentSession?.access_token;
+    }
+    
+    if (!token) {
+      console.log('No valid token available for daily credits check');
       return;
     }
 
@@ -105,17 +112,33 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           // User not eligible for daily credits (likely admin user)
         }
       } else if (response.status === 401) {
-        console.error('Authentication failed for daily credits check - token may be invalid');
+        console.error('Authentication failed for daily credits check - token may be invalid or expired');
         // Token可能过期，尝试刷新session
-        const { data: { session: newSession } } = await supabase.auth.getSession();
+        const { data: { session: newSession }, error: sessionError } = await supabase.auth.getSession();
+        
+        if (sessionError) {
+          console.error('Failed to get session for retry:', sessionError);
+          return;
+        }
+        
         if (newSession?.access_token && newSession.access_token !== token) {
-          // 用新token重试
+          console.log('Retrying with refreshed token...');
+          // 用新token重试，但不递归太多次
+          creditsCheckInProgress.current = false; // 重置状态允许重试
           setTimeout(() => {
             checkDailyCredits(newSession.access_token);
           }, 500);
+        } else {
+          console.error('No new valid token available for retry');
         }
       } else {
         console.error('Daily credits check failed:', response.status, response.statusText);
+        try {
+          const errorData = await response.json();
+          console.error('Error details:', errorData);
+        } catch (e) {
+          // 无法解析错误响应
+        }
       }
     } catch (error) {
       console.error('Error checking daily credits:', error);
@@ -160,9 +183,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
               sessionStorage.setItem(checkKey, 'true');
             }
             setHasCheckedInitialCredits(true);
+            // 增加延迟确保token完全生效（生产环境可能需要更长时间）
             setTimeout(() => {
               checkDailyCredits(session.access_token);
-            }, 1500); // 增加延迟确保token有效
+            }, 2500);
           }
         }
       }
@@ -207,9 +231,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
               sessionStorage.setItem(checkKey, 'true');
             }
             setHasCheckedInitialCredits(true); // 标记已检查，避免重复
+            // 增加延迟确保登录流程完成且token完全生效
             setTimeout(() => {
               checkDailyCredits(session.access_token);
-            }, 2000); // 增加延迟确保登录流程完成
+            }, 3000);
           }
         } else if (event === 'TOKEN_REFRESHED' && session?.access_token) {
           // Token刷新时不再自动检查积分，避免窗口焦点变化时的重复调用
