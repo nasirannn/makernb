@@ -274,6 +274,26 @@ export const StudioTracksList: React.FC<StudioTracksListProps> = ({
                       </div>
                     </div>
                   </div>
+
+                  {/* Mobile Play Button - 移动端播放按钮 */}
+                  {!track.isError && !track.isLoading && (
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        if (onGeneratedTrackSelect) {
+                          onGeneratedTrackSelect(track);
+                        }
+                      }}
+                      className="md:hidden flex-shrink-0 h-7 w-7 flex items-center justify-center text-foreground hover:text-foreground/80 transition-colors"
+                      aria-label={currentlyPlaying === `generated-${index}` && isPlaying ? "Pause" : "Play"}
+                    >
+                      {currentlyPlaying === `generated-${index}` && isPlaying ? (
+                        <Pause className="h-4 w-4" />
+                      ) : (
+                        <Play className="h-4 w-4 ml-0.5" />
+                      )}
+                    </button>
+                  )}
                 </div>
               ))}
             </div>
