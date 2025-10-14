@@ -257,7 +257,7 @@ export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
             pointerEvents: 'auto'
           }}
         >
-          <Card className="bg-card border-0 shadow-2xl rounded-t-3xl md:rounded-xl rounded-b-none md:rounded-b-xl flex flex-col overflow-hidden">
+          <Card className="relative bg-card border-0 shadow-2xl rounded-t-3xl md:rounded-xl rounded-b-none md:rounded-b-xl flex flex-col overflow-hidden">
           {/* Mobile Drag Handle */}
           <div className="flex md:hidden justify-center pt-2.5 pb-1.5 flex-shrink-0">
             <div className="w-12 h-1 bg-muted-foreground/30 rounded-full"></div>

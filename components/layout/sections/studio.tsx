@@ -907,7 +907,7 @@ const StudioContent = () => {
                             </Link>
                             {/* Credits Display - Only show when logged in */}
                             {user && (
-                                <div className="flex items-center gap-2 px-3 py-1.5 bg-foreground/10 backdrop-blur-sm border border-foreground/20 rounded-lg">
+                                <div className="flex items-center gap-2 px-3 py-1.5 bg-foreground/10 backdrop-blur-sm rounded-lg">
                                     <Sparkles className="h-3.5 w-3.5 text-foreground" />
                                     <span className="text-sm font-medium text-foreground">
                                         {credits === null ? '...' : credits}
@@ -1103,20 +1103,46 @@ const StudioContent = () => {
                 {mobileTracksOpen && (
                     <div className="md:hidden fixed inset-0 z-50">
                         <div className="absolute inset-0 bg-black/50" onClick={() => setMobileTracksOpen(false)} />
-                        <div className="absolute bottom-0 left-0 right-0 bg-background border-t border-border/30 rounded-t-2xl shadow-2xl overflow-hidden transform-gpu transition-transform duration-300 ease-out will-change-transform" style={{ bottom: 'var(--mobile-nav-height, 0px)', height: 'calc(85vh - var(--mobile-nav-height, 0px))' }}>
+                        <div className="absolute bottom-0 left-0 right-0 bg-background border-t border-border/30 rounded-t-3xl shadow-2xl overflow-hidden transform-gpu transition-transform duration-300 ease-out will-change-transform" style={{ bottom: 'var(--mobile-nav-height, 0px)', height: 'calc(85vh - var(--mobile-nav-height, 0px))' }}>
                             <div className="h-full flex flex-col">
+                                {/* Drag Handle - 拖动指示器 */}
+                                <div 
+                                    onClick={() => setMobileTracksOpen(false)}
+                                    onTouchStart={(e) => {
+                                        const touch = e.touches[0];
+                                        (e.currentTarget as any).dragStartY = touch.clientY;
+                                    }}
+                                    onTouchMove={(e) => {
+                                        const touch = e.touches[0];
+                                        const dragStartY = (e.currentTarget as any).dragStartY;
+                                        if (dragStartY !== undefined) {
+                                            (e.currentTarget as any).dragCurrentY = touch.clientY;
+                                        }
+                                    }}
+                                    onTouchEnd={(e) => {
+                                        const dragStartY = (e.currentTarget as any).dragStartY;
+                                        const dragCurrentY = (e.currentTarget as any).dragCurrentY;
+                                        
+                                        if (dragStartY !== undefined && dragCurrentY !== undefined) {
+                                            const dragDistance = dragCurrentY - dragStartY;
+                                            // 向下拖动超过100px，关闭面板
+                                            if (dragDistance > 100) {
+                                                setMobileTracksOpen(false);
+                                            }
+                                        }
+                                        
+                                        // 清除拖动数据
+                                        delete (e.currentTarget as any).dragStartY;
+                                        delete (e.currentTarget as any).dragCurrentY;
+                                    }}
+                                    className="flex items-center justify-center py-3 cursor-pointer active:cursor-grabbing touch-none flex-shrink-0"
+                                >
+                                    <div className="w-12 h-1 bg-border/50 rounded-full" />
+                                </div>
+
                                 {/* Header */}
-                                <div className="flex-shrink-0 px-6 pt-6 pb-4 bg-background/60 backdrop-blur-sm">
-                                    <div className="flex items-center justify-between gap-3">
-                                        <h1 className="text-2xl font-semibold">My Tracks</h1>
-                                        <button
-                                            onClick={() => setMobileTracksOpen(false)}
-                                            className="h-10 w-10 flex items-center justify-center text-foreground hover:text-primary transition-colors rounded-lg hover:bg-muted/50 active:bg-muted/70"
-                                            aria-label="Close tracks list"
-                                        >
-                                            <X className="w-6 h-6" />
-                                        </button>
-                                    </div>
+                                <div className="flex-shrink-0 px-6 pb-4 bg-background/60 backdrop-blur-sm">
+                                    <h1 className="text-2xl font-semibold">My Tracks</h1>
                                 </div>
 
                                 {/* Tracks List */}

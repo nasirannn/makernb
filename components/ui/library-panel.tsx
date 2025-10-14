@@ -469,7 +469,7 @@ export const LibraryPanel = ({
               <p className="text-muted-foreground mb-6 leading-relaxed">
                 {searchQuery 
                   ? `No tracks found for "${searchQuery}". Try a different search term.`
-                  : 'Start creating your first R&B track in the Studio and it will appear here.'
+                  : 'Start creating your first R&B track in the Studio.'
                 }
               </p>
               {!searchQuery && (
@@ -477,8 +477,7 @@ export const LibraryPanel = ({
                   onClick={() => window.location.href = '/studio'}
                   className="group bg-gradient-to-r from-primary to-primary/90 hover:from-primary/90 hover:to-primary text-primary-foreground px-8 py-3 rounded-2xl font-semibold transition-all duration-300 hover:scale-105 hover:shadow-lg hover:shadow-primary/25 inline-flex items-center gap-2"
                 >
-                  <span>Go to Studio</span>
-                  <ArrowDown className="h-4 w-4 rotate-[-90deg] group-hover:translate-x-1 transition-transform" />
+                  <span>Start creating</span>
                 </Button>
               )}
             </div>
@@ -729,7 +728,42 @@ export const LibraryPanel = ({
 
       {/* Mobile Bottom Sheet Menu */}
       <Dialog open={mobileMenuOpen} onOpenChange={setMobileMenuOpen}>
-        <DialogContent className="sm:max-w-md p-0 gap-0 [&>button]:hidden md:hidden bottom-0 top-auto translate-y-0 data-[state=closed]:slide-out-to-bottom data-[state=open]:slide-in-from-bottom">
+        <DialogContent className="sm:max-w-md p-0 gap-0 [&>button]:hidden md:hidden bottom-0 top-auto translate-y-0 data-[state=closed]:slide-out-to-bottom data-[state=open]:slide-in-from-bottom rounded-t-3xl rounded-b-none border-0">
+          {/* Drag Handle - 拖动指示器 */}
+          <div 
+            onClick={() => setMobileMenuOpen(false)}
+            onTouchStart={(e) => {
+              const touch = e.touches[0];
+              (e.currentTarget as any).dragStartY = touch.clientY;
+            }}
+            onTouchMove={(e) => {
+              const touch = e.touches[0];
+              const dragStartY = (e.currentTarget as any).dragStartY;
+              if (dragStartY !== undefined) {
+                (e.currentTarget as any).dragCurrentY = touch.clientY;
+              }
+            }}
+            onTouchEnd={(e) => {
+              const dragStartY = (e.currentTarget as any).dragStartY;
+              const dragCurrentY = (e.currentTarget as any).dragCurrentY;
+              
+              if (dragStartY !== undefined && dragCurrentY !== undefined) {
+                const dragDistance = dragCurrentY - dragStartY;
+                // 向下拖动超过100px，关闭面板
+                if (dragDistance > 100) {
+                  setMobileMenuOpen(false);
+                }
+              }
+              
+              // 清除拖动数据
+              delete (e.currentTarget as any).dragStartY;
+              delete (e.currentTarget as any).dragCurrentY;
+            }}
+            className="flex items-center justify-center py-3 cursor-pointer active:cursor-grabbing touch-none"
+          >
+            <div className="w-12 h-1 bg-border/50 rounded-full" />
+          </div>
+
           <DialogHeader className="p-4 pb-3 border-b">
             <div className="flex items-center gap-3">
               {selectedTrackForMenu?.cover_r2_url && (
@@ -776,8 +810,6 @@ export const LibraryPanel = ({
                   <span className="text-sm">Download</span>
                 </button>
 
-                <div className="h-px bg-border my-1" />
-
                 {/* Publish/Unpublish */}
                 <button
                   onClick={() => {
@@ -818,19 +850,16 @@ export const LibraryPanel = ({
 
                 {/* Delete - Only for admins */}
                 {userIsAdmin && (
-                  <>
-                    <div className="h-px bg-border my-1" />
-                    <button
-                      onClick={() => {
-                        handleDeleteClick(selectedTrackForMenu);
-                        setMobileMenuOpen(false);
-                      }}
-                      className="flex items-center gap-3 px-4 py-3.5 text-left hover:bg-accent transition-colors text-destructive"
-                    >
-                      <Trash2 className="h-5 w-5" />
-                      <span className="text-sm">Delete</span>
-                    </button>
-                  </>
+                  <button
+                    onClick={() => {
+                      handleDeleteClick(selectedTrackForMenu);
+                      setMobileMenuOpen(false);
+                    }}
+                    className="flex items-center gap-3 px-4 py-3.5 text-left hover:bg-accent transition-colors text-destructive"
+                  >
+                    <Trash2 className="h-5 w-5" />
+                    <span className="text-sm">Delete</span>
+                  </button>
                 )}
               </>
             )}

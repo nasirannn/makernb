@@ -22,10 +22,6 @@ interface FeatureProps {
 
 const routeList: RouteProps[] = [
   {
-    href: "/",
-    label: "Home",
-  },
-  {
     href: "/studio",
     label: "Studio",
   },
@@ -129,7 +125,6 @@ export const Navbar = ({ credits = null }: NavbarProps) => {
         <ul className="flex items-center space-x-2">
           {routeList.map(({ href, label }) => {
             const isActive = pathname === href ||
-                           (href === "/" && pathname === "/") ||
                            (href === "/blog" && pathname.startsWith("/blog")) ||
                            (href === "/explore" && pathname.startsWith("/explore")) ||
                            (href === "/studio" && pathname.startsWith("/studio")) ||
@@ -204,7 +199,7 @@ export const Navbar = ({ credits = null }: NavbarProps) => {
                   </div>
                   
                   {/* Credits Display */}
-                  <div className="flex items-center gap-2 px-3 py-1.5 bg-foreground/10 backdrop-blur-sm border border-foreground/20 rounded-lg">
+                  <div className="flex items-center gap-2 px-3 py-1.5 bg-foreground/10 backdrop-blur-sm rounded-lg">
                     <Sparkles className="h-3.5 w-3.5 text-foreground" />
                     <span className="text-sm font-medium text-foreground">
                       {credits === null ? '...' : credits} Credits
@@ -247,10 +242,10 @@ export const Navbar = ({ credits = null }: NavbarProps) => {
               <div className="flex flex-col gap-2">
                 {routeList.map(({ href, label }) => {
                   const isActive = pathname === href ||
-                                 (href === "/" && pathname === "/") ||
                                  (href === "/blog" && pathname.startsWith("/blog")) ||
                                  (href === "/explore" && pathname.startsWith("/explore")) ||
-                                 (href === "/studio" && pathname.startsWith("/studio"));
+                                 (href === "/studio" && pathname.startsWith("/studio")) ||
+                                 (href === "/library" && pathname.startsWith("/library"));
                   return (
                     <Button
                       key={href}
@@ -276,7 +271,7 @@ export const Navbar = ({ credits = null }: NavbarProps) => {
         {user ? (
           <>
             {/* Credits Display */}
-            <div className="flex items-center gap-2 px-3 py-2 bg-foreground/10 backdrop-blur-sm border border-foreground/20 rounded-lg">
+            <div className="flex items-center gap-2 px-3 py-2 bg-foreground/10 backdrop-blur-sm rounded-lg">
               <Sparkles className="h-4 w-4 text-foreground" />
               <span className="text-sm font-medium text-foreground">
                 {credits === null ? '...' : credits}

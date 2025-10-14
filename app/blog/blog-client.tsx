@@ -14,7 +14,7 @@ export default function BlogClient({ allPosts }: BlogClientProps) {
   return (
     <div className="min-h-screen bg-background">
       {/* Main Content */}
-      <main className="container mx-auto px-4 pt-32 pb-12">
+      <main className="container mx-auto px-4 pt-32 pb-6 sm:pb-12">
         {/* Page Header */}
         <div className="text-center mb-16">
           <p className="text-sm font-medium text-white/60 uppercase tracking-wider mb-4">
@@ -76,7 +76,7 @@ export default function BlogClient({ allPosts }: BlogClientProps) {
           </div>
 
           {/* No More Data Indicator */}
-          <div className="text-center mt-8 py-4">
+          <div className="text-center mt-4 sm:mt-8 py-4">
             <span className="text-sm text-muted-foreground font-medium">
               All content loaded
             </span>
