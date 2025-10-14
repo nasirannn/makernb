@@ -1,10 +1,7 @@
 "use client";
 import React from "react";
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
 import { useTheme } from "next-themes";
 import Image from "next/image";
-import Link from "next/link";
 import { AnimatedBackground } from "@/components/ui/animated-background";
 import { useRouter } from "next/navigation";
 
@@ -75,11 +72,11 @@ export const HeroSection = () => {
 
             <div className="max-w-screen-lg mx-auto text-center">
               <h1 className="text-4xl md:text-6xl lg:text-7xl font-bold text-white leading-tight mb-6">
-                Free Online
-                AI
+                Free Online AI{" "}
                 <span className="text-transparent px-2 bg-gradient-to-r from-purple-400 via-purple-500 to-purple-600 bg-clip-text">
                   R&B
-                </span>Music Generator
+                </span>{" "}
+                Music Generator
               </h1>
             </div>
 
