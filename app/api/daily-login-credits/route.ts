@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { supabase } from '@/lib/supabase';
+import { createClient } from '@supabase/supabase-js';
 import { grantDailyLoginCredits, hasReceivedTodayCredits } from '@/lib/daily-login-credits';
 
 export const dynamic = 'force-dynamic';
@@ -10,6 +10,7 @@ export async function POST(request: NextRequest) {
     const authHeader = request.headers.get('authorization');
     
     if (!authHeader || !authHeader.startsWith('Bearer ')) {
+      console.error('[daily-login-credits] No authorization header provided');
       return NextResponse.json(
         { error: 'Authentication required' },
         { status: 401 }
@@ -18,10 +19,33 @@ export async function POST(request: NextRequest) {
 
     const token = authHeader.split(' ')[1];
     
+    // 为后端API创建独立的supabase客户端
+    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+    const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+
+    if (!supabaseUrl || !supabaseAnonKey) {
+      console.error('[daily-login-credits] Missing Supabase environment variables');
+      return NextResponse.json(
+        { error: 'Server configuration error' },
+        { status: 500 }
+      );
+    }
+
+    const supabase = createClient(supabaseUrl, supabaseAnonKey);
+    
     // 验证token
     const { data: { user }, error } = await supabase.auth.getUser(token);
 
-    if (error || !user) {
+    if (error) {
+      console.error('[daily-login-credits] Token validation error:', error.message);
+      return NextResponse.json(
+        { error: 'Authentication required', details: error.message },
+        { status: 401 }
+      );
+    }
+
+    if (!user) {
+      console.error('[daily-login-credits] No user found for token');
       return NextResponse.json(
         { error: 'Authentication required' },
         { status: 401 }
@@ -89,6 +113,7 @@ export async function GET(request: NextRequest) {
     const authHeader = request.headers.get('authorization');
     
     if (!authHeader || !authHeader.startsWith('Bearer ')) {
+      console.error('[daily-login-credits GET] No authorization header provided');
       return NextResponse.json(
         { error: 'Authentication required' },
         { status: 401 }
@@ -97,10 +122,33 @@ export async function GET(request: NextRequest) {
 
     const token = authHeader.split(' ')[1];
     
+    // 为后端API创建独立的supabase客户端
+    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+    const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+
+    if (!supabaseUrl || !supabaseAnonKey) {
+      console.error('[daily-login-credits GET] Missing Supabase environment variables');
+      return NextResponse.json(
+        { error: 'Server configuration error' },
+        { status: 500 }
+      );
+    }
+
+    const supabase = createClient(supabaseUrl, supabaseAnonKey);
+    
     // 验证token
     const { data: { user }, error } = await supabase.auth.getUser(token);
     
-    if (error || !user) {
+    if (error) {
+      console.error('[daily-login-credits GET] Token validation error:', error.message);
+      return NextResponse.json(
+        { error: 'Authentication required', details: error.message },
+        { status: 401 }
+      );
+    }
+
+    if (!user) {
+      console.error('[daily-login-credits GET] No user found for token');
       return NextResponse.json(
         { error: 'Authentication required' },
         { status: 401 }
