@@ -8,8 +8,6 @@
     "start": "next start",
     "lint": "next lint",
     "analyze-db": "npx tsx scripts/analyze-db-files.ts",
-    "test-r2": "npx tsx scripts/test-r2-connection.ts",
-    "test-db": "npx tsx scripts/test-db-connection.ts",
     "cleanup-r2": "npx tsx scripts/cleanup-r2-storage.ts",
     "cleanup-r2:delete": "npx tsx scripts/cleanup-r2-storage.ts --delete",
     "backup": "npx tsx scripts/backup-restore.ts",

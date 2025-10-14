@@ -7,7 +7,7 @@ export async function GET(request: NextRequest) {
   try {
     // 验证请求来源（Vercel Cron或本地测试）
     const authHeader = request.headers.get('authorization');
-    const cronSecret = process.env.CRON_SECRET || 'cron-secret-2024';
+    const cronSecret = process.env.CRON_SECRET;
     
     // 在生产环境中验证cron secret
     if (process.env.NODE_ENV === 'production') {
@@ -19,16 +19,18 @@ export async function GET(request: NextRequest) {
       }
     }
 
-    console.log('Running scheduled cleanup of expired daily credits...');
+    const startTime = Date.now();
+    console.log(`[CRON] Running scheduled cleanup of expired daily credits at ${new Date().toISOString()}`);
     
     // 执行清理过期积分
     const cleanedCount = await cleanupExpiredDailyCredits();
     
+    const duration = Date.now() - startTime;
     const message = cleanedCount > 0 
-      ? `Successfully cleaned up ${cleanedCount} expired daily login credits`
-      : 'No expired daily login credits to clean up';
+      ? `Successfully cleaned up ${cleanedCount} expired daily login credits in ${duration}ms`
+      : `No expired daily login credits to clean up (checked in ${duration}ms)`;
     
-    console.log(message);
+    console.log(`[CRON] ${message}`);
     
     return NextResponse.json({
       success: true,
