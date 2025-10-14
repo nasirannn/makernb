@@ -4,5 +4,12 @@
       "path": "/api/cron/cleanup-expired-credits",
       "schedule": "0 0 * * *"
     }
+  ],
+  "redirects": [
+    {
+      "source": "/:path*(/)",
+      "destination": "/:path*",
+      "permanent": true
+    }
   ]
 }
