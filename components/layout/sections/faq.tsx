@@ -13,34 +13,49 @@ interface FAQProps {
 
 const FAQList: FAQProps[] = [
   {
-    question: "Is MakeRNB really free to use?",
+    question: "✅ Is MakeRNB really free to use?",
     answer: "Yes! MakeRNB offers free daily credits that allow you to create original R&B tracks without any subscription fees. You get fresh credits every day to continue your music creation journey.",
     value: "item-1",
   },
   {
-    question: "Can I generate AI cover songs or create music based on specific artists?",
-    answer: "MakeRNB doesn't create direct copies of existing songs, our AI music generator can create original music inspired by different genres and styles. This ensures your creations are unique while maintaining professional quality.",
+    question: "💰 How do I earn credits on MakeRNB?",
+    answer: "You automatically receive 15 free credits every day when you log in to your account. These daily login credits are designed to let you create music consistently without any payment. Simply sign in each day to claim your fresh credits and start creating!",
     value: "item-2",
   },
   {
-    question: "Can I use my own lyrics in the songs?",
-    answer: "Absolutely! In Custom Mode, you can input your own lyrics to create personalized R&B tracks that tell your unique story. The AI will compose music that perfectly complements your words.",
+    question: "💰 How many credits does it cost to generate a song?",
+    answer: "The credit cost depends on the mode you choose: Basic Mode costs 7 credits per song, while Custom Mode costs 12 credits for more advanced features and controls. With your 15 daily login credits, you can create at least one Custom Mode track or two Basic Mode tracks each day!",
     value: "item-3",
   },
   {
-    question: "What audio quality do I get when downloading?",
-    answer: "All generated tracks are studio-quality with rich vocals, smooth harmonies, and that signature R&B sound. You can download high-quality audio files ready for streaming, sharing, or further production.",
+    question: "⏰ Do my daily credits expire?",
+    answer: "Yes, daily login credits expire at midnight (UTC) if unused. This means credits earned today will be available until the end of the day. We encourage you to use your credits daily to maximize your creative output. Don't worry though - you'll receive a fresh batch of 15 credits with each new login!",
     value: "item-4",
   },
   {
-    question: "How long does it take to generate a song?",
-    answer: "Our AI works incredibly fast! You can preview your R&B track in about 40 seconds, and the complete high-quality version will be ready for download in approximately 3 minutes.",
+    question: "✍️ Can I use my own lyrics in the songs?",
+    answer: "Absolutely! In Custom Mode, you can input your own lyrics to create personalized R&B tracks that tell your unique story. The AI will compose music that perfectly complements your words.",
     value: "item-5",
   },
   {
-    question: "Can I use the generated music commercially?",
-    answer: "Yes, you own the rights to the music you create with MakeRNB. You can use your generated tracks for personal projects, commercial releases, or any other purpose without additional licensing fees.",
+    question: "🎤 Can I generate AI cover songs or create music based on specific artists?",
+    answer: "MakeRNB doesn't create direct copies of existing songs, our AI music generator can create original music inspired by different genres and styles. This ensures your creations are unique while maintaining professional quality.",
     value: "item-6",
+  },
+  {
+    question: "⚡ How long does it take to generate a song?",
+    answer: "Our AI works incredibly fast! You can preview your R&B track in about 40 seconds, and the complete high-quality version will be ready for download in approximately 3 minutes.",
+    value: "item-7",
+  },
+  {
+    question: "🎧 What audio quality do I get when downloading?",
+    answer: "All generated tracks are studio-quality with rich vocals, smooth harmonies, and that signature R&B sound. You can download high-quality audio files ready for streaming, sharing, or further production.",
+    value: "item-8",
+  },
+  {
+    question: "📜 Can I use the generated music commercially?",
+    answer: "Yes, you own the rights to the music you create with MakeRNB. You can use your generated tracks for personal projects, commercial releases, or any other purpose without additional licensing fees.",
+    value: "item-9",
   },
 ];
 
