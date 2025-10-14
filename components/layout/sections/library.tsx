@@ -553,9 +553,19 @@ const LibraryContent = () => {
                                     );
 
                                     // 如果当前播放的是被删除的歌曲，停止播放
-                                    if (selectedLibraryTrack === track.id) {
+                                    if (currentTrack?.id === track.id || selectedLibraryTrack === track.id) {
+                                        // 停止音频播放
+                                        if (audioRef.current) {
+                                            audioRef.current.pause();
+                                            audioRef.current.currentTime = 0;
+                                            audioRef.current.src = '';
+                                        }
+                                        // 清除播放状态
+                                        setCurrentTrack(null);
                                         setSelectedLibraryTrack(null);
                                         setIsPlaying(false);
+                                        setCurrentTime(0);
+                                        setDuration(0);
                                     }
                                 }
                             }}
