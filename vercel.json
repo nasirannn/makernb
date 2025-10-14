@@ -1,12 +1,4 @@
 {
-  "trailingSlash": false,
-  "redirects": [
-    {
-      "source": "/:path+/",
-      "destination": "/:path+",
-      "permanent": true
-    }
-  ],
   "crons": [
     {
       "path": "/api/cron/cleanup-expired-credits",
