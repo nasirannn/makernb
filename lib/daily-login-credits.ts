@@ -14,10 +14,7 @@ export const hasReceivedTodayCredits = async (userId: string): Promise<boolean> 
       [userId, today]
     );
 
-    const hasCredits = result.rows.length > 0;
-    console.log(`[hasReceivedTodayCredits] User ${userId}, date ${today}: ${hasCredits}`);
-    
-    return hasCredits;
+    return result.rows.length > 0;
   } catch (error) {
     console.error('Error checking today credits:', error);
     throw error;
@@ -27,27 +24,21 @@ export const hasReceivedTodayCredits = async (userId: string): Promise<boolean> 
 // 给用户发放每日登录积分
 export const grantDailyLoginCredits = async (userId: string): Promise<{ id: string; daily_credits: number; last_login_date: string } | null> => {
   try {
-    console.log(`[grantDailyLoginCredits] Starting for user ${userId}`);
-    
     // 检查是否是管理员
     const adminId = process.env.ADMIN_ID;
     if (adminId && userId === adminId) {
-      console.log(`[grantDailyLoginCredits] User ${userId} is admin, skipping`);
       return null;
     }
 
     // 检查今天是否已经获得积分
     const hasCredits = await hasReceivedTodayCredits(userId);
     if (hasCredits) {
-      console.log(`[grantDailyLoginCredits] User ${userId} already received today's credits`);
       return null;
     }
 
     return await withTransaction(async (queryFn) => {
       const today = new Date().toISOString().split('T')[0]; // YYYY-MM-DD
       const creditsAmount = 15;
-
-      console.log(`[grantDailyLoginCredits] Granting ${creditsAmount} credits to user ${userId} for ${today}`);
 
       // 添加积分到用户账户
       const userCreditsResult = await queryFn(
@@ -56,7 +47,6 @@ export const grantDailyLoginCredits = async (userId: string): Promise<{ id: stri
       );
 
       if (userCreditsResult.rows.length === 0) {
-        console.log(`[grantDailyLoginCredits] User credits record not found, creating new one for ${userId}`);
         // 如果用户积分记录不存在，创建一个
         const newUserCreditsResult = await queryFn(
           'INSERT INTO user_credits (user_id, credits, total_earned) VALUES ($1, $2, $3) RETURNING *',
@@ -79,8 +69,6 @@ export const grantDailyLoginCredits = async (userId: string): Promise<{ id: stri
             'daily_login'
           ]
         );
-
-        console.log(`[grantDailyLoginCredits] Successfully granted credits, transaction id: ${transactionResult.rows[0].id}`);
 
         return {
           id: transactionResult.rows[0].id,
@@ -107,8 +95,6 @@ export const grantDailyLoginCredits = async (userId: string): Promise<{ id: stri
         ]
       );
 
-      console.log(`[grantDailyLoginCredits] Successfully granted credits, new balance: ${newBalance}, transaction id: ${transactionResult.rows[0].id}`);
-
       // 返回类似原来的结构，但使用 transaction id
       return {
         id: transactionResult.rows[0].id,
@@ -129,8 +115,6 @@ export const cleanupExpiredDailyCredits = async (): Promise<number> => {
     return await withTransaction(async (queryFn) => {
       const today = new Date().toISOString().split('T')[0];
 
-      console.log(`[cleanupExpiredDailyCredits] Starting cleanup for date: ${today}`);
-
       // 查找所有过期的每日登录积分（不是今天的且有积分的）
       const expiredCredits = await queryFn(
         `SELECT ct.*, uc.credits, DATE(ct.created_at AT TIME ZONE 'UTC') as grant_date
@@ -147,13 +131,9 @@ export const cleanupExpiredDailyCredits = async (): Promise<number> => {
         [today]
       );
 
-      console.log(`[cleanupExpiredDailyCredits] Found ${expiredCredits.rows.length} expired credits to clean`);
-
       let cleanedCount = 0;
 
       for (const credit of expiredCredits.rows) {
-        console.log(`[cleanupExpiredDailyCredits] Processing user ${credit.user_id}: amount=${credit.amount}, current_credits=${credit.credits}, grant_date=${credit.grant_date}`);
-        
         // 检查用户当前积分是否足够扣除
         if (credit.credits >= credit.amount) {
           // 扣除过期的每日登录积分
@@ -179,15 +159,8 @@ export const cleanupExpiredDailyCredits = async (): Promise<number> => {
             ]
           );
 
-          console.log(`[cleanupExpiredDailyCredits] Successfully cleaned up ${credit.amount} credits for user ${credit.user_id}`);
           cleanedCount++;
-        } else {
-          console.log(`[cleanupExpiredDailyCredits] Skipped user ${credit.user_id}: insufficient credits (has ${credit.credits}, needs ${credit.amount})`);
         }
-      }
-
-      if (cleanedCount > 0) {
-        console.log(`Cleaned up ${cleanedCount} expired daily credits`);
       }
 
       return cleanedCount;

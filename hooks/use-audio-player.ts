@@ -40,7 +40,7 @@ export const useAudioPlayer = (): UseAudioPlayerReturn => {
     
     // Play the audio
     audio.play().catch((error) => {
-      console.log('Audio play failed:', error);
+      console.error('Audio play failed:', error);
       setPlayingAudioId(null);
     });
     

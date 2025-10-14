@@ -38,7 +38,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
     
     if (!token) {
-      console.log('No valid token available for daily credits check');
       return;
     }
 
@@ -122,7 +121,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         }
         
         if (newSession?.access_token && newSession.access_token !== token) {
-          console.log('Retrying with refreshed token...');
           // 用新token重试，但不递归太多次
           creditsCheckInProgress.current = false; // 重置状态允许重试
           setTimeout(() => {

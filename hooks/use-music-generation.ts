@@ -396,7 +396,6 @@ export const useMusicGeneration = () => {
       }
       currentPollingMsRef.current = 5000; // 从3秒增加到5秒
       pollingRef.current = setInterval(pollFunction, currentPollingMsRef.current);
-      console.log('Polling frequency adjusted to 5s');
     }
   };
 

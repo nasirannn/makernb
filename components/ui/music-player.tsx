@@ -4,6 +4,7 @@ import React, { useState, useEffect } from 'react';
 import Image from 'next/image';
 import { Play, Pause, Rewind, FastForward, Volume2, VolumeX, MessageSquare } from 'lucide-react';
 import { Slider } from '@/components/ui/slider';
+import { SafeImage } from './safe-image';
 
 interface Track {
   id: string;
@@ -201,23 +202,22 @@ export const MusicPlayer: React.FC<MusicPlayerProps> = ({
                 transformOrigin: 'left bottom'
               }}
             >
-              {currentCoverImage ? (
-                <Image
-                  src={currentCoverImage}
-                  alt={currentTrack?.title || 'Track'}
-                  width={48}
-                  height={48}
-                  className="w-12 h-12 sm:w-12 sm:h-12 rounded-md object-cover"
-                />
-              ) : (
-                <Image
-                  src="/cassette-tape.svg"
-                  alt="Cassette Tape"
-                  width={48}
-                  height={48}
-                  className="w-full h-full object-contain opacity-70"
-                />
-              )}
+              <SafeImage
+                src={currentCoverImage || ''}
+                alt={currentTrack?.title || 'Track'}
+                width={48}
+                height={48}
+                className="w-12 h-12 sm:w-12 sm:h-12 rounded-md object-cover"
+                fallbackContent={
+                  <Image
+                    src="/cassette-tape.svg"
+                    alt="Cassette Tape"
+                    width={48}
+                    height={48}
+                    className="w-full h-full object-contain opacity-70"
+                  />
+                }
+              />
             </div>
           </div>
           <div className="min-w-0 flex-1">

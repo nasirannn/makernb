@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { SafeImage } from './safe-image';
@@ -108,6 +108,11 @@ export const LibraryPanel = ({
   const [searchQuery, setSearchQuery] = useState('');
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [selectedTrackForMenu, setSelectedTrackForMenu] = useState<Track | null>(null);
+  
+  // 滚动位置管理
+  const scrollContainerRef = useRef<HTMLDivElement>(null);
+  const scrollPositionsRef = useRef<Record<string, number>>({});
+  const isRestoringScrollRef = useRef(false);
 
   // Check if user is admin
   const userIsAdmin = userId ? isAdmin(userId) : false;
@@ -116,6 +121,32 @@ export const LibraryPanel = ({
   const TABS = userIsAdmin
     ? ['All Tracks', 'Favorites', 'Pinned', 'Published']
     : ['All Tracks', 'Favorites', 'Published'];
+
+  // 保存当前滚动位置
+  const saveScrollPosition = useCallback(() => {
+    if (scrollContainerRef.current && !isRestoringScrollRef.current) {
+      scrollPositionsRef.current[activeTab] = scrollContainerRef.current.scrollTop;
+    }
+  }, [activeTab]);
+
+  // 恢复滚动位置
+  const restoreScrollPosition = useCallback(() => {
+    if (scrollContainerRef.current) {
+      const savedPosition = scrollPositionsRef.current[activeTab] || 0;
+      isRestoringScrollRef.current = true;
+      
+      // 使用 requestAnimationFrame 确保在DOM更新后恢复滚动位置
+      requestAnimationFrame(() => {
+        if (scrollContainerRef.current) {
+          scrollContainerRef.current.scrollTop = savedPosition;
+          // 延迟重置标志，避免滚动事件触发时误保存位置
+          setTimeout(() => {
+            isRestoringScrollRef.current = false;
+          }, 100);
+        }
+      });
+    }
+  }, [activeTab]);
 
   // Filter tracks based on active tab and search query
   const filteredTracks = tracks.filter(track => {
@@ -148,6 +179,26 @@ export const LibraryPanel = ({
 
   // Show all tracks without pagination
   const paginatedTracks = filteredTracks;
+
+  // 监听滚动事件，保存滚动位置
+  useEffect(() => {
+    const container = scrollContainerRef.current;
+    if (!container) return;
+
+    const handleScroll = () => {
+      saveScrollPosition();
+    };
+
+    container.addEventListener('scroll', handleScroll, { passive: true });
+    return () => {
+      container.removeEventListener('scroll', handleScroll);
+    };
+  }, [saveScrollPosition]);
+
+  // Tab切换时恢复滚动位置
+  useEffect(() => {
+    restoreScrollPosition();
+  }, [activeTab, filteredTracks.length, restoreScrollPosition]);
 
   const formatDuration = (seconds: number) => {
     const mins = Math.floor(seconds / 60);
@@ -411,7 +462,11 @@ export const LibraryPanel = ({
               {TABS.map((tab) => (
                 <button
                   key={tab}
-                  onClick={() => setActiveTab(tab)}
+                  onClick={() => {
+                    // 切换前保存当前tab的滚动位置
+                    saveScrollPosition();
+                    setActiveTab(tab);
+                  }}
                   className={`py-2 px-3 text-sm font-medium transition-all duration-200 rounded-md whitespace-nowrap flex-1 ${
                     activeTab === tab
                       ? 'bg-primary/20 border-transparent text-primary shadow-sm'
@@ -449,7 +504,10 @@ export const LibraryPanel = ({
       </div>
 
       {/* Content - 正确的flex布局 */}
-      <div className={`flex-1 overflow-y-auto px-3 md:px-6 relative ${hasPlayer ? 'pb-20' : 'pb-3'}`}>
+      <div 
+        ref={scrollContainerRef}
+        className={`flex-1 overflow-y-auto px-3 md:px-6 relative ${hasPlayer ? 'pb-20' : 'pb-3'}`}
+      >
         {isLoading ? (
           <div className="flex items-center justify-center h-full relative">
             <LoadingState message="Loading your music library" size="lg" vertical />

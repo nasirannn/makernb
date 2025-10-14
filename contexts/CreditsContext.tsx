@@ -25,7 +25,6 @@ export function CreditsProvider({ children }: { children: React.ReactNode }) {
     
     // 防止重复调用
     if (isRefreshing) {
-      console.log('Credits refresh already in progress, skipping...');
       return;
     }
     
@@ -47,7 +46,6 @@ export function CreditsProvider({ children }: { children: React.ReactNode }) {
       }
 
       if (!session?.access_token) {
-        console.log('No valid session token available for credits fetch');
         setCredits(null);
         return;
       }
@@ -76,7 +74,6 @@ export function CreditsProvider({ children }: { children: React.ReactNode }) {
         }
         
         if (newSession?.access_token && newSession.access_token !== session.access_token) {
-          console.log('Retrying credits fetch with refreshed token...');
           // 重置状态并重试
           setIsRefreshing(false);
           setLoading(false);

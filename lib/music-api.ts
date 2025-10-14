@@ -125,7 +125,7 @@ class MusicApiService {
       apiParams.model = process.env.BASIC_MODE_MODEL || 'V3_5'; // Basic Mode使用配置的模型
 
       // 拼接一个≤100字符的R&B风格短语到prompt
-      const styleHint = 'Create in R&B style with soulful vocals.'; // ~50 chars
+      const styleHint = 'Create in R&B style.'; 
 
       // Basic Mode的prompt：用户输入 + 风格短语
       if (request.customPrompt && request.customPrompt.trim()) {
@@ -138,7 +138,7 @@ class MusicApiService {
       // Custom模式: customMode: true
       apiParams.customMode = true;
       apiParams.instrumental = request.instrumentalMode || false;
-      apiParams.model = process.env.CUSTOM_MODE_MODEL || 'V4_5'; // Custom Mode使用配置的模型
+      apiParams.model = process.env.CUSTOM_MODE_MODEL; // Custom Mode使用配置的模型
 
       // Custom Mode使用generateCustomRnBStyle函数生成详细的style
       const customStyle = generateCustomRnBStyle({
