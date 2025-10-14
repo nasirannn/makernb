@@ -418,6 +418,15 @@ export const StudioTracksList: React.FC<StudioTracksListProps> = ({
               </div>
             </div>
           ))}
+          
+          {/* No More Tracks Indicator */}
+          {currentTracks.length > 0 && (
+            <div className="text-center py-6">
+              <span className="text-sm text-muted-foreground font-medium">
+                No more tracks
+              </span>
+            </div>
+          )}
         </div>
         </div>
       </div>

@@ -759,6 +759,15 @@ export const LibraryPanel = ({
 
                 </div>
               ))}
+              
+              {/* No More Tracks Indicator */}
+              {paginatedTracks.length > 0 && (
+                <div className="text-center py-6">
+                  <span className="text-sm text-muted-foreground font-medium">
+                    No more tracks
+                  </span>
+                </div>
+              )}
           </div>
         )}
       </div>

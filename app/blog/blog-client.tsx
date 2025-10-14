@@ -35,8 +35,6 @@ export default function BlogClient({ allPosts }: BlogClientProps) {
             <Link 
               key={post.slug}
               href={`/blog/${post.slug}`}
-              target="_blank"
-              rel="noopener noreferrer"
               className="group bg-background/80 backdrop-blur-sm overflow-hidden hover:bg-background/90 transition-all duration-300"
             >
               {/* Image */}
