@@ -159,7 +159,7 @@ export const StudioTracksList: React.FC<StudioTracksListProps> = ({
               {allGeneratedTracks.map((track, index) => (
                 <div
                   key={`generated-${index}`}
-                  className={`flex items-center gap-4 px-4 py-2 transition-all duration-300 group cursor-pointer
+                  className={`relative flex items-center gap-4 px-4 py-2 transition-all duration-300 group cursor-pointer
                     ${track.isLoading || track.isError
                       ? 'cursor-default'
                       : `${currentlyPlaying === `generated-${index}`
@@ -173,7 +173,7 @@ export const StudioTracksList: React.FC<StudioTracksListProps> = ({
                     }
                   }}
                 >
-                  {/* Loading 状态显示遮罩和 Progress indicators */}
+                  {/* Loading 状态显示遮罩和 Progress indicators - 只覆盖单个歌曲卡片 */}
                   {track.isLoading && (
                     <div className="absolute inset-0 bg-black/60 flex items-center justify-center pointer-events-none z-10">
                       <LoadingDots size="md" color="white" />

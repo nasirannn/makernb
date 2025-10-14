@@ -192,7 +192,7 @@ export const useMusicGeneration = () => {
 
       if (status === 'text') {
         // text 回调：显示播放器，使用 stream audio，duration 显示 --:--
-        isLoading = false; // text回调后可以播放了，不显示遮罩层
+        isLoading = true; // 显示loading指示器（但只在单个歌曲卡片上）
         isGenerating = true; // 仍在生成中
         isStreaming = hasStreamAudio;
         currentAudioUrl = streamAudioUrl;
@@ -206,7 +206,7 @@ export const useMusicGeneration = () => {
           currentAudioUrl = audioUrl;
           currentDuration = t.duration;
         } else {
-          isLoading = false; // 有stream audio可播放，不显示遮罩层
+          isLoading = true; // 显示loading指示器（但只在单个歌曲卡片上）
           isGenerating = true;
           isStreaming = hasStreamAudio;
           currentAudioUrl = streamAudioUrl;
