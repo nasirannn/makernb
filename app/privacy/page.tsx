@@ -42,15 +42,17 @@ export default function PrivacyPolicy() {
           
           <h3 className="text-xl font-medium mb-3">Personal Information</h3>
           <ul className="list-disc pl-6 mb-4">
-            <li>Email address (for account creation and communication)</li>
-            <li>Username and profile information</li>
-            <li>Payment information (processed securely through third-party providers)</li>
+            <li>Email address (collected via Google OAuth authentication)</li>
+            <li>Profile information from Google (name, profile picture) when you sign in with Google</li>
+            <li>Username and display preferences</li>
+            <li>Authentication tokens and session data</li>
           </ul>
 
           <h3 className="text-xl font-medium mb-3">Usage Information</h3>
           <ul className="list-disc pl-6 mb-4">
             <li>Music generation requests and preferences</li>
             <li>Generated music tracks and associated metadata</li>
+            <li>Credit balance, transaction history, and daily login records</li>
             <li>Usage patterns and feature interactions</li>
             <li>Device information and IP address</li>
           </ul>
@@ -111,6 +113,23 @@ export default function PrivacyPolicy() {
         </section>
 
         <section className="mb-8">
+          <h2 className="text-2xl font-semibold mb-4">Third-Party Services</h2>
+          <p className="mb-4">
+            We use trusted third-party services to provide and improve our platform. These services have access to certain information only to perform specific tasks on our behalf:
+          </p>
+          <ul className="list-disc pl-6 mb-4">
+            <li><strong>Google OAuth:</strong> For secure authentication and login services</li>
+            <li><strong>Supabase:</strong> For database management, authentication, and data storage</li>
+            <li><strong>Cloudflare R2:</strong> For secure storage and delivery of generated audio files</li>
+            <li><strong>AI Service Providers:</strong> For music generation and processing (input data is processed securely and not stored by third parties)</li>
+            <li><strong>Analytics Services:</strong> For understanding usage patterns and improving user experience</li>
+          </ul>
+          <p className="mb-4">
+            All third-party providers are required to maintain the confidentiality and security of your information and are prohibited from using it for any purpose other than providing services to us.
+          </p>
+        </section>
+
+        <section className="mb-8">
           <h2 className="text-2xl font-semibold mb-4">Information Sharing</h2>
           <p className="mb-4">
             We do not sell, trade, or rent your personal information to third parties. We may share your information only in the following circumstances:
@@ -119,7 +138,7 @@ export default function PrivacyPolicy() {
             <li>With your explicit consent</li>
             <li>To comply with legal obligations or court orders</li>
             <li>To protect our rights, property, or safety, or that of our users</li>
-            <li>With trusted service providers who assist in operating our service (under strict confidentiality agreements)</li>
+            <li>With trusted service providers listed above (under strict confidentiality agreements)</li>
           </ul>
         </section>
 
@@ -176,11 +195,11 @@ export default function PrivacyPolicy() {
         <section className="mb-8">
           <h2 className="text-2xl font-semibold mb-4">Contact Us</h2>
           <p className="mb-4">
-            If you have any questions about this Privacy Policy or our data practices, please contact us at:
+            If you have any questions about this Privacy Policy or our data practices, please contact us:
           </p>
           <div className="bg-muted p-4 rounded-lg">
             <p><strong>Email:</strong> <a href="mailto:contact@makernb.com" className="text-primary hover:underline">contact@makernb.com</a></p>
-            <p><strong>Address:</strong> MakeRNB Privacy Team</p>
+            <p className="text-muted-foreground text-sm mt-2">We typically respond to privacy inquiries within 48 hours.</p>
           </div>
         </section>
       </div>

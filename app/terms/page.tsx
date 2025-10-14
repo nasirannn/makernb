@@ -88,11 +88,27 @@ export default function TermsOfService() {
 
         <section className="mb-8">
           <h2 className="text-2xl font-semibold mb-4">Credits and Usage Limits</h2>
+          
+          <h3 className="text-xl font-medium mb-3">Daily Credits</h3>
           <ul className="list-disc pl-6 mb-4">
-            <li>Free users receive daily credits that reset every 24 hours</li>
-            <li>Credits are non-transferable and cannot be exchanged for cash</li>
+            <li>All users automatically receive 15 free credits upon daily login</li>
+            <li>Daily credits expire at midnight (UTC) if unused</li>
             <li>Unused credits do not roll over to the next day</li>
-            <li>We reserve the right to modify credit allocation and usage limits</li>
+            <li>Credits are automatically granted when you sign in each day</li>
+          </ul>
+
+          <h3 className="text-xl font-medium mb-3">Credit Costs</h3>
+          <ul className="list-disc pl-6 mb-4">
+            <li>Basic Mode: 7 credits per song generation</li>
+            <li>Custom Mode: 12 credits per song generation (advanced features and controls)</li>
+            <li>With 15 daily credits, you can create at least one Custom Mode track or two Basic Mode tracks per day</li>
+          </ul>
+
+          <h3 className="text-xl font-medium mb-3">General Terms</h3>
+          <ul className="list-disc pl-6 mb-4">
+            <li>Credits are non-transferable and cannot be exchanged for cash</li>
+            <li>Credits cannot be shared between accounts</li>
+            <li>We reserve the right to modify credit allocation and usage limits with reasonable notice</li>
           </ul>
         </section>
 
@@ -144,11 +160,11 @@ export default function TermsOfService() {
         <section className="mb-8">
           <h2 className="text-2xl font-semibold mb-4">Contact Information</h2>
           <p className="mb-4">
-            If you have any questions about these Terms of Service, please contact us at:
+            If you have any questions about these Terms of Service, please contact us:
           </p>
           <div className="bg-muted p-4 rounded-lg">
             <p><strong>Email:</strong> <a href="mailto:contact@makernb.com" className="text-primary hover:underline">contact@makernb.com</a></p>
-            <p><strong>Address:</strong> MakeRNB Legal Team</p>
+            <p className="text-muted-foreground text-sm mt-2">For legal inquiries, please reach out via email and we will respond within 48 hours.</p>
           </div>
         </section>
       </div>
