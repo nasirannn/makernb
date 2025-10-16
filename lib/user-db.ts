@@ -108,13 +108,69 @@ export const getUserCredits = async (userId: string): Promise<UserCredits | null
   }
 };
 
+// 生成优化的交易描述
+const generateTransactionDescription = (
+  transactionType: string, 
+  customDescription?: string,
+  context?: any
+): string => {
+  // 如果提供了自定义描述，优先使用
+  if (customDescription) {
+    return customDescription;
+  }
+
+  // 根据交易类型生成标准描述
+  switch (transactionType) {
+    case 'subscription':
+      return context?.billingPeriod && context?.creditsAmount 
+        ? `Subscription payment - ${context.billingPeriod} - ${context.creditsAmount} credits`
+        : 'Subscription payment';
+    
+    case 'purchase':
+      return context?.creditsAmount 
+        ? `One-time purchase - ${context.creditsAmount} credits`
+        : 'One-time purchase';
+    
+    case 'refund':
+      return context?.reason 
+        ? `Refund - ${context.reason}`
+        : 'Refund';
+    
+    case 'bonus':
+      return 'Daily login bonus';
+    
+    case 'music_generation':
+      return context?.modelVersion 
+        ? `Music generation (${context.modelVersion})`
+        : 'Music generation';
+    
+    case 'lyrics_generation':
+      return 'Lyrics generation';
+    
+    case 'spend':
+      return context?.service 
+        ? `${context.service} consumption`
+        : 'Credits spent';
+    
+    
+    case 'system':
+      return context?.operation 
+        ? `System ${context.operation}`
+        : 'System operation';
+    
+    default:
+      return `${transactionType} transaction`;
+  }
+};
+
 // 添加积分（用于奖励、充值等）
 export const addUserCredits = async (
   userId: string, 
   amount: number,
   description?: string, 
   referenceId?: string, 
-  referenceType?: string
+  transactionType: string = 'system',
+  context?: any
 ): Promise<boolean> => {
   try {
     return await withTransaction(async (queryFn) => {
@@ -130,13 +186,19 @@ export const addUserCredits = async (
 
       const newBalance = result.rows[0].credits;
 
+      // 确保引用完整性：如果没有提供引用，使用系统类型
+      const finalReferenceId = referenceId || `system_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+
+      // 生成优化的描述
+      const finalDescription = generateTransactionDescription(transactionType, description, context);
+
       // 创建交易记录
       await queryFn(
         `INSERT INTO credit_transactions (
           user_id, transaction_type, amount, balance_after,
-          description, reference_id, reference_type
-        ) VALUES ($1, $2, $3, $4, $5, $6, $7)`,
-        [userId, 'earn', amount, newBalance, description || 'Credits added', referenceId, referenceType]
+          description, reference_id
+        ) VALUES ($1, $2, $3, $4, $5, $6)`,
+        [userId, transactionType, amount, newBalance, finalDescription, finalReferenceId]
       );
 
       return true;

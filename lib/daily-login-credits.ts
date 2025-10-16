@@ -55,18 +55,19 @@ export const grantDailyLoginCredits = async (userId: string): Promise<{ id: stri
         const newBalance = newUserCreditsResult.rows[0].credits;
 
         // 创建积分交易记录
+        const loginRewardId = `daily_login_${userId.slice(0, 8)}_${today}`;
         const transactionResult = await queryFn(
           `INSERT INTO credit_transactions (
             user_id, transaction_type, amount, balance_after,
-            description, reference_type
+            description, reference_id
           ) VALUES ($1, $2, $3, $4, $5, $6) RETURNING id`,
           [
             userId,
             'bonus',
             creditsAmount,
             newBalance,
-            'Daily login credits',
-            'daily_login'
+            'Daily login bonus',
+            loginRewardId
           ]
         );
 
@@ -80,18 +81,19 @@ export const grantDailyLoginCredits = async (userId: string): Promise<{ id: stri
       const newBalance = userCreditsResult.rows[0].credits;
 
       // 创建积分交易记录
+      const loginRewardId = `daily_login_${userId.slice(0, 8)}_${today}`;
       const transactionResult = await queryFn(
         `INSERT INTO credit_transactions (
           user_id, transaction_type, amount, balance_after,
-          description, reference_type
+          description, reference_id
         ) VALUES ($1, $2, $3, $4, $5, $6) RETURNING id`,
         [
           userId,
           'bonus',
           creditsAmount,
           newBalance,
-          'Daily login credits',
-          'daily_login'
+          'Daily login bonus',
+          loginRewardId
         ]
       );
 

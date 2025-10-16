@@ -66,7 +66,7 @@ export const HeroSection = () => {
         <div className="grid place-items-center lg:max-w-screen-xl gap-8 mx-auto py-16 md:py-24">
           <div className="text-center space-y-8">
             <span className="relative mb-4 inline-block rounded-full border border-zinc-700 bg-zinc-900/20 px-2 py-2 text-xs text-zinc-50 md:mb-0 animate-border-marquee">
-              <span className="text-white/90 font-medium"> AI-Powered Music Generator </span>
+              <span className="text-foreground/90 font-medium"> AI-Powered Music Generator </span>
               <span className="absolute bottom-0 left-3 right-3 h-[1px] bg-gradient-to-r from-zinc-500/0 via-zinc-300 to-zinc-500/0"></span>
             </span>
 

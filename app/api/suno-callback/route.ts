@@ -667,15 +667,17 @@ async function processCallbackAsync(callbackData: any, callbackId: string) {
             // 从 credit_transactions 表中查找该 taskId 的积分消耗记录
             const creditTransactionResult = await query(
               `SELECT amount FROM credit_transactions 
-               WHERE reference_id = $1 AND reference_type = 'music_generation' 
+               WHERE reference_id = $1 
                AND transaction_type = 'spend' 
+               AND description LIKE '%Music generation%'
                ORDER BY created_at DESC LIMIT 1`,
               [taskId]
             );
 
             let creditCost = parseInt(process.env.BASIC_MODE_CREDITS || '7'); // 默认 Basic Mode 的积分消耗
             if (creditTransactionResult.rows.length > 0) {
-              creditCost = creditTransactionResult.rows[0].amount;
+              // 消费记录是负数，退款应该是正数
+              creditCost = Math.abs(creditTransactionResult.rows[0].amount);
             } else {
               console.warn(`No credit transaction found for taskId ${taskId}, using default: ${creditCost} credits`);
             }
@@ -685,7 +687,7 @@ async function processCallbackAsync(callbackData: any, callbackId: string) {
               creditCost,
               `Music generation failed - refund (${msg || 'API error'})`,
               taskId,
-              'music_generation_refund'
+              'refund'
             );
 
             if (refundSuccess) {

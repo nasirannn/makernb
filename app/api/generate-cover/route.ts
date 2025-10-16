@@ -56,7 +56,8 @@ export async function POST(request: NextRequest) {
     // 调用封面生成API
     const result = await musicApi.generateCover({ 
       taskId: musicTaskId,
-      callBackUrl: `${process.env.CallBackURL}/api/cover-callback`
+      // Add trailing slash to avoid 308 redirects breaking third-party callbacks
+      callBackUrl: `${process.env.CallBackURL}/api/cover-callback/`
     });
     console.log('KIE API cover generation response:', result);
     console.log('Processing result code:', result.code);

@@ -4,6 +4,7 @@ import { ExploreSection } from "@/components/layout/sections/explore";
 import { TutorialSection } from "@/components/layout/sections/tutorial";
 import { FooterSection } from "@/components/layout/sections/footer";
 import { FeaturesSection } from "@/components/layout/sections/features";
+import { PricingSection } from "@/components/layout/sections/pricing";
 import { FAQSection } from "@/components/layout/sections/faq";
 
 export const metadata = {
@@ -46,6 +47,7 @@ export default function Home() {
       <ExploreSection />
       <TutorialSection />
       <FeaturesSection />
+      {/* <PricingSection /> */}
       <FAQSection />
       <FooterSection />
     </>

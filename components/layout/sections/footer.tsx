@@ -84,12 +84,12 @@ export const FooterSection = () => {
             target="_blank" 
             rel="noopener noreferrer"
           >
-            <img 
+            <Image 
               src="https://api.producthunt.com/widgets/embed-image/v1/featured.svg?post_id=1026584&theme=dark&t=1760448580929" 
               alt="MakeRNB - Create authentic R&B tracks with AI, instantly | Product Hunt" 
-              style={{ width: '250px', height: '54px' }} 
               width={250} 
-              height={54} 
+              height={54}
+              className="w-[250px] h-[54px]"
             />
           </a>
         </div>
