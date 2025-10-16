@@ -80,9 +80,9 @@ export const consumeUserCredit = async (
       await queryFn(
         `INSERT INTO credit_transactions (
           user_id, transaction_type, amount, balance_after,
-          description, reference_id, reference_type
-        ) VALUES ($1, $2, $3, $4, $5, $6, $7)`,
-        [userId, 'spend', -creditAmount, newBalance, description || 'Music generation', referenceId, referenceType]
+          description, reference_id
+        ) VALUES ($1, $2, $3, $4, $5, $6)`,
+        [userId, 'spend', -creditAmount, newBalance, description || 'Music generation', referenceId]
       );
 
       return true;

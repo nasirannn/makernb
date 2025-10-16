@@ -290,7 +290,7 @@ export const getUserCreditsWithHistory = async (userId: string, transactionLimit
     },
     {
       text: `
-        SELECT transaction_type, amount, balance_after, description, reference_id, reference_type, created_at
+        SELECT transaction_type, amount, balance_after, description, reference_id, created_at
         FROM credit_transactions
         WHERE user_id = $1
         ORDER BY created_at DESC

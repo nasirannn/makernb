@@ -307,8 +307,7 @@ const addErrorInfoToGenerations = async (musicGenerations: MusicGenerationWithTr
       const errorInfoResult = await query(`
         SELECT reference_id, error_message, error_details, created_at
         FROM generation_errors
-        WHERE reference_type = 'music_generation'
-          AND reference_id = ANY($1)
+        WHERE reference_id = ANY($1)
         ORDER BY created_at DESC
       `, [errorGenerationIds]);
 

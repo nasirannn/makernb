@@ -251,8 +251,8 @@ export async function POST(request: NextRequest) {
 
           // 检查是否有积分交易记录
           const creditCheckResult = await query(
-            'SELECT id FROM credit_transactions WHERE reference_id = $1 AND reference_type = $2',
-            [result.taskId, 'music_generation']
+            'SELECT id FROM credit_transactions WHERE reference_id = $1 AND description LIKE $2',
+            [result.taskId, '%Music generation%']
           );
 
           if (creditCheckResult.rows.length > 0) {
@@ -262,15 +262,15 @@ export async function POST(request: NextRequest) {
             await query(`
               INSERT INTO credit_transactions (
                 user_id, transaction_type, amount,
-                balance_after, description, reference_id, reference_type
+                balance_after, description, reference_id
               )
               SELECT
                 user_id, 'credit', $2,
                 (SELECT credits FROM user_credits WHERE user_id = $1) + $2,
                 'Compensation for failed generation: ' || $3,
-                $3, 'compensation'
+                $3
               FROM credit_transactions
-              WHERE reference_id = $3 AND reference_type = 'music_generation'
+              WHERE reference_id = $3 AND description LIKE '%Music generation%'
               LIMIT 1
             `, [userId, creditCost, result.taskId]);
 

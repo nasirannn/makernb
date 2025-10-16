@@ -1,6 +1,4 @@
 import { query, withTransaction } from './db-query-builder';
-import { addUserCredits } from './user-db';
-
 // 检查用户今天是否已经获得登录积分
 export const hasReceivedTodayCredits = async (userId: string): Promise<boolean> => {
   try {
@@ -9,7 +7,7 @@ export const hasReceivedTodayCredits = async (userId: string): Promise<boolean> 
     const result = await query(
       `SELECT id FROM credit_transactions 
        WHERE user_id = $1 
-       AND reference_type = 'daily_login' 
+       AND description = 'Daily login bonus' 
        AND DATE(created_at AT TIME ZONE 'UTC') = $2`,
       [userId, today]
     );
@@ -122,13 +120,13 @@ export const cleanupExpiredDailyCredits = async (): Promise<number> => {
         `SELECT ct.*, uc.credits, DATE(ct.created_at AT TIME ZONE 'UTC') as grant_date
          FROM credit_transactions ct
          JOIN user_credits uc ON ct.user_id = uc.user_id
-         WHERE ct.reference_type = 'daily_login'
+         WHERE ct.description = 'Daily login bonus'
          AND DATE(ct.created_at AT TIME ZONE 'UTC') < $1
          AND ct.amount > 0
          AND NOT EXISTS (
            SELECT 1 FROM credit_transactions ct2
            WHERE ct2.reference_id = ct.id
-           AND ct2.reference_type = 'daily_login_expired'
+           AND ct2.description = 'Daily login credits expired'
          )`,
         [today]
       );
@@ -148,16 +146,15 @@ export const cleanupExpiredDailyCredits = async (): Promise<number> => {
           await queryFn(
             `INSERT INTO credit_transactions (
               user_id, transaction_type, amount, balance_after,
-              description, reference_id, reference_type
-            ) VALUES ($1, $2, $3, $4, $5, $6, $7)`,
+              description, reference_id
+            ) VALUES ($1, $2, $3, $4, $5, $6)`,
             [
               credit.user_id,
               'spend',
               -credit.amount,
               credit.credits - credit.amount,
               'Daily login credits expired',
-              credit.id,
-              'daily_login_expired'
+              credit.id
             ]
           );
 
@@ -183,7 +180,7 @@ export const getUserDailyLoginHistory = async (
     const result = await query(
       `SELECT id, amount as daily_credits, DATE(created_at) as last_login_date, created_at 
        FROM credit_transactions 
-       WHERE user_id = $1 AND reference_type = 'daily_login' 
+       WHERE user_id = $1 AND description = 'Daily login bonus' 
        ORDER BY created_at DESC LIMIT $2`,
       [userId, limit]
     );
@@ -201,7 +198,7 @@ export const getUserDailyCreditsStatus = async (userId: string): Promise<{ id: s
     const result = await query(
       `SELECT id, amount as daily_credits, DATE(created_at) as last_login_date, created_at 
        FROM credit_transactions 
-       WHERE user_id = $1 AND reference_type = 'daily_login' 
+       WHERE user_id = $1 AND description = 'Daily login bonus' 
        ORDER BY created_at DESC LIMIT 1`,
       [userId]
     );

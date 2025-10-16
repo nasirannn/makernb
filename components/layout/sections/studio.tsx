@@ -28,6 +28,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import AuthModal from "@/components/ui/auth-modal";
+import { LoadingDots } from "@/components/ui/loading-dots";
 import { CheckCircle, Heart, HeartCrack, Music, ListMusic, X, Sparkles } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 import { toast } from "sonner";
@@ -1371,7 +1372,14 @@ const StudioContent = () => {
                                 disabled={isGeneratingLyrics || !lyricsPrompt.trim()}
                                 className="w-full h-11 sm:h-10 text-base sm:text-sm"
                             >
-                                {isGeneratingLyrics ? 'Generating...' : 'Generate Lyrics'}
+                                {isGeneratingLyrics ? (
+                                    <div className="flex items-center gap-2">
+                                        <span>Generating</span>
+                                        <LoadingDots size="sm" color="white" />
+                                    </div>
+                                ) : (
+                                    'Generate Lyrics'
+                                )}
                             </Button>
                         </div>
                     </div>

@@ -315,7 +315,7 @@ export const MusicPlayer: React.FC<MusicPlayerProps> = ({
                 }`}
                 title={hideProgress ? "Hide lyrics" : "Show lyrics"}
               >
-                <MessageSquare className={`w-5 h-5 ${hideProgress ? 'fill-current' : ''}`} />
+                <MessageSquare className="w-5 h-5 fill-current" />
               </button>
             )}
 

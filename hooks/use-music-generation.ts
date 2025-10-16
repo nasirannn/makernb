@@ -327,7 +327,8 @@ export const useMusicGeneration = () => {
             finalAudioUrl: correspondingTrack.audioUrl,
             audioUrl: correspondingTrack.audioUrl,
             duration: correspondingTrack.duration,
-            isUsingStreamAudio: false
+            isUsingStreamAudio: false,
+            coverImage: correspondingTrack.coverImage || t.coverImage // 保留封面数据
           };
         }
         return t;
@@ -360,7 +361,8 @@ export const useMusicGeneration = () => {
             finalAudioUrl: correspondingTrack.audioUrl,
             audioUrl: correspondingTrack.audioUrl,
             duration: correspondingTrack.duration,
-            isUsingStreamAudio: false
+            isUsingStreamAudio: false,
+            coverImage: correspondingTrack.coverImage || t.coverImage // 保留封面数据
           };
         }
         return {...t, isLoading: false, isStreaming: false, isGenerating: false, isUsingStreamAudio: false};
