@@ -227,11 +227,7 @@ export const LyricsPanel: React.FC<LyricsPanelProps> = ({
                 {onFavoriteToggle && (
                   <button
                     onClick={onFavoriteToggle}
-                    className={`h-8 px-3 text-xs font-semibold border border-border/30 shadow-sm transition-all duration-300 rounded-lg ${
-                      isFavorited
-                        ? 'bg-red-500/20 text-red-500 hover:bg-red-500/30'
-                        : 'bg-muted/50 text-foreground hover:bg-muted/70 hover:text-foreground'
-                    }`}
+                    className="h-8 px-3 text-xs font-semibold bg-muted/50 border border-border/30 text-foreground shadow-sm hover:bg-muted/70 hover:text-foreground transition-all duration-300 rounded-lg"
                     title={isFavorited ? 'Remove from favourites' : 'Add to favourites'}
                   >
                     <div className="flex items-center justify-center gap-1">
@@ -379,7 +375,7 @@ export const LyricsPanel: React.FC<LyricsPanelProps> = ({
             {onFavoriteToggle && (
               <Button
                 onClick={onFavoriteToggle}
-                variant={isFavorited ? 'default' : 'outline'}
+                variant="outline"
                 className="flex-1"
               >
                 <div className="flex items-center justify-center gap-2">

@@ -9,5 +9,11 @@
       "schedule": "0 1 * * *"
     }
   ],
-  "trailingSlash": false
+  "redirects": [
+    {
+      "source": "/(.*)/",
+      "destination": "/$1",
+      "permanent": true
+    }
+  ]
 }

@@ -30,6 +30,7 @@ interface TrackData {
   originalPrompt?: string;
   vibe?: string;
   generationId?: string;
+  is_favorited?: boolean;
 }
 
 // ============================================================================

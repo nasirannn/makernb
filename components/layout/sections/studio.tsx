@@ -132,7 +132,8 @@ const StudioContent = () => {
         tags?: string,
         genre?: string,
         lyrics?: string,
-        sideLetter: string = 'A'
+        sideLetter: string = 'A',
+        isFavorited: boolean = false
     ) => ({
         id,
         generationId,
@@ -143,7 +144,8 @@ const StudioContent = () => {
         tags,
         genre,
         lyrics,
-        side_letter: sideLetter
+        side_letter: sideLetter,
+        is_favorited: isFavorited
     }), []);
 
     // 合并所有歌曲的所有 tracks 来创建完整的 track 列表
@@ -162,7 +164,8 @@ const StudioContent = () => {
                 track.tags,
                 track.genre,
                 track.lyrics,
-                'A'
+                'A',
+                (track as any).is_favorited || false
             ));
         });
         
@@ -180,7 +183,8 @@ const StudioContent = () => {
                         music.tags,
                         music.genre,
                         track.lyrics || music.lyrics,
-                        track.side_letter
+                        track.side_letter,
+                        track.is_favorited || false
                     ));
                 });
             }
@@ -221,7 +225,8 @@ const StudioContent = () => {
             track.tags,
             track.genre,
             track.lyrics,
-            track.side_letter
+            track.side_letter,
+            track.is_favorited || false
         );
         
         setCurrentPlayingTrack(playingTrack);
@@ -453,7 +458,8 @@ const StudioContent = () => {
             music.tags,
             music.genre,
             track.lyrics || music.lyrics,
-            track.side_letter
+            track.side_letter,
+            track.is_favorited || false
         ), [createTrackObject]);
 
     // 歌曲选择处理（点击歌曲行，播放歌曲）

@@ -84,8 +84,8 @@ export const HeroSection = () => {
               Generate professional-quality R&B music with AI. Choose from New Jack Swing, Hip-Hop Soul, Quiet Storm, and Neo-Soul genres with customizable styles and instruments.
             </p>
 
-            {/* User Avatars */}
-            <div className="flex items-center justify-center mb-6">
+            {/* User Avatars - Hidden for now */}
+            {/* <div className="flex items-center justify-center mb-6">
               <div className="flex -space-x-2">
                 <div className="w-10 h-10 rounded-full overflow-hidden">
                   <Image src="/avatars/avatar1.svg" alt="User 1" width={40} height={40} className="w-full h-full object-cover" />
@@ -107,6 +107,11 @@ export const HeroSection = () => {
                 <div className="w-2 h-2 bg-green-400 rounded-full mr-2"></div>
                 <span className="text-sm text-white/80 font-medium">Join Thousands of Creators</span>
               </div>
+            </div> */}
+
+            {/* Trust indicators */}
+            <div className="mb-6 text-sm text-white/80">
+              <p>✨ Free daily credits • 🎵 Professional quality • 🚀 No experience needed</p>
             </div>
 
             <div className="flex items-center justify-center">

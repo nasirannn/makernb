@@ -4,16 +4,15 @@ import { ExploreSection } from "@/components/layout/sections/explore";
 import { TutorialSection } from "@/components/layout/sections/tutorial";
 import { FooterSection } from "@/components/layout/sections/footer";
 import { FeaturesSection } from "@/components/layout/sections/features";
-// import { PricingSection } from "@/components/layout/sections/pricing";
+import { PricingSection } from "@/components/layout/sections/pricing";
 import { FAQSection } from "@/components/layout/sections/faq";
 import { CTASection } from "@/components/layout/sections/cta";
 
 export const metadata = {
-  metadataBase: new URL('https://makernb.com'),
   title: "MakeRNB | Free Online AI R&B Music Generator",
   description: "MakeRNB lets you instantly create and download professional R&B songs with AI. Explore Neo-Soul, Quiet Storm & more — free, online, and easy to use.",
   alternates: {
-    canonical: 'https://makernb.com',
+    canonical: 'https://makernb.com/',
   },
   openGraph: {
     type: "website",
@@ -48,7 +47,7 @@ export default function Home() {
       <ExploreSection />
       <TutorialSection />
       <FeaturesSection />
-      {/* <PricingSection /> */}
+      <PricingSection />
       <FAQSection />
       <CTASection />
       <FooterSection />

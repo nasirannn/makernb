@@ -46,7 +46,7 @@ const monthlyPlans: PricingPlan[] = [
     id: "monthly-premium",
     name: "Premium",
     credits: 2500,
-    price: 24.9,
+    price: 25.9,
     popular: true,
     icon: <Crown className="h-6 w-6" />,
     features: [

@@ -2,7 +2,15 @@ import createMDX from '@next/mdx';
 
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  trailingSlash: false,
+  async redirects() {
+    return [
+      {
+        source: '/(.*)/',
+        destination: '/$1',
+        permanent: true,
+      },
+    ];
+  },
   images: {
     remotePatterns: [
       {
