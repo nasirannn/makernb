@@ -12,8 +12,8 @@
   "trailingSlash": false,
   "redirects": [
     {
-      "source": "/:path+\/",
-      "destination": "/:path+",
+      "source": "/((?!api|_next|.*\\..*).*)\/",
+      "destination": "/$1",
       "permanent": true
     }
   ]
