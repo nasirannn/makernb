@@ -38,7 +38,7 @@ const routeList: RouteProps[] = [
     label: "Blog",
   },
   {
-    href: "/pricing",
+    href: "/#pricing",
     label: "Pricing",
   },
 ];
@@ -133,7 +133,7 @@ export const Navbar = ({ credits = null }: NavbarProps) => {
                            (href === "/explore" && pathname.startsWith("/explore")) ||
                            (href === "/studio" && pathname.startsWith("/studio")) ||
                            (href === "/library" && pathname.startsWith("/library")) ||
-                           (href === "/pricing" && pathname.startsWith("/pricing"));
+                           (href === "/#pricing" && (pathname === "/" || pathname === "/#pricing"));
             return (
               <li key={href}>
                 <Link
@@ -251,7 +251,7 @@ export const Navbar = ({ credits = null }: NavbarProps) => {
                                  (href === "/explore" && pathname.startsWith("/explore")) ||
                                  (href === "/studio" && pathname.startsWith("/studio")) ||
                                  (href === "/library" && pathname.startsWith("/library")) ||
-                                 (href === "/pricing" && pathname.startsWith("/pricing"));
+                                 (href === "/#pricing" && (pathname === "/" || pathname === "/#pricing"));
                   return (
                     <Button
                       key={href}
