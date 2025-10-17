@@ -1,27 +1,79 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
+import { useEffect, useState, Suspense } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import { Button } from "@/components/ui/button";
-import { CheckCircle, ArrowRight, Music } from "lucide-react";
+import { CheckCircle, Music, AlertCircle } from "lucide-react";
 import { useCredits } from "@/contexts/CreditsContext";
 
-export default function PaymentSuccess() {
+function PaymentSuccessContent() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const { refreshCredits } = useCredits();
   const [isLoading, setIsLoading] = useState(true);
+  const [isValidPayment, setIsValidPayment] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    // 刷新积分余额
-    refreshCredits();
+    // 检查URL参数中是否有支付验证信息
+    const sessionId = searchParams.get('session_id');
+    const paymentId = searchParams.get('payment_id');
     
-    // 延迟一下再显示内容，让用户感觉处理完成
-    const timer = setTimeout(() => {
+    if (!sessionId && !paymentId) {
+      // 没有支付验证信息，重定向到首页
+      setError('Invalid payment session');
       setIsLoading(false);
-    }, 1500);
+      return;
+    }
 
-    return () => clearTimeout(timer);
-  }, [refreshCredits]);
+    // 验证支付状态
+    const verifyPayment = async () => {
+      try {
+        // 这里可以添加API调用来验证支付状态
+        // const response = await fetch(`/api/verify-payment?session_id=${sessionId}`);
+        // const data = await response.json();
+        
+        // 暂时模拟验证成功（实际应该调用支付验证API）
+        setIsValidPayment(true);
+        refreshCredits();
+        
+        // 延迟显示成功页面
+        setTimeout(() => {
+          setIsLoading(false);
+        }, 1500);
+      } catch (err) {
+        setError('Payment verification failed');
+        setIsLoading(false);
+      }
+    };
+
+    verifyPayment();
+  }, [searchParams, refreshCredits]);
+
+  // 如果有错误，显示错误页面并重定向
+  if (error) {
+    return (
+      <div className="min-h-screen flex items-center justify-center p-4">
+        <div className="w-full max-w-md text-center space-y-6">
+          <div className="flex justify-center">
+            <AlertCircle className="h-16 w-16 text-red-500" />
+          </div>
+          <div className="space-y-4">
+            <h1 className="text-2xl font-bold text-foreground">Invalid Payment Session</h1>
+            <p className="text-muted-foreground">
+              This page can only be accessed after a successful payment.
+            </p>
+          </div>
+          <Button 
+            className="w-full" 
+            onClick={() => router.push('/')}
+          >
+            Back to Home
+          </Button>
+        </div>
+      </div>
+    );
+  }
 
   if (isLoading) {
     return (
@@ -77,5 +129,20 @@ export default function PaymentSuccess() {
         </div>
       </div>
     </div>
+  );
+}
+
+export default function PaymentSuccess() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
+          <p className="text-muted-foreground">Loading...</p>
+        </div>
+      </div>
+    }>
+      <PaymentSuccessContent />
+    </Suspense>
   );
 }
