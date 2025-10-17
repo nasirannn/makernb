@@ -12,7 +12,7 @@ import { FooterSection } from '@/components/layout/sections/footer';
 interface Track {
   id: string;
   audio_url: string;
-  duration: number;
+  duration: number | string;
   side_letter: string;
   cover_r2_url?: string;
 }
@@ -168,9 +168,10 @@ export default function ExplorePage() {
     return () => window.removeEventListener('scroll', handleScroll);
   }, [loadingMore, hasMore, loadMore]);
 
-  const formatDuration = (seconds: number) => {
-    const mins = Math.floor(seconds / 60);
-    const secs = Math.floor(seconds % 60);
+  const formatDuration = (seconds: number | string) => {
+    const numSeconds = typeof seconds === 'string' ? parseFloat(seconds) : seconds;
+    const mins = Math.floor(numSeconds / 60);
+    const secs = Math.floor(numSeconds % 60);
     return `${mins}:${secs.toString().padStart(2, '0')}`;
   };
 
@@ -487,7 +488,7 @@ export default function ExplorePage() {
                   id: music.primaryTrack.id,
                   title: music.title,
                   audioUrl: music.primaryTrack.audio_url,
-                  duration: music.totalDuration,
+                  duration: typeof music.totalDuration === 'string' ? parseFloat(music.totalDuration) : music.totalDuration,
                   coverImage: music.primaryTrack.cover_r2_url,
                   artist: music.genre,
                   allTracks: music.allTracks
@@ -518,7 +519,7 @@ export default function ExplorePage() {
                 id: music.primaryTrack.id,
                 title: music.title,
                 audioUrl: music.primaryTrack.audio_url,
-                duration: music.totalDuration,
+                duration: typeof music.totalDuration === 'string' ? parseFloat(music.totalDuration) : music.totalDuration,
                 coverImage: music.primaryTrack.cover_r2_url,
                 artist: music.genre,
                 allTracks: music.allTracks
