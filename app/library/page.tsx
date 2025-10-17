@@ -5,10 +5,10 @@ export const metadata = {
   title: "MakeRNB - Library - Classic & Contemporary R&B",
   description: "MakeRNB lets you instantly create and download professional R&B songs with AI. Explore Neo-Soul, Quiet Storm & more — free, online, and easy to use.",
   alternates: {
-    canonical: 'https://makernb.com/library/',
+    canonical: 'https://makernb.com/library',
   },
   openGraph: {
-    url: 'https://makernb.com/library/',
+    url: 'https://makernb.com/library',
   },
 };
 

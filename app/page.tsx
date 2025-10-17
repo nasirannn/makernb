@@ -4,7 +4,7 @@ import { ExploreSection } from "@/components/layout/sections/explore";
 import { TutorialSection } from "@/components/layout/sections/tutorial";
 import { FooterSection } from "@/components/layout/sections/footer";
 import { FeaturesSection } from "@/components/layout/sections/features";
-import { PricingSection } from "@/components/layout/sections/pricing";
+// import { PricingSection } from "@/components/layout/sections/pricing";
 import { FAQSection } from "@/components/layout/sections/faq";
 
 export const metadata = {
@@ -12,11 +12,11 @@ export const metadata = {
   title: "MakeRNB | Free Online AI R&B Music Generator",
   description: "MakeRNB lets you instantly create and download professional R&B songs with AI. Explore Neo-Soul, Quiet Storm & more — free, online, and easy to use.",
   alternates: {
-    canonical: 'https://makernb.com/',
+    canonical: 'https://makernb.com',
   },
   openGraph: {
     type: "website",
-    url: "https://makernb.com/",
+    url: "https://makernb.com",
     title: "MakeRNB | Free Online AI R&B Music Generator",
     description: "MakeRNB lets you instantly create and download professional R&B songs with AI. Explore Neo-Soul, Quiet Storm & more — free, online, and easy to use.",
     images: [
@@ -30,7 +30,7 @@ export const metadata = {
   },
   twitter: {
     card: "summary_large_image",
-    site: "https://makernb.com/",
+    site: "https://makernb.com",
     title: "MakeRNB | Free Online AI R&B Music Generator",
     description: "MakeRNB lets you instantly create and download professional R&B songs with AI. Explore Neo-Soul, Quiet Storm & more — free, online, and easy to use.",
     images: [
@@ -47,7 +47,7 @@ export default function Home() {
       <ExploreSection />
       <TutorialSection />
       <FeaturesSection />
-      <PricingSection />
+      {/* <PricingSection /> */}
       <FAQSection />
       <FooterSection />
     </>

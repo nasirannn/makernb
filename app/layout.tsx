@@ -23,7 +23,7 @@ export const metadata: Metadata = {
   title: "MakeRNB - AI-Powered Music Creation for R&B",
   description: "MakeRNB lets you instantly create and download professional R&B songs with AI. Explore Neo-Soul, Quiet Storm & more — free, online, and easy to use.",
   alternates: {
-    canonical: 'https://makernb.com/',
+    canonical: 'https://makernb.com',
   },
   other: {
     'google-adsense-account': 'ca-pub-4929701767055366',

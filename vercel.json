@@ -9,5 +9,5 @@
       "schedule": "0 1 * * *"
     }
   ],
-  "trailingSlash": true
+  "trailingSlash": false
 }

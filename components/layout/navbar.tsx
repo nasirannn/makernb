@@ -37,10 +37,10 @@ const routeList: RouteProps[] = [
     href: "/blog",
     label: "Blog",
   },
-  {
-    href: "/#pricing",
-    label: "Pricing",
-  },
+  // {
+  //   href: "/#pricing",
+  //   label: "Pricing",
+  // },
 ];
 
 interface NavbarProps {
