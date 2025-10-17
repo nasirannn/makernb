@@ -132,8 +132,7 @@ export const Navbar = ({ credits = null }: NavbarProps) => {
                            (href === "/blog" && pathname.startsWith("/blog")) ||
                            (href === "/explore" && pathname.startsWith("/explore")) ||
                            (href === "/studio" && pathname.startsWith("/studio")) ||
-                           (href === "/library" && pathname.startsWith("/library")) ||
-                           (href === "/#pricing" && pathname === "/#pricing");
+                           (href === "/library" && pathname.startsWith("/library"));
             return (
               <li key={href}>
                 <Link
@@ -250,8 +249,7 @@ export const Navbar = ({ credits = null }: NavbarProps) => {
                                  (href === "/blog" && pathname.startsWith("/blog")) ||
                                  (href === "/explore" && pathname.startsWith("/explore")) ||
                                  (href === "/studio" && pathname.startsWith("/studio")) ||
-                                 (href === "/library" && pathname.startsWith("/library")) ||
-                                 (href === "/#pricing" && pathname === "/#pricing");
+                                 (href === "/library" && pathname.startsWith("/library"));
                   return (
                     <Button
                       key={href}
