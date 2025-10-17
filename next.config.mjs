@@ -49,6 +49,10 @@ const nextConfig = {
         protocol: "https",
         hostname: "pub-35db91c7ad4b4e6582aa97b854a8eacd.r2.dev",
       },
+      {
+        protocol: "https",
+        hostname: "api.producthunt.com",
+      },
     ],
     // 添加图片优化配置
     dangerouslyAllowSVG: true,
