@@ -125,7 +125,7 @@ export const cleanupExpiredDailyCredits = async (): Promise<number> => {
          AND ct.amount > 0
          AND NOT EXISTS (
            SELECT 1 FROM credit_transactions ct2
-           WHERE ct2.reference_id = ct.id
+           WHERE ct2.reference_id = ct.id::text
            AND ct2.description = 'Daily login credits expired'
          )`,
         [today]

@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { addUserCredits } from '@/lib/user-db';
+import { createOrUpdateUserSubscription } from '@/lib/subscription-credits';
 
 export const dynamic = 'force-dynamic';
 
@@ -47,10 +48,27 @@ export async function POST(request: NextRequest) {
         if (success) {
           console.log(`Successfully added ${creditsAmount} credits to user ${userId}`);
           
-          // 这里可以添加其他逻辑，比如：
-          // - 发送确认邮件
-          // - 记录购买历史
-          // - 更新用户统计
+          // 检查是否是订阅支付（通过积分数量判断）
+          const isSubscription = creditsAmount >= 1000; // 订阅通常积分更多
+          
+          if (isSubscription) {
+            try {
+              // 创建订阅记录
+              const now = new Date();
+              const subscriptionRecord = await createOrUpdateUserSubscription(userId, {
+                subscriptionId: request_id,
+                productId: metadata.productId || 'unknown',
+                status: 'active',
+                currentPeriodStart: now.toISOString(),
+                currentPeriodEnd: new Date(now.getTime() + 365 * 24 * 60 * 60 * 1000).toISOString() // 默认1年
+              });
+              
+              console.log(`Created subscription record for user ${userId}:`, subscriptionRecord.id);
+            } catch (subError) {
+              console.error('Failed to create subscription record:', subError);
+              // 不阻止积分添加，只是记录错误
+            }
+          }
           
           return NextResponse.json({ 
             received: true, 

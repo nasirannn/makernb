@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import crypto from 'crypto';
 import { addUserCredits } from '@/lib/user-db';
+import { createOrUpdateUserSubscription, cancelUserSubscription } from '@/lib/subscription-credits';
 
 export const dynamic = 'force-dynamic';
 
@@ -94,11 +95,40 @@ export async function POST(request: NextRequest) {
           return NextResponse.json({ received: true, message: 'Already processed' });
         }
 
+        // 创建或更新订阅记录
+        // 处理日期值，确保它们是有效的
+        const now = new Date();
+        const currentPeriodStart = subscription.current_period_start 
+          ? new Date(subscription.current_period_start).toISOString()
+          : now.toISOString();
+        
+        const currentPeriodEnd = subscription.current_period_end 
+          ? new Date(subscription.current_period_end).toISOString()
+          : new Date(now.getTime() + 365 * 24 * 60 * 60 * 1000).toISOString(); // 默认1年后
+        
+        console.log('Subscription dates:', {
+          currentPeriodStart,
+          currentPeriodEnd,
+          originalStart: subscription.current_period_start,
+          originalEnd: subscription.current_period_end
+        });
+
+        const subscriptionRecord = await createOrUpdateUserSubscription(userId, {
+          subscriptionId: subscription.id,
+          productId: product.id,
+          status: 'active',
+          currentPeriodStart,
+          currentPeriodEnd
+        });
+
+        console.log(`Created/updated subscription record for user ${userId}:`, subscriptionRecord.id);
+
+        // 发放首次积分
         const billingPeriod = product.billing_period === 'every-month' ? 'monthly' : 'yearly';
         const success = await addUserCredits(
           userId,
           creditsAmount,
-          undefined, // 使用自动生成的描述
+          `Initial subscription credits - ${billingPeriod}`,
           subscription.id,
           'subscription',
           { billingPeriod, creditsAmount }
@@ -124,10 +154,20 @@ export async function POST(request: NextRequest) {
       const meta = (data.metadata || {}) as { userId?: string };
       
       console.log(`Subscription canceled for user ${meta.userId}:`, data);
-      // 这里可以添加取消订阅后的逻辑，比如：
-      // - 标记用户订阅状态
-      // - 发送取消确认邮件
-      // - 记录取消原因等
+      
+      if (meta.userId && data.id) {
+        try {
+          // 取消用户订阅
+          const success = await cancelUserSubscription(meta.userId, data.id);
+          if (success) {
+            console.log(`Successfully canceled subscription ${data.id} for user ${meta.userId}`);
+          } else {
+            console.log(`No subscription found to cancel for user ${meta.userId}`);
+          }
+        } catch (error) {
+          console.error('Error canceling subscription:', error);
+        }
+      }
       
       return NextResponse.json({ received: true, message: 'Subscription canceled' });
     }

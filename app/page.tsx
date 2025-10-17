@@ -47,7 +47,7 @@ export default function Home() {
       <ExploreSection />
       <TutorialSection />
       <FeaturesSection />
-      {/* <PricingSection /> */}
+      <PricingSection />
       <FAQSection />
       <FooterSection />
     </>

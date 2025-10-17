@@ -3,6 +3,10 @@
     {
       "path": "/api/cron/cleanup-expired-credits",
       "schedule": "0 0 * * *"
+    },
+    {
+      "path": "/api/cron/subscription-credits",
+      "schedule": "0 1 * * *"
     }
   ],
   "trailingSlash": true
