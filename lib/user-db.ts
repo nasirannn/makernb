@@ -139,6 +139,9 @@ const generateTransactionDescription = (
     case 'bonus':
       return 'Daily login bonus';
     
+    case 'expired':
+      return 'Daily login credits expired';
+    
     case 'music_generation':
       return context?.modelVersion 
         ? `Music generation (${context.modelVersion})`

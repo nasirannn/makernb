@@ -150,7 +150,7 @@ export const cleanupExpiredDailyCredits = async (): Promise<number> => {
             ) VALUES ($1, $2, $3, $4, $5, $6)`,
             [
               credit.user_id,
-              'spend',
+              'expired',
               -credit.amount,
               credit.credits - credit.amount,
               'Daily login credits expired',
