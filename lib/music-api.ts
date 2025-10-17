@@ -112,8 +112,8 @@ class MusicApiService {
 
     // 根据文档设置正确的API参数
     const apiParams: any = {
-      // Add trailing slash to avoid 308 redirects breaking third-party callbacks
-      callBackUrl: `${process.env.CallBackURL}/api/suno-callback/`,
+      // Remove trailing slash to match trailingSlash: false configuration
+      callBackUrl: `${process.env.CallBackURL}/api/suno-callback`,
     };
 
     // negativeTags - 避免不符合R&B风格的元素（通用设置）
@@ -257,8 +257,8 @@ class MusicApiService {
 
     const apiParams = {
       taskId: request.taskId,
-      // Add trailing slash to avoid 308 redirects breaking third-party callbacks
-      callBackUrl: request.callBackUrl || `${process.env.CallBackURL}/api/cover-callback/`,
+      // Remove trailing slash to match trailingSlash: false configuration
+      callBackUrl: request.callBackUrl || `${process.env.CallBackURL}/api/cover-callback`,
     };
     
     const response = await this.fetchWithRetry(`${this.baseUrl}/api/v1/suno/cover/generate`, {

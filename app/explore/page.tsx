@@ -63,7 +63,13 @@ export default function ExplorePage() {
     const loadData = async () => {
       try {
         setLoading(true);
-        const response = await fetch(`/api/explore?limit=20&offset=0`);
+        const response = await fetch(`/api/explore?limit=20&offset=0`, {
+          method: 'GET',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          cache: 'no-store'
+        });
         if (response.ok) {
           const result = await response.json();
           if (result.success && result.data) {
@@ -112,7 +118,13 @@ export default function ExplorePage() {
         setLoading(true);
       }
       
-      const response = await fetch(`/api/explore?limit=20&offset=${offset}`);
+      const response = await fetch(`/api/explore?limit=20&offset=${offset}`, {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        cache: 'no-store'
+      });
       const data = await response.json();
       
       if (data.success) {

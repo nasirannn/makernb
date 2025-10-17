@@ -54,8 +54,8 @@ export async function POST(request: NextRequest) {
       },
       body: JSON.stringify({
         prompt,
-        // Note: trailingSlash is enabled in next.config/vercel.json; add trailing slash to avoid 308 redirects from third-party callbacks
-        callBackUrl: `${process.env.CallBackURL}/api/lyrics-callback/`,
+        // Remove trailing slash to match trailingSlash: false configuration
+        callBackUrl: `${process.env.CallBackURL}/api/lyrics-callback`,
       }),
     });
 

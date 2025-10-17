@@ -52,13 +52,28 @@ export const Navbar = ({ credits = null }: NavbarProps) => {
   const [isAuthModalOpen, setIsAuthModalOpen] = React.useState(false);
   const [isUserMenuOpen, setIsUserMenuOpen] = React.useState(false);
   const [isScrolled, setIsScrolled] = React.useState(false);
+  const [isVisible, setIsVisible] = React.useState(true);
+  const [lastScrollY, setLastScrollY] = React.useState(0);
   const pathname = usePathname();
   const { user, signOut } = useAuth();
 
   React.useEffect(() => {
     const handleScroll = () => {
       const scrollTop = window.scrollY;
+      
+      // 设置背景透明度
       setIsScrolled(scrollTop > 50);
+      
+      // 智能显示/隐藏逻辑
+      if (scrollTop > lastScrollY && scrollTop > 100) {
+        // 向下滚动且超过100px时隐藏
+        setIsVisible(false);
+      } else {
+        // 向上滚动时显示
+        setIsVisible(true);
+      }
+      
+      setLastScrollY(scrollTop);
       
       // 滚动时关闭用户菜单
       if (isUserMenuOpen) {
@@ -68,7 +83,7 @@ export const Navbar = ({ credits = null }: NavbarProps) => {
 
     window.addEventListener('scroll', handleScroll);
     return () => window.removeEventListener('scroll', handleScroll);
-  }, [isUserMenuOpen]);
+  }, [lastScrollY, isUserMenuOpen]);
 
   // 移动端菜单打开时锁定滚动
   React.useEffect(() => {
@@ -108,7 +123,9 @@ export const Navbar = ({ credits = null }: NavbarProps) => {
   }, [isUserMenuOpen]);
 
   return (
-    <header className={`shadow-inner w-full z-50 flex items-center px-6 lg:px-20 py-3 fixed top-0 left-0 transition-all duration-300 ${
+    <header className={`shadow-inner w-full z-50 flex items-center px-6 lg:px-20 py-3 fixed left-0 transition-all duration-300 ${
+      isVisible ? 'top-0' : '-top-20'
+    } ${
       isScrolled 
         ? 'bg-background/30 backdrop-blur-md border-b border-border/20' 
         : 'bg-transparent'

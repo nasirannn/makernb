@@ -6,6 +6,7 @@ import { FooterSection } from "@/components/layout/sections/footer";
 import { FeaturesSection } from "@/components/layout/sections/features";
 // import { PricingSection } from "@/components/layout/sections/pricing";
 import { FAQSection } from "@/components/layout/sections/faq";
+import { CTASection } from "@/components/layout/sections/cta";
 
 export const metadata = {
   metadataBase: new URL('https://makernb.com'),
@@ -49,6 +50,7 @@ export default function Home() {
       <FeaturesSection />
       {/* <PricingSection /> */}
       <FAQSection />
+      <CTASection />
       <FooterSection />
     </>
   );

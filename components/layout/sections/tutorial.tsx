@@ -1,27 +1,9 @@
 "use client";
 
 import Image from "next/image";
-import Link from "next/link";
 import React from "react";
-import { useAuth } from "@/contexts/AuthContext";
-import AuthModal from "@/components/ui/auth-modal";
-import { useRouter } from "next/navigation";
 
 export const TutorialSection = () => {
-  const { user } = useAuth();
-  const router = useRouter();
-  const [isAuthModalOpen, setIsAuthModalOpen] = React.useState(false);
-
-  const handleStudioClick = () => {
-    if (user) {
-      // User is logged in, navigate to studio
-      router.push('/studio');
-    } else {
-      // User is not logged in, show auth modal
-      setIsAuthModalOpen(true);
-    }
-  };
-
   const steps = [
     {
       icon: "/icons/01-Choose Style & Parameters.svg",
@@ -86,24 +68,9 @@ export const TutorialSection = () => {
             ))}
           </div>
 
-          {/* Highlighted Text */}
-          <div className="text-center mt-12">
-            <div className="relative inline-block">
-              <div onClick={handleStudioClick} className="block cursor-pointer">
-                <h3 className="text-sm md:text-lg lg:text-xl font-bold relative overflow-hidden leading-tight animate-text-highlight cursor-pointer hover:scale-105 transition-transform duration-300">
-                  Start Creating The Contemporary and The Old School R&B Songs
-                </h3>
-              </div>
-            </div>
-          </div>
+          {/* Steps completed - no additional CTA needed */}
         </div>
       </div>
-
-      {/* Auth Modal */}
-      <AuthModal
-        isOpen={isAuthModalOpen}
-        onClose={() => setIsAuthModalOpen(false)}
-      />
     </section>
   );
 };
