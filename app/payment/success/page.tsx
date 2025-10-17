@@ -16,10 +16,18 @@ function PaymentSuccessContent() {
 
   useEffect(() => {
     // 检查URL参数中是否有支付验证信息
-    const sessionId = searchParams.get('session_id');
-    const paymentId = searchParams.get('payment_id');
+    const requestId = searchParams.get('request_id');
+    const checkoutId = searchParams.get('checkout_id');
+    const orderId = searchParams.get('order_id');
+    const customerId = searchParams.get('customer_id');
+    const subscriptionId = searchParams.get('subscription_id');
+    const productId = searchParams.get('product_id');
+    const signature = searchParams.get('signature');
     
-    if (!sessionId && !paymentId) {
+    // 检查是否有任何支付相关的参数
+    const hasPaymentParams = requestId || checkoutId || orderId || customerId || subscriptionId || productId || signature;
+    
+    if (!hasPaymentParams) {
       // 没有支付验证信息，重定向到首页
       setError('Invalid payment session');
       setIsLoading(false);
@@ -30,7 +38,7 @@ function PaymentSuccessContent() {
     const verifyPayment = async () => {
       try {
         // 这里可以添加API调用来验证支付状态
-        // const response = await fetch(`/api/verify-payment?session_id=${sessionId}`);
+        // const response = await fetch(`/api/verify-payment?request_id=${requestId}&checkout_id=${checkoutId}`);
         // const data = await response.json();
         
         // 暂时模拟验证成功（实际应该调用支付验证API）
