@@ -5,17 +5,21 @@ import type { NextRequest } from 'next/server'
 export async function middleware(req: NextRequest) {
   const { pathname } = req.nextUrl
 
+  // Skip middleware for static files, API routes, and Next.js internals
+  if (
+    pathname.match(/\.(svg|png|jpg|jpeg|gif|webp|ico|css|js)$/) ||
+    pathname.startsWith('/api/') ||
+    pathname.startsWith('/_next/')
+  ) {
+    return NextResponse.next()
+  }
+
   // Normalize: strip trailing slash for all non-root paths
   if (pathname !== '/' && pathname.endsWith('/')) {
     const url = req.nextUrl.clone()
     // remove all trailing slashes to be safe
     url.pathname = pathname.replace(/\/+$/, '')
     return NextResponse.redirect(url, 308)
-  }
-
-  // Skip middleware for static files
-  if (pathname.match(/\.(svg|png|jpg|jpeg|gif|webp|ico|css|js)$/)) {
-    return NextResponse.next()
   }
 
   let response = NextResponse.next({

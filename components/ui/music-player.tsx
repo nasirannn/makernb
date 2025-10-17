@@ -16,7 +16,7 @@ interface Track {
   allTracks?: Array<{
     id: string;
     audio_url: string;
-    duration: number;
+    duration: number | string;
     side_letter: string;
     cover_r2_url?: string;
   }>;
