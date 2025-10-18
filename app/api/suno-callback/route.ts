@@ -3,7 +3,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { updateMusicGenerationByTaskId } from '@/lib/music-db';
 import { createGenerationError } from '@/lib/generation-errors-db';
 import { addUserCredits } from '@/lib/user-db';
-import { downloadFromUrl, uploadAudioFile } from '@/lib/r2-storage';
+import { downloadFromUrl, uploadAudioFile, uploadCoverImage } from '@/lib/r2-storage';
 import { query } from '@/lib/db-query-builder';
 
 // Cache for processed tasks to handle idempotency
@@ -228,12 +228,17 @@ async function processCallbackAsync(callbackData: any, callbackId: string) {
           id: firstTrack.id,
           title: firstTrack.title,
           hasPrompt: !!firstTrack.prompt,
-          hasTags: !!firstTrack.tags
+          hasTags: !!firstTrack.tags,
+          hasImageUrl: !!firstTrack.image_url,
+          imageUrl: firstTrack.image_url ? firstTrack.image_url.substring(0, 100) + '...' : null
         });
 
         // 4.1.1 更新音乐生成记录的元数据
         // style 仅使用接口返回的 tags；如果没有 tags 则不更新 style 字段
         const styleFromTags = (firstTrack.tags && firstTrack.tags.trim() !== '') ? firstTrack.tags : undefined;
+        
+        // 保存音乐接口的图片URL作为兜底
+        const musicImageUrl = firstTrack.image_url || null;
 
         // 提取标题 - 优先使用track.title，如果没有则尝试从歌词内容中提取
         let extractedTitle = firstTrack.title;
@@ -372,58 +377,140 @@ async function processCallbackAsync(callbackData: any, callbackId: string) {
           console.error('Failed to create music_tracks records in text callback:', tracksError);
         }
 
-        // 4.1.4 在music_tracks创建完成后，触发封面生成
-        // 使用标记避免重复调用封面生成
+        // 4.1.4 混合方案：调用单独的图片生成接口，前端直接显示临时地址，后端异步下载到R2
         const coverTaskKey = `${taskId}_cover_started`;
         if (!processedTasks.has(coverTaskKey)) {
           console.log(`[CALLBACK-${callbackId}] Starting cover generation for taskId: ${taskId}`);
           processedTasks.add(coverTaskKey);
-
-          // 异步开始封面生成，不阻塞回调处理
-          setImmediate(async () => {
-            try {
-              console.log(`[CALLBACK-${callbackId}] Initiating cover generation for taskId: ${taskId}`);
-
-              // 从音乐生成记录中获取用户ID
-              let userId = null;
-              try {
-                const musicGenQuery = await query(
-                  'SELECT user_id FROM music_generations WHERE task_id = $1',
-                  [taskId]
-                );
-
-                if (musicGenQuery.rows.length > 0) {
-                  userId = musicGenQuery.rows[0].user_id;
-                  console.log(`[CALLBACK-${callbackId}] Found userId for cover generation: ${userId}`);
-                } else {
-                  console.error(`[CALLBACK-${callbackId}] No music generation record found for task_id: ${taskId}`);
-                }
-              } catch (dbError) {
-                console.error(`[CALLBACK-${callbackId}] Failed to query user_id for task_id ${taskId}:`, dbError);
-              }
-
-              const coverResponse = await fetch(`${process.env.CallBackURL}/api/generate-cover`, {
+          
+          try {
+            // 先获取 music_generation_id 和 user_id
+            const musicGenQuery = await query(
+              'SELECT id, user_id FROM music_generations WHERE task_id = $1',
+              [taskId]
+            );
+            
+            if (musicGenQuery.rows.length > 0) {
+              const musicGenerationId = musicGenQuery.rows[0].id;
+              const userId = musicGenQuery.rows[0].user_id;
+              
+              // 调用单独的图片生成接口
+              const baseUrl = process.env.CallBackURL || 'http://localhost:3000';
+              const coverResponse = await fetch(`${baseUrl}/api/generate-cover`, {
                 method: 'POST',
                 headers: {
-                  'Content-Type': 'application/json'
+                  'Content-Type': 'application/json',
                 },
                 body: JSON.stringify({
                   musicTaskId: taskId,
-                  userId: userId // 直接传递用户ID
-                })
+                  userId: userId, // 传递用户ID
+                  title: firstTrack.title || 'Generated Music',
+                  genre: firstTrack.genre || 'R&B',
+                  prompt: firstTrack.prompt || 'Music cover image'
+                }),
               });
 
               if (coverResponse.ok) {
-                console.log(`[CALLBACK-${callbackId}] Cover generation started successfully for taskId: ${taskId}`);
+                const coverData = await coverResponse.json();
+                console.log(`[CALLBACK-${callbackId}] Cover generation started:`, coverData);
+                
+                // 不立即创建 cover_images 记录，等待 cover-callback 完成
+                // cover-callback 会处理图片下载和数据库记录创建
+                console.log(`[CALLBACK-${callbackId}] Cover generation initiated, waiting for cover-callback to complete`);
+                
+                // 注释掉异步备份，让 cover-callback 处理R2存储
+                // setImmediate(async () => {
+                //   try {
+                //     console.log(`[CALLBACK-${callbackId}] Starting async backup download to R2`);
+                //     
+                //     const imageBuffer = await downloadFromUrl(coverData.imageUrl);
+                //     const filename = `cover_backup_${Date.now()}.jpeg`;
+                //     
+                //     const r2ImageUrl = await uploadCoverImage(
+                //       imageBuffer, 
+                //       taskId, 
+                //       filename, 
+                //       userId || 'anonymous'
+                //     );
+                //     
+                //     console.log(`[CALLBACK-${callbackId}] Successfully uploaded backup image to R2: ${r2ImageUrl}`);
+                //     
+                //     // 更新 cover_images 记录，添加R2备份URL
+                //     await query(
+                //       `UPDATE cover_images SET r2_url = $1 WHERE music_track_id IN (
+                //         SELECT id FROM music_tracks WHERE music_generation_id = $2
+                //       ) AND cover_generation_id = $3`,
+                //       [r2ImageUrl, musicGenerationId, coverData.taskId]
+                //     );
+                //     
+                //     console.log(`[CALLBACK-${callbackId}] Successfully updated cover_images with R2 backup URLs`);
+                //   } catch (backupError) {
+                //     console.error(`[CALLBACK-${callbackId}] Failed to create R2 backup:`, backupError);
+                //     // 备份失败不影响主流程，前端仍可使用临时URL
+                //   }
+                // });
               } else {
-                const errorText = await coverResponse.text();
-                console.error(`[CALLBACK-${callbackId}] Failed to start cover generation for music task ${taskId}:`, errorText);
+                console.error(`[CALLBACK-${callbackId}] Failed to start cover generation:`, await coverResponse.text());
               }
-            } catch (coverError) {
-              console.error(`[CALLBACK-${callbackId}] Error starting cover generation for music task ${taskId}:`, coverError);
+            } else {
+              console.error(`[CALLBACK-${callbackId}] No music generation record found for task_id: ${taskId}`);
             }
-          });
+          } catch (error) {
+            console.error(`[CALLBACK-${callbackId}] Error starting cover generation:`, error);
+          }
         }
+
+        // 4.1.4 历史代码：触发专门的封面生成（已注释）
+        // const coverTaskKey = `${taskId}_cover_started`;
+        // if (!processedTasks.has(coverTaskKey)) {
+        //   console.log(`[CALLBACK-${callbackId}] Starting cover generation for taskId: ${taskId}`);
+        //   processedTasks.add(coverTaskKey);
+
+        //   // 异步开始封面生成，不阻塞回调处理
+        //   setImmediate(async () => {
+        //     try {
+        //       console.log(`[CALLBACK-${callbackId}] Initiating cover generation for taskId: ${taskId}`);
+
+        //       // 从音乐生成记录中获取用户ID
+        //       let userId = null;
+        //       try {
+        //         const musicGenQuery = await query(
+        //           'SELECT user_id FROM music_generations WHERE task_id = $1',
+        //           [taskId]
+        //         );
+
+        //         if (musicGenQuery.rows.length > 0) {
+        //           userId = musicGenQuery.rows[0].user_id;
+        //           console.log(`[CALLBACK-${callbackId}] Found userId for cover generation: ${userId}`);
+        //         } else {
+        //           console.error(`[CALLBACK-${callbackId}] No music generation record found for task_id: ${taskId}`);
+        //         }
+        //       } catch (dbError) {
+        //         console.error(`[CALLBACK-${callbackId}] Failed to query user_id for task_id ${taskId}:`, dbError);
+        //       }
+
+        //       const coverResponse = await fetch(`${process.env.CallBackURL}/api/generate-cover`, {
+        //         method: 'POST',
+        //         headers: {
+        //           'Content-Type': 'application/json'
+        //         },
+        //         body: JSON.stringify({
+        //           musicTaskId: taskId,
+        //           userId: userId // 直接传递用户ID
+        //         })
+        //       });
+
+        //       if (coverResponse.ok) {
+        //         console.log(`[CALLBACK-${callbackId}] Cover generation started successfully for taskId: ${taskId}`);
+        //       } else {
+        //         const errorText = await coverResponse.text();
+        //         console.error(`[CALLBACK-${callbackId}] Failed to start cover generation for music task ${taskId}:`, errorText);
+        //       }
+        //     } catch (coverError) {
+        //       console.error(`[CALLBACK-${callbackId}] Error starting cover generation for music task ${taskId}:`, coverError);
+        //     }
+        //   });
+        // }
 
         return; // 直接返回，不处理其他逻辑
         
@@ -621,6 +708,63 @@ async function processCallbackAsync(callbackData: any, callbackId: string) {
           });
           console.log(`[CALLBACK-${callbackId}] Music generation status updated to complete successfully`);
         }, 5, callbackId, 'update status to complete'); // complete 回调使用 5 次重试
+        
+        // 音乐生成完成后，触发封面图片的异步下载到R2
+        console.log(`[CALLBACK-${callbackId}] Music generation complete, triggering cover image backup to R2`);
+        setImmediate(async () => {
+          try {
+            // 查询需要备份的封面图片
+            const coverImagesQuery = await query(
+              `SELECT ci.id, ci.r2_url, ci.filename, cg.task_id as cover_task_id, mg.user_id
+               FROM cover_images ci
+               JOIN cover_generations cg ON ci.cover_generation_id = cg.id
+               JOIN music_tracks mt ON ci.music_track_id = mt.id
+               JOIN music_generations mg ON mt.music_generation_id = mg.id
+               WHERE mg.task_id = $1 
+               AND ci.r2_url LIKE 'http%' 
+               AND ci.r2_url NOT LIKE '%makernb-assets.nasirann.com%'`,
+              [taskId]
+            );
+            
+            if (coverImagesQuery.rows.length > 0) {
+              console.log(`[CALLBACK-${callbackId}] Found ${coverImagesQuery.rows.length} cover images to backup to R2`);
+              
+              for (const coverImage of coverImagesQuery.rows) {
+                try {
+                  console.log(`[CALLBACK-${callbackId}] Starting backup for cover image: ${coverImage.id}`);
+                  
+                  const imageBuffer = await downloadFromUrl(coverImage.r2_url);
+                  const filename = `cover_backup_${Date.now()}_${coverImage.id}.jpeg`;
+                  
+                  const r2ImageUrl = await uploadCoverImage(
+                    imageBuffer, 
+                    coverImage.cover_task_id, 
+                    filename, 
+                    coverImage.user_id || 'anonymous'
+                  );
+                  
+                  // 更新数据库记录，将临时URL替换为R2备份URL
+                  await query(
+                    'UPDATE cover_images SET r2_url = $1 WHERE id = $2',
+                    [r2ImageUrl, coverImage.id]
+                  );
+                  
+                  console.log(`[CALLBACK-${callbackId}] Successfully backed up cover image ${coverImage.id} to R2: ${r2ImageUrl}`);
+                } catch (imageError) {
+                  console.error(`[CALLBACK-${callbackId}] Failed to backup cover image ${coverImage.id}:`, imageError);
+                  // 备份失败不影响主流程，前端仍可使用临时URL
+                }
+              }
+              
+              console.log(`[CALLBACK-${callbackId}] Cover image backup process completed`);
+            } else {
+              console.log(`[CALLBACK-${callbackId}] No cover images found for backup`);
+            }
+          } catch (backupError) {
+            console.error(`[CALLBACK-${callbackId}] Error during cover image backup:`, backupError);
+          }
+        });
+        
         return;
       } else {
         console.log(`[CALLBACK-${callbackId}] Unknown or unhandled callback type: ${callbackType}`);

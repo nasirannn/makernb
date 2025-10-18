@@ -323,18 +323,29 @@ async function physicallyDeleteFromDatabase(summary: DeletionSummary, dryRun: bo
   await dbQuery('BEGIN');
 
   try {
-    // 1. 删除封面图片记录
+    // 1. 删除所有相关的封面图片记录（包括关联到要删除音轨的封面）
+    if (summary.tracks.length > 0) {
+      const trackIds = summary.tracks.map(t => t.track_id);
+      const coverResult = await dbQuery(
+        'DELETE FROM cover_images WHERE music_track_id = ANY($1) RETURNING id',
+        [trackIds]
+      );
+      coversDeleted = coverResult.rowCount || 0;
+      console.log(`  ✅ 删除了 ${coversDeleted} 个关联封面记录`);
+    }
+    
+    // 2. 删除孤立的封面图片记录
     if (summary.covers.length > 0) {
       const coverIds = summary.covers.map(c => c.cover_id);
       const coverResult = await dbQuery(
         'DELETE FROM cover_images WHERE id = ANY($1) RETURNING id',
         [coverIds]
       );
-      coversDeleted = coverResult.rowCount || 0;
-      console.log(`  ✅ 删除了 ${coversDeleted} 个封面记录`);
+      coversDeleted += coverResult.rowCount || 0;
+      console.log(`  ✅ 删除了 ${coverResult.rowCount || 0} 个孤立封面记录`);
     }
 
-    // 2. 删除音轨记录
+    // 3. 删除音轨记录
     if (summary.tracks.length > 0) {
       const trackIds = summary.tracks.map(t => t.track_id);
       const trackResult = await dbQuery(
@@ -345,7 +356,7 @@ async function physicallyDeleteFromDatabase(summary: DeletionSummary, dryRun: bo
       console.log(`  ✅ 删除了 ${tracksDeleted} 个音轨记录`);
     }
 
-    // 3. 删除没有关联音轨的生成记录
+    // 4. 删除没有关联音轨的生成记录
     const generationResult = await dbQuery(`
       DELETE FROM music_generations
       WHERE is_deleted = TRUE

@@ -156,51 +156,21 @@ async function processCoverCallbackAsync(callbackData: any) {
       // 最终确认userId
       console.log(`Final userId for R2 upload: ${finalUserId}`);
       
-      // 下载封面图片到R2存储
-      const coverR2Urls = [];
+      // 准备文件名数组（用于异步下载）
       const originalFilenames = [];
-      
       if (data.images && data.images.length > 0) {
-        console.log(`Downloading ${data.images.length} cover images for coverTaskId: ${coverTaskId}`);
-        
         for (let i = 0; i < data.images.length; i++) {
           const imageUrl = data.images[i];
-          let r2ImageUrl: string | undefined = undefined;
+          // 从URL中提取原始文件名
+          const urlParts = imageUrl.split('/');
+          let originalFilename = urlParts[urlParts.length - 1];
           
-          try {
-            console.log(`Downloading cover image ${i + 1}: ${imageUrl}`);
-            const imageBuffer = await downloadFromUrl(imageUrl);
-            
-            // 从URL中提取原始文件名，确保使用图片的唯一ID
-            const urlParts = imageUrl.split('/');
-            let originalFilename = urlParts[urlParts.length - 1];
-
-            // 确保文件名有效，如果提取失败则使用时间戳+索引作为备用
-            if (!originalFilename || originalFilename.trim() === '') {
-              console.warn(`Failed to extract filename from URL: ${imageUrl}, using fallback`);
-              originalFilename = `cover_${Date.now()}_${i + 1}.png`;
-            }
-
-            console.log(`Extracted filename: ${originalFilename} from URL: ${imageUrl}`);
-            originalFilenames.push(originalFilename);
-            
-            console.log(`About to upload cover image ${i + 1} with userId: "${finalUserId}" (type: ${typeof finalUserId})`);
-            r2ImageUrl = await uploadCoverImage(
-              imageBuffer, 
-              coverTaskId, 
-              originalFilename, 
-              finalUserId || 'anonymous'
-            );
-            console.log(`Uploaded cover image ${i + 1} to R2 with key: covers/${finalUserId || 'anonymous'}/${coverTaskId}/${originalFilename}`);
-            
-            if (r2ImageUrl) {
-              coverR2Urls.push(r2ImageUrl);
-            }
-            
-          } catch (downloadError) {
-            console.error(`Failed to download/upload cover image ${i + 1}:`, downloadError);
-            // 如果下载失败，跳过这个图片
+          // 确保文件名有效，如果提取失败则使用时间戳+索引作为备用
+          if (!originalFilename || originalFilename.trim() === '') {
+            originalFilename = `cover_${Date.now()}_${i + 1}.png`;
           }
+          
+          originalFilenames.push(originalFilename);
         }
       }
       
@@ -220,78 +190,43 @@ async function processCoverCallbackAsync(callbackData: any) {
             status: 'complete'
           });
           
-          // 将封面图片存储到cover_images表
+          // 立即存储临时图片链接到数据库，前端立即可用
           if (data.images && data.images.length > 0) {
-            console.log(`Storing cover images to cover_images table: ${JSON.stringify(data.images)}`);
+            console.log(`Creating cover_images records with temporary URLs: ${JSON.stringify(data.images)}`);
             
-            // 创建cover_images记录，使用原始文件名
-            await createCoverImages(coverGenerationId, coverR2Urls, originalFilenames);
+            const musicTaskId = coverRecord.rows[0].music_task_id || coverTaskId;
             
-            console.log(`Successfully stored ${data.images.length} cover images to cover_images table`);
+            // 查找对应的music_tracks记录
+            const tracksQuery = await query(
+              'SELECT id, side_letter FROM music_tracks WHERE music_generation_id = (SELECT id FROM music_generations WHERE task_id = $1) AND (is_deleted IS NULL OR is_deleted = FALSE) ORDER BY created_at ASC',
+              [musicTaskId]
+            );
             
-            // 立即尝试关联music_track_id
-            try {
-              const musicTaskId = coverRecord.rows[0].music_task_id || coverTaskId;
-              console.log(`Attempting to link cover images to music tracks for music task: ${musicTaskId}`);
+            if (tracksQuery.rows.length > 0) {
+              console.log(`Found ${tracksQuery.rows.length} music tracks, creating cover_images records with temporary URLs`);
               
-              // 查找对应的music_tracks记录
-              const tracksQuery = await query(
-                'SELECT id, side_letter FROM music_tracks WHERE music_generation_id = (SELECT id FROM music_generations WHERE task_id = $1) AND (is_deleted IS NULL OR is_deleted = FALSE) ORDER BY created_at ASC',
-                [musicTaskId]
-              );
-              
-              if (tracksQuery.rows.length > 0) {
-                console.log(`Found ${tracksQuery.rows.length} music tracks, linking to cover images`);
-                
-                // 更新cover_images表的music_track_id
-                // 获取所有未关联的封面图片
-                const unlinkedCoversQuery = await query(
-                  'SELECT id FROM cover_images WHERE cover_generation_id = $1 AND music_track_id IS NULL ORDER BY created_at ASC',
-                  [coverGenerationId]
+              // 为每个track创建cover_images记录，使用临时图片URL
+              for (let i = 0; i < Math.min(tracksQuery.rows.length, data.images.length); i++) {
+                await query(
+                  `INSERT INTO cover_images (cover_generation_id, music_track_id, r2_url, filename)
+                   VALUES ($1, $2, $3, $4)`,
+                  [
+                    coverGenerationId,
+                    tracksQuery.rows[i].id,
+                    data.images[i], // 使用临时图片URL，前端立即可用
+                    originalFilenames[i] || `cover_${i + 1}.jpeg`
+                  ]
                 );
-                
-                console.log(`Found ${unlinkedCoversQuery.rows.length} unlinked cover images`);
-                
-                // 为每个track分配封面图片
-                // 按side_letter排序，确保A面优先
-                const sortedTracks = tracksQuery.rows.sort((a, b) => {
-                  if (a.side_letter === 'A' && b.side_letter === 'B') return -1;
-                  if (a.side_letter === 'B' && b.side_letter === 'A') return 1;
-                  return 0;
-                });
-                
-                // 确保每个track只分配一个封面图片
-                const maxAssignments = Math.min(sortedTracks.length, unlinkedCoversQuery.rows.length);
-                
-                for (let i = 0; i < maxAssignments; i++) {
-                  const trackId = sortedTracks[i].id;
-                  const coverImageId = unlinkedCoversQuery.rows[i].id;
-                  
-                  const updateResult = await query(
-                    'UPDATE cover_images SET music_track_id = $1 WHERE id = $2',
-                    [trackId, coverImageId]
-                  );
-                  
-                  console.log(`Linked cover image ${coverImageId} to music_track_id: ${trackId} (side: ${sortedTracks[i].side_letter})`);
-                }
-                
-                // 如果还有未关联的封面图片，记录但不分配给任何track
-                if (unlinkedCoversQuery.rows.length > sortedTracks.length) {
-                  const remainingCovers = unlinkedCoversQuery.rows.slice(sortedTracks.length);
-                  console.log(`Found ${remainingCovers.length} additional cover images that will not be assigned to any track`);
-                  
-                  // 记录未分配的封面图片ID
-                  remainingCovers.forEach((cover, index) => {
-                    console.log(`Unassigned cover image ${index + 1}: ${cover.id}`);
-                  });
-                }
-              } else {
-                console.log(`No music tracks found yet for music task: ${musicTaskId}, will be linked later in suno-callback`);
               }
-            } catch (linkError) {
-              console.error('Failed to link cover images to music tracks:', linkError);
-              // 关联失败时抛出错误，确保问题被及时发现
-              throw new Error(`Cover image linking failed: ${linkError instanceof Error ? linkError.message : 'Unknown error'}`);
+              
+              console.log(`Successfully created ${Math.min(tracksQuery.rows.length, data.images.length)} cover_images records with temporary URLs`);
+              
+              // 标记需要异步下载的图片信息，等待complete回调触发
+              console.log(`Cover images stored with temporary URLs, waiting for complete callback to trigger R2 backup`);
+            } else {
+              console.log(`No music tracks found, creating cover_images without track association`);
+              // 如果没有music_tracks，创建不关联的cover_images记录
+              await createCoverImages(coverGenerationId, data.images, originalFilenames);
             }
           }
           
