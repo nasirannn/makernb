@@ -119,6 +119,20 @@ export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
     setLoading(true);
     setMessage('');
 
+    // 邮箱格式验证
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email)) {
+      setMessage('请输入有效的邮箱地址');
+      setLoading(false);
+      return;
+    }
+
+    // 针对QQ邮箱的特殊处理
+    if (email.includes('@qq.com')) {
+      // QQ邮箱可能需要特殊处理，这里只是提醒
+      console.log('QQ邮箱登录尝试:', email);
+    }
+
     try {
       if (isLogin && useMagicLink) {
         // Magic Link login
@@ -153,7 +167,20 @@ export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
         setMessage('Check your email for the confirmation link!');
       }
     } catch (error: any) {
-      setMessage(error instanceof Error ? error.message : 'Unknown error');
+      console.error('Auth error:', error);
+      
+      // 提供更具体的错误信息
+      if (error.message?.includes('Invalid login credentials')) {
+        setMessage('邮箱或密码错误，请检查后重试。如果忘记密码，请使用"忘记密码"功能。');
+      } else if (error.message?.includes('Email not confirmed')) {
+        setMessage('请先检查邮箱并点击确认链接完成注册。');
+      } else if (error.message?.includes('Too many requests')) {
+        setMessage('登录尝试过于频繁，请稍后再试。');
+      } else if (error.message?.includes('User not found')) {
+        setMessage('该邮箱未注册，请先注册账户。');
+      } else {
+        setMessage(error instanceof Error ? error.message : '登录失败，请稍后重试');
+      }
     } finally {
       setLoading(false);
     }
