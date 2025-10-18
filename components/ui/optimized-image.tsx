@@ -28,7 +28,8 @@ export const OptimizedImage: React.FC<OptimizedImageProps> = ({
   fallbackContent,
   priority = false,
   sizes,
-  optimized = true
+  optimized = true,
+  ...restProps
 }) => {
   const [hasError, setHasError] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
@@ -75,18 +76,22 @@ export const OptimizedImage: React.FC<OptimizedImageProps> = ({
     );
   }
 
-  // 如果禁用优化，使用普通img标签
+  // 如果禁用优化，仍然使用Next.js Image组件但禁用优化
   if (!optimized) {
     return (
-      <img
+      <Image
         src={src}
         alt={alt}
         width={width}
         height={height}
+        fill={fill}
         className={className}
         onError={handleError}
         onLoad={handleLoad}
-        loading={priority ? 'eager' : 'lazy'}
+        priority={priority}
+        unoptimized={true}
+        sizes={sizes || "(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"}
+        {...restProps}
       />
     );
   }
