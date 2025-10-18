@@ -9,6 +9,8 @@ interface TooltipProps {
   position?: 'top' | 'bottom' | 'left' | 'right';
   delay?: number;
   className?: string;
+  allowWrap?: boolean; // 新增：是否允许换行
+  matchWidth?: boolean; // 新增：是否匹配子元素宽度
 }
 
 export const Tooltip: React.FC<TooltipProps> = ({
@@ -16,7 +18,9 @@ export const Tooltip: React.FC<TooltipProps> = ({
   content,
   position = 'right',
   delay = 200,
-  className = ''
+  className = '',
+  allowWrap = false,
+  matchWidth = false
 }) => {
   const [isVisible, setIsVisible] = useState(false);
   const [timeoutId, setTimeoutId] = useState<NodeJS.Timeout | null>(null);
@@ -34,7 +38,9 @@ export const Tooltip: React.FC<TooltipProps> = ({
   };
 
   const getPositionClasses = () => {
-    const baseClasses = `absolute px-2 py-1.5 text-xs text-foreground bg-card/95 backdrop-blur-md rounded-lg shadow-lg border border-border/50 pointer-events-none transition-all duration-200 ease-out w-full break-words z-[${Z_INDEX.TOOLTIP}]`;
+    const whitespaceClass = allowWrap ? 'break-words' : 'whitespace-nowrap';
+    const widthClass = matchWidth ? 'w-full' : '';
+    const baseClasses = `absolute px-2 py-1.5 text-xs text-foreground bg-card/95 backdrop-blur-md rounded-lg shadow-lg border border-border/50 pointer-events-none transition-all duration-200 ease-out ${whitespaceClass} ${widthClass} z-[${Z_INDEX.TOOLTIP}]`;
     
     switch (position) {
       case 'top':

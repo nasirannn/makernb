@@ -159,6 +159,7 @@ export const CommonSidebar = ({ hideMobileNav = false }: CommonSidebarProps) => 
                   </div>
                 }
                 position="right"
+                allowWrap={true}
               >
                 <Button
                   variant="ghost"
