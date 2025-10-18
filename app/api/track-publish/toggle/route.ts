@@ -45,6 +45,7 @@ export async function POST(request: NextRequest) {
       FROM music_tracks mt
       JOIN music_generations mg ON mt.music_generation_id = mg.id
       WHERE mt.id = $1
+        AND (mt.is_deleted IS NULL OR mt.is_deleted = FALSE)
     `, [trackId]);
 
     if (trackOwnership.rows.length === 0) {

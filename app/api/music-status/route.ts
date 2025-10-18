@@ -61,6 +61,7 @@ export async function GET(request: NextRequest) {
       FROM music_tracks mt
       INNER JOIN music_generations mg ON mt.music_generation_id = mg.id
       WHERE mg.task_id = $1
+        AND (mt.is_deleted IS NULL OR mt.is_deleted = FALSE)
       ORDER BY mt.side_letter ASC, mt.created_at ASC`,
       [taskId]
     );

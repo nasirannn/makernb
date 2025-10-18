@@ -236,7 +236,7 @@ async function processCoverCallbackAsync(callbackData: any) {
               
               // 查找对应的music_tracks记录
               const tracksQuery = await query(
-                'SELECT id, side_letter FROM music_tracks WHERE music_generation_id = (SELECT id FROM music_generations WHERE task_id = $1) ORDER BY created_at ASC',
+                'SELECT id, side_letter FROM music_tracks WHERE music_generation_id = (SELECT id FROM music_generations WHERE task_id = $1) AND (is_deleted IS NULL OR is_deleted = FALSE) ORDER BY created_at ASC',
                 [musicTaskId]
               );
               
@@ -316,6 +316,7 @@ async function processCoverCallbackAsync(callbackData: any) {
                WHERE mt.music_generation_id = (
                  SELECT id FROM music_generations WHERE task_id = $1
                )
+               AND (mt.is_deleted IS NULL OR mt.is_deleted = FALSE)
                ORDER BY mt.side_letter ASC`,
               [musicTaskId]
             );

@@ -229,7 +229,7 @@ export const getUserMusicGenerationsOptimized = async (
         ml.content as lyrics_content
       FROM user_generations ug
       LEFT JOIN music_tracks mt ON ug.id = mt.music_generation_id
-        AND mt.is_deleted = FALSE
+        AND (mt.is_deleted IS NULL OR mt.is_deleted = FALSE)
       LEFT JOIN LATERAL (
         SELECT r2_url
         FROM cover_images
