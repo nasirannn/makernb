@@ -16,53 +16,91 @@ const PUBLIC_DOMAIN = process.env.R2_PUBLIC_DOMAIN;
 /**
  * 从URL下载文件（带重试机制）
  */
-export async function downloadFromUrl(url: string, maxRetries = 3): Promise<Buffer> {
+export async function downloadFromUrl(url: string, maxRetries = 5): Promise<Buffer> {
   let lastError: Error | null = null;
+  
+  // 验证URL（只验证一次）
+  if (!url || typeof url !== 'string' || url.trim() === '') {
+    throw new Error('Invalid URL: URL is empty or undefined');
+  }
+  
+  try {
+    new URL(url);
+  } catch (urlError) {
+    throw new Error(`Invalid URL format: ${url}`);
+  }
   
   for (let attempt = 1; attempt <= maxRetries; attempt++) {
     try {
-      // 验证URL是否有效
-      if (!url || typeof url !== 'string' || url.trim() === '') {
-        throw new Error('Invalid URL: URL is empty or undefined');
-      }
+      console.log(`[Download] Attempt ${attempt}/${maxRetries} for ${url.substring(0, 100)}...`);
       
-      // 验证URL格式
-      try {
-        new URL(url);
-      } catch (urlError) {
-        throw new Error(`Invalid URL format: ${url}`);
-      }
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 45000); // 增加到45秒
       
       const response = await fetch(url, {
-        signal: AbortSignal.timeout(30000) // 30秒超时
+        signal: controller.signal,
+        headers: {
+          'User-Agent': 'Mozilla/5.0 (compatible; MakerNB/1.0)',
+          'Accept': '*/*',
+          'Connection': 'keep-alive',
+        },
+        redirect: 'follow',
+        keepalive: true,
       });
       
+      clearTimeout(timeoutId);
+      
       if (!response.ok) {
-        throw new Error(`Failed to download file: ${response.statusText}`);
+        const errorMsg = `HTTP ${response.status}: ${response.statusText}`;
+        console.error(`[Download] Failed with ${errorMsg}`);
+        throw new Error(`Failed to download file: ${errorMsg}`);
+      }
+      
+      // 检查content-length
+      const contentLength = response.headers.get('content-length');
+      if (contentLength && parseInt(contentLength) === 0) {
+        throw new Error('File is empty (content-length: 0)');
       }
       
       const arrayBuffer = await response.arrayBuffer();
       
-      if (attempt > 1) {
-        console.log(`Download succeeded on attempt ${attempt}/${maxRetries}`);
+      // 验证下载的数据不为空
+      if (arrayBuffer.byteLength === 0) {
+        throw new Error('Downloaded file is empty');
       }
+      
+      console.log(`[Download] Success on attempt ${attempt}/${maxRetries}, size: ${arrayBuffer.byteLength} bytes`);
       
       return Buffer.from(arrayBuffer);
     } catch (error) {
       lastError = error as Error;
-      console.error(`Download attempt ${attempt}/${maxRetries} failed:`, error);
+      const errorName = lastError.name || 'Error';
+      const errorMsg = lastError.message || 'Unknown error';
+      
+      console.error(`[Download] Attempt ${attempt}/${maxRetries} failed:`, {
+        name: errorName,
+        message: errorMsg,
+        code: (error as any).code,
+        cause: (error as any).cause?.message,
+      });
+      
+      // 对于某些错误类型，立即失败不重试
+      if (errorMsg.includes('Invalid URL') || errorMsg.includes('HTTP 404') || errorMsg.includes('HTTP 403')) {
+        console.error(`[Download] Fatal error, not retrying: ${errorMsg}`);
+        throw lastError;
+      }
       
       if (attempt < maxRetries) {
-        // 指数退避：2s, 4s, 8s
-        const delayMs = Math.min(2000 * Math.pow(2, attempt - 1), 8000);
-        console.log(`Retrying download in ${delayMs}ms...`);
+        // 指数退避：3s, 6s, 12s, 20s
+        const delayMs = Math.min(3000 * Math.pow(2, attempt - 1), 20000);
+        console.log(`[Download] Retrying in ${delayMs}ms...`);
         await new Promise(resolve => setTimeout(resolve, delayMs));
       }
     }
   }
   
-  console.error(`Download failed after ${maxRetries} attempts`);
-  throw lastError || new Error('Download failed');
+  console.error(`[Download] Failed after ${maxRetries} attempts, giving up`);
+  throw lastError || new Error('Download failed after all retries');
 }
 
 /**
