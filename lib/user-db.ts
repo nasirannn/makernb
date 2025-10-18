@@ -22,10 +22,10 @@ export const getOrCreateUserCredits = async (userId: string): Promise<UserCredit
       return existingCredits.rows[0];
     }
 
-    // 如果积分记录不存在，创建新记录
+    // 如果积分记录不存在，创建新记录（新用户注册不赠送积分）
     const newCredits = await query(
-      'INSERT INTO user_credits (user_id, credits) VALUES ($1, $2) RETURNING *',
-      [userId, 10]
+      'INSERT INTO user_credits (user_id, credits, total_earned) VALUES ($1, $2, $3) RETURNING *',
+      [userId, 0, 0]
     );
 
     return newCredits.rows[0];

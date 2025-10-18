@@ -168,7 +168,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         setLoading(false);
 
         // 如果用户已经登录，检查每日登录积分（使用持久化状态避免重复检查）
-        if (session?.access_token && session.user?.id) {
+        if (session?.access_token && session.user?.id && !hasCheckedInitialCredits) {
           const today = new Date().toISOString().split('T')[0]; // YYYY-MM-DD
           const checkKey = `dailyCreditsChecked_${session.user.id}_${today}`;
           const hasCheckedToday = typeof window !== 'undefined'
@@ -223,7 +223,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             ? sessionStorage.getItem(checkKey) === 'true'
             : false;
 
-          if (!hasCheckedToday && !creditsCheckInProgress.current) {
+          if (!hasCheckedToday && !creditsCheckInProgress.current && !hasCheckedInitialCredits) {
             // 标记今天已经检查过
             if (typeof window !== 'undefined') {
               sessionStorage.setItem(checkKey, 'true');

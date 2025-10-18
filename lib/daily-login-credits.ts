@@ -45,7 +45,7 @@ export const grantDailyLoginCredits = async (userId: string): Promise<{ id: stri
       );
 
       if (userCreditsResult.rows.length === 0) {
-        // 如果用户积分记录不存在，创建一个
+        // 如果用户积分记录不存在，创建记录并直接给予每日登录积分
         const newUserCreditsResult = await queryFn(
           'INSERT INTO user_credits (user_id, credits, total_earned) VALUES ($1, $2, $3) RETURNING *',
           [userId, creditsAmount, creditsAmount]
@@ -113,19 +113,19 @@ export const grantDailyLoginCredits = async (userId: string): Promise<{ id: stri
 export const cleanupExpiredDailyCredits = async (): Promise<number> => {
   try {
     return await withTransaction(async (queryFn) => {
-      const today = new Date().toISOString().split('T')[0];
+      const today = new Date().toISOString().split('T')[0]; // YYYY-MM-DD
 
-      // 查找所有过期的每日登录积分（不是今天的且有积分的）
+      // 查找所有过期的每日登录积分（不是今天的）
       const expiredCredits = await queryFn(
-        `SELECT ct.*, uc.credits, DATE(ct.created_at AT TIME ZONE 'UTC') as grant_date
+        `SELECT ct.*, uc.credits
          FROM credit_transactions ct
          JOIN user_credits uc ON ct.user_id = uc.user_id
          WHERE ct.description = 'Daily login bonus'
-         AND DATE(ct.created_at AT TIME ZONE 'UTC') < $1
+         AND DATE(ct.created_at) < $1
          AND ct.amount > 0
          AND NOT EXISTS (
            SELECT 1 FROM credit_transactions ct2
-           WHERE ct2.reference_id = ct.id::text
+           WHERE ct2.reference_id = ct.reference_id
            AND ct2.description = 'Daily login credits expired'
          )`,
         [today]
@@ -154,11 +154,14 @@ export const cleanupExpiredDailyCredits = async (): Promise<number> => {
               -credit.amount,
               credit.credits - credit.amount,
               'Daily login credits expired',
-              credit.id
+              credit.reference_id // 使用相同的reference_id
             ]
           );
 
           cleanedCount++;
+        } else {
+          // 如果用户积分不足，记录日志但不扣除
+          console.warn(`User ${credit.user_id} has insufficient credits (${credit.credits}) to deduct expired daily credits (${credit.amount})`);
         }
       }
 
