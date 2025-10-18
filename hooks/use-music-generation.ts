@@ -143,6 +143,7 @@ export const useMusicGeneration = () => {
       ...(mode === 'custom' && { genre: selectedGenre }),
       ...(mode === 'custom' && { vibe: selectedVibe }),
       songTitle,
+      styleText,
       grooveType,
       leadInstrument,
       drumKit,
