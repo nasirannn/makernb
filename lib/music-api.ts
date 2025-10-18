@@ -1,5 +1,3 @@
-import { generateCustomRnBStyle } from './rnb-style-generator';
-
 // API service configuration
 export interface GenerateMusicRequest {
   mode: 'basic' | 'custom';
