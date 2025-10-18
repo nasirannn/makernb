@@ -8,16 +8,8 @@ export interface GenerateMusicRequest {
   instrumentalMode?: boolean;
 
   // Custom mode fields
-  genre?: string;
-  vibe?: string;
   songTitle?: string;
   styleText?: string; // 用户直接输入的style内容
-  grooveType?: string;
-  leadInstrument?: string[];
-  drumKit?: string;
-  bassTone?: string;
-  vocalGender?: string;
-  harmonyPalette?: string;
   bpm?: number;
 }
 
@@ -142,27 +134,8 @@ class MusicApiService {
       apiParams.instrumental = request.instrumentalMode || false;
       apiParams.model = process.env.CUSTOM_MODE_MODEL; // Custom Mode使用配置的模型
 
-      // Custom Mode: 优先使用用户直接输入的styleText，否则使用格式化生成
-      if (request.styleText && request.styleText.trim()) {
-        // 用户直接输入了style内容，直接使用
-        apiParams.style = request.styleText.trim();
-      } else {
-        // 用户没有输入styleText，使用generateCustomRnBStyle函数生成详细的style
-        const customStyle = generateCustomRnBStyle({
-          genre: request.genre,
-          vibe: request.vibe,
-          bpm: request.bpm,
-          grooveType: request.grooveType,
-          leadInstrument: request.leadInstrument,
-          drumKit: request.drumKit,
-          bassTone: request.bassTone,
-          vocalGender: request.vocalGender,
-          harmonyPalette: request.harmonyPalette,
-          instrumentalMode: request.instrumentalMode,
-          customPrompt: request.customPrompt
-        });
-        apiParams.style = customStyle;
-      }
+      // Custom Mode: 使用用户输入的styleText
+      apiParams.style = request.styleText?.trim() || '';
 
       // 处理prompt - 根据API文档，在非instrumental模式下，prompt严格作为歌词使用
       if (!request.instrumentalMode && request.customPrompt) {
@@ -176,14 +149,6 @@ class MusicApiService {
         apiParams.title = request.songTitle;
       }
 
-      // Vocal Gender
-      if (request.vocalGender && !request.instrumentalMode) {
-        const genderMap = {
-          'male': 'm',
-          'female': 'f'
-        };
-        apiParams.vocalGender = genderMap[request.vocalGender as keyof typeof genderMap];
-      }
     }
     // 权重参数 - 最大styleWeight来更强制地遵循R&B风格
     apiParams.styleWeight = 1.0;

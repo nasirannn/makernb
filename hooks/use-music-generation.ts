@@ -140,17 +140,8 @@ export const useMusicGeneration = () => {
       mode,
       customPrompt,
       instrumentalMode,
-      ...(mode === 'custom' && { genre: selectedGenre }),
-      ...(mode === 'custom' && { vibe: selectedVibe }),
       songTitle,
       styleText,
-      grooveType,
-      leadInstrument,
-      drumKit,
-      bassTone,
-      vocalStyle,
-      vocalGender,
-      harmonyPalette,
       bpm: bpm[0]
     };
   };
