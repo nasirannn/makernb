@@ -214,7 +214,7 @@ export const getUserMusicGenerationsOptimized = async (
     WITH user_generations AS (
       SELECT id, title, genre, tags, prompt, is_instrumental, status, created_at, updated_at
       FROM music_generations
-      WHERE user_id = $1 AND (is_deleted IS NULL OR is_deleted = FALSE)
+      WHERE user_id = $1 AND is_deleted = FALSE
       ORDER BY created_at DESC
       LIMIT $2 OFFSET $3
     ),
@@ -229,7 +229,7 @@ export const getUserMusicGenerationsOptimized = async (
         ml.content as lyrics_content
       FROM user_generations ug
       LEFT JOIN music_tracks mt ON ug.id = mt.music_generation_id
-        AND (mt.is_deleted IS NULL OR mt.is_deleted = FALSE)
+        AND mt.is_deleted = FALSE
       LEFT JOIN LATERAL (
         SELECT r2_url
         FROM cover_images
