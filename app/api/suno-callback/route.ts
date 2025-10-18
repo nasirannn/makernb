@@ -365,14 +365,14 @@ async function processCallbackAsync(callbackData: any, callbackId: string) {
         // 4.1.3 创建music_tracks记录（即使还没有audio_url）
         try {
           const musicGenQuery = await query(
-            'SELECT id FROM music_generations WHERE task_id = $1',
+            'SELECT id, is_published FROM music_generations WHERE task_id = $1',
             [taskId]
           );
           
           if (musicGenQuery.rows.length > 0) {
             const musicGenerationId = musicGenQuery.rows[0].id;
-            // 默认设置为公开，用户可以在library中手动调整
-            const isPublished = true;
+            // 使用用户在生成时设置的发布状态
+            const isPublished = musicGenQuery.rows[0].is_published !== false;
             
             // 为每个track创建记录
             for (let i = 0; i < tracks.length; i++) {

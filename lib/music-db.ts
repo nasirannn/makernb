@@ -27,6 +27,7 @@ export interface CreateMusicGenerationData {
   is_instrumental?: boolean;
   task_id?: string;
   status?: 'generating' | 'complete' | 'error' | 'text';
+  is_published?: boolean;
 }
 
 export interface MusicGenerationWithTracks {
@@ -88,8 +89,8 @@ export const createMusicGeneration = async (
     const result = await query(
       `INSERT INTO music_generations (
         user_id, title, genre, tags, prompt,
-        is_instrumental, task_id, status
-      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+        is_instrumental, task_id, status, is_published
+      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
       RETURNING *`,
       [
         userId,
@@ -99,7 +100,8 @@ export const createMusicGeneration = async (
         data.prompt || null,
         data.is_instrumental || false,
         data.task_id || null,
-        data.status || 'generating'
+        data.status || 'generating',
+        data.is_published !== undefined ? data.is_published : true
       ]
     );
 

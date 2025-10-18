@@ -142,7 +142,8 @@ export const useMusicGeneration = () => {
       instrumentalMode,
       songTitle,
       styleText,
-      vocalGender
+      vocalGender,
+      isPublished
     };
   };
 

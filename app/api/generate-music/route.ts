@@ -43,7 +43,8 @@ export async function POST(request: NextRequest) {
       songTitle,
       styleText,
       vocalGender,
-      genre
+      genre,
+      isPublished
     } = requestData;
     // 根据模式处理参数
     console.log(`[MUSIC-GEN-${requestId}] Processing mode: ${mode}`);
@@ -196,7 +197,8 @@ export async function POST(request: NextRequest) {
           genre: genreForDb,
           prompt: customPrompt,
           task_id: result.taskId,
-          status: 'generating'
+          status: 'generating',
+          is_published: isPublished !== undefined ? isPublished : true
         });
 
         const recordTime = Date.now() - recordStartTime;
