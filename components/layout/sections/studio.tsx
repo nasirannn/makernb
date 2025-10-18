@@ -86,7 +86,7 @@ const StudioContent = () => {
         customPrompt, setCustomPrompt,
         songTitle, setSongTitle,
         instrumentalMode, setInstrumentalMode,
-        isPublished, setIsPublished,
+        isPublished,
         styleText, setStyleText,
         bpm, setBpm,
         grooveType, setGrooveType,
@@ -870,7 +870,6 @@ const StudioContent = () => {
                     instrumentalMode={instrumentalMode}
                     setInstrumentalMode={setInstrumentalMode}
                     isPublished={isPublished}
-                    setIsPublished={setIsPublished}
                     styleText={styleText}
                     setStyleText={setStyleText}
                     bpm={bpm}
@@ -945,7 +944,6 @@ const StudioContent = () => {
                                     instrumentalMode={instrumentalMode}
                                     setInstrumentalMode={setInstrumentalMode}
                                     isPublished={isPublished}
-                                    setIsPublished={setIsPublished}
                                     styleText={styleText}
                                     setStyleText={setStyleText}
                                     bpm={bpm}
@@ -1427,61 +1425,35 @@ const StudioContent = () => {
             {/* Generation Confirmation Dialog */}
             {generationConfirmOpen && (
                 <div className="fixed inset-0 z-50 flex items-center justify-center animate-in fade-in duration-300 p-4">
-                    {/* 自定义背景遮罩 - 使用登录界面的样式 */}
+                    {/* 简洁背景遮罩 */}
                     <div
-                        className="fixed inset-0 bg-gradient-to-br from-slate-900/90 via-purple-900/80 to-slate-900/90 backdrop-blur-md animate-in fade-in duration-300"
+                        className="fixed inset-0 bg-black/80 backdrop-blur-sm animate-in fade-in duration-300"
                         onClick={() => setGenerationConfirmOpen(false)}
                     />
 
-                    {/* 自定义弹窗内容 - 使用登录界面的样式 */}
-                    <div className="relative w-full max-w-md animate-in zoom-in-95 slide-in-from-bottom-4 duration-300">
-                        <div className="bg-white/10 backdrop-blur-lg border-white/20 shadow-2xl text-white rounded-xl sm:rounded-2xl p-5 sm:p-6">
+                    {/* 简洁弹窗内容 */}
+                    <div className="relative w-full max-w-sm animate-in zoom-in-95 slide-in-from-bottom-4 duration-300">
+                        <div className="bg-background border border-border shadow-lg rounded-lg p-6">
                             {/* Header */}
-                            <div className="text-left mb-5 sm:mb-6">
-                                <div className="flex items-center gap-2.5 sm:gap-3 mb-1.5 sm:mb-2">
-                                    <Image
-                                        src="/icons/Generate-Tip-Info-Coffee.svg"
-                                        alt="Coffee with music notes"
-                                        width={28}
-                                        height={28}
-                                        className="w-7 h-7 sm:w-8 sm:h-8"
-                                    />
-                                    <h2 className="text-lg sm:text-xl font-bold text-white">Music Generation Started</h2>
+                            <div className="text-center mb-4">
+                                <div className="flex items-center justify-center gap-2 mb-2">
+                                    <div className="w-2 h-2 bg-primary rounded-full animate-pulse"></div>
+                                    <div className="w-2 h-2 bg-primary/70 rounded-full animate-pulse" style={{ animationDelay: '0.3s' }}></div>
+                                    <div className="w-2 h-2 bg-primary/50 rounded-full animate-pulse" style={{ animationDelay: '0.6s' }}></div>
                                 </div>
-                                <p className="text-white/70 text-sm sm:text-base">
-                                    Grab a coffee while we generate your music...
+                                <h2 className="text-lg font-semibold text-foreground mb-1">Music Generation Started</h2>
+                                <p className="text-sm text-muted-foreground">
+                                    Your music is being generated. You can preview it in about 30 seconds.
                                 </p>
                             </div>
 
-                            {/* Main Content Panel */}
-                            <div className="bg-white/5 rounded-xl p-5 sm:p-6 space-y-5 sm:space-y-6 mt-5 sm:mt-6">
-                                {/* Loading Indicator */}
-                                <div className="flex justify-center">
-                                    <div className="flex items-center gap-2">
-                                        <div className="w-2.5 h-2.5 sm:w-3 sm:h-3 bg-purple-400 rounded-full animate-pulse"></div>
-                                        <div className="w-2.5 h-2.5 sm:w-3 sm:h-3 bg-purple-400/70 rounded-full animate-pulse" style={{ animationDelay: '0.3s' }}></div>
-                                        <div className="w-2.5 h-2.5 sm:w-3 sm:h-3 bg-purple-400/50 rounded-full animate-pulse" style={{ animationDelay: '0.6s' }}></div>
-                                    </div>
-                                </div>
-
-                                {/* Primary Information */}
-                                <div className="text-center text-xs sm:text-sm text-white/80 space-y-1.5 sm:space-y-2">
-                                    <div>
-                                        <span>Music generation in progress, you can preview in</span>
-                                    </div>
-                                    <div>
-                                        <span>30s, full generation takes about 3 minutes</span>
-                                    </div>
-                                </div>
-                            </div>
-
                             {/* Action Button */}
-                            <div className="flex justify-center pt-5 sm:pt-6">
+                            <div className="flex justify-center">
                                 <button
                                     onClick={() => setGenerationConfirmOpen(false)}
-                                    className="w-full px-6 py-2.5 sm:py-3 bg-gradient-to-r from-purple-600 to-purple-700 hover:from-purple-700 hover:to-purple-800 text-white rounded-xl transition-all duration-200 font-medium text-sm sm:text-base"
+                                    className="px-4 py-2 bg-primary hover:bg-primary/90 text-primary-foreground text-sm font-medium rounded-md transition-colors"
                                 >
-                                    Check it out
+                                    Got it
                                 </button>
                             </div>
                         </div>

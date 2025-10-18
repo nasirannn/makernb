@@ -39,7 +39,6 @@ interface StudioPanelProps {
   instrumentalMode: boolean;
   setInstrumentalMode: (mode: boolean) => void;
   isPublished: boolean;
-  setIsPublished: (isPublished: boolean) => void;
   styleText: string;
   setStyleText: (text: string) => void;
   bpm: number[];
@@ -99,7 +98,6 @@ export const StudioPanel = (props: StudioPanelProps) => {
     instrumentalMode,
     setInstrumentalMode,
     isPublished,
-    setIsPublished,
     styleText,
     setStyleText,
     bpm,
@@ -119,6 +117,7 @@ export const StudioPanel = (props: StudioPanelProps) => {
     bpmMode,
     setBpmMode,
     isGenerating,
+    pendingTasksCount,
     onGenerationStart,
     onGenerateLyrics,
   } = props;
@@ -290,34 +289,12 @@ export const StudioPanel = (props: StudioPanelProps) => {
               </div>
             </section>
 
-            {/* Keep Public Section - Basic Mode */}
-            <section className="pb-3 border-b border-border/20">
-              <div className="flex items-start py-2">
-                <div className="flex-1">
-                  <div className="font-medium text-foreground">
-                    Keep Public
-                  </div>
-                  <div className="text-sm text-muted-foreground mt-1">
-                    {isPublished
-                      ? "Your song are visible in explore"
-                      : "Private in library"
-                    }
-                  </div>
-                </div>
-                <div className="flex items-center ml-4">
-                  <Switch
-                    checked={isPublished}
-                    onCheckedChange={setIsPublished}
-                  />
-                </div>
-              </div>
-            </section>
 
           </div>
         </>
       ) : (
         <>
-          {/* Tune Mode Content - 流式布局 */}
+          {/* Custom Mode Content - 流式布局 */}
           <div className="space-y-5 md:space-y-6">
             {/* Basic Settings Section */}
             <section className="pb-4 md:pb-4 border-b border-border/20">
@@ -1037,28 +1014,6 @@ export const StudioPanel = (props: StudioPanelProps) => {
               </section>
             )}
 
-            {/* Keep Public Section - Custom Mode */}
-            <section className="pb-3 border-b border-border/20">
-              <div className="flex items-start py-2">
-                <div className="flex-1">
-                  <div className="font-medium text-foreground">
-                    Keep Public
-                  </div>
-                  <div className="text-sm text-muted-foreground mt-1">
-                    {isPublished
-                      ? "Your song will be visible in explore"
-                      : "Your song will be private in library"
-                    }
-                  </div>
-                </div>
-                <div className="flex items-center ml-4">
-                  <Switch
-                    checked={isPublished}
-                    onCheckedChange={setIsPublished}
-                  />
-                </div>
-              </div>
-            </section>
 
           </div>
         </>
@@ -1099,8 +1054,12 @@ export const StudioPanel = (props: StudioPanelProps) => {
               )}
                   {isGenerating ? (
                 <div className="flex items-center justify-center gap-2">
-                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
-                  <span>Creating...</span>
+                  <span>Creating</span>
+                  <div className="flex items-center gap-1">
+                    <div className="w-1 h-1 bg-white rounded-full animate-pulse"></div>
+                    <div className="w-1 h-1 bg-white rounded-full animate-pulse" style={{ animationDelay: '0.3s' }}></div>
+                    <div className="w-1 h-1 bg-white rounded-full animate-pulse" style={{ animationDelay: '0.6s' }}></div>
+                  </div>
                     </div>
                   ) : (
                 'Create Track'
@@ -1109,6 +1068,19 @@ export const StudioPanel = (props: StudioPanelProps) => {
           );
         })()}
             </div>
+
+            {/* Generation Tips - Only show when generating */}
+            {(isGenerating || pendingTasksCount > 0) && (
+              <div className="mt-4 p-4 bg-muted/30 rounded-lg border border-border/20 animate-in fade-in duration-300">
+                <div className="flex items-start gap-3">
+                  <div className="flex-shrink-0 mt-0.5">
+                  </div>
+                  <div className="text-sm text-muted-foreground leading-relaxed">
+                    <p>Music starts streaming within 30 seconds and completes in 3-5 minutes. You can preview and play tracks as they become available.</p>
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
         </>
       )}

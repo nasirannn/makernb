@@ -267,14 +267,24 @@ export const StudioTracksList: React.FC<StudioTracksListProps> = ({
                           </div>
                           {!track.isError && track.tags && (
                             <p className="text-xs text-muted-foreground truncate mt-0.5">
-                              {track.tags}
+                              {track.tags.length > 30 ? `${track.tags.substring(0, 30)}...` : track.tags}
                             </p>
                           )}
                         </div>
-                        {!track.isError && !track.isLoading && track.duration && (
-                          <span className="text-muted-foreground text-xs flex-shrink-0">
-                            {formatDuration(track.duration)}
-                          </span>
+                        {!track.isError && (
+                          <div className="text-muted-foreground text-xs flex-shrink-0">
+                            {track.duration ? (
+                              // complete状态：显示实际duration
+                              <span>{formatDuration(track.duration)}</span>
+                            ) : (
+                              // complete之前：显示圆点指示器
+                              <div className="flex items-center gap-1">
+                                <div className="w-1 h-1 bg-muted-foreground rounded-full animate-pulse"></div>
+                                <div className="w-1 h-1 bg-muted-foreground rounded-full animate-pulse" style={{ animationDelay: '0.3s' }}></div>
+                                <div className="w-1 h-1 bg-muted-foreground rounded-full animate-pulse" style={{ animationDelay: '0.6s' }}></div>
+                              </div>
+                            )}
+                          </div>
                         )}
                       </div>
                     </div>
@@ -395,7 +405,7 @@ export const StudioTracksList: React.FC<StudioTracksListProps> = ({
                       </h3>
                       {track.musicTags && (
                         <p className="text-xs text-muted-foreground truncate mt-0.5">
-                          {track.musicTags}
+                          {track.musicTags.length > 100 ? `${track.musicTags.substring(0, 100)}...` : track.musicTags}
                         </p>
                       )}
                     </div>

@@ -197,8 +197,7 @@ export async function POST(request: NextRequest) {
           genre: genreForDb,
           prompt: customPrompt,
           task_id: result.taskId,
-          status: 'generating',
-          is_published: isPublished !== undefined ? isPublished : true
+          status: 'generating'
         });
 
         const recordTime = Date.now() - recordStartTime;

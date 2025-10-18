@@ -49,7 +49,7 @@ export const useMusicGeneration = () => {
   const [customPrompt, setCustomPrompt] = useState("");
   const [songTitle, setSongTitle] = useState("");
   const [instrumentalMode, setInstrumentalMode] = useState(false);
-  const [isPublished, setIsPublished] = useState(true);
+  const [isPublished] = useState(true); // 默认开启，不支持用户修改
   const [styleText, setStyleText] = useState("");
 
   // Advanced Music Options
@@ -201,8 +201,8 @@ export const useMusicGeneration = () => {
           currentAudioUrl = audioUrl;
           currentDuration = t.duration;
         } else {
-          isLoading = true; // 显示loading指示器（但只在单个歌曲卡片上）
-          isGenerating = true;
+          isLoading = false; // 不显示loading指示器，使用旋转封面
+          isGenerating = true; // 仍在生成中（用于封面旋转效果）
           isStreaming = hasStreamAudio;
           currentAudioUrl = streamAudioUrl;
           currentDuration = undefined; // 其他歌曲在 first 回调时也显示 --:--
@@ -215,8 +215,8 @@ export const useMusicGeneration = () => {
         currentAudioUrl = audioUrl;
         currentDuration = t.duration;
       } else {
-        // generating 状态：显示骨架屏
-        isLoading = true;
+        // generating 状态：不显示遮罩，通过skeleton显示
+        isLoading = false; // 不显示遮罩，skeleton由pendingTasksCount控制
         isGenerating = true;
         isStreaming = false;
         currentAudioUrl = '';
@@ -594,7 +594,7 @@ export const useMusicGeneration = () => {
     customPrompt, setCustomPrompt,
     songTitle, setSongTitle,
     instrumentalMode, setInstrumentalMode,
-    isPublished, setIsPublished,
+    isPublished,
     styleText, setStyleText,
 
     // Advanced Options

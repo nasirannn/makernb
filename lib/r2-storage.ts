@@ -14,32 +14,55 @@ export const BUCKET_NAME = process.env.R2_BUCKET_NAME;
 const PUBLIC_DOMAIN = process.env.R2_PUBLIC_DOMAIN;
 
 /**
- * 从URL下载文件
+ * 从URL下载文件（带重试机制）
  */
-export async function downloadFromUrl(url: string): Promise<Buffer> {
-  try {
-    // 验证URL是否有效
-    if (!url || typeof url !== 'string' || url.trim() === '') {
-      throw new Error('Invalid URL: URL is empty or undefined');
-    }
-    
-    // 验证URL格式
+export async function downloadFromUrl(url: string, maxRetries = 3): Promise<Buffer> {
+  let lastError: Error | null = null;
+  
+  for (let attempt = 1; attempt <= maxRetries; attempt++) {
     try {
-      new URL(url);
-    } catch (urlError) {
-      throw new Error(`Invalid URL format: ${url}`);
+      // 验证URL是否有效
+      if (!url || typeof url !== 'string' || url.trim() === '') {
+        throw new Error('Invalid URL: URL is empty or undefined');
+      }
+      
+      // 验证URL格式
+      try {
+        new URL(url);
+      } catch (urlError) {
+        throw new Error(`Invalid URL format: ${url}`);
+      }
+      
+      const response = await fetch(url, {
+        signal: AbortSignal.timeout(30000) // 30秒超时
+      });
+      
+      if (!response.ok) {
+        throw new Error(`Failed to download file: ${response.statusText}`);
+      }
+      
+      const arrayBuffer = await response.arrayBuffer();
+      
+      if (attempt > 1) {
+        console.log(`Download succeeded on attempt ${attempt}/${maxRetries}`);
+      }
+      
+      return Buffer.from(arrayBuffer);
+    } catch (error) {
+      lastError = error as Error;
+      console.error(`Download attempt ${attempt}/${maxRetries} failed:`, error);
+      
+      if (attempt < maxRetries) {
+        // 指数退避：2s, 4s, 8s
+        const delayMs = Math.min(2000 * Math.pow(2, attempt - 1), 8000);
+        console.log(`Retrying download in ${delayMs}ms...`);
+        await new Promise(resolve => setTimeout(resolve, delayMs));
+      }
     }
-    
-    const response = await fetch(url);
-    if (!response.ok) {
-      throw new Error(`Failed to download file: ${response.statusText}`);
-    }
-    const arrayBuffer = await response.arrayBuffer();
-    return Buffer.from(arrayBuffer);
-  } catch (error) {
-    console.error('Error downloading file:', error);
-    throw error;
   }
+  
+  console.error(`Download failed after ${maxRetries} attempts`);
+  throw lastError || new Error('Download failed');
 }
 
 /**
