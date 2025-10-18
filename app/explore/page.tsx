@@ -3,7 +3,7 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { Button } from '@/components/ui/button';
 import { Play, Pause, Music } from 'lucide-react';
-import { SafeImage } from '@/components/ui/safe-image';
+import { CoverImage } from '@/components/ui/optimized-image';
 import { MusicPlayer } from '@/components/ui/music-player';
 import { CustomAudioWaveIndicator } from '@/components/ui/audio-wave-indicator';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -400,10 +400,11 @@ export default function ExplorePage() {
                 >
                   {/* Cover Image */}
                   <div className="relative aspect-square overflow-hidden">
-                    <SafeImage
+                    <CoverImage
                       src={music.primaryTrack.cover_r2_url || ''}
                       alt={music.title}
                       fill
+                      size="lg"
                       className="object-cover transition-transform duration-300 group-hover:scale-105"
                       fallbackContent={
                         <div className="absolute inset-0 w-full h-full bg-gradient-to-br from-purple-600/80 via-purple-700/60 to-purple-800/80 flex items-center justify-center">

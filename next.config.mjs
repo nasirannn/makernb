@@ -11,6 +11,19 @@ const nextConfig = {
       },
     ];
   },
+  async headers() {
+    return [
+      {
+        source: '/_next/image(.*)',
+        headers: [
+          {
+            key: 'Cache-Control',
+            value: 'public, max-age=31536000, immutable',
+          },
+        ],
+      },
+    ];
+  },
   images: {
     remotePatterns: [
       {
@@ -53,13 +66,19 @@ const nextConfig = {
         protocol: "https",
         hostname: "api.producthunt.com",
       },
+      {
+        protocol: "https",
+        hostname: "makernb-assets.nasirann.com",
+      },
     ],
     // 添加图片优化配置
     dangerouslyAllowSVG: true,
     contentDispositionType: 'attachment',
     contentSecurityPolicy: "default-src 'self'; script-src 'none'; sandbox;",
-    // 设置图片加载超时
-    minimumCacheTTL: 60,
+    // 增加缓存时间以减少重复转换
+    minimumCacheTTL: 31536000, // 1年
+    // 设置图片格式和质量
+    formats: ['image/webp', 'image/avif'],
     // 禁用图片优化以避免超时问题（开发环境）
     unoptimized: process.env.NODE_ENV === 'development',
   },

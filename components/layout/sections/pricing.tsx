@@ -179,7 +179,7 @@ export const PricingSection = () => {
                 <div className="flex items-center gap-2">
                   <span>Yearly</span>
                   <span className="relative inline-block rounded-full border border-zinc-700 bg-zinc-900/20 px-2 py-0.5 text-xs text-zinc-50 animate-border-marquee">
-                    <span className="text-foreground/90 font-medium">Save 36% ⚡</span>
+                    <span className="text-foreground/90 font-medium">Save 36%</span>
                     <span className="absolute bottom-0 left-1 right-1 h-[1px] bg-gradient-to-r from-zinc-500/0 via-zinc-300 to-zinc-500/0"></span>
                   </span>
                 </div>
