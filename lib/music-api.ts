@@ -132,8 +132,15 @@ class MusicApiService {
       apiParams.instrumental = request.instrumentalMode || false;
       apiParams.model = process.env.CUSTOM_MODE_MODEL; // Custom Mode使用配置的模型
 
-      // Custom Mode: 使用用户输入的styleText
-      apiParams.style = request.styleText?.trim() || '';
+      // Custom Mode: 使用用户输入的styleText + R&B风格提示
+      const styleHint = 'in R&B style';
+      if (request.styleText && request.styleText.trim()) {
+        const base = request.styleText.trim();
+        const combined = `${base}, ${styleHint}`;
+        apiParams.style = combined;
+      } else {
+        apiParams.style = styleHint;
+      }
 
       // 处理prompt - 根据API文档，在非instrumental模式下，prompt严格作为歌词使用
       if (!request.instrumentalMode && request.customPrompt) {
