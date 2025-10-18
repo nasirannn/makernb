@@ -87,6 +87,7 @@ const StudioContent = () => {
         songTitle, setSongTitle,
         instrumentalMode, setInstrumentalMode,
         isPublished, setIsPublished,
+        styleText, setStyleText,
         bpm, setBpm,
         grooveType, setGrooveType,
         leadInstrument, setLeadInstrument,
@@ -870,6 +871,8 @@ const StudioContent = () => {
                     setInstrumentalMode={setInstrumentalMode}
                     isPublished={isPublished}
                     setIsPublished={setIsPublished}
+                    styleText={styleText}
+                    setStyleText={setStyleText}
                     bpm={bpm}
                     setBpm={setBpm}
                     grooveType={grooveType}
@@ -943,6 +946,8 @@ const StudioContent = () => {
                                     setInstrumentalMode={setInstrumentalMode}
                                     isPublished={isPublished}
                                     setIsPublished={setIsPublished}
+                                    styleText={styleText}
+                                    setStyleText={setStyleText}
                                     bpm={bpm}
                                     setBpm={setBpm}
                                     grooveType={grooveType}

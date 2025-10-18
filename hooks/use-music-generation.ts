@@ -50,6 +50,7 @@ export const useMusicGeneration = () => {
   const [songTitle, setSongTitle] = useState("");
   const [instrumentalMode, setInstrumentalMode] = useState(false);
   const [isPublished, setIsPublished] = useState(true);
+  const [styleText, setStyleText] = useState("");
 
   // Advanced Music Options
   const [bpm, setBpm] = useState([60]);
@@ -123,8 +124,8 @@ export const useMusicGeneration = () => {
         return false;
       }
     } else {
-      if (!selectedGenre || !selectedVibe) {
-        toast.error("Please select genre and vibe");
+      if (!styleText?.trim()) {
+        toast.error("Please enter music style");
         return false;
       }
     }
@@ -601,6 +602,7 @@ export const useMusicGeneration = () => {
     songTitle, setSongTitle,
     instrumentalMode, setInstrumentalMode,
     isPublished, setIsPublished,
+    styleText, setStyleText,
 
     // Advanced Options
     bpm, setBpm,

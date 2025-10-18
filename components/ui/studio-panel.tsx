@@ -40,6 +40,8 @@ interface StudioPanelProps {
   setInstrumentalMode: (mode: boolean) => void;
   isPublished: boolean;
   setIsPublished: (isPublished: boolean) => void;
+  styleText: string;
+  setStyleText: (text: string) => void;
   bpm: number[];
   setBpm: (bpm: number[]) => void;
   grooveType: string;
@@ -98,6 +100,8 @@ export const StudioPanel = (props: StudioPanelProps) => {
     setInstrumentalMode,
     isPublished,
     setIsPublished,
+    styleText,
+    setStyleText,
     bpm,
     setBpm,
     grooveType,
@@ -124,9 +128,6 @@ export const StudioPanel = (props: StudioPanelProps) => {
 
   // State for managing expanded categories
   const [expandedCategory, setExpandedCategory] = React.useState<string | null>(null);
-  
-  // State for style textarea
-  const [styleText, setStyleText] = React.useState<string>("");
   
   // State for hovered instrument
   const [hoveredInstrument, setHoveredInstrument] = React.useState<string | null>(null);
@@ -1078,10 +1079,10 @@ export const StudioPanel = (props: StudioPanelProps) => {
             // Custom Mode: 根据instrumental模式确定required字段
             if (instrumentalMode) {
               // instrumental: true - style和title是required
-              isDisabled = isDisabled || !selectedGenre || !selectedVibe || !songTitle.trim();
+              isDisabled = isDisabled || !styleText.trim() || !songTitle.trim();
             } else {
               // instrumental: false - style, prompt(lyrics), title是required
-              isDisabled = isDisabled || !selectedGenre || !selectedVibe || !songTitle.trim() || !customPrompt.trim();
+              isDisabled = isDisabled || !styleText.trim() || !songTitle.trim() || !customPrompt.trim();
             }
           }
           return (
