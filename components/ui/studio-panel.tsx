@@ -550,26 +550,27 @@ export const StudioPanel = (props: StudioPanelProps) => {
                     {expandedCategory === 'genre' && (
                       <div className="flex flex-wrap gap-2">
                         {genres.map((genre: any) => (
-                          <button
-                            key={genre.id}
-                            onClick={() => {
-                              setSelectedGenre(genre.id);
-                              // Replace genre in textarea (only one genre allowed)
-                              const otherText = styleText.split(',').filter(item => {
-                                const trimmed = item.trim().toLowerCase();
-                                return !genres.some(g => g.name.toLowerCase() === trimmed);
-                              }).join(',').replace(/^,|,$/g, '').trim();
-                              const newText = otherText ? `${otherText}, ${genre.name}` : genre.name;
-                              setStyleText(newText);
-                            }}
-                            className={`inline-flex items-center px-3 py-2 rounded-lg text-sm font-medium transition-all duration-200 ${
-                              selectedGenre === genre.id
-                                ? 'bg-primary text-primary-foreground'
-                                : 'text-muted-foreground hover:text-foreground hover:bg-muted/50'
-                            }`}
-                          >
-                            <span>{genre.name}</span>
-                          </button>
+                          <Tooltip key={genre.id} content={genre.description} position="top">
+                            <button
+                              onClick={() => {
+                                setSelectedGenre(genre.id);
+                                // Replace genre in textarea (only one genre allowed)
+                                const otherText = styleText.split(',').filter(item => {
+                                  const trimmed = item.trim().toLowerCase();
+                                  return !genres.some(g => g.name.toLowerCase() === trimmed);
+                                }).join(',').replace(/^,|,$/g, '').trim();
+                                const newText = otherText ? `${otherText}, ${genre.name}` : genre.name;
+                                setStyleText(newText);
+                              }}
+                              className={`inline-flex items-center px-3 py-2 rounded-lg text-sm font-medium transition-all duration-200 ${
+                                selectedGenre === genre.id
+                                  ? 'bg-primary text-primary-foreground'
+                                  : 'text-muted-foreground hover:text-foreground hover:bg-muted/50'
+                              }`}
+                            >
+                              <span>{genre.name}</span>
+                            </button>
+                          </Tooltip>
                         ))}
                   </div>
                     )}
@@ -577,26 +578,27 @@ export const StudioPanel = (props: StudioPanelProps) => {
                     {expandedCategory === 'vibe' && (
                       <div className="flex flex-wrap gap-2">
                         {vibes.map((vibe: any) => (
-                          <button
-                            key={vibe.id}
-                            onClick={() => {
-                              setSelectedVibe(vibe.id);
-                              // Replace vibe in textarea (only one vibe allowed)
-                              const otherText = styleText.split(',').filter(item => {
-                                const trimmed = item.trim().toLowerCase();
-                                return !vibes.some(v => v.name.toLowerCase() === trimmed);
-                              }).join(',').replace(/^,|,$/g, '').trim();
-                              const newText = otherText ? `${otherText}, ${vibe.name}` : vibe.name;
-                              setStyleText(newText);
-                            }}
-                            className={`inline-flex items-center px-3 py-2 rounded-lg text-sm font-medium transition-all duration-200 ${
-                              selectedVibe === vibe.id
-                                ? 'bg-primary text-primary-foreground'
-                                : 'text-muted-foreground hover:text-foreground hover:bg-muted/50'
-                            }`}
-                          >
-                            <span>{vibe.name}</span>
-                          </button>
+                          <Tooltip key={vibe.id} content={vibe.description} position="top">
+                            <button
+                              onClick={() => {
+                                setSelectedVibe(vibe.id);
+                                // Replace vibe in textarea (only one vibe allowed)
+                                const otherText = styleText.split(',').filter(item => {
+                                  const trimmed = item.trim().toLowerCase();
+                                  return !vibes.some(v => v.name.toLowerCase() === trimmed);
+                                }).join(',').replace(/^,|,$/g, '').trim();
+                                const newText = otherText ? `${otherText}, ${vibe.name}` : vibe.name;
+                                setStyleText(newText);
+                              }}
+                              className={`inline-flex items-center px-3 py-2 rounded-lg text-sm font-medium transition-all duration-200 ${
+                                selectedVibe === vibe.id
+                                  ? 'bg-primary text-primary-foreground'
+                                  : 'text-muted-foreground hover:text-foreground hover:bg-muted/50'
+                              }`}
+                            >
+                              <span>{vibe.name}</span>
+                            </button>
+                          </Tooltip>
                         ))}
                               </div>
                     )}

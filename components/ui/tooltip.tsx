@@ -34,7 +34,7 @@ export const Tooltip: React.FC<TooltipProps> = ({
   };
 
   const getPositionClasses = () => {
-    const baseClasses = `absolute px-3 py-2 text-sm text-foreground bg-card/95 backdrop-blur-md rounded-lg shadow-lg border border-border/50 pointer-events-none transition-all duration-200 ease-out whitespace-nowrap z-[${Z_INDEX.TOOLTIP}]`;
+    const baseClasses = `absolute px-2 py-1.5 text-xs text-foreground bg-card/95 backdrop-blur-md rounded-lg shadow-lg border border-border/50 pointer-events-none transition-all duration-200 ease-out w-full break-words z-[${Z_INDEX.TOOLTIP}]`;
     
     switch (position) {
       case 'top':

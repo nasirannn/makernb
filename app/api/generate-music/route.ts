@@ -40,50 +40,28 @@ export async function POST(request: NextRequest) {
       mode,
       customPrompt,
       instrumentalMode,
-      isPublished,
-      genre,
-      vibe,
       songTitle,
-      grooveType,
-      leadInstrument,
-      drumKit,
-      bassTone,
-      vocalStyle,
+      styleText,
       vocalGender,
-      harmonyPalette,
-      bpm
+      genre
     } = requestData;
     // 根据模式处理参数
-    let selectedGenre = genre;
     console.log(`[MUSIC-GEN-${requestId}] Processing mode: ${mode}`);
 
     if (mode === 'basic') {
-      // Basic mode: 固定设置genre为"Contemporary R&B"
-      selectedGenre = 'R&B'; // 固定设置为Contemporary R&B
-      console.log(`[MUSIC-GEN-${requestId}] Basic mode - using fixed genre: ${selectedGenre}`);
+      console.log(`[MUSIC-GEN-${requestId}] Basic mode - processing basic mode request`);
 
     } else if (mode === 'custom') {
       console.log(`[MUSIC-GEN-${requestId}] Custom mode - validating parameters`);
-      // Custom mode: 使用用户选择的所有参数
-      if (!genre || !vibe) {
-        console.log(`[MUSIC-GEN-${requestId}] Custom mode validation failed - missing genre or vibe`);
+      // Custom mode: 只检查styleText内容
+      if (!styleText || !styleText.trim()) {
+        console.log(`[MUSIC-GEN-${requestId}] Custom mode validation failed - missing styleText`);
         return NextResponse.json(
-          { error: 'Please select genre and vibe for custom mode' },
+          { error: 'Please select or enter music style' },
           { status: 400 }
         );
       }
-
-      // 验证genre ID是否有效
-      const selectedStyle = R_AND_B_STYLES.find(style => style.id === genre);
-      if (!selectedStyle) {
-        console.log(`[MUSIC-GEN-${requestId}] Invalid genre: ${genre}`);
-        return NextResponse.json(
-          { error: `Invalid genre: ${genre}` },
-          { status: 400 }
-        );
-      }
-      selectedGenre = genre; // 保持ID不变，music-api.ts需要ID
-      console.log(`[MUSIC-GEN-${requestId}] Custom mode - using genre: ${selectedGenre}, vibe: ${vibe}`);
+      console.log(`[MUSIC-GEN-${requestId}] Custom mode - styleText validated: ${styleText}`);
 
     } else {
       console.log(`[MUSIC-GEN-${requestId}] Invalid mode: ${mode}`);
@@ -159,26 +137,18 @@ export async function POST(request: NextRequest) {
       mode,
       customPrompt,
       instrumentalMode,
-      genre: selectedGenre,
-      vibe,
       songTitle,
-      grooveType,
-      leadInstrument,
-      drumKit,
-      bassTone,
-      vocalStyle,
-      vocalGender,
-      harmonyPalette,
-      bpm
+      styleText,
+      vocalGender
     };
 
     // Generate music
     console.log(`[MUSIC-GEN-${requestId}] Calling musicApi.generateMusic with request:`, {
       mode: musicRequest.mode,
-      genre: musicRequest.genre,
       instrumentalMode: musicRequest.instrumentalMode,
       hasCustomPrompt: !!musicRequest.customPrompt,
-      songTitle: musicRequest.songTitle
+      songTitle: musicRequest.songTitle,
+      hasStyleText: !!musicRequest.styleText
     });
 
     const result = await musicApi.generateMusic(musicRequest);
@@ -196,12 +166,10 @@ export async function POST(request: NextRequest) {
         console.log(`[MUSIC-GEN-${requestId}] Starting database operations for successful generation`);
 
         // 准备数据库存储的genre
-        let genreForDb;
-        if (mode === 'basic') {
-          genreForDb = 'R&B'; // Basic Mode固定为R&B
-        } else {
-          const styleForDb = R_AND_B_STYLES.find(style => style.id === selectedGenre);
-          genreForDb = styleForDb ? styleForDb.name : selectedGenre;
+        let genreForDb = 'R&B'; // 默认值
+        if (genre) {
+          const selectedStyle = R_AND_B_STYLES.find(style => style.id === genre);
+          genreForDb = selectedStyle ? selectedStyle.name : genre;
         }
 
         // 步骤1: 先扣除积分（最关键的操作，优先执行）
@@ -305,12 +273,10 @@ export async function POST(request: NextRequest) {
 
       try {
         // 创建失败记录到数据库
-        let genreForDb;
-        if (mode === 'basic') {
-          genreForDb = 'R&B';
-        } else {
-          const styleForDb = R_AND_B_STYLES.find(style => style.id === selectedGenre);
-          genreForDb = styleForDb ? styleForDb.name : selectedGenre;
+        let genreForDb = 'R&B'; // 默认值
+        if (genre) {
+          const selectedStyle = R_AND_B_STYLES.find(style => style.id === genre);
+          genreForDb = selectedStyle ? selectedStyle.name : genre;
         }
 
         const failedGeneration = await createMusicGeneration(userId, {

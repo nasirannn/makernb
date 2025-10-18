@@ -7,6 +7,7 @@
   ],
   "vibes": [
     { "id": "slow-jam", "name": "Slow Jam", "description": "Smooth, romantic slow tempo" },
+    { "id": "seductive", "name": "Seductive", "description": "Sensual and alluring with smooth vocals" },
     { "id": "upbeat", "name": "Upbeat", "description": "Energetic and danceable" },
     { "id": "chill", "name": "Chill", "description": "Relaxed and laid-back" },
     { "id": "raw", "name": "Raw", "description": "Authentic, unpolished sound" },
