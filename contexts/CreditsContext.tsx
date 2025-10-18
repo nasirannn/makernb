@@ -18,7 +18,7 @@ export function CreditsProvider({ children }: { children: React.ReactNode }) {
   const [credits, setCredits] = useState<number | null>(null);
   const [loading, setLoading] = useState(false);
   const [isRefreshing, setIsRefreshing] = useState(false);
-  const { user } = useAuth();
+  const { user, onCreditsUpdated } = useAuth();
 
   // 从后端获取积分余额
   const refreshCredits = useCallback(async () => {
@@ -105,13 +105,23 @@ export function CreditsProvider({ children }: { children: React.ReactNode }) {
     }
   }, [user]); // isRefreshing不需要在依赖数组中
 
+  // 注册积分更新回调
+  useEffect(() => {
+    if (onCreditsUpdated) {
+      onCreditsUpdated(() => {
+        console.log('[CreditsContext] Credits updated, refreshing...');
+        refreshCredits();
+      });
+    }
+  }, [onCreditsUpdated, refreshCredits]);
+
   // 只在用户登录时获取积分
   useEffect(() => {
     if (user && credits === null) {
-      // 添加延迟确保session完全准备好
+      // 添加延迟确保session完全准备好，并且等待每日积分发放
       const timer = setTimeout(() => {
         refreshCredits();
-      }, 1000);
+      }, 4000); // 增加延迟到4秒，确保在checkDailyCredits(3秒)之后执行
       return () => clearTimeout(timer);
     } else if (!user) {
       setCredits(null);

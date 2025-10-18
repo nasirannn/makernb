@@ -13,6 +13,7 @@ interface AuthContextType {
   signOut: () => Promise<void>;
   checkDailyCredits: (sessionToken?: string) => Promise<void>;
   manualCheckCredits: () => Promise<void>;
+  onCreditsUpdated?: (callback: () => void) => void; // 新增回调注册函数
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -27,6 +28,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const lastCreditsCheckTime = useRef(0);
   const [isUserAdmin, setIsUserAdmin] = useState<boolean | null>(null);
   const adminCheckCache = useRef<Map<string, boolean>>(new Map());
+  const creditsUpdatedCallback = useRef<(() => void) | null>(null);
 
   // 定义checkDailyCredits函数
   const checkDailyCredits = async (sessionToken?: string) => {
@@ -105,6 +107,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             description: `You have received ${data.reward.credits_awarded} credits as a daily login bonus. They are only valid today (UTC) - use them up ASAP.`,
             duration: 5000,
           });
+          
+          // 触发积分刷新回调
+          if (creditsUpdatedCallback.current) {
+            setTimeout(() => {
+              creditsUpdatedCallback.current?.();
+            }, 500); // 延迟500ms确保数据库更新完成
+          }
         } else if (data.alreadyReceived) {
           // User already received today's credits
         } else if (data.message?.includes('Not eligible')) {
@@ -268,6 +277,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     signOut,
     checkDailyCredits,
     manualCheckCredits,
+    onCreditsUpdated: (callback: () => void) => {
+      creditsUpdatedCallback.current = callback;
+    },
   };
 
   return (
