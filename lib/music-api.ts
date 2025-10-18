@@ -11,7 +11,6 @@ export interface GenerateMusicRequest {
   songTitle?: string;
   styleText?: string; // 用户直接输入的style内容
   vocalGender?: string; // 人声性别偏好：'m' 或 'f'
-  bpm?: number;
 }
 
 export interface GeneratedMusic {
