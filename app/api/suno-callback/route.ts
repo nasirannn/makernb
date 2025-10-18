@@ -219,58 +219,6 @@ async function processCallbackAsync(callbackData: any, callbackId: string) {
       if (callbackType === 'text') {
         console.log(`[CALLBACK-${callbackId}] Processing TEXT callback`);
 
-        // 🎯 text回调时开始封面生成
-        // 使用标记避免重复调用封面生成
-        const coverTaskKey = `${taskId}_cover_started`;
-        if (!processedTasks.has(coverTaskKey)) {
-          console.log(`[CALLBACK-${callbackId}] Starting cover generation for taskId: ${taskId}`);
-          processedTasks.add(coverTaskKey);
-
-          // 异步开始封面生成，不阻塞回调处理
-          setImmediate(async () => {
-            try {
-              console.log(`[CALLBACK-${callbackId}] Initiating cover generation for taskId: ${taskId}`);
-
-              // 从音乐生成记录中获取用户ID
-              let userId = null;
-              try {
-                const musicGenQuery = await query(
-                  'SELECT user_id FROM music_generations WHERE task_id = $1',
-                  [taskId]
-                );
-
-                if (musicGenQuery.rows.length > 0) {
-                  userId = musicGenQuery.rows[0].user_id;
-                  console.log(`[CALLBACK-${callbackId}] Found userId for cover generation: ${userId}`);
-                } else {
-                  console.error(`[CALLBACK-${callbackId}] No music generation record found for task_id: ${taskId}`);
-                }
-              } catch (dbError) {
-                console.error(`[CALLBACK-${callbackId}] Failed to query user_id for task_id ${taskId}:`, dbError);
-              }
-
-              const coverResponse = await fetch(`${process.env.CallBackURL}/api/generate-cover`, {
-                method: 'POST',
-                headers: {
-                  'Content-Type': 'application/json'
-                },
-                body: JSON.stringify({
-                  musicTaskId: taskId,
-                  userId: userId // 直接传递用户ID
-                })
-              });
-
-              if (coverResponse.ok) {
-                console.log(`[CALLBACK-${callbackId}] Cover generation started successfully for taskId: ${taskId}`);
-              } else {
-                const errorText = await coverResponse.text();
-                console.error(`[CALLBACK-${callbackId}] Failed to start cover generation for music task ${taskId}:`, errorText);
-              }
-            } catch (coverError) {
-              console.error(`[CALLBACK-${callbackId}] Error starting cover generation for music task ${taskId}:`, coverError);
-            }
-          });
-        }
         // 4.1 text回调：只存储数据到数据库
         console.log(`[CALLBACK-${callbackId}] Processing text callback database operations`);
 
@@ -422,6 +370,59 @@ async function processCallbackAsync(callbackData: any, callbackId: string) {
           }
         } catch (tracksError) {
           console.error('Failed to create music_tracks records in text callback:', tracksError);
+        }
+
+        // 4.1.4 在music_tracks创建完成后，触发封面生成
+        // 使用标记避免重复调用封面生成
+        const coverTaskKey = `${taskId}_cover_started`;
+        if (!processedTasks.has(coverTaskKey)) {
+          console.log(`[CALLBACK-${callbackId}] Starting cover generation for taskId: ${taskId}`);
+          processedTasks.add(coverTaskKey);
+
+          // 异步开始封面生成，不阻塞回调处理
+          setImmediate(async () => {
+            try {
+              console.log(`[CALLBACK-${callbackId}] Initiating cover generation for taskId: ${taskId}`);
+
+              // 从音乐生成记录中获取用户ID
+              let userId = null;
+              try {
+                const musicGenQuery = await query(
+                  'SELECT user_id FROM music_generations WHERE task_id = $1',
+                  [taskId]
+                );
+
+                if (musicGenQuery.rows.length > 0) {
+                  userId = musicGenQuery.rows[0].user_id;
+                  console.log(`[CALLBACK-${callbackId}] Found userId for cover generation: ${userId}`);
+                } else {
+                  console.error(`[CALLBACK-${callbackId}] No music generation record found for task_id: ${taskId}`);
+                }
+              } catch (dbError) {
+                console.error(`[CALLBACK-${callbackId}] Failed to query user_id for task_id ${taskId}:`, dbError);
+              }
+
+              const coverResponse = await fetch(`${process.env.CallBackURL}/api/generate-cover`, {
+                method: 'POST',
+                headers: {
+                  'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                  musicTaskId: taskId,
+                  userId: userId // 直接传递用户ID
+                })
+              });
+
+              if (coverResponse.ok) {
+                console.log(`[CALLBACK-${callbackId}] Cover generation started successfully for taskId: ${taskId}`);
+              } else {
+                const errorText = await coverResponse.text();
+                console.error(`[CALLBACK-${callbackId}] Failed to start cover generation for music task ${taskId}:`, errorText);
+              }
+            } catch (coverError) {
+              console.error(`[CALLBACK-${callbackId}] Error starting cover generation for music task ${taskId}:`, coverError);
+            }
+          });
         }
 
         return; // 直接返回，不处理其他逻辑
