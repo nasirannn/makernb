@@ -160,7 +160,7 @@ export const StudioTracksList: React.FC<StudioTracksListProps> = ({
                 <div
                   key={`generated-${index}`}
                   className={`relative flex items-center gap-4 px-4 py-2 transition-all duration-300 group cursor-pointer
-                    ${track.isLoading || track.isError
+                    ${track.isError
                       ? 'cursor-default'
                       : `${currentlyPlaying === `generated-${index}`
                           ? 'bg-muted/30'
@@ -168,12 +168,12 @@ export const StudioTracksList: React.FC<StudioTracksListProps> = ({
                         }`
                     }`}
                   onClick={() => {
-                    if (!track.isLoading && !track.isError && onGeneratedTrackSelect) {
+                    if (!track.isError && onGeneratedTrackSelect) {
                       onGeneratedTrackSelect(track);
                     }
                   }}
                 >
-                  {/* Loading 状态显示遮罩和 Progress indicators - 只覆盖单个歌曲卡片 */}
+                  {/* Loading 状态显示遮罩和 Progress indicators - 只在generating状态显示 */}
                   {track.isLoading && (
                     <div className="absolute inset-0 bg-black/60 flex items-center justify-center pointer-events-none z-10">
                       <LoadingDots size="md" color="white" />
@@ -205,12 +205,17 @@ export const StudioTracksList: React.FC<StudioTracksListProps> = ({
                       />
                     ) : (
                       <div className="w-full h-full bg-gradient-to-br from-primary/20 to-primary/40 flex items-center justify-center transition-all duration-300">
-                        <Music className="h-6 w-6 text-primary" />
+                        {track.isGenerating ? (
+                          // text回调后显示旋转的loading效果
+                          <div className="animate-spin rounded-full h-6 w-6 border-2 border-primary border-t-transparent"></div>
+                        ) : (
+                          <Music className="h-6 w-6 text-primary" />
+                        )}
                       </div>
                     )}
 
                     {/* Play Button Overlay for Generated Tracks - 鼠标悬浮时显示 */}
-                    {!track.isLoading && !track.isError && (
+                    {!track.isError && (
                       <div className="absolute inset-0 bg-black/50 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
                         <Button
                           variant="ghost"
@@ -235,7 +240,7 @@ export const StudioTracksList: React.FC<StudioTracksListProps> = ({
                     )}
 
                     {/* Audio Wave Indicator for Generated Tracks - 只在播放时显示，鼠标悬浮时隐藏 */}
-                    {currentlyPlaying === `generated-${index}` && isPlaying && !track.isLoading && !track.isError && (
+                    {currentlyPlaying === `generated-${index}` && isPlaying && !track.isError && (
                       <div className="absolute inset-0 flex items-center justify-center opacity-100 group-hover:opacity-0 transition-opacity pointer-events-none">
                         <CustomAudioWaveIndicator
                           isPlaying={isPlaying}
@@ -276,7 +281,7 @@ export const StudioTracksList: React.FC<StudioTracksListProps> = ({
                   </div>
 
                   {/* Mobile Play Button - 移动端播放按钮 */}
-                  {!track.isError && !track.isLoading && (
+                  {!track.isError && (
                     <button
                       onClick={(e) => {
                         e.stopPropagation();

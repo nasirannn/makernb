@@ -186,9 +186,9 @@ export const useMusicGeneration = () => {
       let currentDuration = undefined;
 
       if (status === 'text') {
-        // text 回调：显示播放器，使用 stream audio，duration 显示 --:--
-        isLoading = true; // 显示loading指示器（但只在单个歌曲卡片上）
-        isGenerating = true; // 仍在生成中
+        // text 回调：移除遮罩和白点指示器，允许点击，封面显示旋转loading
+        isLoading = false; // 移除loading指示器
+        isGenerating = true; // 仍在生成中（用于封面旋转效果）
         isStreaming = hasStreamAudio;
         currentAudioUrl = streamAudioUrl;
         currentDuration = undefined; // 不显示具体时长，前端会显示 --:--
