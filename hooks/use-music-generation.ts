@@ -142,6 +142,7 @@ export const useMusicGeneration = () => {
       instrumentalMode,
       songTitle,
       styleText,
+      vocalGender,
       bpm: bpm[0]
     };
   };

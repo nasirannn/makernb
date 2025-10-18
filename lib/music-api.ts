@@ -10,6 +10,7 @@ export interface GenerateMusicRequest {
   // Custom mode fields
   songTitle?: string;
   styleText?: string; // 用户直接输入的style内容
+  vocalGender?: string; // 人声性别偏好：'m' 或 'f'
   bpm?: number;
 }
 
@@ -147,6 +148,15 @@ class MusicApiService {
       // Title
       if (request.songTitle) {
         apiParams.title = request.songTitle;
+      }
+
+      // Vocal Gender
+      if (request.vocalGender && !request.instrumentalMode) {
+        const genderMap = {
+          'male': 'm',
+          'female': 'f'
+        };
+        apiParams.vocalGender = genderMap[request.vocalGender as keyof typeof genderMap] || request.vocalGender;
       }
 
     }
