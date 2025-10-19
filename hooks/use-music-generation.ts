@@ -49,7 +49,7 @@ export const useMusicGeneration = () => {
   const [customPrompt, setCustomPrompt] = useState("");
   const [songTitle, setSongTitle] = useState("");
   const [instrumentalMode, setInstrumentalMode] = useState(false);
-  const [isPublished] = useState(true); // 默认开启，不支持用户修改
+  const [isPublished] = useState(false); // 默认关闭，用户可以在library中手动发布
   const [styleText, setStyleText] = useState("");
 
   // Advanced Music Options

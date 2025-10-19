@@ -324,8 +324,8 @@ async function processCallbackAsync(callbackData: any, callbackId: string) {
           
           if (musicGenQuery.rows.length > 0) {
             const musicGenerationId = musicGenQuery.rows[0].id;
-            // 默认设置为发布状态，用户可以在library中修改
-            const isPublished = true;
+            // 默认设置为私有状态，用户可以在library中手动发布
+            const isPublished = false;
             
             // 为每个track创建记录
             for (let i = 0; i < tracks.length; i++) {

@@ -532,7 +532,7 @@ const StudioContent = () => {
             audio_url: audioUrl,
             side_letter: generatedTrack.sideLetter,
             created_at: new Date().toISOString(),
-            is_published: isPublished, // 直接使用isPublished：true=公开，false=私有
+            is_published: isPublished, // 直接使用isPublished：true=公开，false=私有（默认false）
             is_deleted: false,
             is_favorited: false,
             is_pinned: false

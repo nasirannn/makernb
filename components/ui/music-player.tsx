@@ -221,11 +221,11 @@ export const MusicPlayer: React.FC<MusicPlayerProps> = ({
             </div>
           </div>
           <div className="min-w-0 flex-1">
-            <div className="text-sm sm:text-sm font-medium text-white truncate">
+            <div className="text-sm sm:text-sm font-medium text-foreground truncate">
               {currentTrack?.title || 'Unknown Track'}
             </div>
             {/* 时长显示 */}
-            <div className="text-xs text-gray-400 font-mono mt-0.5">
+            <div className="text-xs text-muted-foreground mt-0.5">
               {formatTime(duration)}
             </div>
           </div>
@@ -238,7 +238,7 @@ export const MusicPlayer: React.FC<MusicPlayerProps> = ({
             <button
               onClick={onPrevious}
               disabled={currentTrackIndex === 0}
-              className="text-gray-400 hover:text-white disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+              className="text-muted-foreground hover:text-foreground disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
             >
               <Rewind className="w-5 h-5 fill-current" />
             </button>
@@ -246,7 +246,7 @@ export const MusicPlayer: React.FC<MusicPlayerProps> = ({
             {/* 播放/暂停按钮 */}
             <button
               onClick={onPlayPause}
-              className="text-gray-400 hover:text-white transition-colors"
+              className="text-muted-foreground hover:text-foreground transition-colors"
             >
               {isPlaying ? (
                 <Pause className="w-6 h-6 fill-current" />
@@ -259,7 +259,7 @@ export const MusicPlayer: React.FC<MusicPlayerProps> = ({
             <button
               onClick={onNext}
               disabled={currentTrackIndex === tracks.length - 1}
-              className="text-gray-400 hover:text-white disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+              className="text-muted-foreground hover:text-foreground disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
             >
               <FastForward className="w-5 h-5 fill-current" />
             </button>
@@ -273,7 +273,7 @@ export const MusicPlayer: React.FC<MusicPlayerProps> = ({
             <button
               onClick={onPrevious}
               disabled={currentTrackIndex === 0}
-              className="text-gray-400 hover:text-white disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+              className="text-muted-foreground hover:text-foreground disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
             >
               <Rewind className="w-5 h-5 fill-current" />
             </button>
@@ -281,7 +281,7 @@ export const MusicPlayer: React.FC<MusicPlayerProps> = ({
             {/* 播放/暂停按钮 */}
             <button
               onClick={onPlayPause}
-              className="text-gray-400 hover:text-white transition-colors"
+              className="text-muted-foreground hover:text-foreground transition-colors"
             >
               {isPlaying ? (
                 <Pause className="w-6 h-6 fill-current" />
@@ -294,7 +294,7 @@ export const MusicPlayer: React.FC<MusicPlayerProps> = ({
             <button
               onClick={onNext}
               disabled={currentTrackIndex === tracks.length - 1}
-              className="text-gray-400 hover:text-white disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+              className="text-muted-foreground hover:text-foreground disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
             >
               <FastForward className="w-5 h-5 fill-current" />
             </button>
@@ -311,7 +311,7 @@ export const MusicPlayer: React.FC<MusicPlayerProps> = ({
                 className={`transition-colors ${
                   hideProgress 
                     ? 'text-primary hover:text-primary/80' 
-                    : 'text-gray-400 hover:text-white'
+                    : 'text-muted-foreground hover:text-foreground'
                 }`}
                 title={hideProgress ? "Hide lyrics" : "Show lyrics"}
               >
@@ -322,7 +322,7 @@ export const MusicPlayer: React.FC<MusicPlayerProps> = ({
             {/* 音量控制 */}
             <button
               onClick={onMuteToggle}
-              className="text-gray-400 hover:text-white transition-colors"
+              className="text-muted-foreground hover:text-foreground transition-colors"
             >
               {isMuted || volume === 0 ? (
                 <VolumeX className="w-5 h-5 sm:w-5 sm:h-5" />
@@ -346,7 +346,7 @@ export const MusicPlayer: React.FC<MusicPlayerProps> = ({
       
       {/* Bottom Border Progress Bar - 移动端和桌面端，始终显示 */}
       <div 
-        className="absolute bottom-0 h-1 bg-foreground/10 rounded-full overflow-hidden cursor-pointer group"
+        className="absolute bottom-0 h-1 bg-muted/20 rounded-full overflow-hidden cursor-pointer group"
         style={{ left: '0.75rem', right: '0.75rem' }}
         onClick={(e) => {
           if (duration > 0) {
@@ -358,9 +358,15 @@ export const MusicPlayer: React.FC<MusicPlayerProps> = ({
           }
         }}
       >
+        {/* 进度条背景 - 主色 */}
         <div 
-          className="absolute top-0 left-0 h-full bg-foreground/50 transition-all duration-300 group-hover:bg-primary"
+          className="absolute top-0 left-0 h-full bg-primary"
           style={{ width: `${progressPercentage}%` }}
+        />
+        {/* 主色手柄 */}
+        <div 
+          className="absolute top-1/2 w-1.5 h-1.5 bg-primary rounded-full shadow-md transform -translate-y-1/2 transition-all duration-300 group-hover:scale-110"
+          style={{ left: `calc(${progressPercentage}% - 3px)` }}
         />
       </div>
     </div>
