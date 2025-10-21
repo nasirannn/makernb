@@ -114,21 +114,24 @@ export const cleanupExpiredDailyCredits = async (): Promise<number> => {
   try {
     return await withTransaction(async (queryFn) => {
       const today = new Date().toISOString().split('T')[0]; // YYYY-MM-DD
+      const yesterday = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString().split('T')[0]; // 昨天的日期
 
-      // 查找所有过期的每日登录积分（不是今天的）
+      console.log(`[CLEANUP] Today: ${today}, Yesterday: ${yesterday}`);
+
+      // 查找所有过期的每日登录积分（只清理昨天的，不是所有非今天的）
       const expiredCredits = await queryFn(
         `SELECT ct.*, uc.credits
          FROM credit_transactions ct
          JOIN user_credits uc ON ct.user_id = uc.user_id
          WHERE ct.description = 'Daily login bonus'
-         AND DATE(ct.created_at) < $1
+         AND DATE(ct.created_at) = $1
          AND ct.amount > 0
          AND NOT EXISTS (
            SELECT 1 FROM credit_transactions ct2
            WHERE ct2.reference_id = ct.reference_id
            AND ct2.description = 'Daily login credits expired'
          )`,
-        [today]
+        [yesterday]
       );
 
       let cleanedCount = 0;
