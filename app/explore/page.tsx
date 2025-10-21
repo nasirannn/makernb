@@ -329,26 +329,28 @@ export default function ExplorePage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-background pt-24">
-        <div className="container mx-auto px-4 py-8">
-          {/* Header */}
-          <div className="text-center mb-8">
-            <p className="text-sm font-medium text-white/60 uppercase tracking-wider mb-4">
-              MUSIC & CREATIVITY RESOURCES
-            </p>
-            <h1 className="text-3xl md:text-4xl font-bold text-foreground mb-4">
-              Listen to The AI-Generated R&B Songs
-            </h1>
-            <p className="text-white/70 text-lg max-w-2xl mx-auto mb-8">
-              Explore soulful tracks crafted by artificial intelligence
-            </p>
-          </div>
+      <div className="min-h-screen bg-background ">
+        <div className="container mx-auto px-4 pt-32 pb-6 sm:pb-12">
+          <div className="max-w-6xl mx-auto">
+            {/* Header */}
+            <div className="text-center mb-8">
+              <p className="text-sm font-medium text-white/60 uppercase tracking-wider mb-4">
+                MUSIC & CREATIVITY RESOURCES
+              </p>
+              <h1 className="text-5xl md:text-6xl font-bold text-foreground mb-4 tracking-tight">
+                Listen to The AI-Generated R&B Songs
+              </h1>
+              <p className="text-white/70 text-lg max-w-2xl mx-auto mb-8">
+                Explore soulful tracks crafted by artificial intelligence
+              </p>
+            </div>
 
-          {/* Skeleton Grid - 显示一行的数量 */}
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-6">
-            {Array.from({ length: 4 }).map((_, index) => (
-              <SongCardSkeleton key={index} />
-            ))}
+            {/* Skeleton Grid - 显示一行的数量 */}
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-6">
+              {Array.from({ length: 4 }).map((_, index) => (
+                <SongCardSkeleton key={index} />
+              ))}
+            </div>
           </div>
         </div>
       </div>
@@ -357,13 +359,15 @@ export default function ExplorePage() {
 
   if (error) {
     return (
-      <div className="min-h-screen bg-background pt-24">
-        <div className="container mx-auto px-4 py-8">
-          <div className="text-center">
-            <p className="text-red-400 mb-4">{error}</p>
-            <Button onClick={() => fetchExploreData()} variant="outline">
-              Try Again
-            </Button>
+      <div className="min-h-screen bg-background ">
+        <div className="container mx-auto px-4 pt-32 pb-6 sm:pb-12">
+          <div className="max-w-6xl mx-auto">
+            <div className="text-center">
+              <p className="text-red-400 mb-4">{error}</p>
+              <Button onClick={() => fetchExploreData()} variant="outline">
+                Try Again
+              </Button>
+            </div>
           </div>
         </div>
       </div>
@@ -371,120 +375,119 @@ export default function ExplorePage() {
   }
 
   return (
-    <div className="min-h-screen bg-background pt-24">
-      <div className={`container mx-auto px-4 py-8 ${playlist.length > 0 && currentlyPlaying ? 'pb-20 md:pb-20' : ''}`}>
-        {/* Header */}
-        <div className="text-center mb-8">
-          <p className="text-sm font-medium text-white/60 uppercase tracking-wider mb-4">
-            MUSIC & CREATIVITY RESOURCES
-          </p>
-          <h1 className="text-3xl md:text-4xl font-bold text-foreground mb-4">
-            Listen to The AI-Generated R&B Songs
-          </h1>
-          <p className="text-white/70 text-lg max-w-2xl mx-auto mb-8">
-            Explore soulful tracks crafted by artificial intelligence
-          </p>
-        </div>
-
-
-        {/* Music Grid */}
-        {exploreData && exploreData.music && exploreData.music.length > 0 ? (
-          <>
-            <div className="relative">
-
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-6">
-              {exploreData.music.map((music) => (
-                <div
-                  key={music.id}
-                  className="bg-black/20 backdrop-blur-sm rounded-xl overflow-hidden hover:bg-black/30 transition-all duration-300 group cursor-pointer"
-                >
-                  {/* Cover Image */}
-                  <div className="relative aspect-square overflow-hidden">
-                    <CoverImage
-                      src={music.primaryTrack.cover_r2_url || ''}
-                      alt={music.title}
-                      fill
-                      size="lg"
-                      className="object-cover transition-transform duration-300 group-hover:scale-105"
-                      fallbackContent={
-                        <div className="absolute inset-0 w-full h-full bg-gradient-to-br from-purple-600/80 via-purple-700/60 to-purple-800/80 flex items-center justify-center">
-                          <Music className="w-16 h-16 text-white/70" />
-                        </div>
-                      }
-                    />
-
-
-                    {/* Playing Wave Effect - 播放时音波效果 */}
-                    {currentlyPlaying === music.primaryTrack.id && isPlaying && (
-                      <div className="absolute inset-0 flex items-center justify-center bg-black/20 group-hover:opacity-0 transition-opacity duration-300">
-                        <CustomAudioWaveIndicator
-                          isPlaying={isPlaying}
-                          size="lg"
-                          className="text-white"
-                        />
-                      </div>
-                    )}
-
-                    {/* Play Button Overlay - 只在有封面图时显示 */}
-                    {music.primaryTrack.cover_r2_url && (
-                      <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-center justify-center">
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          className="h-12 w-12 p-0 bg-white/20 hover:bg-white/30 backdrop-blur-sm"
-                          onClick={() => handlePlayPause(music.primaryTrack.id, music.primaryTrack.audio_url, music)}
-                        >
-                          {currentlyPlaying === music.primaryTrack.id && isPlaying ? (
-                            <Pause className="h-5 w-5 text-white" />
-                          ) : (
-                            <Play className="h-5 w-5 text-white" />
-                          )}
-                        </Button>
-                      </div>
-                    )}
-                  </div>
-
-                  {/* Track Info */}
-                  <div className="p-4">
-                    <h3 className="text-white font-bold text-base mb-1 truncate">
-                      {music.title}
-                    </h3>
-                    <p className="text-white/70 text-sm mb-2 truncate capitalize whitespace-nowrap overflow-hidden">
-                      {music.tags}
-                    </p>
-                    <div className="flex items-center text-white/50 text-xs">
-                      <span>{formatDuration(music.totalDuration)}</span>
-                    </div>
-                  </div>
-                </div>
-              ))}
-              </div>
-            </div>
-
-            {/* Loading More Skeleton */}
-            {loadingMore && (
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-6 mt-6">
-                {Array.from({ length: 4 }).map((_, index) => (
-                  <SongCardSkeleton key={`loading-${index}`} />
-                ))}
-              </div>
-            )}
-
-            {/* Show total count when all loaded */}
-            {exploreData && exploreData.music && !hasMore && exploreData.music.length > 0 && (
-              <div className="text-center mt-8 py-4">
-                <span className="text-sm text-muted-foreground font-medium">
-                  All songs loaded
-                </span>
-              </div>
-            )}
-          </>
-        ) : (
-          <div className="text-center py-12">
-            <Music className="w-16 h-16 text-white/30 mx-auto mb-4" />
-            <p className="text-white/70 text-lg">No public music available yet</p>
+    <div className="min-h-screen bg-background ">
+      <div className={`container mx-auto px-4 pt-32 pb-6 sm:pb-12 ${playlist.length > 0 && currentlyPlaying ? 'pb-20 md:pb-20' : ''}`}>
+        <div className="max-w-6xl mx-auto">
+          {/* Header */}
+          <div className="text-center mb-8">
+            <p className="text-sm font-medium text-white/60 uppercase tracking-wider mb-4">
+              MUSIC & CREATIVITY RESOURCES
+            </p>
+            <h1 className="text-5xl md:text-6xl font-bold text-foreground mb-4 tracking-tight">
+              Listen to The AI-Generated R&B Songs
+            </h1>
+            <p className="text-white/70 text-lg max-w-2xl mx-auto mb-8">
+              Explore soulful tracks crafted by artificial intelligence
+            </p>
           </div>
-        )}
+
+          {/* Music Grid */}
+          {exploreData && exploreData.music && exploreData.music.length > 0 ? (
+            <>
+              <div className="relative">
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-6">
+                  {exploreData.music.map((music) => (
+                    <div
+                      key={music.id}
+                      className="bg-black/20 backdrop-blur-sm rounded-xl overflow-hidden hover:bg-black/30 transition-all duration-300 group cursor-pointer"
+                    >
+                      {/* Cover Image */}
+                      <div className="relative aspect-square overflow-hidden">
+                        <CoverImage
+                          src={music.primaryTrack.cover_r2_url || ''}
+                          alt={music.title}
+                          fill
+                          size="lg"
+                          className="object-cover transition-transform duration-300 group-hover:scale-105"
+                          fallbackContent={
+                            <div className="absolute inset-0 w-full h-full bg-gradient-to-br from-purple-600/80 via-purple-700/60 to-purple-800/80 flex items-center justify-center">
+                              <Music className="w-16 h-16 text-white/70" />
+                            </div>
+                          }
+                        />
+
+                        {/* Playing Wave Effect - 播放时音波效果 */}
+                        {currentlyPlaying === music.primaryTrack.id && isPlaying && (
+                          <div className="absolute inset-0 flex items-center justify-center bg-black/20 group-hover:opacity-0 transition-opacity duration-300">
+                            <CustomAudioWaveIndicator
+                              isPlaying={isPlaying}
+                              size="lg"
+                              className="text-white"
+                            />
+                          </div>
+                        )}
+
+                        {/* Play Button Overlay - 只在有封面图时显示 */}
+                        {music.primaryTrack.cover_r2_url && (
+                          <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-center justify-center">
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              className="h-12 w-12 p-0 bg-white/20 hover:bg-white/30 backdrop-blur-sm"
+                              onClick={() => handlePlayPause(music.primaryTrack.id, music.primaryTrack.audio_url, music)}
+                            >
+                              {currentlyPlaying === music.primaryTrack.id && isPlaying ? (
+                                <Pause className="h-5 w-5 text-white" />
+                              ) : (
+                                <Play className="h-5 w-5 text-white" />
+                              )}
+                            </Button>
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Track Info */}
+                      <div className="p-4">
+                        <h3 className="text-white font-bold text-base mb-1 truncate">
+                          {music.title}
+                        </h3>
+                        <p className="text-white/70 text-sm mb-2 truncate capitalize whitespace-nowrap overflow-hidden">
+                          {music.tags}
+                        </p>
+                        <div className="flex items-center text-white/50 text-xs">
+                          <span>{formatDuration(music.totalDuration)}</span>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* Loading More Skeleton */}
+              {loadingMore && (
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-6 mt-6">
+                  {Array.from({ length: 4 }).map((_, index) => (
+                    <SongCardSkeleton key={`loading-${index}`} />
+                  ))}
+                </div>
+              )}
+
+              {/* Show total count when all loaded */}
+              {exploreData && exploreData.music && !hasMore && exploreData.music.length > 0 && (
+                <div className="text-center mt-8 py-4">
+                  <span className="text-sm text-muted-foreground font-medium">
+                    All songs loaded
+                  </span>
+                </div>
+              )}
+            </>
+          ) : (
+            <div className="text-center py-12">
+              <Music className="w-16 h-16 text-white/30 mx-auto mb-4" />
+              <p className="text-white/70 text-lg">No public music available yet</p>
+            </div>
+          )}
+        </div>
       </div>
 
       {/* Footer */}

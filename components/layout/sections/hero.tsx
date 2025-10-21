@@ -4,6 +4,7 @@ import { useTheme } from "next-themes";
 import Image from "next/image";
 import { AnimatedBackground } from "@/components/ui/animated-background";
 import { useRouter } from "next/navigation";
+import { getZIndexClass } from "@/lib/z-index";
 
 export const HeroSection = () => {
   const { theme } = useTheme();
@@ -15,10 +16,10 @@ export const HeroSection = () => {
   };
 
   return (
-    <section className="relative w-full min-h-screen pt-20">
+    <section className="relative w-full h-screen overflow-hidden">
 
       {/* Background Image */}
-      <div className="absolute inset-0 z-0">
+      <div className="absolute inset-0" style={{ zIndex: -10 }}>
         <Image
           src="/only-90s-rnb-background.webp"
           alt="R&B Background"
@@ -62,8 +63,8 @@ export const HeroSection = () => {
       </div>
       
       {/* Content */}
-      <div className="relative z-10 container mx-auto">
-        <div className="grid place-items-center lg:max-w-screen-xl gap-8 mx-auto py-16 md:py-24">
+      <div className="relative z-10 container mx-auto h-full flex items-center">
+        <div className="grid place-items-center lg:max-w-screen-xl gap-8 mx-auto w-full">
           <div className="text-center space-y-8">
             <span className="relative mb-4 inline-block rounded-full border border-zinc-700 bg-zinc-900/20 px-2 py-2 text-xs text-zinc-50 md:mb-0 animate-border-marquee">
               <span className="text-foreground/90 font-medium"> AI-Powered Music Generator </span>

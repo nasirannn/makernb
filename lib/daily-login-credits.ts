@@ -133,35 +133,68 @@ export const cleanupExpiredDailyCredits = async (): Promise<number> => {
 
       let cleanedCount = 0;
 
+      // 按用户分组处理，只清理用户当前积分范围内的过期积分
+      const userCreditsMap = new Map();
+      
       for (const credit of expiredCredits.rows) {
-        // 检查用户当前积分是否足够扣除
-        if (credit.credits >= credit.amount) {
+        const userId = credit.user_id;
+        if (!userCreditsMap.has(userId)) {
+          userCreditsMap.set(userId, {
+            currentCredits: credit.credits,
+            credits: []
+          });
+        }
+        
+        const userData = userCreditsMap.get(userId);
+        userData.credits.push(credit);
+      }
+
+      // 处理每个用户的过期积分
+      for (const [userId, userData] of Array.from(userCreditsMap.entries())) {
+        let remainingCredits = userData.currentCredits;
+        let actualDeduction = 0;
+        const creditsToProcess = [];
+
+        // 按时间顺序处理过期积分，只清理用户当前积分范围内的
+        for (const credit of userData.credits) {
+          if (remainingCredits >= credit.amount) {
+            creditsToProcess.push(credit);
+            actualDeduction += credit.amount;
+            remainingCredits -= credit.amount;
+          } else {
+            // 积分不足，停止处理
+            console.warn(`User ${userId} has insufficient credits to process expired credit ${credit.reference_id}. Remaining: ${remainingCredits}, Required: ${credit.amount}`);
+            break;
+          }
+        }
+
+        // 只处理能够完全清理的积分
+        if (creditsToProcess.length > 0) {
           // 扣除过期的每日登录积分
           await queryFn(
             'UPDATE user_credits SET credits = credits - $1, updated_at = NOW() WHERE user_id = $2',
-            [credit.amount, credit.user_id]
+            [actualDeduction, userId]
           );
 
-          // 创建过期扣除的交易记录
-          await queryFn(
-            `INSERT INTO credit_transactions (
-              user_id, transaction_type, amount, balance_after,
-              description, reference_id
-            ) VALUES ($1, $2, $3, $4, $5, $6)`,
-            [
-              credit.user_id,
-              'expired',
-              -credit.amount,
-              credit.credits - credit.amount,
-              'Daily login credits expired',
-              credit.reference_id // 使用相同的reference_id
-            ]
-          );
+          // 为每个过期积分创建交易记录
+          for (const credit of creditsToProcess) {
+            await queryFn(
+              `INSERT INTO credit_transactions (
+                user_id, transaction_type, amount, balance_after,
+                description, reference_id
+              ) VALUES ($1, $2, $3, $4, $5, $6)`,
+              [
+                credit.user_id,
+                'expired',
+                -credit.amount,
+                userData.currentCredits - actualDeduction,
+                'Daily login credits expired',
+                credit.reference_id
+              ]
+            );
+          }
 
-          cleanedCount++;
-        } else {
-          // 如果用户积分不足，记录日志但不扣除
-          console.warn(`User ${credit.user_id} has insufficient credits (${credit.credits}) to deduct expired daily credits (${credit.amount})`);
+          cleanedCount += creditsToProcess.length;
         }
       }
 

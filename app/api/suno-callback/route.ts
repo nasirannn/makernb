@@ -813,8 +813,7 @@ async function processCallbackAsync(callbackData: any, callbackId: string) {
             const creditTransactionResult = await query(
               `SELECT amount FROM credit_transactions 
                WHERE reference_id = $1 
-               AND transaction_type = 'spend' 
-               AND description LIKE '%Music generation%'
+               AND transaction_type = 'music_generation'
                ORDER BY created_at DESC LIMIT 1`,
               [taskId]
             );

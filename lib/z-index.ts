@@ -3,21 +3,25 @@
  * 统一管理所有组件的 z-index 值，避免层级冲突
  * 
  * 层级规范：
- * 0-9: 背景和基础内容
+ * -10: 页面背景（在所有内容之下）
+ * 0-9: 基础内容
  * 10-19: 内容层
  * 20-29: 卡片和面板
- * 30-39: 下拉菜单和工具提示
- * 40-49: 侧边栏和导航
+ * 30-39: 工具提示和选择器
+ * 40-49: 侧边栏
  * 50-59: 模态框和对话框
  * 60-69: 音乐播放器
  * 70-79: 通知和提示
  * 80-89: 特殊交互
  * 90-99: 开发工具
- * 100+: 最高优先级（AuthModal等）
+ * 100+: 导航栏和下拉菜单（最高优先级）
  */
 
 export const Z_INDEX = {
-  // 背景和基础内容 (0-9)
+  // 页面背景 (-10)
+  HERO_BACKGROUND: -10,
+  
+  // 基础内容 (0-9)
   BACKGROUND: 0,
   ANIMATED_BACKGROUND: 0,
   BASE_CONTENT: 1,
@@ -32,16 +36,13 @@ export const Z_INDEX = {
   CARD: 20,
   PANEL: 25,
 
-  // 下拉菜单和工具提示 (30-39)
-  DROPDOWN: 30,
+  // 工具提示和选择器 (30-39)
   TOOLTIP: 35,
   SELECT: 30,
 
-  // 侧边栏和导航 (40-49)
+  // 侧边栏 (40-49)
   SIDEBAR: 40,
   SIDEBAR_DROPDOWN: 40,
-  NAVBAR: 50,
-  MOBILE_NAV: 50,
 
   // 模态框和对话框 (50-59)
   MODAL_BACKDROP: 50,
@@ -49,6 +50,11 @@ export const Z_INDEX = {
   DIALOG_BACKDROP: 50,
   DIALOG_CONTENT: 50,
   CONFIRM_DIALOG: 50,
+
+  // 导航栏和下拉菜单 (100+)
+  NAVBAR: 100,
+  MOBILE_NAV: 100,
+  DROPDOWN: 110,
 
   // 音乐播放器 (60-69)
   MUSIC_PLAYER: 60,
@@ -68,8 +74,8 @@ export const Z_INDEX = {
   DEV_TOOLS: 100,
 
   // 最高优先级 (100+)
-  AUTH_MODAL_BACKDROP: 110,
-  AUTH_MODAL_CONTENT: 111,
+  AUTH_MODAL_BACKDROP: 120,
+  AUTH_MODAL_CONTENT: 121,
 
   // 最高层级 (99999+)
   EMERGENCY: 999999,
@@ -80,6 +86,10 @@ export const Z_INDEX = {
  */
 export const getZIndexClass = (level: keyof typeof Z_INDEX): string => {
   const value = Z_INDEX[level];
+  // 处理负值：使用 -z-[N] 而不是 z-[-N]
+  if (value < 0) {
+    return `-z-[${Math.abs(value)}]`;
+  }
   return `z-[${value}]`;
 };
 
@@ -154,16 +164,19 @@ export const Z_INDEX_COMBINATIONS = {
  * 1. 优先使用预定义的常量，避免硬编码数字
  * 2. 新增组件时，根据功能选择合适的层级范围
  * 3. 避免使用过高的 z-index 值（> 200）
- * 4. 模态框和对话框使用 50-59 范围
- * 5. 认证相关使用 100+ 范围
- * 6. 音乐播放器使用 60-69 范围
+ * 4. 页面背景使用 HERO_BACKGROUND (-10)
+ * 5. 模态框和对话框使用 50-59 范围
+ * 6. 导航栏使用 100+ 范围（最高优先级）
+ * 7. 音乐播放器使用 60-69 范围
  * 
  * 示例：
  * ```tsx
- * // ✅ 正确
- * <div className={getZIndexClass('AUTH_MODAL_BACKDROP')}>
+ * // ✅ 正确 - 使用常量
+ * <div className={getZIndexClass('HERO_BACKGROUND')}>  // Hero背景
+ * <div className={getZIndexClass('NAVBAR')}>           // 导航栏
  * 
- * // ❌ 错误
+ * // ❌ 错误 - 硬编码
+ * <div className="-z-10">
  * <div className="z-[999]">
  * ```
  */

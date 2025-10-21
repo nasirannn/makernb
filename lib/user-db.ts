@@ -150,11 +150,8 @@ const generateTransactionDescription = (
     case 'lyrics_generation':
       return 'Lyrics generation';
     
-    case 'spend':
-      return context?.service 
-        ? `${context.service} consumption`
-        : 'Credits spent';
-    
+    case 'vocal_separation':
+      return 'Vocal separation';
     
     case 'system':
       return context?.operation 

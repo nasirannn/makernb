@@ -2,9 +2,10 @@
 
 import React, { useState, useEffect } from 'react';
 import Image from 'next/image';
-import { Play, Pause, Rewind, FastForward, Volume2, VolumeX, MessageSquare } from 'lucide-react';
+import { Play, Pause, Rewind, FastForward, Volume2, VolumeX, MessageSquare, Mic } from 'lucide-react';
 import { Slider } from '@/components/ui/slider';
 import { SafeImage } from './safe-image';
+import { VocalSeparationButton } from './vocal-separation-button';
 
 interface Track {
   id: string;
@@ -13,6 +14,9 @@ interface Track {
   duration?: number;
   coverImage?: string;
   artist?: string;
+  // 人声分离相关字段
+  audioId?: string; // KIE API的音频ID
+  taskId?: string; // 原始音乐任务的ID
   allTracks?: Array<{
     id: string;
     audio_url: string;
@@ -39,6 +43,9 @@ interface MusicPlayerProps {
 
   // 歌词面板展开时的简化模式
   hideProgress?: boolean;
+
+  // 人声分离功能
+  enableVocalSeparation?: boolean; // 是否启用人声分离功能
 
   // 控制回调
   onPlayPause: () => void;
@@ -68,6 +75,7 @@ export const MusicPlayer: React.FC<MusicPlayerProps> = ({
   volume,
   isMuted,
   hideProgress = false,
+  enableVocalSeparation = false,
   onPlayPause,
   onPrevious,
   onNext,
@@ -304,6 +312,20 @@ export const MusicPlayer: React.FC<MusicPlayerProps> = ({
         {/* 右侧：歌词和音量控制 - 桌面端显示 */}
         {!isMobile && (
           <div className="flex items-center space-x-5 flex-shrink-0">
+            {/* 人声分离按钮 */}
+            {enableVocalSeparation && currentTrack?.audioId && currentTrack?.taskId && (
+              <VocalSeparationButton
+                trackId={currentTrack.id}
+                audioId={currentTrack.audioId}
+                taskId={currentTrack.taskId}
+                trackTitle={currentTrack.title}
+                audioUrl={currentTrack.audioUrl}
+                duration={duration || 0}
+                variant="ghost"
+                size="sm"
+              />
+            )}
+
             {/* 歌词按钮 */}
             {onTrackInfoClick && (
               <button

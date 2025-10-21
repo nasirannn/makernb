@@ -54,8 +54,8 @@ NEXT_PUBLIC_SUPABASE_URL=your_supabase_url
 NEXT_PUBLIC_SUPABASE_ANON_KEY=your_supabase_anon_key
 SUPABASE_SERVICE_ROLE_KEY=your_supabase_service_role_key
 
-# Suno API
-SUNO_API_KEY=your_suno_api_key
+# KIE API
+KIE_API_KEY=your_kie_api_key
 
 # R2 Storage (optional)
 R2_ACCOUNT_ID=your_r2_account_id
@@ -184,7 +184,7 @@ Make sure to set all required environment variables in your deployment platform:
 - `NEXT_PUBLIC_SUPABASE_URL`
 - `NEXT_PUBLIC_SUPABASE_ANON_KEY`
 - `SUPABASE_SERVICE_ROLE_KEY`
-- `SUNO_API_KEY`
+- `KIE_API_KEY`
 - `R2_*` (if using R2 storage)
 
 ## 🎨 Customization

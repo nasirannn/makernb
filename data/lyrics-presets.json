@@ -1,0 +1,38 @@
+{
+  "themes": [
+    "Love and Romance",
+    "Overcoming Challenges", 
+    "Friendship and Loyalty",
+    "Dreams and Aspirations",
+    "Life Journey",
+    "Heartbreak and Loss",
+    "Celebration and Joy",
+    "Self-Discovery",
+    "Family and Home",
+    "Success and Achievement"
+  ],
+  "moods": [
+    "Happy and Uplifting",
+    "Sad and Melancholic",
+    "Romantic and Intimate",
+    "Energetic and Upbeat",
+    "Calm and Peaceful",
+    "Nostalgic and Reflective",
+    "Motivational and Inspiring",
+    "Mysterious and Dark",
+    "Playful and Fun",
+    "Emotional and Deep"
+  ],
+  "styles": [
+    "Pop",
+    "R&B",
+    "Hip-Hop",
+    "Rock",
+    "Country",
+    "Jazz",
+    "Blues",
+    "Folk",
+    "Electronic",
+    "Soul"
+  ]
+}

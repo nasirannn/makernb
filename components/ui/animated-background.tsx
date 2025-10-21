@@ -1,12 +1,14 @@
 "use client";
 
+import { getZIndexClass } from "@/lib/z-index";
+
 interface AnimatedBackgroundProps {
   children: React.ReactNode;
 }
 
 export const AnimatedBackground = ({ children }: AnimatedBackgroundProps) => {
   return (
-    <div className="absolute inset-0 z-0">
+    <div className={`absolute inset-0 ${getZIndexClass('ANIMATED_BACKGROUND')}`}>
       {/* Background Image */}
       <div className="absolute inset-0">
         <div className="absolute inset-0 bg-gradient-to-br from-purple-600/20 via-transparent to-purple-600/20 animate-pulse"></div>

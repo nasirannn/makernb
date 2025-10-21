@@ -7,6 +7,7 @@ export async function GET(request: NextRequest) {
   const requestUrl = new URL(request.url);
   const code = requestUrl.searchParams.get('code');
   const next = requestUrl.searchParams.get('next') || '/';
+  const type = requestUrl.searchParams.get('type');
 
   if (code) {
     const cookieStore = cookies();
@@ -32,6 +33,11 @@ export async function GET(request: NextRequest) {
     try {
       const { error } = await supabase.auth.exchangeCodeForSession(code);
       if (error) throw error;
+      
+      // 如果是密码重置，重定向到重置密码页面
+      if (type === 'recovery') {
+        return NextResponse.redirect(new URL('/reset-password', requestUrl.origin));
+      }
     } catch (error) {
       console.error('Error exchanging code for session:', error);
       return NextResponse.redirect(new URL('/?error=auth_failed', requestUrl.origin));

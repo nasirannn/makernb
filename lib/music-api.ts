@@ -55,6 +55,34 @@ export interface CoverApiResponse {
   };
 }
 
+export interface VocalSeparationRequest {
+  taskId: string; // 原始音乐任务的ID
+  audioId: string; // 要进行人声分离处理的特定音频轨道ID
+  type: 'separate_vocal' | 'split_stem'; // 分离类型
+  callBackUrl?: string; // 回调URL
+}
+
+export interface VocalSeparationApiResponse {
+  code: number;
+  msg: string;
+  data: {
+    taskId: string;
+  };
+}
+
+export interface VocalSeparationStatusResponse {
+  code: number;
+  msg: string;
+  data: {
+    taskId: string;
+    status: 'processing' | 'completed' | 'error';
+    vocalUrl?: string;
+    instrumentalUrl?: string;
+    stems?: Record<string, { url: string; name: string }>;
+    errorMessage?: string;
+  };
+}
+
 class MusicApiService {
   private baseUrl: string;
   private apiKey: string;
@@ -63,7 +91,7 @@ class MusicApiService {
 
   constructor(apiKey: string) {
     this.apiKey = apiKey;
-    this.baseUrl = process.env.SUNO_API_BASE_URL || 'https://api.kie.ai';
+    this.baseUrl = process.env.KIE_API_BASE_URL || 'https://api.kie.ai';
   }
 
   /**
@@ -359,6 +387,131 @@ class MusicApiService {
     }
     
     throw new Error('Cover generation timeout');
+  }
+
+  // ============================================================================
+  // VOCAL SEPARATION METHODS
+  // ============================================================================
+
+  /**
+   * Starts vocal separation process
+   */
+  async generateVocalSeparation(request: VocalSeparationRequest): Promise<VocalSeparationApiResponse> {
+    const apiParams = {
+      taskId: request.taskId,
+      audioId: request.audioId,
+      type: request.type,
+      callBackUrl: request.callBackUrl || `${process.env.CallBackURL}/api/vocal-separation-callback`,
+    };
+    
+    const response = await this.fetchWithRetry(`${this.baseUrl}/api/v1/vocal-removal/generate`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${this.apiKey}`,
+      },
+      body: JSON.stringify(apiParams),
+    });
+
+    if (!response.ok) {
+      const errorData = await response.text();
+      console.error(`Vocal separation API call failed: ${response.status} - ${errorData}`);
+      throw new Error(`Vocal separation API call failed: ${response.statusText} - ${errorData}`);
+    }
+
+    const data = await response.json();
+    
+    // 根据官方文档处理响应
+    if (data.code === 200) {
+      return {
+        code: data.code,
+        msg: data.msg || 'Vocal separation started successfully',
+        data: {
+          taskId: data.data?.taskId,
+        }
+      };
+    } else {
+      console.error(`Vocal separation API error: ${data.code} - ${data.msg}`);
+      throw new Error(`Vocal separation API error (${data.code}): ${data.msg || 'Unknown error'}`);
+    }
+  }
+
+  /**
+   * Gets vocal separation status
+   */
+  async getVocalSeparationStatus(taskId: string): Promise<VocalSeparationStatusResponse> {
+    try {
+      const response = await fetch(`${this.baseUrl}/api/v1/vocal-removal/record-info?taskId=${taskId}`, {
+        method: 'GET',
+        headers: {
+          'Authorization': `Bearer ${this.apiKey}`,
+        },
+      });
+
+      if (!response.ok) {
+        // 如果API Key没有权限，返回默认状态
+        if (response.status === 401) {
+          console.warn('Vocal separation status query not available: API key lacks permissions');
+          return {
+            code: 202,
+            msg: 'Vocal separation in progress (status query unavailable)',
+            data: {
+              taskId: taskId,
+              status: 'processing'
+            }
+          };
+        }
+        
+        const errorData = await response.text();
+        throw new Error(`Get vocal separation status failed: ${response.statusText} - ${errorData}`);
+      }
+
+      const data = await response.json();
+      
+      return {
+        code: data.code,
+        msg: data.msg,
+        data: {
+          taskId: data.data?.taskId,
+          status: data.data?.status || 'processing',
+          vocalUrl: data.data?.vocalUrl,
+          instrumentalUrl: data.data?.instrumentalUrl,
+          stems: data.data?.stems,
+          errorMessage: data.data?.errorMessage
+        }
+      };
+    } catch (error) {
+      console.warn('Vocal separation status query failed, falling back to callback-only mode:', error);
+      // 返回进行中状态，依赖回调机制
+      return {
+        code: 202,
+        msg: 'Vocal separation in progress (callback-only mode)',
+        data: {
+          taskId: taskId,
+          status: 'processing'
+        }
+      };
+    }
+  }
+
+  /**
+   * Poll until vocal separation complete
+   */
+  async waitForVocalSeparationCompletion(taskId: string, maxAttempts = 30): Promise<VocalSeparationStatusResponse> {
+    for (let i = 0; i < maxAttempts; i++) {
+      const status = await this.getVocalSeparationStatus(taskId);
+      
+      if (status.code === 200 && status.data.status === 'completed') {
+        return status;
+      } else if (status.code === 501 || status.data.status === 'error') {
+        throw new Error('Vocal separation failed');
+      }
+      
+      // Wait 5 seconds before retry
+      await new Promise(resolve => setTimeout(resolve, 5000));
+    }
+    
+    throw new Error('Vocal separation timeout');
   }
 
 }

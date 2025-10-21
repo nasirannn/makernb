@@ -45,8 +45,8 @@ export default function Home() {
       <HeroSection />
       <IntroductionSection />
       <ExploreSection />
-      <TutorialSection />
       <FeaturesSection />
+      <TutorialSection />
       <PricingSection />
       <FAQSection />
       <CTASection />

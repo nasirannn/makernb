@@ -9,6 +9,7 @@ import { supabase } from '@/lib/supabase';
 import { Loader2, Mail, X } from 'lucide-react';
 import Image from 'next/image';
 import { LoadingDots } from './loading-dots';
+import { Z_INDEX_COMBINATIONS } from '@/lib/z-index';
 
 interface AuthModalProps {
   isOpen: boolean;
@@ -23,45 +24,8 @@ export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState('');
   const [useMagicLink, setUseMagicLink] = useState(false);
-  const [viewportHeight, setViewportHeight] = useState<number | null>(null);
-  const [viewportOffsetTop, setViewportOffsetTop] = useState<number>(0);
   const modalContentRef = React.useRef<HTMLDivElement>(null);
   const scrollPositionRef = React.useRef<number>(0);
-
-  // 监听视口变化（键盘弹出/收起）
-  React.useEffect(() => {
-    if (!isOpen) return;
-
-    const updateViewportHeight = () => {
-      if (window.visualViewport) {
-        const height = window.visualViewport.height;
-        const offsetTop = window.visualViewport.offsetTop || 0;
-        setViewportHeight(height);
-        setViewportOffsetTop(offsetTop);
-      } else {
-        setViewportHeight(window.innerHeight);
-        setViewportOffsetTop(0);
-      }
-    };
-
-    updateViewportHeight();
-
-    if (window.visualViewport) {
-      window.visualViewport.addEventListener('resize', updateViewportHeight);
-      window.visualViewport.addEventListener('scroll', updateViewportHeight);
-    } else {
-      window.addEventListener('resize', updateViewportHeight);
-    }
-
-    return () => {
-      if (window.visualViewport) {
-        window.visualViewport.removeEventListener('resize', updateViewportHeight);
-        window.visualViewport.removeEventListener('scroll', updateViewportHeight);
-      } else {
-        window.removeEventListener('resize', updateViewportHeight);
-      }
-    };
-  }, [isOpen]);
 
   // 阻止背景滚动并锁定位置
   React.useEffect(() => {
@@ -206,14 +170,14 @@ export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
 
   if (!isOpen) return null;
 
-  // 计算移动端键盘弹出时的偏移
+  // 计算移动端
   const isMobile = typeof window !== 'undefined' && window.innerWidth < 768;
 
   return (
     <>
       {/* Backdrop - 始终覆盖整个屏幕 */}
       <div 
-        className="fixed inset-0 z-[110] animate-in fade-in duration-300"
+        className={`fixed inset-0 ${Z_INDEX_COMBINATIONS.AUTH_MODAL.backdrop} animate-in fade-in duration-300`}
         onClick={handleClose}
         onTouchMove={(e) => {
           e.preventDefault();
@@ -232,13 +196,10 @@ export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
       
       {/* Modal Container - 移动端固定底部，桌面端居中 */}
       <div 
-        className="fixed z-[111] left-0 right-0 md:inset-0 flex items-center justify-center animate-in slide-in-from-bottom md:zoom-in-95 md:slide-in-from-bottom-4 duration-200"
+        className={`fixed ${Z_INDEX_COMBINATIONS.AUTH_MODAL.content} left-0 right-0 top-0 bottom-0 flex items-center justify-center animate-in slide-in-from-bottom md:zoom-in-95 md:slide-in-from-bottom-4 duration-200`}
         style={{
-          top: isMobile ? `${viewportOffsetTop}px` : undefined,
-          height: isMobile && viewportHeight ? `${viewportHeight}px` : undefined,
-          alignItems: isMobile ? 'flex-end' : undefined,
-          pointerEvents: 'none',
-          transition: 'top 0.2s ease-out, height 0.2s ease-out'
+          alignItems: isMobile ? 'flex-end' : 'center',
+          pointerEvents: 'none'
         }}
         onTouchMove={(e) => {
           e.stopPropagation();
@@ -248,12 +209,9 @@ export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
           ref={modalContentRef}
           className="w-full max-w-md mx-0 md:mx-4 flex flex-col"
           style={{
-            maxHeight: isMobile && viewportHeight 
-              ? `${viewportHeight}px` 
-              : '85vh',
+            maxHeight: isMobile ? '90vh' : '85vh',
             overscrollBehavior: 'contain',
             WebkitOverflowScrolling: 'touch',
-            transition: 'max-height 0.2s ease-out',
             pointerEvents: 'auto'
           }}
         >

@@ -33,10 +33,10 @@ const featureList: FeaturesProps[] = [
       "From classic slow jams to contemporary R&B vibes and everything between",
   },
   {
-    icon: () => <Image src="/icons/Studio-Quality-Output.svg" alt="Studio-Quality Output" width={48} height={48} className="h-12 w-12" />,
-    title: "Studio-Quality Output",
+    icon: () => <Image src="/icons/Vocal-Remover.svg" alt="Vocal Remover" width={48} height={48} className="h-12 w-12" />,
+    title: "Vocal Remover",
     description:
-      "Professional-grade tracks with rich vocals and smooth R&B harmonies",
+      "Separate vocals from music using cutting-edge AI technology for professional quality tracks",
   },
   {
     icon: () => <Image src="/icons/Free-Daily-Credits.svg" alt="Free Daily Credits" width={48} height={48} className="h-12 w-12" />,

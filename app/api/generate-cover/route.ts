@@ -34,7 +34,7 @@ export async function POST(request: NextRequest) {
     }
 
     // 初始化音乐API
-    const apiKey = process.env.SUNO_API_KEY;
+    const apiKey = process.env.KIE_API_KEY;
     if (!apiKey) {
       return NextResponse.json(
         { error: 'API key not configured' },

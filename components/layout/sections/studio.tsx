@@ -305,6 +305,17 @@ const StudioContent = () => {
         }
     }, [user?.id, fetchUserTracks]);
 
+    // 在生成开始时自动打开移动端歌曲列表弹窗以显示skeleton
+    useEffect(() => {
+        if (isGenerating && pendingTasksCount > 0) {
+            // 检查是否为移动端
+            const isMobile = typeof window !== 'undefined' && window.innerWidth < 768;
+            if (isMobile) {
+                setMobileTracksOpen(true);
+            }
+        }
+    }, [isGenerating, pendingTasksCount]);
+
     // 组件卸载时清理音频资源
     useEffect(() => {
         const audio = audioRef.current;
@@ -1167,6 +1178,8 @@ const StudioContent = () => {
                                         isPlaying={isPlaying && currentTime > 0}
                                         allGeneratedTracks={allGeneratedTracks}
                                         pendingTasksCount={pendingTasksCount}
+                                        panelOpen={true}
+                                        onExpandPanel={() => {}}
                                         onGeneratedTrackSelect={handleGeneratedTrackSelect}
                                     />
                                 </div>

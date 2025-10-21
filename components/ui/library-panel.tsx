@@ -718,21 +718,19 @@ export const LibraryPanel = ({
                          )}
 
                          {/* Separator before delete */}
-                         {userIsAdmin && <DropdownMenuSeparator />}
+                         <DropdownMenuSeparator />
 
-                         {/* Delete - Only for admins */}
-                         {userIsAdmin && (
-                           <DropdownMenuItem
-                             onClick={(e) => {
-                               e.stopPropagation();
-                               handleDeleteClick(track);
-                             }}
-                             className="cursor-pointer text-destructive focus:text-destructive"
-                           >
-                             <Trash2 className="mr-2 h-4 w-4" />
-                             Delete
-                           </DropdownMenuItem>
-                         )}
+                         {/* Delete - Available for all users */}
+                         <DropdownMenuItem
+                           onClick={(e) => {
+                             e.stopPropagation();
+                             handleDeleteClick(track);
+                           }}
+                           className="cursor-pointer text-destructive focus:text-destructive"
+                         >
+                           <Trash2 className="mr-2 h-4 w-4" />
+                           Delete
+                         </DropdownMenuItem>
                        </DropdownMenuContent>
                      </DropdownMenu>
                    </div>
@@ -915,19 +913,17 @@ export const LibraryPanel = ({
                   </button>
                 )}
 
-                {/* Delete - Only for admins */}
-                {userIsAdmin && (
-                  <button
-                    onClick={() => {
-                      handleDeleteClick(selectedTrackForMenu);
-                      setMobileMenuOpen(false);
-                    }}
-                    className="flex items-center gap-3 px-4 py-3.5 text-left hover:bg-accent transition-colors text-destructive"
-                  >
-                    <Trash2 className="h-5 w-5" />
-                    <span className="text-sm">Delete</span>
-                  </button>
-                )}
+                {/* Delete - Available for all users */}
+                <button
+                  onClick={() => {
+                    handleDeleteClick(selectedTrackForMenu);
+                    setMobileMenuOpen(false);
+                  }}
+                  className="flex items-center gap-3 px-4 py-3.5 text-left hover:bg-accent transition-colors text-destructive"
+                >
+                  <Trash2 className="h-5 w-5" />
+                  <span className="text-sm">Delete</span>
+                </button>
               </>
             )}
           </div>

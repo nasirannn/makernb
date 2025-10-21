@@ -3,7 +3,14 @@ const animate = require("tailwindcss-animate");
 /** @type {import('tailwindcss').Config} */
 module.exports = {
   darkMode: ["class"],
-  safelist: ["dark"],
+  safelist: [
+    "dark",
+    // Z-index classes for dynamic values
+    "z-[100]",
+    "z-[110]",
+    "z-[120]",
+    "z-[121]",
+  ],
   prefix: "",
 
   content: [

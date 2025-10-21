@@ -1,5 +1,5 @@
 "use client";
-import { Menu, Sparkles } from "lucide-react";
+import { Menu, Sparkles, ChevronDown, Mic, Music, Wand2, FileText } from "lucide-react";
 import React from "react";
 import { Button } from "../ui/button";
 import { Avatar, AvatarImage, AvatarFallback } from "../ui/avatar";
@@ -9,16 +9,41 @@ import { usePathname } from "next/navigation";
 import { useAuth } from "@/contexts/AuthContext";
 import AuthModal from "../ui/auth-modal";
 import { LogOut } from "lucide-react";
+import { getZIndexClass } from "@/lib/z-index";
 
 interface RouteProps {
   href: string;
   label: string;
+  hasDropdown?: boolean;
+  dropdownItems?: DropdownItemProps[];
+}
+
+interface DropdownItemProps {
+  href: string;
+  label: string;
+  description: string;
+  icon: React.ReactNode;
 }
 
 interface FeatureProps {
   title: string;
   description: string;
 }
+
+const aiMusicToolsDropdown: DropdownItemProps[] = [
+  {
+    href: "/vocal-remover",
+    label: "Vocal Remover",
+    description: "Separate vocals from music",
+    icon: <Mic className="h-4 w-4" />
+  },
+  {
+    href: "/lyrics-generator",
+    label: "Lyrics Generator",
+    description: "Generate creative lyrics with AI",
+    icon: <FileText className="h-4 w-4" />
+  }
+];
 
 const routeList: RouteProps[] = [
   {
@@ -30,8 +55,10 @@ const routeList: RouteProps[] = [
     label: "Library",
   },
   {
-    href: "/explore",
-    label: "Explore",
+    href: "/ai-music-tools",
+    label: "AI Music Tool",
+    hasDropdown: true,
+    dropdownItems: aiMusicToolsDropdown,
   },
   {
     href: "/blog",
@@ -51,30 +78,29 @@ export const Navbar = ({ credits = null }: NavbarProps) => {
   const [isOpen, setIsOpen] = React.useState(false);
   const [isAuthModalOpen, setIsAuthModalOpen] = React.useState(false);
   const [isUserMenuOpen, setIsUserMenuOpen] = React.useState(false);
-  const [isScrolled, setIsScrolled] = React.useState(false);
-  const [isVisible, setIsVisible] = React.useState(true);
-  const [lastScrollY, setLastScrollY] = React.useState(0);
+  const [isDropdownOpen, setIsDropdownOpen] = React.useState(false);
+  const [dropdownTimeout, setDropdownTimeout] = React.useState<NodeJS.Timeout | null>(null);
   const pathname = usePathname();
   const { user, signOut } = useAuth();
 
+  // 处理下拉菜单的悬停逻辑
+  const handleDropdownMouseEnter = () => {
+    if (dropdownTimeout) {
+      clearTimeout(dropdownTimeout);
+      setDropdownTimeout(null);
+    }
+    setIsDropdownOpen(true);
+  };
+
+  const handleDropdownMouseLeave = () => {
+    const timeout = setTimeout(() => {
+      setIsDropdownOpen(false);
+    }, 150); // 150ms延迟
+    setDropdownTimeout(timeout);
+  };
+
   React.useEffect(() => {
     const handleScroll = () => {
-      const scrollTop = window.scrollY;
-      
-      // 设置背景透明度
-      setIsScrolled(scrollTop > 50);
-      
-      // 智能显示/隐藏逻辑
-      if (scrollTop > lastScrollY && scrollTop > 100) {
-        // 向下滚动且超过100px时隐藏
-        setIsVisible(false);
-      } else {
-        // 向上滚动时显示
-        setIsVisible(true);
-      }
-      
-      setLastScrollY(scrollTop);
-      
       // 滚动时关闭用户菜单
       if (isUserMenuOpen) {
         setIsUserMenuOpen(false);
@@ -83,7 +109,7 @@ export const Navbar = ({ credits = null }: NavbarProps) => {
 
     window.addEventListener('scroll', handleScroll);
     return () => window.removeEventListener('scroll', handleScroll);
-  }, [lastScrollY, isUserMenuOpen]);
+  }, [isUserMenuOpen]);
 
   // 移动端菜单打开时锁定滚动
   React.useEffect(() => {
@@ -107,30 +133,41 @@ export const Navbar = ({ credits = null }: NavbarProps) => {
     };
   }, [isOpen]);
 
-  // Close user menu when clicking outside
+  // Close user menu and dropdown when clicking outside
   React.useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       const userMenuContainer = document.querySelector('.user-menu-container');
+      const dropdownContainer = document.querySelector('.dropdown-container');
+      
       if (userMenuContainer && !userMenuContainer.contains(event.target as Node)) {
         setIsUserMenuOpen(false);
       }
+      
+      if (dropdownContainer && !dropdownContainer.contains(event.target as Node)) {
+        setIsDropdownOpen(false);
+      }
     };
 
-    if (isUserMenuOpen) {
+    if (isUserMenuOpen || isDropdownOpen) {
       document.addEventListener('mousedown', handleClickOutside);
       return () => document.removeEventListener('mousedown', handleClickOutside);
     }
-  }, [isUserMenuOpen]);
+  }, [isUserMenuOpen, isDropdownOpen]);
+
+  // 清理timeout
+  React.useEffect(() => {
+    return () => {
+      if (dropdownTimeout) {
+        clearTimeout(dropdownTimeout);
+      }
+    };
+  }, [dropdownTimeout]);
 
   return (
-    <header className={`shadow-inner w-full z-50 flex items-center px-6 lg:px-20 py-3 fixed left-0 transition-all duration-300 ${
-      isVisible ? 'top-0' : '-top-20'
-    } ${
-      isScrolled 
-        ? 'bg-background/30 backdrop-blur-md border-b border-border/20' 
-        : 'bg-transparent'
-    }`}>
-      <Link href="/" className="font-bold text-lg flex items-center">
+    <header 
+      className={`w-full flex items-center px-6 lg:px-20 py-3 absolute top-0 left-0 ${getZIndexClass('NAVBAR')}`}
+    >
+      <Link href="/" className="font-bold text-lg flex items-center text-foreground">
         <Image
           src="/logo.svg"
           alt="MakeRNB Logo"
@@ -144,12 +181,60 @@ export const Navbar = ({ credits = null }: NavbarProps) => {
       {/* <!-- Desktop Navigation --> */}
       <nav className="hidden lg:block absolute left-1/2 transform -translate-x-1/2">
         <ul className="flex items-center space-x-2">
-          {routeList.map(({ href, label }) => {
+          {routeList.map(({ href, label, hasDropdown, dropdownItems }) => {
             const isActive = pathname === href ||
                            (href === "/blog" && pathname.startsWith("/blog")) ||
                            (href === "/explore" && pathname.startsWith("/explore")) ||
                            (href === "/studio" && pathname.startsWith("/studio")) ||
-                           (href === "/library" && pathname.startsWith("/library"));
+                           (href === "/library" && pathname.startsWith("/library")) ||
+                           (href === "/ai-music-tools" && (pathname.startsWith("/studio") || pathname.startsWith("/vocal-remover") || pathname.startsWith("/lyrics-generator")));
+            
+            if (hasDropdown && dropdownItems) {
+              return (
+                <li key={href} className="relative dropdown-container">
+                  <button
+                    onClick={() => setIsDropdownOpen(!isDropdownOpen)}
+                    onMouseEnter={handleDropdownMouseEnter}
+                    onMouseLeave={handleDropdownMouseLeave}
+                    className={`text-sm px-5 py-3 rounded-lg transition-all duration-200 flex items-center gap-1 ${
+                      isActive
+                        ? 'text-primary bg-primary/10 font-medium'
+                        : 'hover:text-primary hover:bg-primary/10'
+                    }`}
+                  >
+                    {label}
+                    <ChevronDown className={`h-3 w-3 transition-transform duration-200 ${isDropdownOpen ? 'rotate-180' : ''}`} />
+                  </button>
+                  
+                  {/* Dropdown Menu */}
+                  {isDropdownOpen && (
+                    <div 
+                      className="absolute top-full left-0 mt-2 min-w-48 w-max bg-card rounded-xl shadow-2xl p-3 z-[110]"
+                      onMouseEnter={handleDropdownMouseEnter}
+                      onMouseLeave={handleDropdownMouseLeave}
+                    >
+                      {dropdownItems.map((item) => (
+                        <Link
+                          key={item.href}
+                          href={item.href}
+                          onClick={() => setIsDropdownOpen(false)}
+                          className="flex items-center gap-3 px-4 py-3 hover:bg-accent transition-colors group rounded-lg"
+                        >
+                          <div className="flex-shrink-0 w-8 h-8 bg-primary/20 rounded-lg flex items-center justify-center group-hover:bg-primary/30 transition-colors text-primary">
+                            {item.icon}
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <p className="text-foreground font-medium text-sm">{item.label}</p>
+                            <p className="text-muted-foreground text-xs truncate">{item.description}</p>
+                          </div>
+                        </Link>
+                      ))}
+                    </div>
+                  )}
+                </li>
+              );
+            }
+            
             return (
               <li key={href}>
                 <Link
@@ -172,11 +257,11 @@ export const Navbar = ({ credits = null }: NavbarProps) => {
       <div className="flex items-center lg:hidden ml-auto">
         <Menu
           onClick={() => setIsOpen(!isOpen)}
-          className="cursor-pointer lg:hidden"
+          className="cursor-pointer lg:hidden text-foreground"
         />
         
         {isOpen && (
-          <div className="fixed inset-0 z-50 lg:hidden">
+          <div className="fixed inset-0 lg:hidden z-[100]">
             <div className="fixed inset-0 bg-black/50" onClick={() => setIsOpen(false)} />
             <div className="fixed right-0 top-0 h-full w-80 bg-card border-l border-border p-6">
               <div className="flex items-center justify-between mb-6">
@@ -261,12 +346,45 @@ export const Navbar = ({ credits = null }: NavbarProps) => {
               )}
               
               <div className="flex flex-col gap-2">
-                {routeList.map(({ href, label }) => {
+                {routeList.map(({ href, label, hasDropdown, dropdownItems }) => {
                   const isActive = pathname === href ||
                                  (href === "/blog" && pathname.startsWith("/blog")) ||
                                  (href === "/explore" && pathname.startsWith("/explore")) ||
                                  (href === "/studio" && pathname.startsWith("/studio")) ||
-                                 (href === "/library" && pathname.startsWith("/library"));
+                                 (href === "/library" && pathname.startsWith("/library")) ||
+                                 (href === "/ai-music-tools" && (pathname.startsWith("/studio") || pathname.startsWith("/vocal-remover") || pathname.startsWith("/lyrics-generator")));
+                  
+                  if (hasDropdown && dropdownItems) {
+                    return (
+                      <div key={href} className="space-y-1">
+                        <div className={`text-sm px-3 py-2 rounded-lg font-medium ${
+                          isActive ? 'bg-primary/10 text-primary' : 'text-white/80'
+                        }`}>
+                          {label}
+                        </div>
+                        <div className="ml-4 space-y-1">
+                          {dropdownItems.map((item) => (
+                            <Button
+                              key={item.href}
+                              onClick={() => setIsOpen(false)}
+                              asChild
+                              variant="ghost"
+                              className="justify-start text-sm h-auto py-2 px-3 text-white/70 hover:text-white hover:bg-white/10"
+                            >
+                              <Link href={item.href} className="flex items-center gap-2">
+                                {item.icon}
+                                <div>
+                                  <div className="font-medium">{item.label}</div>
+                                  <div className="text-xs text-white/50">{item.description}</div>
+                                </div>
+                              </Link>
+                            </Button>
+                          ))}
+                        </div>
+                      </div>
+                    );
+                  }
+                  
                   return (
                     <Button
                       key={href}
@@ -320,49 +438,36 @@ export const Navbar = ({ credits = null }: NavbarProps) => {
 
             {/* User Dropdown Menu */}
             {isUserMenuOpen && (
-              <div className="absolute right-0 top-12 w-64 bg-white/10 backdrop-blur-lg border border-white/20 rounded-xl shadow-2xl py-2 z-50">
+              <div 
+                className="absolute right-0 top-12 min-w-48 w-max bg-card rounded-xl shadow-2xl p-3 z-[110]"
+              >
                 {/* User Info */}
-                <div className="px-4 py-3 border-b border-white/10">
-                  <div className="flex items-center gap-3">
-                    <Avatar className="w-7 h-7 border border-purple-600/30">
-                      <AvatarImage
-                        src={user.user_metadata?.avatar_url || user.user_metadata?.picture || `https://api.dicebear.com/7.x/initials/svg?seed=${user.email}`}
-                        alt="User Avatar"
-                      />
-                      <AvatarFallback className="bg-gradient-to-br from-purple-600 to-purple-600 text-white font-semibold text-xs">
-                        {user.user_metadata?.full_name?.charAt(0)?.toUpperCase() ||
-                         user.user_metadata?.name?.charAt(0)?.toUpperCase() ||
-                         user.email?.charAt(0).toUpperCase()}
-                      </AvatarFallback>
-                    </Avatar>
-                    <div className="flex-1 min-w-0">
-                      <p className="text-white font-medium text-sm truncate">
-                        {user.user_metadata?.full_name || user.user_metadata?.name || user.email?.split('@')[0] || 'User'}
-                      </p>
-                      <p className="text-white/70 text-xs truncate">
-                        {user.email}
-                      </p>
-                    </div>
-                  </div>
+                <div className="px-4 py-3">
+                  <p className="text-foreground font-medium text-sm truncate">
+                    {user.user_metadata?.full_name || user.user_metadata?.name || user.email?.split('@')[0] || 'User'}
+                  </p>
+                  <p className="text-muted-foreground text-xs truncate">
+                    {user.email}
+                  </p>
                 </div>
 
-                {/* Menu Items */}
-                <div className="py-1">
-                  <button
-                    onClick={async () => {
-                      try {
-                        await signOut();
-                        setIsUserMenuOpen(false);
-                      } catch (error) {
-                        console.error('Sign out error:', error);
-                      }
-                    }}
-                    className="w-full flex items-center gap-3 px-4 py-2 text-sm text-white/80 hover:bg-white/10 hover:text-white transition-colors"
-                  >
-                    <LogOut className="w-4 h-4" />
-                    <span>Sign Out</span>
-                  </button>
-                </div>
+                {/* Sign Out Button */}
+                <button
+                  onClick={async () => {
+                    try {
+                      await signOut();
+                      setIsUserMenuOpen(false);
+                    } catch (error) {
+                      console.error('Sign out error:', error);
+                    }
+                  }}
+                  className="w-full flex items-center gap-3 px-4 py-3 hover:bg-accent transition-colors group rounded-lg"
+                >
+                  <div className="flex-shrink-0 w-8 h-8 bg-primary/20 rounded-lg flex items-center justify-center group-hover:bg-primary/30 transition-colors text-primary">
+                    <LogOut className="h-4 w-4" />
+                  </div>
+                  <span className="text-foreground font-medium text-sm">Sign Out</span>
+                </button>
               </div>
             )}
             </div>

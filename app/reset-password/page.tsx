@@ -25,16 +25,35 @@ export default function ResetPasswordPage() {
     // 检查是否有有效的重置令牌
     const checkToken = async () => {
       try {
+        // 监听认证状态变化
+        const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+          if (event === 'PASSWORD_RECOVERY' || (session && session.user)) {
+            setIsValidToken(true);
+            setCheckingToken(false);
+          } else if (event === 'SIGNED_OUT' || !session) {
+            setMessage('Invalid or expired reset link. Please request a new one.');
+            setCheckingToken(false);
+          }
+        });
+
+        // 检查当前会话
         const { data: { session } } = await supabase.auth.getSession();
         if (session) {
           setIsValidToken(true);
         } else {
-          setMessage('Invalid or expired reset link. Please request a new one.');
+          // 如果没有会话，等待URL中的token被处理
+          setTimeout(() => {
+            if (!isValidToken) {
+              setMessage('Invalid or expired reset link. Please request a new one.');
+              setCheckingToken(false);
+            }
+          }, 2000);
         }
+
+        return () => subscription.unsubscribe();
       } catch (error) {
         console.error('Error checking token:', error);
         setMessage('An error occurred. Please try again.');
-      } finally {
         setCheckingToken(false);
       }
     };

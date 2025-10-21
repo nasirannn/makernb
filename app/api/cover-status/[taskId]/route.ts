@@ -15,7 +15,7 @@ export async function GET(
     }
 
     // 直接调用KIE API查询封面状态
-    const apiKey = process.env.SUNO_API_KEY;
+    const apiKey = process.env.KIE_API_KEY;
     if (!apiKey) {
       throw new Error('API key not configured');
     }
