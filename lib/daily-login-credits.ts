@@ -109,7 +109,8 @@ export const grantDailyLoginCredits = async (userId: string): Promise<{ id: stri
   }
 };
 
-// 清理过期的每日登录积分（第二天凌晨清理前一天的积分）
+// 清理过期的每日登录积分（第二天凌晨清理前一天剩余的积分）
+// 逻辑：昨天获得15积分，消耗了x积分，剩余y积分，则清理y积分
 export const cleanupExpiredDailyCredits = async (): Promise<number> => {
   try {
     return await withTransaction(async (queryFn) => {
@@ -118,14 +119,13 @@ export const cleanupExpiredDailyCredits = async (): Promise<number> => {
 
       console.log(`[CLEANUP] Today: ${today}, Yesterday: ${yesterday}`);
 
-      // 查找所有过期的每日登录积分（只清理昨天的，不是所有非今天的）
-      const expiredCredits = await queryFn(
-        `SELECT ct.*, uc.credits
+      // 查找昨天获得每日登录积分的用户
+      const yesterdayCredits = await queryFn(
+        `SELECT ct.user_id, ct.reference_id, ct.amount as daily_amount, uc.credits as current_credits
          FROM credit_transactions ct
          JOIN user_credits uc ON ct.user_id = uc.user_id
          WHERE ct.description = 'Daily login bonus'
          AND DATE(ct.created_at) = $1
-         AND ct.amount > 0
          AND NOT EXISTS (
            SELECT 1 FROM credit_transactions ct2
            WHERE ct2.reference_id = ct.reference_id
@@ -134,70 +134,72 @@ export const cleanupExpiredDailyCredits = async (): Promise<number> => {
         [yesterday]
       );
 
+      console.log(`[CLEANUP] Found ${yesterdayCredits.rows.length} users with yesterday's daily credits`);
+
       let cleanedCount = 0;
+      const todayStart = new Date(today + 'T00:00:00Z').toISOString();
 
-      // 按用户分组处理，只清理用户当前积分范围内的过期积分
-      const userCreditsMap = new Map();
-      
-      for (const credit of expiredCredits.rows) {
-        const userId = credit.user_id;
-        if (!userCreditsMap.has(userId)) {
-          userCreditsMap.set(userId, {
-            currentCredits: credit.credits,
-            credits: []
-          });
-        }
+      // 处理每个用户
+      for (const userCredit of yesterdayCredits.rows) {
+        const { user_id: userId, reference_id: refId, daily_amount: dailyAmount, current_credits: currentCredits } = userCredit;
+
+        // 查找昨天结束时（今天凌晨之前）的最后一笔交易余额
+        const lastYesterdayTransaction = await queryFn(
+          `SELECT balance_after
+           FROM credit_transactions
+           WHERE user_id = $1
+           AND created_at < $2
+           ORDER BY created_at DESC
+           LIMIT 1`,
+          [userId, todayStart]
+        );
+
+        let yesterdayRemainingCredits = 0;
         
-        const userData = userCreditsMap.get(userId);
-        userData.credits.push(credit);
-      }
-
-      // 处理每个用户的过期积分
-      for (const [userId, userData] of Array.from(userCreditsMap.entries())) {
-        let remainingCredits = userData.currentCredits;
-        let actualDeduction = 0;
-        const creditsToProcess = [];
-
-        // 按时间顺序处理过期积分，只清理用户当前积分范围内的
-        for (const credit of userData.credits) {
-          if (remainingCredits >= credit.amount) {
-            creditsToProcess.push(credit);
-            actualDeduction += credit.amount;
-            remainingCredits -= credit.amount;
-          } else {
-            // 积分不足，停止处理
-            console.warn(`User ${userId} has insufficient credits to process expired credit ${credit.reference_id}. Remaining: ${remainingCredits}, Required: ${credit.amount}`);
-            break;
-          }
+        if (lastYesterdayTransaction.rows.length > 0) {
+          yesterdayRemainingCredits = lastYesterdayTransaction.rows[0].balance_after;
         }
 
-        // 只处理能够完全清理的积分
-        if (creditsToProcess.length > 0) {
-          // 扣除过期的每日登录积分
-          await queryFn(
-            'UPDATE user_credits SET credits = credits - $1, updated_at = NOW() WHERE user_id = $2',
-            [actualDeduction, userId]
-          );
+        console.log(`[CLEANUP] User ${userId}: Yesterday remaining = ${yesterdayRemainingCredits}, Current = ${currentCredits}`);
 
-          // 为每个过期积分创建交易记录
-          for (const credit of creditsToProcess) {
+        // 如果昨天有剩余积分，需要清理
+        if (yesterdayRemainingCredits > 0) {
+          // 实际要清理的积分数 = min(昨天剩余积分, 用户当前积分)
+          const actualDeduction = Math.min(yesterdayRemainingCredits, currentCredits);
+
+          if (actualDeduction > 0) {
+            console.log(`[CLEANUP] Cleaning ${actualDeduction} credits for user ${userId}`);
+
+            // 扣除过期的每日登录积分
+            const updateResult = await queryFn(
+              'UPDATE user_credits SET credits = credits - $1, updated_at = NOW() WHERE user_id = $2 RETURNING credits',
+              [actualDeduction, userId]
+            );
+
+            const newBalance = updateResult.rows[0].credits;
+
+            // 创建过期积分交易记录
             await queryFn(
               `INSERT INTO credit_transactions (
                 user_id, transaction_type, amount, balance_after,
                 description, reference_id
               ) VALUES ($1, $2, $3, $4, $5, $6)`,
               [
-                credit.user_id,
+                userId,
                 'expired',
-                -credit.amount,
-                userData.currentCredits - actualDeduction,
+                -actualDeduction,
+                newBalance,
                 'Daily login credits expired',
-                credit.reference_id
+                refId
               ]
             );
-          }
 
-          cleanedCount += creditsToProcess.length;
+            cleanedCount++;
+          } else {
+            console.log(`[CLEANUP] User ${userId} has no credits to clean up`);
+          }
+        } else {
+          console.log(`[CLEANUP] User ${userId} had no remaining credits yesterday, skipping`);
         }
       }
 
