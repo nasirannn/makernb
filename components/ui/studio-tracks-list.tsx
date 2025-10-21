@@ -122,7 +122,12 @@ export const StudioTracksList: React.FC<StudioTracksListProps> = ({
     );
   }
 
-  if (!userTracks || userTracks.length === 0 || allTracks.length === 0) {
+  // 如果正在生成或有pending tasks，显示skeleton，不显示空状态
+  const showEmptyState = (!userTracks || userTracks.length === 0 || allTracks.length === 0) 
+    && allGeneratedTracks.length === 0 
+    && pendingTasksCount === 0;
+
+  if (showEmptyState) {
     return (
       <div className="flex flex-col items-center justify-center h-full px-6 py-12">
         <div className="text-center max-w-md space-y-6">
