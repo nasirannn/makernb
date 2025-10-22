@@ -64,11 +64,19 @@ const nextConfig = {
       },
       {
         protocol: "https",
+        hostname: "makernb.com",
+      },
+      {
+        protocol: "https",
         hostname: "api.producthunt.com",
       },
       {
         protocol: "https",
         hostname: "makernb-assets.nasirann.com",
+      },
+      {
+        protocol: "https",
+        hostname: "tempfile.aiquickdraw.com",
       },
     ],
     // 添加图片优化配置

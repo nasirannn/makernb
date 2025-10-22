@@ -35,7 +35,7 @@ const BUCKET_NAME = process.env.R2_BUCKET_NAME!;
 
 // 创建数据库客户端
 const dbClient = new Client({
-  connectionString: process.env.DATABASE_URL,
+  connectionString: process.env.DATABASE_URL?.replace('channel_binding=require', 'channel_binding=disable'),
   ssl: {
     rejectUnauthorized: false
   }
@@ -130,24 +130,47 @@ function formatBytes(bytes: number): string {
 /**
  * 获取所有逻辑删除的音轨信息
  */
-async function getDeletedTracksInfo(): Promise<DeletedTrackInfo[]> {
-  console.log('🔍 查找所有逻辑删除的音轨...');
+async function getDeletedTracksInfo(userId?: string): Promise<DeletedTrackInfo[]> {
+  if (userId) {
+    console.log(`🔍 查找用户 ${userId} 的逻辑删除音轨...`);
+  } else {
+    console.log('🔍 查找所有逻辑删除的音轨...');
+  }
 
-  const result = await dbQuery(`
-    SELECT
-      mt.id as track_id,
-      mt.music_id as generation_id,
-      mt.audio_url,
-      mt.suno_track_id,
-      mt.updated_at as deleted_at,
-      mg.user_id,
-      mg.task_id,
-      mg.title
-    FROM tracks mt
-    INNER JOIN music mg ON mt.music_id = mg.id
-    WHERE mt.is_deleted = TRUE
-    ORDER BY mt.updated_at DESC
-  `);
+  const query = userId 
+    ? `
+      SELECT
+        mt.id as track_id,
+        mt.music_id as generation_id,
+        mt.audio_url,
+        mt.suno_track_id,
+        mt.updated_at as deleted_at,
+        mg.user_id,
+        mg.task_id,
+        mg.title
+      FROM tracks mt
+      INNER JOIN music mg ON mt.music_id = mg.id
+      WHERE mt.is_deleted = TRUE AND mg.user_id = $1
+      ORDER BY mt.updated_at DESC
+    `
+    : `
+      SELECT
+        mt.id as track_id,
+        mt.music_id as generation_id,
+        mt.audio_url,
+        mt.suno_track_id,
+        mt.updated_at as deleted_at,
+        mg.user_id,
+        mg.task_id,
+        mg.title
+      FROM tracks mt
+      INNER JOIN music mg ON mt.music_id = mg.id
+      WHERE mt.is_deleted = TRUE
+      ORDER BY mt.updated_at DESC
+    `;
+
+  const params = userId ? [userId] : undefined;
+  const result = await dbQuery(query, params);
 
   console.log(`📊 找到 ${result.rows.length} 个逻辑删除的音轨`);
   return result.rows;
@@ -156,20 +179,41 @@ async function getDeletedTracksInfo(): Promise<DeletedTrackInfo[]> {
 /**
  * 获取所有孤立的封面图片（关联到已删除的音轨）
  */
-async function getOrphanedCovers(): Promise<DeletedCoverInfo[]> {
-  console.log('🔍 查找孤立的封面图片...');
+async function getOrphanedCovers(userId?: string): Promise<DeletedCoverInfo[]> {
+  if (userId) {
+    console.log(`🔍 查找用户 ${userId} 的孤立封面图片...`);
+  } else {
+    console.log('🔍 查找孤立的封面图片...');
+  }
 
-  const result = await dbQuery(`
-    SELECT
-      mt.id as track_id,
-      mt.cover_image_url,
-      mt.music_id
-    FROM tracks mt
-    WHERE mt.is_deleted = TRUE
-      AND mt.cover_image_url IS NOT NULL
-      AND mt.cover_image_url LIKE 'http%'
-    ORDER BY mt.updated_at DESC
-  `);
+  const query = userId
+    ? `
+      SELECT
+        mt.id as track_id,
+        mt.cover_image_url,
+        mt.music_id
+      FROM tracks mt
+      INNER JOIN music mg ON mt.music_id = mg.id
+      WHERE mt.is_deleted = TRUE
+        AND mt.cover_image_url IS NOT NULL
+        AND mt.cover_image_url LIKE 'http%'
+        AND mg.user_id = $1
+      ORDER BY mt.updated_at DESC
+    `
+    : `
+      SELECT
+        mt.id as track_id,
+        mt.cover_image_url,
+        mt.music_id
+      FROM tracks mt
+      WHERE mt.is_deleted = TRUE
+        AND mt.cover_image_url IS NOT NULL
+        AND mt.cover_image_url LIKE 'http%'
+      ORDER BY mt.updated_at DESC
+    `;
+
+  const params = userId ? [userId] : undefined;
+  const result = await dbQuery(query, params);
 
   console.log(`📊 找到 ${result.rows.length} 个孤立的封面图片`);
   return result.rows;
@@ -190,24 +234,47 @@ async function getDeletedVocalSeparations(): Promise<DeletedVocalSeparationInfo[
 /**
  * 获取所有关联到已删除记录的生成错误
  */
-async function getDeletedGenerationErrors(): Promise<DeletedGenerationErrorInfo[]> {
-  console.log('🔍 查找关联到已删除记录的生成错误...');
+async function getDeletedGenerationErrors(userId?: string): Promise<DeletedGenerationErrorInfo[]> {
+  if (userId) {
+    console.log(`🔍 查找用户 ${userId} 关联到已删除记录的生成错误...`);
+  } else {
+    console.log('🔍 查找关联到已删除记录的生成错误...');
+  }
 
-  const result = await dbQuery(`
-    SELECT
-      ge.id as error_id,
-      ge.reference_id,
-      ge.error_type,
-      ge.created_at
-    FROM generation_errors ge
-    LEFT JOIN music mg ON ge.reference_id::text = mg.id::text AND ge.error_type = 'music_generation'
-    LEFT JOIN vocal_separations vs ON ge.reference_id::text = vs.id::text AND ge.error_type = 'vocal_separation'
-    WHERE
-      (ge.error_type = 'music_generation' AND mg.is_deleted = TRUE)
-      OR (ge.error_type = 'vocal_separation' AND vs.id IS NOT NULL)
-      OR ge.reference_id IS NULL
-    ORDER BY ge.created_at DESC
-  `);
+  const query = userId
+    ? `
+      SELECT
+        ge.id as error_id,
+        ge.reference_id,
+        ge.error_type,
+        ge.created_at
+      FROM generation_errors ge
+      LEFT JOIN music mg ON ge.reference_id::text = mg.id::text AND ge.error_type = 'music_generation'
+      LEFT JOIN vocal_separations vs ON ge.reference_id::text = vs.id::text AND ge.error_type = 'vocal_separation'
+      WHERE
+        ((ge.error_type = 'music_generation' AND mg.is_deleted = TRUE AND mg.user_id = $1)
+        OR (ge.error_type = 'vocal_separation' AND vs.user_id = $1)
+        OR ge.reference_id IS NULL)
+      ORDER BY ge.created_at DESC
+    `
+    : `
+      SELECT
+        ge.id as error_id,
+        ge.reference_id,
+        ge.error_type,
+        ge.created_at
+      FROM generation_errors ge
+      LEFT JOIN music mg ON ge.reference_id::text = mg.id::text AND ge.error_type = 'music_generation'
+      LEFT JOIN vocal_separations vs ON ge.reference_id::text = vs.id::text AND ge.error_type = 'vocal_separation'
+      WHERE
+        (ge.error_type = 'music_generation' AND mg.is_deleted = TRUE)
+        OR (ge.error_type = 'vocal_separation' AND vs.id IS NOT NULL)
+        OR ge.reference_id IS NULL
+      ORDER BY ge.created_at DESC
+    `;
+
+  const params = userId ? [userId] : undefined;
+  const result = await dbQuery(query, params);
 
   console.log(`📊 找到 ${result.rows.length} 个关联到已删除记录的生成错误`);
   return result.rows;
@@ -216,20 +283,39 @@ async function getDeletedGenerationErrors(): Promise<DeletedGenerationErrorInfo[
 /**
  * 获取所有关联到已删除音乐生成的歌词记录
  */
-async function getDeletedLyrics(): Promise<DeletedLyricsInfo[]> {
-  console.log('🔍 查找关联到已删除音乐生成的歌词记录...');
+async function getDeletedLyrics(userId?: string): Promise<DeletedLyricsInfo[]> {
+  if (userId) {
+    console.log(`🔍 查找用户 ${userId} 关联到已删除音乐生成的歌词记录...`);
+  } else {
+    console.log('🔍 查找关联到已删除音乐生成的歌词记录...');
+  }
 
-  const result = await dbQuery(`
-    SELECT
-      l.id as lyrics_id,
-      l.music_id,
-      l.title,
-      l.created_at
-    FROM lyrics l
-    INNER JOIN music mg ON l.music_id = mg.id
-    WHERE mg.is_deleted = TRUE
-    ORDER BY l.created_at DESC
-  `);
+  const query = userId
+    ? `
+      SELECT
+        l.id as lyrics_id,
+        l.music_id,
+        l.title,
+        l.created_at
+      FROM lyrics l
+      INNER JOIN music mg ON l.music_id = mg.id
+      WHERE mg.is_deleted = TRUE AND mg.user_id = $1
+      ORDER BY l.created_at DESC
+    `
+    : `
+      SELECT
+        l.id as lyrics_id,
+        l.music_id,
+        l.title,
+        l.created_at
+      FROM lyrics l
+      INNER JOIN music mg ON l.music_id = mg.id
+      WHERE mg.is_deleted = TRUE
+      ORDER BY l.created_at DESC
+    `;
+
+  const params = userId ? [userId] : undefined;
+  const result = await dbQuery(query, params);
 
   console.log(`📊 找到 ${result.rows.length} 个关联到已删除音乐生成的歌词记录`);
   return result.rows;
@@ -340,14 +426,18 @@ async function estimateR2FileSize(files: string[]): Promise<number> {
 /**
  * 生成删除摘要
  */
-async function generateDeletionSummary(): Promise<DeletionSummary> {
-  console.log('\n📋 生成删除摘要...\n');
+async function generateDeletionSummary(userId?: string): Promise<DeletionSummary> {
+  if (userId) {
+    console.log(`\n📋 生成用户 ${userId} 的删除摘要...\n`);
+  } else {
+    console.log('\n📋 生成删除摘要...\n');
+  }
 
-  const tracks = await getDeletedTracksInfo();
-  const covers = await getOrphanedCovers();
+  const tracks = await getDeletedTracksInfo(userId);
+  const covers = await getOrphanedCovers(userId);
   const vocalSeparations = await getDeletedVocalSeparations();
-  const generationErrors = await getDeletedGenerationErrors();
-  const lyrics = await getDeletedLyrics();
+  const generationErrors = await getDeletedGenerationErrors(userId);
+  const lyrics = await getDeletedLyrics(userId);
   const r2Files = await collectR2FilesToDelete(tracks, covers, vocalSeparations);
   const estimatedR2Size = await estimateR2FileSize(r2Files);
 
@@ -622,12 +712,22 @@ async function main() {
     const skipR2 = args.includes('--skip-r2');
     const skipDb = args.includes('--skip-db');
     const dryRun = !shouldDelete;
+    
+    // 提取用户ID参数
+    const userIdArg = args.find(arg => arg.startsWith('--user='));
+    const userId = userIdArg ? userIdArg.split('=')[1] : undefined;
+
+    if (userId) {
+      console.log(`🎯 目标用户: ${userId}`);
+    }
 
     if (dryRun) {
       console.log('ℹ️  运行在 DRY RUN 模式，不会实际删除任何数据');
       console.log('💡 要实际删除，请使用: --delete');
       console.log('💡 只删除数据库: --delete --skip-r2');
-      console.log('💡 只删除R2文件: --delete --skip-db\n');
+      console.log('💡 只删除R2文件: --delete --skip-db');
+      console.log('💡 指定用户: --user=USER_ID');
+      console.log('💡 示例: --delete --user=94082d03-00cd-4ce0-b7da-ce411e4af948\n');
     } else {
       console.log('⚠️  运行在 DELETE 模式，将实际删除数据！');
       if (skipR2) console.log('ℹ️  跳过R2文件删除');
@@ -641,7 +741,7 @@ async function main() {
     console.log('✅ 数据库连接成功\n');
 
     // 生成删除摘要
-    const summary = await generateDeletionSummary();
+    const summary = await generateDeletionSummary(userId);
 
     // 显示摘要
     displayDeletionSummary(summary);

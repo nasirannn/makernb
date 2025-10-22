@@ -182,7 +182,7 @@ export const CommonSidebar = ({ hideMobileNav = false }: CommonSidebarProps) => 
                   variant="ghost"
                   size="sm"
                   className={`w-12 h-12 flex items-center justify-center hover:bg-muted/50 hover:text-white hover:scale-110 transition-all duration-300 rounded-lg ${
-                    isActive('/vocal-remover') || isActive('/lyrics-generator') || isActive('/ai-music-tools')
+                    isActive('/vocal-remover') || isActive('/lyrics-generator')
                       ? 'bg-primary/20 text-primary shadow-sm'
                       : 'text-muted-foreground'
                   }`}
@@ -346,7 +346,7 @@ export const CommonSidebar = ({ hideMobileNav = false }: CommonSidebarProps) => 
               variant="ghost"
               size="sm"
               className={`h-12 w-12 flex items-center justify-center hover:bg-muted/50 transition-all duration-300 rounded-lg ${
-                isActive('/vocal-remover') || isActive('/lyrics-generator') || isActive('/ai-music-tools')
+                isActive('/vocal-remover') || isActive('/lyrics-generator')
                   ? 'bg-primary/20 text-primary shadow-sm'
                   : 'text-muted-foreground'
               }`}

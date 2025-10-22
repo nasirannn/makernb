@@ -55,7 +55,7 @@ const routeList: RouteProps[] = [
     label: "Library",
   },
   {
-    href: "/ai-music-tools",
+    href: "#",
     label: "AI Music Tool",
     hasDropdown: true,
     dropdownItems: aiMusicToolsDropdown,
@@ -187,7 +187,7 @@ export const Navbar = ({ credits = null }: NavbarProps) => {
                            (href === "/explore" && pathname.startsWith("/explore")) ||
                            (href === "/studio" && pathname.startsWith("/studio")) ||
                            (href === "/library" && pathname.startsWith("/library")) ||
-                           (href === "/ai-music-tools" && (pathname.startsWith("/studio") || pathname.startsWith("/vocal-remover") || pathname.startsWith("/lyrics-generator")));
+                           (href === "#" && (pathname.startsWith("/vocal-remover") || pathname.startsWith("/lyrics-generator")));
             
             if (hasDropdown && dropdownItems) {
               return (
@@ -352,7 +352,7 @@ export const Navbar = ({ credits = null }: NavbarProps) => {
                                  (href === "/explore" && pathname.startsWith("/explore")) ||
                                  (href === "/studio" && pathname.startsWith("/studio")) ||
                                  (href === "/library" && pathname.startsWith("/library")) ||
-                                 (href === "/ai-music-tools" && (pathname.startsWith("/studio") || pathname.startsWith("/vocal-remover") || pathname.startsWith("/lyrics-generator")));
+                                 (href === "#" && (pathname.startsWith("/vocal-remover") || pathname.startsWith("/lyrics-generator")));
                   
                   if (hasDropdown && dropdownItems) {
                     return (

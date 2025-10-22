@@ -24,6 +24,22 @@
     <priority>0.8</priority>
   </url>
   
+  <!-- Vocal Remover -->
+  <url>
+    <loc>https://makernb.com/vocal-remover</loc>
+    <lastmod>2025-01-27</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  
+  <!-- Lyrics Generator -->
+  <url>
+    <loc>https://makernb.com/lyrics-generator</loc>
+    <lastmod>2025-01-27</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  
   <!-- Explore Page -->
   <url>
     <loc>https://makernb.com/explore</loc>
