@@ -14,7 +14,7 @@ export const getOrCreateUserCredits = async (userId: string): Promise<UserCredit
   try {
     // 先尝试获取现有积分记录
     const existingCredits = await query(
-      'SELECT * FROM user_credits WHERE user_id = $1',
+      'SELECT * FROM user_credits WHERE user_id = $1::uuid',
       [userId]
     );
 
@@ -24,7 +24,7 @@ export const getOrCreateUserCredits = async (userId: string): Promise<UserCredit
 
     // 如果积分记录不存在，创建新记录（新用户注册不赠送积分）
     const newCredits = await query(
-      'INSERT INTO user_credits (user_id, credits, total_earned) VALUES ($1, $2, $3) RETURNING *',
+      'INSERT INTO user_credits (user_id, credits, total_earned) VALUES ($1::uuid, $2, $3) RETURNING *',
       [userId, 0, 0]
     );
 
@@ -39,7 +39,7 @@ export const getOrCreateUserCredits = async (userId: string): Promise<UserCredit
 export const updateUserCredits = async (userId: string, credits: number): Promise<UserCredits> => {
   try {
     const result = await query(
-      'UPDATE user_credits SET credits = $1, updated_at = NOW() WHERE user_id = $2 RETURNING *',
+      'UPDATE user_credits SET credits = $1, updated_at = NOW() WHERE user_id = $2::uuid RETURNING *',
       [credits, userId]
     );
 
@@ -66,7 +66,7 @@ export const consumeUserCredit = async (
     return await withTransaction(async (queryFn) => {
       // 检查并更新积分
       const result = await queryFn(
-        'UPDATE user_credits SET credits = credits - $1, total_spent = total_spent + $1, updated_at = NOW() WHERE user_id = $2 AND credits >= $1 RETURNING *',
+        'UPDATE user_credits SET credits = credits - $1, total_spent = total_spent + $1, updated_at = NOW() WHERE user_id = $2::uuid AND credits >= $1 RETURNING *',
         [creditAmount, userId]
       );
 
@@ -97,7 +97,7 @@ export const consumeUserCredit = async (
 export const getUserCredits = async (userId: string): Promise<UserCredits | null> => {
   try {
     const result = await query(
-      'SELECT * FROM user_credits WHERE user_id = $1',
+      'SELECT * FROM user_credits WHERE user_id = $1::uuid',
       [userId]
     );
 
@@ -176,7 +176,7 @@ export const addUserCredits = async (
     return await withTransaction(async (queryFn) => {
       // 更新积分和total_earned
       const result = await queryFn(
-        'UPDATE user_credits SET credits = credits + $1, total_earned = total_earned + $1, updated_at = NOW() WHERE user_id = $2 RETURNING *',
+        'UPDATE user_credits SET credits = credits + $1, total_earned = total_earned + $1, updated_at = NOW() WHERE user_id = $2::uuid RETURNING *',
         [amount, userId]
       );
 

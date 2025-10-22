@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from 'next/server';
 import { softDeleteVocalSeparation } from '@/lib/vocal-separation-db';
 import { getUserIdFromRequest } from '@/lib/auth-utils-optimized';
 
+export const dynamic = 'force-dynamic';
+
 export async function DELETE(
   request: NextRequest,
   { params }: { params: { separationId: string } }

@@ -3,6 +3,8 @@ import { createLyricsGeneration } from '@/lib/lyrics-db';
 import { createGenerationError } from '@/lib/generation-errors-db';
 import { getUserIdFromRequest } from '@/lib/auth-utils-optimized';
 
+export const dynamic = 'force-dynamic';
+
 export async function POST(request: NextRequest) {
   try {
     // 检查用户是否登录 - 使用统一的身份验证方式

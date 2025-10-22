@@ -283,15 +283,15 @@ async function processCallbackAsync(callbackData: any, callbackId: string) {
           console.error(`[CALLBACK-${callbackId}] Failed to update music generation record with text data:`, dbError);
         }
 
-        // 4.1.2 存储歌词到music_lyrics表（音乐生成中的歌词）
+        // 4.1.2 存储歌词到lyrics表（音乐生成中的歌词）
         // 歌词可能在多个字段中，按优先级检查
         const lyricsContent = firstTrack.prompt;
 
         if (lyricsContent && lyricsContent.trim() !== '') {
           try {
-            // 获取music_generation_id
+            // 获取music_id
             const musicGenQuery = await query(
-              'SELECT id FROM music_generations WHERE task_id = $1',
+              'SELECT id FROM music WHERE task_id = $1',
               [taskId]
             );
 
@@ -301,7 +301,7 @@ async function processCallbackAsync(callbackData: any, callbackId: string) {
               // 创建音乐歌词记录 - 使用提取的标题
               const lyricsTitle = extractedTitle || 'Generated Lyrics';
               const lyricsRecord = await query(
-                `INSERT INTO music_lyrics (music_generation_id, title, content)
+                `INSERT INTO lyrics (music_id, title, content)
                  VALUES ($1, $2, $3)
                  RETURNING *`,
                 [musicGenerationId, lyricsTitle, lyricsContent]
@@ -315,202 +315,57 @@ async function processCallbackAsync(callbackData: any, callbackId: string) {
         } else {
         }
         
-        // 4.1.3 创建music_tracks记录（即使还没有audio_url）
+        // 4.1.3 更新已存在的tracks记录（tracks已在音乐生成API中创建）
         try {
           const musicGenQuery = await query(
-            'SELECT id FROM music_generations WHERE task_id = $1',
+            'SELECT id FROM music WHERE task_id = $1',
             [taskId]
           );
           
           if (musicGenQuery.rows.length > 0) {
             const musicGenerationId = musicGenQuery.rows[0].id;
-            // 默认设置为私有状态，用户可以在library中手动发布
-            const isPublished = false;
             
-            // 为每个track创建记录
-            for (let i = 0; i < tracks.length; i++) {
-              const track = tracks[i];
+            // 获取已存在的tracks记录，按side_letter排序
+            const existingTracksQuery = await query(
+              'SELECT id, side_letter FROM tracks WHERE music_id = $1 ORDER BY side_letter ASC',
+              [musicGenerationId]
+            );
+            
+            if (existingTracksQuery.rows.length > 0) {
+              console.log(`[CALLBACK-${callbackId}] Found ${existingTracksQuery.rows.length} existing tracks records, updating with text data`);
               
-              // 检查是否已存在该track记录，避免重复创建
-              const existingTrackQuery = await query(
-                'SELECT id FROM music_tracks WHERE music_generation_id = $1 AND side_letter = $2',
-                [musicGenerationId, i === 0 ? 'A' : 'B']
-              );
-              
-              if (existingTrackQuery.rows.length > 0) {
-                // 更新现有记录
+              // 更新已存在的track记录
+              for (let i = 0; i < Math.min(tracks.length, existingTracksQuery.rows.length); i++) {
+                const track = tracks[i];
+                const existingTrack = existingTracksQuery.rows[i];
+                
+                // 使用更安全的更新方式，避免覆盖cover_image_url
                 await query(
-                  `UPDATE music_tracks SET 
+                  `UPDATE tracks SET 
                     suno_track_id = $1,
                     stream_audio_url = $2,
                     updated_at = NOW()
-                  WHERE id = $3`,
+                  WHERE id = $3
+                  AND suno_track_id IS NULL`,
                   [
                     track.id,
                     track.stream_audio_url,
-                    existingTrackQuery.rows[0].id
-                  ]
-                );
-              } else {
-                // 创建新记录
-                const trackRecord = await query(
-                  `INSERT INTO music_tracks (
-                    music_generation_id,
-                    suno_track_id,
-                    side_letter,
-                    stream_audio_url,
-                    is_published
-                  ) VALUES ($1, $2, $3, $4, $5)
-                  RETURNING *`,
-                  [
-                    musicGenerationId,
-                    track.id, // 使用track.id
-                    i === 0 ? 'A' : 'B', // 第一个是A面，第二个是B面
-                    track.stream_audio_url, // 保存流式音频URL到stream_audio_url字段
-                    isPublished // 根据用户的isPublished选择设置
+                    existingTrack.id
                   ]
                 );
               }
+              
+              console.log(`[CALLBACK-${callbackId}] Successfully updated ${Math.min(tracks.length, existingTracksQuery.rows.length)} tracks records`);
+            } else {
+              console.error(`[CALLBACK-${callbackId}] No existing tracks found for music_id: ${musicGenerationId}`);
             }
           }
         } catch (tracksError) {
-          console.error('Failed to create music_tracks records in text callback:', tracksError);
+          console.error('Failed to update tracks records in text callback:', tracksError);
         }
 
-        // 4.1.4 混合方案：调用单独的图片生成接口，前端直接显示临时地址，后端异步下载到R2
-        const coverTaskKey = `${taskId}_cover_started`;
-        if (!processedTasks.has(coverTaskKey)) {
-          console.log(`[CALLBACK-${callbackId}] Starting cover generation for taskId: ${taskId}`);
-          processedTasks.add(coverTaskKey);
-          
-          try {
-            // 先获取 music_generation_id 和 user_id
-            const musicGenQuery = await query(
-              'SELECT id, user_id FROM music_generations WHERE task_id = $1',
-              [taskId]
-            );
-            
-            if (musicGenQuery.rows.length > 0) {
-              const musicGenerationId = musicGenQuery.rows[0].id;
-              const userId = musicGenQuery.rows[0].user_id;
-              
-              // 调用单独的图片生成接口
-              const baseUrl = process.env.CallBackURL || 'http://localhost:3000';
-              const coverResponse = await fetch(`${baseUrl}/api/generate-cover`, {
-                method: 'POST',
-                headers: {
-                  'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({
-                  musicTaskId: taskId,
-                  userId: userId, // 传递用户ID
-                  title: firstTrack.title || 'Generated Music',
-                  genre: firstTrack.genre || 'R&B',
-                  prompt: firstTrack.prompt || 'Music cover image'
-                }),
-              });
-
-              if (coverResponse.ok) {
-                const coverData = await coverResponse.json();
-                console.log(`[CALLBACK-${callbackId}] Cover generation started:`, coverData);
-                
-                // 不立即创建 cover_images 记录，等待 cover-callback 完成
-                // cover-callback 会处理图片下载和数据库记录创建
-                console.log(`[CALLBACK-${callbackId}] Cover generation initiated, waiting for cover-callback to complete`);
-                
-                // 注释掉异步备份，让 cover-callback 处理R2存储
-                // setImmediate(async () => {
-                //   try {
-                //     console.log(`[CALLBACK-${callbackId}] Starting async backup download to R2`);
-                //     
-                //     const imageBuffer = await downloadFromUrl(coverData.imageUrl);
-                //     const filename = `cover_backup_${Date.now()}.jpeg`;
-                //     
-                //     const r2ImageUrl = await uploadCoverImage(
-                //       imageBuffer, 
-                //       taskId, 
-                //       filename, 
-                //       userId || 'anonymous'
-                //     );
-                //     
-                //     console.log(`[CALLBACK-${callbackId}] Successfully uploaded backup image to R2: ${r2ImageUrl}`);
-                //     
-                //     // 更新 cover_images 记录，添加R2备份URL
-                //     await query(
-                //       `UPDATE cover_images SET r2_url = $1 WHERE music_track_id IN (
-                //         SELECT id FROM music_tracks WHERE music_generation_id = $2
-                //       ) AND cover_generation_id = $3`,
-                //       [r2ImageUrl, musicGenerationId, coverData.taskId]
-                //     );
-                //     
-                //     console.log(`[CALLBACK-${callbackId}] Successfully updated cover_images with R2 backup URLs`);
-                //   } catch (backupError) {
-                //     console.error(`[CALLBACK-${callbackId}] Failed to create R2 backup:`, backupError);
-                //     // 备份失败不影响主流程，前端仍可使用临时URL
-                //   }
-                // });
-              } else {
-                console.error(`[CALLBACK-${callbackId}] Failed to start cover generation:`, await coverResponse.text());
-              }
-            } else {
-              console.error(`[CALLBACK-${callbackId}] No music generation record found for task_id: ${taskId}`);
-            }
-          } catch (error) {
-            console.error(`[CALLBACK-${callbackId}] Error starting cover generation:`, error);
-          }
-        }
-
-        // 4.1.4 历史代码：触发专门的封面生成（已注释）
-        // const coverTaskKey = `${taskId}_cover_started`;
-        // if (!processedTasks.has(coverTaskKey)) {
-        //   console.log(`[CALLBACK-${callbackId}] Starting cover generation for taskId: ${taskId}`);
-        //   processedTasks.add(coverTaskKey);
-
-        //   // 异步开始封面生成，不阻塞回调处理
-        //   setImmediate(async () => {
-        //     try {
-        //       console.log(`[CALLBACK-${callbackId}] Initiating cover generation for taskId: ${taskId}`);
-
-        //       // 从音乐生成记录中获取用户ID
-        //       let userId = null;
-        //       try {
-        //         const musicGenQuery = await query(
-        //           'SELECT user_id FROM music_generations WHERE task_id = $1',
-        //           [taskId]
-        //         );
-
-        //         if (musicGenQuery.rows.length > 0) {
-        //           userId = musicGenQuery.rows[0].user_id;
-        //           console.log(`[CALLBACK-${callbackId}] Found userId for cover generation: ${userId}`);
-        //         } else {
-        //           console.error(`[CALLBACK-${callbackId}] No music generation record found for task_id: ${taskId}`);
-        //         }
-        //       } catch (dbError) {
-        //         console.error(`[CALLBACK-${callbackId}] Failed to query user_id for task_id ${taskId}:`, dbError);
-        //       }
-
-        //       const coverResponse = await fetch(`${process.env.CallBackURL}/api/generate-cover`, {
-        //         method: 'POST',
-        //         headers: {
-        //           'Content-Type': 'application/json'
-        //         },
-        //         body: JSON.stringify({
-        //           musicTaskId: taskId,
-        //           userId: userId // 直接传递用户ID
-        //         })
-        //       });
-
-        //       if (coverResponse.ok) {
-        //         console.log(`[CALLBACK-${callbackId}] Cover generation started successfully for taskId: ${taskId}`);
-        //       } else {
-        //         const errorText = await coverResponse.text();
-        //         console.error(`[CALLBACK-${callbackId}] Failed to start cover generation for music task ${taskId}:`, errorText);
-        //       }
-        //     } catch (coverError) {
-        //       console.error(`[CALLBACK-${callbackId}] Error starting cover generation for music task ${taskId}:`, coverError);
-        //     }
-        //   });
-        // }
+        // 4.1.4 封面生成已在音乐生成API中立即启动，text回调不再需要调用
+        console.log(`[CALLBACK-${callbackId}] Cover generation already started in music generation API, skipping in text callback`);
 
         return; // 直接返回，不处理其他逻辑
         
@@ -531,7 +386,7 @@ async function processCallbackAsync(callbackData: any, callbackId: string) {
           let finalUserId: string = 'anonymous';
           try {
             const userQuery = await query(
-              'SELECT user_id FROM music_generations WHERE task_id = $1',
+              'SELECT user_id FROM music WHERE task_id = $1',
               [taskId]
             );
             finalUserId = userQuery.rows[0]?.user_id || 'anonymous';
@@ -543,7 +398,7 @@ async function processCallbackAsync(callbackData: any, callbackId: string) {
           let finalTitle = 'Untitled Song';
           try {
             const originalRecord = await query(
-              'SELECT title FROM music_generations WHERE task_id = $1',
+              'SELECT title FROM music WHERE task_id = $1',
               [taskId]
             );
             const originalTitle = originalRecord.rows[0]?.title;
@@ -552,14 +407,14 @@ async function processCallbackAsync(callbackData: any, callbackId: string) {
             console.error('Failed to resolve title for first callback, using default', titleErr);
           }
 
-          // 获取 music_generation_id
+          // 获取 music_id
           const musicGenQuery = await query(
-            'SELECT id FROM music_generations WHERE task_id = $1',
+            'SELECT id FROM music WHERE task_id = $1',
             [taskId]
           );
           const musicGenerationId = musicGenQuery.rows[0]?.id;
           if (!musicGenerationId) {
-            console.error(`No music_generations record found for taskId: ${taskId} (first callback)`);
+            console.error(`No music record found for taskId: ${taskId} (first callback)`);
             return;
           }
 
@@ -577,14 +432,14 @@ async function processCallbackAsync(callbackData: any, callbackId: string) {
 
               // 查找并更新对应的 track 记录（按 side_letter 匹配）
               const existingTrackQuery = await query(
-                'SELECT id FROM music_tracks WHERE music_generation_id = $1 AND side_letter = $2 ORDER BY created_at ASC LIMIT 1',
+                'SELECT id FROM tracks WHERE music_id = $1 AND side_letter = $2 ORDER BY created_at ASC LIMIT 1',
                 [musicGenerationId, currentSideLetter]
               );
 
               if (existingTrackQuery.rows.length > 0) {
                 const existingTrackId = existingTrackQuery.rows[0].id;
                 await query(
-                  `UPDATE music_tracks SET
+                  `UPDATE tracks SET
                     audio_url = $1,
                     duration = $2,
                     updated_at = NOW()
@@ -603,7 +458,7 @@ async function processCallbackAsync(callbackData: any, callbackId: string) {
             }
           }
           
-          // 更新music_generations状态为first (带重试机制)
+          // 更新music状态为first (带重试机制)
           await retryDatabaseOperation(async () => {
             await updateMusicGenerationByTaskId(taskId, {
               status: 'first'
@@ -638,7 +493,7 @@ async function processCallbackAsync(callbackData: any, callbackId: string) {
         }
         // 获取用户ID和标题信息
         const musicGenQuery = await query(
-          'SELECT id, user_id, title FROM music_generations WHERE task_id = $1',
+          'SELECT id, user_id, title FROM music WHERE task_id = $1',
           [taskId]
         );
         const musicGenerationId = musicGenQuery.rows[0]?.id;
@@ -646,13 +501,13 @@ async function processCallbackAsync(callbackData: any, callbackId: string) {
         const finalTitle = musicGenQuery.rows[0]?.title;
         
         if (!musicGenerationId) {
-          console.error(`No music_generations record found for taskId: ${taskId} - this should not happen`);
+          console.error(`No music record found for taskId: ${taskId} - this should not happen`);
           return;
         }
         
         // 获取已存在的tracks记录，按side_letter排序
         const existingTracksQuery = await query(
-          'SELECT id, side_letter FROM music_tracks WHERE music_generation_id = $1 ORDER BY side_letter ASC',
+          'SELECT id, side_letter FROM tracks WHERE music_id = $1 ORDER BY side_letter ASC',
           [musicGenerationId]
         );
         const existingTracks = existingTracksQuery.rows;
@@ -681,7 +536,7 @@ async function processCallbackAsync(callbackData: any, callbackId: string) {
               
               // 只有音频处理成功才更新数据库
               await query(
-                `UPDATE music_tracks SET 
+                `UPDATE tracks SET 
                   audio_url = $1,
                   duration = $2,
                   updated_at = NOW()
@@ -700,7 +555,7 @@ async function processCallbackAsync(callbackData: any, callbackId: string) {
           }
         }
         
-        // 更新music_generations状态为complete (带重试机制)
+        // 更新music状态为complete (带重试机制)
         console.log(`[CALLBACK-${callbackId}] Updating music generation status to complete`);
         await retryDatabaseOperation(async () => {
           await updateMusicGenerationByTaskId(taskId, {
@@ -709,61 +564,59 @@ async function processCallbackAsync(callbackData: any, callbackId: string) {
           console.log(`[CALLBACK-${callbackId}] Music generation status updated to complete successfully`);
         }, 5, callbackId, 'update status to complete'); // complete 回调使用 5 次重试
         
-        // 音乐生成完成后，触发封面图片的异步下载到R2
-        console.log(`[CALLBACK-${callbackId}] Music generation complete, triggering cover image backup to R2`);
-        setImmediate(async () => {
-          try {
-            // 查询需要备份的封面图片
-            const coverImagesQuery = await query(
-              `SELECT ci.id, ci.r2_url, ci.filename, cg.task_id as cover_task_id, mg.user_id
-               FROM cover_images ci
-               JOIN cover_generations cg ON ci.cover_generation_id = cg.id
-               JOIN music_tracks mt ON ci.music_track_id = mt.id
-               JOIN music_generations mg ON mt.music_generation_id = mg.id
-               WHERE mg.task_id = $1 
-               AND ci.r2_url LIKE 'http%' 
-               AND ci.r2_url NOT LIKE '%makernb-assets.nasirann.com%'`,
-              [taskId]
-            );
+        // 音乐生成完成后，备份封面图片到R2（兜底机制，cover-callback可能已经处理过）
+        console.log(`[CALLBACK-${callbackId}] Music generation complete, starting cover image backup to R2 (fallback)`);
+        try {
+          // 查询需要备份的封面图片（使用新的cover_image_url字段）
+          const coverImagesQuery = await query(
+            `SELECT mt.id, mt.cover_image_url, cg.task_id as cover_task_id, cg.user_id
+             FROM tracks mt
+             JOIN music mg ON mt.music_id = mg.id
+             JOIN cover_generations cg ON mg.task_id = cg.music_task_id
+             WHERE cg.music_task_id = $1
+             AND mt.cover_image_url LIKE 'http%' 
+             AND mt.cover_image_url NOT LIKE '%makernb-assets.nasirann.com%'`,
+            [taskId]
+          );
+          
+          if (coverImagesQuery.rows.length > 0) {
+            console.log(`[CALLBACK-${callbackId}] Found ${coverImagesQuery.rows.length} cover images to backup to R2`);
             
-            if (coverImagesQuery.rows.length > 0) {
-              console.log(`[CALLBACK-${callbackId}] Found ${coverImagesQuery.rows.length} cover images to backup to R2`);
-              
-              for (const coverImage of coverImagesQuery.rows) {
-                try {
-                  console.log(`[CALLBACK-${callbackId}] Starting backup for cover image: ${coverImage.id}`);
-                  
-                  const imageBuffer = await downloadFromUrl(coverImage.r2_url);
-                  const filename = `cover_backup_${Date.now()}_${coverImage.id}.jpeg`;
-                  
-                  const r2ImageUrl = await uploadCoverImage(
-                    imageBuffer, 
-                    coverImage.cover_task_id, 
-                    filename, 
-                    coverImage.user_id || 'anonymous'
-                  );
-                  
-                  // 更新数据库记录，将临时URL替换为R2备份URL
-                  await query(
-                    'UPDATE cover_images SET r2_url = $1 WHERE id = $2',
-                    [r2ImageUrl, coverImage.id]
-                  );
-                  
-                  console.log(`[CALLBACK-${callbackId}] Successfully backed up cover image ${coverImage.id} to R2: ${r2ImageUrl}`);
-                } catch (imageError) {
-                  console.error(`[CALLBACK-${callbackId}] Failed to backup cover image ${coverImage.id}:`, imageError);
-                  // 备份失败不影响主流程，前端仍可使用临时URL
-                }
+            for (const track of coverImagesQuery.rows) {
+              try {
+                console.log(`[CALLBACK-${callbackId}] Starting backup for track: ${track.id}`);
+                
+                const imageBuffer = await downloadFromUrl(track.cover_image_url);
+                const filename = `cover_backup_${Date.now()}_${track.id}.jpeg`;
+                
+                const r2ImageUrl = await uploadCoverImage(
+                  imageBuffer, 
+                  track.cover_task_id, 
+                  filename, 
+                  track.user_id || 'anonymous'
+                );
+                
+                // 更新tracks记录，将临时URL替换为R2备份URL
+                await query(
+                  'UPDATE tracks SET cover_image_url = $1 WHERE id = $2',
+                  [r2ImageUrl, track.id]
+                );
+                
+                console.log(`[CALLBACK-${callbackId}] Successfully backed up cover image for track ${track.id} to R2: ${r2ImageUrl}`);
+              } catch (imageError) {
+                console.error(`[CALLBACK-${callbackId}] Failed to backup cover image for track ${track.id}:`, imageError);
+                // 备份失败不影响主流程，前端仍可使用临时URL
               }
-              
-              console.log(`[CALLBACK-${callbackId}] Cover image backup process completed`);
-            } else {
-              console.log(`[CALLBACK-${callbackId}] No cover images found for backup`);
             }
-          } catch (backupError) {
-            console.error(`[CALLBACK-${callbackId}] Error during cover image backup:`, backupError);
+            
+            console.log(`[CALLBACK-${callbackId}] Cover image backup process completed`);
+          } else {
+            console.log(`[CALLBACK-${callbackId}] No cover images found for backup`);
           }
-        });
+        } catch (backupError) {
+          console.error(`[CALLBACK-${callbackId}] Error during cover image backup:`, backupError);
+          // 备份失败不影响主流程，前端仍可使用临时URL
+        }
         
         return;
       } else {
@@ -777,7 +630,7 @@ async function processCallbackAsync(callbackData: any, callbackId: string) {
       try {
         // 获取音乐生成记录信息
         const musicGenQuery = await query(
-          'SELECT id, user_id, prompt FROM music_generations WHERE task_id = $1',
+          'SELECT id, user_id, prompt FROM music WHERE task_id = $1',
           [taskId]
         );
 
@@ -845,7 +698,7 @@ async function processCallbackAsync(callbackData: any, callbackId: string) {
           }
 
         } else {
-          console.error(`[CALLBACK-${callbackId}] No music_generations record found for failed taskId: ${taskId}`);
+          console.error(`[CALLBACK-${callbackId}] No music record found for failed taskId: ${taskId}`);
         }
       } catch (error) {
         console.error(`[CALLBACK-${callbackId}] Failed to process error callback:`, error);

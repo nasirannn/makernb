@@ -10,14 +10,14 @@ export async function deleteTrackOptimized(trackId: string, userId: string): Pro
     // 使用单个优化的SQL语句进行删除操作
     // 这个查询使用JOIN而不是子查询，性能更好
     const result = await query(`
-      UPDATE music_tracks
+      UPDATE tracks
       SET is_deleted = TRUE, updated_at = NOW()
-      FROM music_generations mg
-      WHERE music_tracks.id = $1
-        AND music_tracks.music_generation_id = mg.id
-        AND mg.user_id = $2
-        AND (music_tracks.is_deleted IS NULL OR music_tracks.is_deleted = FALSE)
-      RETURNING music_tracks.id, music_tracks.music_generation_id
+      FROM music mg
+      WHERE tracks.id = $1
+        AND tracks.music_id = mg.id
+        AND mg.user_id = $2::uuid
+        AND (tracks.is_deleted IS NULL OR tracks.is_deleted = FALSE)
+      RETURNING tracks.id, tracks.music_id
     `, [trackId, userId]);
 
     if (result.rows.length > 0) {
@@ -31,8 +31,8 @@ export async function deleteTrackOptimized(trackId: string, userId: string): Pro
         mt.is_deleted as track_deleted,
         mg.user_id,
         mg.is_deleted as generation_deleted
-      FROM music_tracks mt
-      LEFT JOIN music_generations mg ON mt.music_generation_id = mg.id
+      FROM tracks mt
+      LEFT JOIN music mg ON mt.music_id = mg.id
       WHERE mt.id = $1
     `, [trackId]);
 
@@ -108,14 +108,14 @@ export async function deleteMultipleTracksOptimized(trackIds: string[], userId: 
 
     // 批量删除操作
     const result = await query(`
-      UPDATE music_tracks
+      UPDATE tracks
       SET is_deleted = TRUE, updated_at = NOW()
-      FROM music_generations mg
-      WHERE music_tracks.id = ANY($1)
-        AND music_tracks.music_generation_id = mg.id
-        AND mg.user_id = $2
-        AND (music_tracks.is_deleted IS NULL OR music_tracks.is_deleted = FALSE)
-      RETURNING music_tracks.id
+      FROM music mg
+      WHERE tracks.id = ANY($1)
+        AND tracks.music_id = mg.id
+        AND mg.user_id = $2::uuid
+        AND (tracks.is_deleted IS NULL OR tracks.is_deleted = FALSE)
+      RETURNING tracks.id
     `, [trackIds, userId]);
 
     const deletedIds = result.rows.map(row => row.id);
@@ -149,8 +149,8 @@ export async function checkTrackDeletable(trackId: string, userId: string): Prom
         mt.is_deleted as track_deleted,
         mg.user_id,
         mg.is_deleted as generation_deleted
-      FROM music_tracks mt
-      JOIN music_generations mg ON mt.music_generation_id = mg.id
+      FROM tracks mt
+      JOIN music mg ON mt.music_id = mg.id
       WHERE mt.id = $1
     `, [trackId]);
 

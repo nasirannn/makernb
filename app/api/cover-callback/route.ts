@@ -1,10 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createCoverGeneration, updateCoverGeneration } from '@/lib/cover-db';
-import { createCoverImages } from '@/lib/cover-images-db';
+import { updateCoverGeneration } from '@/lib/cover-db';
 import { query } from '@/lib/db-query-builder';
 import { downloadFromUrl, uploadCoverImage } from '@/lib/r2-storage';
-
-import { handleError, createErrorNotification, retryOperation, ErrorContext } from '@/lib/error-handler';
 
 // 强制动态渲染
 export const dynamic = 'force-dynamic';
@@ -143,7 +140,7 @@ async function processCoverCallbackAsync(callbackData: any) {
         
         if (coverRecord.rows.length > 0 && coverRecord.rows[0].user_id) {
           finalUserId = coverRecord.rows[0].user_id;
-          console.log(`Found userId from cover_generations using cover taskId: ${finalUserId}`);
+          console.log(`Found userId: ${finalUserId} from cover_generations using cover taskId: ${coverTaskId}`);
         } else {
           console.error(`No cover record found for cover taskId: ${coverTaskId}`);
           finalUserId = 'anonymous';
@@ -196,37 +193,84 @@ async function processCoverCallbackAsync(callbackData: any) {
             
             const musicTaskId = coverRecord.rows[0].music_task_id || coverTaskId;
             
-            // 查找对应的music_tracks记录
+            // 查找对应的tracks记录
             const tracksQuery = await query(
-              'SELECT id, side_letter FROM music_tracks WHERE music_generation_id = (SELECT id FROM music_generations WHERE task_id = $1) AND (is_deleted IS NULL OR is_deleted = FALSE) ORDER BY created_at ASC',
+              'SELECT id, side_letter FROM tracks WHERE music_id = (SELECT id FROM music WHERE task_id = $1) AND (is_deleted IS NULL OR is_deleted = FALSE) ORDER BY side_letter ASC',
               [musicTaskId]
             );
             
             if (tracksQuery.rows.length > 0) {
-              console.log(`Found ${tracksQuery.rows.length} music tracks, creating cover_images records with temporary URLs`);
+              console.log(`Found ${tracksQuery.rows.length} music tracks, updating cover_image_url directly`);
               
-              // 为每个track创建cover_images记录，使用临时图片URL
+              // 直接更新tracks表的cover_image_url字段（更安全的方式）
               for (let i = 0; i < Math.min(tracksQuery.rows.length, data.images.length); i++) {
                 await query(
-                  `INSERT INTO cover_images (cover_generation_id, music_track_id, r2_url, filename)
-                   VALUES ($1, $2, $3, $4)`,
-                  [
-                    coverGenerationId,
-                    tracksQuery.rows[i].id,
-                    data.images[i], // 使用临时图片URL，前端立即可用
-                    originalFilenames[i] || `cover_${i + 1}.jpeg`
-                  ]
+                  `UPDATE tracks SET cover_image_url = $1, updated_at = NOW() 
+                   WHERE id = $2 
+                   AND cover_image_url IS NULL`,
+                  [data.images[i], tracksQuery.rows[i].id] // 使用临时图片URL，前端立即可用
                 );
               }
               
-              console.log(`Successfully created ${Math.min(tracksQuery.rows.length, data.images.length)} cover_images records with temporary URLs`);
+              console.log(`Successfully updated ${Math.min(tracksQuery.rows.length, data.images.length)} tracks with cover_image_url`);
               
-              // 标记需要异步下载的图片信息，等待complete回调触发
-              console.log(`Cover images stored with temporary URLs, waiting for complete callback to trigger R2 backup`);
+              // 立即开始R2备份，不等待complete回调
+              console.log(`Starting immediate R2 backup for cover images`);
+              setImmediate(async () => {
+                try {
+                  console.log(`Starting async R2 backup for coverTaskId: ${coverTaskId}`);
+                  
+                  // 查询需要备份的tracks记录（使用临时URL的）
+                  const backupQuery = await query(
+                    `SELECT mt.id, mt.cover_image_url, cg.user_id
+                     FROM tracks mt
+                     JOIN music mg ON mt.music_id = mg.id
+                     JOIN cover_generations cg ON mg.task_id = cg.music_task_id
+                     WHERE cg.task_id = $1
+                     AND mt.cover_image_url LIKE 'http%' 
+                     AND mt.cover_image_url NOT LIKE '%makernb-assets.nasirann.com%'`,
+                    [coverTaskId]
+                  );
+                  
+                  if (backupQuery.rows.length > 0) {
+                    console.log(`Found ${backupQuery.rows.length} cover images to backup to R2`);
+                    
+                    for (const track of backupQuery.rows) {
+                      try {
+                        console.log(`Starting backup for track: ${track.id}`);
+                        
+                        const imageBuffer = await downloadFromUrl(track.cover_image_url);
+                        const filename = `cover_backup_${Date.now()}_${track.id}.jpeg`;
+                        
+                        const r2ImageUrl = await uploadCoverImage(
+                          imageBuffer, 
+                          coverTaskId, 
+                          filename, 
+                          track.user_id || 'anonymous'
+                        );
+                        
+                        // 更新tracks记录，将临时URL替换为R2备份URL
+                        await query(
+                          'UPDATE tracks SET cover_image_url = $1 WHERE id = $2',
+                          [r2ImageUrl, track.id]
+                        );
+                        
+                        console.log(`Successfully backed up cover image for track ${track.id} to R2: ${r2ImageUrl}`);
+                      } catch (imageError) {
+                        console.error(`Failed to backup cover image for track ${track.id}:`, imageError);
+                      }
+                    }
+                    
+                    console.log(`Cover image backup process completed for coverTaskId: ${coverTaskId}`);
+                  } else {
+                    console.log(`No cover images found for backup in cover-callback`);
+                  }
+                } catch (backupError) {
+                  console.error(`Error during cover image backup in cover-callback:`, backupError);
+                }
+              });
             } else {
-              console.log(`No music tracks found, creating cover_images without track association`);
-              // 如果没有music_tracks，创建不关联的cover_images记录
-              await createCoverImages(coverGenerationId, data.images, originalFilenames);
+              console.log(`No music tracks found for musicTaskId: ${musicTaskId}`);
             }
           }
           
@@ -243,13 +287,12 @@ async function processCoverCallbackAsync(callbackData: any) {
             console.log(`Final Music Task ID: ${musicTaskId}`);
             console.log(`Pushing cover images update for musicTaskId: ${musicTaskId}`);
 
-            // 查询music_tracks数据，获取封面图片信息
+            // 查询tracks数据，获取封面图片信息（使用新的cover_image_url字段）
             const tracksQuery = await query(
-              `SELECT mt.id, mt.side_letter, ci.r2_url as cover_r2_url
-               FROM music_tracks mt
-               LEFT JOIN cover_images ci ON mt.id = ci.music_track_id
-               WHERE mt.music_generation_id = (
-                 SELECT id FROM music_generations WHERE task_id = $1
+              `SELECT mt.id, mt.side_letter, mt.cover_image_url
+               FROM tracks mt
+               WHERE mt.music_id = (
+                 SELECT id FROM music WHERE task_id = $1
                )
                AND (mt.is_deleted IS NULL OR mt.is_deleted = FALSE)
                ORDER BY mt.side_letter ASC`,
@@ -257,13 +300,13 @@ async function processCoverCallbackAsync(callbackData: any) {
             );
 
             if (tracksQuery.rows.length > 0) {
-              // 使用R2存储的封面图片
-              const coverImages = tracksQuery.rows.map(row => row.cover_r2_url).filter(Boolean);
+              // 使用新的cover_image_url字段
+              const coverImages = tracksQuery.rows.map(row => row.cover_image_url).filter(Boolean);
 
               // 构建封面更新信息
               const coverUpdateInfo = tracksQuery.rows.map((track: any, index: number) => ({
                 trackIndex: index,
-                coverImage: track.cover_r2_url || null,
+                coverImage: track.cover_image_url || null,
                 sideLetter: track.side_letter
               }));
 
@@ -456,28 +499,8 @@ export async function GET(request: NextRequest) {
   } catch (error) {
     console.error('Get cover result error:', error);
     
-    // 尝试通知前端错误
-    try {
-      const { searchParams } = new URL(request.url);
-      const taskId = searchParams.get('taskId');
-      
-      if (taskId) {
-        const errorContext: ErrorContext = {
-          taskId,
-          operation: 'get_cover_result',
-          callbackType: 'cover'
-        };
-        
-        const errorResult = handleError(error, errorContext);
-        
-        if (errorResult.shouldNotifyFrontend) {
-          const errorNotification = createErrorNotification(errorContext, errorResult.error || 'Failed to get cover result');
-
-        }
-      }
-    } catch (notificationError) {
-      console.error('Failed to send error notification:', notificationError);
-    }
+    // 记录错误日志
+    console.error('Failed to get cover result:', error);
     
     return NextResponse.json(
       { error: 'Failed to get cover result' },

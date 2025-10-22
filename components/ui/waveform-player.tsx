@@ -102,7 +102,7 @@ export const WaveformPlayer: React.FC<WaveformPlayerProps> = ({
       console.error('Failed to initialize WaveSurfer:', error);
       setLoadError('Failed to initialize audio player.');
     }
-  }, []);
+  }, [onFinish, onLoadError, onPlayPause]);
 
   useEffect(() => {
     if (!audioUrl || audioUrl.trim() === '') {
@@ -162,7 +162,7 @@ export const WaveformPlayer: React.FC<WaveformPlayerProps> = ({
   }, []);
 
   return (
-    <div className={`bg-background/30 backdrop-blur-md border border-border/20 rounded-xl p-4 ${className}`}>
+    <div className={`bg-muted/20 backdrop-blur-md border border-border/20 rounded-xl p-4 ${className}`}>
       {/* Waveform and Controls */}
       <div className="flex items-center gap-3">
         <button

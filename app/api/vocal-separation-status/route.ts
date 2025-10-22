@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getVocalSeparationByPredictionId } from '@/lib/vocal-separation-db';
 import { getUserIdFromRequest } from '@/lib/auth-utils-optimized';
 
+export const dynamic = 'force-dynamic';
+
 export async function GET(request: NextRequest) {
   const requestId = `status_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
   console.log(`[VOCAL-SEPARATION-STATUS-${requestId}] Checking vocal separation status`);

@@ -3,6 +3,8 @@ import { vocalSeparationService } from '@/lib/vocal-separation-api';
 import { getUserIdFromRequest } from '@/lib/auth-utils-optimized';
 import { createVocalSeparation } from '@/lib/vocal-separation-db';
 
+export const dynamic = 'force-dynamic';
+
 export async function POST(request: NextRequest) {
   try {
     const formData = await request.formData();
@@ -43,8 +45,7 @@ export async function POST(request: NextRequest) {
     let predictionId: string;
     try {
       // 创建Replicate预测（带webhook）
-      const baseUrl = process.env.CallBackURL || 'http://localhost:3000';
-      const webhookUrl = `${baseUrl}/api/vocal-separation-callback`;
+      const webhookUrl = `${process.env.CallBackURL}/api/vocal-separation-callback`;
       
       const prediction = await vocalSeparationService.createReplicatePrediction(
         processedAudioUrl, 

@@ -4,6 +4,8 @@ import { createCoverGeneration, updateCoverGeneration } from '@/lib/cover-db';
 import MusicApiService from '@/lib/music-api';
 import { downloadFromUrl, uploadCoverImage } from '@/lib/r2-storage';
 
+export const dynamic = 'force-dynamic';
+
 export async function POST(request: NextRequest) {
   try {
     // 先解析请求体

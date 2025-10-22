@@ -6,6 +6,8 @@ import { consumeUserCredit } from '@/lib/user-db';
 import { getUserIdFromRequest } from '@/lib/auth-utils-optimized';
 import { R_AND_B_STYLES } from '@/lib/rnb-style-generator';
 
+export const dynamic = 'force-dynamic';
+
 export async function POST(request: NextRequest) {
   const requestId = `req_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
   console.log(`[MUSIC-GEN-${requestId}] Starting music generation request`);
@@ -79,7 +81,7 @@ export async function POST(request: NextRequest) {
     try {
       const { query } = await import('@/lib/db-query-builder');
       const creditResult = await query(
-        'SELECT credits FROM user_credits WHERE user_id = $1',
+        'SELECT credits FROM user_credits WHERE user_id = $1::uuid',
         [userId]
       );
 
@@ -192,7 +194,7 @@ export async function POST(request: NextRequest) {
         console.log(`[MUSIC-GEN-${requestId}] Step 2: Creating music generation record`);
         const recordStartTime = Date.now();
 
-        await createMusicGeneration(userId, {
+        const musicGeneration = await createMusicGeneration(userId, {
           title: musicRequest.songTitle || null,
           genre: genreForDb,
           prompt: customPrompt,
@@ -203,8 +205,56 @@ export async function POST(request: NextRequest) {
         const recordTime = Date.now() - recordStartTime;
         console.log(`[MUSIC-GEN-${requestId}] Music generation record created successfully in ${recordTime}ms`);
 
+        // 步骤2.5: 立即创建两条空的tracks记录（A面和B面）
+        console.log(`[MUSIC-GEN-${requestId}] Step 2.5: Creating empty tracks records`);
+        const tracksStartTime = Date.now();
+        
+        const isPublished = false; // 默认设置为私有状态
+        
+        // 创建A面和B面的空记录
+        const { query } = await import('@/lib/db-query-builder');
+        await query(
+          `INSERT INTO tracks (music_id, side_letter, is_published, cover_image_url, suno_track_id)
+           VALUES ($1, 'A', $2, NULL, NULL), ($1, 'B', $2, NULL, NULL)
+           RETURNING *`,
+          [musicGeneration.id, isPublished]
+        );
+        
+        const tracksTime = Date.now() - tracksStartTime;
+        console.log(`[MUSIC-GEN-${requestId}] Empty tracks records created successfully in ${tracksTime}ms`);
+
         const totalDbTime = Date.now() - creditStartTime;
         console.log(`[MUSIC-GEN-${requestId}] All database operations completed successfully in ${totalDbTime}ms`);
+
+        // 步骤3: 立即开始封面生成（与音乐生成并行）
+        console.log(`[MUSIC-GEN-${requestId}] Step 3: Starting cover generation immediately`);
+        setImmediate(async () => {
+          try {
+            const coverResponse = await fetch(`${process.env.CallBackURL}/api/generate-cover`, {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+              },
+              body: JSON.stringify({
+                musicTaskId: result.taskId,
+                userId: userId,
+                title: musicRequest.songTitle || 'Generated Music',
+                genre: genreForDb,
+                prompt: customPrompt || 'Music cover image'
+              }),
+            });
+
+            if (coverResponse.ok) {
+              const coverData = await coverResponse.json();
+              console.log(`[MUSIC-GEN-${requestId}] Cover generation started successfully:`, coverData);
+            } else {
+              console.error(`[MUSIC-GEN-${requestId}] Failed to start cover generation:`, await coverResponse.text());
+            }
+          } catch (coverError) {
+            console.error(`[MUSIC-GEN-${requestId}] Error starting cover generation:`, coverError);
+            // 封面生成失败不影响音乐生成流程
+          }
+        });
 
       } catch (dbError) {
         console.error(`[MUSIC-GEN-${requestId}] Database operation failed after API call:`, {
@@ -235,7 +285,7 @@ export async function POST(request: NextRequest) {
               )
               SELECT
                 user_id, 'credit', $2,
-                (SELECT credits FROM user_credits WHERE user_id = $1) + $2,
+                (SELECT credits FROM user_credits WHERE user_id = $1::uuid) + $2,
                 'Compensation for failed generation: ' || $3,
                 $3
               FROM credit_transactions
@@ -245,7 +295,7 @@ export async function POST(request: NextRequest) {
 
             // 更新用户积分
             await query(
-              'UPDATE user_credits SET credits = credits + $2, updated_at = NOW() WHERE user_id = $1',
+              'UPDATE user_credits SET credits = credits + $2, updated_at = NOW() WHERE user_id = $1::uuid',
               [userId, creditCost]
             );
 

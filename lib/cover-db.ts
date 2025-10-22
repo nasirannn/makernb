@@ -96,9 +96,9 @@ export const getCoverGeneration = async (taskId: string): Promise<CoverGeneratio
 // 获取音乐的封面生成记录（通过task_id关联）
 export const getMusicCoverGenerations = async (musicId: string): Promise<CoverGeneration[]> => {
   try {
-    // 先通过music_generations表获取task_id
+    // 先通过music表获取task_id
     const musicResult = await query(
-      `SELECT task_id FROM music_generations WHERE id = $1`,
+      `SELECT task_id FROM music WHERE id = $1`,
       [musicId]
     );
     
@@ -131,7 +131,7 @@ export const getUserCoverGenerations = async (
   try {
     const result = await query(
       `SELECT * FROM cover_generations 
-       WHERE user_id = $1 
+       WHERE user_id = $1::uuid 
        ORDER BY created_at DESC 
        LIMIT $2 OFFSET $3`,
       [userId, limit, offset]
@@ -147,7 +147,7 @@ export const getUserCoverGenerations = async (
 // 删除封面生成记录
 export const deleteCoverGeneration = async (taskId: string, userId?: string): Promise<boolean> => {
   try {
-    const whereClause = userId ? 'task_id = $1 AND user_id = $2' : 'task_id = $1';
+    const whereClause = userId ? 'task_id = $1 AND user_id = $2::uuid' : 'task_id = $1';
     const params = userId ? [taskId, userId] : [taskId];
     
     const result = await query(

@@ -42,8 +42,8 @@ export async function POST(request: NextRequest) {
     // 检查用户是否拥有这个歌曲
     const trackOwnership = await query(`
       SELECT mt.id, mg.user_id 
-      FROM music_tracks mt
-      JOIN music_generations mg ON mt.music_generation_id = mg.id
+      FROM tracks mt
+      JOIN music mg ON mt.music_id = mg.id
       WHERE mt.id = $1
         AND (mt.is_deleted IS NULL OR mt.is_deleted = FALSE)
     `, [trackId]);
@@ -64,7 +64,7 @@ export async function POST(request: NextRequest) {
 
     // 获取当前发布状态
     const currentStatus = await query(`
-      SELECT is_published FROM music_tracks WHERE id = $1
+      SELECT is_published FROM tracks WHERE id = $1
     `, [trackId]);
 
     const isCurrentlyPublished = currentStatus.rows[0].is_published;
@@ -72,7 +72,7 @@ export async function POST(request: NextRequest) {
 
     // 更新发布状态
     await query(`
-      UPDATE music_tracks 
+      UPDATE tracks 
       SET is_published = $1, updated_at = NOW()
       WHERE id = $2
     `, [newPublishedStatus, trackId]);

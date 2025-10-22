@@ -14,8 +14,8 @@ export async function GET(request: NextRequest) {
     // 首先获取总数
     const countResult = await query(`
       SELECT COUNT(*) as total
-      FROM music_tracks mt
-      JOIN music_generations mg ON mt.music_generation_id = mg.id
+      FROM tracks mt
+      JOIN music mg ON mt.music_id = mg.id
       WHERE mt.is_published = TRUE
         AND mg.status = 'complete'
         AND (mt.is_deleted IS NULL OR mt.is_deleted = FALSE)
@@ -41,11 +41,10 @@ export async function GET(request: NextRequest) {
         mg.created_at as generation_created_at,
         mg.updated_at,
         ml.content as lyrics_content,
-        ci.r2_url as cover_r2_url
-      FROM music_tracks mt
-      JOIN music_generations mg ON mt.music_generation_id = mg.id
-      LEFT JOIN music_lyrics ml ON mg.id = ml.music_generation_id
-      LEFT JOIN cover_images ci ON mt.id = ci.music_track_id
+        mt.cover_image_url as cover_r2_url
+      FROM tracks mt
+      JOIN music mg ON mt.music_id = mg.id
+      LEFT JOIN lyrics ml ON mg.id = ml.music_id
       WHERE mt.is_published = TRUE
         AND mg.status = 'complete'
         AND (mt.is_deleted IS NULL OR mt.is_deleted = FALSE)

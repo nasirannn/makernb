@@ -188,7 +188,7 @@ export const softDeleteVocalSeparation = async (separationId: string, userId: st
     const result = await query(
       `UPDATE vocal_separations
        SET is_deleted = TRUE, updated_at = NOW()
-       WHERE id = $1 AND user_id = $2 AND (is_deleted IS NULL OR is_deleted = FALSE)
+       WHERE id = $1 AND user_id = $2::uuid AND (is_deleted IS NULL OR is_deleted = FALSE)
        RETURNING id`,
       [separationId, userId]
     );
@@ -219,9 +219,9 @@ export const getVocalSeparationById = async (
         mt.duration as track_duration,
         mt.side_letter as track_side_letter
       FROM vocal_separations vs
-      LEFT JOIN music_tracks mt ON vs.original_track_id = mt.id
+      LEFT JOIN tracks mt ON vs.original_track_id = mt.id
         AND (mt.is_deleted IS NULL OR mt.is_deleted = FALSE)
-      WHERE vs.id = $1 AND vs.user_id = $2 AND (vs.is_deleted IS NULL OR vs.is_deleted = FALSE)
+      WHERE vs.id = $1 AND vs.user_id = $2::uuid AND (vs.is_deleted IS NULL OR vs.is_deleted = FALSE)
     `, [separationId, userId]);
 
     if (result.rows.length === 0) {

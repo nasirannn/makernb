@@ -63,8 +63,8 @@ export const getUserGenerationErrors = async (
   try {
     let queryText = `
       SELECT ge.* FROM generation_errors ge
-      JOIN music_generations mg ON ge.reference_id = mg.id
-      WHERE mg.user_id = $1
+      JOIN music mg ON ge.reference_id = mg.id
+      WHERE mg.user_id = $1::uuid
     `;
     const params: any[] = [userId];
 

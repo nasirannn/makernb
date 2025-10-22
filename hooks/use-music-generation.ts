@@ -287,7 +287,6 @@ export const useMusicGeneration = () => {
    * Updates tracks display and handles autoplay logic
    */
   const updateTracksDisplay = (tracksInfo: TrackData[], setIsPlaying?: (playing: boolean) => void) => {
-    console.log('[DEBUG] updateTracksDisplay called with tracks:', tracksInfo.length, tracksInfo);
     setAllGeneratedTracks(tracksInfo);
     setPendingTasksCount(0);
 
@@ -458,14 +457,10 @@ export const useMusicGeneration = () => {
 
         // 在 text 回调后立即显示播放器和歌词面板
         if (status === 'text' || status === 'first' || status === 'complete') {
-          console.log('[DEBUG] Polling received status:', status, 'tracks:', tracks.length);
           if (tracks.length > 0) {
-            console.log('[DEBUG] Processing tracks data:', tracks);
             const tracksInfo = processTracksData(tracks, status, data.generationId);
-            console.log('[DEBUG] Processed tracks info:', tracksInfo);
             updateTracksDisplay(tracksInfo, setIsPlaying);
           } else {
-            console.log('[DEBUG] No tracks data, waiting...');
             // 没有 tracks 数据时，继续显示skeleton，等待真实数据
           }
         }

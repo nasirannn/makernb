@@ -19,7 +19,7 @@ export async function GET(request: NextRequest) {
 
     // 查询任务记录
     const genResult = await query(
-      'SELECT id, status, title, genre, tags FROM music_generations WHERE task_id = $1',
+      'SELECT id, status, title, genre, tags FROM music WHERE task_id = $1',
       [taskId]
     );
 
@@ -43,23 +43,18 @@ export async function GET(request: NextRequest) {
         mt.stream_audio_url,
         mt.duration,
         mt.side_letter,
+        mt.cover_image_url,
         mg.title as title,
         mg.genre as genre,
         mg.tags as tags,
         (
-          SELECT ci.r2_url FROM cover_images ci
-          WHERE ci.music_track_id = mt.id
-          ORDER BY ci.created_at ASC
-          LIMIT 1
-        ) as cover_r2_url,
-        (
-          SELECT ml.content FROM music_lyrics ml
-          WHERE ml.music_generation_id = mg.id
+          SELECT ml.content FROM lyrics ml
+          WHERE ml.music_id = mg.id
           ORDER BY ml.created_at ASC
           LIMIT 1
         ) as lyrics_content
-      FROM music_tracks mt
-      INNER JOIN music_generations mg ON mt.music_generation_id = mg.id
+      FROM tracks mt
+      INNER JOIN music mg ON mt.music_id = mg.id
       WHERE mg.task_id = $1
         AND (mt.is_deleted IS NULL OR mt.is_deleted = FALSE)
       ORDER BY mt.side_letter ASC, mt.created_at ASC`,
@@ -85,7 +80,7 @@ export async function GET(request: NextRequest) {
       duration: isComplete ? (row.duration || null) : null,
       
       // 封面数据 - 图片回调时就有
-      coverImage: row.cover_r2_url || null,
+      coverImage: row.cover_image_url || null,
     }));
 
     // 计算状态：与数据库状态完全统一

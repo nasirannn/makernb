@@ -3,7 +3,7 @@
 import React from "react";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
-import { Music, Library, Sparkles, LogOut, User, BookOpen, Compass, LogIn } from "lucide-react";
+import { Music, Library, Sparkles, LogOut, User, BookOpen, Compass, LogIn, ChevronDown, Mic, FileText, Wand2 } from "lucide-react";
 import { usePathname, useRouter } from "next/navigation";
 import Image from "next/image";
 import Link from "next/link";
@@ -31,19 +31,71 @@ export const CommonSidebar = ({ hideMobileNav = false }: CommonSidebarProps) => 
 
   const [userMenuOpen, setUserMenuOpen] = React.useState(false);
   const [isAuthModalOpen, setIsAuthModalOpen] = React.useState(false);
+  const [isDropdownOpen, setIsDropdownOpen] = React.useState(false);
+  const [dropdownTimeout, setDropdownTimeout] = React.useState<NodeJS.Timeout | null>(null);
   const mobileNavRef = React.useRef<HTMLDivElement | null>(null);
 
-  // 点击外部关闭用户菜单
+  // AI Music Tools dropdown items
+  const aiMusicToolsDropdown = [
+    {
+      href: "/vocal-remover",
+      label: "Vocal Remover",
+      description: "Separate vocals from music",
+      icon: <Mic className="h-4 w-4" />
+    },
+    {
+      href: "/lyrics-generator",
+      label: "Lyrics Generator",
+      description: "Generate creative lyrics with AI",
+      icon: <FileText className="h-4 w-4" />
+    }
+  ];
+
+  // 处理下拉菜单的悬停逻辑
+  const handleDropdownMouseEnter = () => {
+    if (dropdownTimeout) {
+      clearTimeout(dropdownTimeout);
+      setDropdownTimeout(null);
+    }
+    setIsDropdownOpen(true);
+  };
+
+  const handleDropdownMouseLeave = () => {
+    const timeout = setTimeout(() => {
+      setIsDropdownOpen(false);
+    }, 150); // 150ms延迟
+    setDropdownTimeout(timeout);
+  };
+
+  // 点击外部关闭用户菜单和下拉菜单
   React.useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
-      if (userMenuOpen && !(event.target as Element).closest('.user-menu-container')) {
+      const userMenuContainer = document.querySelector('.user-menu-container');
+      const dropdownContainer = document.querySelector('.dropdown-container');
+      
+      if (userMenuOpen && userMenuContainer && !userMenuContainer.contains(event.target as Node)) {
         setUserMenuOpen(false);
+      }
+      
+      if (isDropdownOpen && dropdownContainer && !dropdownContainer.contains(event.target as Node)) {
+        setIsDropdownOpen(false);
       }
     };
 
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, [userMenuOpen]);
+    if (userMenuOpen || isDropdownOpen) {
+      document.addEventListener('mousedown', handleClickOutside);
+      return () => document.removeEventListener('mousedown', handleClickOutside);
+    }
+  }, [userMenuOpen, isDropdownOpen]);
+
+  // 清理timeout
+  React.useEffect(() => {
+    return () => {
+      if (dropdownTimeout) {
+        clearTimeout(dropdownTimeout);
+      }
+    };
+  }, [dropdownTimeout]);
 
   const handleSignOut = async () => {
     try {
@@ -120,17 +172,51 @@ export const CommonSidebar = ({ hideMobileNav = false }: CommonSidebarProps) => 
               </Button>
             </Tooltip>
 
-            {/* Explore Button */}
-            <Tooltip content="Explore" position="right">
-              <Button
-                onClick={() => router.push('/explore')}
-                variant="ghost"
-                size="sm"
-                className={`w-12 h-12 flex items-center justify-center hover:bg-muted/50 hover:text-white hover:scale-110 transition-all duration-300 rounded-lg ${isActive('/explore') ? 'bg-primary/20 text-primary shadow-sm' : 'text-muted-foreground'}`}
-              >
-                <Compass className="h-5 w-5" />
-              </Button>
-            </Tooltip>
+            {/* AI Music Tools Button with Dropdown */}
+            <div className="relative dropdown-container">
+              <Tooltip content="AI Music Tools" position="right">
+                <Button
+                  onClick={() => setIsDropdownOpen(!isDropdownOpen)}
+                  onMouseEnter={handleDropdownMouseEnter}
+                  onMouseLeave={handleDropdownMouseLeave}
+                  variant="ghost"
+                  size="sm"
+                  className={`w-12 h-12 flex items-center justify-center hover:bg-muted/50 hover:text-white hover:scale-110 transition-all duration-300 rounded-lg ${
+                    isActive('/vocal-remover') || isActive('/lyrics-generator') || isActive('/ai-music-tools')
+                      ? 'bg-primary/20 text-primary shadow-sm'
+                      : 'text-muted-foreground'
+                  }`}
+                >
+                  <Wand2 className="h-5 w-5" />
+                </Button>
+              </Tooltip>
+              
+              {/* Dropdown Menu */}
+              {isDropdownOpen && (
+                <div 
+                  className="absolute left-full top-0 ml-2 min-w-48 w-max bg-card/95 backdrop-blur-md border border-border/50 rounded-lg shadow-xl z-[50] p-2"
+                  onMouseEnter={handleDropdownMouseEnter}
+                  onMouseLeave={handleDropdownMouseLeave}
+                >
+                  {aiMusicToolsDropdown.map((item) => (
+                    <Link
+                      key={item.href}
+                      href={item.href}
+                      onClick={() => setIsDropdownOpen(false)}
+                      className="flex items-center gap-3 px-3 py-2 hover:bg-accent transition-colors group rounded-md"
+                    >
+                      <div className="flex-shrink-0 w-8 h-8 bg-primary/20 rounded-lg flex items-center justify-center group-hover:bg-primary/30 transition-colors text-primary">
+                        {item.icon}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-foreground font-medium text-sm">{item.label}</p>
+                        <p className="text-muted-foreground text-xs truncate">{item.description}</p>
+                      </div>
+                    </Link>
+                  ))}
+                </div>
+              )}
+            </div>
 
             {/* Blog Button */}
             <Tooltip content="Blog" position="right">
@@ -253,15 +339,43 @@ export const CommonSidebar = ({ hideMobileNav = false }: CommonSidebarProps) => 
             <Library className="h-7 w-7" />
           </Button>
 
-          {/* Explore Button */}
-          <Button
-            onClick={() => router.push('/explore')}
-            variant="ghost"
-            size="sm"
-            className={`h-12 w-12 flex items-center justify-center hover:bg-muted/50 transition-all duration-300 rounded-lg ${isActive('/explore') ? 'bg-primary/20 text-primary shadow-sm' : 'text-muted-foreground'}`}
-          >
-            <Compass className="h-7 w-7" />
-          </Button>
+          {/* AI Music Tools Button */}
+          <div className="relative dropdown-container">
+            <Button
+              onClick={() => setIsDropdownOpen(!isDropdownOpen)}
+              variant="ghost"
+              size="sm"
+              className={`h-12 w-12 flex items-center justify-center hover:bg-muted/50 transition-all duration-300 rounded-lg ${
+                isActive('/vocal-remover') || isActive('/lyrics-generator') || isActive('/ai-music-tools')
+                  ? 'bg-primary/20 text-primary shadow-sm'
+                  : 'text-muted-foreground'
+              }`}
+            >
+              <Wand2 className="h-7 w-7" />
+            </Button>
+            
+            {/* Mobile Dropdown Menu */}
+            {isDropdownOpen && (
+              <div className="absolute bottom-12 left-1/2 transform -translate-x-1/2 min-w-48 w-max bg-background border border-border/30 rounded-lg shadow-lg p-2 z-[50]">
+                {aiMusicToolsDropdown.map((item) => (
+                  <Link
+                    key={item.href}
+                    href={item.href}
+                    onClick={() => setIsDropdownOpen(false)}
+                    className="flex items-center gap-3 px-3 py-2 hover:bg-accent transition-colors group rounded-md"
+                  >
+                    <div className="flex-shrink-0 w-8 h-8 bg-primary/20 rounded-lg flex items-center justify-center group-hover:bg-primary/30 transition-colors text-primary">
+                      {item.icon}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-foreground font-medium text-sm">{item.label}</p>
+                      <p className="text-muted-foreground text-xs truncate">{item.description}</p>
+                    </div>
+                  </Link>
+                ))}
+              </div>
+            )}
+          </div>
 
           {/* Blog Button */}
           <Button

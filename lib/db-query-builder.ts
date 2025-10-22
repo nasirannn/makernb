@@ -213,8 +213,8 @@ export const getUserMusicGenerationsOptimized = async (
   const sql = `
     WITH user_generations AS (
       SELECT id, title, genre, tags, prompt, is_instrumental, status, created_at, updated_at
-      FROM music_generations
-      WHERE user_id = $1 AND is_deleted = FALSE
+      FROM music
+      WHERE user_id = $1::uuid AND is_deleted = FALSE
       ORDER BY created_at DESC
       LIMIT $2 OFFSET $3
     ),
@@ -225,29 +225,22 @@ export const getUserMusicGenerationsOptimized = async (
         ug.created_at as generation_created_at, ug.updated_at as generation_updated_at,
         mt.id as track_id, mt.suno_track_id, mt.audio_url, mt.duration, mt.side_letter,
         mt.is_published, mt.is_pinned, mt.created_at as track_created_at,
-        ci.r2_url as cover_r2_url,
+        mt.cover_image_url as cover_r2_url,
         ml.content as lyrics_content
       FROM user_generations ug
-      LEFT JOIN music_tracks mt ON ug.id = mt.music_generation_id
+      LEFT JOIN tracks mt ON ug.id = mt.music_id
         AND (mt.is_deleted IS NULL OR mt.is_deleted = FALSE)
-      LEFT JOIN LATERAL (
-        SELECT r2_url
-        FROM cover_images
-        WHERE music_track_id = mt.id
-        ORDER BY created_at ASC
-        LIMIT 1
-      ) ci ON mt.id IS NOT NULL
-      LEFT JOIN music_lyrics ml ON ug.id = ml.music_generation_id
+      LEFT JOIN lyrics ml ON ug.id = ml.music_id
     ),
     error_info AS (
       SELECT reference_id, error_message, error_code, created_at
       FROM generation_errors
       WHERE error_type = 'music_generation'
-        AND reference_id IN (SELECT id FROM user_generations)
+        AND reference_id IN (SELECT id::text FROM user_generations)
     )
     SELECT gt.*, ei.error_message, ei.error_code
     FROM generation_tracks gt
-    LEFT JOIN error_info ei ON gt.generation_id = ei.reference_id
+    LEFT JOIN error_info ei ON gt.generation_id::text = ei.reference_id
     ORDER BY gt.generation_created_at DESC, gt.side_letter ASC
   `;
 
@@ -264,7 +257,7 @@ export const batchCheckFavorites = async (userId: string, trackIds: string[]): P
   const sql = `
     SELECT track_id
     FROM user_favorites
-    WHERE user_id = $1 AND track_id = ANY($2)
+    WHERE user_id = $1::uuid AND track_id = ANY($2)
   `;
 
   const result = await query<{ track_id: string }>(sql, [userId, trackIds]);
@@ -285,14 +278,14 @@ export const batchCheckFavorites = async (userId: string, trackIds: string[]): P
 export const getUserCreditsWithHistory = async (userId: string, transactionLimit: number = 10) => {
   const queries = [
     {
-      text: 'SELECT * FROM user_credits WHERE user_id = $1',
+      text: 'SELECT * FROM user_credits WHERE user_id = $1::uuid',
       params: [userId]
     },
     {
       text: `
         SELECT transaction_type, amount, balance_after, description, reference_id, created_at
         FROM credit_transactions
-        WHERE user_id = $1
+        WHERE user_id = $1::uuid
         ORDER BY created_at DESC
         LIMIT $2
       `,

@@ -88,7 +88,7 @@ export const createOrUpdateUserSubscription = async (
     return await withTransaction(async (queryFn) => {
       // 检查是否已存在订阅记录
       const existingSubscription = await queryFn(
-        'SELECT * FROM user_subscriptions WHERE user_id = $1 AND subscription_id = $2',
+        'SELECT * FROM user_subscriptions WHERE user_id = $1::uuid AND subscription_id = $2',
         [userId, subscriptionData.subscriptionId]
       );
 
@@ -101,7 +101,7 @@ export const createOrUpdateUserSubscription = async (
             current_period_end = $3,
             next_credit_grant_date = $4,
             updated_at = NOW()
-          WHERE user_id = $5 AND subscription_id = $6
+          WHERE user_id = $5::uuid AND subscription_id = $6
           RETURNING *`,
           [
             subscriptionData.status,
@@ -275,7 +275,7 @@ export const cancelUserSubscription = async (
       `UPDATE user_subscriptions SET
         status = 'cancelled',
         updated_at = NOW()
-      WHERE user_id = $1 AND subscription_id = $2
+      WHERE user_id = $1::uuid AND subscription_id = $2
       RETURNING *`,
       [userId, subscriptionId]
     );
@@ -293,7 +293,7 @@ export const cancelUserSubscription = async (
 export const getUserSubscriptions = async (userId: string): Promise<UserSubscription[]> => {
   try {
     const result = await query(
-      'SELECT * FROM user_subscriptions WHERE user_id = $1 ORDER BY created_at DESC',
+      'SELECT * FROM user_subscriptions WHERE user_id = $1::uuid ORDER BY created_at DESC',
       [userId]
     );
 

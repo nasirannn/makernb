@@ -59,7 +59,7 @@ export default function ResetPasswordPage() {
     };
 
     checkToken();
-  }, []);
+  }, [isValidToken]);
 
   const handleResetPassword = async (e: React.FormEvent) => {
     e.preventDefault();

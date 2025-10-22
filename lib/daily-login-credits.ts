@@ -6,7 +6,7 @@ export const hasReceivedTodayCredits = async (userId: string): Promise<boolean> 
     
     const result = await query(
       `SELECT id FROM credit_transactions 
-       WHERE user_id = $1 
+       WHERE user_id = $1::uuid 
        AND description = 'Daily login bonus' 
        AND DATE(created_at AT TIME ZONE 'UTC') = $2`,
       [userId, today]
@@ -40,14 +40,14 @@ export const grantDailyLoginCredits = async (userId: string): Promise<{ id: stri
 
       // 添加积分到用户账户
       const userCreditsResult = await queryFn(
-        'UPDATE user_credits SET credits = credits + $1, total_earned = total_earned + $1, updated_at = NOW() WHERE user_id = $2 RETURNING *',
+        'UPDATE user_credits SET credits = credits + $1, total_earned = total_earned + $1, updated_at = NOW() WHERE user_id = $2::uuid RETURNING *',
         [creditsAmount, userId]
       );
 
       if (userCreditsResult.rows.length === 0) {
         // 如果用户积分记录不存在，创建记录并直接给予每日登录积分
         const newUserCreditsResult = await queryFn(
-          'INSERT INTO user_credits (user_id, credits, total_earned) VALUES ($1, $2, $3) RETURNING *',
+          'INSERT INTO user_credits (user_id, credits, total_earned) VALUES ($1::uuid, $2, $3) RETURNING *',
           [userId, creditsAmount, creditsAmount]
         );
         const newBalance = newUserCreditsResult.rows[0].credits;
@@ -147,7 +147,7 @@ export const cleanupExpiredDailyCredits = async (): Promise<number> => {
         const lastYesterdayTransaction = await queryFn(
           `SELECT balance_after
            FROM credit_transactions
-           WHERE user_id = $1
+           WHERE user_id = $1::uuid
            AND created_at < $2
            ORDER BY created_at DESC
            LIMIT 1`,
@@ -172,7 +172,7 @@ export const cleanupExpiredDailyCredits = async (): Promise<number> => {
 
             // 扣除过期的每日登录积分
             const updateResult = await queryFn(
-              'UPDATE user_credits SET credits = credits - $1, updated_at = NOW() WHERE user_id = $2 RETURNING credits',
+              'UPDATE user_credits SET credits = credits - $1, updated_at = NOW() WHERE user_id = $2::uuid RETURNING credits',
               [actualDeduction, userId]
             );
 
@@ -221,7 +221,7 @@ export const getUserDailyLoginHistory = async (
     const result = await query(
       `SELECT id, amount as daily_credits, DATE(created_at) as last_login_date, created_at 
        FROM credit_transactions 
-       WHERE user_id = $1 AND description = 'Daily login bonus' 
+       WHERE user_id = $1::uuid AND description = 'Daily login bonus' 
        ORDER BY created_at DESC LIMIT $2`,
       [userId, limit]
     );
@@ -239,7 +239,7 @@ export const getUserDailyCreditsStatus = async (userId: string): Promise<{ id: s
     const result = await query(
       `SELECT id, amount as daily_credits, DATE(created_at) as last_login_date, created_at 
        FROM credit_transactions 
-       WHERE user_id = $1 AND description = 'Daily login bonus' 
+       WHERE user_id = $1::uuid AND description = 'Daily login bonus' 
        ORDER BY created_at DESC LIMIT 1`,
       [userId]
     );

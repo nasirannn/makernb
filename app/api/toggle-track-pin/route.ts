@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getUserIdFromRequest, isAdmin } from '@/lib/auth-utils-optimized';
 import { query } from '@/lib/db-query-builder';
 
+export const dynamic = 'force-dynamic';
+
 export async function POST(request: NextRequest) {
   try {
     const userId = await getUserIdFromRequest(request);
@@ -39,7 +41,7 @@ export async function POST(request: NextRequest) {
     
     // 使用单个SQL语句进行toggle操作，减少查询次数
     const result = await query(`
-      UPDATE music_tracks 
+      UPDATE tracks 
       SET is_pinned = NOT COALESCE(is_pinned, false), 
           updated_at = NOW()
       WHERE id = $1

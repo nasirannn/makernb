@@ -64,14 +64,40 @@ interface DeletedTrackInfo {
 }
 
 interface DeletedCoverInfo {
-  cover_id: string;
-  r2_url: string;
-  track_id?: string;
+  track_id: string;
+  cover_image_url: string;
+  music_id: string;
+}
+
+interface DeletedVocalSeparationInfo {
+  separation_id: string;
+  user_id: string;
+  original_audio_url?: string;
+  vocal_audio_url?: string;
+  instrumental_audio_url?: string;
+  deleted_at?: string;
+}
+
+interface DeletedGenerationErrorInfo {
+  error_id: string;
+  reference_id: string;
+  error_type: string;
+  created_at: string;
+}
+
+interface DeletedLyricsInfo {
+  lyrics_id: string;
+  music_id: string;
+  title?: string;
+  created_at: string;
 }
 
 interface DeletionSummary {
   tracks: DeletedTrackInfo[];
   covers: DeletedCoverInfo[];
+  vocalSeparations: DeletedVocalSeparationInfo[];
+  generationErrors: DeletedGenerationErrorInfo[];
+  lyrics: DeletedLyricsInfo[];
   r2Files: string[];
   estimatedR2Size: number;
 }
@@ -110,15 +136,15 @@ async function getDeletedTracksInfo(): Promise<DeletedTrackInfo[]> {
   const result = await dbQuery(`
     SELECT
       mt.id as track_id,
-      mt.music_generation_id as generation_id,
+      mt.music_id as generation_id,
       mt.audio_url,
       mt.suno_track_id,
       mt.updated_at as deleted_at,
       mg.user_id,
       mg.task_id,
       mg.title
-    FROM music_tracks mt
-    INNER JOIN music_generations mg ON mt.music_generation_id = mg.id
+    FROM tracks mt
+    INNER JOIN music mg ON mt.music_id = mg.id
     WHERE mt.is_deleted = TRUE
     ORDER BY mt.updated_at DESC
   `);
@@ -135,17 +161,14 @@ async function getOrphanedCovers(): Promise<DeletedCoverInfo[]> {
 
   const result = await dbQuery(`
     SELECT
-      ci.id as cover_id,
-      ci.r2_url,
-      ci.music_track_id as track_id
-    FROM cover_images ci
-    LEFT JOIN music_tracks mt ON ci.music_track_id = mt.id
-    WHERE
-      ci.r2_url IS NOT NULL
-      AND (
-        ci.music_track_id IS NULL
-        OR mt.is_deleted = TRUE
-      )
+      mt.id as track_id,
+      mt.cover_image_url,
+      mt.music_id
+    FROM tracks mt
+    WHERE mt.is_deleted = TRUE
+      AND mt.cover_image_url IS NOT NULL
+      AND mt.cover_image_url LIKE 'http%'
+    ORDER BY mt.updated_at DESC
   `);
 
   console.log(`📊 找到 ${result.rows.length} 个孤立的封面图片`);
@@ -153,9 +176,73 @@ async function getOrphanedCovers(): Promise<DeletedCoverInfo[]> {
 }
 
 /**
+ * 获取所有逻辑删除的人声分离记录
+ */
+async function getDeletedVocalSeparations(): Promise<DeletedVocalSeparationInfo[]> {
+  console.log('🔍 查找所有逻辑删除的人声分离记录...');
+
+  // 注意：vocal_separations表没有is_deleted字段，所以返回空数组
+  // 如果需要删除人声分离记录，需要其他逻辑来判断
+  console.log(`📊 找到 0 个逻辑删除的人声分离记录（该表没有逻辑删除字段）`);
+  return [];
+}
+
+/**
+ * 获取所有关联到已删除记录的生成错误
+ */
+async function getDeletedGenerationErrors(): Promise<DeletedGenerationErrorInfo[]> {
+  console.log('🔍 查找关联到已删除记录的生成错误...');
+
+  const result = await dbQuery(`
+    SELECT
+      ge.id as error_id,
+      ge.reference_id,
+      ge.error_type,
+      ge.created_at
+    FROM generation_errors ge
+    LEFT JOIN music mg ON ge.reference_id::text = mg.id::text AND ge.error_type = 'music_generation'
+    LEFT JOIN vocal_separations vs ON ge.reference_id::text = vs.id::text AND ge.error_type = 'vocal_separation'
+    WHERE
+      (ge.error_type = 'music_generation' AND mg.is_deleted = TRUE)
+      OR (ge.error_type = 'vocal_separation' AND vs.id IS NOT NULL)
+      OR ge.reference_id IS NULL
+    ORDER BY ge.created_at DESC
+  `);
+
+  console.log(`📊 找到 ${result.rows.length} 个关联到已删除记录的生成错误`);
+  return result.rows;
+}
+
+/**
+ * 获取所有关联到已删除音乐生成的歌词记录
+ */
+async function getDeletedLyrics(): Promise<DeletedLyricsInfo[]> {
+  console.log('🔍 查找关联到已删除音乐生成的歌词记录...');
+
+  const result = await dbQuery(`
+    SELECT
+      l.id as lyrics_id,
+      l.music_id,
+      l.title,
+      l.created_at
+    FROM lyrics l
+    INNER JOIN music mg ON l.music_id = mg.id
+    WHERE mg.is_deleted = TRUE
+    ORDER BY l.created_at DESC
+  `);
+
+  console.log(`📊 找到 ${result.rows.length} 个关联到已删除音乐生成的歌词记录`);
+  return result.rows;
+}
+
+/**
  * 收集所有需要删除的R2文件
  */
-async function collectR2FilesToDelete(tracks: DeletedTrackInfo[], covers: DeletedCoverInfo[]): Promise<string[]> {
+async function collectR2FilesToDelete(
+  tracks: DeletedTrackInfo[], 
+  covers: DeletedCoverInfo[], 
+  vocalSeparations: DeletedVocalSeparationInfo[]
+): Promise<string[]> {
   console.log('🔍 收集需要删除的R2文件...');
 
   const filesToDelete: string[] = [];
@@ -173,11 +260,41 @@ async function collectR2FilesToDelete(tracks: DeletedTrackInfo[], covers: Delete
 
   // 收集封面文件
   for (const cover of covers) {
-    if (cover.r2_url) {
-      const key = extractR2KeyFromUrl(cover.r2_url);
+    if (cover.cover_image_url) {
+      const key = extractR2KeyFromUrl(cover.cover_image_url);
       if (key) {
         filesToDelete.push(key);
-        console.log(`  🖼️  封面文件: ${key} (cover: ${cover.cover_id})`);
+        console.log(`  🖼️  封面文件: ${key} (track: ${cover.track_id})`);
+      }
+    }
+  }
+
+  // 收集人声分离音频文件
+  for (const separation of vocalSeparations) {
+    // 原始音频文件
+    if (separation.original_audio_url) {
+      const key = extractR2KeyFromUrl(separation.original_audio_url);
+      if (key) {
+        filesToDelete.push(key);
+        console.log(`  🎤 原始音频: ${key} (separation: ${separation.separation_id})`);
+      }
+    }
+
+    // 人声音频文件
+    if (separation.vocal_audio_url) {
+      const key = extractR2KeyFromUrl(separation.vocal_audio_url);
+      if (key) {
+        filesToDelete.push(key);
+        console.log(`  🎵 人声音频: ${key} (separation: ${separation.separation_id})`);
+      }
+    }
+
+    // 伴奏音频文件
+    if (separation.instrumental_audio_url) {
+      const key = extractR2KeyFromUrl(separation.instrumental_audio_url);
+      if (key) {
+        filesToDelete.push(key);
+        console.log(`  🎼 伴奏音频: ${key} (separation: ${separation.separation_id})`);
       }
     }
   }
@@ -228,12 +345,18 @@ async function generateDeletionSummary(): Promise<DeletionSummary> {
 
   const tracks = await getDeletedTracksInfo();
   const covers = await getOrphanedCovers();
-  const r2Files = await collectR2FilesToDelete(tracks, covers);
+  const vocalSeparations = await getDeletedVocalSeparations();
+  const generationErrors = await getDeletedGenerationErrors();
+  const lyrics = await getDeletedLyrics();
+  const r2Files = await collectR2FilesToDelete(tracks, covers, vocalSeparations);
   const estimatedR2Size = await estimateR2FileSize(r2Files);
 
   return {
     tracks,
     covers,
+    vocalSeparations,
+    generationErrors,
+    lyrics,
     r2Files,
     estimatedR2Size
   };
@@ -305,12 +428,25 @@ async function physicallyDeleteFromDatabase(summary: DeletionSummary, dryRun: bo
   tracksDeleted: number;
   coversDeleted: number;
   generationsDeleted: number;
+  vocalSeparationsDeleted: number;
+  generationErrorsDeleted: number;
+  lyricsDeleted: number;
 }> {
   if (dryRun) {
     console.log('🔍 DRY RUN - 以下数据库记录将被删除（实际未删除）:');
     console.log(`  📀 音轨记录: ${summary.tracks.length} 个`);
     console.log(`  🖼️  封面记录: ${summary.covers.length} 个`);
-    return { tracksDeleted: 0, coversDeleted: 0, generationsDeleted: 0 };
+    console.log(`  🎤 人声分离记录: ${summary.vocalSeparations.length} 个`);
+    console.log(`  ❌ 生成错误记录: ${summary.generationErrors.length} 个`);
+    console.log(`  📝 歌词记录: ${summary.lyrics.length} 个`);
+    return { 
+      tracksDeleted: 0, 
+      coversDeleted: 0, 
+      generationsDeleted: 0,
+      vocalSeparationsDeleted: 0,
+      generationErrorsDeleted: 0,
+      lyricsDeleted: 0
+    };
   }
 
   console.log('🗑️  开始从数据库物理删除记录...');
@@ -318,51 +454,65 @@ async function physicallyDeleteFromDatabase(summary: DeletionSummary, dryRun: bo
   let tracksDeleted = 0;
   let coversDeleted = 0;
   let generationsDeleted = 0;
+  let vocalSeparationsDeleted = 0;
+  let generationErrorsDeleted = 0;
+  let lyricsDeleted = 0;
 
   // 开始事务
   await dbQuery('BEGIN');
 
   try {
-    // 1. 删除所有相关的封面图片记录（包括关联到要删除音轨的封面）
-    if (summary.tracks.length > 0) {
-      const trackIds = summary.tracks.map(t => t.track_id);
-      const coverResult = await dbQuery(
-        'DELETE FROM cover_images WHERE music_track_id = ANY($1) RETURNING id',
-        [trackIds]
+    // 1. 删除生成错误记录（最先删除，避免外键约束）
+    if (summary.generationErrors.length > 0) {
+      const errorIds = summary.generationErrors.map(e => e.error_id);
+      const errorResult = await dbQuery(
+        'DELETE FROM generation_errors WHERE id = ANY($1) RETURNING id',
+        [errorIds]
       );
-      coversDeleted = coverResult.rowCount || 0;
-      console.log(`  ✅ 删除了 ${coversDeleted} 个关联封面记录`);
-    }
-    
-    // 2. 删除孤立的封面图片记录
-    if (summary.covers.length > 0) {
-      const coverIds = summary.covers.map(c => c.cover_id);
-      const coverResult = await dbQuery(
-        'DELETE FROM cover_images WHERE id = ANY($1) RETURNING id',
-        [coverIds]
-      );
-      coversDeleted += coverResult.rowCount || 0;
-      console.log(`  ✅ 删除了 ${coverResult.rowCount || 0} 个孤立封面记录`);
+      generationErrorsDeleted = errorResult.rowCount || 0;
+      console.log(`  ✅ 删除了 ${generationErrorsDeleted} 个生成错误记录`);
     }
 
-    // 3. 删除音轨记录
+    // 3. 删除歌词记录
+    if (summary.lyrics.length > 0) {
+      const lyricsIds = summary.lyrics.map(l => l.lyrics_id);
+      const lyricsResult = await dbQuery(
+        'DELETE FROM lyrics WHERE id = ANY($1) RETURNING id',
+        [lyricsIds]
+      );
+      lyricsDeleted = lyricsResult.rowCount || 0;
+      console.log(`  ✅ 删除了 ${lyricsDeleted} 个歌词记录`);
+    }
+
+    // 4. 删除音轨记录（包含封面图片URL）
     if (summary.tracks.length > 0) {
       const trackIds = summary.tracks.map(t => t.track_id);
       const trackResult = await dbQuery(
-        'DELETE FROM music_tracks WHERE id = ANY($1) RETURNING id',
+        'DELETE FROM tracks WHERE id = ANY($1) RETURNING id',
         [trackIds]
       );
       tracksDeleted = trackResult.rowCount || 0;
       console.log(`  ✅ 删除了 ${tracksDeleted} 个音轨记录`);
     }
 
-    // 4. 删除没有关联音轨的生成记录
+    // 5. 删除人声分离记录
+    if (summary.vocalSeparations.length > 0) {
+      const separationIds = summary.vocalSeparations.map(v => v.separation_id);
+      const separationResult = await dbQuery(
+        'DELETE FROM vocal_separations WHERE id = ANY($1) RETURNING id',
+        [separationIds]
+      );
+      vocalSeparationsDeleted = separationResult.rowCount || 0;
+      console.log(`  ✅ 删除了 ${vocalSeparationsDeleted} 个人声分离记录`);
+    }
+
+    // 6. 删除没有关联音轨的生成记录
     const generationResult = await dbQuery(`
-      DELETE FROM music_generations
+      DELETE FROM music
       WHERE is_deleted = TRUE
         AND NOT EXISTS (
-          SELECT 1 FROM music_tracks
-          WHERE music_generation_id = music_generations.id
+          SELECT 1 FROM tracks
+          WHERE music_id = music.id
         )
       RETURNING id
     `);
@@ -380,7 +530,14 @@ async function physicallyDeleteFromDatabase(summary: DeletionSummary, dryRun: bo
     throw error;
   }
 
-  return { tracksDeleted, coversDeleted, generationsDeleted };
+  return { 
+    tracksDeleted, 
+    coversDeleted, 
+    generationsDeleted,
+    vocalSeparationsDeleted,
+    generationErrorsDeleted,
+    lyricsDeleted
+  };
 }
 
 /**
@@ -391,6 +548,9 @@ function displayDeletionSummary(summary: DeletionSummary) {
   console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
   console.log(`📀 逻辑删除的音轨: ${summary.tracks.length} 个`);
   console.log(`🖼️  孤立的封面图片: ${summary.covers.length} 个`);
+  console.log(`🎤 逻辑删除的人声分离: ${summary.vocalSeparations.length} 个`);
+  console.log(`❌ 关联的生成错误: ${summary.generationErrors.length} 个`);
+  console.log(`📝 关联的歌词记录: ${summary.lyrics.length} 个`);
   console.log(`📁 需要删除的R2文件: ${summary.r2Files.length} 个`);
   console.log(`💾 估算释放空间: ${formatBytes(summary.estimatedR2Size)}`);
   console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
@@ -406,13 +566,45 @@ function displayDeletionSummary(summary: DeletionSummary) {
     }
   }
 
+  if (summary.vocalSeparations.length > 0) {
+    console.log('\n🎤 人声分离详情 (前10个):');
+    summary.vocalSeparations.slice(0, 10).forEach((separation, index) => {
+      console.log(`  ${index + 1}. ${separation.separation_id}`);
+      console.log(`     用户: ${separation.user_id}, 删除时间: ${separation.deleted_at}`);
+    });
+    if (summary.vocalSeparations.length > 10) {
+      console.log(`     ... 还有 ${summary.vocalSeparations.length - 10} 个人声分离`);
+    }
+  }
+
   if (summary.covers.length > 0) {
     console.log('\n🖼️  封面详情 (前10个):');
     summary.covers.slice(0, 10).forEach((cover, index) => {
-      console.log(`  ${index + 1}. ${cover.cover_id} (关联音轨: ${cover.track_id || '无'})`);
+      console.log(`  ${index + 1}. ${cover.track_id} (音乐ID: ${cover.music_id})`);
+      console.log(`     封面URL: ${cover.cover_image_url?.substring(0, 80)}...`);
     });
     if (summary.covers.length > 10) {
       console.log(`     ... 还有 ${summary.covers.length - 10} 个封面`);
+    }
+  }
+
+  if (summary.generationErrors.length > 0) {
+    console.log('\n❌ 生成错误详情 (前10个):');
+    summary.generationErrors.slice(0, 10).forEach((error, index) => {
+      console.log(`  ${index + 1}. ${error.error_type} - ${error.reference_id}`);
+    });
+    if (summary.generationErrors.length > 10) {
+      console.log(`     ... 还有 ${summary.generationErrors.length - 10} 个错误`);
+    }
+  }
+
+  if (summary.lyrics.length > 0) {
+    console.log('\n📝 歌词详情 (前10个):');
+    summary.lyrics.slice(0, 10).forEach((lyric, index) => {
+      console.log(`  ${index + 1}. ${lyric.title || 'Unknown'} (${lyric.lyrics_id})`);
+    });
+    if (summary.lyrics.length > 10) {
+      console.log(`     ... 还有 ${summary.lyrics.length - 10} 个歌词`);
     }
   }
 }
@@ -455,7 +647,9 @@ async function main() {
     displayDeletionSummary(summary);
 
     // 如果没有需要删除的数据，退出
-    if (summary.tracks.length === 0 && summary.covers.length === 0) {
+    if (summary.tracks.length === 0 && summary.covers.length === 0 && 
+        summary.vocalSeparations.length === 0 && summary.generationErrors.length === 0 && 
+        summary.lyrics.length === 0) {
       console.log('\n✅ 没有需要删除的数据，程序结束');
       return;
     }
@@ -479,7 +673,14 @@ async function main() {
 
     console.log('\n🗑️  开始删除操作...\n');
 
-    let dbResults = { tracksDeleted: 0, coversDeleted: 0, generationsDeleted: 0 };
+    let dbResults = { 
+      tracksDeleted: 0, 
+      coversDeleted: 0, 
+      generationsDeleted: 0,
+      vocalSeparationsDeleted: 0,
+      generationErrorsDeleted: 0,
+      lyricsDeleted: 0
+    };
     let r2Results = { success: 0, failed: 0 };
 
     // 执行数据库删除
@@ -499,6 +700,9 @@ async function main() {
     console.log(`  📀 音轨记录: ${dbResults.tracksDeleted} 个`);
     console.log(`  🖼️  封面记录: ${dbResults.coversDeleted} 个`);
     console.log(`  🎵 生成记录: ${dbResults.generationsDeleted} 个`);
+    console.log(`  🎤 人声分离记录: ${dbResults.vocalSeparationsDeleted} 个`);
+    console.log(`  ❌ 生成错误记录: ${dbResults.generationErrorsDeleted} 个`);
+    console.log(`  📝 歌词记录: ${dbResults.lyricsDeleted} 个`);
     console.log(`  📁 R2文件: ${r2Results.success} 个成功，${r2Results.failed} 个失败`);
     console.log(`  💾 删除摘要保存在: ${summaryFile}`);
     console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
@@ -525,6 +729,9 @@ if (require.main === module) {
 export {
   getDeletedTracksInfo,
   getOrphanedCovers,
+  getDeletedVocalSeparations,
+  getDeletedGenerationErrors,
+  getDeletedLyrics,
   collectR2FilesToDelete,
   physicallyDeleteFromDatabase,
   deleteR2Files

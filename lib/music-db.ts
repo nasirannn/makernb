@@ -86,7 +86,7 @@ export const createMusicGeneration = async (
     validateRequiredParams({ userId }, ['userId']);
 
     const result = await query(
-      `INSERT INTO music_generations (
+      `INSERT INTO music (
         user_id, title, genre, tags, prompt,
         is_instrumental, task_id, status
       ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
@@ -120,9 +120,9 @@ export const softDeleteMusicGeneration = async (generationId: string, userId: st
     return await withTransaction(async (queryFn) => {
       // 1. Soft delete music_generation record
       const generationResult = await queryFn(
-        `UPDATE music_generations
+        `UPDATE music
          SET is_deleted = TRUE, updated_at = NOW()
-         WHERE id = $1 AND user_id = $2 AND is_deleted = FALSE
+         WHERE id = $1 AND user_id = $2::uuid AND is_deleted = FALSE
          RETURNING id`,
         [generationId, userId]
       );
@@ -132,11 +132,11 @@ export const softDeleteMusicGeneration = async (generationId: string, userId: st
         return false;
       }
 
-      // 2. Soft delete all associated music_tracks records
+      // 2. Soft delete all associated tracks records
       const tracksResult = await queryFn(
-        `UPDATE music_tracks
+        `UPDATE tracks
          SET is_deleted = TRUE, updated_at = NOW()
-         WHERE music_generation_id = $1 AND (is_deleted IS NULL OR is_deleted = FALSE)
+         WHERE music_id = $1 AND (is_deleted IS NULL OR is_deleted = FALSE)
          RETURNING id`,
         [generationId]
       );
@@ -159,11 +159,11 @@ export const softDeleteMusicTrack = async (trackId: string, userId: string): Pro
 
     // Verify user owns the track and soft delete it
     const result = await query(
-      `UPDATE music_tracks
+      `UPDATE tracks
        SET is_deleted = TRUE, updated_at = NOW()
        WHERE id = $1
-         AND music_generation_id IN (
-           SELECT id FROM music_generations WHERE user_id = $2
+         AND music_id IN (
+           SELECT id FROM music WHERE user_id = $2::uuid
          )
          AND (is_deleted IS NULL OR is_deleted = FALSE)
        RETURNING id`,
@@ -188,8 +188,8 @@ export const softDeleteMusicTrack = async (trackId: string, userId: string): Pro
 const getUserGenerationIds = async (userId: string, limit: number, offset: number): Promise<string[]> => {
   const result = await query(`
     SELECT id
-    FROM music_generations
-    WHERE user_id = $1 AND is_deleted = FALSE
+    FROM music
+    WHERE user_id = $1::uuid AND is_deleted = FALSE
     ORDER BY created_at DESC
     LIMIT $2 OFFSET $3
   `, [userId, limit, offset]);
@@ -222,18 +222,11 @@ const getGenerationsWithDetails = async (generationIds: string[]): Promise<any[]
       mt.is_pinned,
       mt.created_at as track_created_at,
       mt.updated_at as track_updated_at,
-      ci.r2_url as cover_r2_url
-    FROM music_generations mg
-    LEFT JOIN music_lyrics ml ON mg.id = ml.music_generation_id
-    LEFT JOIN music_tracks mt ON mg.id = mt.music_generation_id
+      mt.cover_image_url as cover_r2_url
+    FROM music mg
+    LEFT JOIN lyrics ml ON mg.id = ml.music_id
+    LEFT JOIN tracks mt ON mg.id = mt.music_id
       AND (mt.is_deleted IS NULL OR mt.is_deleted = FALSE)
-    LEFT JOIN LATERAL (
-      SELECT ci.r2_url
-      FROM cover_images ci
-      WHERE ci.music_track_id = mt.id
-      ORDER BY ci.created_at ASC
-      LIMIT 1
-    ) ci ON true
     WHERE mg.id = ANY($1)
     ORDER BY mg.created_at DESC, mt.side_letter ASC
   `, [generationIds]);
@@ -364,7 +357,7 @@ const addFavoriteStatusToTracks = async (musicGenerations: MusicGenerationWithTr
 };
 
 /**
- * Gets user's music generations (grouped by music_generations, including all tracks)
+ * Gets user's music generations (grouped by music, including all tracks)
  */
 export const getUserMusicGenerations = async (
   userId: string,
@@ -407,7 +400,7 @@ export const getUserMusicGenerations = async (
 export const getPublicMusicGenerations = async (limit: number = 10, offset: number = 0): Promise<MusicGeneration[]> => {
   try {
     const result = await query(
-      'SELECT * FROM music_generations ORDER BY created_at DESC LIMIT $1 OFFSET $2',
+      'SELECT * FROM music ORDER BY created_at DESC LIMIT $1 OFFSET $2',
       [limit, offset]
     );
 
@@ -426,7 +419,7 @@ export const getMusicGenerationByTaskId = async (taskId: string): Promise<MusicG
     validateRequiredParams({ taskId }, ['taskId']);
 
     const result = await query(
-      'SELECT * FROM music_generations WHERE task_id = $1',
+      'SELECT * FROM music WHERE task_id = $1',
       [taskId]
     );
 
@@ -455,7 +448,7 @@ export const updateMusicGenerationByTaskId = async (
     const { setClause, values } = buildUpdateClause(data, excludeFields);
 
     const result = await query(
-      `UPDATE music_generations SET ${setClause}, updated_at = NOW() WHERE task_id = $1 RETURNING *`,
+      `UPDATE music SET ${setClause}, updated_at = NOW() WHERE task_id = $1 RETURNING *`,
       [taskId, ...values]
     );
 
@@ -484,7 +477,7 @@ export const updateMusicGeneration = async (
     const { setClause, values } = buildUpdateClause(data, excludeFields);
 
     const result = await query(
-      `UPDATE music_generations SET ${setClause}, updated_at = NOW() WHERE id = $1 RETURNING *`,
+      `UPDATE music SET ${setClause}, updated_at = NOW() WHERE id = $1 RETURNING *`,
       [id, ...values]
     );
 
@@ -511,7 +504,7 @@ export const deleteMusicGeneration = async (id: string, userId: string): Promise
     validateRequiredParams({ id, userId }, ['id', 'userId']);
 
     const result = await query(
-      'DELETE FROM music_generations WHERE id = $1 AND user_id = $2',
+      'DELETE FROM music WHERE id = $1 AND user_id = $2::uuid',
       [id, userId]
     );
 
@@ -533,7 +526,7 @@ export const getAllAudioUrls = async (): Promise<string[]> => {
   try {
     const result = await query(`
       SELECT audio_url
-      FROM music_tracks
+      FROM tracks
       WHERE audio_url IS NOT NULL
         AND audio_url != ''
         AND (is_deleted IS NULL OR is_deleted = FALSE)
@@ -547,21 +540,21 @@ export const getAllAudioUrls = async (): Promise<string[]> => {
 };
 
 /**
- * Fixes music generations that have null titles by copying from music_lyrics
+ * Fixes music generations that have null titles by copying from lyrics
  */
 export const fixMissingTitlesFromLyrics = async (): Promise<{ updated: number; errors: string[] }> => {
   try {
     const errors: string[] = [];
     let updated = 0;
 
-    // Find music_generations with null titles that have corresponding lyrics with titles
+    // Find music with null titles that have corresponding lyrics with titles
     const result = await query(`
       SELECT
         mg.id as generation_id,
         mg.title as current_title,
         ml.title as lyrics_title
-      FROM music_generations mg
-      INNER JOIN music_lyrics ml ON mg.id = ml.music_generation_id
+      FROM music mg
+      INNER JOIN lyrics ml ON mg.id = ml.music_id
       WHERE (mg.title IS NULL OR mg.title = '')
         AND ml.title IS NOT NULL
         AND ml.title != ''
@@ -572,7 +565,7 @@ export const fixMissingTitlesFromLyrics = async (): Promise<{ updated: number; e
     for (const row of result.rows) {
       try {
         await query(
-          `UPDATE music_generations
+          `UPDATE music
            SET title = $1, updated_at = NOW()
            WHERE id = $2`,
           [row.lyrics_title, row.generation_id]

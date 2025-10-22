@@ -22,7 +22,7 @@ export async function addToFavorites(userId: string, trackId: string): Promise<U
       // 如果没有插入新记录，说明已经存在，返回现有记录
       const existingResult = await query(`
         SELECT * FROM user_favorites 
-        WHERE user_id = $1 AND track_id = $2
+        WHERE user_id = $1::uuid AND track_id = $2
       `, [userId, trackId]);
       return existingResult.rows[0];
     }
@@ -39,7 +39,7 @@ export async function removeFromFavorites(userId: string, trackId: string): Prom
   try {
     const result = await query(`
       DELETE FROM user_favorites 
-      WHERE user_id = $1 AND track_id = $2
+      WHERE user_id = $1::uuid AND track_id = $2
       RETURNING id
     `, [userId, trackId]);
     
@@ -55,7 +55,7 @@ export async function isFavorited(userId: string, trackId: string): Promise<bool
   try {
     const result = await query(`
       SELECT id FROM user_favorites 
-      WHERE user_id = $1 AND track_id = $2
+      WHERE user_id = $1::uuid AND track_id = $2
     `, [userId, trackId]);
     
     return result.rows.length > 0;
@@ -73,7 +73,7 @@ export async function toggleFavorite(userId: string, trackId: string): Promise<b
       WITH current_check AS (
         SELECT EXISTS(
           SELECT 1 FROM user_favorites 
-          WHERE user_id = $1 AND track_id = $2
+          WHERE user_id = $1::uuid AND track_id = $2
         ) as currently_favorited
       ),
       toggle_result AS (
@@ -85,7 +85,7 @@ export async function toggleFavorite(userId: string, trackId: string): Promise<b
       ),
       delete_result AS (
         DELETE FROM user_favorites 
-        WHERE user_id = $1 AND track_id = $2
+        WHERE user_id = $1::uuid AND track_id = $2
         AND (SELECT currently_favorited FROM current_check)
         RETURNING true as was_deleted
       )
@@ -122,24 +122,18 @@ export async function getUserFavorites(userId: string, limit: number = 50, offse
         mg.tags,
         mg.prompt,
         mg.user_id as track_owner_id,
-        (
-          SELECT ci.r2_url
-          FROM cover_images ci
-          WHERE ci.music_track_id = mt.id
-          ORDER BY ci.created_at ASC
-          LIMIT 1
-        ) as cover_r2_url,
+        mt.cover_image_url as cover_r2_url,
         (
           SELECT ml.content
-          FROM music_lyrics ml
-          WHERE ml.music_generation_id = mg.id
+          FROM lyrics ml
+          WHERE ml.music_id = mg.id
           ORDER BY ml.created_at ASC
           LIMIT 1
         ) as lyrics_content
       FROM user_favorites uf
-      JOIN music_tracks mt ON uf.track_id = mt.id
-      JOIN music_generations mg ON mt.music_generation_id = mg.id
-      WHERE uf.user_id = $1 
+      JOIN tracks mt ON uf.track_id = mt.id
+      JOIN music mg ON mt.music_id = mg.id
+      WHERE uf.user_id = $1::uuid 
         AND (mt.is_deleted IS NULL OR mt.is_deleted = FALSE)
         AND mg.is_deleted = FALSE
       ORDER BY uf.created_at DESC
@@ -159,9 +153,9 @@ export async function getUserFavoritesCount(userId: string): Promise<number> {
     const result = await query(`
       SELECT COUNT(*) as count
       FROM user_favorites uf
-      JOIN music_tracks mt ON uf.track_id = mt.id
-      JOIN music_generations mg ON mt.music_generation_id = mg.id
-      WHERE uf.user_id = $1 
+      JOIN tracks mt ON uf.track_id = mt.id
+      JOIN music mg ON mt.music_id = mg.id
+      WHERE uf.user_id = $1::uuid 
         AND (mt.is_deleted IS NULL OR mt.is_deleted = FALSE)
         AND mg.is_deleted = FALSE
     `, [userId]);
@@ -182,7 +176,7 @@ export async function checkMultipleFavorites(userId: string, trackIds: string[])
     
     const result = await query(`
       SELECT track_id FROM user_favorites 
-      WHERE user_id = $1 AND track_id = ANY($2)
+      WHERE user_id = $1::uuid AND track_id = ANY($2)
     `, [userId, trackIds]);
     
     const favoritedTrackIds = new Set(result.rows.map(row => row.track_id));

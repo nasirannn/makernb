@@ -19,22 +19,16 @@ export async function GET(request: NextRequest) {
         mt.side_letter,
         mt.created_at,
         mt.updated_at,
-        mg.id as music_generation_id,
+        mg.id as music_id,
         mg.title,
         mg.genre,
         mg.tags,
         mg.prompt,
         mg.created_at as generation_created_at,
         mg.user_id as track_owner_id,
-        (
-          SELECT ci.r2_url
-          FROM cover_images ci
-          WHERE ci.music_track_id = mt.id
-          ORDER BY ci.created_at ASC
-          LIMIT 1
-        ) as cover_r2_url
-      FROM music_tracks mt
-      JOIN music_generations mg ON mt.music_generation_id = mg.id
+        mt.cover_image_url as cover_r2_url
+      FROM tracks mt
+      JOIN music mg ON mt.music_id = mg.id
       WHERE mt.is_pinned = TRUE
         AND mg.is_deleted = FALSE
         AND (mt.is_deleted IS NULL OR mt.is_deleted = FALSE)

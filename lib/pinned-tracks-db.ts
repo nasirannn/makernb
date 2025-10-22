@@ -8,14 +8,14 @@ export interface UserPinnedTrack {
   updated_at?: string;
 }
 
-// 添加置顶 - 通过更新music_tracks表的is_pinned字段
+// 添加置顶 - 通过更新tracks表的is_pinned字段
 export async function addToPinned(userId: string, trackId: string): Promise<UserPinnedTrack> {
   try {
     // 检查track是否属于该用户
     const trackResult = await query(`
       SELECT mt.id, mg.user_id
-      FROM music_tracks mt
-      JOIN music_generations mg ON mt.music_generation_id = mg.id
+      FROM tracks mt
+      JOIN music mg ON mt.music_id = mg.id
       WHERE mt.id = $1
     `, [trackId]);
 
@@ -30,10 +30,10 @@ export async function addToPinned(userId: string, trackId: string): Promise<User
 
     // 更新is_pinned字段
     const result = await query(`
-      UPDATE music_tracks
+      UPDATE tracks
       SET is_pinned = true, updated_at = NOW()
       WHERE id = $1
-      RETURNING id, music_generation_id, created_at, updated_at
+      RETURNING id, music_id, created_at, updated_at
     `, [trackId]);
 
     return {
@@ -55,8 +55,8 @@ export async function removeFromPinned(userId: string, trackId: string): Promise
     // 检查track是否属于该用户
     const trackResult = await query(`
       SELECT mt.id, mg.user_id
-      FROM music_tracks mt
-      JOIN music_generations mg ON mt.music_generation_id = mg.id
+      FROM tracks mt
+      JOIN music mg ON mt.music_id = mg.id
       WHERE mt.id = $1
     `, [trackId]);
 
@@ -70,7 +70,7 @@ export async function removeFromPinned(userId: string, trackId: string): Promise
     }
 
     const result = await query(`
-      UPDATE music_tracks
+      UPDATE tracks
       SET is_pinned = false, updated_at = NOW()
       WHERE id = $1
       RETURNING id
@@ -88,9 +88,9 @@ export async function isPinned(userId: string, trackId: string): Promise<boolean
   try {
     const result = await query(`
       SELECT mt.is_pinned
-      FROM music_tracks mt
-      JOIN music_generations mg ON mt.music_generation_id = mg.id
-      WHERE mt.id = $1 AND mg.user_id = $2
+      FROM tracks mt
+      JOIN music mg ON mt.music_id = mg.id
+      WHERE mt.id = $1 AND mg.user_id = $2::uuid
     `, [trackId, userId]);
 
     return result.rows.length > 0 ? result.rows[0].is_pinned : false;
@@ -106,8 +106,8 @@ export async function togglePinned(userId: string, trackId: string): Promise<boo
     // 首先获取当前状态
     const currentResult = await query(`
       SELECT mt.is_pinned, mg.user_id
-      FROM music_tracks mt
-      JOIN music_generations mg ON mt.music_generation_id = mg.id
+      FROM tracks mt
+      JOIN music mg ON mt.music_id = mg.id
       WHERE mt.id = $1
     `, [trackId]);
 
@@ -123,7 +123,7 @@ export async function togglePinned(userId: string, trackId: string): Promise<boo
     const newPinnedState = !track.is_pinned;
 
     const result = await query(`
-      UPDATE music_tracks
+      UPDATE tracks
       SET is_pinned = $1, updated_at = NOW()
       WHERE id = $2
       RETURNING is_pinned
@@ -153,23 +153,17 @@ export async function getUserPinnedTracks(userId: string, limit: number = 50, of
         mg.tags,
         mg.prompt,
         mg.user_id as track_owner_id,
-        (
-          SELECT ci.r2_url
-          FROM cover_images ci
-          WHERE ci.music_track_id = mt.id
-          ORDER BY ci.created_at ASC
-          LIMIT 1
-        ) as cover_r2_url,
+        mt.cover_image_url as cover_r2_url,
         (
           SELECT ml.content
-          FROM music_lyrics ml
-          WHERE ml.music_generation_id = mg.id
+          FROM lyrics ml
+          WHERE ml.music_id = mg.id
           ORDER BY ml.created_at ASC
           LIMIT 1
         ) as lyrics_content
-      FROM music_tracks mt
-      JOIN music_generations mg ON mt.music_generation_id = mg.id
-      WHERE mg.user_id = $1
+      FROM tracks mt
+      JOIN music mg ON mt.music_id = mg.id
+      WHERE mg.user_id = $1::uuid
         AND mt.is_pinned = true
         AND (mt.is_deleted IS NULL OR mt.is_deleted = FALSE)
         AND (mg.is_deleted IS NULL OR mg.is_deleted = FALSE)
@@ -193,9 +187,9 @@ export async function checkMultiplePinned(userId: string, trackIds: string[]): P
 
     const result = await query(`
       SELECT mt.id, mt.is_pinned
-      FROM music_tracks mt
-      JOIN music_generations mg ON mt.music_generation_id = mg.id
-      WHERE mg.user_id = $1 AND mt.id = ANY($2)
+      FROM tracks mt
+      JOIN music mg ON mt.music_id = mg.id
+      WHERE mg.user_id = $1::uuid AND mt.id = ANY($2)
     `, [userId, trackIds]);
 
     const pinnedStatus: Record<string, boolean> = {};
@@ -222,9 +216,9 @@ export async function getUserPinnedCount(userId: string): Promise<number> {
   try {
     const result = await query(`
       SELECT COUNT(*) as count
-      FROM music_tracks mt
-      JOIN music_generations mg ON mt.music_generation_id = mg.id
-      WHERE mg.user_id = $1
+      FROM tracks mt
+      JOIN music mg ON mt.music_id = mg.id
+      WHERE mg.user_id = $1::uuid
         AND mt.is_pinned = true
         AND (mt.is_deleted IS NULL OR mt.is_deleted = FALSE)
         AND (mg.is_deleted IS NULL OR mg.is_deleted = FALSE)
