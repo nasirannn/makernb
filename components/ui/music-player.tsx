@@ -1,11 +1,12 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import Image from 'next/image';
 import { Play, Pause, Rewind, FastForward, Volume2, VolumeX, MessageSquare, Mic } from 'lucide-react';
 import { Slider } from '@/components/ui/slider';
 import { SafeImage } from './safe-image';
 import { VocalSeparationButton } from './vocal-separation-button';
+import { supabase } from '@/lib/supabase';
 
 interface Track {
   id: string;
@@ -56,6 +57,9 @@ interface MusicPlayerProps {
   onMuteToggle: () => void;
   onTrackChange: (index: number) => void;
   onTrackInfoClick?: () => void; // 点击歌曲信息区域的回调
+
+  // 新增：支持通过 track ID 播放
+  playTrackById?: (trackId: string) => void; // 通过 track ID 播放歌曲
 }
 
 const formatTime = (seconds: number): string => {
@@ -84,9 +88,50 @@ export const MusicPlayer: React.FC<MusicPlayerProps> = ({
   onMuteToggle,
   onTrackChange,
   onTrackInfoClick,
+  playTrackById,
 }) => {
   const currentTrack = tracks[currentTrackIndex];
   const [isMobile, setIsMobile] = useState(false);
+  const audioRef = useRef<HTMLAudioElement | null>(null);
+
+  // 通过 track ID 获取 track 信息
+  const fetchTrackInfo = useCallback(async (trackId: string) => {
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      
+      const response = await fetch(`/api/track-info/${trackId}`, {
+        headers: {
+          'Authorization': `Bearer ${session?.access_token}`,
+        }
+      });
+
+      if (!response.ok) {
+        console.error('Failed to fetch track info:', response.status);
+        return null;
+      }
+
+      const data = await response.json();
+      
+      if (data.success && data.track) {
+        return data.track;
+      } else {
+        console.error('Invalid track data:', data);
+        return null;
+      }
+    } catch (error) {
+      console.error('Error fetching track info:', error);
+      return null;
+    }
+  }, []);
+
+  // 初始化音频元素
+  useEffect(() => {
+    if (!audioRef.current) {
+      audioRef.current = new Audio();
+      audioRef.current.volume = volume;
+      audioRef.current.muted = isMuted;
+    }
+  }, [volume, isMuted]);
 
   // 检测屏幕尺寸
   useEffect(() => {
@@ -102,6 +147,65 @@ export const MusicPlayer: React.FC<MusicPlayerProps> = ({
 
     return () => {
       window.removeEventListener('resize', checkScreenSize);
+    };
+  }, []);
+
+  // 音频事件处理
+  useEffect(() => {
+    const audio = audioRef.current;
+    if (!audio) return;
+
+    const handleLoadStart = () => {
+      console.log('Audio load started');
+    };
+
+    const handleCanPlay = () => {
+      console.log('Audio can play');
+    };
+
+    const handlePlay = () => {
+      console.log('Audio playing');
+    };
+
+    const handlePause = () => {
+      console.log('Audio paused');
+    };
+
+    const handleTimeUpdate = () => {
+      // 时间更新由父组件处理
+    };
+
+    const handleEnded = () => {
+      console.log('Audio ended');
+    };
+
+    const handleError = (e: any) => {
+      console.error('Audio error:', e);
+      console.error('Audio error details:', {
+        error: e.target?.error,
+        networkState: e.target?.networkState,
+        readyState: e.target?.readyState,
+        src: e.target?.src
+      });
+    };
+
+    // 添加事件监听器
+    audio.addEventListener('loadstart', handleLoadStart);
+    audio.addEventListener('canplay', handleCanPlay);
+    audio.addEventListener('play', handlePlay);
+    audio.addEventListener('pause', handlePause);
+    audio.addEventListener('timeupdate', handleTimeUpdate);
+    audio.addEventListener('ended', handleEnded);
+    audio.addEventListener('error', handleError);
+
+    return () => {
+      audio.removeEventListener('loadstart', handleLoadStart);
+      audio.removeEventListener('canplay', handleCanPlay);
+      audio.removeEventListener('play', handlePlay);
+      audio.removeEventListener('pause', handlePause);
+      audio.removeEventListener('timeupdate', handleTimeUpdate);
+      audio.removeEventListener('ended', handleEnded);
+      audio.removeEventListener('error', handleError);
     };
   }, []);
 
@@ -391,6 +495,13 @@ export const MusicPlayer: React.FC<MusicPlayerProps> = ({
           style={{ left: `calc(${progressPercentage}% - 3px)` }}
         />
       </div>
+      
+      {/* Audio element */}
+      <audio
+        ref={audioRef}
+        src={currentPlayingTrack?.audioUrl || ''}
+        preload="metadata"
+      />
     </div>
   );
 };

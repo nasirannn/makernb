@@ -5,7 +5,6 @@ import React, { useState, useRef, useEffect, Suspense } from "react";
 // Custom Hooks
 import { useMusicGeneration } from "@/hooks/use-music-generation";
 import { useLyricsGeneration } from "@/hooks/use-lyrics-generation";
-import { useIndependentPlayer } from "@/hooks/use-independent-player";
 import { useAuth } from "@/contexts/AuthContext";
 import { useCredits } from "@/contexts/CreditsContext";
 
@@ -41,7 +40,6 @@ const StudioContent = () => {
     // Custom Hooks
     const musicGeneration = useMusicGeneration();
     const lyricsGeneration = useLyricsGeneration();
-    const independentPlayer = useIndependentPlayer();
     const { user } = useAuth();
     const { credits, refreshCredits } = useCredits();
 
@@ -68,8 +66,14 @@ const StudioContent = () => {
     const [userTracks, setUserTracks] = useState<any[]>([]);
     const [isLoadingUserTracks, setIsLoadingUserTracks] = useState(false);
 
-    // 播放器状态 - 使用独立播放器
-    const { audioRef, playerState, playTrack, togglePlayPause, setVolume, toggleMute, seekTo } = independentPlayer;
+    // 播放器状态管理
+    const audioRef = useRef<HTMLAudioElement>(null);
+    const [currentPlayingTrack, setCurrentPlayingTrack] = useState<any>(null);
+    const [isPlaying, setIsPlaying] = useState(false);
+    const [currentTime, setCurrentTime] = useState(0);
+    const [duration, setDuration] = useState(0);
+    const [volume, setVolume] = useState(1);
+    const [isMuted, setIsMuted] = useState(false);
     
     // 选中的歌曲状态（用于歌词面板）
     const [selectedStudioTrack, setSelectedStudioTrack] = React.useState<any>(null);
@@ -80,6 +84,75 @@ const StudioContent = () => {
     
     // BPM Mode状态
     const [bpmMode, setBpmMode] = React.useState<'slow' | 'moderate' | 'medium' | ''>('');
+
+    // 播放控制函数
+    const togglePlayPause = React.useCallback(() => {
+        if (audioRef.current) {
+            if (isPlaying) {
+                audioRef.current.pause();
+                setIsPlaying(false);
+            } else {
+                audioRef.current.play().catch(console.error);
+                setIsPlaying(true);
+            }
+        }
+    }, [isPlaying]);
+
+    const changeVolume = React.useCallback((newVolume: number) => {
+        setVolume(newVolume);
+        if (audioRef.current) {
+            audioRef.current.volume = newVolume;
+        }
+    }, []);
+
+    const toggleMute = React.useCallback(() => {
+        setIsMuted(!isMuted);
+        if (audioRef.current) {
+            audioRef.current.muted = !isMuted;
+        }
+    }, [isMuted]);
+
+    const seekTo = React.useCallback((time: number) => {
+        if (audioRef.current) {
+            audioRef.current.currentTime = time;
+            setCurrentTime(time);
+        }
+    }, []);
+
+    // 通过 track ID 播放歌曲
+    const playTrackById = React.useCallback(async (trackId: string) => {
+        try {
+            const { data: { session } } = await supabase.auth.getSession();
+            
+            const response = await fetch(`/api/track-info/${trackId}`, {
+                headers: {
+                    'Authorization': `Bearer ${session?.access_token}`,
+                }
+            });
+
+            if (!response.ok) {
+                console.error('Failed to fetch track info:', response.status);
+                return;
+            }
+
+            const data = await response.json();
+            
+            if (data.success && data.track) {
+                const trackInfo = data.track;
+                setCurrentPlayingTrack(trackInfo);
+                setDuration(trackInfo.duration || 0);
+                
+                if (audioRef.current) {
+                    audioRef.current.src = trackInfo.audioUrl;
+                    audioRef.current.load();
+                    audioRef.current.play().catch(console.error);
+                    setIsPlaying(true);
+                }
+            }
+        } catch (error) {
+            console.error('Error fetching track info:', error);
+        }
+    }, []);
 
     // Destructure states and functions
     const {
@@ -197,7 +270,7 @@ const StudioContent = () => {
     // 统一的播放切换逻辑 - 使用独立播放器
     const switchToTrack = React.useCallback((track: any) => {
         // 使用独立播放器播放
-        playTrack(track.id);
+        playTrackById(track.id);
         
         // 设置选中的 track（用于歌词面板）
         const playingTrack = createTrackObject(
@@ -221,13 +294,13 @@ const StudioContent = () => {
         // setMobileTracksOpen(false);
         
         playAudioWithDelay(track.audioUrl);
-    }, [playTrack, createTrackObject, playAudioWithDelay]);
+    }, [playTrackById, createTrackObject, playAudioWithDelay]);
 
     // 上一首歌曲回调
     const handlePrevious = React.useCallback(() => {
-        if (!playerState.currentTrack || allTracks.length === 0) return;
+        if (!currentPlayingTrack || allTracks.length === 0) return;
         
-        const currentIndex = allTracks.findIndex(track => track.id === playerState.currentTrack?.id);
+        const currentIndex = allTracks.findIndex(track => track.id === currentPlayingTrack?.id);
         if (currentIndex === -1) return;
         
         const prevIndex = currentIndex > 0 ? currentIndex - 1 : allTracks.length - 1;
@@ -236,13 +309,13 @@ const StudioContent = () => {
         if (prevTrack) {
             switchToTrack(prevTrack);
         }
-    }, [playerState.currentTrack, allTracks, switchToTrack]);
+    }, [currentPlayingTrack, allTracks, switchToTrack]);
 
     // 下一首歌曲回调
     const handleNext = React.useCallback(() => {
-        if (!playerState.currentTrack || allTracks.length === 0) return;
+        if (!currentPlayingTrack || allTracks.length === 0) return;
         
-        const currentIndex = allTracks.findIndex(track => track.id === playerState.currentTrack?.id);
+        const currentIndex = allTracks.findIndex(track => track.id === currentPlayingTrack?.id);
         if (currentIndex === -1) return;
         
         const nextIndex = currentIndex < allTracks.length - 1 ? currentIndex + 1 : 0;
@@ -251,7 +324,7 @@ const StudioContent = () => {
         if (nextTrack) {
             switchToTrack(nextTrack);
         }
-    }, [playerState.currentTrack, allTracks, switchToTrack]);
+    }, [currentPlayingTrack, allTracks, switchToTrack]);
 
     // 获取用户 tracks
     const fetchUserTracks = React.useCallback(async () => {
@@ -315,11 +388,11 @@ const StudioContent = () => {
     
     // 监听currentTrack变化，更新音频源（仅用于新生成的歌曲，当没有用户选择的歌曲时）
     React.useEffect(() => {
-        if (currentTrack?.audioUrl && audioRef.current && !playerState.currentTrack) {
+        if (currentTrack?.audioUrl && audioRef.current && !currentPlayingTrack) {
             audioRef.current.src = currentTrack.audioUrl;
             audioRef.current.load();
         }
-    }, [currentTrack, playerState.currentTrack]);
+    }, [currentTrack, currentPlayingTrack]);
 
     // Audio event handlers - 独立播放器会自己处理这些事件
 
@@ -395,30 +468,30 @@ const StudioContent = () => {
         const selectedTrack = createUserTrackObject(track, music);
         
         // 如果点击的是当前播放的歌曲，则暂停/继续
-        if (playerState.currentTrack?.id === track.id) {
+        if (currentPlayingTrack?.id === track.id) {
             togglePlayPause();
             return;
         }
         
         setSelectedStudioTrack(selectedTrack);
         // 使用独立播放器播放
-        playTrack(track.id);
+        playTrackById(track.id);
         
         // 只播放歌曲，不自动展开歌词面板
         
         playAudioWithDelay(selectedTrack.audioUrl);
-    }, [createUserTrackObject, playerState.currentTrack, togglePlayPause, playTrack, playAudioWithDelay]);
+    }, [createUserTrackObject, currentPlayingTrack, togglePlayPause, playTrackById, playAudioWithDelay]);
 
     // 歌曲播放处理（点击播放按钮）
     const handleUserTrackPlay = React.useCallback((track: any, music: any) => {
         const isMobile = typeof window !== 'undefined' && window.innerWidth < 768;
         
         // 如果点击的是当前播放的歌曲，则暂停/继续
-        if (playerState.currentTrack?.id === track.id) {
+        if (currentPlayingTrack?.id === track.id) {
             togglePlayPause();
         } else {
             // 使用独立播放器播放
-            playTrack(track.id);
+            playTrackById(track.id);
             
             const playingTrack = createUserTrackObject(track, music);
             setSelectedStudioTrack(playingTrack);
@@ -426,7 +499,7 @@ const StudioContent = () => {
             // 只播放歌曲，不自动展开歌词面板
             playAudioWithDelay(playingTrack.audioUrl);
         }
-    }, [playerState.currentTrack, togglePlayPause, playTrack, createUserTrackObject, playAudioWithDelay]);
+    }, [currentPlayingTrack, togglePlayPause, playTrackById, createUserTrackObject, playAudioWithDelay]);
 
     // 处理生成的tracks选择/播放
     const handleGeneratedTrackSelect = React.useCallback((generatedTrack: any) => {
@@ -446,8 +519,8 @@ const StudioContent = () => {
             lyrics: generatedTrack.lyrics || '',
             isUsingStreamAudio: generatedTrack.isUsingStreamAudio || false
         };
-        // 使用独立播放器播放
-        playTrack(generatedTrack.id);
+        // 使用 track ID 播放
+        playTrackById(generatedTrack.id);
 
         // 也可以设置为选中状态用于歌词显示
         const selectedTrack = {
@@ -510,10 +583,10 @@ const StudioContent = () => {
             // 不自动打开歌词面板，只有用户点击歌曲时才展开
             // setShowLyrics(true);
 
-            if (!playerState.currentTrack) {
-                // 使用独立播放器播放第一首生成的歌曲
+            if (!currentPlayingTrack) {
+                // 使用 track ID 播放第一首生成的歌曲
                 if (firstGeneratedSong.id) {
-                    playTrack(firstGeneratedSong.id);
+                    playTrackById(firstGeneratedSong.id);
                 }
 
                 const audioUrl = firstGeneratedSong.audioUrl || firstGeneratedSong.streamAudioUrl;
@@ -524,7 +597,7 @@ const StudioContent = () => {
                 }
             }
         }
-    }, [allGeneratedTracks, showLyrics, generatingTrack, playerState.currentTrack, selectedStudioTrack, playAudioWithDelay]);
+    }, [allGeneratedTracks, showLyrics, generatingTrack, currentPlayingTrack, selectedStudioTrack, playAudioWithDelay]);
 
     // 监听complete回调完成，刷新user tracks列表
     React.useEffect(() => {
@@ -722,8 +795,8 @@ const StudioContent = () => {
                 }
 
                 // If the deleted track is currently playing, stop playback
-                if (playerState.currentTrack?.id === trackToDelete.id ||
-                    playerState.currentTrack?.generationId === trackToDelete.generationId) {
+                if (currentPlayingTrack?.id === trackToDelete.id ||
+                    currentPlayingTrack?.generationId === trackToDelete.generationId) {
                     // 独立播放器会自动处理停止播放
                     if (audioRef.current) {
                         audioRef.current.pause();
@@ -896,16 +969,16 @@ const StudioContent = () => {
                         
                         {/* 歌曲列表区域 - 可滚动 */}
                         <div className={`flex-1 min-h-0 overflow-y-auto scrollbar-thin scrollbar-thumb-gray-400 scrollbar-track-gray-200 ${
-                            playerState.currentTrack ? 'pb-12' : 'pb-0'
+                            currentPlayingTrack ? 'pb-12' : 'pb-0'
                         }`}>
                             <StudioTracksList
                                 userTracks={userTracks}
                                 isLoading={isLoadingUserTracks}
                                 onTrackSelect={handleUserTrackSelect}
                                 onTrackPlay={handleUserTrackPlay}
-                                currentlyPlaying={playerState.currentTrack?.id}
+                                currentlyPlaying={currentPlayingTrack?.id}
                                 selectedTrack={selectedStudioTrack?.id}
-                                isPlaying={playerState.isPlaying && playerState.currentTime > 0}
+                                isPlaying={isPlaying && currentTime > 0}
                                 allGeneratedTracks={allGeneratedTracks}
                                 pendingTasksCount={pendingTasksCount}
                                 panelOpen={panelOpen}
@@ -915,7 +988,7 @@ const StudioContent = () => {
                         </div>
 
                         {/* Desktop Music Player - 桌面端播放器（在歌曲列表列底部） */}
-                        {playerState.currentTrack && (
+                        {currentPlayingTrack && (
                             <div className="absolute left-0 right-0 bottom-0 z-40">
                                 <MusicPlayer
                                     tracks={allTracks.map(track => ({
@@ -933,23 +1006,23 @@ const StudioContent = () => {
                                             cover_r2_url: track.coverImage
                                         }]
                                     }))}
-                                    currentTrackIndex={allTracks.findIndex(track => track.id === playerState.currentTrack?.id)}
-                                    currentPlayingTrack={playerState.currentTrack ? { trackId: playerState.currentTrack.id || '', audioUrl: playerState.currentTrack.audioUrl || '' } : null}
-                                    isPlaying={playerState.isPlaying}
-                                    currentTime={playerState.currentTime}
-                                    duration={playerState.duration}
-                                    volume={playerState.volume}
-                                    isMuted={playerState.isMuted}
+                                    currentTrackIndex={allTracks.findIndex(track => track.id === currentPlayingTrack?.id)}
+                                    currentPlayingTrack={currentPlayingTrack ? { trackId: currentPlayingTrack.id || '', audioUrl: currentPlayingTrack.audioUrl || '' } : null}
+                                    isPlaying={isPlaying}
+                                    currentTime={currentTime}
+                                    duration={duration}
+                                    volume={volume}
+                                    isMuted={isMuted}
                                     onPlayPause={togglePlayPause}
                                     onPrevious={handlePrevious}
                                     onNext={handleNext}
                                     onSeek={(time) => {
-                                        if (audioRef.current && playerState.duration > 0 && playerState.currentTrack) {
+                                        if (audioRef.current && duration > 0 && currentPlayingTrack) {
                                             audioRef.current.currentTime = time;
                                         }
                                     }}
                                     onVolumeChange={(newVolume) => {
-                                        setVolume(newVolume);
+                                        changeVolume(newVolume);
                                     }}
                                     onMuteToggle={toggleMute}
                                     hideProgress={showLyrics}
@@ -959,6 +1032,7 @@ const StudioContent = () => {
                                             switchToTrack(selectedTrack);
                                         }
                                     }}
+                                    playTrackById={playTrackById}
                                     onTrackInfoClick={() => {
                                         setShowLyrics(!showLyrics);
                                     }}
@@ -991,7 +1065,7 @@ const StudioContent = () => {
                                 isFavorited={selectedStudioTrack?.is_favorited || false}
                                 isAdmin={isAdmin(user?.id || '')}
                                 isGenerating={selectedStudioTrack?.isGenerating || false}
-                                isPlaying={playerState.isPlaying && playerState.currentTrack?.id === selectedStudioTrack?.id && playerState.currentTime > 0}
+                                isPlaying={isPlaying && currentPlayingTrack?.id === selectedStudioTrack?.id && currentTime > 0}
                                 onDownload={() => {
                                     if (selectedStudioTrack?.audioUrl) {
                                         const link = document.createElement('a');
@@ -1071,9 +1145,9 @@ const StudioContent = () => {
                                         isLoading={isLoadingUserTracks}
                                         onTrackSelect={handleUserTrackSelect}
                                         onTrackPlay={handleUserTrackPlay}
-                                        currentlyPlaying={playerState.currentTrack?.id}
+                                        currentlyPlaying={currentPlayingTrack?.id}
                                         selectedTrack={selectedStudioTrack?.id}
-                                        isPlaying={playerState.isPlaying && playerState.currentTime > 0}
+                                        isPlaying={isPlaying && currentTime > 0}
                                         allGeneratedTracks={allGeneratedTracks}
                                         pendingTasksCount={pendingTasksCount}
                                         panelOpen={true}
@@ -1123,7 +1197,7 @@ const StudioContent = () => {
                             isFavorited={selectedStudioTrack?.is_favorited || false}
                             isAdmin={isAdmin(user?.id || '')}
                             isGenerating={selectedStudioTrack?.isGenerating || false}
-                            isPlaying={playerState.isPlaying && playerState.currentTrack?.id === selectedStudioTrack?.id && playerState.currentTime > 0}
+                            isPlaying={isPlaying && currentPlayingTrack?.id === selectedStudioTrack?.id && currentTime > 0}
                             onDownload={() => {
                                 if (selectedStudioTrack?.audioUrl) {
                                     const link = document.createElement('a');
@@ -1151,7 +1225,7 @@ const StudioContent = () => {
                 )}
 
                 {/* Mobile Player Placeholder - 移动端播放器占位（始终显示，除非歌词面板或歌曲列表打开） */}
-                {!showLyrics && !playerState.currentTrack && !mobileTracksOpen && (
+                {!showLyrics && !currentPlayingTrack && !mobileTracksOpen && (
                     <div className="md:hidden fixed left-3 right-3 z-30 bg-background/30 backdrop-blur-md rounded-xl pl-3 pr-3 py-2" style={{ bottom: 'calc(var(--mobile-nav-height, 0px) + 0.75rem)', height: 'var(--player-height, 60px)' }}>
                         <div className="flex items-center space-x-3 h-full">
                             {/* Left: Placeholder Cover and Song Info */}
@@ -1191,7 +1265,7 @@ const StudioContent = () => {
                 )}
 
                 {/* Mobile Music Player - 移动端播放器 */}
-                {playerState.currentTrack && !mobileTracksOpen && (
+                {currentPlayingTrack && !mobileTracksOpen && (
                 <div className="md:hidden fixed left-3 right-3 z-40" style={{ bottom: 'calc(var(--mobile-nav-height, 0px) + 0.75rem)' }}>
                     <div className="relative">
                         <MusicPlayer
@@ -1210,23 +1284,23 @@ const StudioContent = () => {
                                 cover_r2_url: track.coverImage
                             }]
                         }))}
-                        currentTrackIndex={allTracks.findIndex(track => track.id === playerState.currentTrack?.id)}
-                        currentPlayingTrack={playerState.currentTrack ? { trackId: playerState.currentTrack.id || '', audioUrl: playerState.currentTrack.audioUrl || '' } : null}
-                        isPlaying={playerState.isPlaying}
-                        currentTime={playerState.currentTime}
-                        duration={playerState.duration}
-                        volume={playerState.volume}
-                        isMuted={playerState.isMuted}
+                        currentTrackIndex={allTracks.findIndex(track => track.id === currentPlayingTrack?.id)}
+                        currentPlayingTrack={currentPlayingTrack ? { trackId: currentPlayingTrack.id || '', audioUrl: currentPlayingTrack.audioUrl || '' } : null}
+                        isPlaying={isPlaying}
+                        currentTime={currentTime}
+                        duration={duration}
+                        volume={volume}
+                        isMuted={isMuted}
                         onPlayPause={togglePlayPause}
                         onPrevious={handlePrevious}
                         onNext={handleNext}
                         onSeek={(time) => {
-                            if (audioRef.current && playerState.duration > 0 && playerState.currentTrack) {
+                            if (audioRef.current && duration > 0 && currentPlayingTrack) {
                                 audioRef.current.currentTime = time;
                             }
                         }}
                         onVolumeChange={(newVolume) => {
-                            setVolume(newVolume);
+                            changeVolume(newVolume);
                         }}
                         onMuteToggle={toggleMute}
                         hideProgress={showLyrics}
@@ -1236,6 +1310,7 @@ const StudioContent = () => {
                                 switchToTrack(selectedTrack);
                             }
                         }}
+                        playTrackById={playTrackById}
                         onTrackInfoClick={() => {
                             setShowLyrics(!showLyrics);
                         }}
@@ -1260,7 +1335,7 @@ const StudioContent = () => {
                 {/* Audio element - 独立播放器会自己管理音频元素 */}
                 <audio
                     ref={audioRef}
-                    src={playerState.currentTrack?.audioUrl || ''}
+                    src={currentPlayingTrack?.audioUrl || ''}
                     preload="metadata"
                 />
 
