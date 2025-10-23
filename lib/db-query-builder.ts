@@ -210,12 +210,16 @@ export const getUserMusicGenerationsOptimized = async (
   offset: number = 0
 ) => {
   // Single optimized query with proper JOINs and indexing
+  // 只返回至少有一个未删除 track 的 music 记录
   const sql = `
     WITH user_generations AS (
-      SELECT id, title, genre, tags, prompt, is_instrumental, status, created_at, updated_at
-      FROM music
-      WHERE user_id = $1::uuid AND is_deleted = FALSE
-      ORDER BY created_at DESC
+      SELECT DISTINCT mg.id, mg.title, mg.genre, mg.tags, mg.prompt, mg.is_instrumental, mg.status, mg.created_at, mg.updated_at
+      FROM music mg
+      INNER JOIN tracks mt ON mg.id = mt.music_id
+      WHERE mg.user_id = $1::uuid 
+        AND mg.is_deleted = FALSE
+        AND (mt.is_deleted IS NULL OR mt.is_deleted = FALSE)
+      ORDER BY mg.created_at DESC
       LIMIT $2 OFFSET $3
     ),
     generation_tracks AS (
