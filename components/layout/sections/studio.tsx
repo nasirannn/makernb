@@ -338,6 +338,22 @@ const StudioContent = () => {
         }
     }, [currentTrack, currentPlayingTrack]);
 
+    // 监听allGeneratedTracks变化，同步更新currentPlayingTrack的duration
+    React.useEffect(() => {
+        if (!currentPlayingTrack || allGeneratedTracks.length === 0) return;
+        
+        // 找到当前播放的track在allGeneratedTracks中的对应项
+        const correspondingTrack = allGeneratedTracks.find(track => track.id === currentPlayingTrack.id);
+        
+        if (correspondingTrack && correspondingTrack.duration && correspondingTrack.duration !== currentPlayingTrack.duration) {
+            console.log('Updating currentPlayingTrack duration:', correspondingTrack.duration);
+            setCurrentPlayingTrack((prev: any) => ({
+                ...prev,
+                duration: correspondingTrack.duration
+            }));
+        }
+    }, [allGeneratedTracks, currentPlayingTrack]);
+
     // 监听currentPlayingTrack变化，更新音频源
     React.useEffect(() => {
         if (currentPlayingTrack?.audioUrl && audioRef.current) {
