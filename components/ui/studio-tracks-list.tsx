@@ -272,7 +272,7 @@ export const StudioTracksList: React.FC<StudioTracksListProps> = ({
                           </div>
                           {!track.isError && track.tags && (
                             <p className="text-xs text-muted-foreground truncate mt-1">
-                              {track.tags.length > 30 ? `${track.tags.substring(0, 30)}...` : track.tags}
+                              {track.tags.length > 100 ? `${track.tags.substring(0, 100)}...` : track.tags}
                             </p>
                           )}
                           {!track.isError && track.createdAt && (
