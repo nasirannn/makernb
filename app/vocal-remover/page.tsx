@@ -491,7 +491,7 @@ export default function VocalSeparationDemo() {
               <div className="relative">
                 <input
                   type="url"
-                    placeholder="Paste your audio file URL here or click the right button to choose from library"
+                    placeholder="Paste your audio file URL here..."
                     className="w-full px-4 py-3 pr-14 bg-muted rounded-lg text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary transition-colors"
                     value={userInputUrl}
                     onChange={handleUrlInputChange}
@@ -693,7 +693,7 @@ export default function VocalSeparationDemo() {
         <div className="max-w-6xl mx-auto">
           <div className="flex flex-col lg:flex-row items-center gap-8">
             {/* Left Side - Text Content */}
-            <div className="flex-1 lg:w-3/5 space-y-6">
+            <div className="flex-1 lg:w-3/5 space-y-6 text-center lg:text-left">
               <h2 className="text-4xl lg:text-5xl font-bold text-foreground leading-tight">
                 About MakeRNB&apos;s Vocal Remover
               </h2>
@@ -708,9 +708,9 @@ export default function VocalSeparationDemo() {
                 <Image 
                   src="/icons/Vocal-Remover.svg" 
                   alt="Vocal Remover" 
-                  width={384}
-                  height={384}
-                  className="h-96 w-96 object-contain"
+                  width={256}
+                  height={256}
+                  className="h-64 w-64 object-contain"
                 />
               </div>
             </div>

@@ -251,7 +251,7 @@ export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
             </div>
             
             <CardTitle className="text-lg md:text-2xl font-bold text-foreground mb-1 md:mb-2">
-              Welcome to MakeRNB
+              {showCodeInput ? 'Enter Verification Code' : 'Welcome to MakeRNB'}
             </CardTitle>
             
             <CardDescription className="text-sm text-muted-foreground">

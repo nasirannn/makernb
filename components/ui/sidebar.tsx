@@ -73,18 +73,29 @@ export const CommonSidebar = ({ hideMobileNav = false }: CommonSidebarProps) => 
       const userMenuContainer = document.querySelector('.user-menu-container');
       const dropdownContainer = document.querySelector('.dropdown-container');
       
-      if (userMenuOpen && userMenuContainer && !userMenuContainer.contains(event.target as Node)) {
+      // 检查是否点击在菜单项上
+      const clickedElement = event.target as Element;
+      const isMenuLink = clickedElement?.closest('a[href]') || clickedElement?.closest('button');
+      
+      if (userMenuOpen && userMenuContainer && !userMenuContainer.contains(event.target as Node) && !isMenuLink) {
         setUserMenuOpen(false);
       }
       
-      if (isDropdownOpen && dropdownContainer && !dropdownContainer.contains(event.target as Node)) {
+      if (isDropdownOpen && dropdownContainer && !dropdownContainer.contains(event.target as Node) && !isMenuLink) {
         setIsDropdownOpen(false);
       }
     };
 
     if (userMenuOpen || isDropdownOpen) {
-      document.addEventListener('mousedown', handleClickOutside);
-      return () => document.removeEventListener('mousedown', handleClickOutside);
+      // 使用 setTimeout 延迟添加事件监听器，避免立即触发
+      const timeoutId = setTimeout(() => {
+        document.addEventListener('mousedown', handleClickOutside);
+      }, 100);
+      
+      return () => {
+        clearTimeout(timeoutId);
+        document.removeEventListener('mousedown', handleClickOutside);
+      };
     }
   }, [userMenuOpen, isDropdownOpen]);
 
@@ -340,7 +351,7 @@ export const CommonSidebar = ({ hideMobileNav = false }: CommonSidebarProps) => 
           </Button>
 
           {/* AI Music Tools Button */}
-          <div className="relative dropdown-container">
+          <div className="relative dropdown-container" onClick={(e) => e.stopPropagation()}>
             <Button
               onClick={() => setIsDropdownOpen(!isDropdownOpen)}
               variant="ghost"
@@ -356,13 +367,21 @@ export const CommonSidebar = ({ hideMobileNav = false }: CommonSidebarProps) => 
             
             {/* Mobile Dropdown Menu */}
             {isDropdownOpen && (
-              <div className="absolute bottom-12 left-1/2 transform -translate-x-1/2 min-w-48 w-max bg-background border border-border/30 rounded-lg shadow-lg p-2 z-[50]">
+              <div className="absolute bottom-12 left-1/2 transform -translate-x-1/2 min-w-48 w-max bg-background border border-border/30 rounded-lg shadow-lg p-2 z-[60]">
                 {aiMusicToolsDropdown.map((item) => (
                   <Link
                     key={item.href}
                     href={item.href}
-                    onClick={() => setIsDropdownOpen(false)}
-                    className="flex items-center gap-3 px-3 py-2 hover:bg-accent transition-colors group rounded-md"
+                    onClick={(e) => {
+                      e.preventDefault();
+                      e.stopPropagation();
+                      // 延迟关闭菜单，确保点击事件完成
+                      setTimeout(() => {
+                        setIsDropdownOpen(false);
+                        router.push(item.href);
+                      }, 50);
+                    }}
+                    className="flex items-center gap-3 px-3 py-2 hover:bg-accent transition-colors group rounded-md cursor-pointer"
                   >
                     <div className="flex-shrink-0 w-8 h-8 bg-primary/20 rounded-lg flex items-center justify-center group-hover:bg-primary/30 transition-colors text-primary">
                       {item.icon}
@@ -389,7 +408,7 @@ export const CommonSidebar = ({ hideMobileNav = false }: CommonSidebarProps) => 
 
           {/* User Button */}
           {user ? (
-            <div className="relative user-menu-container z-[40]">
+            <div className="relative user-menu-container z-[40]" onClick={(e) => e.stopPropagation()}>
               <Button
                 onClick={() => setUserMenuOpen(!userMenuOpen)}
                 variant="ghost"
@@ -409,7 +428,7 @@ export const CommonSidebar = ({ hideMobileNav = false }: CommonSidebarProps) => 
               
               {/* User Menu Dropdown */}
               {userMenuOpen && (
-                <div className="absolute bottom-12 right-2 bg-background border border-border/30 rounded-lg shadow-lg p-2 min-w-48 z-[40]">
+                <div className="absolute bottom-12 right-2 bg-background border border-border/30 rounded-lg shadow-lg p-2 min-w-48 z-[60]">
                   <div className="flex flex-col gap-1">
                     <div className="px-3 py-2 border-b border-border/20 mb-2">
                       <div className="text-sm font-medium text-foreground truncate">
@@ -423,10 +442,15 @@ export const CommonSidebar = ({ hideMobileNav = false }: CommonSidebarProps) => 
                     <Button
                       variant="ghost"
                       size="sm"
-                      className="justify-start text-sm text-muted-foreground hover:text-foreground hover:bg-muted/50"
-                      onClick={() => {
-                        setUserMenuOpen(false);
-                        handleSignOut();
+                      className="justify-start text-sm text-muted-foreground hover:text-foreground hover:bg-muted/50 cursor-pointer"
+                      onClick={(e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        // 延迟关闭菜单，确保点击事件完成
+                        setTimeout(() => {
+                          setUserMenuOpen(false);
+                          handleSignOut();
+                        }, 50);
                       }}
                     >
                       <LogOut className="mr-2 h-4 w-4" />
