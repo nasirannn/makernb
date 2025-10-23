@@ -22,6 +22,25 @@ const nextConfig = {
           },
         ],
       },
+      {
+        source: '/(.*)',
+        headers: [
+          {
+            key: 'Content-Security-Policy',
+            value: [
+              "default-src 'self'",
+              "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://www.googletagmanager.com https://pagead2.googlesyndication.com https://www.google-analytics.com https://ssl.google-analytics.com",
+              "style-src 'self' 'unsafe-inline'",
+              "img-src 'self' data: blob: https: http:",
+              "font-src 'self' data:",
+              "connect-src 'self' https://www.google-analytics.com https://*.supabase.co https://kieaifiles.erweima.ai https://cdn.makernb.com https://makernb-assets.nasirann.com https://tempfile.aiquickdraw.com",
+              "media-src 'self' blob: https: http:",
+              "frame-src 'self' https://www.google.com",
+              "worker-src 'self' blob:",
+            ].join('; '),
+          },
+        ],
+      },
     ];
   },
   images: {
