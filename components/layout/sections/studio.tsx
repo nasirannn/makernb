@@ -609,41 +609,26 @@ const StudioContent = () => {
         }
     }, [allGeneratedTracks, showLyrics, generatingTrack, currentPlayingTrack, selectedStudioTrack, playAudioWithDelay]);
 
-    // 监听complete回调完成，更新currentPlayingTrack的duration
+    // 监听complete回调完成，刷新user tracks列表
     React.useEffect(() => {
-        if (allGeneratedTracks.length === 0 || !currentPlayingTrack) return;
-        const firstGeneratedSong = allGeneratedTracks[0];
+        if (allGeneratedTracks.length === 0) return;
+        
+        // 检查是否所有tracks都已完成
+        const allCompleted = allGeneratedTracks.every(track => track.isCompleted);
+        
+        if (allCompleted) {
+            console.log('All tracks completed, refreshing user tracks list...');
+            
+            // 延迟刷新，确保数据库已更新
+            const timeoutId = setTimeout(() => {
+                fetchUserTracks();
+                // 清空 generated tracks，让它们显示为 user tracks
+                setAllGeneratedTracks([]);
+            }, 2000); // 增加延迟确保数据库更新完成
 
-        const isCompleteCallbackComplete = !!firstGeneratedSong.audioUrl &&
-                                           !!firstGeneratedSong.duration &&
-                                           firstGeneratedSong.duration > 0 &&
-                                           !firstGeneratedSong.isGenerating;
-
-        // 幂等性保护：仅当正在使用流式音频或时长不同才更新，避免重复 setState
-        const needsUpdate =
-            isCompleteCallbackComplete &&
-            currentPlayingTrack.id === firstGeneratedSong.id &&
-            (currentPlayingTrack.isUsingStreamAudio || (firstGeneratedSong.duration !== duration));
-
-        if (!needsUpdate) return;
-
-        const finalDuration = firstGeneratedSong.duration!;
-        setDuration(finalDuration);
-        setCurrentPlayingTrack((prev: any) => ({
-            ...prev,
-            duration: finalDuration,
-            isUsingStreamAudio: false
-        }));
-
-        // 使用 ref 存储 timeout，组件卸载时清理
-        const timeoutId = setTimeout(() => {
-            fetchUserTracks();
-            // 只有在确实非空时才清空，避免无意义的重复 state 更新
-            setAllGeneratedTracks([]);
-        }, 1000);
-
-        return () => clearTimeout(timeoutId);
-    }, [allGeneratedTracks, currentPlayingTrack, duration, fetchUserTracks, setAllGeneratedTracks]);
+            return () => clearTimeout(timeoutId);
+        }
+    }, [allGeneratedTracks, fetchUserTracks, setAllGeneratedTracks]);
 
     // 监听封面图生成完成，替换磁带占位图
     React.useEffect(() => {
