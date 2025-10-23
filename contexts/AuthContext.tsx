@@ -211,6 +211,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         setUser(session?.user ?? null);
         setLoading(false);
 
+        // 处理密码重置
+        if (event === 'PASSWORD_RECOVERY') {
+          router.push('/reset-password');
+          return;
+        }
+
         if (event === 'SIGNED_OUT') {
           // Clear any cached data
           setUser(null);

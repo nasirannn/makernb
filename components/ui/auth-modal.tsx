@@ -253,6 +253,10 @@ export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
             <CardTitle className="text-lg md:text-2xl font-bold text-foreground mb-1 md:mb-2">
               Welcome to MakeRNB
             </CardTitle>
+            
+            <CardDescription className="text-sm text-muted-foreground">
+              Create amazing R&B tracks with the power of AI
+            </CardDescription>
           </CardHeader>
           
           <CardContent className="space-y-2.5 md:space-y-5 px-4 pb-3 md:px-6 md:pb-6 overflow-y-auto flex-1"
