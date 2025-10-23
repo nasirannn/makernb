@@ -28,6 +28,7 @@ interface TrackData {
   isError?: boolean;
   errorMessage?: string;
   originalPrompt?: string;
+  createdAt?: string;
   vibe?: string;
   generationId?: string;
   is_favorited?: boolean;
@@ -163,7 +164,8 @@ export const useMusicGeneration = () => {
       originalPrompt: customPrompt,
       genre: mode === 'basic' ? 'R&B' : selectedGenre,
       tags: mode === 'basic' ? 'R&B' : `${selectedGenre}, ${selectedVibe}`,
-      lyrics: ''
+      lyrics: '',
+      createdAt: new Date().toISOString() // 添加创建时间
     };
   };
 
@@ -238,6 +240,7 @@ export const useMusicGeneration = () => {
         sideLetter: t.sideLetter || (index === 0 ? 'A' : 'B'),
         tags: t.tags,
         lyrics: t.lyrics || '',
+        createdAt: t.createdAt || new Date().toISOString(), // 添加创建时间
         isStreaming: isStreaming,
         isGenerating: isGenerating,
         isLoading: isLoading,
