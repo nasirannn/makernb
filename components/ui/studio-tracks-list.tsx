@@ -160,16 +160,16 @@ export const StudioTracksList: React.FC<StudioTracksListProps> = ({
         <div className="relative pt-6">
           {/* Generated Tracks - 新生成的歌曲 */}
           {allGeneratedTracks.length > 0 && (
-            <div>
+            <div className="space-y-2">
               {allGeneratedTracks.map((track, index) => (
                 <div
                   key={`generated-${index}`}
-                  className={`relative flex items-center gap-4 px-4 py-2 transition-all duration-300 group cursor-pointer
+                  className={`relative flex items-center gap-4 px-2 py-2 mx-3 transition-all duration-300 group cursor-pointer rounded-lg border
                     ${track.isError
                       ? 'cursor-default'
                       : `${currentlyPlaying === `generated-${index}`
-                          ? 'bg-muted/30'
-                          : 'hover:bg-muted/20'
+                          ? 'bg-muted/60 border-border/60'
+                          : 'hover:bg-muted/20 border-transparent'
                         }`
                     }`}
                   onClick={() => {
@@ -258,10 +258,10 @@ export const StudioTracksList: React.FC<StudioTracksListProps> = ({
                   
                   {/* Track Info */}
                   <div className="flex-1 min-w-0 flex items-center">
-                    <div className="flex-1 min-w-0 flex items-center h-16 border-b border-border/30">
+                    <div className="flex-1 min-w-0 flex items-center h-16">
                       <div className="flex items-center justify-between gap-3 w-full">
-                        <div className="flex-1 min-w-0 flex flex-col justify-center">
-                          <div className={`font-normal text-sm transition-colors truncate ${
+                        <div className="flex-1 min-w-0 flex flex-col justify-center h-16">
+                          <div className={`font-semibold text-sm transition-colors truncate ${
                             track.isError
                               ? 'text-red-400'
                               : currentlyPlaying === `generated-${index}`
@@ -271,16 +271,31 @@ export const StudioTracksList: React.FC<StudioTracksListProps> = ({
                             {track.isError ? (track.originalPrompt || track.title || 'Unknown') : (track.title || 'Unknown')}
                           </div>
                           {!track.isError && track.tags && (
-                            <p className="text-xs text-muted-foreground truncate mt-0.5">
+                            <p className="text-xs text-muted-foreground truncate mt-1">
                               {track.tags.length > 30 ? `${track.tags.substring(0, 30)}...` : track.tags}
+                            </p>
+                          )}
+                          {!track.isError && track.createdAt && (
+                            <p className="text-xs text-muted-foreground/60 truncate mt-1">
+                              {new Date(track.createdAt).toLocaleString('en-US', {
+                                month: 'numeric',
+                                day: 'numeric',
+                                year: 'numeric',
+                                hour: 'numeric',
+                                minute: '2-digit',
+                                second: '2-digit',
+                                hour12: true
+                              })}
                             </p>
                           )}
                         </div>
                         {!track.isError && (
-                          <div className="text-muted-foreground text-xs flex-shrink-0">
+                          <div className="flex-shrink-0">
                             {track.duration ? (
                               // complete状态：显示实际duration
-                              <span>{formatDuration(track.duration)}</span>
+                              <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-muted text-muted-foreground">
+                                {formatDuration(track.duration)}
+                              </span>
                             ) : (
                               // complete之前：显示圆点指示器
                               <div className="flex items-center gap-1">
@@ -321,17 +336,20 @@ export const StudioTracksList: React.FC<StudioTracksListProps> = ({
 
           {/* Skeleton Loading State - 在生成过程中显示 */}
           {pendingTasksCount > 0 && (
-            <div>
+            <div className="space-y-2">
               {Array.from({ length: pendingTasksCount }).map((_, index) => (
-                <div key={index} className="flex items-center gap-4 px-4 py-2">
-                  <Skeleton className="w-16 h-16 rounded-lg flex-shrink-0" />
+                <div key={index} className="flex items-center gap-4 px-2 py-2 mx-3 rounded-lg">
+                  <Skeleton className="w-16 h-16 rounded-md flex-shrink-0" />
                   <div className="flex-1 min-w-0 flex items-center">
-                    <div className="flex-1 flex items-center justify-between h-16 border-b border-border/30">
-                      <div className="flex-1 flex flex-col justify-center gap-1">
-                        <Skeleton className="h-4 w-1/3" />
-                        <Skeleton className="h-3 w-2/3" />
+                    <div className="flex-1 min-w-0 flex items-center h-16">
+                      <div className="flex items-center justify-between gap-3 w-full">
+                        <div className="flex-1 min-w-0 flex flex-col justify-center h-16">
+                          <Skeleton className="h-4 w-1/3 mb-1" />
+                          <Skeleton className="h-3 w-2/3 mb-1" />
+                          <Skeleton className="h-3 w-1/4" />
+                        </div>
+                        <Skeleton className="h-6 w-12 rounded-full flex-shrink-0" />
                       </div>
-                      <Skeleton className="h-3 w-12 flex-shrink-0" />
                     </div>
                   </div>
                 </div>
@@ -340,16 +358,18 @@ export const StudioTracksList: React.FC<StudioTracksListProps> = ({
           )}
 
           {/* User Tracks - 用户已保存的歌曲 */}
-          {currentTracks.map((track) => (
-            <div
-              key={track.id}
-              className={`flex items-center gap-4 px-4 py-2 transition-all duration-300 group cursor-pointer
-                ${selectedTrack === track.id
-                  ? 'bg-muted/30'
-                  : 'hover:bg-muted/20'
-              }`}
-              onClick={() => handleTrackSelect(track)}
-            >
+          {currentTracks.length > 0 && (
+            <div className="space-y-2">
+              {currentTracks.map((track) => (
+                <div
+                  key={track.id}
+                  className={`flex items-center gap-4 px-2 py-2 mx-3 transition-all duration-300 group cursor-pointer rounded-lg border
+                    ${selectedTrack === track.id
+                      ? 'bg-muted/60 border-border/60'
+                      : 'hover:bg-muted/20 border-transparent'
+                  }`}
+                  onClick={() => handleTrackSelect(track)}
+                >
               {/* 封面 */}
               <div className="relative w-16 h-16 rounded-md overflow-hidden flex-shrink-0 group/cover">
                 {track.cover_r2_url ? (
@@ -402,19 +422,32 @@ export const StudioTracksList: React.FC<StudioTracksListProps> = ({
 
               {/* Track Info */}
               <div className="flex-1 min-w-0 flex items-center gap-3">
-                <div className="flex-1 min-w-0 flex items-center h-16 border-b border-border/30">
+                <div className="flex-1 min-w-0 flex items-center h-16">
                   <div className="flex items-center justify-between gap-3 w-full">
-                    <div className="flex-1 min-w-0 flex flex-col justify-center">
-                      <h3 className={`font-normal text-sm truncate ${currentlyPlaying === track.id ? 'text-primary' : 'text-foreground'}`}>
+                    <div className="flex-1 min-w-0 flex flex-col justify-center h-16">
+                      <h3 className={`font-semibold text-sm truncate ${currentlyPlaying === track.id ? 'text-primary' : 'text-foreground'}`}>
                         {track.musicTitle}
                       </h3>
                       {track.musicTags && (
-                        <p className="text-xs text-muted-foreground truncate mt-0.5">
+                        <p className="text-xs text-muted-foreground truncate mt-1">
                           {track.musicTags.length > 100 ? `${track.musicTags.substring(0, 100)}...` : track.musicTags}
                         </p>
                       )}
+                      {track.musicGeneration?.created_at && (
+                        <p className="text-xs text-muted-foreground/60 truncate mt-1">
+                          {new Date(track.musicGeneration.created_at).toLocaleString('en-US', {
+                            month: 'numeric',
+                            day: 'numeric',
+                            year: 'numeric',
+                            hour: 'numeric',
+                            minute: '2-digit',
+                            second: '2-digit',
+                            hour12: true
+                          })}
+                        </p>
+                      )}
                     </div>
-                    <span className="text-muted-foreground text-xs flex-shrink-0">
+                    <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-muted text-muted-foreground flex-shrink-0">
                       {formatDuration(track.duration)}
                     </span>
                   </div>
@@ -437,7 +470,9 @@ export const StudioTracksList: React.FC<StudioTracksListProps> = ({
                 </button>
               </div>
             </div>
-          ))}
+              ))}
+            </div>
+          )}
           
           {/* No More Tracks Indicator */}
           {currentTracks.length > 0 && (

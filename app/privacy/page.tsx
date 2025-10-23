@@ -24,7 +24,7 @@ export default function PrivacyPolicy() {
         </Link>
         <h1 className="text-4xl font-bold mb-4">Privacy Policy</h1>
         <p className="text-muted-foreground">
-          Last updated: January 2025
+          Last updated: October 2025
         </p>
       </div>
 
@@ -41,10 +41,10 @@ export default function PrivacyPolicy() {
           
           <h3 className="text-xl font-medium mb-3">Personal Information</h3>
           <ul className="list-disc pl-6 mb-4">
-            <li>Email address (collected via Google OAuth authentication)</li>
-            <li>Profile information from Google (name, profile picture) when you sign in with Google</li>
+            <li>Email address (collected for OTP-based authentication)</li>
             <li>Username and display preferences</li>
             <li>Authentication tokens and session data</li>
+            <li>Human verification data (CAPTCHA responses) for security purposes</li>
           </ul>
 
           <h3 className="text-xl font-medium mb-3">Usage Information</h3>
@@ -117,8 +117,8 @@ export default function PrivacyPolicy() {
             We use trusted third-party services to provide and improve our platform. These services have access to certain information only to perform specific tasks on our behalf:
           </p>
           <ul className="list-disc pl-6 mb-4">
-            <li><strong>Google OAuth:</strong> For secure authentication and login services</li>
-            <li><strong>Supabase:</strong> For database management, authentication, and data storage</li>
+            <li><strong>Supabase:</strong> For database management, OTP authentication, and data storage</li>
+            <li><strong>Cloudflare Turnstile:</strong> For human verification and bot protection during authentication</li>
             <li><strong>Cloudflare R2:</strong> For secure storage and delivery of generated audio files</li>
             <li><strong>AI Service Providers:</strong> For music generation and processing (input data is processed securely and not stored by third parties)</li>
             <li><strong>Analytics Services:</strong> For understanding usage patterns and improving user experience</li>
@@ -147,9 +147,11 @@ export default function PrivacyPolicy() {
             We implement industry-standard security measures to protect your information, including:
           </p>
           <ul className="list-disc pl-6 mb-4">
+            <li>OTP (One-Time Password) authentication for secure, passwordless access</li>
+            <li>Human verification (CAPTCHA) to prevent automated abuse</li>
             <li>Encryption of data in transit and at rest</li>
             <li>Regular security audits and updates</li>
-            <li>Access controls and authentication measures</li>
+            <li>Access controls and session management</li>
             <li>Secure data storage with reputable cloud providers</li>
           </ul>
         </section>

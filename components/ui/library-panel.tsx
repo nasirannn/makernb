@@ -541,14 +541,14 @@ export const LibraryPanel = ({
             </div>
           </div>
         ) : (
-          <div className="relative space-y-0">
+          <div className="relative space-y-2">
               {paginatedTracks.map((track, index) => (
                 <div
                   key={track.id}
-                  className={`flex items-center gap-4 px-4 py-2 transition-all duration-300 group cursor-pointer ${
+                  className={`flex items-center gap-4 px-2 py-2 mx-3 transition-all duration-300 group cursor-pointer rounded-lg border ${
                     selectedLibraryTrack === track.id
-                      ? 'bg-muted/30'
-                      : 'hover:bg-muted/20'
+                      ? 'bg-muted/60 border-border/60'
+                      : 'hover:bg-muted/20 border-transparent'
                   }`}
                   onClick={(e) => {
                     handleTrackAction(track, 'select');
@@ -611,28 +611,42 @@ export const LibraryPanel = ({
 
                   {/* Track Info */}
                   <div className="flex-1 min-w-0 flex items-center gap-3">
-                    <div className="flex-1 min-w-0 flex items-center h-16 border-b border-border/30">
+                    <div className="flex-1 min-w-0 flex items-center h-16">
                       <div className="flex items-center justify-between gap-3 w-full">
-                        <div className="flex-1 min-w-0 flex flex-col justify-center">
-                          <h3 className={`font-medium truncate text-sm ${
+                        <div className="flex-1 min-w-0 flex flex-col justify-center h-16">
+                          <h3 className={`font-semibold text-sm truncate ${
                             currentPlayingTrack === track.id ? 'text-primary' : 'text-foreground'
                           }`}>
                             {track.title}
                           </h3>
                           {/* Tags */}
                           {track.tags && (
-                            <p className="text-xs text-muted-foreground truncate md:line-clamp-2 mt-0.5">
+                            <p className="text-xs text-muted-foreground truncate mt-1">
                               {(() => {
                                 const tags = track.tags;
-                                return tags && tags.length > 120 ? `${tags.substring(0, 120)}...` : tags;
+                                return tags && tags.length > 100 ? `${tags.substring(0, 100)}...` : tags;
                               })()}
+                            </p>
+                          )}
+                          {/* Created Time */}
+                          {track.created_at && (
+                            <p className="text-xs text-muted-foreground/60 truncate mt-1">
+                              {new Date(track.created_at).toLocaleString('en-US', {
+                                month: 'numeric',
+                                day: 'numeric',
+                                year: 'numeric',
+                                hour: 'numeric',
+                                minute: '2-digit',
+                                second: '2-digit',
+                                hour12: true
+                              })}
                             </p>
                           )}
                         </div>
                         {/* Duration */}
-                        <div className="text-xs text-muted-foreground flex-shrink-0">
+                        <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-muted text-muted-foreground flex-shrink-0">
                           {formatDuration(track.duration)}
-                        </div>
+                        </span>
                       </div>
                     </div>
                   </div>

@@ -75,16 +75,8 @@ const nextConfig = {
         hostname: "tempfile.aiquickdraw.com",
       },
     ],
-    // 添加图片优化配置
-    dangerouslyAllowSVG: true,
-    contentDispositionType: 'attachment',
-    contentSecurityPolicy: "default-src 'self'; script-src 'none'; sandbox;",
-    // 增加缓存时间以减少重复转换
-    minimumCacheTTL: 31536000, // 1年
-    // 设置图片格式和质量
-    formats: ['image/webp', 'image/avif'],
-    // 禁用图片优化以避免超时问题（开发环境）
-    unoptimized: process.env.NODE_ENV === 'development',
+    // R2 处理图片优化，Next 不需要再优化
+    unoptimized: true,
   },
 };
 

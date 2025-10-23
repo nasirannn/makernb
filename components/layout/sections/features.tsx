@@ -21,10 +21,10 @@ const featureList: FeaturesProps[] = [
       "Describe your vision in plain English and watch AI transform words into music",
   },
   {
-    icon: () => <Image src="/icons/Custom-Lyrics-Support.svg" alt="Custom Lyrics Support" width={48} height={48} className="h-12 w-12" />,
-    title: "Custom Lyrics Support",
+    icon: () => <Image src="/icons/Custom-Lyrics-Support.svg" alt="AI Lyrics Support" width={48} height={48} className="h-12 w-12" />,
+    title: "AI Lyrics Support",
     description:
-      "Input your own lyrics to create authentic songs with your unique ideas",
+      "Generate intelligent lyrics or input your own to create authentic songs with your unique ideas",
   },
   {
     icon: () => <Image src="/icons/Authentic-RnB-Styles.svg" alt="Authentic R&B Styles" width={48} height={48} className="h-12 w-12" />,

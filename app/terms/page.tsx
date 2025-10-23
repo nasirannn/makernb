@@ -24,7 +24,7 @@ export default function TermsOfService() {
         </Link>
         <h1 className="text-4xl font-bold mb-4">Terms of Service</h1>
         <p className="text-muted-foreground">
-          Last updated: January 2025
+          Last updated: October 2025
         </p>
       </div>
 
@@ -46,10 +46,12 @@ export default function TermsOfService() {
         <section className="mb-8">
           <h2 className="text-2xl font-semibold mb-4">User Accounts</h2>
           <ul className="list-disc pl-6 mb-4">
-            <li>You must provide accurate and complete information when creating an account</li>
-            <li>You are responsible for maintaining the security of your account credentials</li>
+            <li>You must provide a valid email address for account creation and authentication</li>
+            <li>Account access is secured through email-based OTP (One-Time Password) verification</li>
+            <li>You are responsible for maintaining access to your registered email address</li>
             <li>You must notify us immediately of any unauthorized use of your account</li>
             <li>One person or entity may not maintain multiple accounts</li>
+            <li>You must complete human verification (CAPTCHA) when requested for security purposes</li>
           </ul>
         </section>
 
@@ -62,7 +64,7 @@ export default function TermsOfService() {
             <li>Create content that is offensive, harmful, or violates community standards</li>
             <li>Attempt to reverse engineer or copy our AI technology</li>
             <li>Use automated tools to abuse our service or exceed usage limits</li>
-            <li>Share your account credentials with others</li>
+            <li>Share your account access or verification codes with others</li>
           </ul>
         </section>
 
