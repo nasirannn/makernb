@@ -340,7 +340,7 @@ export const StudioTracksList: React.FC<StudioTracksListProps> = ({
               {Array.from({ length: pendingTasksCount }).map((_, index) => (
                 <div key={index} className="flex items-center gap-4 px-2 py-2 mx-3 rounded-lg">
                   <Skeleton className="w-16 h-16 rounded-md flex-shrink-0" />
-                  <div className="flex-1 min-w-0 flex items-center">
+                  <div className="flex-1 min-w-0 flex items-center gap-3">
                     <div className="flex-1 min-w-0 flex items-center h-16">
                       <div className="flex items-center justify-between gap-3 w-full">
                         <div className="flex-1 min-w-0 flex flex-col justify-center h-16">
