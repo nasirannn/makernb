@@ -25,13 +25,22 @@ export async function GET(
     // 获取请求用户ID（用于收藏状态检查）
     const requestUserId = await getUserIdFromRequest(request);
 
-    // 使用缓存的查询，缓存时间5分钟
-    const cacheKey = `user-music:${userId}:${limit}:${offset}`;
-    const rawData = await cachedQuery(
-      cacheKey,
-      () => getUserMusicGenerationsOptimized(userId, limit, offset),
-      300000 // 5分钟缓存
-    );
+    // 检查是否有强制刷新参数
+    const forceRefresh = searchParams.get('_t');
+    
+    let rawData;
+    if (forceRefresh) {
+      // 强制刷新，不使用缓存
+      rawData = await getUserMusicGenerationsOptimized(userId, limit, offset);
+    } else {
+      // 使用缓存的查询，缓存时间5分钟
+      const cacheKey = `user-music:${userId}:${limit}:${offset}`;
+      rawData = await cachedQuery(
+        cacheKey,
+        () => getUserMusicGenerationsOptimized(userId, limit, offset),
+        300000 // 5分钟缓存
+      );
+    }
 
     // 处理数据格式
     const musicGenerations = processUserMusicData(rawData);

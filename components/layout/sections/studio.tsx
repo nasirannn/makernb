@@ -279,9 +279,12 @@ const StudioContent = () => {
             // 获取当前session的access token
             const { data: { session } } = await supabase.auth.getSession();
             
-            const response = await fetch(`/api/user-music/${user.id}?limit=50&offset=0`, {
+            // 添加时间戳参数强制刷新缓存
+            const timestamp = Date.now();
+            const response = await fetch(`/api/user-music/${user.id}?limit=50&offset=0&_t=${timestamp}`, {
                 headers: {
-                    'Authorization': `Bearer ${session?.access_token}`
+                    'Authorization': `Bearer ${session?.access_token}`,
+                    'Cache-Control': 'no-cache'
                 }
             });
             if (response.ok) {

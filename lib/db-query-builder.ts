@@ -350,23 +350,24 @@ export const queryCache = new SimpleCache<any>();
 export const userCache = new SimpleCache<any>();
 
 /**
- * Cached query wrapper
+ * Clear cache for specific user's music data
  */
-export const cachedQuery = async <T extends QueryResultRow = any>(
-  cacheKey: string,
-  queryFn: () => Promise<T>,
-  ttlMs: number = 300000
-): Promise<T> => {
-  // Try to get from cache first
-  const cached = queryCache.get(cacheKey);
-  if (cached !== null) {
-    return cached as T;
-  }
-
-  // Execute query and cache result
-  const result = await queryFn();
-  queryCache.set(cacheKey, result, ttlMs);
-  return result;
+export const clearUserMusicCache = (userId: string): void => {
+  // Clear all cache entries that start with user-music:userId
+  const keysToDelete: string[] = [];
+  const cache = queryCache['cache'] as Map<string, CacheEntry<any>>;
+  
+  Array.from(cache.keys()).forEach(key => {
+    if (key.startsWith(`user-music:${userId}:`)) {
+      keysToDelete.push(key);
+    }
+  });
+  
+  keysToDelete.forEach(key => {
+    cache.delete(key);
+  });
+  
+  console.log(`[CACHE] Cleared ${keysToDelete.length} cache entries for user ${userId}`);
 };
 
 // ============================================================================

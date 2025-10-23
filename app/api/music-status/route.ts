@@ -44,6 +44,7 @@ export async function GET(request: NextRequest) {
         mt.duration,
         mt.side_letter,
         mt.cover_image_url,
+        mt.created_at,
         mg.title as title,
         mg.genre as genre,
         mg.tags as tags,
@@ -67,6 +68,7 @@ export async function GET(request: NextRequest) {
       // 基础信息
       id: row.track_id,
       sideLetter: row.side_letter,
+      createdAt: row.created_at, // 添加创建时间
       
       // 文本数据 - text回调时就有
       title: row.title || '',
