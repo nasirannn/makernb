@@ -347,7 +347,7 @@ const StudioContent = () => {
         try {
             await musicGeneration.handleGenerate(
                 refreshCredits, 
-                setIsPlaying, 
+                undefined, // 不再需要 setIsPlaying，独立播放器会自己管理
                 () => setGenerationConfirmOpen(true) // API成功后立即显示确认弹窗
             );
             return true;
@@ -395,18 +395,19 @@ const StudioContent = () => {
         const selectedTrack = createUserTrackObject(track, music);
         
         // 如果点击的是当前播放的歌曲，则暂停/继续
-        if (currentPlayingTrack?.id === track.id) {
+        if (playerState.currentTrack?.id === track.id) {
             togglePlayPause();
             return;
         }
         
         setSelectedStudioTrack(selectedTrack);
-        setCurrentPlayingTrack(selectedTrack);
+        // 使用独立播放器播放
+        playTrack(track.id);
         
         // 只播放歌曲，不自动展开歌词面板
         
         playAudioWithDelay(selectedTrack.audioUrl);
-    }, [createUserTrackObject, currentPlayingTrack, togglePlayPause, playAudioWithDelay]);
+    }, [createUserTrackObject, playerState.currentTrack, togglePlayPause, playTrack, playAudioWithDelay]);
 
     // 歌曲播放处理（点击播放按钮）
     const handleUserTrackPlay = React.useCallback((track: any, music: any) => {
@@ -445,7 +446,8 @@ const StudioContent = () => {
             lyrics: generatedTrack.lyrics || '',
             isUsingStreamAudio: generatedTrack.isUsingStreamAudio || false
         };
-        setCurrentPlayingTrack(playingTrack);
+        // 使用独立播放器播放
+        playTrack(generatedTrack.id);
 
         // 也可以设置为选中状态用于歌词显示
         const selectedTrack = {
@@ -508,12 +510,11 @@ const StudioContent = () => {
             // 不自动打开歌词面板，只有用户点击歌曲时才展开
             // setShowLyrics(true);
 
-            if (!currentPlayingTrack) {
-                const playingTrack = {
-                    ...generatedTrack,
-                    isUsingStreamAudio: firstGeneratedSong.isUsingStreamAudio || false
-                };
-                setCurrentPlayingTrack(playingTrack);
+            if (!playerState.currentTrack) {
+                // 使用独立播放器播放第一首生成的歌曲
+                if (firstGeneratedSong.id) {
+                    playTrack(firstGeneratedSong.id);
+                }
 
                 const audioUrl = firstGeneratedSong.audioUrl || firstGeneratedSong.streamAudioUrl;
                 if (audioRef.current && audioUrl) {
@@ -523,7 +524,7 @@ const StudioContent = () => {
                 }
             }
         }
-    }, [allGeneratedTracks, showLyrics, generatingTrack, currentPlayingTrack, selectedStudioTrack, playAudioWithDelay]);
+    }, [allGeneratedTracks, showLyrics, generatingTrack, playerState.currentTrack, selectedStudioTrack, playAudioWithDelay]);
 
     // 监听complete回调完成，刷新user tracks列表
     React.useEffect(() => {
@@ -573,15 +574,8 @@ const StudioContent = () => {
         setSelectedStudioTrack(updatedTrack);
         setGeneratingTrack(null);
 
-        // 只在播放中且 ID 匹配时才更新封面
-        if (currentPlayingTrack?.id === generatingTrack.id && 
-            currentPlayingTrack.coverImage !== firstGeneratedSong.coverImage) {
-            setCurrentPlayingTrack((prev: any) => ({
-                ...prev,
-                coverImage: firstGeneratedSong.coverImage
-            }));
-        }
-    }, [allGeneratedTracks, generatingTrack, currentPlayingTrack]);
+        // 独立播放器会自动从数据库获取最新的封面信息，不需要手动更新
+    }, [allGeneratedTracks, generatingTrack]);
 
     // Favorite handlers
     const handleFavoriteToggle = async (track: any) => {
@@ -728,10 +722,9 @@ const StudioContent = () => {
                 }
 
                 // If the deleted track is currently playing, stop playback
-                if (currentPlayingTrack?.id === trackToDelete.id ||
-                    currentPlayingTrack?.generationId === trackToDelete.generationId) {
-                    setCurrentPlayingTrack(null);
-                    setIsPlaying(false);
+                if (playerState.currentTrack?.id === trackToDelete.id ||
+                    playerState.currentTrack?.generationId === trackToDelete.generationId) {
+                    // 独立播放器会自动处理停止播放
                     if (audioRef.current) {
                         audioRef.current.pause();
                         audioRef.current.src = '';

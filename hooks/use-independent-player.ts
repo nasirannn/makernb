@@ -12,6 +12,7 @@ interface TrackInfo {
   lyrics?: string;
   sideLetter?: string;
   isFavorited?: boolean;
+  generationId?: string;
 }
 
 interface PlayerState {
