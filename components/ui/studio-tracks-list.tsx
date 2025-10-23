@@ -257,11 +257,11 @@ export const StudioTracksList: React.FC<StudioTracksListProps> = ({
                   </div>
                   
                   {/* Track Info */}
-                  <div className="flex-1 min-w-0 flex items-center">
+                  <div className="flex-1 min-w-0 flex items-center gap-3">
                     <div className="flex-1 min-w-0 flex items-center h-16">
                       <div className="flex items-center justify-between gap-3 w-full">
                         <div className="flex-1 min-w-0 flex flex-col justify-center h-16">
-                          <div className={`font-semibold text-sm transition-colors truncate ${
+                          <h3 className={`font-semibold text-sm truncate ${
                             track.isError
                               ? 'text-red-400'
                               : currentlyPlaying === `generated-${index}`
@@ -269,7 +269,7 @@ export const StudioTracksList: React.FC<StudioTracksListProps> = ({
                                 : track.isLoading ? '' : 'group-hover:text-primary'
                             }`}>
                             {track.isError ? (track.originalPrompt || track.title || 'Unknown') : (track.title || 'Unknown')}
-                          </div>
+                          </h3>
                           {!track.isError && track.tags && (
                             <p className="text-xs text-muted-foreground truncate mt-1">
                               {track.tags.length > 100 ? `${track.tags.substring(0, 100)}...` : track.tags}
@@ -290,21 +290,21 @@ export const StudioTracksList: React.FC<StudioTracksListProps> = ({
                           )}
                         </div>
                         {!track.isError && (
-                          <div className="flex-shrink-0">
+                          <>
                             {track.duration ? (
                               // complete状态：显示实际duration
-                              <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-muted text-muted-foreground">
+                              <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-muted text-muted-foreground flex-shrink-0">
                                 {formatDuration(track.duration)}
                               </span>
                             ) : (
                               // complete之前：显示圆点指示器
-                              <div className="flex items-center gap-1">
+                              <div className="flex items-center gap-1 flex-shrink-0">
                                 <div className="w-1 h-1 bg-muted-foreground rounded-full animate-pulse"></div>
                                 <div className="w-1 h-1 bg-muted-foreground rounded-full animate-pulse" style={{ animationDelay: '0.3s' }}></div>
                                 <div className="w-1 h-1 bg-muted-foreground rounded-full animate-pulse" style={{ animationDelay: '0.6s' }}></div>
                               </div>
                             )}
-                          </div>
+                          </>
                         )}
                       </div>
                     </div>
