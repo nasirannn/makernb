@@ -62,8 +62,10 @@ export const useIndependentPlayer = () => {
       }
 
       const data = await response.json();
+      console.log('API response:', data);
       
       if (data.success && data.track) {
+        console.log('Track data:', data.track);
         return data.track;
       } else {
         console.error('Invalid track data:', data);
@@ -86,6 +88,9 @@ export const useIndependentPlayer = () => {
       return;
     }
 
+    console.log('Track info received:', trackInfo);
+    console.log('Audio URL:', trackInfo.audioUrl);
+
     // 设置当前 track
     setPlayerState(prev => ({
       ...prev,
@@ -95,6 +100,13 @@ export const useIndependentPlayer = () => {
 
     // 设置音频源
     if (audioRef.current) {
+      console.log('Setting audio source:', trackInfo.audioUrl);
+      
+      if (!trackInfo.audioUrl) {
+        console.error('No audio URL provided for track:', trackInfo.id);
+        return;
+      }
+      
       const wasPlaying = !audioRef.current.paused;
       const currentTime = audioRef.current.currentTime;
       
@@ -188,6 +200,12 @@ export const useIndependentPlayer = () => {
 
     const handleError = (e: any) => {
       console.error('Audio error:', e);
+      console.error('Audio error details:', {
+        error: e.target?.error,
+        networkState: e.target?.networkState,
+        readyState: e.target?.readyState,
+        src: e.target?.src
+      });
       setPlayerState(prev => ({ ...prev, isPlaying: false }));
     };
 
