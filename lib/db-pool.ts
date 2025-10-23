@@ -107,6 +107,12 @@ function createPool(): Pool {
  * 获取连接池实例（懒加载）
  */
 function getPool(): Pool {
+  // 检查 pool 是否存在且未关闭
+  if (pool && (pool as any).ended) {
+    console.warn('[DB-POOL] Detected closed pool, resetting...');
+    pool = null;
+  }
+  
   if (!pool && !poolInitializing) {
     poolInitializing = true;
     try {
@@ -169,6 +175,7 @@ function isRetryableError(error: any): boolean {
     'ETIMEDOUT',
     'cannot get a connection',
     'pool is destroyed',
+    'cannot use a pool after calling end on the pool',  // 添加这个错误
     // Neon 特定错误
     'compute time limit exceeded',
     'too many connections',
@@ -267,9 +274,17 @@ export async function query<T extends QueryResultRow = any>(
 
       // 如果是可重试的错误且不是最后一次尝试
       if (attempt < maxRetries && isRetryableError(error)) {
-        // 针对Neon错误的特殊延迟策略
+        // 检查是否是已关闭的 pool 错误
+        const isClosedPoolError = lastError.message.includes('Cannot use a pool after calling end on the pool');
+        
+        // 针对不同错误的特殊延迟策略
         let delayMs;
-        if (isNeonConnectionError(error)) {
+        if (isClosedPoolError) {
+          // Pool 已关闭，立即重置并重试
+          console.log(`[DB-POOL] Closed pool detected, resetting immediately...`);
+          pool = null; // 直接设置为 null，让 getPool() 重新创建
+          delayMs = 100; // 短暂延迟
+        } else if (isNeonConnectionError(error)) {
           // Neon错误需要更长的等待时间
           delayMs = Math.min(2000 * Math.pow(1.5, attempt - 1), 8000);
           console.log(`[DB-POOL] Neon-specific error detected, longer retry delay: ${delayMs}ms`);
@@ -279,15 +294,15 @@ export async function query<T extends QueryResultRow = any>(
         } else {
           // 标准指数退避
           delayMs = Math.min(1000 * Math.pow(2, attempt - 1), 5000);
+          
+          // 如果是连接相关错误，重置连接池
+          if (isConnectionError(error)) {
+            await resetPool();
+          }
         }
 
         console.log(`[DB-POOL] Retrying in ${delayMs}ms...`);
         await new Promise(resolve => setTimeout(resolve, delayMs));
-
-        // 如果是连接相关错误，重置连接池
-        if (isConnectionError(error)) {
-          await resetPool();
-        }
 
         continue;
       }
@@ -323,6 +338,7 @@ function isConnectionError(error: any): boolean {
     'ECONNRESET',
     'ECONNREFUSED',
     'pool is destroyed',
+    'cannot use a pool after calling end on the pool',
   ];
   
   const errorMessage = (error.message || '').toLowerCase();
