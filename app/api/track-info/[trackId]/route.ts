@@ -87,7 +87,7 @@ export async function GET(
     // 如果有请求用户，检查收藏状态
     if (requestUserId) {
       const favoriteResult = await query(
-        'SELECT id FROM favorites WHERE user_id = $1::uuid AND track_id = $2::uuid',
+        'SELECT id FROM user_favorites WHERE user_id = $1::uuid AND track_id = $2::uuid',
         [requestUserId, trackId]
       );
       
