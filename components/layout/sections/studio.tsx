@@ -641,8 +641,12 @@ const StudioContent = () => {
             // 延迟刷新，确保数据库已更新
             const timeoutId = setTimeout(() => {
                 fetchUserTracks();
-                // 清空 generated tracks，让它们显示为 user tracks
-                setAllGeneratedTracks([]);
+                
+                // 等待更长时间确保 userTracks 更新完成
+                setTimeout(() => {
+                    console.log('Clearing generated tracks after userTracks refresh');
+                    setAllGeneratedTracks([]);
+                }, 3000); // 给足够时间让 userTracks 更新
             }, 2000); // 增加延迟确保数据库更新完成
 
             return () => clearTimeout(timeoutId);
