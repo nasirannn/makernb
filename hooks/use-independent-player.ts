@@ -36,6 +36,15 @@ export const useIndependentPlayer = () => {
     isMuted: false,
   });
 
+  // 初始化音频元素
+  useEffect(() => {
+    if (!audioRef.current) {
+      audioRef.current = new Audio();
+      audioRef.current.volume = playerState.volume;
+      audioRef.current.muted = playerState.isMuted;
+    }
+  }, []);
+
   // 通过 track ID 获取 track 信息
   const fetchTrackInfo = useCallback(async (trackId: string): Promise<TrackInfo | null> => {
     try {
@@ -53,7 +62,13 @@ export const useIndependentPlayer = () => {
       }
 
       const data = await response.json();
-      return data.track;
+      
+      if (data.success && data.track) {
+        return data.track;
+      } else {
+        console.error('Invalid track data:', data);
+        return null;
+      }
     } catch (error) {
       console.error('Error fetching track info:', error);
       return null;
