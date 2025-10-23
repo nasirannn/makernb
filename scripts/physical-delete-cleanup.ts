@@ -252,7 +252,7 @@ async function getDeletedGenerationErrors(userId?: string): Promise<DeletedGener
       LEFT JOIN music mg ON ge.reference_id::text = mg.id::text AND ge.error_type = 'music_generation'
       LEFT JOIN vocal_separations vs ON ge.reference_id::text = vs.id::text AND ge.error_type = 'vocal_separation'
       WHERE
-        ((ge.error_type = 'music_generation' AND mg.is_deleted = TRUE AND mg.user_id = $1)
+        ((ge.error_type = 'music_generation' AND mg.user_id = $1)
         OR (ge.error_type = 'vocal_separation' AND vs.user_id = $1)
         OR ge.reference_id IS NULL)
       ORDER BY ge.created_at DESC
@@ -267,7 +267,7 @@ async function getDeletedGenerationErrors(userId?: string): Promise<DeletedGener
       LEFT JOIN music mg ON ge.reference_id::text = mg.id::text AND ge.error_type = 'music_generation'
       LEFT JOIN vocal_separations vs ON ge.reference_id::text = vs.id::text AND ge.error_type = 'vocal_separation'
       WHERE
-        (ge.error_type = 'music_generation' AND mg.is_deleted = TRUE)
+        (ge.error_type = 'music_generation')
         OR (ge.error_type = 'vocal_separation' AND vs.id IS NOT NULL)
         OR ge.reference_id IS NULL
       ORDER BY ge.created_at DESC
@@ -299,7 +299,12 @@ async function getDeletedLyrics(userId?: string): Promise<DeletedLyricsInfo[]> {
         l.created_at
       FROM lyrics l
       INNER JOIN music mg ON l.music_id = mg.id
-      WHERE mg.is_deleted = TRUE AND mg.user_id = $1
+      WHERE mg.user_id = $1
+        AND NOT EXISTS (
+          SELECT 1 FROM tracks
+          WHERE music_id = mg.id
+            AND (is_deleted IS NULL OR is_deleted = FALSE)
+        )
       ORDER BY l.created_at DESC
     `
     : `
@@ -310,7 +315,11 @@ async function getDeletedLyrics(userId?: string): Promise<DeletedLyricsInfo[]> {
         l.created_at
       FROM lyrics l
       INNER JOIN music mg ON l.music_id = mg.id
-      WHERE mg.is_deleted = TRUE
+      WHERE NOT EXISTS (
+        SELECT 1 FROM tracks
+        WHERE music_id = mg.id
+          AND (is_deleted IS NULL OR is_deleted = FALSE)
+      )
       ORDER BY l.created_at DESC
     `;
 
@@ -599,11 +608,11 @@ async function physicallyDeleteFromDatabase(summary: DeletionSummary, dryRun: bo
     // 6. 删除没有关联音轨的生成记录
     const generationResult = await dbQuery(`
       DELETE FROM music
-      WHERE is_deleted = TRUE
-        AND NOT EXISTS (
-          SELECT 1 FROM tracks
-          WHERE music_id = music.id
-        )
+      WHERE NOT EXISTS (
+        SELECT 1 FROM tracks
+        WHERE music_id = music.id
+          AND (is_deleted IS NULL OR is_deleted = FALSE)
+      )
       RETURNING id
     `);
     generationsDeleted = generationResult.rowCount || 0;

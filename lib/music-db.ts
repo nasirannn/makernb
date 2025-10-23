@@ -118,15 +118,13 @@ export const softDeleteMusicGeneration = async (generationId: string, userId: st
     validateRequiredParams({ generationId, userId }, ['generationId', 'userId']);
 
     return await withTransaction(async (queryFn) => {
-      // 1. Soft delete music_generation record
+      // 1. Verify music generation exists and belongs to user
       const generationResult = await queryFn(
-        `UPDATE music
-         SET is_deleted = TRUE, updated_at = NOW()
-         WHERE id = $1 AND user_id = $2::uuid AND is_deleted = FALSE
+        `SELECT id FROM music
+         WHERE id = $1 AND user_id = $2::uuid
          RETURNING id`,
         [generationId, userId]
       );
-
 
       if (generationResult.rows.length === 0) {
         return false;
@@ -140,7 +138,6 @@ export const softDeleteMusicGeneration = async (generationId: string, userId: st
          RETURNING id`,
         [generationId]
       );
-
 
       return true;
     });

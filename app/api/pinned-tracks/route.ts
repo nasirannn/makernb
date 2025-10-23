@@ -30,7 +30,6 @@ export async function GET(request: NextRequest) {
       FROM tracks mt
       JOIN music mg ON mt.music_id = mg.id
       WHERE mt.is_pinned = TRUE
-        AND mg.is_deleted = FALSE
         AND (mt.is_deleted IS NULL OR mt.is_deleted = FALSE)
       ORDER BY mt.created_at DESC
       LIMIT $1 OFFSET $2

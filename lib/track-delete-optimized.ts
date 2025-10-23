@@ -29,8 +29,7 @@ export async function deleteTrackOptimized(trackId: string, userId: string): Pro
       SELECT
         mt.id,
         mt.is_deleted as track_deleted,
-        mg.user_id,
-        mg.is_deleted as generation_deleted
+        mg.user_id
       FROM tracks mt
       LEFT JOIN music mg ON mt.music_id = mg.id
       WHERE mt.id = $1
@@ -70,13 +69,6 @@ export async function deleteTrackOptimized(trackId: string, userId: string): Pro
       };
     }
 
-    if (track.generation_deleted) {
-      return {
-        success: false,
-        error: 'Parent generation is deleted',
-        statusCode: 410
-      };
-    }
 
     return {
       success: false,
@@ -147,8 +139,7 @@ export async function checkTrackDeletable(trackId: string, userId: string): Prom
       SELECT
         mt.id,
         mt.is_deleted as track_deleted,
-        mg.user_id,
-        mg.is_deleted as generation_deleted
+        mg.user_id
       FROM tracks mt
       JOIN music mg ON mt.music_id = mg.id
       WHERE mt.id = $1
@@ -168,9 +159,6 @@ export async function checkTrackDeletable(trackId: string, userId: string): Prom
       return { deletable: false, reason: 'Already deleted' };
     }
 
-    if (track.generation_deleted) {
-      return { deletable: false, reason: 'Parent generation deleted' };
-    }
 
     return { deletable: true };
 

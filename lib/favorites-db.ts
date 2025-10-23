@@ -135,7 +135,6 @@ export async function getUserFavorites(userId: string, limit: number = 50, offse
       JOIN music mg ON mt.music_id = mg.id
       WHERE uf.user_id = $1::uuid 
         AND (mt.is_deleted IS NULL OR mt.is_deleted = FALSE)
-        AND mg.is_deleted = FALSE
       ORDER BY uf.created_at DESC
       LIMIT $2 OFFSET $3
     `, [userId, limit, offset]);
@@ -157,7 +156,6 @@ export async function getUserFavoritesCount(userId: string): Promise<number> {
       JOIN music mg ON mt.music_id = mg.id
       WHERE uf.user_id = $1::uuid 
         AND (mt.is_deleted IS NULL OR mt.is_deleted = FALSE)
-        AND mg.is_deleted = FALSE
     `, [userId]);
     
     return parseInt(result.rows[0].count) || 0;

@@ -217,7 +217,6 @@ export const getUserMusicGenerationsOptimized = async (
       FROM music mg
       INNER JOIN tracks mt ON mg.id = mt.music_id
       WHERE mg.user_id = $1::uuid 
-        AND mg.is_deleted = FALSE
         AND (mt.is_deleted IS NULL OR mt.is_deleted = FALSE)
       ORDER BY mg.created_at DESC
       LIMIT $2 OFFSET $3

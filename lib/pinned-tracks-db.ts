@@ -166,7 +166,6 @@ export async function getUserPinnedTracks(userId: string, limit: number = 50, of
       WHERE mg.user_id = $1::uuid
         AND mt.is_pinned = true
         AND (mt.is_deleted IS NULL OR mt.is_deleted = FALSE)
-        AND (mg.is_deleted IS NULL OR mg.is_deleted = FALSE)
       ORDER BY mt.updated_at DESC
       LIMIT $2 OFFSET $3
     `, [userId, limit, offset]);
@@ -221,7 +220,6 @@ export async function getUserPinnedCount(userId: string): Promise<number> {
       WHERE mg.user_id = $1::uuid
         AND mt.is_pinned = true
         AND (mt.is_deleted IS NULL OR mt.is_deleted = FALSE)
-        AND (mg.is_deleted IS NULL OR mg.is_deleted = FALSE)
     `, [userId]);
 
     return parseInt(result.rows[0].count) || 0;
