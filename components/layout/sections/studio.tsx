@@ -896,16 +896,16 @@ const StudioContent = () => {
                         
                         {/* 歌曲列表区域 - 可滚动 */}
                         <div className={`flex-1 min-h-0 overflow-y-auto scrollbar-thin scrollbar-thumb-gray-400 scrollbar-track-gray-200 ${
-                            currentPlayingTrack ? 'pb-12' : 'pb-0'
+                            playerState.currentTrack ? 'pb-12' : 'pb-0'
                         }`}>
                             <StudioTracksList
                                 userTracks={userTracks}
                                 isLoading={isLoadingUserTracks}
                                 onTrackSelect={handleUserTrackSelect}
                                 onTrackPlay={handleUserTrackPlay}
-                                currentlyPlaying={currentPlayingTrack?.id}
+                                currentlyPlaying={playerState.currentTrack?.id}
                                 selectedTrack={selectedStudioTrack?.id}
-                                isPlaying={isPlaying && currentTime > 0}
+                                isPlaying={playerState.isPlaying && playerState.currentTime > 0}
                                 allGeneratedTracks={allGeneratedTracks}
                                 pendingTasksCount={pendingTasksCount}
                                 panelOpen={panelOpen}
@@ -915,7 +915,7 @@ const StudioContent = () => {
                         </div>
 
                         {/* Desktop Music Player - 桌面端播放器（在歌曲列表列底部） */}
-                        {currentPlayingTrack && (
+                        {playerState.currentTrack && (
                             <div className="absolute left-0 right-0 bottom-0 z-40">
                                 <MusicPlayer
                                     tracks={allTracks.map(track => ({
@@ -933,25 +933,25 @@ const StudioContent = () => {
                                             cover_r2_url: track.coverImage
                                         }]
                                     }))}
-                                    currentTrackIndex={allTracks.findIndex(track => track.id === currentPlayingTrack?.id)}
-                                    currentPlayingTrack={currentPlayingTrack ? { trackId: currentPlayingTrack.id || '', audioUrl: currentPlayingTrack.audioUrl || '' } : null}
-                                    isPlaying={isPlaying}
-                                    currentTime={currentTime}
-                                    duration={duration}
-                                    volume={volume}
-                                    isMuted={isMuted}
+                                    currentTrackIndex={allTracks.findIndex(track => track.id === playerState.currentTrack?.id)}
+                                    currentPlayingTrack={playerState.currentTrack ? { trackId: playerState.currentTrack.id || '', audioUrl: playerState.currentTrack.audioUrl || '' } : null}
+                                    isPlaying={playerState.isPlaying}
+                                    currentTime={playerState.currentTime}
+                                    duration={playerState.duration}
+                                    volume={playerState.volume}
+                                    isMuted={playerState.isMuted}
                                     onPlayPause={togglePlayPause}
                                     onPrevious={handlePrevious}
                                     onNext={handleNext}
                                     onSeek={(time) => {
-                                        if (audioRef.current && duration > 0 && currentPlayingTrack) {
+                                        if (audioRef.current && playerState.duration > 0 && playerState.currentTrack) {
                                             audioRef.current.currentTime = time;
                                         }
                                     }}
                                     onVolumeChange={(newVolume) => {
-                                        changeVolume(newVolume);
+                                        setVolume(newVolume);
                                     }}
-                                    onMuteToggle={handleMuteToggle}
+                                    onMuteToggle={toggleMute}
                                     hideProgress={showLyrics}
                                     onTrackChange={(index) => {
                                         const selectedTrack = allTracks[index];
@@ -991,7 +991,7 @@ const StudioContent = () => {
                                 isFavorited={selectedStudioTrack?.is_favorited || false}
                                 isAdmin={isAdmin(user?.id || '')}
                                 isGenerating={selectedStudioTrack?.isGenerating || false}
-                                isPlaying={isPlaying && currentPlayingTrack?.id === selectedStudioTrack?.id && currentTime > 0}
+                                isPlaying={playerState.isPlaying && playerState.currentTrack?.id === selectedStudioTrack?.id && playerState.currentTime > 0}
                                 onDownload={() => {
                                     if (selectedStudioTrack?.audioUrl) {
                                         const link = document.createElement('a');
@@ -1071,9 +1071,9 @@ const StudioContent = () => {
                                         isLoading={isLoadingUserTracks}
                                         onTrackSelect={handleUserTrackSelect}
                                         onTrackPlay={handleUserTrackPlay}
-                                        currentlyPlaying={currentPlayingTrack?.id}
+                                        currentlyPlaying={playerState.currentTrack?.id}
                                         selectedTrack={selectedStudioTrack?.id}
-                                        isPlaying={isPlaying && currentTime > 0}
+                                        isPlaying={playerState.isPlaying && playerState.currentTime > 0}
                                         allGeneratedTracks={allGeneratedTracks}
                                         pendingTasksCount={pendingTasksCount}
                                         panelOpen={true}
@@ -1123,7 +1123,7 @@ const StudioContent = () => {
                             isFavorited={selectedStudioTrack?.is_favorited || false}
                             isAdmin={isAdmin(user?.id || '')}
                             isGenerating={selectedStudioTrack?.isGenerating || false}
-                            isPlaying={isPlaying && currentPlayingTrack?.id === selectedStudioTrack?.id && currentTime > 0}
+                            isPlaying={playerState.isPlaying && playerState.currentTrack?.id === selectedStudioTrack?.id && playerState.currentTime > 0}
                             onDownload={() => {
                                 if (selectedStudioTrack?.audioUrl) {
                                     const link = document.createElement('a');
@@ -1151,7 +1151,7 @@ const StudioContent = () => {
                 )}
 
                 {/* Mobile Player Placeholder - 移动端播放器占位（始终显示，除非歌词面板或歌曲列表打开） */}
-                {!showLyrics && !currentPlayingTrack && !mobileTracksOpen && (
+                {!showLyrics && !playerState.currentTrack && !mobileTracksOpen && (
                     <div className="md:hidden fixed left-3 right-3 z-30 bg-background/30 backdrop-blur-md rounded-xl pl-3 pr-3 py-2" style={{ bottom: 'calc(var(--mobile-nav-height, 0px) + 0.75rem)', height: 'var(--player-height, 60px)' }}>
                         <div className="flex items-center space-x-3 h-full">
                             {/* Left: Placeholder Cover and Song Info */}
@@ -1191,7 +1191,7 @@ const StudioContent = () => {
                 )}
 
                 {/* Mobile Music Player - 移动端播放器 */}
-                {currentPlayingTrack && !mobileTracksOpen && (
+                {playerState.currentTrack && !mobileTracksOpen && (
                 <div className="md:hidden fixed left-3 right-3 z-40" style={{ bottom: 'calc(var(--mobile-nav-height, 0px) + 0.75rem)' }}>
                     <div className="relative">
                         <MusicPlayer
@@ -1210,25 +1210,25 @@ const StudioContent = () => {
                                 cover_r2_url: track.coverImage
                             }]
                         }))}
-                        currentTrackIndex={allTracks.findIndex(track => track.id === currentPlayingTrack?.id)}
-                        currentPlayingTrack={currentPlayingTrack ? { trackId: currentPlayingTrack.id || '', audioUrl: currentPlayingTrack.audioUrl || '' } : null}
-                        isPlaying={isPlaying}
-                        currentTime={currentTime}
-                        duration={duration}
-                        volume={volume}
-                        isMuted={isMuted}
+                        currentTrackIndex={allTracks.findIndex(track => track.id === playerState.currentTrack?.id)}
+                        currentPlayingTrack={playerState.currentTrack ? { trackId: playerState.currentTrack.id || '', audioUrl: playerState.currentTrack.audioUrl || '' } : null}
+                        isPlaying={playerState.isPlaying}
+                        currentTime={playerState.currentTime}
+                        duration={playerState.duration}
+                        volume={playerState.volume}
+                        isMuted={playerState.isMuted}
                         onPlayPause={togglePlayPause}
                         onPrevious={handlePrevious}
                         onNext={handleNext}
                         onSeek={(time) => {
-                            if (audioRef.current && duration > 0 && currentPlayingTrack) {
+                            if (audioRef.current && playerState.duration > 0 && playerState.currentTrack) {
                                 audioRef.current.currentTime = time;
                             }
                         }}
                         onVolumeChange={(newVolume) => {
-                            changeVolume(newVolume);
+                            setVolume(newVolume);
                         }}
-                        onMuteToggle={handleMuteToggle}
+                        onMuteToggle={toggleMute}
                         hideProgress={showLyrics}
                         onTrackChange={(index) => {
                             const selectedTrack = allTracks[index];
@@ -1257,14 +1257,10 @@ const StudioContent = () => {
                     </div>
                 )}
 
+                {/* Audio element - 独立播放器会自己管理音频元素 */}
                 <audio
                     ref={audioRef}
-                    src={currentPlayingTrack?.audioUrl || ''}
-                    onLoadedMetadata={handleAudioLoad}
-                    onTimeUpdate={handleTimeUpdate}
-                    onEnded={handleAudioEnd}
-                    onPlay={handlePlay}
-                    onPause={handlePause}
+                    src={playerState.currentTrack?.audioUrl || ''}
                     preload="metadata"
                 />
 
