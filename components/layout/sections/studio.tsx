@@ -66,15 +66,8 @@ const StudioContent = () => {
     const [userTracks, setUserTracks] = useState<any[]>([]);
     const [isLoadingUserTracks, setIsLoadingUserTracks] = useState(false);
 
-    // 播放器状态管理
-    const audioRef = useRef<HTMLAudioElement>(null);
-    const [currentPlayingTrack, setCurrentPlayingTrack] = useState<any>(null);
-    const [isPlaying, setIsPlaying] = useState(false);
-    const [currentTime, setCurrentTime] = useState(0);
-    const [duration, setDuration] = useState(0);
-    const [volume, setVolume] = useState(1);
-    const [isMuted, setIsMuted] = useState(false);
-    
+    // 播放器状态
+    const [currentPlayingTrack, setCurrentPlayingTrack] = React.useState<any>(null);
     // 选中的歌曲状态（用于歌词面板）
     const [selectedStudioTrack, setSelectedStudioTrack] = React.useState<any>(null);
     // 生成中的歌曲状态（用于text回调后自动显示歌词面板）
@@ -84,75 +77,6 @@ const StudioContent = () => {
     
     // BPM Mode状态
     const [bpmMode, setBpmMode] = React.useState<'slow' | 'moderate' | 'medium' | ''>('');
-
-    // 播放控制函数
-    const togglePlayPause = React.useCallback(() => {
-        if (audioRef.current) {
-            if (isPlaying) {
-                audioRef.current.pause();
-                setIsPlaying(false);
-            } else {
-                audioRef.current.play().catch(console.error);
-                setIsPlaying(true);
-            }
-        }
-    }, [isPlaying]);
-
-    const changeVolume = React.useCallback((newVolume: number) => {
-        setVolume(newVolume);
-        if (audioRef.current) {
-            audioRef.current.volume = newVolume;
-        }
-    }, []);
-
-    const toggleMute = React.useCallback(() => {
-        setIsMuted(!isMuted);
-        if (audioRef.current) {
-            audioRef.current.muted = !isMuted;
-        }
-    }, [isMuted]);
-
-    const seekTo = React.useCallback((time: number) => {
-        if (audioRef.current) {
-            audioRef.current.currentTime = time;
-            setCurrentTime(time);
-        }
-    }, []);
-
-    // 通过 track ID 播放歌曲
-    const playTrackById = React.useCallback(async (trackId: string) => {
-        try {
-            const { data: { session } } = await supabase.auth.getSession();
-            
-            const response = await fetch(`/api/track-info/${trackId}`, {
-                headers: {
-                    'Authorization': `Bearer ${session?.access_token}`,
-                }
-            });
-
-            if (!response.ok) {
-                console.error('Failed to fetch track info:', response.status);
-                return;
-            }
-
-            const data = await response.json();
-            
-            if (data.success && data.track) {
-                const trackInfo = data.track;
-                setCurrentPlayingTrack(trackInfo);
-                setDuration(trackInfo.duration || 0);
-                
-                if (audioRef.current) {
-                    audioRef.current.src = trackInfo.audioUrl;
-                    audioRef.current.load();
-                    audioRef.current.play().catch(console.error);
-                    setIsPlaying(true);
-                }
-            }
-        } catch (error) {
-            console.error('Error fetching track info:', error);
-        }
-    }, []);
 
     // Destructure states and functions
     const {
@@ -177,7 +101,21 @@ const StudioContent = () => {
         pendingTasksCount,
     } = musicGeneration;
 
-    // 简化的播放器状态管理 - 移除，使用独立播放器
+    // 简化的播放器状态管理
+    const audioRef = useRef<HTMLAudioElement>(null);
+    const [isPlaying, setIsPlaying] = useState(false);
+    const [currentTime, setCurrentTime] = useState(0);
+    const [duration, setDuration] = useState(0);
+    const [volume, setVolume] = useState(1);
+    const [isMuted, setIsMuted] = useState(false);
+
+    // 音量控制
+    const changeVolume = (newVolume: number) => {
+        setVolume(newVolume);
+        if (audioRef.current) {
+            audioRef.current.volume = newVolume;
+        }
+    };
 
     // 计算当前播放的歌曲
     const currentTrack = React.useMemo(() => {
@@ -256,7 +194,16 @@ const StudioContent = () => {
         return tracks;
     }, [allGeneratedTracks, userTracks, createTrackObject]);
 
-    // 播放/暂停控制 - 移除，使用独立播放器
+    // 播放/暂停控制
+    const togglePlayPause = React.useCallback(() => {
+        if (audioRef.current) {
+            if (isPlaying) {
+                audioRef.current.pause();
+            } else {
+                audioRef.current.play().catch(console.error);
+            }
+        }
+    }, [isPlaying]);
 
     // 统一的音频播放函数
     const playAudioWithDelay = React.useCallback((audioUrl?: string) => {
@@ -267,12 +214,8 @@ const StudioContent = () => {
         }, 100);
     }, []);
 
-    // 统一的播放切换逻辑 - 使用独立播放器
+    // 统一的播放切换逻辑
     const switchToTrack = React.useCallback((track: any) => {
-        // 使用独立播放器播放
-        playTrackById(track.id);
-        
-        // 设置选中的 track（用于歌词面板）
         const playingTrack = createTrackObject(
             track.id,
             track.generationId,
@@ -287,6 +230,7 @@ const StudioContent = () => {
             track.is_favorited || false
         );
         
+        setCurrentPlayingTrack(playingTrack);
         setSelectedStudioTrack(playingTrack);
         
         // 只播放歌曲，不自动展开歌词面板
@@ -294,13 +238,13 @@ const StudioContent = () => {
         // setMobileTracksOpen(false);
         
         playAudioWithDelay(track.audioUrl);
-    }, [playTrackById, createTrackObject, playAudioWithDelay]);
+    }, [createTrackObject, playAudioWithDelay]);
 
     // 上一首歌曲回调
     const handlePrevious = React.useCallback(() => {
         if (!currentPlayingTrack || allTracks.length === 0) return;
         
-        const currentIndex = allTracks.findIndex(track => track.id === currentPlayingTrack?.id);
+        const currentIndex = allTracks.findIndex(track => track.id === currentPlayingTrack.id);
         if (currentIndex === -1) return;
         
         const prevIndex = currentIndex > 0 ? currentIndex - 1 : allTracks.length - 1;
@@ -315,7 +259,7 @@ const StudioContent = () => {
     const handleNext = React.useCallback(() => {
         if (!currentPlayingTrack || allTracks.length === 0) return;
         
-        const currentIndex = allTracks.findIndex(track => track.id === currentPlayingTrack?.id);
+        const currentIndex = allTracks.findIndex(track => track.id === currentPlayingTrack.id);
         if (currentIndex === -1) return;
         
         const nextIndex = currentIndex < allTracks.length - 1 ? currentIndex + 1 : 0;
@@ -335,12 +279,9 @@ const StudioContent = () => {
             // 获取当前session的access token
             const { data: { session } } = await supabase.auth.getSession();
             
-            // 添加时间戳参数强制刷新缓存
-            const timestamp = Date.now();
-            const response = await fetch(`/api/user-music/${user.id}?limit=50&offset=0&_t=${timestamp}`, {
+            const response = await fetch(`/api/user-music/${user.id}?limit=50&offset=0`, {
                 headers: {
-                    'Authorization': `Bearer ${session?.access_token}`,
-                    'Cache-Control': 'no-cache'
+                    'Authorization': `Bearer ${session?.access_token}`
                 }
             });
             if (response.ok) {
@@ -394,7 +335,78 @@ const StudioContent = () => {
         }
     }, [currentTrack, currentPlayingTrack]);
 
-    // Audio event handlers - 独立播放器会自己处理这些事件
+    // 监听currentPlayingTrack变化，更新音频源
+    React.useEffect(() => {
+        if (currentPlayingTrack?.audioUrl && audioRef.current) {
+            // 只有当音频URL真正变化时才重新加载音频
+            if (audioRef.current.src !== currentPlayingTrack.audioUrl) {
+                // 检查是否正在播放，如果是则不打断播放
+                const wasPlaying = !audioRef.current.paused;
+                const currentTime = audioRef.current.currentTime;
+                
+                audioRef.current.src = currentPlayingTrack.audioUrl;
+                audioRef.current.load();
+                
+                // 如果之前正在播放，恢复播放状态和进度
+                if (wasPlaying) {
+                    audioRef.current.addEventListener('canplay', () => {
+                        if (audioRef.current) {
+                            audioRef.current.currentTime = currentTime;
+                            audioRef.current.play().catch(console.error);
+                        }
+                    }, { once: true });
+                } else {
+                    // 重置播放状态
+                    setIsPlaying(false);
+                    setCurrentTime(0);
+                }
+            }
+            // 只有当 duration 真正变化时才更新，避免触发循环
+            const newDuration = currentPlayingTrack.duration || 0;
+            if (duration !== newDuration) {
+                setDuration(newDuration);
+            }
+        }
+    }, [currentPlayingTrack, duration]);
+
+    // Audio event handlers
+    const handleAudioLoad = () => {
+        if (audioRef.current) {
+            // 优先使用currentPlayingTrack.duration（如果歌曲生成完成），否则使用音频文件的duration
+            if (currentPlayingTrack?.duration && currentPlayingTrack.duration > 0) {
+                setDuration(currentPlayingTrack.duration);
+            } else {
+                setDuration(audioRef.current.duration || 0);
+            }
+        }
+    };
+
+    const handleTimeUpdate = () => {
+        if (audioRef.current) {
+            setCurrentTime(audioRef.current.currentTime);
+        }
+    };
+
+    const handleAudioEnd = () => {
+        setIsPlaying(false);
+        setCurrentTime(0);
+    };
+
+    const handlePlay = () => {
+        setIsPlaying(true);
+    };
+
+    const handlePause = () => {
+        setIsPlaying(false);
+    };
+
+    const handleMuteToggle = () => {
+        if (audioRef.current) {
+            const newMutedState = !isMuted;
+            setIsMuted(newMutedState);
+            audioRef.current.muted = newMutedState;
+        }
+    };
 
     // Lyrics generation
     const {
@@ -420,7 +432,7 @@ const StudioContent = () => {
         try {
             await musicGeneration.handleGenerate(
                 refreshCredits, 
-                undefined, // 不再需要 setIsPlaying，独立播放器会自己管理
+                setIsPlaying, 
                 () => setGenerationConfirmOpen(true) // API成功后立即显示确认弹窗
             );
             return true;
@@ -474,13 +486,12 @@ const StudioContent = () => {
         }
         
         setSelectedStudioTrack(selectedTrack);
-        // 使用独立播放器播放
-        playTrackById(track.id);
+        setCurrentPlayingTrack(selectedTrack);
         
         // 只播放歌曲，不自动展开歌词面板
         
         playAudioWithDelay(selectedTrack.audioUrl);
-    }, [createUserTrackObject, currentPlayingTrack, togglePlayPause, playTrackById, playAudioWithDelay]);
+    }, [createUserTrackObject, currentPlayingTrack, togglePlayPause, playAudioWithDelay]);
 
     // 歌曲播放处理（点击播放按钮）
     const handleUserTrackPlay = React.useCallback((track: any, music: any) => {
@@ -490,16 +501,15 @@ const StudioContent = () => {
         if (currentPlayingTrack?.id === track.id) {
             togglePlayPause();
         } else {
-            // 使用独立播放器播放
-            playTrackById(track.id);
-            
             const playingTrack = createUserTrackObject(track, music);
+            setCurrentPlayingTrack(playingTrack);
             setSelectedStudioTrack(playingTrack);
             
             // 只播放歌曲，不自动展开歌词面板
+
             playAudioWithDelay(playingTrack.audioUrl);
         }
-    }, [currentPlayingTrack, togglePlayPause, playTrackById, createUserTrackObject, playAudioWithDelay]);
+    }, [currentPlayingTrack, togglePlayPause, createUserTrackObject, playAudioWithDelay]);
 
     // 处理生成的tracks选择/播放
     const handleGeneratedTrackSelect = React.useCallback((generatedTrack: any) => {
@@ -519,8 +529,7 @@ const StudioContent = () => {
             lyrics: generatedTrack.lyrics || '',
             isUsingStreamAudio: generatedTrack.isUsingStreamAudio || false
         };
-        // 使用 track ID 播放
-        playTrackById(generatedTrack.id);
+        setCurrentPlayingTrack(playingTrack);
 
         // 也可以设置为选中状态用于歌词显示
         const selectedTrack = {
@@ -584,10 +593,11 @@ const StudioContent = () => {
             // setShowLyrics(true);
 
             if (!currentPlayingTrack) {
-                // 使用 track ID 播放第一首生成的歌曲
-                if (firstGeneratedSong.id) {
-                    playTrackById(firstGeneratedSong.id);
-                }
+                const playingTrack = {
+                    ...generatedTrack,
+                    isUsingStreamAudio: firstGeneratedSong.isUsingStreamAudio || false
+                };
+                setCurrentPlayingTrack(playingTrack);
 
                 const audioUrl = firstGeneratedSong.audioUrl || firstGeneratedSong.streamAudioUrl;
                 if (audioRef.current && audioUrl) {
@@ -599,30 +609,41 @@ const StudioContent = () => {
         }
     }, [allGeneratedTracks, showLyrics, generatingTrack, currentPlayingTrack, selectedStudioTrack, playAudioWithDelay]);
 
-    // 监听complete回调完成，刷新user tracks列表
+    // 监听complete回调完成，更新currentPlayingTrack的duration
     React.useEffect(() => {
-        if (allGeneratedTracks.length === 0) return;
-        
-        // 检查是否所有tracks都已完成
-        const allCompleted = allGeneratedTracks.every(track => track.isCompleted);
-        
-        if (allCompleted) {
-            console.log('All tracks completed, refreshing user tracks list...');
-            
-            // 延迟刷新，确保数据库已更新
-            const timeoutId = setTimeout(() => {
-                fetchUserTracks();
-                
-                // 等待更长时间确保 userTracks 更新完成
-                setTimeout(() => {
-                    console.log('Clearing generated tracks after userTracks refresh');
-                    setAllGeneratedTracks([]);
-                }, 3000); // 给足够时间让 userTracks 更新
-            }, 2000); // 增加延迟确保数据库更新完成
+        if (allGeneratedTracks.length === 0 || !currentPlayingTrack) return;
+        const firstGeneratedSong = allGeneratedTracks[0];
 
-            return () => clearTimeout(timeoutId);
-        }
-    }, [allGeneratedTracks, fetchUserTracks, setAllGeneratedTracks]);
+        const isCompleteCallbackComplete = !!firstGeneratedSong.audioUrl &&
+                                           !!firstGeneratedSong.duration &&
+                                           firstGeneratedSong.duration > 0 &&
+                                           !firstGeneratedSong.isGenerating;
+
+        // 幂等性保护：仅当正在使用流式音频或时长不同才更新，避免重复 setState
+        const needsUpdate =
+            isCompleteCallbackComplete &&
+            currentPlayingTrack.id === firstGeneratedSong.id &&
+            (currentPlayingTrack.isUsingStreamAudio || (firstGeneratedSong.duration !== duration));
+
+        if (!needsUpdate) return;
+
+        const finalDuration = firstGeneratedSong.duration!;
+        setDuration(finalDuration);
+        setCurrentPlayingTrack((prev: any) => ({
+            ...prev,
+            duration: finalDuration,
+            isUsingStreamAudio: false
+        }));
+
+        // 使用 ref 存储 timeout，组件卸载时清理
+        const timeoutId = setTimeout(() => {
+            fetchUserTracks();
+            // 只有在确实非空时才清空，避免无意义的重复 state 更新
+            setAllGeneratedTracks([]);
+        }, 1000);
+
+        return () => clearTimeout(timeoutId);
+    }, [allGeneratedTracks, currentPlayingTrack, duration, fetchUserTracks, setAllGeneratedTracks]);
 
     // 监听封面图生成完成，替换磁带占位图
     React.useEffect(() => {
@@ -647,8 +668,15 @@ const StudioContent = () => {
         setSelectedStudioTrack(updatedTrack);
         setGeneratingTrack(null);
 
-        // 独立播放器会自动从数据库获取最新的封面信息，不需要手动更新
-    }, [allGeneratedTracks, generatingTrack]);
+        // 只在播放中且 ID 匹配时才更新封面
+        if (currentPlayingTrack?.id === generatingTrack.id && 
+            currentPlayingTrack.coverImage !== firstGeneratedSong.coverImage) {
+            setCurrentPlayingTrack((prev: any) => ({
+                ...prev,
+                coverImage: firstGeneratedSong.coverImage
+            }));
+        }
+    }, [allGeneratedTracks, generatingTrack, currentPlayingTrack]);
 
     // Favorite handlers
     const handleFavoriteToggle = async (track: any) => {
@@ -797,7 +825,8 @@ const StudioContent = () => {
                 // If the deleted track is currently playing, stop playback
                 if (currentPlayingTrack?.id === trackToDelete.id ||
                     currentPlayingTrack?.generationId === trackToDelete.generationId) {
-                    // 独立播放器会自动处理停止播放
+                    setCurrentPlayingTrack(null);
+                    setIsPlaying(false);
                     if (audioRef.current) {
                         audioRef.current.pause();
                         audioRef.current.src = '';
@@ -1024,7 +1053,7 @@ const StudioContent = () => {
                                     onVolumeChange={(newVolume) => {
                                         changeVolume(newVolume);
                                     }}
-                                    onMuteToggle={toggleMute}
+                                    onMuteToggle={handleMuteToggle}
                                     hideProgress={showLyrics}
                                     onTrackChange={(index) => {
                                         const selectedTrack = allTracks[index];
@@ -1032,7 +1061,6 @@ const StudioContent = () => {
                                             switchToTrack(selectedTrack);
                                         }
                                     }}
-                                    playTrackById={playTrackById}
                                     onTrackInfoClick={() => {
                                         setShowLyrics(!showLyrics);
                                     }}
@@ -1302,7 +1330,7 @@ const StudioContent = () => {
                         onVolumeChange={(newVolume) => {
                             changeVolume(newVolume);
                         }}
-                        onMuteToggle={toggleMute}
+                        onMuteToggle={handleMuteToggle}
                         hideProgress={showLyrics}
                         onTrackChange={(index) => {
                             const selectedTrack = allTracks[index];
@@ -1310,7 +1338,6 @@ const StudioContent = () => {
                                 switchToTrack(selectedTrack);
                             }
                         }}
-                        playTrackById={playTrackById}
                         onTrackInfoClick={() => {
                             setShowLyrics(!showLyrics);
                         }}
@@ -1332,10 +1359,14 @@ const StudioContent = () => {
                     </div>
                 )}
 
-                {/* Audio element - 独立播放器会自己管理音频元素 */}
                 <audio
                     ref={audioRef}
                     src={currentPlayingTrack?.audioUrl || ''}
+                    onLoadedMetadata={handleAudioLoad}
+                    onTimeUpdate={handleTimeUpdate}
+                    onEnded={handleAudioEnd}
+                    onPlay={handlePlay}
+                    onPause={handlePause}
                     preload="metadata"
                 />
 

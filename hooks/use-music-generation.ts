@@ -29,7 +29,6 @@ interface TrackData {
   errorMessage?: string;
   originalPrompt?: string;
   createdAt?: string;
-  isCompleted?: boolean;
   vibe?: string;
   generationId?: string;
   is_favorited?: boolean;
@@ -327,8 +326,7 @@ export const useMusicGeneration = () => {
             audioUrl: correspondingTrack.audioUrl,
             duration: correspondingTrack.duration,
             isUsingStreamAudio: false,
-            coverImage: correspondingTrack.coverImage || t.coverImage, // 保留封面数据
-            createdAt: t.createdAt || correspondingTrack.createdAt // 保留创建时间
+            coverImage: correspondingTrack.coverImage || t.coverImage // 保留封面数据
           };
         }
         return t;
@@ -362,9 +360,7 @@ export const useMusicGeneration = () => {
             audioUrl: correspondingTrack.audioUrl,
             duration: correspondingTrack.duration,
             isUsingStreamAudio: false,
-            coverImage: correspondingTrack.coverImage || t.coverImage, // 保留封面数据
-            createdAt: t.createdAt || correspondingTrack.createdAt, // 保留创建时间
-            isCompleted: true // 标记为已完成
+            coverImage: correspondingTrack.coverImage || t.coverImage // 保留封面数据
           };
         }
         return {...t, isLoading: false, isStreaming: false, isGenerating: false, isUsingStreamAudio: false};
