@@ -144,7 +144,6 @@ export async function getUserPinnedTracks(userId: string, limit: number = 50, of
         mt.id,
         mt.audio_url,
         mt.duration,
-        mt.side_letter,
         mt.created_at,
         mt.updated_at,
         mt.is_pinned,

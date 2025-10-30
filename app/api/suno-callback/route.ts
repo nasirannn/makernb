@@ -52,42 +52,25 @@ async function retryDatabaseOperation(
 // Handle Suno API callbacks
 export async function POST(request: NextRequest) {
   const startTime = Date.now();
-  const callbackId = `callback_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+  const callbackId = `callback_${Date.now()}_${Math.random().toString(36).substring(2, 11)}`;
 
-  console.log(`[CALLBACK-${callbackId}] Suno callback received at ${new Date().toISOString()}`);
+  console.log(`[CALLBACK-${callbackId}] Suno callback received`);
 
   try {
     // 1. Fast response - must return response within 15 seconds
     const callbackData = await request.json();
-    console.log(`[CALLBACK-${callbackId}] Callback data parsed:`, {
-      code: callbackData.code,
-      msg: callbackData.msg,
-      taskId: callbackData.data?.task_id,
-      callbackType: callbackData.data?.callbackType,
-      hasData: !!callbackData.data?.data,
-      dataLength: callbackData.data?.data?.length || 0
-    });
-
-
-    // 2. Verify callback source legitimacy (optional - implement as needed)
-    // const isValidSource = await verifyCallbackSource(request);
-    // if (!isValidSource) {
-    //   return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    // }
-
-    const { code, msg, data } = callbackData;
+    const { code, data } = callbackData;
     const taskId = data?.task_id;
 
-    console.log(`[CALLBACK-${callbackId}] Processing callback for taskId: ${taskId}, code: ${code}`);
+    console.log(`[CALLBACK-${callbackId}] Processing callback: ${taskId}, code: ${code}`);
 
     // 3. Idempotency handling - avoid duplicate processing of same callback
     // 使用 callbackType 来区分不同的回调类型，避免相同 code 的冲突
     const callbackType = data?.callbackType;
     const taskKey = `${taskId}_${callbackType || 'unknown'}_${code}`;
-    console.log(`[CALLBACK-${callbackId}] Checking idempotency with taskKey: ${taskKey}`);
 
     if (processedTasks.has(taskKey)) {
-      console.log(`[CALLBACK-${callbackId}] Callback already processed, returning early`);
+      console.log(`[CALLBACK-${callbackId}] Already processed`);
       return NextResponse.json({
         success: true,
         message: 'Already processed',
@@ -104,18 +87,9 @@ export async function POST(request: NextRequest) {
         track.audio_url && track.audio_url.trim() !== ''
       );
 
-      console.log(`[CALLBACK-${callbackId}] Audio readiness check:`, {
-        trackCount: tracks.length,
-        allAudioReady,
-        trackAudioStatus: tracks.map((t: any, i: number) => ({
-          trackIndex: i,
-          hasAudioUrl: !!t.audio_url,
-          audioUrl: t.audio_url?.substring(0, 50) + '...'
-        }))
-      });
 
       if (allAudioReady && processedTasks.has(`${taskId}_completed`)) {
-        console.log(`[CALLBACK-${callbackId}] Complete callback already processed`);
+        console.log(`[CALLBACK-${callbackId}] Already completed`);
         return NextResponse.json({
           success: true,
           message: 'Already completed',
@@ -127,7 +101,6 @@ export async function POST(request: NextRequest) {
 
     // Mark as processed
     processedTasks.add(taskKey);
-    console.log(`[CALLBACK-${callbackId}] Marked taskKey as processed: ${taskKey}`);
 
     // 4. Return success response immediately to avoid blocking (符合官方示例格式)
     const response = NextResponse.json({
@@ -140,14 +113,9 @@ export async function POST(request: NextRequest) {
     response.headers.set('Access-Control-Allow-Headers', 'Content-Type, Authorization');
 
     // 6. Process complex logic asynchronously to avoid blocking callback response
-    console.log(`[CALLBACK-${callbackId}] Scheduling async processing for taskId: ${taskId}`);
     setImmediate(() => {
       processCallbackAsync(callbackData, callbackId);
     });
-
-    // Log processing time to ensure it's within 15 seconds
-    const processingTime = Date.now() - startTime;
-    console.log(`[CALLBACK-${callbackId}] Response sent in ${processingTime}ms`);
 
     return response;
 
@@ -191,195 +159,129 @@ export async function OPTIONS(request: NextRequest) {
  */
 async function processCallbackAsync(callbackData: any, callbackId: string) {
   const asyncStartTime = Date.now();
-  console.log(`[CALLBACK-${callbackId}] Starting async processing at ${new Date().toISOString()}`);
+  console.log(`[CALLBACK-${callbackId}] Starting async processing`);
 
   try {
     // 1. 解析回调数据
     const { code, data } = callbackData;
     const taskId = data?.task_id; //音乐生成任务ID
 
-    console.log(`[CALLBACK-${callbackId}] Parsed callback data:`, {
-      code,
-      taskId,
-      callbackType: data?.callbackType,
-      hasData: !!data?.data
-    });
-
-
     // 2. 识别回调类型并处理
     let callbackType = data?.callbackType;
-    console.log(`[CALLBACK-${callbackId}] Processing callbackType: ${callbackType}`);
 
     if (code === 200 && data?.data) {
       // 音乐数据直接在 data.data 数组中
       const tracks = data.data;
-      console.log(`[CALLBACK-${callbackId}] Processing ${tracks.length} tracks for code 200`);
+      console.log(`[CALLBACK-${callbackId}] Processing ${tracks.length} tracks`);
 
       // 4. 根据不同的回调类型处理
       if (callbackType === 'text') {
-        console.log(`[CALLBACK-${callbackId}] Processing TEXT callback`);
+        console.log(`[CALLBACK-${callbackId}] TEXT callback`);
 
         // 4.1 text回调：只存储数据到数据库
-        console.log(`[CALLBACK-${callbackId}] Processing text callback database operations`);
-
         // 使用第一个track的元数据更新数据库（除了audio_url以外的所有值）
-        const firstTrack = tracks[0];
-        console.log(`[CALLBACK-${callbackId}] First track metadata:`, {
-          id: firstTrack.id,
-          title: firstTrack.title,
-          hasPrompt: !!firstTrack.prompt,
-          hasTags: !!firstTrack.tags,
-          hasImageUrl: !!firstTrack.image_url,
-          imageUrl: firstTrack.image_url ? firstTrack.image_url.substring(0, 100) + '...' : null
-        });
+        const primaryTrack = tracks[0];
 
         // 4.1.1 更新音乐生成记录的元数据
-        // style 仅使用接口返回的 tags；如果没有 tags 则不更新 style 字段
-        const styleFromTags = (firstTrack.tags && firstTrack.tags.trim() !== '') ? firstTrack.tags : undefined;
+        const styleFromTags = primaryTrack.tags;
         
-        // 保存音乐接口的图片URL作为兜底
-        const musicImageUrl = firstTrack.image_url || null;
-
-        // 提取标题 - 优先使用track.title，如果没有则尝试从歌词内容中提取
-        let extractedTitle = firstTrack.title;
-        if (!extractedTitle || extractedTitle.trim() === '') {
-          // 尝试从歌词内容中提取标题（通常在第一行或者[Title]标签中）
-          const lyricsContent = firstTrack.prompt;
-          if (lyricsContent) {
-            // 查找 [Title: xxx] 或 [title: xxx] 格式
-            const titleMatch = lyricsContent.match(/\[title:\s*([^\]]+)\]/i);
-            if (titleMatch) {
-              extractedTitle = titleMatch[1].trim();
-            } else {
-              // 查找第一行非空行作为标题（如果不是verse/chorus等标签）
-              const lines = lyricsContent.split('\n').map((line: string) => line.trim()).filter((line: string) => line);
-              const firstLine = lines[0];
-              if (firstLine && !firstLine.match(/^\[(verse|chorus|bridge|pre-?chorus|outro|intro)/i)) {
-                extractedTitle = firstLine.replace(/^\[|\]$/g, ''); // 移除可能的方括号
-              }
-            }
-          }
-        }
+        // 使用接口返回的标题，如果没有则使用默认值
+        const extractedTitle = primaryTrack.title || 'Untitled';
 
         // 构建更新对象，只包含有值的字段
         const updateData: any = {
           status: 'text' // text回调已完成，文本信息已生成
         };
 
-        // 只有当title有值时才更新
-        if (extractedTitle && extractedTitle.trim() !== '') {
-          updateData.title = extractedTitle.trim();
-        }
-        // 只有当tags有值时才更新 style
-        if (styleFromTags) {
-          updateData.tags = styleFromTags;
-        }
+        // 更新标题和tags
+        updateData.title = extractedTitle;
+        updateData.tags = styleFromTags;
 
         try {
-          console.log(`[CALLBACK-${callbackId}] Updating music generation record with extracted title: ${extractedTitle}`);
+          // 实际执行数据库更新操作
           await updateMusicGenerationByTaskId(taskId, updateData);
-          console.log(`[CALLBACK-${callbackId}] Music generation record updated successfully`);
+          console.log(`[CALLBACK-${callbackId}] Updated music record with title and tags`);
         } catch (dbError) {
           console.error(`[CALLBACK-${callbackId}] Failed to update music generation record with text data:`, dbError);
         }
 
-        // 4.1.2 存储歌词到lyrics表（音乐生成中的歌词）
-        // 歌词可能在多个字段中，按优先级检查
-        const lyricsContent = firstTrack.prompt;
-
-        if (lyricsContent && lyricsContent.trim() !== '') {
-          try {
-            // 获取music_id
-            const musicGenQuery = await query(
-              'SELECT id FROM music WHERE task_id = $1',
-              [taskId]
-            );
-
-            if (musicGenQuery.rows.length > 0) {
-              const musicGenerationId = musicGenQuery.rows[0].id;
-
-              // 创建音乐歌词记录 - 使用提取的标题
-              const lyricsTitle = extractedTitle || 'Generated Lyrics';
-              const lyricsRecord = await query(
-                `INSERT INTO lyrics (music_id, title, content)
-                 VALUES ($1, $2, $3)
-                 RETURNING *`,
-                [musicGenerationId, lyricsTitle, lyricsContent]
-              );
-            } else {
-            }
-
-          } catch (lyricsError) {
-            console.error('Failed to create music lyrics record:', lyricsError);
-          }
-        } else {
-        }
+        // 4.1.2 获取music_id
+        const musicGenQuery = await query(
+          'SELECT id FROM music WHERE task_id = $1',
+          [taskId]
+        );
         
-        // 4.1.3 更新已存在的tracks记录（tracks已在音乐生成API中创建）
-        try {
-          const musicGenQuery = await query(
-            'SELECT id FROM music WHERE task_id = $1',
-            [taskId]
-          );
+        if (musicGenQuery.rows.length > 0) {
+          const musicGenerationId = musicGenQuery.rows[0].id;
+
+          // 4.1.3 存储歌词到lyrics表
+          const lyricsContent = primaryTrack.prompt;
+          if (lyricsContent && lyricsContent.trim() !== '') {
+            try {
+              await query(
+                `INSERT INTO lyrics (music_id, title, content)
+                 VALUES ($1, $2, $3)`,
+                [musicGenerationId, extractedTitle, lyricsContent]
+              );
+            } catch (lyricsError) {
+              console.error('Failed to create music lyrics record:', lyricsError);
+            }
+          }
           
-          if (musicGenQuery.rows.length > 0) {
-            const musicGenerationId = musicGenQuery.rows[0].id;
-            
-            // 获取已存在的tracks记录，按side_letter排序
+          // 4.1.4 更新已存在的tracks记录
+          try {
+            // 获取已存在的tracks记录
             const existingTracksQuery = await query(
-              'SELECT id, side_letter FROM tracks WHERE music_id = $1 ORDER BY side_letter ASC',
+              'SELECT id FROM tracks WHERE music_id = $1 AND suno_track_id IS NULL ORDER BY id ASC',
               [musicGenerationId]
             );
-            
+
             if (existingTracksQuery.rows.length > 0) {
-              console.log(`[CALLBACK-${callbackId}] Found ${existingTracksQuery.rows.length} existing tracks records, updating with text data`);
-              
-              // 更新已存在的track记录
+              // 依次更新tracks，每个API返回的track对应一个数据库record
               for (let i = 0; i < Math.min(tracks.length, existingTracksQuery.rows.length); i++) {
                 const track = tracks[i];
                 const existingTrack = existingTracksQuery.rows[i];
-                
-                // 使用更安全的更新方式，避免覆盖cover_image_url
+
+                console.log(`[CALLBACK-${callbackId}] Updating track ${i + 1} with suno_track_id ${track.id}`);
+
+                // text回调：将stream_audio_url和title存储到tracks表
                 await query(
-                  `UPDATE tracks SET 
+                  `UPDATE tracks SET
                     suno_track_id = $1,
                     stream_audio_url = $2,
+                    title = $3,
                     updated_at = NOW()
-                  WHERE id = $3
-                  AND suno_track_id IS NULL`,
+                  WHERE id = $4`,
                   [
                     track.id,
                     track.stream_audio_url,
+                    track.title || extractedTitle, // 使用接口返回的track标题，如果没有则使用主标题
                     existingTrack.id
                   ]
                 );
               }
-              
-              console.log(`[CALLBACK-${callbackId}] Successfully updated ${Math.min(tracks.length, existingTracksQuery.rows.length)} tracks records`);
             } else {
               console.error(`[CALLBACK-${callbackId}] No existing tracks found for music_id: ${musicGenerationId}`);
             }
+          } catch (tracksError) {
+            console.error('Failed to update tracks records in text callback:', tracksError);
           }
-        } catch (tracksError) {
-          console.error('Failed to update tracks records in text callback:', tracksError);
         }
 
-        // 4.1.4 封面生成已在音乐生成API中立即启动，text回调不再需要调用
-        console.log(`[CALLBACK-${callbackId}] Cover generation already started in music generation API, skipping in text callback`);
+        // 4.1.5 封面生成已在音乐生成API中立即启动，text回调不再需要调用
 
         return; // 直接返回，不处理其他逻辑
         
       } else if (callbackType === 'first') {
         // 4.2 first回调：将 audio_url 持久化到 R2，并更新数据库对应表字段
-        console.log(`[CALLBACK-${callbackId}] Processing FIRST callback`);
+        console.log(`[CALLBACK-${callbackId}] FIRST callback`);
         try {
 
           // 仅处理带有 audio_url 的条目
           const tracksWithAudio = tracks.filter((t: any) => t.audio_url && t.audio_url.trim() !== '');
-          console.log(`[CALLBACK-${callbackId}] Tracks with audio: ${tracksWithAudio.length}/${tracks.length}`);
 
           if (tracksWithAudio.length === 0) {
-            console.log(`[CALLBACK-${callbackId}] No tracks with audio found, returning early`);
+            console.log(`[CALLBACK-${callbackId}] No audio tracks`);
             return;
           }
           // 查询 userId
@@ -389,7 +291,9 @@ async function processCallbackAsync(callbackData: any, callbackId: string) {
               'SELECT user_id FROM music WHERE task_id = $1',
               [taskId]
             );
-            finalUserId = userQuery.rows[0]?.user_id || 'anonymous';
+            if (userQuery.rows.length > 0) {
+              finalUserId = userQuery.rows[0].user_id;
+            }
           } catch (dbErr) {
             console.error('Failed to query userId for first callback, fallback to anonymous:', dbErr);
           }
@@ -418,43 +322,36 @@ async function processCallbackAsync(callbackData: any, callbackId: string) {
             return;
           }
 
+          // First回调：只更新duration，不处理audio_url
           for (let i = 0; i < tracksWithAudio.length; i++) {
             const track = tracksWithAudio[i];
-            const currentSideLetter: 'A' | 'B' = i === 0 ? 'A' : 'B';
 
             try {
-              // 下载音频并上传到 R2
-              const audioUrl = track.audio_url;
-              const audioBuffer = await downloadFromUrl(audioUrl);
-
-              const filename = `${finalTitle}_${i + 1}.mp3`;
-              const audioR2Url = await uploadAudioFile(audioBuffer, taskId, filename, finalUserId || 'anonymous');
-
-              // 查找并更新对应的 track 记录（按 side_letter 匹配）
+              // 查找对应的 track 记录（使用 suno_track_id 匹配）
               const existingTrackQuery = await query(
-                'SELECT id FROM tracks WHERE music_id = $1 AND side_letter = $2 ORDER BY created_at ASC LIMIT 1',
-                [musicGenerationId, currentSideLetter]
+                'SELECT id FROM tracks WHERE music_id = $1 AND suno_track_id = $2',
+                [musicGenerationId, track.id]
               );
 
               if (existingTrackQuery.rows.length > 0) {
                 const existingTrackId = existingTrackQuery.rows[0].id;
+                // 只更新duration，不处理audio_url（统一在complete回调处理）
                 await query(
                   `UPDATE tracks SET
-                    audio_url = $1,
-                    duration = $2,
+                    duration = $1,
                     updated_at = NOW()
-                  WHERE id = $3`,
+                  WHERE id = $2`,
                   [
-                    audioR2Url || null,
                     track.duration || null,
                     existingTrackId
                   ]
                 );
+                console.log(`[CALLBACK-${callbackId}] First: Updated duration for track ${i + 1}: ${track.duration}`);
               } else {
-                console.error(`First callback: no existing track found for side ${currentSideLetter}, this should not happen`);
+                console.error(`[CALLBACK-${callbackId}] First callback: no existing track found for suno_track_id ${track.id}, this should not happen`);
               }
-            } catch (audioErr) {
-              console.error(`Failed to persist audio for side ${currentSideLetter} in first callback:`, audioErr);
+            } catch (err) {
+              console.error(`Failed to update duration for track ${track.id} in first callback:`, err);
             }
           }
           
@@ -463,7 +360,6 @@ async function processCallbackAsync(callbackData: any, callbackId: string) {
             await updateMusicGenerationByTaskId(taskId, {
               status: 'first'
             });
-            console.log(`[CALLBACK-${callbackId}] Successfully updated status to 'first' for taskId: ${taskId}`);
           }, 3, callbackId, 'update status to first');
           
         } catch (err) {
@@ -473,22 +369,15 @@ async function processCallbackAsync(callbackData: any, callbackId: string) {
 
       } else if (callbackType === 'complete') {
         // 4.3 complete回调：处理最终音频文件上传到R2
-        console.log(`[CALLBACK-${callbackId}] Processing COMPLETE callback`);
-
+        console.log(`[CALLBACK-${callbackId}] COMPLETE callback`);
 
         // 检查音频准备状态
         const audioReady = tracks.every((track: any) =>
           track.audio_url && track.audio_url.trim() !== ''
         );
 
-        console.log(`[CALLBACK-${callbackId}] Audio readiness check for complete callback:`, {
-          audioReady,
-          trackCount: tracks.length,
-          tracksWithAudio: tracks.filter((t: any) => t.audio_url && t.audio_url.trim() !== '').length
-        });
-
         if (!audioReady) {
-          console.log(`[CALLBACK-${callbackId}] Audio not ready for complete callback, returning early`);
+          console.log(`[CALLBACK-${callbackId}] Audio not ready`);
           return;
         }
         // 获取用户ID和标题信息
@@ -505,9 +394,9 @@ async function processCallbackAsync(callbackData: any, callbackId: string) {
           return;
         }
         
-        // 获取已存在的tracks记录，按side_letter排序
+        // 获取已存在的tracks记录
         const existingTracksQuery = await query(
-          'SELECT id, side_letter FROM tracks WHERE music_id = $1 ORDER BY side_letter ASC',
+          'SELECT id, duration FROM tracks WHERE music_id = $1 ORDER BY id ASC',
           [musicGenerationId]
         );
         const existingTracks = existingTracksQuery.rows;
@@ -517,24 +406,24 @@ async function processCallbackAsync(callbackData: any, callbackId: string) {
           return;
         }
         
-        // 处理每个track的音频文件
+        // Complete回调：统一处理所有音频文件上传到R2
         for (let i = 0; i < tracks.length; i++) {
           const track = tracks[i];
           const existingTrack = existingTracks[i];
-          const currentSideLetter = existingTrack.side_letter;
           
           try {
-            // 下载音频文件到R2
-            let audioR2Url = null;
-            // 优先使用 source_audio_url，如果没有则使用 audio_url
-            const audioUrl = track.source_audio_url || track.audio_url;
+            // 使用 audio_url
+            const audioUrl = track.audio_url;
 
             if (audioUrl && audioUrl.trim() !== '') {
+              // 下载音频文件到R2（统一在complete回调处理）
               const audioBuffer = await downloadFromUrl(audioUrl);
               const filename = `${finalTitle}_${i + 1}.mp3`;
-              audioR2Url = await uploadAudioFile(audioBuffer, taskId, filename, finalUserId);
+              const audioR2Url = await uploadAudioFile(audioBuffer, taskId, filename, finalUserId || 'anonymous');
               
-              // 只有音频处理成功才更新数据库
+              console.log(`[CALLBACK-${callbackId}] Complete: Uploaded audio for track ${i + 1} to R2: ${audioR2Url}`);
+              
+              // 更新数据库（包含audio_url和duration）
               await query(
                 `UPDATE tracks SET 
                   audio_url = $1,
@@ -546,26 +435,24 @@ async function processCallbackAsync(callbackData: any, callbackId: string) {
                   track.duration || null,
                   existingTrack.id
                 ]
-              );         
+              );
             } else {
+              console.warn(`[CALLBACK-${callbackId}] Complete: No audio URL for track ${i + 1}`);
             }
           } catch (error) {
-            console.error(`Failed to process track ${i + 1}:`, error);
+            console.error(`[CALLBACK-${callbackId}] Failed to process track ${i + 1}:`, error);
             // 音频处理失败，不更新数据库
           }
         }
         
         // 更新music状态为complete (带重试机制)
-        console.log(`[CALLBACK-${callbackId}] Updating music generation status to complete`);
         await retryDatabaseOperation(async () => {
           await updateMusicGenerationByTaskId(taskId, {
             status: 'complete'
           });
-          console.log(`[CALLBACK-${callbackId}] Music generation status updated to complete successfully`);
         }, 5, callbackId, 'update status to complete'); // complete 回调使用 5 次重试
         
         // 音乐生成完成后，备份封面图片到R2（兜底机制，cover-callback可能已经处理过）
-        console.log(`[CALLBACK-${callbackId}] Music generation complete, starting cover image backup to R2 (fallback)`);
         try {
           // 查询需要备份的封面图片（使用新的cover_image_url字段）
           const coverImagesQuery = await query(
@@ -580,11 +467,9 @@ async function processCallbackAsync(callbackData: any, callbackId: string) {
           );
           
           if (coverImagesQuery.rows.length > 0) {
-            console.log(`[CALLBACK-${callbackId}] Found ${coverImagesQuery.rows.length} cover images to backup to R2`);
             
             for (const track of coverImagesQuery.rows) {
               try {
-                console.log(`[CALLBACK-${callbackId}] Starting backup for track: ${track.id}`);
                 
                 const imageBuffer = await downloadFromUrl(track.cover_image_url);
                 const filename = `cover_backup_${Date.now()}_${track.id}.jpeg`;
@@ -602,16 +487,11 @@ async function processCallbackAsync(callbackData: any, callbackId: string) {
                   [r2ImageUrl, track.id]
                 );
                 
-                console.log(`[CALLBACK-${callbackId}] Successfully backed up cover image for track ${track.id} to R2: ${r2ImageUrl}`);
               } catch (imageError) {
                 console.error(`[CALLBACK-${callbackId}] Failed to backup cover image for track ${track.id}:`, imageError);
                 // 备份失败不影响主流程，前端仍可使用临时URL
               }
             }
-            
-            console.log(`[CALLBACK-${callbackId}] Cover image backup process completed`);
-          } else {
-            console.log(`[CALLBACK-${callbackId}] No cover images found for backup`);
           }
         } catch (backupError) {
           console.error(`[CALLBACK-${callbackId}] Error during cover image backup:`, backupError);
@@ -620,12 +500,12 @@ async function processCallbackAsync(callbackData: any, callbackId: string) {
         
         return;
       } else {
-        console.log(`[CALLBACK-${callbackId}] Unknown or unhandled callback type: ${callbackType}`);
+        console.log(`[CALLBACK-${callbackId}] Unknown callback type: ${callbackType}`);
       }
       
     } else if (code !== 200) {
       // 5. 处理失败的回调
-      console.log(`[CALLBACK-${callbackId}] Processing FAILED callback with code: ${code}, message: ${callbackData.msg}`);
+      console.log(`[CALLBACK-${callbackId}] FAILED callback: ${code}`);
 
       try {
         // 获取音乐生成记录信息
@@ -638,18 +518,12 @@ async function processCallbackAsync(callbackData: any, callbackId: string) {
           const musicGeneration = musicGenQuery.rows[0];
           const { msg } = callbackData;
 
-          console.log(`[CALLBACK-${callbackId}] Found music generation record for failed callback:`, {
-            generationId: musicGeneration.id,
-            userId: musicGeneration.user_id,
-            hasPrompt: !!musicGeneration.prompt
-          });
 
           // 更新音乐生成状态为错误
           await updateMusicGenerationByTaskId(taskId, {
             status: 'error',
             title: musicGeneration.prompt || 'Unknown' // 使用用户输入的prompt作为标题
           });
-          console.log(`[CALLBACK-${callbackId}] Updated music generation status to error`);
 
           // 创建错误记录
           await createGenerationError(
@@ -658,7 +532,6 @@ async function processCallbackAsync(callbackData: any, callbackId: string) {
             msg || `Music generation failed with code ${code}`,
             `API_ERROR_${code}`
           );
-          console.log(`[CALLBACK-${callbackId}] Created error record for failed generation`);
 
           // 退还积分 - 因为用户没有得到任何音乐结果
           try {
@@ -688,7 +561,6 @@ async function processCallbackAsync(callbackData: any, callbackId: string) {
             );
 
             if (refundSuccess) {
-              console.log(`[CALLBACK-${callbackId}] Credits refunded successfully: ${creditCost} credits to user ${musicGeneration.user_id}`);
             } else {
               console.error(`[CALLBACK-${callbackId}] Failed to refund credits for failed music generation: ${musicGeneration.id}`);
             }
@@ -703,13 +575,10 @@ async function processCallbackAsync(callbackData: any, callbackId: string) {
       } catch (error) {
         console.error(`[CALLBACK-${callbackId}] Failed to process error callback:`, error);
       }
-    } else {
-      console.log(`[CALLBACK-${callbackId}] Unhandled callback condition - code: ${code}, hasData: ${!!data?.data}`);
     }
 
     // Log completion of async processing
     const asyncProcessingTime = Date.now() - asyncStartTime;
-    console.log(`[CALLBACK-${callbackId}] Async processing completed in ${asyncProcessingTime}ms`);
 
   } catch (error) {
     console.error(`[CALLBACK-${callbackId}] Async callback processing failed:`, error);

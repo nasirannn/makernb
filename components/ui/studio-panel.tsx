@@ -4,6 +4,7 @@ import React from "react";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
+import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Music, RotateCcw, ChevronRight, ChevronDown, Wand2, Play, Pause, X, Sparkles } from "lucide-react";
@@ -62,7 +63,6 @@ interface StudioPanelProps {
   
   // Generation
   isGenerating: boolean;
-  pendingTasksCount: number;
   onGenerationStart?: () => void;
   onGenerateLyrics?: () => void;
   // 新增：在移动端强制可见（用于移动端Tab中的创作页）
@@ -80,10 +80,6 @@ export const StudioPanel = (props: StudioPanelProps) => {
   const {
     panelOpen,
     forceVisibleOnMobile = false,
-    onCollapseToTracks,
-    onCollapse,
-    // AuthModal相关
-    isAuthModalOpen = false,
     setIsAuthModalOpen,
     mode,
     setMode,
@@ -117,7 +113,6 @@ export const StudioPanel = (props: StudioPanelProps) => {
     bpmMode,
     setBpmMode,
     isGenerating,
-    pendingTasksCount,
     onGenerationStart,
     onGenerateLyrics,
   } = props;
@@ -135,31 +130,36 @@ export const StudioPanel = (props: StudioPanelProps) => {
   const [hoveredDrumKit, setHoveredDrumKit] = React.useState<string | null>(null);
   
   // Audio player hook
-  const { currentAudio, playingAudioId, playAudio } = useAudioPlayer();
+  const { playPreviewAudio } = useAudioPlayer();
 
-  // Function to update states based on textarea content
-  const handleUpdateStatesFromTextarea = (text: string) => {
-    updateStatesFromTextarea(text, {
-      setSelectedGenre,
-      setSelectedVibe,
-      setGrooveType,
-      setBpmMode,
-      setBpm,
-      setLeadInstrument,
-      setDrumKit,
-      setBassTone,
-      setHarmonyPalette
-    }, {
-      selectedGenre,
-      selectedVibe,
-      grooveType,
-      bpmMode,
-      leadInstrument,
-      drumKit,
-      bassTone,
-      harmonyPalette
-    });
-  };
+  // Function to update states based on textarea content with debouncing
+  const handleUpdateStatesFromTextarea = React.useCallback((text: string) => {
+    const timeoutId = setTimeout(() => {
+      updateStatesFromTextarea(text, {
+        setSelectedGenre,
+        setSelectedVibe,
+        setGrooveType,
+        setBpmMode,
+        setBpm,
+        setLeadInstrument,
+        setDrumKit,
+        setBassTone,
+        setHarmonyPalette
+      }, {
+        selectedGenre,
+        selectedVibe,
+        grooveType,
+        bpmMode,
+        leadInstrument,
+        drumKit,
+        bassTone,
+        harmonyPalette
+      });
+    }, 300); // 300ms debounce
+
+    return () => clearTimeout(timeoutId);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []); // 故意移除所有状态依赖，避免循环更新 - 函数内部已经有最新的状态引用
 
   // Handle generate button click with auth and credits check
   const handleGenerateWithAuth = () => {
@@ -191,99 +191,87 @@ export const StudioPanel = (props: StudioPanelProps) => {
   };
 
   return (
-    <div className={`transition-all duration-300 ease-in-out bg-muted/30 ${
+    <div className={`transition-all duration-300 ease-in-out bg-background/95 ${
       // 桌面：左侧固定宽度；移动端：当 forceVisibleOnMobile=true 时占满宽度
       panelOpen ? (forceVisibleOnMobile ? 'w-full md:w-[28rem]' : 'w-[28rem]') : 'w-0'
-    } h-full flex flex-col overflow-hidden ${forceVisibleOnMobile ? 'flex md:flex' : 'hidden md:flex'}`}>
+    } ${forceVisibleOnMobile ? 'flex flex-col' : 'h-full flex flex-col overflow-hidden'} ${forceVisibleOnMobile ? 'flex md:flex' : 'hidden md:flex'}`}>
       {panelOpen && (
         <>
-          {/* Header - Desktop only */}
-          <div className="flex-shrink-0 hidden md:block px-6 pt-6 pb-4 backdrop-blur-sm">
-            <div className="flex items-center justify-between gap-3 mb-4">
-              <div className="flex items-center gap-3">
-                <Music className="h-8 w-8 text-primary" />
-                <h1 className="text-4xl font-semibold">Studio</h1>
-              </div>
-            </div>
-          </div>
-
-          <div className="flex-1 overflow-y-auto px-4 md:px-6 pb-36 md:pb-6 pt-4 md:pt-0">
-            {/* Mode Tabs - Internal at top */}
-            <div className="mb-4 md:mb-6">
-                <div className="bg-muted/30 rounded-lg p-1">
+          {/* Header with Mode Tabs */}
+          <div className="flex-shrink-0 px-4 md:px-6 pt-4 md:pt-6 pb-4 backdrop-blur-sm">
+            <div className="flex items-center justify-between gap-2 md:gap-4">
+              {/* Mode Selector */}
+              <div className="bg-muted/30 rounded-xl p-1 flex-shrink-0">
                   <div className="grid grid-cols-2 gap-1">
                     <button
                       onClick={() => setMode("basic")}
-              title="Create random R&B songs with polished production in 90s style. Simple and fast setup."
-                      className={`py-2 px-3 md:px-4 text-sm font-medium transition-all duration-200 rounded-md ${mode === "basic"
+                      title="Create random R&B songs with polished production in 90s style. Simple and fast setup."
+                      className={`py-2 px-4 md:px-6 text-xs md:text-sm font-semibold tracking-tight transition-all duration-200 rounded-xl ${mode === "basic"
                           ? "bg-primary/20 border-transparent text-primary shadow-sm"
                           : "text-muted-foreground hover:text-foreground hover:bg-muted/50"
                         }`}
                     >
-                      Basic Mode
+                      Basic
                     </button>
                     <button
                       onClick={() => setMode("custom")}
                       title="Fine-tune every aspect of your track with detailed controls for genre, instruments, and style."
-                      className={`py-2 px-3 md:px-4 text-sm font-medium transition-all duration-200 rounded-md ${mode === "custom"
+                      className={`py-2 px-4 md:px-6 text-xs md:text-sm font-semibold tracking-tight transition-all duration-200 rounded-xl ${mode === "custom"
                           ? "bg-primary/20 border-transparent text-primary shadow-sm"
                           : "text-muted-foreground hover:text-foreground hover:bg-muted/50"
                         }`}
                     >
-                      Custom Mode
+                      Custom
                     </button>
                   </div>
                 </div>
+                
+              {/* Credits Display */}
+              <div className="flex items-center gap-1 md:gap-2 text-xs md:text-sm">
+                <div className="flex items-center gap-1 px-2 py-1 bg-muted/20 rounded-md">
+                  <span className="font-semibold text-primary">
+                    {mode === 'basic' ? '7' : '12'}
+                  </span>
+                  <span className="text-muted-foreground">credit per song</span>
+                </div>
               </div>
-      {/* Mode Content */}
+            </div>
+          </div>
+
+          {/* Main Content */}
+          <div className={`flex-1 ${forceVisibleOnMobile ? '' : 'overflow-y-auto'} px-4 md:px-6 ${forceVisibleOnMobile ? 'pb-20' : 'pb-6'} md:pb-6`}>
+            {/* Mode Content */}
       {mode === "basic" ? (
         <>
           {/* Basic Mode Content - 流式布局 */}
                 <div className="space-y-5 md:space-y-6">
-            {/* Basic Settings Section */}
-            <section className="pb-4 md:pb-4 border-b border-border/20">
-
-              {/* Instrumental Mode */}
-              <div className="space-y-3 md:space-y-4">
-                <div className="flex items-start py-3 md:py-3">
-                  <div className="flex-1">
-                    <div className="font-medium text-foreground">
-                      Instrumental
-                    </div>
-                    <div className="text-sm text-muted-foreground mt-1">
-                      {instrumentalMode
-                        ? "Without lyrics"
-                        : "Include lyrics"
-                      }
-                    </div>
-                  </div>
-                  <div className="flex items-center ml-4">
-                    <Switch
-                      checked={instrumentalMode}
-                      onCheckedChange={setInstrumentalMode}
-                    />
-                  </div>
-                </div>
-              </div>
-            </section>
-            
             {/* Custom Prompt Section */}
-            <section className="pb-5 md:pb-6 border-b border-border/20">
-              <h3 className="text-lg font-semibold mb-3 md:mb-4 flex items-center gap-2">
-                Description
-                <span className="text-white text-sm">*</span>
-              </h3>
-              <div className="space-y-1">
-                <div className="relative">
-                  <Textarea
-                    placeholder="Describe your song idea (e.g., 'a love song about summer nights')"
-                    value={customPrompt}
-                    onChange={(e) => setCustomPrompt(e.target.value)}
-                    maxLength={400}
-                    className="min-h-[104px] md:min-h-[120px] resize-none pr-16 border-0 focus-visible:ring-0 focus-visible:ring-offset-0"
-                  />
-                  <div className="absolute bottom-2 right-2 text-xs text-muted-foreground bg-background/80 px-2 py-1 rounded">
-                    {customPrompt.length}/400
+            <section>
+              <div className="bg-muted/20 rounded-lg p-3">
+                <h3 className="text-lg font-semibold tracking-tight mb-3 md:mb-4 flex items-center gap-2">
+                  Description
+                </h3>
+                <div className="space-y-1">
+                  <div className="relative">
+                    <Textarea
+                      placeholder="Describe your song idea (e.g., 'a love song about summer nights')"
+                      value={customPrompt}
+                      onChange={(e) => setCustomPrompt(e.target.value)}
+                      maxLength={400}
+                      className="min-h-[180px] md:min-h-[200px] resize-none pr-16 pb-12 border border-border focus-visible:ring-0 focus-visible:ring-offset-0"
+                    />
+                    <div className="absolute bottom-2 right-2 text-xs text-muted-foreground bg-background/80 px-2 py-1 rounded">
+                      {customPrompt.length}/400
+                    </div>
+                    {/* Instrumental Switch - Bottom Left */}
+                    <div className="absolute bottom-2 left-2 flex items-center gap-2">
+                      <Switch
+                        checked={instrumentalMode}
+                        onCheckedChange={setInstrumentalMode}
+                        className="scale-75"
+                      />
+                      <span className="text-xs text-muted-foreground">Instrumental</span>
+                    </div>
                   </div>
                 </div>
               </div>
@@ -295,102 +283,136 @@ export const StudioPanel = (props: StudioPanelProps) => {
       ) : (
         <>
           {/* Custom Mode Content - 流式布局 */}
-          <div className="space-y-5 md:space-y-6">
-            {/* Basic Settings Section */}
-            <section className="pb-4 md:pb-4 border-b border-border/20">
-              {/* Instrumental Mode */}
-              <div className="py-3 md:py-3">
-                <div className="flex items-center justify-between">
-                  <div className="font-medium text-foreground">
-                    Instrumental
-                  </div>
-                  <Switch
-                    checked={instrumentalMode}
-                    onCheckedChange={setInstrumentalMode}
-                  />
-                </div>
-                <div className="text-sm text-muted-foreground mt-1">
-                  {instrumentalMode
-                    ? "Without lyrics"
-                    : "Include lyrics"
-                  }
-                </div>
-              </div>
+          <div className="space-y-4 md:space-y-5">
 
-              {/* Vocal Gender - Only show when not in instrumental mode */}
-              {!instrumentalMode && (
-                <div className="mt-3 flex items-center justify-between">
-                  <Label className="text-sm font-medium text-foreground">Vocal Gender</Label>
-                  <div className="bg-muted/30 rounded-lg p-1">
-                    <div className="flex gap-1">
-                      {vocalGenders.map((gender: any) => (
-                        <button
-                          key={gender.id}
-                          onClick={() => setVocalGender(gender.id)}
-                          className={`py-1.5 px-3 text-sm font-medium transition-all duration-200 rounded-md ${vocalGender === gender.id
-                            ? "bg-primary/20 border-transparent text-primary shadow-sm"
-                            : "text-muted-foreground hover:text-foreground hover:bg-muted/50"
-                            }`}
+            {/* Lyrics Section */}
+            {!instrumentalMode ? (
+            <section>
+                <div className="bg-muted/20 rounded-lg p-3">
+                  <div className="flex items-center justify-between mb-3 md:mb-4">
+                    <h3 className="text-lg font-semibold tracking-tight flex items-center gap-2">
+                      Lyrics
+                    </h3>
+                    {/* Instrumental Switch */}
+                    <div className="flex items-center gap-2">
+                      <Switch
+                        checked={instrumentalMode}
+                        onCheckedChange={setInstrumentalMode}
+                        className="scale-75"
+                      />
+                      <span className="text-xs text-muted-foreground">Instrumental</span>
+                    </div>
+                  </div>
+                  <div className="space-y-3">
+                    <div className="relative">
+                     <Textarea
+                        placeholder="Write your song lyrics here..."
+                        value={customPrompt}
+                        onChange={(e) => setCustomPrompt(e.target.value)}
+                        maxLength={5000}
+                      className="min-h-[104px] md:min-h-[120px] resize-none pr-16 pb-6 border border-border focus-visible:ring-0 focus-visible:ring-offset-0"
+                      />
+                      {/* Character count - Inside textarea, bottom right */}
+                      <div className="absolute bottom-2 right-2 text-xs text-muted-foreground bg-background/80 px-2 py-1 rounded">
+                        {customPrompt.length}/5000
+                      </div>
+                      {/* Generate Lyrics Button - Bottom Left */}
+                      <div className="absolute bottom-2 left-2">
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="h-6 px-2 text-muted-foreground hover:text-foreground opacity-60 hover:opacity-100 transition-opacity flex items-center gap-1 bg-background/80"
+                          title="Generate lyrics with AI"
+                          onClick={onGenerateLyrics}
                         >
-                          {gender.name}
-                        </button>
-                      ))}
+                          <Wand2 className="h-3 w-3" />
+                          <span className="text-xs font-medium">Generate Lyrics</span>
+                        </Button>
+                      </div>
                     </div>
                   </div>
                 </div>
-              )}
-            </section>
-
-            {/* Song Title Section */}
-              <section className="pb-4 md:pb-4 border-b border-border/20">
-              <h3 className="text-lg font-semibold mb-3 md:mb-3 flex items-center gap-2">
-                Title
-                <span className="text-white text-sm">*</span>
-              </h3>
-              <div className="space-y-3">
-                <div className="relative">
-                  <Textarea
-                    placeholder="Enter your song title..."
-                    value={songTitle}
-                    onChange={(e) => setSongTitle(e.target.value)}
-                    maxLength={80}
-                    className="min-h-[104px] md:min-h-[120px] resize-none pr-16 pb-6 border-0 focus-visible:ring-0 focus-visible:ring-offset-0"
-                  />
-                  <div className="absolute bottom-2 right-2 text-xs text-muted-foreground bg-background/80 px-2 py-1 rounded">
-                    {songTitle.length}/80
+                
+                {/* Vocal Gender Section - Only show when not in instrumental mode */}
+                {!instrumentalMode && (
+                  <div className="mt-4">
+                    <div className="flex items-center justify-between bg-muted/20 rounded-lg p-3">
+                      <Label className="text-sm font-medium text-foreground">Vocal Gender</Label>
+                      <div className="flex gap-2">
+                        {vocalGenders.map((gender: any) => (
+                          <button
+                            key={gender.id}
+                            onClick={() => setVocalGender(gender.id)}
+                            className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+                              vocalGender === gender.id
+                                ? 'bg-primary text-primary-foreground hover:bg-primary/90'
+                                : 'bg-muted/30 text-muted-foreground hover:bg-muted/50 hover:text-foreground'
+                            }`}
+                          >
+                            {gender.name}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </section>
+            ) : (
+              /* Instrumental Mode Status Display */
+              <section>
+                <div className="bg-muted/20 rounded-lg p-3">
+                  <div className="flex items-center justify-between mb-3 md:mb-4">
+                    <h3 className="text-lg font-semibold tracking-tight flex items-center gap-2">
+                      Lyrics
+                    </h3>
+                    {/* Instrumental Switch */}
+                    <div className="flex items-center gap-2">
+                      <Switch
+                        checked={instrumentalMode}
+                        onCheckedChange={setInstrumentalMode}
+                        className="scale-75"
+                      />
+                      <span className="text-xs text-muted-foreground">Instrumental</span>
+                    </div>
+                  </div>
+                  {/* Instrumental Status Display */}
+                  <div className="flex items-center justify-center py-4 px-4 bg-muted/30 rounded-lg border border-border/20">
+                    <div className="flex items-center gap-3 text-muted-foreground">
+                      <span className="text-sm font-medium">Instrumental Mode Active,no need to write lyrics</span>
+                    </div>
                   </div>
                 </div>
-              </div>
-            </section>
+              </section>
+            )}
 
             {/* Style & Vibe Section */}
-            <section className="pb-4 border-b border-border/20">
-              <div className="flex items-center justify-between mb-4">
-                <h3 className="text-lg font-semibold flex items-center gap-2">
-                  Music Style
-                  <span className="text-white text-sm">*</span>
-                </h3>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => {
-                    setSelectedGenre("");
-                    setSelectedVibe("");
-                    setGrooveType("");
-                    setBpm([60]);
-                    setBpmMode(''); // Reset BPM mode to no selection
-                    setLeadInstrument([]);
-                    setDrumKit("");
-                    setBassTone("");
-                    setHarmonyPalette("");
-                    setStyleText("");
-                  }}
-                  className="h-8 w-8 p-0 text-muted-foreground hover:text-foreground hover:bg-muted/30 rounded-xl transition-all duration-200"
-                  title="Reset"
-                >
-                  <RotateCcw className="h-4 w-4" />
-                </Button>
-              </div>
+            <section>
+              <div className="bg-muted/20 rounded-lg p-3">
+                <div className="flex items-center justify-between mb-3 md:mb-4">
+                  <h3 className="text-lg font-semibold tracking-tight flex items-center gap-2">
+                    Music Style
+                  </h3>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => {
+                      setSelectedGenre("");
+                      setSelectedVibe("");
+                      setGrooveType("");
+                      setBpm([60]);
+                      setBpmMode(''); // Reset BPM mode to no selection
+                      setLeadInstrument([]);
+                      setDrumKit("");
+                      setBassTone("");
+                      setHarmonyPalette("");
+                      setStyleText("");
+                    }}
+                    className="h-8 w-8 p-0 text-muted-foreground hover:text-foreground hover:bg-muted/30 rounded-xl transition-all duration-200"
+                    title="Reset"
+                  >
+                    <RotateCcw className="h-4 w-4" />
+                  </Button>
+                </div>
 
               {/* Style Input Field */}
               <div className="mb-4 md:mb-4">
@@ -404,11 +426,11 @@ export const StudioPanel = (props: StudioPanelProps) => {
                       handleUpdateStatesFromTextarea(newValue);
                     }}
                     maxLength={1000}
-                    className="min-h-[104px] md:min-h-[120px] resize-none pr-16 pb-6 border-0 focus-visible:ring-0 focus-visible:ring-offset-0"
+                    className="min-h-[180px] md:min-h-[200px] resize-none pr-16 pb-12 border border-border focus-visible:ring-0 focus-visible:ring-offset-0"
                   />
                   <div className="absolute bottom-2 right-3 text-xs text-muted-foreground">
                     {styleText.length}/1000
-                              </div>
+                  </div>
                             </div>
                   </div>
 
@@ -432,10 +454,10 @@ export const StudioPanel = (props: StudioPanelProps) => {
                 {/* Vibe Category Button */}
                 <button 
                   onClick={() => setExpandedCategory(expandedCategory === 'vibe' ? null : 'vibe')}
-                  className={`inline-flex items-center gap-1.5 px-2.5 py-1.5 font-medium rounded-lg transition-all duration-200 text-sm ${
+                  className={`${BUTTON_CLASSES.category} ${
                     expandedCategory === 'vibe' 
-                      ? 'bg-primary/20 border-transparent text-primary shadow-sm' 
-                      : 'bg-muted/30 text-foreground hover:bg-muted/50'
+                      ? STYLES.expanded 
+                      : STYLES.collapsed
                   }`}
                 >
                   # Vibe
@@ -445,10 +467,10 @@ export const StudioPanel = (props: StudioPanelProps) => {
                 {/* Groove Category Button */}
                 <button 
                   onClick={() => setExpandedCategory(expandedCategory === 'groove' ? null : 'groove')}
-                  className={`inline-flex items-center gap-1.5 px-2.5 py-1.5 font-medium rounded-lg transition-all duration-200 text-sm ${
+                  className={`${BUTTON_CLASSES.category} ${
                     expandedCategory === 'groove' 
-                      ? 'bg-primary/20 border-transparent text-primary shadow-sm' 
-                      : 'bg-muted/30 text-foreground hover:bg-muted/50'
+                      ? STYLES.expanded 
+                      : STYLES.collapsed
                   }`}
                 >
                   # Groove
@@ -458,10 +480,10 @@ export const StudioPanel = (props: StudioPanelProps) => {
                 {/* Tempo Category Button */}
                 <button 
                   onClick={() => setExpandedCategory(expandedCategory === 'tempo' ? null : 'tempo')}
-                  className={`inline-flex items-center gap-1.5 px-2.5 py-1.5 font-medium rounded-lg transition-all duration-200 text-sm ${
+                  className={`${BUTTON_CLASSES.category} ${
                     expandedCategory === 'tempo' 
-                      ? 'bg-primary/20 border-transparent text-primary shadow-sm' 
-                      : 'bg-muted/30 text-foreground hover:bg-muted/50'
+                      ? STYLES.expanded 
+                      : STYLES.collapsed
                   }`}
                 >
                   # Tempo
@@ -471,10 +493,10 @@ export const StudioPanel = (props: StudioPanelProps) => {
                 {/* Lead Instrument Category Button */}
                 <button 
                   onClick={() => setExpandedCategory(expandedCategory === 'instrument' ? null : 'instrument')}
-                  className={`inline-flex items-center gap-1.5 px-2.5 py-1.5 font-medium rounded-lg transition-all duration-200 text-sm ${
+                  className={`${BUTTON_CLASSES.category} ${
                     expandedCategory === 'instrument' 
-                      ? 'bg-primary/20 border-transparent text-primary shadow-sm' 
-                      : 'bg-muted/30 text-foreground hover:bg-muted/50'
+                      ? STYLES.expanded 
+                      : STYLES.collapsed
                   }`}
                 >
                   # Lead Instrument
@@ -484,10 +506,10 @@ export const StudioPanel = (props: StudioPanelProps) => {
                 {/* Drum Kit Category Button */}
                 <button 
                   onClick={() => setExpandedCategory(expandedCategory === 'drum' ? null : 'drum')}
-                  className={`inline-flex items-center gap-1.5 px-2.5 py-1.5 font-medium rounded-lg transition-all duration-200 text-sm ${
+                  className={`${BUTTON_CLASSES.category} ${
                     expandedCategory === 'drum' 
-                      ? 'bg-primary/20 border-transparent text-primary shadow-sm' 
-                      : 'bg-muted/30 text-foreground hover:bg-muted/50'
+                      ? STYLES.expanded 
+                      : STYLES.collapsed
                   }`}
                 >
                   # Drum Kit
@@ -497,10 +519,10 @@ export const StudioPanel = (props: StudioPanelProps) => {
                 {/* Bass Tone Category Button */}
                 <button 
                   onClick={() => setExpandedCategory(expandedCategory === 'bass' ? null : 'bass')}
-                  className={`inline-flex items-center gap-1.5 px-2.5 py-1.5 font-medium rounded-lg transition-all duration-200 text-sm ${
+                  className={`${BUTTON_CLASSES.category} ${
                     expandedCategory === 'bass' 
-                      ? 'bg-primary/20 border-transparent text-primary shadow-sm' 
-                      : 'bg-muted/30 text-foreground hover:bg-muted/50'
+                      ? STYLES.expanded 
+                      : STYLES.collapsed
                   }`}
                 >
                   # Bass Tone
@@ -510,10 +532,10 @@ export const StudioPanel = (props: StudioPanelProps) => {
                 {/* Harmony Palette Category Button */}
                 <button 
                   onClick={() => setExpandedCategory(expandedCategory === 'harmony' ? null : 'harmony')}
-                  className={`inline-flex items-center gap-1.5 px-2.5 py-1.5 font-medium rounded-lg transition-all duration-200 text-sm ${
+                  className={`${BUTTON_CLASSES.category} ${
                     expandedCategory === 'harmony' 
-                      ? 'bg-primary/20 border-transparent text-primary shadow-sm' 
-                      : 'bg-muted/30 text-foreground hover:bg-muted/50'
+                      ? STYLES.expanded 
+                      : STYLES.collapsed
                   }`}
                 >
                   # Harmony Palette
@@ -532,14 +554,14 @@ export const StudioPanel = (props: StudioPanelProps) => {
                             onClick={() => {
                               setSelectedGenre(genre.id);
                               // Replace genre in textarea (only one genre allowed)
-                              const otherText = styleText.split(',').filter(item => {
+                              const otherText = styleText.split(';').filter(item => {
                                 const trimmed = item.trim().toLowerCase();
-                                return !genres.some(g => g.name.toLowerCase() === trimmed);
-                              }).join(',').replace(/^,|,$/g, '').trim();
-                              const newText = otherText ? `${otherText}, ${genre.name}` : genre.name;
+                                return !genres.some(g => g.value.toLowerCase() === trimmed);
+                              }).join(';').replace(/^;|;$/g, '').trim();
+                              const newText = otherText ? `${otherText}; ${genre.value}` : genre.value;
                               setStyleText(newText);
                             }}
-                            className={`inline-flex items-center px-3 py-2 rounded-lg text-sm font-medium transition-all duration-200 ${
+                            className={`inline-flex items-center px-3 py-2 rounded-lg text-sm font-semibold tracking-tight transition-all duration-200 ${
                               selectedGenre === genre.id
                                 ? 'bg-primary text-primary-foreground'
                                 : 'text-muted-foreground hover:text-foreground hover:bg-muted/50'
@@ -559,14 +581,14 @@ export const StudioPanel = (props: StudioPanelProps) => {
                             onClick={() => {
                               setSelectedVibe(vibe.id);
                               // Replace vibe in textarea (only one vibe allowed)
-                              const otherText = styleText.split(',').filter(item => {
+                              const otherText = styleText.split(';').filter(item => {
                                 const trimmed = item.trim().toLowerCase();
-                                return !vibes.some(v => v.name.toLowerCase() === trimmed);
-                              }).join(',').replace(/^,|,$/g, '').trim();
-                              const newText = otherText ? `${otherText}, ${vibe.name}` : vibe.name;
+                                return !vibes.some(v => v.value.toLowerCase() === trimmed);
+                              }).join(';').replace(/^;|;$/g, '').trim();
+                              const newText = otherText ? `${otherText}; ${vibe.value}` : vibe.value;
                               setStyleText(newText);
                             }}
-                            className={`inline-flex items-center px-3 py-2 rounded-lg text-sm font-medium transition-all duration-200 ${
+                            className={`inline-flex items-center px-3 py-2 rounded-lg text-sm font-semibold tracking-tight transition-all duration-200 ${
                               selectedVibe === vibe.id
                                 ? 'bg-primary text-primary-foreground'
                                 : 'text-muted-foreground hover:text-foreground hover:bg-muted/50'
@@ -586,14 +608,14 @@ export const StudioPanel = (props: StudioPanelProps) => {
                             onClick={() => {
                               setGrooveType(groove.id);
                               // Replace groove in textarea (only one groove allowed)
-                              const otherText = styleText.split(',').filter(item => {
+                              const otherText = styleText.split(';').filter(item => {
                                 const trimmed = item.trim().toLowerCase();
-                                return !grooveTypes.some(g => g.name.toLowerCase() === trimmed);
-                              }).join(',').replace(/^,|,$/g, '').trim();
-                              const newText = otherText ? `${otherText}, ${groove.name}` : groove.name;
+                                return !grooveTypes.some(g => g.value.toLowerCase() === trimmed);
+                              }).join(';').replace(/^;|;$/g, '').trim();
+                              const newText = otherText ? `${otherText}; ${groove.value}` : groove.value;
                               setStyleText(newText);
                             }}
-                            className={`inline-flex items-center px-3 py-2 rounded-lg text-sm font-medium transition-all duration-200 ${
+                            className={`inline-flex items-center px-3 py-2 rounded-lg text-sm font-semibold tracking-tight transition-all duration-200 ${
                               grooveType === groove.id
                                 ? 'bg-primary text-primary-foreground'
                                 : 'text-muted-foreground hover:text-foreground hover:bg-muted/50'
@@ -617,7 +639,7 @@ export const StudioPanel = (props: StudioPanelProps) => {
                               const newText = replaceTextInStyle(styleText, [...TEMPO_KEYWORDS], 'Slow');
                               setStyleText(newText);
                             }}
-                            className={`inline-flex items-center px-3 py-2 rounded-lg text-sm font-medium transition-all duration-200 ${
+                            className={`inline-flex items-center px-3 py-2 rounded-lg text-sm font-semibold tracking-tight transition-all duration-200 ${
                               bpmMode === 'slow'
                                 ? 'bg-primary text-primary-foreground'
                                 : 'text-muted-foreground hover:text-foreground hover:bg-muted/50'
@@ -636,7 +658,7 @@ export const StudioPanel = (props: StudioPanelProps) => {
                               const newText = replaceTextInStyle(styleText, [...TEMPO_KEYWORDS], 'Moderate');
                               setStyleText(newText);
                             }}
-                            className={`inline-flex items-center px-3 py-2 rounded-lg text-sm font-medium transition-all duration-200 ${
+                            className={`inline-flex items-center px-3 py-2 rounded-lg text-sm font-semibold tracking-tight transition-all duration-200 ${
                               bpmMode === 'moderate'
                                 ? 'bg-primary text-primary-foreground'
                                 : 'text-muted-foreground hover:text-foreground hover:bg-muted/50'
@@ -655,7 +677,7 @@ export const StudioPanel = (props: StudioPanelProps) => {
                               const newText = replaceTextInStyle(styleText, [...TEMPO_KEYWORDS], 'Medium');
                               setStyleText(newText);
                             }}
-                            className={`inline-flex items-center px-3 py-2 rounded-lg text-sm font-medium transition-all duration-200 ${
+                            className={`inline-flex items-center px-3 py-2 rounded-lg text-sm font-semibold tracking-tight transition-all duration-200 ${
                               bpmMode === 'medium'
                                 ? 'bg-primary text-primary-foreground'
                                 : 'text-muted-foreground hover:text-foreground hover:bg-muted/50'
@@ -680,14 +702,14 @@ export const StudioPanel = (props: StudioPanelProps) => {
                       onClick={() => {
                                 setLeadInstrument([instrument.id]);
                                 // Replace instrument in textarea (only one instrument allowed)
-                                const otherText = styleText.split(',').filter(item => {
+                                const otherText = styleText.split(';').filter(item => {
                                   const trimmed = item.trim().toLowerCase();
-                                  return !leadInstruments.some(i => i.name.toLowerCase() === trimmed);
-                                }).join(',').replace(/^,|,$/g, '').trim();
-                                const newText = otherText ? `${otherText}, ${instrument.name}` : instrument.name;
+                                  return !leadInstruments.some(i => i.value.toLowerCase() === trimmed);
+                                }).join(';').replace(/^;|;$/g, '').trim();
+                                const newText = otherText ? `${otherText}; ${instrument.value}` : instrument.value;
                                 setStyleText(newText);
                               }}
-                              className={`inline-flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium transition-all duration-200 ${
+                              className={`inline-flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-semibold tracking-tight transition-all duration-200 ${
                                 leadInstrument.includes(instrument.id)
                                   ? 'bg-primary text-primary-foreground'
                                   : 'text-muted-foreground hover:text-foreground hover:bg-muted/50'
@@ -708,17 +730,13 @@ export const StudioPanel = (props: StudioPanelProps) => {
                                   e.stopPropagation();
                                   const audioUrl = getInstrumentAudio(instrument.id);
                                   if (audioUrl) {
-                                    playAudio(audioUrl, `instrument-${instrument.id}`);
+                                    playPreviewAudio(audioUrl, `instrument-${instrument.id}`);
                                   }
                                 }}
-                                className="ml-1 p-1 hover:bg-white/20 rounded transition-colors"
+                                className="ml-1 p-1 hover:bg-primary/20 rounded-lg transition-all duration-200 hover:scale-105"
                                 title="Play sample"
                               >
-                                {playingAudioId === `instrument-${instrument.id}` ? (
-                                  <Pause className="w-3 h-3" />
-                                ) : (
-                                  <Play className="w-3 h-3" />
-                                )}
+                                <Play className="w-3 h-3" />
                               </button>
                             </button>
                             
@@ -757,14 +775,14 @@ export const StudioPanel = (props: StudioPanelProps) => {
                               onClick={() => {
                                 setDrumKit(kit.id);
                                 // Replace drum kit in textarea (only one drum kit allowed)
-                                const otherText = styleText.split(',').filter(item => {
+                                const otherText = styleText.split(';').filter(item => {
                                   const trimmed = item.trim().toLowerCase();
-                                  return !drumKits.some(d => d.name.toLowerCase() === trimmed);
-                                }).join(',').replace(/^,|,$/g, '').trim();
-                                const newText = otherText ? `${otherText}, ${kit.name}` : kit.name;
+                                  return !drumKits.some(d => d.value.toLowerCase() === trimmed);
+                                }).join(';').replace(/^;|;$/g, '').trim();
+                                const newText = otherText ? `${otherText}; ${kit.value}` : kit.value;
                                 setStyleText(newText);
                               }}
-                              className={`inline-flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium transition-all duration-200 ${
+                              className={`inline-flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-semibold tracking-tight transition-all duration-200 ${
                                 drumKit === kit.id
                                   ? 'bg-primary text-primary-foreground'
                                   : 'text-muted-foreground hover:text-foreground hover:bg-muted/50'
@@ -785,17 +803,13 @@ export const StudioPanel = (props: StudioPanelProps) => {
                                   e.stopPropagation();
                                   const audioUrl = getDrumKitAudio(kit.id);
                                   if (audioUrl) {
-                                    playAudio(audioUrl, `drum-${kit.id}`);
+                                    playPreviewAudio(audioUrl, `drum-${kit.id}`);
                                   }
                                 }}
-                                className="ml-1 p-1 hover:bg-white/20 rounded transition-colors"
+                                className="ml-1 p-1 hover:bg-primary/20 rounded-lg transition-all duration-200 hover:scale-105"
                                 title="Play sample"
                               >
-                                {playingAudioId === `drum-${kit.id}` ? (
-                                  <Pause className="w-3 h-3" />
-                                ) : (
-                                  <Play className="w-3 h-3" />
-                                )}
+                                <Play className="w-3 h-3" />
                               </button>
                             </button>
                             
@@ -829,14 +843,14 @@ export const StudioPanel = (props: StudioPanelProps) => {
                   onClick={() => {
                               setBassTone(tone.id);
                               // Replace bass tone in textarea (only one bass tone allowed)
-                              const otherText = styleText.split(',').filter(item => {
+                              const otherText = styleText.split(';').filter(item => {
                                 const trimmed = item.trim().toLowerCase();
-                                return !bassTones.some(b => b.name.toLowerCase() === trimmed);
-                              }).join(',').replace(/^,|,$/g, '').trim();
-                              const newText = otherText ? `${otherText}, ${tone.name}` : tone.name;
+                                return !bassTones.some(b => b.value.toLowerCase() === trimmed);
+                              }).join(';').replace(/^;|;$/g, '').trim();
+                              const newText = otherText ? `${otherText}; ${tone.value}` : tone.value;
                               setStyleText(newText);
                             }}
-                            className={`inline-flex items-center px-3 py-2 rounded-lg text-sm font-medium transition-all duration-200 ${
+                            className={`inline-flex items-center px-3 py-2 rounded-lg text-sm font-semibold tracking-tight transition-all duration-200 ${
                               bassTone === tone.id
                                 ? 'bg-primary text-primary-foreground'
                                 : 'text-muted-foreground hover:text-foreground hover:bg-muted/50'
@@ -856,14 +870,14 @@ export const StudioPanel = (props: StudioPanelProps) => {
                               onClick={() => {
                               setHarmonyPalette(palette.id);
                               // Replace harmony palette in textarea (only one harmony palette allowed)
-                              const otherText = styleText.split(',').filter(item => {
+                              const otherText = styleText.split(';').filter(item => {
                                 const trimmed = item.trim().toLowerCase();
-                                return !harmonyPalettes.some(h => h.name.toLowerCase() === trimmed);
-                              }).join(',').replace(/^,|,$/g, '').trim();
-                              const newText = otherText ? `${otherText}, ${palette.name}` : palette.name;
+                                return !harmonyPalettes.some(h => h.value.toLowerCase() === trimmed);
+                              }).join(';').replace(/^;|;$/g, '').trim();
+                              const newText = otherText ? `${otherText}; ${palette.value}` : palette.value;
                               setStyleText(newText);
                             }}
-                            className={`inline-flex items-center px-3 py-2 rounded-lg text-sm font-medium transition-all duration-200 ${
+                            className={`inline-flex items-center px-3 py-2 rounded-lg text-sm font-semibold tracking-tight transition-all duration-200 ${
                               harmonyPalette === palette.id
                                 ? 'bg-primary text-primary-foreground'
                                 : 'text-muted-foreground hover:text-foreground hover:bg-muted/50'
@@ -974,113 +988,110 @@ export const StudioPanel = (props: StudioPanelProps) => {
                     </SelectContent>
                   </Select>
               </div>
+              </div>
             </section>
 
-
-            {/* Lyrics Section */}
-            {!instrumentalMode && (
-            <section className="pb-5 md:pb-6 border-b border-border/20">
-                <div className="flex items-center justify-between mb-3">
-                  <h3 className="text-lg font-semibold flex items-center gap-2">
-                    Lyrics
-                    <span className="text-white text-sm">*</span>
-                  </h3>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    className="h-6 px-2 text-muted-foreground hover:text-foreground opacity-60 hover:opacity-100 transition-opacity flex items-center gap-1"
-                    title="Generate lyrics with AI"
-                    onClick={onGenerateLyrics}
-                  >
-                    <Wand2 className="h-3 w-3" />
-                    <span className="text-xs font-medium">Generate with AI</span>
-                  </Button>
-                </div>
+            {/* Song Title Section */}
+            <section>
+              <div className="bg-muted/20 rounded-lg p-3">
+                <h3 className="text-lg font-semibold tracking-tight mb-3 md:mb-4 flex items-center gap-2">
+                  Title
+                </h3>
                 <div className="space-y-3">
                   <div className="relative">
-                   <Textarea
-                      placeholder="Write your song lyrics here..."
-                      value={customPrompt}
-                      onChange={(e) => setCustomPrompt(e.target.value)}
-                      maxLength={5000}
-                    className="min-h-[104px] md:min-h-[120px] resize-none pr-16 pb-6 border-0 focus-visible:ring-0 focus-visible:ring-offset-0"
+                    <Input
+                      placeholder="Enter your song title..."
+                      value={songTitle}
+                      onChange={(e) => setSongTitle(e.target.value)}
+                      maxLength={80}
+                      className="pr-16 h-12 text-base border border-border focus-visible:ring-0 focus-visible:ring-offset-0"
                     />
-                    {/* Character count - Inside textarea, bottom right */}
-                    <div className="absolute bottom-2 right-2 text-xs text-muted-foreground bg-background/80 px-2 py-1 rounded">
-                      {customPrompt.length}/5000
+                    <div className="absolute top-1/2 right-2 transform -translate-y-1/2 text-xs text-muted-foreground bg-background/80 px-2 py-1 rounded">
+                      {songTitle.length}/80
                     </div>
                   </div>
                 </div>
-              </section>
-            )}
-
-
+              </div>
+            </section>
           </div>
         </>
       )}
 
 
 
-      {/* Generate Button - Bottom of Panel */}
-      <div className="mt-8 mb-6 md:mb-0">
-        {(() => {
-          // 只根据prompt输入内容来禁用按钮，积分检查移到点击后
-          let isDisabled = isGenerating;
-
-          if (mode === 'basic') {
-            // Basic Mode: 只需要prompt字段
-            isDisabled = isDisabled || !customPrompt.trim();
-          } else {
-            // Custom Mode: 根据instrumental模式确定required字段
-            if (instrumentalMode) {
-              // instrumental: true - style和title是required
-              isDisabled = isDisabled || !styleText.trim() || !songTitle.trim();
-            } else {
-              // instrumental: false - style, prompt(lyrics), title是required
-              isDisabled = isDisabled || !styleText.trim() || !songTitle.trim() || !customPrompt.trim();
-            }
-          }
-          return (
-            <button
-              onClick={() => {
-                handleGenerateWithAuth();
-              }}
-              disabled={isDisabled}
-              className="w-full h-16 px-6 text-base font-semibold bg-primary border-transparent text-white shadow-sm hover:bg-primary/80 hover:text-white disabled:bg-muted disabled:text-muted-foreground disabled:cursor-not-allowed transition-all duration-300 hover:-translate-y-1 hover:scale-[1.02] rounded-2xl relative overflow-hidden"
-            >
-              {/* 光效动画 - 只在可点击状态显示 */}
-              {!isDisabled && (
-                <div className="absolute inset-0 -translate-x-full bg-gradient-to-r from-transparent via-white/30 to-transparent animate-shine"></div>
-              )}
-                  {isGenerating ? (
-                <div className="flex items-center justify-center gap-2">
-                  <span>Creating</span>
-                  <div className="flex items-center gap-1">
-                    <div className="w-1 h-1 bg-white rounded-full animate-pulse"></div>
-                    <div className="w-1 h-1 bg-white rounded-full animate-pulse" style={{ animationDelay: '0.3s' }}></div>
-                    <div className="w-1 h-1 bg-white rounded-full animate-pulse" style={{ animationDelay: '0.6s' }}></div>
-                  </div>
-                    </div>
-                  ) : (
-                'Create Track'
-                  )}
-            </button>
-          );
-        })()}
-            </div>
-
             {/* Generation Tips - Only show when generating */}
-            {(isGenerating || pendingTasksCount > 0) && (
+            {isGenerating && (
               <div className="mt-4 p-4 bg-muted/30 rounded-lg border border-border/20 animate-in fade-in duration-300">
                 <div className="flex items-start gap-3">
                   <div className="flex-shrink-0 mt-0.5">
                   </div>
                   <div className="text-sm text-muted-foreground leading-relaxed">
-                    <p>Music starts streaming within 30 seconds and completes in 3-5 minutes. You can preview and play tracks as they become available.</p>
+                    <p>Music starts streaming in 30 seconds and completes in 3-5 minutes. The lyrics panel will automatically open when the first track is ready.</p>
                   </div>
                 </div>
               </div>
             )}
+          </div>
+
+          {/* Floating Generate Button - Bottom */}
+          <div className="flex-shrink-0 px-4 md:px-6 py-4 bg-background/95 backdrop-blur-sm border-t border-border/20">
+            {(() => {
+              // 只根据prompt输入内容来禁用按钮，积分检查移到点击后
+              let isDisabled = isGenerating;
+
+              if (mode === 'basic') {
+                // Basic Mode: 只需要prompt字段
+                isDisabled = isDisabled || !customPrompt.trim();
+              } else {
+                // Custom Mode: style和title现在是可选的，只需要根据instrumental模式确定required字段
+                if (instrumentalMode) {
+                  // instrumental: true - 没有required字段
+                  // isDisabled保持原值（只检查isGenerating）
+                } else {
+                  // instrumental: false - 只需要prompt(lyrics)字段
+                  isDisabled = isDisabled || !customPrompt.trim();
+                }
+              }
+              return (
+                <button
+                  onClick={() => {
+                    handleGenerateWithAuth();
+                  }}
+                  disabled={isDisabled}
+                  className="w-full h-14 px-6 text-base font-semibold bg-gradient-to-r from-purple-600 via-purple-500 to-blue-600 disabled:bg-muted disabled:bg-none border-transparent text-white disabled:text-muted-foreground shadow-lg disabled:shadow-none disabled:cursor-not-allowed transition-all duration-300 hover:-translate-y-1 hover:scale-[1.02] disabled:hover:translate-y-0 disabled:hover:scale-100 rounded-2xl relative overflow-hidden"
+                >
+                  {/* 光效动画 - 只在可点击状态显示 */}
+                  {!isDisabled && (
+                    <div className="absolute inset-0 -translate-x-full bg-gradient-to-r from-transparent via-white/30 to-transparent animate-shine"></div>
+                  )}
+                  
+                  
+                  <div className="relative z-10 flex items-center justify-center">
+                    {isGenerating ? (
+                      <div className="flex items-center justify-center gap-2">
+                        <span>Creating</span>
+                        <div className="flex items-center gap-1">
+                          <div className="w-1 h-1 bg-white rounded-full animate-pulse"></div>
+                          <div className="w-1 h-1 bg-white rounded-full animate-pulse" style={{ animationDelay: '0.3s' }}></div>
+                          <div className="w-1 h-1 bg-white rounded-full animate-pulse" style={{ animationDelay: '0.6s' }}></div>
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="flex items-center justify-center gap-2">
+                        <Image
+                          src="/icons/create-button.svg"
+                          alt="Create"
+                          width={20}
+                          height={20}
+                          className="w-5 h-5"
+                        />
+                        <span>Create</span>
+                      </div>
+                    )}
+                  </div>
+                </button>
+              );
+            })()}
           </div>
         </>
       )}

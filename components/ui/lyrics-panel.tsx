@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 import Image from 'next/image';
-import { X, Download, Pin, PinOff, Trash2, Eye, EyeOff, Heart, HeartCrack, ChevronDown } from 'lucide-react';
+import { Eye, EyeOff, Music } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { CassetteTape } from '@/components/ui/cassette-tape';
@@ -13,33 +13,13 @@ interface LyricsPanelProps {
   lyrics?: string;
   title?: string;
   tags?: string;
-  genre?: string;
   coverImage?: string;
-  sideLetter?: string;
   isPublished?: boolean;
-  isPinned?: boolean;
-  isFavorited?: boolean; // 新增：是否已收藏
-  isAdmin?: boolean;
   isGenerating?: boolean; // 新增：是否正在生成中（用于显示磁带占位）
   isPlaying?: boolean; // 新增：是否正在播放（用于磁带转动动画）
-  onDownload?: () => void;
   onPublishToggle?: () => void;
-  onPinToggle?: () => void;
-  onFavoriteToggle?: () => void; // 新增：收藏切换回调
-  onDelete?: () => void;
   // 播放器相关 props
   currentPlayingTrack?: any;
-  isPlayerPlaying?: boolean;
-  currentTime?: number;
-  duration?: number;
-  volume?: number;
-  isMuted?: boolean;
-  onPlayPause?: () => void;
-  onPrevious?: () => void;
-  onNext?: () => void;
-  onSeek?: (time: number) => void;
-  onVolumeChange?: (volume: number) => void;
-  onMuteToggle?: () => void;
 }
 
 export const LyricsPanel: React.FC<LyricsPanelProps> = ({
@@ -48,54 +28,47 @@ export const LyricsPanel: React.FC<LyricsPanelProps> = ({
   lyrics,
   title,
   tags,
-  genre,
   coverImage,
-  sideLetter,
   isPublished = false,
-  isPinned = false,
-  isFavorited = false,
-  isAdmin = false,
   isGenerating = false,
   isPlaying = false,
-  onDownload,
   onPublishToggle,
-  onPinToggle,
-  onFavoriteToggle,
-  onDelete,
   // 播放器相关参数
   currentPlayingTrack,
-  isPlayerPlaying = false,
-  currentTime = 0,
-  duration = 0,
-  volume = 1,
-  isMuted = false,
-  onPlayPause,
-  onPrevious,
-  onNext,
-  onSeek,
-  onVolumeChange,
-  onMuteToggle
 }) => {
-  const [isTagsExpanded, setIsTagsExpanded] = useState(false);
-  const [isStickyHeaderVisible, setIsStickyHeaderVisible] = useState(false);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const dragHandleRef = useRef<HTMLDivElement>(null);
   const [dragStartY, setDragStartY] = useState<number | null>(null);
   const [dragCurrentY, setDragCurrentY] = useState<number | null>(null);
+  
+  const [currentCoverUrl, setCurrentCoverUrl] = useState<string | undefined>(coverImage);
 
+
+  // 预加载封面图片 - 简化逻辑
   useEffect(() => {
-    const scrollContainer = scrollContainerRef.current;
-    if (!scrollContainer) return;
+    console.log('[LyricsPanel] coverImage changed:', coverImage);
+    
+    if (!coverImage) {
+      setCurrentCoverUrl(undefined);
+      return;
+    }
 
-    const handleScroll = () => {
-      const scrollTop = scrollContainer.scrollTop;
-      // 当滚动超过图片高度(96px) + 间距(16px) = 112px时显示顶部栏
-      setIsStickyHeaderVisible(scrollTop > 112);
+    // 如果封面URL没有变化，不需要重新加载
+    if (currentCoverUrl === coverImage) {
+      return;
+    }
+
+    const img = new window.Image();
+    img.onload = () => {
+      console.log('[LyricsPanel] Cover loaded:', coverImage);
+      setCurrentCoverUrl(coverImage);
     };
-
-    scrollContainer.addEventListener('scroll', handleScroll);
-    return () => scrollContainer.removeEventListener('scroll', handleScroll);
-  }, []);
+    img.onerror = () => {
+      console.error('[LyricsPanel] Cover failed to load:', coverImage);
+      setCurrentCoverUrl(coverImage);
+    };
+    img.src = coverImage;
+  }, [coverImage, currentCoverUrl]); // 依赖 coverImage prop
 
   // 处理拖动手势
   useEffect(() => {
@@ -110,6 +83,12 @@ export const LyricsPanel: React.FC<LyricsPanelProps> = ({
     const handleTouchMove = (e: TouchEvent) => {
       if (dragStartY === null) return;
       setDragCurrentY(e.touches[0].clientY);
+      
+      // 如果正在拖拽，阻止默认的滚动行为
+      const dragDistance = Math.abs(e.touches[0].clientY - dragStartY);
+      if (dragDistance > 10) {
+        e.preventDefault();
+      }
     };
 
     const handleTouchEnd = () => {
@@ -130,9 +109,9 @@ export const LyricsPanel: React.FC<LyricsPanelProps> = ({
       setDragCurrentY(null);
     };
 
-    dragHandle.addEventListener('touchstart', handleTouchStart);
-    dragHandle.addEventListener('touchmove', handleTouchMove);
-    dragHandle.addEventListener('touchend', handleTouchEnd);
+    dragHandle.addEventListener('touchstart', handleTouchStart, { passive: false });
+    dragHandle.addEventListener('touchmove', handleTouchMove, { passive: false });
+    dragHandle.addEventListener('touchend', handleTouchEnd, { passive: true });
 
     return () => {
       dragHandle.removeEventListener('touchstart', handleTouchStart);
@@ -154,197 +133,130 @@ export const LyricsPanel: React.FC<LyricsPanelProps> = ({
       data-mobile-panel
     >
       <div className="flex h-full flex-col">
-        {/* Drag Handle - Mobile only */}
-        <div 
-          ref={dragHandleRef}
-          onClick={onClose}
-          className="md:hidden flex items-center justify-center py-3 cursor-pointer active:cursor-grabbing touch-none"
-        >
-          <div className="w-12 h-1 bg-border/50 rounded-full" />
-        </div>
+        {/* Close Button - Desktop only - REMOVED */}
 
-        {/* Mobile Header - Always visible on mobile */}
-        <div className="md:hidden flex items-center gap-3 py-3 px-4 sm:px-3 border-b border-border/20 mb-4 sm:mb-5">
-            {/* Small Cover Image */}
-            <div className="relative w-16 h-16 flex-shrink-0 overflow-hidden rounded-lg">
-                {coverImage ? (
-                  <Image
-                    src={coverImage}
-                    alt={title || 'Track Cover'}
-                    fill
-                    className="object-cover"
-                  />
-                ) : (
-                  <CassetteTape
-                    sideLetter={sideLetter}
-                    duration="--:--"
-                    isPlaying={isPlaying}
-                    className="w-full h-full"
-                  />
-                )}
-              </div>
-
-              {/* Title and Tags */}
-              <div className="flex-1 min-w-0">
-                {title && (
-                  <h3 className="text-sm font-semibold text-foreground truncate mb-1">
-                    {title}
-                  </h3>
-                )}
-                {tags && (
-                  <p 
-                    className={`text-xs text-muted-foreground cursor-pointer hover:text-foreground transition-colors ${
-                      isTagsExpanded ? '' : 'line-clamp-1'
-                    }`}
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      setIsTagsExpanded(!isTagsExpanded);
-                    }}
-                  >
-                    {tags}
-                  </p>
-                )}
-              </div>
-
-              {/* Action Buttons */}
-              <div className="flex gap-2 flex-shrink-0">
-                {/* Publish Button */}
-                {onPublishToggle && (
-                  <button
-                    onClick={onPublishToggle}
-                    className="h-8 px-3 text-xs font-semibold bg-muted/50 border border-border/30 text-foreground shadow-sm hover:bg-muted/70 hover:text-foreground transition-all duration-300 rounded-lg"
-                  >
-                    <div className="flex items-center justify-center gap-1">
-                      {isPublished ? (
-                        <EyeOff className="h-3 w-3" />
-                      ) : (
-                        <Eye className="h-3 w-3" />
-                      )}
-                    </div>
-                  </button>
-                )}
-                {/* Favorite Button */}
-                {onFavoriteToggle && (
-                  <button
-                    onClick={onFavoriteToggle}
-                    className="h-8 px-3 text-xs font-semibold bg-muted/50 border border-border/30 text-foreground shadow-sm hover:bg-muted/70 hover:text-foreground transition-all duration-300 rounded-lg"
-                    title={isFavorited ? 'Remove from favourites' : 'Add to favourites'}
-                  >
-                    <div className="flex items-center justify-center gap-1">
-                      <Heart className={`h-3 w-3 ${isFavorited ? 'fill-red-500 text-red-500' : ''}`} />
-                    </div>
-                  </button>
-                )}
-                
-                {/* Download Button */}
-                {onDownload && (
-                  <button
-                    onClick={onDownload}
-                    disabled={isGenerating || !coverImage}
-                    className={`h-8 px-3 text-xs font-semibold border border-border/30 shadow-sm transition-all duration-300 rounded-lg ${
-                      isGenerating || !coverImage
-                        ? 'bg-muted/30 text-muted-foreground cursor-not-allowed opacity-50'
-                        : 'bg-muted/50 text-foreground hover:bg-muted/70 hover:text-foreground'
-                    }`}
-                  >
-                    <div className="flex items-center justify-center gap-1">
-                      <Download className="h-3 w-3" />
-                    </div>
-                  </button>
-                )}
-              </div>
-            </div>
 
         {/* Scrollable Content */}
         <div 
           ref={scrollContainerRef}
-          className="flex-1 overflow-y-auto pb-2 px-4 sm:px-3 md:px-0 md:pb-0 overscroll-contain"
+          className="flex-1 overflow-y-auto pb-2 px-4 md:px-0 md:pb-0 overscroll-contain"
           style={{ WebkitOverflowScrolling: 'touch' }}
         >
+          {/* Cover and Track Info - Desktop and Mobile */}
+          <div className="py-4 md:py-6 flex flex-col justify-center min-h-full">
+            {/* Desktop Layout: Top-Bottom */}
+            <div className="hidden md:flex md:flex-col md:items-center md:mb-4">
+              {/* Cover Image - Top */}
+                <div className="mb-3 flex justify-center">
+                  {currentCoverUrl ? (
+                    <div className={`relative w-56 aspect-square overflow-hidden rounded-full`}>
+                      <Image
+                        src={currentCoverUrl}
+                        alt={title || 'Track Cover'}
+                        fill
+                        className="object-cover"
+                      />
+                    </div>
+                  ) : (
+                    <div className="relative w-56 aspect-square overflow-hidden rounded-xl">
+                    <CassetteTape
+                      duration="--:--"
+                      isPlaying={isPlaying}
+                      className="w-full h-full"
+                    />
+                  </div>
+                )}
+              </div>
 
-          {/* Desktop Layout */}
-          <div className="hidden md:block">
-          {/* Cover Image */}
-            <div className="relative w-full aspect-square overflow-hidden rounded-2xl mb-4">
-            {/* Close Button - Overlay on cover */}
-            <Button
-              variant="ghost"
-              size="sm"
-                onClick={onClose}
-                className="absolute top-2 right-2 h-8 w-8 p-0 bg-black/50 hover:bg-black/70 text-white z-50"
-            >
-              <X className="h-4 w-4" />
-            </Button>
-            {coverImage ? (
-              <Image
-                src={coverImage}
-                alt={title || 'Track Cover'}
-                fill
-                className="object-cover"
-              />
-            ) : (
-              <CassetteTape
-                sideLetter={sideLetter}
-                duration="--:--"
-                isPlaying={isPlaying}
-                className="w-full h-full"
-              />
+              {/* Track Info - Bottom */}
+              <div className="text-center">
+                {title ? (
+                  <h2 className="text-lg font-semibold text-foreground line-clamp-2 mb-2">
+                    {title}
+                  </h2>
+                ) : (
+                  <div className="mb-2">
+                    <p className="text-sm font-medium text-muted-foreground">Click a track to view its information</p>
+                  </div>
+                )}
+
+                {/* Tags */}
+                {tags && tags.length > 0 && (
+                  <div>
+                    <div className="text-xs text-muted-foreground flex flex-wrap justify-center gap-x-1.5 gap-y-0.5">
+                      {tags.split(/[,;.]/).filter(tag => tag.trim()).map((tag, index, array) => (
+                        <span key={index} className="hover:text-foreground transition-colors cursor-default">
+                          {tag.trim()}
+                          {index < array.length - 1 && <span className="mx-1">•</span>}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* Mobile Layout: Top-Bottom */}
+            <div className="md:hidden">
+              {/* Cover Image */}
+              <div className="flex justify-center mb-4">
+                {currentCoverUrl ? (
+                  <div className={`relative w-56 aspect-square overflow-hidden rounded-full`}>
+                    <Image
+                      src={currentCoverUrl}
+                      alt={title || 'Track Cover'}
+                      fill
+                      className="object-cover"
+                    />
+                  </div>
+                ) : (
+                  <div className="relative w-72 aspect-square overflow-hidden rounded-xl">
+                    <CassetteTape
+                      duration="--:--"
+                      isPlaying={isPlaying}
+                      className="w-full h-full"
+                    />
+                  </div>
+                )}
+              </div>
+
+              {/* Track Info */}
+              <div className="text-center mb-3">
+                {title ? (
+                  <h2 className="text-lg font-semibold text-foreground truncate mb-2">
+                    {title}
+                  </h2>
+                ) : (
+                  <div className="flex items-center justify-center gap-2 mb-2">
+                    <p className="text-sm font-medium text-muted-foreground">Click a track to view its information</p>
+                  </div>
+                )}
+
+                {/* Tags */}
+                {tags && tags.length > 0 && (
+                  <div>
+                    <div className="text-xs text-muted-foreground flex flex-wrap justify-center gap-x-1.5 gap-y-0.5">
+                      {tags.split(/[,;.]/).filter(tag => tag.trim()).map((tag, index, array) => (
+                        <span key={index} className="hover:text-foreground transition-colors cursor-default">
+                          {tag.trim()}
+                          {index < array.length - 1 && <span className="mx-1">•</span>}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* Lyrics */}
+            {lyrics && (
+              <div className="pt-2 pb-3">
+                <div className="text-foreground/85 text-sm md:text-base leading-6 md:leading-7 whitespace-pre-line font-semibold tracking-wide text-left">
+                  {lyrics}
+                </div>
+              </div>
             )}
           </div>
-
-          {/* Title */}
-          {title && (
-              <div className="text-left mb-3">
-              <h2 className="text-lg font-semibold text-foreground truncate">
-                {title}
-              </h2>
-            </div>
-          )}
-
-          {/* Tags */}
-          {tags && (
-              <div className="mb-3">
-              <div
-                className="relative cursor-pointer rounded-lg p-2 -m-2 transition-colors"
-                onClick={() => {
-                  setIsTagsExpanded(!isTagsExpanded);
-                }}
-                title="Click to expand/collapse"
-              >
-                <p
-                  className={`text-sm text-muted-foreground leading-relaxed ${
-                    !isTagsExpanded ? 'overflow-hidden' : ''
-                  }`}
-                  style={{
-                    display: !isTagsExpanded ? '-webkit-box' : 'block',
-                    WebkitLineClamp: !isTagsExpanded ? 2 : 'unset',
-                    WebkitBoxOrient: 'vertical'
-                  }}
-                >
-                  {tags}
-                </p>
-              </div>
-            </div>
-          )}
-          </div>
-
-          {/* Lyrics */}
-          {lyrics ? (
-            <div className="pt-2 pb-3 md:py-6">
-              <div className="text-foreground/85 text-sm md:text-sm text-lg leading-6 md:leading-6 leading-8 whitespace-pre-line font-normal tracking-wide">
-                {lyrics}
-              </div>
-            </div>
-          ) : (
-            <div className="flex items-center justify-center py-6 md:py-8">
-              <div className="text-center">
-                <p className="text-muted-foreground mb-2">Instrumental Music</p>
-                <p className="text-sm text-muted-foreground">
-                  Please enjoy
-                </p>
-              </div>
-            </div>
-          )}
         </div>
 
         {/* Desktop Action Buttons */}
@@ -371,34 +283,15 @@ export const LyricsPanel: React.FC<LyricsPanelProps> = ({
                 </div>
             </Button>
             )}
-            {/* Favorite Button */}
-            {onFavoriteToggle && (
-              <Button
-                onClick={onFavoriteToggle}
-                variant="outline"
-                className="flex-1"
-              >
-                <div className="flex items-center justify-center gap-2">
-                  <Heart className={`h-4 w-4 ${isFavorited ? 'fill-red-500 text-red-500' : ''}`} />
-                  {isFavorited ? 'Favourited' : 'Favourite'}
-                </div>
-              </Button>
-            )}
-            
-            {/* Download Button */}
-            {onDownload && (
-            <Button
-                onClick={onDownload}
-              disabled={isGenerating || !coverImage}
-              variant="outline"
-              className="flex-1"
-              >
-                <div className="flex items-center justify-center gap-2">
-                  <Download className="h-4 w-4" />
-                {isGenerating ? 'Generating...' : 'Download'}
-                </div>
-            </Button>
-            )}
+        </div>
+
+        {/* Drag Handle - Mobile only (at bottom) */}
+        <div 
+          ref={dragHandleRef}
+          onClick={onClose}
+          className="md:hidden flex items-center justify-center py-3 cursor-pointer active:cursor-grabbing touch-none"
+        >
+          <div className="w-12 h-1 bg-border/50 rounded-full" />
         </div>
       </div>
     </div>

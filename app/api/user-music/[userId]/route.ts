@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getUserMusicGenerationsOptimized, cachedQuery, batchCheckFavorites } from '@/lib/db-query-builder';
-import { getUserIdFromRequest } from '@/lib/auth-utils-optimized';
+import { getUserMusicGenerationsOptimized, batchCheckFavorites } from '@/lib/db-query-builder';
+import { getUserIdFromRequest } from '@/lib/auth';
 
 // 强制动态渲染
 export const dynamic = 'force-dynamic';
@@ -25,22 +25,8 @@ export async function GET(
     // 获取请求用户ID（用于收藏状态检查）
     const requestUserId = await getUserIdFromRequest(request);
 
-    // 检查是否有强制刷新参数
-    const forceRefresh = searchParams.get('_t');
-    
-    let rawData;
-    if (forceRefresh) {
-      // 强制刷新，不使用缓存
-      rawData = await getUserMusicGenerationsOptimized(userId, limit, offset);
-    } else {
-      // 使用缓存的查询，缓存时间5分钟
-      const cacheKey = `user-music:${userId}:${limit}:${offset}`;
-      rawData = await cachedQuery(
-        cacheKey,
-        () => getUserMusicGenerationsOptimized(userId, limit, offset),
-        300000 // 5分钟缓存
-      );
-    }
+    // 直接查询用户音乐数据
+    const rawData = await getUserMusicGenerationsOptimized(userId, limit, offset);
 
     // 处理数据格式
     const musicGenerations = processUserMusicData(rawData);
@@ -126,12 +112,13 @@ function processUserMusicData(rawData: any[]) {
         id: row.track_id,
         suno_track_id: row.suno_track_id,
         audio_url: row.audio_url,
+        stream_audio_url: row.stream_audio_url,
         duration: row.duration,
-        side_letter: row.side_letter,
         is_published: row.is_published,
         is_pinned: row.is_pinned,
         created_at: row.track_created_at,
         cover_r2_url: row.cover_r2_url,
+        title: row.track_title, // 使用 COALESCE(tracks.title, music.title) 的结果
         lyrics: row.lyrics_content || ''
       };
 

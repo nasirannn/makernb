@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createClient } from '@supabase/supabase-js';
+import { supabase } from '@/lib/supabase';
 import { grantDailyLoginCredits, hasReceivedTodayCredits } from '@/lib/daily-login-credits';
 
 export const dynamic = 'force-dynamic';
@@ -18,20 +18,6 @@ export async function POST(request: NextRequest) {
     }
 
     const token = authHeader.split(' ')[1];
-    
-    // 为后端API创建独立的supabase客户端
-    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-    const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
-
-    if (!supabaseUrl || !supabaseAnonKey) {
-      console.error('[daily-login-credits] Missing Supabase environment variables');
-      return NextResponse.json(
-        { error: 'Server configuration error' },
-        { status: 500 }
-      );
-    }
-
-    const supabase = createClient(supabaseUrl, supabaseAnonKey);
     
     // 验证token
     const { data: { user }, error } = await supabase.auth.getUser(token);
@@ -121,20 +107,6 @@ export async function GET(request: NextRequest) {
     }
 
     const token = authHeader.split(' ')[1];
-    
-    // 为后端API创建独立的supabase客户端
-    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-    const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
-
-    if (!supabaseUrl || !supabaseAnonKey) {
-      console.error('[daily-login-credits GET] Missing Supabase environment variables');
-      return NextResponse.json(
-        { error: 'Server configuration error' },
-        { status: 500 }
-      );
-    }
-
-    const supabase = createClient(supabaseUrl, supabaseAnonKey);
     
     // 验证token
     const { data: { user }, error } = await supabase.auth.getUser(token);

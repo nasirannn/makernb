@@ -2,13 +2,7 @@ declare module "*/music-options.json" {
   interface MusicOption {
     id: string;
     name: string;
-    description?: string;
-    emoji?: string;
-  }
-
-  interface MusicOption {
-    id: string;
-    name: string;
+    value: string;
     description?: string;
     emoji?: string;
   }
@@ -37,7 +31,6 @@ declare module "*/music-options.json" {
     vocalGenders: MusicOption[];
     vocalStyles: MusicOption[];
     harmonyPalettes: MusicOption[];
-    mockLibraryData: LibraryTrack[];
   }
 
   const value: MusicOptions;

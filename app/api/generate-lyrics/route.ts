@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createLyricsGeneration } from '@/lib/lyrics-db';
 import { createGenerationError } from '@/lib/generation-errors-db';
-import { getUserIdFromRequest } from '@/lib/auth-utils-optimized';
+import { getUserIdFromRequest } from '@/lib/auth';
 
 export const dynamic = 'force-dynamic';
 

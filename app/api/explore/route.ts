@@ -30,11 +30,10 @@ export async function GET(request: NextRequest) {
         mt.id as track_id,
         mt.audio_url,
         mt.duration,
-        mt.side_letter,
         mt.is_pinned,
         mt.created_at as track_created_at,
         mg.id as generation_id,
-        mg.title,
+        COALESCE(mt.title, mg.title) as title,
         mg.genre,
         mg.tags,
         mg.prompt,
@@ -69,14 +68,12 @@ export async function GET(request: NextRequest) {
         id: row.track_id,
         audio_url: row.audio_url,
         duration: row.duration,
-        side_letter: row.side_letter,
         cover_r2_url: row.cover_r2_url
       },
       allTracks: [{
         id: row.track_id,
         audio_url: row.audio_url,
         duration: row.duration,
-        side_letter: row.side_letter,
         cover_r2_url: row.cover_r2_url
       }],
       totalDuration: parseFloat(row.duration) || 0,

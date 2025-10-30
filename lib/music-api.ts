@@ -160,14 +160,9 @@ class MusicApiService {
       apiParams.instrumental = request.instrumentalMode || false;
       apiParams.model = process.env.CUSTOM_MODE_MODEL; // Custom Mode使用配置的模型
 
-      // Custom Mode: 使用用户输入的styleText + R&B风格提示
-      const styleHint = 'in R&B style';
+      // Custom Mode: 直接使用用户输入的styleText
       if (request.styleText && request.styleText.trim()) {
-        const base = request.styleText.trim();
-        const combined = `${base}, ${styleHint}`;
-        apiParams.style = combined;
-      } else {
-        apiParams.style = styleHint;
+        apiParams.style = request.styleText.trim();
       }
 
       // 处理prompt - 根据API文档，在非instrumental模式下，prompt严格作为歌词使用
@@ -184,11 +179,7 @@ class MusicApiService {
 
       // Vocal Gender
       if (request.vocalGender && !request.instrumentalMode) {
-        const genderMap = {
-          'male': 'm',
-          'female': 'f'
-        };
-        apiParams.vocalGender = genderMap[request.vocalGender as keyof typeof genderMap] || request.vocalGender;
+        apiParams.vocalGender = request.vocalGender;
       }
 
     }

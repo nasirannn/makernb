@@ -226,9 +226,10 @@ export const getUserMusicGenerationsOptimized = async (
         ug.id as generation_id,
         ug.title, ug.genre, ug.tags, ug.prompt, ug.is_instrumental, ug.status,
         ug.created_at as generation_created_at, ug.updated_at as generation_updated_at,
-        mt.id as track_id, mt.suno_track_id, mt.audio_url, mt.duration, mt.side_letter,
+        mt.id as track_id, mt.suno_track_id, mt.audio_url, mt.stream_audio_url, mt.duration,
         mt.is_published, mt.is_pinned, mt.created_at as track_created_at,
         mt.cover_image_url as cover_r2_url,
+        COALESCE(mt.title, ug.title) as track_title,
         ml.content as lyrics_content
       FROM user_generations ug
       LEFT JOIN tracks mt ON ug.id = mt.music_id
@@ -244,7 +245,7 @@ export const getUserMusicGenerationsOptimized = async (
     SELECT gt.*, ei.error_message, ei.error_code
     FROM generation_tracks gt
     LEFT JOIN error_info ei ON gt.generation_id::text = ei.reference_id
-    ORDER BY gt.generation_created_at DESC, gt.side_letter ASC
+    ORDER BY gt.generation_created_at DESC, gt.track_id ASC
   `;
 
   const result = await query(sql, [userId, limit, offset]);

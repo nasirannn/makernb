@@ -1,59 +1,38 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { supabase } from '@/lib/supabase';
 import { toast } from 'sonner';
 
 // ============================================================================
-// TYPES AND INTERFACES
+// TYPES
 // ============================================================================
 
 type GenerationStatus = 'generating' | 'text' | 'first' | 'complete' | 'error';
 
-interface TrackData {
-  id?: string;
-  title: string;
-  audioUrl?: string;
-  streamAudioUrl?: string;
-  finalAudioUrl?: string;
-  coverImage?: string;
-  duration?: number;
-  genre?: string;
-  style?: string;
-  tags?: string;
-  lyrics?: string;
-  sideLetter?: string;
-  isLoading?: boolean;
-  isGenerating?: boolean;
-  isStreaming?: boolean;
-  isUsingStreamAudio?: boolean;
-  isError?: boolean;
-  errorMessage?: string;
-  originalPrompt?: string;
-  createdAt?: string;
-  vibe?: string;
-  generationId?: string;
-  is_favorited?: boolean;
-}
+import { MusicGenerationTrack } from '@/types/track';
+
+const POLLING_CONFIG = {
+  INITIAL_DELAY: 30000,       // 首次轮询延迟 30秒
+  INTERVAL: 3000,             // 轮询间隔 3秒
+  MAX_DURATION: 5 * 60 * 1000, // 最大轮询时长 5分钟
+  MAX_RETRIES: 3,             // 网络错误最大重试次数
+} as const;
 
 // ============================================================================
-// MAIN HOOK
+// HOOK - 参考 TanStack Query 和 SWR 的轮询模式重构
 // ============================================================================
 
 export const useMusicGeneration = () => {
-  // ============================================================================
-  // STATE MANAGEMENT
-  // ============================================================================
-
-  // Music Configuration States
+  // ==================== 配置状态 ====================
   const [mode, setMode] = useState<"basic" | "custom">("basic");
-  const [selectedGenre, setSelectedGenre] = useState("");
-  const [selectedVibe, setSelectedVibe] = useState("");
   const [customPrompt, setCustomPrompt] = useState("");
   const [songTitle, setSongTitle] = useState("");
-  const [instrumentalMode, setInstrumentalMode] = useState(false);
-  const [isPublished] = useState(false); // 默认关闭，用户可以在library中手动发布
   const [styleText, setStyleText] = useState("");
-
-  // Advanced Music Options
+  const [selectedGenre, setSelectedGenre] = useState("");
+  const [selectedVibe, setSelectedVibe] = useState("");
+  const [instrumentalMode, setInstrumentalMode] = useState(false);
+  const [isPublished] = useState(false);
+  
+  // 高级选项
   const [bpm, setBpm] = useState([60]);
   const [grooveType, setGrooveType] = useState("");
   const [leadInstrument, setLeadInstrument] = useState<string[]>([]);
@@ -63,544 +42,412 @@ export const useMusicGeneration = () => {
   const [vocalGender, setVocalGender] = useState("male");
   const [harmonyPalette, setHarmonyPalette] = useState("");
 
-  // Generation States
+  // ==================== 生成状态 ====================
   const [isGenerating, setIsGenerating] = useState(false);
-  const [allGeneratedTracks, setAllGeneratedTracks] = useState<TrackData[]>([]);
-  const [activeTrackIndex, setActiveTrackIndex] = useState(0);
-  const [pendingTasksCount, setPendingTasksCount] = useState(0);
-  const [generationTimer, setGenerationTimer] = useState(0);
+  const [generatedTracks, setGeneratedTracks] = useState<MusicGenerationTrack[]>([]);
 
-  // ============================================================================
-  // REFS AND TIMERS
-  // ============================================================================
+  // ==================== 轮询控制 - 使用 Ref 而非状态 ====================
+  const pollingStateRef = useRef<{
+    isPolling: boolean;
+    taskId: string | null;
+    startTime: number;
+    retryCount: number;
+    timeoutId: NodeJS.Timeout | null;
+    abortController: AbortController | null;
+  }>({
+    isPolling: false,
+    taskId: null,
+    startTime: 0,
+    retryCount: 0,
+    timeoutId: null,
+    abortController: null,
+  });
 
-  const generationTimerRef = useRef<NodeJS.Timeout | null>(null);
-  const pollingRef = useRef<NodeJS.Timeout | null>(null);
-  const pollingDelayRef = useRef<NodeJS.Timeout | null>(null);
-  const pollingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
-  const hasAutoplayedRef = useRef(false);
-  const currentPollingMsRef = useRef<number>(1000);
-  const hasAutoPlayedRef = useRef<boolean>(false);
-  const pollingStartTimeRef = useRef<number>(0);
-
-  // Expose hasAutoPlayedRef to global scope for other components
-  if (typeof window !== 'undefined') {
-    (window as any).hasAutoPlayedRef = hasAutoPlayedRef;
-  }
-
-
-  // ============================================================================
-  // UTILITY FUNCTIONS
-  // ============================================================================
-
-  /**
-   * Cleans up all timers and polling intervals
-   */
-  const cleanupResources = () => {
-    if (generationTimerRef.current) {
-      clearInterval(generationTimerRef.current);
-      generationTimerRef.current = null;
+  // ==================== 清理资源 - 彻底清理所有引用 ====================
+  const cleanup = useCallback(() => {
+    
+    const state = pollingStateRef.current;
+    
+    // 取消所有pending的请求
+    if (state.abortController) {
+      state.abortController.abort();
+      state.abortController = null;
     }
-    if (pollingRef.current) {
-      clearInterval(pollingRef.current);
-      pollingRef.current = null;
+    
+    // 清除定时器
+    if (state.timeoutId) {
+      clearTimeout(state.timeoutId);
+      state.timeoutId = null;
     }
-    if (pollingDelayRef.current) {
-      clearTimeout(pollingDelayRef.current);
-      pollingDelayRef.current = null;
-    }
-    if (pollingTimeoutRef.current) {
-      clearTimeout(pollingTimeoutRef.current);
-      pollingTimeoutRef.current = null;
-    }
-  };
+    
+    // 重置状态
+    state.isPolling = false;
+    state.taskId = null;
+    state.retryCount = 0;
+  }, []);
 
-  /**
-   * Validates form inputs based on the current mode
-   */
+  // 组件卸载时清理
+  useEffect(() => {
+    return () => {
+      cleanup();
+    };
+  }, [cleanup]);
+
+  // ==================== 辅助函数 ====================
+
   const validateInputs = (): boolean => {
-    if (mode === "basic") {
-      if (!customPrompt?.trim()) {
-        toast.error("Please enter a prompt");
-        return false;
-      }
-    } else {
-      if (!styleText?.trim()) {
-        toast.error("Please enter music style");
-        return false;
-      }
+    if (mode === "basic" && !customPrompt?.trim()) {
+      toast.error("Please enter a prompt");
+      return false;
     }
+    // Custom mode: styleText is now optional, no validation needed
     return true;
   };
 
-  /**
-   * Builds request data for music generation API
-   */
-  const buildRequestData = () => {
-    return {
-      mode,
-      customPrompt,
-      instrumentalMode,
-      songTitle,
-      styleText,
-      vocalGender,
-      isPublished
-    };
+  const buildRequestData = () => ({
+    mode,
+    customPrompt,
+    instrumentalMode,
+    songTitle,
+    styleText,
+    vocalGender,
+    isPublished
+  });
+
+
+  // 转换初始数据库tracks为前端Track格式
+  const convertInitialTracks = (initialTracks: any[]): MusicGenerationTrack[] => {
+    return initialTracks.map((t: any) => ({
+      id: t.id,
+      generationId: t.generationId || '',
+      sunoTrackId: t.suno_track_id || null,
+      title: t.title || 'Untitled Track',
+      audioUrl: t.audioUrl || '',
+      streamAudioUrl: t.streamAudioUrl || '',
+      duration: t.duration,
+      coverImage: t.coverImage,
+      tags: t.tags || '',
+      genre: t.genre || '',
+      lyrics: t.lyrics || '',
+      createdAt: t.createdAt || t.created_at || new Date().toISOString(),
+      isGenerating: true, // 初始状态都在生成中
+      isCompleted: false, // 初始状态都未完成
+      isPlaceholder: false, // 使用真实ID，不是placeholder
+    }));
   };
 
-  /**
-   * Creates a failed track object for error display
-   */
-  const createFailedTrack = (errorMessage: string): TrackData => {
-    return {
-      id: `failed-${Date.now()}`,
-      title: customPrompt || 'Unknown',
-      audioUrl: undefined,
-      coverImage: undefined,
-      duration: 0,
-      isLoading: false,
-      isError: true,
-      errorMessage,
-      originalPrompt: customPrompt,
-      genre: mode === 'basic' ? 'R&B' : selectedGenre,
-      tags: mode === 'basic' ? 'R&B' : `${selectedGenre}, ${selectedVibe}`,
-      lyrics: '',
-      createdAt: new Date().toISOString() // 添加创建时间
-    };
-  };
-
-
-  /**
-   * Processes raw track data from API response
-   */
-  const processTracksData = (tracks: any[], status: GenerationStatus, generationId?: string): TrackData[] => {
-    return tracks.map((t: any, index: number) => {
-      const audioUrl = t.audioUrl || '';
-      const streamAudioUrl = t.streamAudioUrl || '';
-      const hasFinalForThisTrack = !!audioUrl && !!t.duration && t.duration > 0;
-      const hasStreamAudio = !!streamAudioUrl;
-
-      // 根据状态和音频可用性确定加载状态
-      let isLoading = false;
-      let isGenerating = false;
-      let isStreaming = false;
-      let currentAudioUrl = '';
-      let currentDuration = undefined;
-
-      if (status === 'text') {
-        // text 回调：移除遮罩和白点指示器，允许点击，封面显示旋转loading
-        isLoading = false; // 移除loading指示器
-        isGenerating = true; // 仍在生成中（用于封面旋转效果）
-        isStreaming = hasStreamAudio;
-        currentAudioUrl = streamAudioUrl;
-        currentDuration = undefined; // 不显示具体时长，前端会显示 --:--
-      } else if (status === 'first') {
-        // first 回调：第一首歌有最终音频，其他仍使用 stream audio
-        if (index === 0 && hasFinalForThisTrack) {
-          isLoading = false;
-          isGenerating = false;
-          isStreaming = false;
-          currentAudioUrl = audioUrl;
-          currentDuration = t.duration;
-        } else {
-          isLoading = false; // 不显示loading指示器，使用旋转封面
-          isGenerating = true; // 仍在生成中（用于封面旋转效果）
-          isStreaming = hasStreamAudio;
-          currentAudioUrl = streamAudioUrl;
-          currentDuration = undefined; // 其他歌曲在 first 回调时也显示 --:--
-        }
-      } else if (status === 'complete') {
-        // complete 回调：所有歌曲都有最终音频
-        isLoading = false;
-        isGenerating = false;
-        isStreaming = false;
-        currentAudioUrl = audioUrl;
-        currentDuration = t.duration;
-      } else {
-        // generating 状态：不显示遮罩，通过skeleton显示
-        isLoading = false; // 不显示遮罩，skeleton由pendingTasksCount控制
-        isGenerating = true;
-        isStreaming = false;
-        currentAudioUrl = '';
-        currentDuration = undefined;
-      }
-
+  // 转换API返回的数据为Track
+  const convertToTracks = (tracks: any[], status: GenerationStatus, generationId?: string): MusicGenerationTrack[] => {
+    return tracks.map((t: any) => {
+      const isGenerating = status === 'text' || 
+                          status === 'generating' || 
+                          (status === 'first' && !t.duration);
+      
       return {
         id: t.id,
-        generationId: generationId || t.generationId,
-        finalAudioUrl: audioUrl,
-        streamAudioUrl: streamAudioUrl,
-        audioUrl: currentAudioUrl,
-        isUsingStreamAudio: !hasFinalForThisTrack && hasStreamAudio,
-        title: t.title,
-        duration: currentDuration,
+        generationId: t.generationId || generationId || '',
+        sunoTrackId: t.suno_track_id || null, // 保存 suno_track_id 用于匹配
+        title: t.title || 'Untitled Track',
+        audioUrl: t.audioUrl || '',
+        streamAudioUrl: t.streamAudioUrl || '',
+        duration: t.duration,
+        coverImage: t.coverImage,
+        tags: t.tags || '',
         genre: t.genre,
-        vibe: mode === 'basic' ? 'polished' : selectedVibe,
-        coverImage: t.coverImage || undefined, // 没有封面时显示磁带
-        sideLetter: t.sideLetter || (index === 0 ? 'A' : 'B'),
-        tags: t.tags,
         lyrics: t.lyrics || '',
-        createdAt: t.createdAt || new Date().toISOString(), // 添加创建时间
-        isStreaming: isStreaming,
-        isGenerating: isGenerating,
-        isLoading: isLoading,
+        createdAt: t.createdAt || new Date().toISOString(),
+        isGenerating,
+        // 仅在 complete 阶段标记为已完成，避免 first 阶段提前进入 userTracks
+        isCompleted: status === 'complete',
+        isPlaceholder: false,
       };
     });
   };
 
-  /**
-   * Cleanup resources on component unmount
-   */
-  useEffect(() => {
-    return () => {
-      cleanupResources();
-    };
-  }, []);
-
-  // ============================================================================
-  // POLLING LOGIC
-  // ============================================================================
-
-  /**
-   * Handles API error responses during polling
-   */
-  const handlePollingError = (payload: any) => {
-    console.error('Stopping polling due to API error');
-
-    // Stop all timers
-    if (pollingRef.current) {
-      clearInterval(pollingRef.current);
-      pollingRef.current = null;
-    }
-    if (generationTimerRef.current) {
-      clearInterval(generationTimerRef.current);
-      generationTimerRef.current = null;
+  // 智能合并新数据和现有数据（通过ID或sunoTrackId匹配）
+  const mergeTracks = (currentTracks: MusicGenerationTrack[], newTracks: MusicGenerationTrack[], status: GenerationStatus): MusicGenerationTrack[] => {
+    if (newTracks.length === 0) {
+      return currentTracks;
     }
 
-    // Update states
-    setIsGenerating(false);
-    setPendingTasksCount(0);
-
-    // Add failed track to display (only one error track)
-    const failedTrack = createFailedTrack(payload.msg || 'System error occurred');
-    setAllGeneratedTracks([failedTrack]); // 直接设置，不追加
-  };
-
-  /**
-   * Updates tracks display and handles autoplay logic
-   */
-  const updateTracksDisplay = (tracksInfo: TrackData[], setIsPlaying?: (playing: boolean) => void) => {
-    setAllGeneratedTracks(tracksInfo);
-    setPendingTasksCount(0);
-
-    // Handle autoplay logic - 在 text 回调后就开始自动播放 stream audio
-    if (!hasAutoPlayedRef.current && tracksInfo.length > 0) {
-      const firstTrack = tracksInfo[0];
-      // 只要有音频 URL（包括 stream audio）就自动播放
-      if (firstTrack.audioUrl && firstTrack.audioUrl.trim() !== '') {
-        hasAutoPlayedRef.current = true;
-        hasAutoplayedRef.current = true; // 同步两个 ref
-
-        setTimeout(() => {
-          if (setIsPlaying) {
-            setIsPlaying(true);
-          }
-        }, 500);
-      }
-    }
-  };
-
-  /**
-   * Handles status-specific track updates
-   */
-  const handleStatusUpdates = (status: GenerationStatus, tracks: any[]) => {
-    if (status === 'first') {
-      setAllGeneratedTracks(prev => prev.map((t, idx) => {
-        const correspondingTrack = tracks[idx];
-        if (correspondingTrack && correspondingTrack.audioUrl && correspondingTrack.duration) {
-          return {
-            ...t,
-            isLoading: false,
-            isGenerating: false,
-            finalAudioUrl: correspondingTrack.audioUrl,
-            audioUrl: correspondingTrack.audioUrl,
-            duration: correspondingTrack.duration,
-            isUsingStreamAudio: false,
-            coverImage: correspondingTrack.coverImage || t.coverImage // 保留封面数据
-          };
-        }
-        return t;
-      }));
-    }
-
-    if (status === 'complete') {
-      if (pollingRef.current) {
-        clearInterval(pollingRef.current);
-        pollingRef.current = null;
-      }
-      if (generationTimerRef.current) {
-        clearInterval(generationTimerRef.current);
-        generationTimerRef.current = null;
-      }
-      if (pollingTimeoutRef.current) {
-        clearTimeout(pollingTimeoutRef.current);
-        pollingTimeoutRef.current = null;
-      }
-      setIsGenerating(false);
-
-      setAllGeneratedTracks(prev => prev.map((t, idx) => {
-        const correspondingTrack = tracks[idx];
-        if (correspondingTrack && correspondingTrack.audioUrl && correspondingTrack.duration) {
-          return {
-            ...t,
-            isLoading: false,
-            isStreaming: false,
-            isGenerating: false,
-            finalAudioUrl: correspondingTrack.audioUrl,
-            audioUrl: correspondingTrack.audioUrl,
-            duration: correspondingTrack.duration,
-            isUsingStreamAudio: false,
-            coverImage: correspondingTrack.coverImage || t.coverImage // 保留封面数据
-          };
-        }
-        return {...t, isLoading: false, isStreaming: false, isGenerating: false, isUsingStreamAudio: false};
-      }));
-    }
-
-    if (status === 'error') {
-      if (pollingRef.current) {
-        clearInterval(pollingRef.current);
-        pollingRef.current = null;
-      }
-      if (generationTimerRef.current) {
-        clearInterval(generationTimerRef.current);
-        generationTimerRef.current = null;
-      }
-      setIsGenerating(false);
-      setPendingTasksCount(0);
-
-      const errorTrack = createFailedTrack('Generation failed');
-      setAllGeneratedTracks([errorTrack]); // 直接设置，不追加
-    }
-  };
-
-  /**
-   * Adjusts polling frequency based on generation status
-   */
-  const adjustPollingFrequency = (status: GenerationStatus, pollFunction: () => Promise<void>) => {
-    // 根据状态调整轮询频率
-    // text/first状态后降低频率，减少服务器压力
-    if ((status === 'text' || status === 'first' || hasAutoplayedRef.current) && currentPollingMsRef.current !== 5000) {
-      if (pollingRef.current) {
-        clearInterval(pollingRef.current);
-      }
-      currentPollingMsRef.current = 5000; // 从3秒增加到5秒
-      pollingRef.current = setInterval(pollFunction, currentPollingMsRef.current);
-    }
-  };
-
-  /**
-   * Starts polling for music generation status
-   */
-  const startPollingStatus = (taskId: string, setIsPlaying?: (playing: boolean) => void) => {
-    // Clean up existing polling
-    if (pollingRef.current) {
-      clearInterval(pollingRef.current);
-      pollingRef.current = null;
-    }
-    if (pollingDelayRef.current) {
-      clearTimeout(pollingDelayRef.current);
-      pollingDelayRef.current = null;
-    }
-    if (pollingTimeoutRef.current) {
-      clearTimeout(pollingTimeoutRef.current);
-      pollingTimeoutRef.current = null;
-    }
-
-    hasAutoplayedRef.current = false;
-    hasAutoPlayedRef.current = false;
-    pollingStartTimeRef.current = Date.now();
-
-    // 设置3分钟超时（音乐生成通常应该在2-3分钟内完成）
-    pollingTimeoutRef.current = setTimeout(() => {
-      console.error('Music generation timeout after 3 minutes');
-      cleanupResources();
-      setIsGenerating(false);
-      setPendingTasksCount(0);
+    const result = [...currentTracks];
+    let hasChanges = false;
+    
+    newTracks.forEach((newTrack) => {
+      // 按ID或sunoTrackId查找匹配
+      const matchedIndex = result.findIndex(
+        t => t.id === newTrack.id || (newTrack.sunoTrackId && t.sunoTrackId === newTrack.sunoTrackId)
+      );
       
-      const errorTrack = createFailedTrack('Generation timeout. Please try again.');
-      setAllGeneratedTracks([errorTrack]);
-      toast.error('Music generation timeout. Please try again.');
-    }, 5 * 60 * 1000); // 5分钟
-
-    const poll = async () => {
-      try {
-        // 检查网络连接
-        if (typeof navigator !== 'undefined' && !navigator.onLine) {
-          console.warn('No internet connection, skipping poll');
-          return;
+      if (matchedIndex !== -1) {
+        // 找到匹配的track，更新它
+        const currentTrack = result[matchedIndex];
+        
+        // 检查是否有实际变化
+        const needsUpdate = 
+          currentTrack.id !== newTrack.id ||
+          currentTrack.generationId !== newTrack.generationId ||
+          currentTrack.sunoTrackId !== newTrack.sunoTrackId ||
+          currentTrack.title !== newTrack.title ||
+          currentTrack.tags !== newTrack.tags ||
+          currentTrack.lyrics !== newTrack.lyrics ||
+          currentTrack.genre !== newTrack.genre ||
+          currentTrack.audioUrl !== newTrack.audioUrl ||
+          currentTrack.streamAudioUrl !== newTrack.streamAudioUrl ||
+          currentTrack.duration !== newTrack.duration ||
+          currentTrack.coverImage !== newTrack.coverImage ||
+          currentTrack.isGenerating !== newTrack.isGenerating ||
+          currentTrack.isCompleted !== newTrack.isCompleted;
+        
+        if (needsUpdate) {
+          result[matchedIndex] = newTrack;
+          hasChanges = true;
         }
-
-        const res = await fetch(`/api/music-status?taskId=${taskId}`);
-        if (!res.ok) return;
-        const payload = await res.json();
-
-        if (payload.code !== 200) {
-          console.warn('Music status API returned non-200 code:', payload.code, payload.msg);
-          if (payload.code === 202) {
-            return; // Continue polling
-          }
-          handlePollingError(payload);
-          return;
-        }
-
-        const data = payload.data;
-        const status = data.status as GenerationStatus;
-        const tracks = (data.tracks || []) as any[];
-
-        // 在 text 回调后立即显示播放器和歌词面板
-        if (status === 'text' || status === 'first' || status === 'complete') {
-          if (tracks.length > 0) {
-            const tracksInfo = processTracksData(tracks, status, data.generationId);
-            updateTracksDisplay(tracksInfo, setIsPlaying);
-          } else {
-            // 没有 tracks 数据时，继续显示skeleton，等待真实数据
-          }
-        }
-
-        handleStatusUpdates(status, tracks);
-        adjustPollingFrequency(status, poll);
-      } catch (e) {
-        console.warn('Polling music status failed:', e);
+      } else {
+        // 没找到匹配的track，添加新的
+        result.push(newTrack);
+        hasChanges = true;
       }
-    };
+    });
 
-    // Start polling with delay
-    // 30秒延迟后开始轮询，给API时间开始处理
-    pollingDelayRef.current = setTimeout(() => {
-      poll();
-      currentPollingMsRef.current = 3000; // 初始轮询间隔3秒，更合理
-      pollingRef.current = setInterval(poll, currentPollingMsRef.current);
-    }, 30000);
+    // 如果没有任何变化，返回原数组，防止触发不必要的重新渲染
+    return hasChanges ? result : currentTracks;
   };
 
-  // ============================================================================
-  // MUSIC GENERATION LOGIC
-  // ============================================================================
-
+  // ==================== 轮询逻辑 - 单一递归 setTimeout 模式 ====================
+  
   /**
-   * Handles music generation process
+   * 参考 TanStack Query 的实现:
+   * - 使用递归 setTimeout 而非 setInterval (更精确的控制)
+   * - 使用 AbortController 彻底取消请求
+   * - 使用 ref 追踪状态避免闭包问题
+   * - 支持重试和超时
    */
+  const pollStatus = useCallback(async () => {
+    const state = pollingStateRef.current;
+    
+    // 检查是否应该继续轮询
+    if (!state.isPolling || !state.taskId) {
+      return;
+    }
+
+    // 检查超时
+    const elapsed = Date.now() - state.startTime;
+    if (elapsed > POLLING_CONFIG.MAX_DURATION) {
+      console.error('[Polling] Timeout after', elapsed / 1000, 'seconds');
+      cleanup();
+      setIsGenerating(false);
+      toast.error('Music generation timeout. Please try again.');
+      return;
+    }
+
+    // 检查网络连接
+    if (typeof navigator !== 'undefined' && !navigator.onLine) {
+      state.timeoutId = setTimeout(pollStatus, 5000);
+      return;
+    }
+
+    try {
+      // 创建新的 AbortController
+      state.abortController = new AbortController();
+      
+      
+      
+      const res = await fetch(`/api/music-status?taskId=${state.taskId}`, {
+        signal: state.abortController.signal,
+        cache: 'no-store', // 确保不使用缓存
+      });
+
+      // 请求成功后重置重试计数
+      state.retryCount = 0;
+
+      if (!res.ok) {
+        console.warn('[Polling] HTTP error:', res.status);
+        // 继续轮询，不中断
+        state.timeoutId = setTimeout(pollStatus, POLLING_CONFIG.INTERVAL);
+        return;
+      }
+
+      const payload = await res.json();
+
+      // 处理202状态码 - 仍在生成中
+      if (payload.code === 202) {
+        state.timeoutId = setTimeout(pollStatus, POLLING_CONFIG.INTERVAL);
+        return;
+      }
+
+      // 处理错误响应
+      if (payload.code !== 200) {
+        console.error('[Polling] API error:', payload.msg);
+        cleanup();
+        setIsGenerating(false);
+        toast.error(payload.msg || 'Generation failed');
+        return;
+      }
+
+      const { status, tracks, generationId } = payload.data;
+      
+      
+
+      // 更新tracks
+      if (tracks && Array.isArray(tracks)) {
+        setGeneratedTracks(prev => {
+          const newTracks = mergeTracks(prev, convertToTracks(tracks, status, generationId), status);
+          // 🔒 额外的防御：如果 mergeTracks 返回的是同一个数组引用，说明没有变化，不触发重新渲染
+          if (newTracks === prev) {
+            return prev;
+          }
+          return newTracks;
+        });
+      }
+
+      // 检查是否完成
+      if (status === 'complete') {
+        cleanup();
+        setIsGenerating(false);
+        toast.success('Music generated successfully!');
+        return;
+      }
+
+      if (status === 'error') {
+        console.error('[Polling] Generation failed');
+        cleanup();
+        setIsGenerating(false);
+        toast.error('Music generation failed');
+        return;
+      }
+
+      // 继续轮询
+      state.timeoutId = setTimeout(pollStatus, POLLING_CONFIG.INTERVAL);
+
+    } catch (error: any) {
+      // 忽略 abort 错误
+      if (error.name === 'AbortError') {
+        return;
+      }
+
+      console.error('[Polling] Error:', error);
+
+      // 重试逻辑
+      state.retryCount++;
+      if (state.retryCount >= POLLING_CONFIG.MAX_RETRIES) {
+        console.error('[Polling] Max retries reached');
+        cleanup();
+        setIsGenerating(false);
+        toast.error('Network error. Please check your connection.');
+        return;
+      }
+
+      // 指数退避重试
+      const retryDelay = POLLING_CONFIG.INTERVAL * Math.pow(2, state.retryCount - 1);
+      state.timeoutId = setTimeout(pollStatus, retryDelay);
+    }
+  }, [cleanup, setIsGenerating, setGeneratedTracks]);
+
+  // ==================== 开始轮询 ====================
+  const startPolling = useCallback((taskId: string) => {
+    
+    // 清理旧的轮询
+    cleanup();
+
+    // 初始化轮询状态
+    pollingStateRef.current = {
+      isPolling: true,
+      taskId,
+      startTime: Date.now(),
+      retryCount: 0,
+      timeoutId: null,
+      abortController: null,
+    };
+
+    // 延迟后开始首次轮询
+    pollingStateRef.current.timeoutId = setTimeout(() => {
+      pollStatus();
+    }, POLLING_CONFIG.INITIAL_DELAY);
+  }, [cleanup, pollStatus]);
+
+  // ==================== 生成歌曲 ====================
   const handleGenerate = async (
     refreshCredits?: () => Promise<void>,
-    setIsPlaying?: (playing: boolean) => void,
     onApiSuccess?: () => void
   ) => {
     if (!validateInputs()) {
       throw new Error('Input validation failed');
     }
 
+    // 清理之前的轮询
+    cleanup();
+    
     setIsGenerating(true);
-    setActiveTrackIndex(0);
-    setPendingTasksCount(2);
-
-    // Start generation timer
-    setGenerationTimer(0);
-    if (generationTimerRef.current) {
-      clearInterval(generationTimerRef.current);
-    }
-    generationTimerRef.current = setInterval(() => {
-      setGenerationTimer(prev => prev + 1);
-    }, 1000);
-
+    
     try {
-      const requestData = buildRequestData();
-
-      // Get Supabase session token
       const { data: { session } } = await supabase.auth.getSession();
       if (!session?.access_token) {
-        throw new Error('No valid session found');
+        throw new Error('No valid session');
       }
 
-
-      // Call real API
       const response = await fetch('/api/generate-music', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${session.access_token}`,
         },
-        body: JSON.stringify(requestData),
+        body: JSON.stringify(buildRequestData()),
       });
 
       if (!response.ok) {
         const errorData = await response.json();
-        if (errorData.error === 'Insufficient credits') {
-          throw new Error('Insufficient credits! Please check your credit balance.');
-        }
         throw new Error(errorData.error || 'Music generation failed');
       }
 
       const result = await response.json();
 
-      if (result.success) {
-        // 立即触发确认弹窗显示
-        if (onApiSuccess) {
-          onApiSuccess();
+      if (result.success && result.data?.taskId) {
+        // ✅ 使用后端返回的initialTracks
+        if (result.data?.initialTracks && result.data.initialTracks.length > 0) {
+          
+          
+          setGeneratedTracks(prevTracks => {
+            const newTracks = convertInitialTracks(result.data.initialTracks);
+            // 保留已完成的歌曲，将新的tracks添加到顶部
+            const completedTracks = prevTracks.filter(track => track.isCompleted && !newTracks.find(nt => nt.id === track.id));
+            return [...newTracks, ...completedTracks];
+          });
         }
 
-        // Refresh credits display
-        if (refreshCredits) {
-          refreshCredits().catch(console.error);
-        }
+        if (onApiSuccess) onApiSuccess();
+        if (refreshCredits) await refreshCredits();
 
-        if (result.data?.taskId) {
-          startPollingStatus(result.data.taskId, setIsPlaying);
-        } else {
-          throw new Error('No task ID received from server');
-        }
+        // 开始轮询
+        startPolling(result.data.taskId);
       } else {
-        throw new Error(result.error || 'Music generation failed');
+        throw new Error('No taskId returned from API');
       }
     } catch (error) {
-      console.error('Music generation error:', error);
-
-      // Stop timer and reset states
-      if (generationTimerRef.current) {
-        clearInterval(generationTimerRef.current);
-        generationTimerRef.current = null;
-      }
+      console.error('[Music Generation] Error:', error);
+      cleanup();
       setIsGenerating(false);
-      setPendingTasksCount(0);
-
-      // Add error track to display
-      const errorTrack = createFailedTrack(error instanceof Error ? error.message : 'Music generation failed');
-      setAllGeneratedTracks([errorTrack]); // 直接设置，不追加
-
-      // Show error message
       toast.error(error instanceof Error ? error.message : 'Music generation failed');
-      
-      // 重新抛出错误，让外层可以捕获
       throw error;
     }
   };
 
-  // ============================================================================
-  // RETURN HOOK INTERFACE
-  // ============================================================================
+  // 更新tracks（用于删除操作）
+  // 支持函数式更新，避免闭包陷阱
+  const updateTracks = (newTracksOrUpdater: MusicGenerationTrack[] | ((prev: MusicGenerationTrack[]) => MusicGenerationTrack[])) => {
+    setGeneratedTracks(newTracksOrUpdater);
+  };
 
   return {
-    // Configuration States
+    // 配置
     mode, setMode,
-    selectedGenre, setSelectedGenre,
-    selectedVibe, setSelectedVibe,
     customPrompt, setCustomPrompt,
     songTitle, setSongTitle,
+    styleText, setStyleText,
+    selectedGenre, setSelectedGenre,
+    selectedVibe, setSelectedVibe,
     instrumentalMode, setInstrumentalMode,
     isPublished,
-    styleText, setStyleText,
-
-    // Advanced Options
     bpm, setBpm,
     grooveType, setGrooveType,
     leadInstrument, setLeadInstrument,
@@ -610,14 +457,13 @@ export const useMusicGeneration = () => {
     vocalGender, setVocalGender,
     harmonyPalette, setHarmonyPalette,
 
-    // Generation States
-    isGenerating, setIsGenerating,
-    allGeneratedTracks, setAllGeneratedTracks,
-    activeTrackIndex, setActiveTrackIndex,
-    pendingTasksCount, setPendingTasksCount,
-    generationTimer,
+    // 状态
+    isGenerating,
+    generatedTracks,
+    state: isGenerating ? 'generating' : 'idle',
 
-    // Functions
+    // 方法
     handleGenerate,
+    updateTracks,
   };
 };

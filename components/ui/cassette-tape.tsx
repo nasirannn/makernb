@@ -4,7 +4,6 @@ import { useState, useEffect, useRef } from 'react'
 import { LoadingDots } from './loading-dots'
 
 interface CassetteTapeProps {
-  sideLetter?: string
   duration?: string
   title?: string
   className?: string
@@ -12,7 +11,6 @@ interface CassetteTapeProps {
 }
 
 export const CassetteTape = ({
-  sideLetter = '',
   className = '',
   isPlaying = false,
 }: CassetteTapeProps) => {
@@ -29,8 +27,7 @@ export const CassetteTape = ({
         const response = await fetch(`/cassette-tape.svg?v=${Date.now()}`)
         let svgText = await response.text()
         
-        // 替换SVG模板中的变量
-        svgText = svgText.replace('{{SIDE_LETTER}}', sideLetter)
+        // 移除 side letter 逻辑
         
         // 添加样式确保SVG填满容器
         svgText = svgText.replace(
@@ -45,7 +42,7 @@ export const CassetteTape = ({
     }
 
     loadSVG()
-  }, [sideLetter])
+  }, []) // 加载 SVG
 
   // 使用 rAF 同步旋转（与音频播放状态一致）
   useEffect(() => {

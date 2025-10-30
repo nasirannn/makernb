@@ -6,14 +6,9 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Badge } from "@/components/ui/badge";
 import { useAuth } from "@/contexts/AuthContext";
 import { useCredits } from "@/contexts/CreditsContext";
-import { createClient } from "@supabase/supabase-js";
-import { Check, Zap, Star, Crown } from "lucide-react";
+import { supabase } from "@/lib/supabase";
+import { Check, Star, Crown } from "lucide-react";
 import AuthModal from "@/components/ui/auth-modal";
-
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-);
 
 interface PricingPlan {
   id: string;

@@ -7,6 +7,13 @@ import { NavbarWrapper } from "@/components/layout/navbar-wrapper";
 import { AuthProvider } from "@/contexts/AuthContext";
 import { CreditsProvider } from "@/contexts/CreditsContext";
 import { Toaster } from "@/components/ui/sonner";
+import { Inter } from 'next/font/google';
+
+const inter = Inter({ 
+  subsets: ['latin'],
+  display: 'swap',
+  variable: '--font-inter',
+});
 
 export const viewport: Viewport = {
   width: 'device-width',
@@ -42,7 +49,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" suppressHydrationWarning className="dark">
-      <body className={cn("min-h-screen bg-background font-sans")}>
+      <body className={cn("min-h-screen bg-background font-sans", inter.variable)}>
         {/* Google Analytics */}
         <Script
           src="https://www.googletagmanager.com/gtag/js?id=G-VFWQ5T4YWG"

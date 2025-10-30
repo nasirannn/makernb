@@ -8,12 +8,12 @@ import { SafeImage } from '@/components/ui/safe-image';
 import { MusicPlayer } from "@/components/ui/music-player";
 import { LoadingDots } from "@/components/ui/loading-dots";
 import { Skeleton } from "@/components/ui/skeleton";
+import { useAudioPlayer } from '@/hooks/use-audio-player';
 
 interface Track {
   id: string;
   audio_url: string;
   duration: number;
-  side_letter: string;
   cover_r2_url?: string;
   artist?: string;
 }
@@ -45,16 +45,9 @@ export const ExploreSection = () => {
   const [loading, setLoading] = useState(true);
   const [currentlyPlaying, setCurrentlyPlaying] = useState<string | null>(null);
   
-  // 播放器状态
-  const [currentTrackIndex, setCurrentTrackIndex] = useState(0);
-  const [currentPlayingTrack, setCurrentPlayingTrack] = useState<{trackId: string, audioUrl: string} | null>(null);
-  const [isPlaying, setIsPlaying] = useState(false);
-  const [currentTime, setCurrentTime] = useState(0);
-  const [duration, setDuration] = useState(0);
-  const [volume, setVolume] = useState(1);
-  const [isMuted, setIsMuted] = useState(false);
+  // 播放器状态 - 使用统一的AudioService
+  const audioPlayer = useAudioPlayer();
   const [playlist, setPlaylist] = useState<MusicGeneration[]>([]);
-  const audioRef = useRef<HTMLAudioElement>(null);
 
   useEffect(() => {
     fetchExploreData();
@@ -62,21 +55,9 @@ export const ExploreSection = () => {
 
   // 组件卸载时清理音频
   useEffect(() => {
-    const audioElement = audioRef.current;
-    
     return () => {
-      // 立即停止音频播放
-      if (audioElement) {
-        audioElement.pause();
-        audioElement.src = '';
-        audioElement.load();
-      }
-      // 重置所有播放状态
-      setIsPlaying(false);
+      // AudioService会自动处理清理，这里只需要重置本地状态
       setCurrentlyPlaying(null);
-      setCurrentPlayingTrack(null);
-      setCurrentTime(0);
-      setDuration(0);
     };
   }, []);
 
@@ -108,14 +89,12 @@ export const ExploreSection = () => {
             id: track.id,
             audio_url: track.audio_url,
             duration: track.duration,
-            side_letter: track.side_letter,
             cover_r2_url: track.cover_r2_url
           },
           allTracks: [{
             id: track.id,
             audio_url: track.audio_url,
             duration: track.duration,
-            side_letter: track.side_letter,
             cover_r2_url: track.cover_r2_url
           }],
           totalDuration: track.duration,
@@ -144,15 +123,7 @@ export const ExploreSection = () => {
 
     // 如果点击的是当前播放的歌曲，则暂停/继续
     if (currentlyPlaying === trackId) {
-      if (audioRef.current) {
-        if (isPlaying) {
-          audioRef.current.pause();
-          setIsPlaying(false);
-        } else {
-          audioRef.current.play();
-          setIsPlaying(true);
-        }
-      }
+      audioPlayer.togglePlayPause();
       return;
     }
 
@@ -160,103 +131,56 @@ export const ExploreSection = () => {
     playTrack(trackIndex);
   };
 
-  const playTrack = (index: number, specificTrackId?: string, specificAudioUrl?: string) => {
+  const playTrack = async (index: number, specificTrackId?: string, specificAudioUrl?: string) => {
     if (index < 0 || index >= playlist.length) return;
 
     const music = playlist[index];
     const trackId = specificTrackId || music.primaryTrack.id;
     const audioUrl = specificAudioUrl || music.primaryTrack.audio_url;
 
-    // 停止当前播放
-    if (audioRef.current) {
-      audioRef.current.pause();
-    }
+    // 使用AudioService播放歌曲
+    await audioPlayer.playTrack({
+      id: trackId,
+      title: music.title,
+      audioUrl: audioUrl,
+      duration: music.primaryTrack.duration,
+      coverImage: music.primaryTrack.cover_r2_url,
+      genre: music.genre,
+    });
 
-    // 创建新的音频元素
-    const audio = new Audio(audioUrl);
-    if (audioRef.current) {
-      audioRef.current.pause();
-    }
-    (audioRef as React.MutableRefObject<HTMLAudioElement | null>).current = audio;
-
-    // 设置当前播放的歌曲信息
-    setCurrentTrackIndex(index);
+    // 更新本地状态
     setCurrentlyPlaying(trackId);
-    setCurrentPlayingTrack({ trackId, audioUrl });
-    setCurrentTime(0);
-    setDuration(0);
-
-    // 音频事件监听
-    audio.addEventListener('loadedmetadata', () => {
-      setDuration(audio.duration || 0);
-    });
-
-    audio.addEventListener('timeupdate', () => {
-      setCurrentTime(audio.currentTime);
-    });
-
-    audio.addEventListener('ended', () => {
-      setIsPlaying(false);
-      setCurrentTime(0);
-      // 自动播放下一首
-      if (index < playlist.length - 1) {
-        playTrack(index + 1);
-      }
-    });
-
-    // 设置音量
-    audio.volume = isMuted ? 0 : volume;
-
-    // 播放音频
-    audio.play();
-    setIsPlaying(true);
   };
 
   // 播放器控制函数
   const handlePlayerPlayPause = () => {
-    if (audioRef.current) {
-      if (isPlaying) {
-        audioRef.current.pause();
-        setIsPlaying(false);
-      } else {
-        audioRef.current.play();
-        setIsPlaying(true);
-      }
-    }
+    audioPlayer.togglePlayPause();
   };
 
   const handlePrevious = () => {
-    if (currentTrackIndex > 0) {
-      playTrack(currentTrackIndex - 1);
+    const currentIndex = playlist.findIndex(music => music.primaryTrack.id === currentlyPlaying);
+    if (currentIndex > 0) {
+      playTrack(currentIndex - 1);
     }
   };
 
   const handleNext = () => {
-    if (currentTrackIndex < playlist.length - 1) {
-      playTrack(currentTrackIndex + 1);
+    const currentIndex = playlist.findIndex(music => music.primaryTrack.id === currentlyPlaying);
+    if (currentIndex < playlist.length - 1) {
+      playTrack(currentIndex + 1);
     }
   };
 
   const handleSeek = (time: number) => {
-    if (audioRef.current) {
-      audioRef.current.currentTime = time;
-      setCurrentTime(time);
-    }
+    audioPlayer.seek(time);
   };
 
   const handleVolumeChange = (newVolume: number) => {
-    setVolume(newVolume);
-    if (audioRef.current) {
-      audioRef.current.volume = isMuted ? 0 : newVolume;
-    }
+    audioPlayer.setVolume(newVolume);
   };
 
   const handleMuteToggle = () => {
-    const newMuted = !isMuted;
-    setIsMuted(newMuted);
-    if (audioRef.current) {
-      audioRef.current.volume = newMuted ? 0 : volume;
-    }
+    audioPlayer.toggleMute();
   };
 
   const handleTrackChange = (index: number) => {
@@ -340,7 +264,7 @@ export const ExploreSection = () => {
                           handlePlayPause(music.primaryTrack.id, music.primaryTrack.audio_url, music);
                         }}
                       >
-                        {currentlyPlaying === music.primaryTrack.id && isPlaying ? (
+                        {currentlyPlaying === music.primaryTrack.id && audioPlayer.isPlaying ? (
                           <Pause className="h-5 w-5 text-white" />
                         ) : (
                           <Play className="h-5 w-5 text-white" />
@@ -373,77 +297,62 @@ export const ExploreSection = () => {
         <div className="text-center">
           <Link href="/explore">
             <Button className="text-primary border border-primary hover:bg-primary hover:text-white px-8 py-3 rounded-lg transition-colors bg-transparent">
-              Explore More Tracks
+              View All Songs
               <ArrowRight className="w-4 h-4 ml-2" />
             </Button>
           </Link>
         </div>
 
-      {/* 播放器 - 固定在底部 */}
+      {/* 播放器 - 移动端固定，桌面端固定带底部边距，与内容区域宽度一致 */}
       {playlist.length > 0 && currentlyPlaying && (
         <>
-          {/* Mobile Music Player - 移动端播放器 */}
-          <div className="fixed md:hidden left-3 right-3 z-50" style={{
-            bottom: 'calc(var(--mobile-nav-height, 0px) + 0.75rem)'
-          }}>
-            <div className="[&>div]:!pr-3">
-              <MusicPlayer
-                tracks={playlist.map(music => ({
-                  id: music.primaryTrack.id,
-                  title: music.title,
-                  audioUrl: music.primaryTrack.audio_url,
-                  duration: music.totalDuration,
-                  coverImage: music.primaryTrack.cover_r2_url,
-                  artist: music.primaryTrack.artist || 'Unknown Artist',
-                  allTracks: music.allTracks
-                }))}
-                currentTrackIndex={currentTrackIndex}
-                currentPlayingTrack={currentPlayingTrack}
-                isPlaying={isPlaying}
-                currentTime={currentTime}
-                duration={duration}
-                volume={volume}
-                isMuted={isMuted}
-                hideProgress={true}
-                onPlayPause={handlePlayerPlayPause}
-                onPrevious={handlePrevious}
-                onNext={handleNext}
-                onSeek={handleSeek}
-                onVolumeChange={handleVolumeChange}
-                onMuteToggle={handleMuteToggle}
-                onTrackChange={handleTrackChange}
-              />
-            </div>
-          </div>
-
-          {/* Desktop Music Player - 桌面端播放器 */}
-          <div className="hidden md:block fixed bottom-0 left-0 right-0 z-50">
+          <style dangerouslySetInnerHTML={{
+            __html: `
+              .player-container-explore {
+                position: fixed;
+                left: 0.75rem;
+                right: 0.75rem;
+                bottom: calc(var(--mobile-nav-height, 0px) + 0.75rem);
+                z-index: 60;
+              }
+              @media (min-width: 768px) {
+                .player-container-explore {
+                  bottom: 0.75rem !important;
+                  left: 50% !important;
+                  right: auto !important;
+                  transform: translateX(-50%) !important;
+                  max-width: 80rem !important;
+                  width: calc(100% - 3rem) !important;
+                }
+              }
+            `
+          }} />
+          <div className="player-container-explore">
             <MusicPlayer
-              tracks={playlist.map(music => ({
-                id: music.primaryTrack.id,
-                title: music.title,
-                audioUrl: music.primaryTrack.audio_url,
-                duration: music.totalDuration,
-                coverImage: music.primaryTrack.cover_r2_url,
-                artist: music.primaryTrack.artist || 'Unknown Artist',
-                allTracks: music.allTracks
-              }))}
-              currentTrackIndex={currentTrackIndex}
-              currentPlayingTrack={currentPlayingTrack}
-              isPlaying={isPlaying}
-              currentTime={currentTime}
-              duration={duration}
-              volume={volume}
-              isMuted={isMuted}
-              hideProgress={false}
-              onPlayPause={handlePlayerPlayPause}
-              onPrevious={handlePrevious}
-              onNext={handleNext}
-              onSeek={handleSeek}
-              onVolumeChange={handleVolumeChange}
-              onMuteToggle={handleMuteToggle}
-              onTrackChange={handleTrackChange}
-            />
+            tracks={playlist.map(music => ({
+              id: music.primaryTrack.id,
+              title: music.title,
+              audioUrl: music.primaryTrack.audio_url,
+              duration: music.totalDuration,
+              coverImage: music.primaryTrack.cover_r2_url,
+              artist: music.primaryTrack.artist || 'Unknown Artist',
+              allTracks: music.allTracks
+            }))}
+            currentTrackIndex={playlist.findIndex(music => music.primaryTrack.id === currentlyPlaying)}
+            isPlaying={audioPlayer.isPlaying}
+            currentTime={audioPlayer.currentTime}
+            duration={audioPlayer.duration}
+            volume={audioPlayer.volume}
+            isMuted={audioPlayer.isMuted}
+            hideProgress={false}
+            onPlayPause={handlePlayerPlayPause}
+            onPrevious={handlePrevious}
+            onNext={handleNext}
+            onSeek={handleSeek}
+            onVolumeChange={handleVolumeChange}
+            onMuteToggle={handleMuteToggle}
+            onTrackChange={handleTrackChange}
+          />
           </div>
         </>
       )}

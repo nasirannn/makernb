@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getUserIdFromRequest } from '@/lib/auth-utils-optimized';
-import { deleteTrackOptimized } from '@/lib/track-delete-optimized';
+import { getUserIdFromRequest } from '@/lib/auth';
+import { deleteTrackOptimized } from '@/lib/track-delete';
 
 // 强制动态渲染
 export const dynamic = 'force-dynamic';

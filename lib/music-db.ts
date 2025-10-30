@@ -1,5 +1,6 @@
 import { query, withTransaction } from './db-query-builder';
 import { checkMultipleFavorites } from './favorites-db';
+import { LibraryTrack } from '@/types/track';
 
 // ============================================================================
 // TYPES AND INTERFACES
@@ -40,7 +41,7 @@ export interface MusicGenerationWithTracks {
   created_at: string;
   updated_at: string;
   lyrics_content?: string;
-  allTracks: any[];
+  allTracks: LibraryTrack[];
   totalDuration: number;
   errorInfo?: any;
 }
@@ -214,7 +215,6 @@ const getGenerationsWithDetails = async (generationIds: string[]): Promise<any[]
       mt.suno_track_id,
       mt.audio_url,
       mt.duration,
-      mt.side_letter,
       mt.is_published,
       mt.is_pinned,
       mt.created_at as track_created_at,
@@ -225,7 +225,7 @@ const getGenerationsWithDetails = async (generationIds: string[]): Promise<any[]
     LEFT JOIN tracks mt ON mg.id = mt.music_id
       AND (mt.is_deleted IS NULL OR mt.is_deleted = FALSE)
     WHERE mg.id = ANY($1)
-    ORDER BY mg.created_at DESC, mt.side_letter ASC
+    ORDER BY mg.created_at DESC, mt.created_at ASC
   `, [generationIds]);
 
   return result.rows;
@@ -261,19 +261,15 @@ const processGenerationRows = (rows: any[]): MusicGenerationWithTracks[] => {
     if (row.track_id) {
       const track = {
         id: row.track_id,
-        suno_track_id: row.suno_track_id,
         audio_url: row.audio_url,
-        duration: row.duration,
-        side_letter: row.side_letter,
-        is_published: row.is_published,
-        is_pinned: row.is_pinned,
-        created_at: row.track_created_at,
-        updated_at: row.track_updated_at,
+        duration: typeof row.duration === 'string' ? parseFloat(row.duration) : (row.duration || 0),
         cover_r2_url: row.cover_r2_url,
-        lyrics: row.lyrics_content || ''
+        lyrics: row.lyrics_content || '',
+        is_deleted: false,
+        is_favorited: false
       };
 
-      generationsMap.get(generationId)!.allTracks.push(track);
+      generationsMap.get(generationId)!.allTracks.push(track as any);
 
       // Calculate total duration
       const duration = typeof row.duration === 'string' ? parseFloat(row.duration) : (row.duration || 0);

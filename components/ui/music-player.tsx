@@ -1,37 +1,16 @@
 'use client';
 
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import Image from 'next/image';
 import { Play, Pause, Rewind, FastForward, Volume2, VolumeX, MessageSquare, Mic } from 'lucide-react';
 import { Slider } from '@/components/ui/slider';
-import { SafeImage } from './safe-image';
 import { VocalSeparationButton } from './vocal-separation-button';
 import { supabase } from '@/lib/supabase';
-
-interface Track {
-  id: string;
-  title: string;
-  audioUrl: string;
-  duration?: number;
-  coverImage?: string;
-  artist?: string;
-  // 人声分离相关字段
-  audioId?: string; // KIE API的音频ID
-  taskId?: string; // 原始音乐任务的ID
-  allTracks?: Array<{
-    id: string;
-    audio_url: string;
-    duration: number | string;
-    side_letter: string;
-    cover_r2_url?: string;
-  }>;
-}
+import { AudioPlayerTrack } from '@/types/track';
 
 interface MusicPlayerProps {
   // 播放列表
-  tracks: Track[];
+  tracks: AudioPlayerTrack[];
   currentTrackIndex: number;
-  currentPlayingTrack?: {trackId: string, audioUrl: string} | null;
 
   // 播放状态
   isPlaying: boolean;
@@ -60,6 +39,18 @@ interface MusicPlayerProps {
 
   // 新增：支持通过 track ID 播放
   playTrackById?: (trackId: string) => void; // 通过 track ID 播放歌曲
+  
+  // 新增：当前播放的 track 信息
+  currentPlayingTrack?: {
+    id: string;
+    title: string;
+    audioUrl?: string;
+    duration?: number;
+    genre?: string;
+  };
+  
+  // 音频引用 - 由父组件管理
+  audioRef?: React.RefObject<HTMLAudioElement>;
 }
 
 const formatTime = (seconds: number): string => {
@@ -69,10 +60,9 @@ const formatTime = (seconds: number): string => {
   return `${mins}:${secs.toString().padStart(2, '0')}`;
 };
 
-export const MusicPlayer: React.FC<MusicPlayerProps> = ({
+export const MusicPlayer: React.FC<MusicPlayerProps> = React.memo(function MusicPlayer({
   tracks,
   currentTrackIndex,
-  currentPlayingTrack,
   isPlaying,
   currentTime,
   duration,
@@ -89,10 +79,11 @@ export const MusicPlayer: React.FC<MusicPlayerProps> = ({
   onTrackChange,
   onTrackInfoClick,
   playTrackById,
-}) => {
+  currentPlayingTrack,
+  audioRef,
+}) {
   const currentTrack = tracks[currentTrackIndex];
   const [isMobile, setIsMobile] = useState(false);
-  const audioRef = useRef<HTMLAudioElement | null>(null);
 
   // 通过 track ID 获取 track 信息
   const fetchTrackInfo = useCallback(async (trackId: string) => {
@@ -124,15 +115,6 @@ export const MusicPlayer: React.FC<MusicPlayerProps> = ({
     }
   }, []);
 
-  // 初始化音频元素
-  useEffect(() => {
-    if (!audioRef.current) {
-      audioRef.current = new Audio();
-      audioRef.current.volume = volume;
-      audioRef.current.muted = isMuted;
-    }
-  }, [volume, isMuted]);
-
   // 检测屏幕尺寸
   useEffect(() => {
     const checkScreenSize = () => {
@@ -149,96 +131,24 @@ export const MusicPlayer: React.FC<MusicPlayerProps> = ({
       window.removeEventListener('resize', checkScreenSize);
     };
   }, []);
-
-  // 音频事件处理
-  useEffect(() => {
-    const audio = audioRef.current;
-    if (!audio) return;
-
-    const handleLoadStart = () => {
-      console.log('Audio load started');
-    };
-
-    const handleCanPlay = () => {
-      console.log('Audio can play');
-    };
-
-    const handlePlay = () => {
-      console.log('Audio playing');
-    };
-
-    const handlePause = () => {
-      console.log('Audio paused');
-    };
-
-    const handleTimeUpdate = () => {
-      // 时间更新由父组件处理
-    };
-
-    const handleEnded = () => {
-      console.log('Audio ended');
-    };
-
-    const handleError = (e: any) => {
-      console.error('Audio error:', e);
-      console.error('Audio error details:', {
-        error: e.target?.error,
-        networkState: e.target?.networkState,
-        readyState: e.target?.readyState,
-        src: e.target?.src
-      });
-    };
-
-    // 添加事件监听器
-    audio.addEventListener('loadstart', handleLoadStart);
-    audio.addEventListener('canplay', handleCanPlay);
-    audio.addEventListener('play', handlePlay);
-    audio.addEventListener('pause', handlePause);
-    audio.addEventListener('timeupdate', handleTimeUpdate);
-    audio.addEventListener('ended', handleEnded);
-    audio.addEventListener('error', handleError);
-
-    return () => {
-      audio.removeEventListener('loadstart', handleLoadStart);
-      audio.removeEventListener('canplay', handleCanPlay);
-      audio.removeEventListener('play', handlePlay);
-      audio.removeEventListener('pause', handlePause);
-      audio.removeEventListener('timeupdate', handleTimeUpdate);
-      audio.removeEventListener('ended', handleEnded);
-      audio.removeEventListener('error', handleError);
-    };
-  }, []);
-
   // 检查当前歌曲是否有多个tracks
   const hasMultipleTracks = currentTrack?.allTracks && currentTrack.allTracks.length > 1;
 
-  // 获取当前播放的track的封面图片
-  const getCurrentCoverImage = () => {
-    // 如果当前track有封面图片，直接返回
-    if (currentTrack?.coverImage) {
-      return currentTrack.coverImage;
-    }
-    
-    // 如果有currentPlayingTrack和allTracks，尝试匹配
-    if (currentPlayingTrack && currentTrack?.allTracks) {
-      const playingTrack = currentTrack.allTracks.find(track => track.id === currentPlayingTrack.trackId);
-      return playingTrack?.cover_r2_url || currentTrack?.coverImage;
-    }
-    
-    return currentTrack?.coverImage;
-  };
-
   // 获取当前播放的track的描述信息
   const getCurrentArtist = () => {
-    // 直接返回当前track的artist信息
     return currentTrack?.artist || 'Unknown Artist';
   };
 
-  const currentCoverImage = getCurrentCoverImage();
+  // 获取当前播放的track的时长
+  const getCurrentDuration = () => {
+    // 优先使用 tracks 中的 duration，fallback 到 prop
+    return currentTrack?.duration || duration || 0;
+  };
   const currentArtist = getCurrentArtist();
+  const currentDuration = getCurrentDuration();
 
   const handleProgressChange = (value: number[]) => {
-    const newTime = (value[0] / 100) * duration;
+    const newTime = (value[0] / 100) * currentDuration;
     onSeek(newTime);
   };
 
@@ -247,7 +157,7 @@ export const MusicPlayer: React.FC<MusicPlayerProps> = ({
     onVolumeChange(newVolume);
   };
 
-  const progressPercentage = duration > 0 ? (currentTime / duration) * 100 : 0;
+  const progressPercentage = currentDuration > 0 ? (currentTime / currentDuration) * 100 : 0;
 
   // 动态测量播放器高度，设置 CSS 变量 --player-height
   const rootRef = React.useRef<HTMLDivElement | null>(null);
@@ -292,95 +202,107 @@ export const MusicPlayer: React.FC<MusicPlayerProps> = ({
   }, [hideProgress, isPlaying]);
 
   return (
-    <div ref={rootRef} className="relative bg-background/30 backdrop-blur-md border-t-0 md:border-t md:border-border/20 rounded-xl md:rounded-none pl-3 pr-14 md:pr-4 py-2 md:px-4 md:py-3 pb-0 md:pb-3">
-      <div className="flex items-center w-full sm:max-w-6xl sm:mx-auto h-full sm:h-12 pb-2 md:pb-0">
+    <div ref={rootRef} className="relative bg-background/30 backdrop-blur-md border border-border/20 rounded-xl pl-3 pr-3 md:pr-4 py-2 md:px-4 md:py-1.5 pb-0 md:pb-1.5">
+      <div className="relative flex items-center w-full sm:max-w-6xl sm:mx-auto h-full sm:h-9 pb-2 md:pb-0">
         
-        {/* 左侧：歌曲信息 */}
-        <div 
-          className={`flex items-center space-x-3 min-w-0 ${
-            isMobile ? 'flex-1' : 'flex-initial flex-shrink-0 max-w-64'
-          } cursor-pointer hover:opacity-80 transition-opacity`}
-          onClick={() => {
-            if (isMobile && onTrackInfoClick) {
-              onTrackInfoClick();
-            }
-          }}
-        >
-          {/* 封面图片或磁带占位符 - 始终显示 */}
-          <div className="relative w-12 h-12 sm:w-12 sm:h-12 flex-shrink-0 group">
-            <div
-              className="relative w-12 h-12 sm:w-12 sm:h-12 rounded-md overflow-hidden flex items-center justify-center"
-              style={{
-                transformOrigin: 'left bottom'
+        {/* 移动端：左侧播放控制按钮 */}
+        {isMobile && (
+          <div className="flex items-center space-x-3 flex-shrink-0">
+            {/* 上一首按钮 */}
+            <button
+              onClick={onPrevious}
+              disabled={currentTrackIndex === 0}
+              className="text-muted-foreground hover:text-foreground disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+            >
+              <Rewind className="w-5 h-5 fill-current" />
+            </button>
+
+            {/* 播放/暂停按钮 - 主要按钮，在中间 */}
+            <button
+              onClick={onPlayPause}
+              className="text-foreground hover:text-primary transition-colors"
+            >
+              {isPlaying ? (
+                <Pause className="w-6 h-6 fill-current" />
+              ) : (
+                <Play className="w-6 h-6 fill-current" />
+              )}
+            </button>
+
+            {/* 下一首按钮 */}
+            <button
+              onClick={onNext}
+              disabled={currentTrackIndex === tracks.length - 1}
+              className="text-muted-foreground hover:text-foreground disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+            >
+              <FastForward className="w-5 h-5 fill-current" />
+            </button>
+          </div>
+        )}
+
+        {/* 移动端：中间进度条区域 */}
+        {isMobile && (
+          <div className="flex items-center space-x-4 flex-1 min-w-0 h-full px-6">
+            {/* 当前时间 */}
+            <div className="text-sm text-foreground flex-shrink-0 w-12 text-right">
+              {formatTime(currentTime)}
+            </div>
+            
+            {/* 进度条 */}
+            <div 
+              className="flex-1 h-1.5 bg-foreground rounded-full overflow-hidden cursor-pointer group relative"
+              onClick={(e) => {
+                if (currentDuration > 0) {
+                  const rect = e.currentTarget.getBoundingClientRect();
+                  const clickX = e.clientX - rect.left;
+                  const percentage = (clickX / rect.width) * 100;
+                  const newTime = (percentage / 100) * currentDuration;
+                  onSeek(newTime);
+                }
               }}
             >
-              <SafeImage
-                src={currentCoverImage || ''}
-                alt={currentTrack?.title || 'Track'}
-                width={48}
-                height={48}
-                className="w-12 h-12 sm:w-12 sm:h-12 rounded-md object-cover"
-                fallbackContent={
-                  <Image
-                    src="/cassette-tape.svg"
-                    alt="Cassette Tape"
-                    width={48}
-                    height={48}
-                    className="w-full h-full object-contain opacity-70"
-                  />
-                }
+              {/* 进度条背景 */}
+              <div 
+                className="absolute top-0 left-0 h-full bg-primary"
+                style={{ width: `${progressPercentage}%` }}
+              />
+              {/* 进度条手柄 */}
+              <div 
+                className="absolute top-1/2 w-1.5 h-1.5 bg-primary rounded-full shadow-md transform -translate-y-1/2 transition-all duration-300 group-hover:scale-110"
+                style={{ left: `calc(${progressPercentage}% - 3px)` }}
               />
             </div>
-          </div>
-          <div className="min-w-0 flex-1">
-            <div className="text-sm sm:text-sm font-medium text-foreground truncate">
-              {currentTrack?.title || 'Unknown Track'}
+            
+            {/* 总时长 */}
+            <div className="text-sm text-foreground flex-shrink-0 w-12 text-left">
+              {formatTime(currentDuration)}
             </div>
-            {/* 时长显示 */}
-            <div className="text-xs text-muted-foreground mt-0.5">
-              {formatTime(duration)}
-            </div>
-          </div>
-        </div>
-
-        {/* 桌面端：中间控制按钮 */}
-        {!isMobile && (
-          <div className="flex items-center justify-center space-x-3 flex-1 min-w-0 h-full">
-            {/* 上一首按钮 */}
-            <button
-              onClick={onPrevious}
-              disabled={currentTrackIndex === 0}
-              className="text-muted-foreground hover:text-foreground disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-            >
-              <Rewind className="w-5 h-5 fill-current" />
-            </button>
-
-            {/* 播放/暂停按钮 */}
-            <button
-              onClick={onPlayPause}
-              className="text-muted-foreground hover:text-foreground transition-colors"
-            >
-              {isPlaying ? (
-                <Pause className="w-6 h-6 fill-current" />
-              ) : (
-                <Play className="w-6 h-6 fill-current" />
-              )}
-            </button>
-
-            {/* 下一首按钮 */}
-            <button
-              onClick={onNext}
-              disabled={currentTrackIndex === tracks.length - 1}
-              className="text-muted-foreground hover:text-foreground disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-            >
-              <FastForward className="w-5 h-5 fill-current" />
-            </button>
           </div>
         )}
 
-        {/* 移动端：右侧控制按钮 */}
+        {/* 移动端：右侧功能按钮 */}
         {isMobile && (
-          <div className="flex items-center space-x-3 flex-shrink-0 h-full">
+          <div className="flex items-center space-x-5 flex-shrink-0">
+            {/* 歌词按钮 */}
+            {onTrackInfoClick && (
+              <button
+                onClick={onTrackInfoClick}
+                className={`transition-colors ${
+                  hideProgress 
+                    ? 'text-primary hover:text-primary/80' 
+                    : 'text-muted-foreground hover:text-foreground'
+                }`}
+                title={hideProgress ? "Hide lyrics" : "Show lyrics"}
+              >
+                <MessageSquare className="w-5 h-5 fill-current" />
+              </button>
+            )}
+          </div>
+        )}
+
+        {/* 桌面端：左侧播放控制按钮 */}
+        {!isMobile && (
+          <div className="flex items-center space-x-3 flex-shrink-0">
             {/* 上一首按钮 */}
             <button
               onClick={onPrevious}
@@ -390,10 +312,10 @@ export const MusicPlayer: React.FC<MusicPlayerProps> = ({
               <Rewind className="w-5 h-5 fill-current" />
             </button>
 
-            {/* 播放/暂停按钮 */}
+            {/* 播放/暂停按钮 - 主要按钮，在中间 */}
             <button
               onClick={onPlayPause}
-              className="text-muted-foreground hover:text-foreground transition-colors"
+              className="text-foreground hover:text-primary transition-colors"
             >
               {isPlaying ? (
                 <Pause className="w-6 h-6 fill-current" />
@@ -412,12 +334,53 @@ export const MusicPlayer: React.FC<MusicPlayerProps> = ({
             </button>
           </div>
         )}
+
+        {/* 桌面端：中间进度条区域 */}
+        {!isMobile && (
+          <div className="flex items-center space-x-4 flex-1 min-w-0 h-full px-6">
+            {/* 当前时间 */}
+            <div className="text-sm text-foreground flex-shrink-0 w-12 text-right">
+              {formatTime(currentTime)}
+            </div>
+            
+            {/* 进度条 */}
+            <div 
+              className="flex-1 h-1.5 bg-foreground rounded-full overflow-hidden cursor-pointer group relative"
+              onClick={(e) => {
+                if (currentDuration > 0) {
+                  const rect = e.currentTarget.getBoundingClientRect();
+                  const clickX = e.clientX - rect.left;
+                  const percentage = (clickX / rect.width) * 100;
+                  const newTime = (percentage / 100) * currentDuration;
+                  onSeek(newTime);
+                }
+              }}
+            >
+              {/* 进度条背景 */}
+              <div 
+                className="absolute top-0 left-0 h-full bg-primary"
+                style={{ width: `${progressPercentage}%` }}
+              />
+              {/* 进度条手柄 */}
+              <div 
+                className="absolute top-1/2 w-1.5 h-1.5 bg-primary rounded-full shadow-md transform -translate-y-1/2 transition-all duration-300 group-hover:scale-110"
+                style={{ left: `calc(${progressPercentage}% - 3px)` }}
+              />
+            </div>
+            
+            {/* 总时长 */}
+            <div className="text-sm text-foreground flex-shrink-0 w-12 text-left">
+              {formatTime(currentDuration)}
+            </div>
+          </div>
+        )}
+
 
         {/* 右侧：歌词和音量控制 - 桌面端显示 */}
         {!isMobile && (
           <div className="flex items-center space-x-5 flex-shrink-0">
             {/* 人声分离按钮 */}
-            {enableVocalSeparation && currentTrack?.audioId && currentTrack?.taskId && (
+            {enableVocalSeparation && currentTrack?.audioId && currentTrack?.taskId && currentTrack?.audioUrl && (
               <VocalSeparationButton
                 trackId={currentTrack.id}
                 audioId={currentTrack.audioId}
@@ -470,38 +433,7 @@ export const MusicPlayer: React.FC<MusicPlayerProps> = ({
         )}
       </div>
       
-      {/* Bottom Border Progress Bar - 移动端和桌面端，始终显示 */}
-      <div 
-        className="absolute bottom-0 h-1 bg-muted/20 rounded-full overflow-hidden cursor-pointer group"
-        style={{ left: '0.75rem', right: '0.75rem' }}
-        onClick={(e) => {
-          if (duration > 0) {
-            const rect = e.currentTarget.getBoundingClientRect();
-            const clickX = e.clientX - rect.left;
-            const percentage = (clickX / rect.width) * 100;
-            const newTime = (percentage / 100) * duration;
-            onSeek(newTime);
-          }
-        }}
-      >
-        {/* 进度条背景 - 主色 */}
-        <div 
-          className="absolute top-0 left-0 h-full bg-primary"
-          style={{ width: `${progressPercentage}%` }}
-        />
-        {/* 主色手柄 */}
-        <div 
-          className="absolute top-1/2 w-1.5 h-1.5 bg-primary rounded-full shadow-md transform -translate-y-1/2 transition-all duration-300 group-hover:scale-110"
-          style={{ left: `calc(${progressPercentage}% - 3px)` }}
-        />
-      </div>
-      
-      {/* Audio element */}
-      <audio
-        ref={audioRef}
-        src={currentPlayingTrack?.audioUrl || ''}
-        preload="metadata"
-      />
+      {/* Audio element - 移除重复的audio元素，由父组件studio.tsx管理 */}
     </div>
   );
-};
+});

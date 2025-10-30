@@ -1,50 +1,50 @@
 {
   "genres": [
-    { "id": "new-jack-swing", "name": "New Jack Swing" },
-    { "id": "hip-hop-soul", "name": "Hip-Hop Soul" },
-    { "id": "quiet-storm", "name": "Quiet Storm" },
-    { "id": "neo-soul", "name": "Neo-Soul" }
+    { "id": "new-jack-swing", "name": "New Jack Swing", "value": "New Jack Swing genre" },
+    { "id": "hip-hop-soul", "name": "Hip-Hop Soul", "value": "Hip-Hop Soul genre" },
+    { "id": "quiet-storm", "name": "Quiet Storm", "value": "Quiet Storm genre" },
+    { "id": "neo-soul", "name": "Neo-Soul", "value": "Neo-Soul genre" }
   ],
   "vibes": [
-    { "id": "slow-jam", "name": "Slow Jam" },
-    { "id": "seductive", "name": "Seductive" },
-    { "id": "upbeat", "name": "Upbeat" },
-    { "id": "chill", "name": "Chill" },
-    { "id": "raw", "name": "Raw" },
-    { "id": "polished", "name": "Polished" },
-    { "id": "groovy", "name": "Groovy" }
+    { "id": "slow-jam", "name": "Slow Jam", "value": "Slow Jam with intimate, romantic atmosphere" },
+    { "id": "seductive", "name": "Seductive", "value": "Seductive with sultry, alluring tones" },
+    { "id": "upbeat", "name": "Upbeat", "value": "Upbeat with energetic, danceable rhythms" },
+    { "id": "chill", "name": "Chill", "value": "Chill with relaxed, laid-back vibes" },
+    { "id": "raw", "name": "Raw", "value": "Raw with gritty, unpolished authenticity" },
+    { "id": "polished", "name": "Polished", "value": "Polished with refined, professional production" },
+    { "id": "groovy", "name": "Groovy", "value": "Groovy with infectious, rhythmic patterns" }
   ],
   "grooveTypes": [
-    { "id": "swing", "name": "Swing" },
-    { "id": "straight", "name": "Straight" },
-    { "id": "shuffle", "name": "Shuffle" }
+    { "id": "swing", "name": "Swing", "value": "Swing groove with triplet feel and jazz influence" },
+    { "id": "straight", "name": "Straight", "value": "Straight groove with even, consistent timing" },
+    { "id": "shuffle", "name": "Shuffle", "value": "Shuffle groove with bluesy, laid-back feel" }
   ],
   "leadInstruments": [
-    { "id": "saxophone", "name": "Saxophone" },
-    { "id": "rhodes-piano", "name": "Rhodes Piano" },
-    { "id": "smooth-electric-guitar", "name": "Smooth Electric Guitar" },
-    { "id": "synth-lead", "name": "Synth Lead" }
+    { "id": "saxophone", "name": "Saxophone", "value": "Lead with Saxophone" },
+    { "id": "rhodes-piano", "name": "Rhodes Piano", "value": "Lead with Rhodes Piano" },
+    { "id": "smooth-electric-guitar", "name": "Smooth Electric Guitar", "value": "Lead with Smooth Electric Guitar" },
+    { "id": "synth-lead", "name": "Synth Lead", "value": "Synth Lead" }
   ],
   "drumKits": [
-    { "id": "acoustic-kit", "name": "Acoustic Kit" },
-    { "id": "electronic-kit", "name": "Electronic Kit" },
-    { "id": "boom-bap-kit", "name": "90s Boom Bap Kit" },
-    { "id": "lo-fi-kit", "name": "Lo-fi Kit" }
+    { "id": "acoustic-kit", "name": "Acoustic Kit", "value": "Acoustic Kit" },
+    { "id": "electronic-kit", "name": "Electronic Kit", "value": "Electronic Kit" },
+    { "id": "boom-bap-kit", "name": "90s Boom Bap Kit", "value": "90s Boom Bap Kit" },
+    { "id": "lo-fi-kit", "name": "Lo-fi Kit", "value": "Lo-fi Kit" }
   ],
   "bassTones": [
-    { "id": "slap", "name": "Slap" },
-    { "id": "sub", "name": "Sub" },
-    { "id": "synth", "name": "Synth" },
-    { "id": "electric", "name": "Electric" }
+    { "id": "slap", "name": "Slap", "value": "Slap bass" },
+    { "id": "sub", "name": "Sub", "value": "Sub bass" },
+    { "id": "synth", "name": "Synth", "value": "Synth bass" },
+    { "id": "electric", "name": "Electric", "value": "Electric bass" }
   ],
   "vocalGenders": [
-    { "id": "male", "name": "Male" },
-    { "id": "female", "name": "Female" }
+    { "id": "male", "name": "Male", "value": "m" },
+    { "id": "female", "name": "Female", "value": "f" }
   ],
   "harmonyPalettes": [
-    { "id": "simple", "name": "Simple" },
-    { "id": "gospel", "name": "Gospel" },
-    { "id": "jazzy", "name": "Jazzy" },
-    { "id": "soulful", "name": "Soulful" }
+    { "id": "simple", "name": "Simple", "value": "Simple harmonies" },
+    { "id": "gospel", "name": "Gospel", "value": "Gospel harmonies" },
+    { "id": "jazzy", "name": "Jazzy", "value": "Jazzy harmonies" },
+    { "id": "soulful", "name": "Soulful", "value": "Soulful harmonies" }
   ]
 } 

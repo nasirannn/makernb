@@ -1,4 +1,4 @@
-import { query, withTransaction } from './db-query-builder';
+import { query } from './db-query-builder';
 
 // ============================================================================
 // TYPES AND INTERFACES
@@ -43,7 +43,6 @@ export interface VocalSeparationWithTrack {
     title: string;
     audio_url: string;
     duration: number;
-    side_letter: string;
   };
 }
 
@@ -216,8 +215,7 @@ export const getVocalSeparationById = async (
         mt.id as track_id,
         mt.title as track_title,
         mt.audio_url as track_audio_url,
-        mt.duration as track_duration,
-        mt.side_letter as track_side_letter
+        mt.duration as track_duration
       FROM vocal_separations vs
       LEFT JOIN tracks mt ON vs.original_track_id = mt.id
         AND (mt.is_deleted IS NULL OR mt.is_deleted = FALSE)
@@ -244,8 +242,7 @@ export const getVocalSeparationById = async (
         id: row.track_id,
         title: row.track_title,
         audio_url: row.track_audio_url,
-        duration: row.track_duration,
-        side_letter: row.track_side_letter
+        duration: row.track_duration
       } : undefined
     };
   } catch (error) {

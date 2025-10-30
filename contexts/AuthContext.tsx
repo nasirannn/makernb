@@ -71,11 +71,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       return;
     }
 
-    // 防止短时间内重复调用 - 使用sessionStorage持久化
+    // 防止短时间内重复调用 - 使用 localStorage 跨标签页共享
     const now = Date.now();
     const lastCheckKey = `lastCreditsCheck_${user?.id || 'unknown'}`;
     const lastCheckTime = typeof window !== 'undefined'
-      ? parseInt(sessionStorage.getItem(lastCheckKey) || '0')
+      ? parseInt(localStorage.getItem(lastCheckKey) || '0')
       : lastCreditsCheckTime.current;
 
     if (now - lastCheckTime < 300000) { // 5分钟 = 300000ms
@@ -84,9 +84,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
     creditsCheckInProgress.current = true;
     lastCreditsCheckTime.current = now;
-    // 持久化时间戳
+    // 持久化时间戳到 localStorage（跨标签页共享）
     if (typeof window !== 'undefined') {
-      sessionStorage.setItem(lastCheckKey, now.toString());
+      localStorage.setItem(lastCheckKey, now.toString());
     }
 
     try {
@@ -180,14 +180,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         if (session?.access_token && session.user?.id && !hasCheckedInitialCredits) {
           const today = new Date().toISOString().split('T')[0]; // YYYY-MM-DD
           const checkKey = `dailyCreditsChecked_${session.user.id}_${today}`;
+          // 使用 localStorage（跨标签页共享）而不是 sessionStorage
           const hasCheckedToday = typeof window !== 'undefined'
-            ? sessionStorage.getItem(checkKey) === 'true'
+            ? localStorage.getItem(checkKey) === 'true'
             : false;
 
           if (!hasCheckedToday && !creditsCheckInProgress.current) {
-            // 标记今天已经检查过
+            // 标记今天已经检查过（跨标签页共享）
             if (typeof window !== 'undefined') {
-              sessionStorage.setItem(checkKey, 'true');
+              localStorage.setItem(checkKey, 'true');
             }
             setHasCheckedInitialCredits(true);
             // 增加延迟确保token完全生效（生产环境可能需要更长时间）
@@ -234,14 +235,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           // 当用户登录时，检查每日登录积分（使用持久化状态避免重复检查）
           const today = new Date().toISOString().split('T')[0]; // YYYY-MM-DD
           const checkKey = `dailyCreditsChecked_${session.user.id}_${today}`;
+          // 使用 localStorage（跨标签页共享）而不是 sessionStorage
           const hasCheckedToday = typeof window !== 'undefined'
-            ? sessionStorage.getItem(checkKey) === 'true'
+            ? localStorage.getItem(checkKey) === 'true'
             : false;
 
           if (!hasCheckedToday && !creditsCheckInProgress.current && !hasCheckedInitialCredits) {
-            // 标记今天已经检查过
+            // 标记今天已经检查过（跨标签页共享）
             if (typeof window !== 'undefined') {
-              sessionStorage.setItem(checkKey, 'true');
+              localStorage.setItem(checkKey, 'true');
             }
             setHasCheckedInitialCredits(true); // 标记已检查，避免重复
             // 增加延迟确保登录流程完成且token完全生效

@@ -1,891 +1,410 @@
 "use client";
 
-import React, { useState, useRef, useEffect, Suspense } from "react";
-import { useRouter } from "next/navigation";
+import React, { useState, Suspense } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 
 // Custom Hooks
 import { useAuth } from "@/contexts/AuthContext";
-import { useCredits } from "@/contexts/CreditsContext";
-
-// Supabase
-import { supabase } from "@/lib/supabase";
-import { isAdmin } from "@/lib/auth-utils-optimized";
+import { useAudioPlayer } from "@/hooks/use-audio-player";
+import { useLibraryTracks } from "@/hooks/use-library-tracks";
 
 // Components
 import { CommonSidebar } from "@/components/ui/sidebar";
 import { LibraryPanel } from "@/components/ui/library-panel";
 import { MusicPlayer } from "@/components/ui/music-player";
-import { LyricsPanel } from "@/components/ui/lyrics-panel";
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from "@/components/ui/alert-dialog";
+import { TrackDetailView } from "@/components/ui/track-detail-view";
 import AuthModal from "@/components/ui/auth-modal";
-import { Library, Download, Share2, Heart, Music, ChevronLeft, CheckCircle } from "lucide-react";
+import { PageLoading } from '@/components/ui/loading-dots';
+import { Star } from "lucide-react";
 import { toast } from "sonner";
 
 const LibraryContent = () => {
-    // Custom Hooks
+    // ==================== Hooks ====================
+    const router = useRouter();
+    const searchParams = useSearchParams();
+    const selectedTrackId = searchParams?.get('track') || null;
+    
     const { user } = useAuth();
+    const audioPlayer = useAudioPlayer();
+    const { tracks, isLoading, toggleFavorite, updateTrack } = useLibraryTracks(user?.id);
 
-    // UI States
-    const [selectedLibraryTrack, setSelectedLibraryTrack] = useState<any>(null);
-    const [selectedForLyrics, setSelectedForLyrics] = useState<string | null>(null);
-    const [libraryTracks, setLibraryTracks] = useState<any[]>([]);
-    const [isLoadingLibrary, setIsLoadingLibrary] = useState(false);
-    const [showLyrics, setShowLyrics] = useState(false);
+    // ==================== UI States ====================
     const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
-    const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
-    const [trackToDelete, setTrackToDelete] = useState<any>(null);
+    // 内部选中状态 - 用于在列表中保持选中高亮，即使URL参数被清除
+    const [selectedLibraryTrack, setSelectedLibraryTrack] = useState<string | null>(null);
 
-    // Audio States
-    const audioRef = useRef<HTMLAudioElement>(null);
-    const [isPlaying, setIsPlaying] = useState(false);
-    const [currentTime, setCurrentTime] = useState(0);
-    const [duration, setDuration] = useState(0);
-    const [volume, setVolume] = useState(1);
-    const [isMuted, setIsMuted] = useState(false);
-    const [currentTrack, setCurrentTrack] = useState<any>(null);
+    // ==================== 播放器稳定引用 ====================
+    const audioPlayerRef = React.useRef(audioPlayer);
+    React.useEffect(() => {
+        audioPlayerRef.current = audioPlayer;
+    }, [audioPlayer]);
 
-    // 获取所有歌曲tracks（包括A面和B面）
-    const getAllTracks = React.useCallback(() => {
-        const allTracks: any[] = [];
+    const player = React.useMemo(() => ({
+        get currentTrack() { return audioPlayerRef.current.currentTrack; },
+        get isPlaying() { return audioPlayerRef.current.isPlaying; },
+        get currentTime() { return audioPlayerRef.current.currentTime; },
+        get duration() { return audioPlayerRef.current.duration; },
+        get volume() { return audioPlayerRef.current.volume; },
+        get isMuted() { return audioPlayerRef.current.isMuted; },
+        playTrack: (track: any) => audioPlayerRef.current.playTrack(track),
+        togglePlayPause: () => audioPlayerRef.current.togglePlayPause(),
+        setVolume: (vol: number) => audioPlayerRef.current.setVolume(vol),
+        toggleMute: () => audioPlayerRef.current.toggleMute(),
+        seek: (time: number) => audioPlayerRef.current.seek(time),
+    }), []);
 
-        libraryTracks.forEach(generation => {
-            // 数据库返回的字段是 allTracks，不是 tracks
-            if (generation.allTracks) {
-                generation.allTracks.forEach((track: any) => {
-                    allTracks.push({
-                        ...track,
-                        title: generation.title,
-                        tags: generation.tags,
-                        genre: generation.genre,
-                        is_published: track.is_published, // 使用发布状态替代私有状态
-                        is_favorited: track.is_favorited, // 确保传递收藏状态
-                        coverUrl: track.cover_r2_url
-                    });
-                });
-            }
-        });
-
-        // 按创建时间排序
-        return allTracks.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
-    }, [libraryTracks]);
-
-    // 获取选中歌曲的信息（用于歌词面板）
-    const getSelectedTrackForLyrics = React.useCallback(() => {
-        if (!selectedForLyrics) return null;
-        const allTracks = getAllTracks();
-        const selectedTrack = allTracks.find(track => track.id === selectedForLyrics);
-        return selectedTrack;
-    }, [selectedForLyrics, getAllTracks]);
-
-    // 获取库歌曲
-    const fetchLibraryTracks = React.useCallback(async () => {
-        if (!user?.id) return;
-
-        setIsLoadingLibrary(true);
-        try {
-            // 获取当前session的access token
-            const { data: { session } } = await supabase.auth.getSession();
-            
-            const response = await fetch(`/api/user-music/${user.id}?limit=50&offset=0`, {
-                headers: {
-                    'Authorization': `Bearer ${session?.access_token}`
-                }
-            });
-            if (response.ok) {
-                const data = await response.json();
-                setLibraryTracks(data.data?.music || []);
-            } else {
-                console.error('Failed to fetch library tracks:', response.status, response.statusText);
-            }
-        } catch (error) {
-            console.error('Error fetching library tracks:', error);
-        } finally {
-            setIsLoadingLibrary(false);
+    // ==================== 选中状态同步 ====================
+    // 当 URL 有 track 参数时，更新内部选中状态
+    // 返回列表页时保持选中状态，不清除 selectedLibraryTrack
+    React.useEffect(() => {
+        if (selectedTrackId) {
+            // URL 有参数时，更新内部选中状态
+            setSelectedLibraryTrack(selectedTrackId);
         }
-    }, [user?.id]);
+        // 注意：不在 else 分支清除状态，以保持返回列表时的选中高亮
+    }, [selectedTrackId]);
 
-    // 初始化时获取库歌曲
-    useEffect(() => {
-        if (user?.id) {
-            fetchLibraryTracks();
-        }
-    }, [user?.id, fetchLibraryTracks]);
+    // 页面卸载时清理选中状态
+    React.useEffect(() => {
+        return () => {
+            setSelectedLibraryTrack(null);
+        };
+    }, []);
 
+    // ==================== 数据转换 ====================
 
-    // 更新当前播放的库歌曲
-    const updateCurrentTrackFromLibrary = React.useCallback((track: any, autoPlay = false) => {
-        if (!track) return;
-
-        setCurrentTrack({
+    // 为MusicPlayer准备tracks数据
+    const musicPlayerTracks = React.useMemo(() => {
+        return tracks.map(track => ({
             id: track.id,
             title: track.title,
             audioUrl: track.audioUrl,
-            coverImage: track.coverUrl,
-            lyrics: track.lyrics,
+            duration: track.duration,
+            artist: track.genre || 'Unknown Artist',
+            coverImage: track.coverImage || undefined,
+            allTracks: [{
+                id: track.id,
+                audio_url: track.audioUrl,
+                duration: track.duration,
+                cover_r2_url: track.coverImage
+            }]
+        }));
+    }, [tracks]);
+
+    // 为LibraryPanel准备tracks数据（兼容旧格式）
+    const libraryPanelTracks = React.useMemo(() => {
+        return tracks.map(track => ({
+            id: track.id,
+            title: track.title,
             tags: track.tags,
-            mood: track.mood,
-            duration: track.duration
-        });
+            genre: track.genre,
+            audio_url: track.audioUrl,
+            audioUrl: track.audioUrl,
+            duration: track.duration,
+            is_published: track.is_published,
+            is_favorited: track.is_favorited,
+            is_pinned: track.is_pinned,
+            cover_r2_url: track.coverImage || undefined,
+            coverUrl: track.coverImage || undefined,
+            coverImage: track.coverImage || undefined,
+            lyrics: track.lyrics,
+            created_at: track.created_at,
+            favorited_at: track.favorited_at,
+            status: 'completed',
+            allTracks: [{
+                id: track.id,
+                audio_url: track.audioUrl,
+                duration: track.duration,
+                cover_r2_url: track.coverImage || undefined,
+                lyrics: track.lyrics || undefined,
+                is_deleted: false,
+                is_favorited: track.is_favorited
+            }]
+        }));
+    }, [tracks]);
 
+    // ==================== 播放控制 ====================
+    // 导航到歌曲详情页
+    const handleViewTrackDetail = React.useCallback((trackId: string) => {
+        router.push(`/library?track=${trackId}`);
+    }, [router]);
 
-        if (audioRef.current) {
-            // 先暂停当前播放
-            audioRef.current.pause();
-            audioRef.current.src = track.audioUrl;
-            audioRef.current.load();
+    // 返回列表
+    const handleBackToList = React.useCallback(() => {
+        // 使用 replace 替换当前 URL，不创建新的历史记录
+        router.replace('/library');
+    }, [router]);
 
-            if (autoPlay) {
-                // 等待音频加载完成后再播放
-                const handleCanPlay = () => {
-                    if (audioRef.current) {
-                        audioRef.current.play().catch(error => {
-                            // 忽略 AbortError，这通常是因为新的加载请求中断了播放
-                            if (error.name !== 'AbortError') {
-                                console.error('Auto-play failed:', error);
-                            }
-                        });
-                        audioRef.current.removeEventListener('canplay', handleCanPlay);
-                    }
-                };
-                
-                audioRef.current.addEventListener('canplay', handleCanPlay);
-            }
-        }
-    }, []);
-
-    // Audio event handlers
-    const handleAudioLoad = React.useCallback(() => {
-        if (audioRef.current) {
-            setDuration(audioRef.current.duration || 0);
-        }
-    }, []);
-
-    const handleTimeUpdate = React.useCallback(() => {
-        if (audioRef.current) {
-            setCurrentTime(audioRef.current.currentTime);
-        }
-    }, []);
-
-
-    const handleNext = React.useCallback(() => {
-        const allTracks = getAllTracks();
-        const currentIndex = allTracks.findIndex(track => track.id === selectedLibraryTrack);
-        if (currentIndex < allTracks.length - 1) {
-            const nextTrack = allTracks[currentIndex + 1];
-            setSelectedLibraryTrack(nextTrack.id);
-            // 直接调用而不作为依赖，避免循环依赖
-            handleLibraryTrackSelect(nextTrack.id);
-        }
-    }, [selectedLibraryTrack, getAllTracks]); // eslint-disable-line react-hooks/exhaustive-deps
-
-    const handleAudioEnd = React.useCallback(() => {
-        setIsPlaying(false);
-        setCurrentTime(0);
-        // Auto play next track
-        handleNext();
-    }, [handleNext]);
-
-    const handlePlay = React.useCallback(() => {
-        setIsPlaying(true);
-    }, []);
-
-    const handlePause = React.useCallback(() => {
-        setIsPlaying(false);
-    }, []);
-
-    // 播放/暂停控制
-    const togglePlayPause = React.useCallback(() => {
+    // 点击歌曲卡片 - 跳转到详情页
+    const handleTrackSelect = React.useCallback((track: any) => {
+        // 跳转到详情页
+        handleViewTrackDetail(track.id);
         
-        if (audioRef.current) {
-            if (isPlaying) {
-                audioRef.current.pause();
-                // 手动更新状态作为备用
-                setTimeout(() => {
-                    if (audioRef.current?.paused) {
-                        setIsPlaying(false);
-                    }
-                }, 100);
-            } else {
-                audioRef.current.play().catch(console.error);
-                // 手动更新状态作为备用
-                setTimeout(() => {
-                    if (!audioRef.current?.paused) {
-                        setIsPlaying(true);
-                    }
-                }, 100);
-            }
+        // 自动播放选中的歌曲
+        if (player.currentTrack?.id === track.id) {
+            // 如果是当前播放的歌曲，直接跳转，不暂停
+            return;
         } else {
+            // 播放新歌曲
+            player.playTrack({
+                id: track.id,
+                title: track.title,
+                audioUrl: track.audioUrl,
+                duration: track.duration,
+                genre: track.genre,
+                lyrics: track.lyrics,
+                tags: track.tags,
+                coverImage: track.coverImage,
+            });
         }
-    }, [isPlaying]);
+    }, [handleViewTrackDetail, player]);
 
-    // 绑定音频事件监听器
-    React.useEffect(() => {
-        const audio = audioRef.current;
-        if (!audio) {
+    // 点击播放按钮 - 播放歌曲
+    const handleTrackPlay = React.useCallback((track: any) => {
+        // 如果点击的是当前播放的歌曲，则暂停/继续
+        if (player.currentTrack?.id === track.id) {
+            player.togglePlayPause();
             return;
         }
 
-        audio.addEventListener('loadedmetadata', handleAudioLoad);
-        audio.addEventListener('timeupdate', handleTimeUpdate);
-        audio.addEventListener('ended', handleAudioEnd);
-        audio.addEventListener('play', handlePlay);
-        audio.addEventListener('pause', handlePause);
+        // 播放新歌曲
+        player.playTrack({
+            id: track.id,
+            title: track.title,
+            audioUrl: track.audioUrl || track.audio_url,
+            duration: track.duration,
+            genre: track.genre,
+            lyrics: track.lyrics,
+            tags: track.tags,
+            coverImage: track.coverImage || track.cover_r2_url,
+        });
+    }, [player]);
 
-        return () => {
-            audio.removeEventListener('loadedmetadata', handleAudioLoad);
-            audio.removeEventListener('timeupdate', handleTimeUpdate);
-            audio.removeEventListener('ended', handleAudioEnd);
-            audio.removeEventListener('play', handlePlay);
-            audio.removeEventListener('pause', handlePause);
-        };
-    }, [handleAudioLoad, handleTimeUpdate, handleAudioEnd, handlePlay, handlePause]);
-
-    // 音量控制
-    const changeVolume = (newVolume: number) => {
-        setVolume(newVolume);
-        if (audioRef.current) {
-            audioRef.current.volume = newVolume;
+    const handlePrevious = React.useCallback(() => {
+        if (!player.currentTrack || tracks.length === 0) return;
+        
+        const currentIndex = tracks.findIndex(track => track.id === player.currentTrack?.id);
+        if (currentIndex === -1) return;
+        
+        const prevIndex = currentIndex > 0 ? currentIndex - 1 : tracks.length - 1;
+        const prevTrack = tracks[prevIndex];
+        
+        if (prevTrack) {
+            handleTrackPlay(prevTrack);
         }
-    };
+    }, [player, tracks, handleTrackPlay]);
 
-    // 静音切换
-    const handleMuteToggle = () => {
-        if (audioRef.current) {
-            const newMutedState = !isMuted;
-            setIsMuted(newMutedState);
-            audioRef.current.muted = newMutedState;
+    const handleNext = React.useCallback(() => {
+        if (!player.currentTrack || tracks.length === 0) return;
+        
+        const currentIndex = tracks.findIndex(track => track.id === player.currentTrack?.id);
+        if (currentIndex === -1) return;
+        
+        const nextIndex = currentIndex < tracks.length - 1 ? currentIndex + 1 : 0;
+        const nextTrack = tracks[nextIndex];
+        
+        if (nextTrack) {
+            handleTrackPlay(nextTrack);
         }
-    };
+    }, [player, tracks, handleTrackPlay]);
 
-    // 处理库歌曲选择和播放
-    const handleLibraryTrackSelect = React.useCallback((trackId: string) => {
-        // Find the track in the nested structure
-        let selectedTrack = null;
-        let selectedGeneration = null;
-
-        for (const generation of libraryTracks) {
-            // 数据库返回的字段是 allTracks，不是 tracks
-            if (generation.allTracks) {
-                const track = generation.allTracks.find((t: any) => t.id === trackId);
-                if (track) {
-                    selectedTrack = track;
-                    selectedGeneration = generation;
-                    break;
-                }
-            }
+    // ==================== Track Actions ====================
+    const handleFavoriteToggle = React.useCallback(async (track: any) => {
+        if (!user?.id) {
+            toast('Please log in to manage favorites');
+            return;
         }
-
-        if (!selectedTrack || !selectedGeneration) return;
-
-        // 检查是否是同一首歌，如果是同一首歌则不重新加载音频
-        const isSameTrack = selectedLibraryTrack === trackId;
-
-        // 只有在切换到不同歌曲时才重新加载音频
-        if (!isSameTrack) {
-            const trackData = {
-                id: selectedTrack.id,
-                title: selectedGeneration.title,
-                audioUrl: selectedTrack.audio_url,
-                coverUrl: selectedTrack.cover_r2_url,
-                lyrics: selectedGeneration.lyrics_content,
-                tags: selectedGeneration.tags,
-                mood: selectedGeneration.mood || selectedGeneration.genre,
-                duration: selectedTrack.duration,
-                sideLetter: selectedTrack.side_letter
-            };
-            updateCurrentTrackFromLibrary(trackData, true);
-        }
-    }, [libraryTracks, selectedLibraryTrack, updateCurrentTrackFromLibrary]);
-
-    // 处理磁带side切换
-    const handleSideToggle = () => {
-        if (!selectedLibraryTrack) return;
-
-        // 找到当前歌曲的所有tracks（A面和B面）
-        const currentTrack = libraryTracks.find(track => track.id === selectedLibraryTrack);
-        if (!currentTrack) return;
-
-        // 找到同一首歌的其他tracks
-        const sameSongTracks = libraryTracks.filter(track =>
-            track.title === currentTrack.title && track.id !== selectedLibraryTrack
-        );
-
-        if (sameSongTracks.length === 0) return;
-
-        // 切换到另一个track
-        const otherTrack = sameSongTracks[0];
-        setSelectedLibraryTrack(otherTrack.id);
-        updateCurrentTrackFromLibrary(otherTrack, true); // 自动播放
-    };
-
-    // Navigation handlers
-    const handlePrevious = () => {
-        const allTracks = getAllTracks();
-        const currentIndex = allTracks.findIndex(track => track.id === selectedLibraryTrack);
-        if (currentIndex > 0) {
-            const prevTrack = allTracks[currentIndex - 1];
-            setSelectedLibraryTrack(prevTrack.id);
-            handleLibraryTrackSelect(prevTrack.id);
-        }
-    };
-
-
-    const calculateCassetteDuration = () => {
-        return duration || 0;
-    };
-
-    const handleSelectedLibraryTrack = React.useCallback((id: string | null) => {
-        setSelectedLibraryTrack(id);
-        if (id) {
-            handleLibraryTrackSelect(id);
-            // 只播放歌曲，不自动展开歌词面板
-        } else {
-            // Hide lyrics area when no song is selected
-            setShowLyrics(false);
-        }
-    }, [handleLibraryTrackSelect]);
-
-    // 删除确认处理
-    const handleDeleteConfirm = async () => {
-        if (!trackToDelete) return;
 
         try {
-            // 获取当前session的access token
-            const { data: { session } } = await supabase.auth.getSession();
-            if (!session?.access_token) {
-                toast('Please log in to delete tracks');
-                return;
-            }
+            const isFavorited = await toggleFavorite(track.id);
 
-            const response = await fetch(`/api/delete-track/${trackToDelete.id}`, {
-                method: 'DELETE',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${session.access_token}`
-                },
-            });
-
-            const data = await response.json();
-
-            if (data.success) {
-                // 更新本地tracks数据中的删除状态
-                setLibraryTracks(prevTracks =>
-                    prevTracks.map(generation => ({
-                        ...generation,
-                        allTracks: generation.allTracks.map((t: any) =>
-                            t.id === trackToDelete.id
-                                ? { ...t, is_deleted: true }
-                                : t
-                        )
-                    }))
-                );
-
-                // 如果当前播放的是被删除的歌曲，停止播放
-                if (selectedLibraryTrack === trackToDelete.id) {
-                    setSelectedLibraryTrack(null);
-                    setIsPlaying(false);
-                }
-
-                toast('Track deleted successfully', {
-                    icon: <CheckCircle className="h-4 w-4 text-green-500" />
+            // 显示toast提示
+            if (isFavorited) {
+                toast('Added to favorites!', {
+                    icon: <Star className="h-4 w-4 text-red-500 fill-current" />,
+                    description: `"${track.title}" has been added to library.`
                 });
             } else {
-                toast(data.error || 'Failed to delete track');
+                toast('Removed from favorites', {
+                    icon: <Star className="h-4 w-4 text-gray-500" />,
+                    description: `"${track.title}" has been removed from library.`
+                });
+                
+                // 如果在详情页取消收藏，返回列表页
+                if (selectedTrackId === track.id) {
+                    handleBackToList();
+                }
             }
         } catch (error) {
-            console.error('Error deleting track:', error);
-            toast('Failed to delete track, please try again');
-        } finally {
-            setDeleteDialogOpen(false);
-            setTrackToDelete(null);
+            console.error('Error toggling favorite:', error);
+            toast.error('Failed to update favorite status');
         }
+    }, [user?.id, toggleFavorite, selectedTrackId, handleBackToList]);
+
+    const handleTrackAction = React.useCallback((track: any, action: string) => {
+        if (action === 'update') {
+            updateTrack(track.id, { title: track.title });
+        } else if (action === 'publish_toggle') {
+            updateTrack(track.id, { is_published: !track.is_published });
+        } else if (action === 'pin') {
+            updateTrack(track.id, { is_pinned: !track.is_pinned });
+        } else if (action === 'delete') {
+            // 如果删除的是当前正在查看的歌曲，返回列表
+            if (selectedTrackId === track.id) {
+                handleBackToList();
+            }
+        }
+    }, [updateTrack, selectedTrackId, handleBackToList]);
+
+    // ==================== Music Player Props ====================
+    const musicPlayerProps = {
+        tracks: musicPlayerTracks,
+        currentTrackIndex: tracks.findIndex(track => track.id === player.currentTrack?.id),
+        currentPlayingTrack: player.currentTrack || undefined,
+        isPlaying: player.isPlaying,
+        currentTime: player.currentTime,
+        duration: player.duration,
+        volume: player.volume,
+        isMuted: player.isMuted,
+        onPlayPause: () => player.togglePlayPause(),
+        onPrevious: handlePrevious,
+        onNext: handleNext,
+        onSeek: (time: number) => player.seek(time),
+        onVolumeChange: (vol: number) => player.setVolume(vol),
+        onMuteToggle: () => player.toggleMute(),
+        hideProgress: false,
+        onTrackChange: (index: number) => {
+            const track = tracks[index];
+            if (track) handleTrackPlay(track);
+        },
     };
 
+    // ==================== Render ====================
     return (
         <>
             <section 
                 id="library" 
                 className="h-screen flex flex-col md:flex-row bg-background relative overflow-hidden"
             >
-
                 {/* Main Library Interface */}
-                <div className="flex-1 h-full flex z-10 md:order-2 pb-20 md:pb-0">
-                    <div className="min-w-0 h-full flex flex-col relative" style={{
-                        width: showLyrics ? 'calc(100% - 0rem)' : '100%'
-                    }}>
-                        <LibraryPanel
-                            tracks={getAllTracks()}
-                            isLoading={isLoadingLibrary}
-                            hasPlayer={!!currentTrack}
-                            onTrackSelect={(track) => {
-                                // 播放歌曲，不自动展开歌词面板
-                                handleSelectedLibraryTrack(track.id);
-                                setSelectedForLyrics(track.id);
-                            }}
-                            onTrackPlay={(track) => {
-
-                                // 检查是否是同一首歌
-                                const isSameTrack = currentTrack?.id === track.id;
-
-                                if (isSameTrack && audioRef.current) {
-                                    // 同一首歌：切换播放/暂停
-                                    if (isPlaying) {
-                                        audioRef.current.pause();
-                                        setIsPlaying(false);
-                                    } else {
-                                        audioRef.current.play().then(() => {
-                                            setIsPlaying(true);
-                                        }).catch(error => {
-                                            console.error('Play failed:', error);
-                                            setIsPlaying(false);
-                                        });
-                                    }
-                                } else {
-                                    // 不同的歌或没有当前歌曲：加载并播放新歌
-
-                                    // 设置选中状态
-                                    setSelectedLibraryTrack(track.id);
-                                    setSelectedForLyrics(track.id);
-
-                                    // 找到完整的track数据
-                                    let selectedTrack = null;
-                                    let selectedGeneration = null;
-
-                                    for (const generation of libraryTracks) {
-                                        if (generation.allTracks) {
-                                            const foundTrack = generation.allTracks.find((t: any) => t.id === track.id);
-                                            if (foundTrack) {
-                                                selectedTrack = foundTrack;
-                                                selectedGeneration = generation;
-                                                break;
-                                            }
-                                        }
-                                    }
-
-                                    if (selectedTrack && selectedGeneration && audioRef.current) {
-                                        // 更新currentTrack
-                                        const trackData = {
-                                            id: selectedTrack.id,
-                                            title: selectedGeneration.title,
-                                            audioUrl: selectedTrack.audio_url,
-                                            coverImage: selectedTrack.cover_r2_url,
-                                            lyrics: selectedGeneration.lyrics_content,
-                                            tags: selectedGeneration.tags,
-                                            mood: selectedGeneration.mood || selectedGeneration.genre,
-                                            duration: selectedTrack.duration
-                                        };
-
-                                        setCurrentTrack(trackData);
-
-                                        // 加载并播放音频
-                                        audioRef.current.pause();
-                                        audioRef.current.src = selectedTrack.audio_url;
-                                        audioRef.current.load();
-
-                                        audioRef.current.addEventListener('loadeddata', () => {
-                                            if (audioRef.current) {
-                                                audioRef.current.play().then(() => {
-                                                    setIsPlaying(true);
-                                                }).catch(error => {
-                                                    console.error('Play failed:', error);
-                                                    setIsPlaying(false);
-                                                });
-                                            }
-                                        }, { once: true });
-                                    }
+                <div 
+                    className="flex-1 h-full flex z-10 md:order-2 relative pb-[var(--mobile-nav-height,64px)] md:pb-0"
+                >
+                    {selectedTrackId ? (
+                        /* 歌曲详情视图 */
+                        <TrackDetailView 
+                            trackId={selectedTrackId}
+                            onBack={handleBackToList}
+                            // currentPlayingTrackId 和 isPlaying 通过 EventBus 自动获取
+                            onPlayTrack={(trackInfo) => {
+                                // 如果点击的是当前播放的歌曲，则暂停/继续
+                                if (player.currentTrack?.id === trackInfo.id) {
+                                    player.togglePlayPause();
+                                    return;
                                 }
-                            }}
-                            onTrackAction={(track, action) => {
-                                // Handle other track actions like pin, delete, etc.
                                 
-                                if (action === 'publish_toggle') {
-                                    // 更新本地tracks数据中的发布状态
-                                    setLibraryTracks(prevTracks =>
-                                        prevTracks.map(generation => ({
-                                            ...generation,
-                                            allTracks: generation.allTracks.map((t: any) =>
-                                                t.id === track.id
-                                                    ? { ...t, is_published: !t.is_published }
-                                                    : t
-                                            )
-                                        }))
-                                    );
-                                    
-                                    // 同时更新selectedLibraryTrack中的状态
-                                    setSelectedLibraryTrack((prev: any) => 
-                                        prev && prev.id === track.id
-                                            ? { ...prev, is_published: !prev.is_published }
-                                            : prev
-                                    );
-                                } else if (action === 'pin') {
-                                    // 更新本地tracks数据中的置顶状态
-                                    setLibraryTracks(prevTracks =>
-                                        prevTracks.map(generation => ({
-                                            ...generation,
-                                            allTracks: generation.allTracks.map((t: any) =>
-                                                t.id === track.id
-                                                    ? { ...t, is_pinned: !t.is_pinned }
-                                                    : t
-                                            )
-                                        }))
-                                    );
-                                } else if (action === 'delete') {
-                                    // 删除操作已经在 library-panel.tsx 中处理，这里只需要更新本地状态
-                                    // 更新本地tracks数据中的删除状态
-                                    setLibraryTracks(prevTracks =>
-                                        prevTracks.map(generation => ({
-                                            ...generation,
-                                            allTracks: generation.allTracks.map((t: any) =>
-                                                t.id === track.id
-                                                    ? { ...t, is_deleted: true }
-                                                    : t
-                                            )
-                                        }))
-                                    );
-
-                                    // 如果当前播放的是被删除的歌曲，停止播放
-                                    if (currentTrack?.id === track.id || selectedLibraryTrack === track.id) {
-                                        // 停止音频播放
-                                        if (audioRef.current) {
-                                            audioRef.current.pause();
-                                            audioRef.current.currentTime = 0;
-                                            audioRef.current.src = '';
-                                        }
-                                        // 清除播放状态
-                                        setCurrentTrack(null);
-                                        setSelectedLibraryTrack(null);
-                                        setIsPlaying(false);
-                                        setCurrentTime(0);
-                                        setDuration(0);
-                                    }
-                                }
+                                // 播放新歌曲
+                                player.playTrack({
+                                    id: trackInfo.id,
+                                    title: trackInfo.title,
+                                    audioUrl: trackInfo.audioUrl,
+                                    duration: parseFloat(trackInfo.duration),
+                                    genre: trackInfo.tags,
+                                    lyrics: trackInfo.lyrics,
+                                    tags: trackInfo.tags,
+                                    coverImage: trackInfo.coverImage,
+                                });
                             }}
-                            currentPlayingTrack={currentTrack?.id || null}
-                            selectedLibraryTrack={selectedLibraryTrack}
-                            isPlaying={isPlaying}
-                            userId={user?.id}
-                            onLyricsToggle={() => setShowLyrics(!showLyrics)}
-                            showLyrics={showLyrics}
                             onFavoriteToggle={(trackId, isFavorited) => {
-                                // 更新本地tracks数据中的收藏状态
-                                setLibraryTracks(prevTracks =>
-                                    prevTracks.map(generation => ({
-                                        ...generation,
-                                        allTracks: generation.allTracks.map((track: any) =>
-                                            track.id === trackId
-                                                ? { ...track, is_favorited: isFavorited }
-                                                : track
-                                        )
-                                    }))
-                                );
+                                const track = tracks.find(t => t.id === trackId);
+                                if (track) {
+                                    handleFavoriteToggle(track);
+                                }
                             }}
-                        />
-
-                        {/* Desktop Music Player - 桌面端播放器（在歌曲列表列底部） */}
-                        {currentTrack && (
-                            <div className="hidden md:block absolute left-0 right-0 bottom-0 z-40">
-                                <MusicPlayer
-                                    tracks={getAllTracks().map(track => ({
-                                        id: track.id,
-                                        title: track.title,
-                                        audioUrl: track.audio_url,
-                                        duration: track.duration,
-                                        coverImage: track.coverUrl,
-                                        artist: track.genre || 'Unknown Artist',
-                                        allTracks: [{
-                                            id: track.id,
-                                            audio_url: track.audio_url,
-                                            duration: track.duration,
-                                            side_letter: track.side_letter,
-                                            cover_r2_url: track.coverUrl
-                                        }]
-                                    }))}
-                                    currentTrackIndex={Math.max(0, getAllTracks().findIndex(track => track.id === currentTrack?.id))}
-                                    currentPlayingTrack={currentTrack ? { trackId: currentTrack.id || '', audioUrl: currentTrack.audioUrl || '' } : null}
-                                    isPlaying={isPlaying}
-                                    currentTime={currentTime}
-                                    duration={duration}
-                                    volume={volume}
-                                    isMuted={isMuted}
-                                    onPlayPause={togglePlayPause}
-                                    onPrevious={handlePrevious}
-                                    onNext={handleNext}
-                                    onSeek={(time) => {
-                                        if (audioRef.current && duration > 0 && currentTrack) {
-                                            audioRef.current.currentTime = time;
-                                        }
-                                    }}
-                                    onVolumeChange={(newVolume) => {
-                                        changeVolume(newVolume);
-                                    }}
-                                    onMuteToggle={handleMuteToggle}
-                                    hideProgress={showLyrics}
-                                    onTrackChange={(newIndex) => {
-                                        const allTracks = getAllTracks();
-                                        if (newIndex >= 0 && newIndex < allTracks.length) {
-                                            const newTrack = allTracks[newIndex];
-                                            setSelectedLibraryTrack(newTrack.id);
-                                            handleLibraryTrackSelect(newTrack.id);
-                                        }
-                                    }}
-                                    onTrackInfoClick={() => {
-                                        setShowLyrics(!showLyrics);
-                                    }}
-                                />
-                            </div>
-                        )}
-                    </div>
-
-                    {/* Lyrics Panel */}
-                    {showLyrics && (
-                        <>
-                        {/* Backdrop for mobile */}
-                        <div 
-                            className="fixed inset-0 bg-black/50 z-40 md:hidden transition-opacity duration-300"
-                            onClick={() => {
-                                setShowLyrics(false);
-                                // 不清除选中的歌曲数据，保留以便再次打开
-                                // setSelectedForLyrics(null);
-                                // setSelectedLibraryTrack(null);
+                            onDownload={(trackInfo) => {
+                                if (trackInfo.audioUrl) {
+                                    const link = document.createElement('a');
+                                    link.href = trackInfo.audioUrl;
+                                    link.download = `${trackInfo.title || 'track'}.mp3`;
+                                    document.body.appendChild(link);
+                                    link.click();
+                                    document.body.removeChild(link);
+                                }
                             }}
+                            onPublishToggle={(trackId, isPublished) => {
+                                const track = tracks.find(t => t.id === trackId);
+                                if (track) {
+                                    handleTrackAction({ ...track, is_published: !isPublished }, 'publish_toggle');
+                                }
+                            }}
+                            onEditTitle={(trackId, newTitle) => {
+                                const track = tracks.find(t => t.id === trackId);
+                                if (track) {
+                                    handleTrackAction({ ...track, title: newTitle }, 'update');
+                                }
+                            }}
+                            onDelete={(trackId) => {
+                                const track = tracks.find(t => t.id === trackId);
+                                if (track) {
+                                    handleTrackAction(track, 'delete');
+                                }
+                            }}
+                            onPinToggle={(trackId, isPinned) => {
+                                const track = tracks.find(t => t.id === trackId);
+                                if (track) {
+                                    handleTrackAction({ ...track, is_pinned: !isPinned }, 'pin');
+                                }
+                            }}
+                            isFavorited={
+                                tracks.find(t => t.id === selectedTrackId)?.is_favorited || false
+                            }
+                            isPublished={
+                                tracks.find(t => t.id === selectedTrackId)?.is_published || false
+                            }
+                            isPinned={
+                                tracks.find(t => t.id === selectedTrackId)?.is_pinned || false
+                            }
+                            isAdmin={false}
+                            currentUserId={user?.id || null}
                         />
-                        <div className="fixed md:relative bottom-0 left-0 right-0 md:left-auto md:right-auto w-full md:w-80 h-dvh md:h-full md:flex-shrink-0 z-50 md:z-auto">
-                        <LyricsPanel
-                        isOpen={showLyrics}
-                        onClose={() => {
-                            setShowLyrics(false);
-                            // 不清除选中的歌曲数据，保留以便再次打开
-                            // setSelectedForLyrics(null);
-                            // setSelectedLibraryTrack(null);
-                        }}
-                        lyrics={getSelectedTrackForLyrics()?.lyrics}
-                        title={getSelectedTrackForLyrics()?.title}
-                        tags={getSelectedTrackForLyrics()?.tags}
-                        genre={getSelectedTrackForLyrics()?.genre}
-                        coverImage={getSelectedTrackForLyrics()?.coverUrl}
-                        sideLetter={getSelectedTrackForLyrics()?.side_letter || 'A'}
-                        isPublished={getSelectedTrackForLyrics()?.is_published}
-                        isPinned={getSelectedTrackForLyrics()?.is_pinned}
-                        isAdmin={isAdmin(user?.id || '')}
-                        onDownload={() => {
-                            const track = getSelectedTrackForLyrics();
-                            if (track?.audio_url) {
-                                const link = document.createElement('a');
-                                link.href = track.audio_url;
-                                link.download = `${track.title}.mp3`;
-                                document.body.appendChild(link);
-                                link.click();
-                                document.body.removeChild(link);
-                            }
-                        }}
-                        onPublishToggle={async () => {
-                            const track = getSelectedTrackForLyrics();
-                            if (!track) return;
-                            
-                            try {
-                                // 获取当前session的access token
-                                const { data: { session } } = await supabase.auth.getSession();
-                                if (!session?.access_token) {
-                                    toast('Please log in to publish tracks');
-                                    return;
-                                }
-
-                                const response = await fetch('/api/track-publish/toggle', {
-                                    method: 'POST',
-                                    headers: {
-                                        'Content-Type': 'application/json',
-                                        'Authorization': `Bearer ${session.access_token}`
-                                    },
-                                    body: JSON.stringify({ trackId: track.id })
-                                });
-
-                                const result = await response.json();
-                                
-                                if (result.success) {
-                                    // 更新本地状态
-                                    setLibraryTracks((prevTracks: any[]) => 
-                                        prevTracks.map((t: any) => 
-                                            t.id === track.id 
-                                                ? { ...t, is_published: result.isPublished }
-                                                : t
-                                        )
-                                    );
-                                    
-                                    // 更新选中的track状态
-                                    setSelectedLibraryTrack((prev: any) => 
-                                        prev ? { ...prev, is_published: result.isPublished } : null
-                                    );
-                                    
-                                    toast(result.message);
-                                } else {
-                                    toast(result.error || 'Failed to toggle publication');
-                                }
-                            } catch (error) {
-                                console.error('Error toggling publication:', error);
-                                toast('Failed to toggle publication');
-                            }
-                        }}
-                        onPinToggle={async () => {
-                            const track = getSelectedTrackForLyrics();
-                            if (!track) return;
-                            
-                            try {
-                                // 获取当前session的access token
-                                const { data: { session } } = await supabase.auth.getSession();
-                                if (!session?.access_token) {
-                                    toast('Please log in to pin tracks');
-                                    return;
-                                }
-                                
-                                const response = await fetch('/api/toggle-track-pin', {
-                                    method: 'POST',
-                                    headers: {
-                                        'Content-Type': 'application/json',
-                                        'Authorization': `Bearer ${session.access_token}`,
-                                    },
-                                    body: JSON.stringify({ trackId: track.id }),
-                                });
-                                
-                                const data = await response.json();
-                                
-                                if (data.success) {
-                                    // 更新本地状态
-                                    setLibraryTracks(prevTracks =>
-                                        prevTracks.map(generation => ({
-                                            ...generation,
-                                            allTracks: generation.allTracks.map((t: any) =>
-                                                t.id === track.id
-                                                    ? { ...t, is_pinned: data.isPinned }
-                                                    : t
-                                            )
-                                        }))
-                                    );
-                                    
-                                    // 显示成功消息
-                                    toast(data.message || (data.isPinned ? 'Track pinned successfully' : 'Track unpinned successfully'), {
-                                        icon: <CheckCircle className="h-4 w-4 text-green-500" />
-                                    });
-                                } else {
-                                    toast(data.error || 'Failed to toggle pin status');
-                                }
-                            } catch (error) {
-                                console.error('Error toggling pin:', error);
-                                toast('Failed to toggle pin status');
-                            }
-                        }}
-                        onDelete={() => {
-                            // 删除功能通过onTrackAction处理
-                        }}
-                    />
+                    ) : (
+                        /* 歌曲列表 */
+                        <div className="min-h-0 h-full flex flex-col relative w-full">
+                            {/* Library Panel */}
+                            <LibraryPanel
+                                tracks={libraryPanelTracks}
+                                isLoading={isLoading}
+                                hasPlayer={!!player.currentTrack}
+                                onTrackSelect={(track) => {
+                                    handleTrackSelect(track);
+                                }}
+                                onTrackPlay={handleTrackPlay}
+                                onTrackAction={handleTrackAction}
+                                currentPlayingTrack={player.currentTrack?.id || null}
+                                selectedLibraryTrack={selectedLibraryTrack}
+                                isPlaying={player.isPlaying}
+                                userId={user?.id}
+                                onFavoriteToggle={handleFavoriteToggle}
+                            />
                         </div>
-                        </>
+                    )}
+
+                    {/* Music Player - Fixed on mobile, Absolute on desktop */}
+                    {player.currentTrack && (
+                        <div className="fixed md:absolute left-3 right-3 md:right-3 z-[60]" style={{
+                            bottom: 'calc(var(--mobile-nav-height, 0px) + 0.75rem)'
+                        }}>
+                            <MusicPlayer {...musicPlayerProps} />
+                        </div>
                     )}
                 </div>
 
-                {/* Mobile Music Player - 移动端播放器（固定在底部） */}
-                {currentTrack && !showLyrics && (
-                    <div className="fixed md:hidden left-3 right-3 z-40" style={{
-                        bottom: 'calc(var(--mobile-nav-height, 0px) + 0.75rem)'
-                    }}>
-                        <div className="[&>div]:!pr-3">
-                            <MusicPlayer
-                                tracks={getAllTracks().map(track => ({
-                                    id: track.id,
-                                    title: track.title,
-                                    audioUrl: track.audio_url,
-                                    duration: track.duration,
-                                    coverImage: track.coverUrl, // 使用正确的字段名
-                                    artist: track.genre || 'Unknown Artist',
-                                    allTracks: [{
-                                        id: track.id,
-                                        audio_url: track.audio_url,
-                                        duration: track.duration,
-                                        side_letter: track.side_letter,
-                                        cover_r2_url: track.coverUrl // 使用正确的字段名
-                                    }]
-                                }))}
-                                currentTrackIndex={Math.max(0, getAllTracks().findIndex(track => track.id === currentTrack?.id))}
-                                currentPlayingTrack={currentTrack ? { trackId: currentTrack.id || '', audioUrl: currentTrack.audioUrl || '' } : null}
-                                isPlaying={isPlaying}
-                                currentTime={currentTime}
-                                duration={duration}
-                                volume={volume}
-                                isMuted={isMuted}
-                                onPlayPause={togglePlayPause}
-                                onPrevious={handlePrevious}
-                                onNext={handleNext}
-                                onSeek={(time) => {
-                                    if (audioRef.current && duration > 0 && currentTrack) {
-                                        audioRef.current.currentTime = time;
-                                    }
-                                }}
-                                onVolumeChange={(newVolume) => {
-                                    changeVolume(newVolume);
-                                }}
-                                onMuteToggle={handleMuteToggle}
-                                onTrackChange={(newIndex) => {
-                                    const allTracks = getAllTracks();
-                                    if (newIndex >= 0 && newIndex < allTracks.length) {
-                                        const newTrack = allTracks[newIndex];
-                                        setSelectedLibraryTrack(newTrack.id);
-                                        handleLibraryTrackSelect(newTrack.id);
-                                    }
-                                }}
-                                onTrackInfoClick={() => {
-                                    setShowLyrics(!showLyrics);
-                                }}
-                            />
-                        </div>
-                    </div>
-                )}
 
-                {/* Hidden Audio Element */}
-                <audio
-                    ref={audioRef}
-                    src={currentTrack?.audioUrl || ''}
-                    onLoadedMetadata={handleAudioLoad}
-                    onTimeUpdate={handleTimeUpdate}
-                    onEnded={handleAudioEnd}
-                    onPlay={handlePlay}
-                    onPause={handlePause}
-                    preload="metadata"
-                />
-
-                {/* Common Sidebar - Fixed bottom navigation on mobile, Left sidebar on desktop */}
-                <div className="md:relative md:z-50 md:order-1">
-                    <CommonSidebar hideMobileNav={showLyrics} />
+                {/* Common Sidebar */}
+                <div className="md:relative md:z-[40] md:order-1">
+                    <CommonSidebar />
                 </div>
             </section>
-
-            {/* Delete Confirmation Dialog */}
-            <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
-                <AlertDialogContent>
-                    <AlertDialogHeader>
-                        <AlertDialogTitle>Delete Track</AlertDialogTitle>
-                        <AlertDialogDescription>
-                            Are you sure you want to delete &quot;{trackToDelete?.title}&quot;? This action cannot be undone.
-                        </AlertDialogDescription>
-                    </AlertDialogHeader>
-                    <AlertDialogFooter>
-                        <AlertDialogCancel>Cancel</AlertDialogCancel>
-                        <AlertDialogAction 
-                            onClick={handleDeleteConfirm}
-                            className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-                        >
-                            Delete
-                        </AlertDialogAction>
-                    </AlertDialogFooter>
-                </AlertDialogContent>
-            </AlertDialog>
 
             {/* Auth Modal */}
             <AuthModal
@@ -895,8 +414,6 @@ const LibraryContent = () => {
         </>
     );
 };
-
-import { PageLoading } from '@/components/ui/loading-dots';
 
 export const LibrarySection = () => {
     return (

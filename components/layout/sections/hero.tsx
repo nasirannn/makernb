@@ -15,6 +15,11 @@ export const HeroSection = () => {
     router.push('/studio');
   };
 
+  const handleExploreClick = () => {
+    // Navigate to explore page
+    router.push('/explore');
+  };
+
   return (
     <section className="relative w-full h-screen overflow-hidden">
 
@@ -115,15 +120,25 @@ export const HeroSection = () => {
               <p>✨ Free daily credits • 🎵 Professional quality • 🚀 No experience needed</p>
             </div>
 
-            <div className="flex items-center justify-center">
+            <div className="flex items-center justify-center gap-4">
               <button
                 onClick={handleStudioClick}
                 className="inline-flex items-center gap-2 px-6 py-2 bg-primary text-white font-semibold rounded-lg hover:bg-primary/80 transition-all duration-300 transform hover:shadow-none overflow-hidden shadow-[2px_2px_0_0_rgba(255,255,255,0.8)] hover:translate-x-[3px] hover:translate-y-[3px] hover:shadow-[0px_0px_0_0_rgba(255,255,255,0)] border border-primary/20 text-lg"
               >
+                <span>Try It On</span>
                 <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19V6l12-3v13M9 19c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zm12-3c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zM9 10l12-3" />
                 </svg>
-                <span>Try It On</span>
+              </button>
+              
+              <button
+                onClick={handleExploreClick}
+                className="inline-flex items-center gap-2 px-6 py-2 bg-transparent text-white font-semibold rounded-lg border-2 border-white/30 hover:bg-white/10 hover:border-white/50 transition-all duration-300 transform hover:shadow-none overflow-hidden text-lg"
+              >
+                <span>Explore Songs</span>
+                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.536 8.464a5 5 0 010 7.072m2.828-9.9a9 9 0 010 12.728M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z" />
+                </svg>
               </button>
             </div>
           </div>

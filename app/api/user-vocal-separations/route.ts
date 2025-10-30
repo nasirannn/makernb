@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getUserVocalSeparations } from '@/lib/vocal-separation-db';
-import { getUserIdFromRequest } from '@/lib/auth-utils-optimized';
+import { getUserIdFromRequest } from '@/lib/auth';
 
 export const dynamic = 'force-dynamic';
 

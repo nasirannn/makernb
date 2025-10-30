@@ -3,22 +3,41 @@
 @tailwind utilities;
 
 /* ==========================================================================
-   GLOBAL STYLES
+   BASE STYLES
    ========================================================================== */
 
-html {
-  scroll-behavior: smooth;
-}
-
-/* 移动端登录弹窗 - 键盘弹出时保持固定位置 */
-
 @layer base {
+  /* HTML & Body */
+  html {
+    scroll-behavior: smooth;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    text-rendering: optimizeLegibility;
+  }
+
   * {
     @apply border-border;
   }
   
   body {
     @apply bg-background text-foreground;
+    font-feature-settings: 'kern' 1, 'liga' 1, 'calt' 1;
+    font-variant-ligatures: common-ligatures;
+  }
+
+  /* Typography Refinements */
+  h1, h2, h3, h4, h5, h6 {
+    font-weight: 600;
+    letter-spacing: -0.02em;
+    text-wrap: balance;
+  }
+
+  p {
+    text-wrap: pretty;
+  }
+
+  button, input, textarea, select {
+    font-feature-settings: 'kern' 1;
   }
 }
 
@@ -161,18 +180,15 @@ html {
     -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
     -webkit-mask-composite: xor;
   }
-}
 
-/* ==========================================================================
-   CUSTOM SHADOWS
-   ========================================================================== */
+  /* Custom Shadow Utilities */
+  .shadow-light {
+    box-shadow: inset 0 0 5px rgba(0, 0, 0, 0.085);
+  }
 
-.shadow-light {
-  box-shadow: inset 0 0 5px rgba(0, 0, 0, 0.085);
-}
-
-.shadow-dark {
-  box-shadow: inset 0 0 5px rgba(255, 255, 255, 0.141);
+  .shadow-dark {
+    box-shadow: inset 0 0 5px rgba(255, 255, 255, 0.141);
+  }
 }
 
 /* ==========================================================================
@@ -220,10 +236,7 @@ html {
   }
 }
 
-/* ==========================================================================
-   AUDIO WAVE ANIMATIONS
-   ========================================================================== */
-
+/* Audio Wave Animations */
 @keyframes audio-wave-1 {
   0%, 100% { height: 20%; }
   50% { height: 60%; }

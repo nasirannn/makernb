@@ -8,12 +8,13 @@ import { MusicPlayer } from '@/components/ui/music-player';
 import { CustomAudioWaveIndicator } from '@/components/ui/audio-wave-indicator';
 import { Skeleton } from '@/components/ui/skeleton';
 import { FooterSection } from '@/components/layout/sections/footer';
+import { stopAllAudioGlobally } from '@/lib/audio-service';
+import { useAudioPlayer } from '@/hooks/use-audio-player';
 
 interface Track {
   id: string;
   audio_url: string;
   duration: number | string;
-  side_letter: string;
   cover_r2_url?: string;
 }
 
@@ -48,16 +49,9 @@ export default function ExplorePage() {
   const [hasMore, setHasMore] = useState(true);
   const [currentlyPlaying, setCurrentlyPlaying] = useState<string | null>(null);
 
-  // 播放器状态
-  const [currentTrackIndex, setCurrentTrackIndex] = useState(0);
-  const [currentPlayingTrack, setCurrentPlayingTrack] = useState<{trackId: string, audioUrl: string} | null>(null);
-  const [isPlaying, setIsPlaying] = useState(false);
-  const [currentTime, setCurrentTime] = useState(0);
-  const [duration, setDuration] = useState(0);
-  const [volume, setVolume] = useState(1);
-  const [isMuted, setIsMuted] = useState(false);
+  // 播放器状态 - 使用统一的AudioService
+  const audioPlayer = useAudioPlayer();
   const [playlist, setPlaylist] = useState<MusicGeneration[]>([]);
-  const audioRef = useRef<HTMLAudioElement | null>(null);
 
   useEffect(() => {
     const loadData = async () => {
@@ -95,18 +89,11 @@ export default function ExplorePage() {
   // 组件卸载时清理音频
   useEffect(() => {
     return () => {
-      // 立即停止音频播放
-      if (audioRef.current) {
-        audioRef.current.pause();
-        audioRef.current.src = '';
-        audioRef.current.load();
-      }
-      // 重置所有播放状态
-      setIsPlaying(false);
+      // 使用全局清理函数停止所有音频播放
+      stopAllAudioGlobally();
+      
+      // 重置本地状态
       setCurrentlyPlaying(null);
-      setCurrentPlayingTrack(null);
-      setCurrentTime(0);
-      setDuration(0);
     };
   }, []);
 
@@ -211,15 +198,7 @@ export default function ExplorePage() {
 
     // 如果点击的是当前播放的歌曲，则暂停/继续
     if (currentlyPlaying === trackId) {
-      if (audioRef.current) {
-        if (isPlaying) {
-          audioRef.current.pause();
-          setIsPlaying(false);
-        } else {
-          audioRef.current.play();
-          setIsPlaying(true);
-        }
-      }
+      audioPlayer.togglePlayPause();
       return;
     }
 
@@ -227,100 +206,56 @@ export default function ExplorePage() {
     playTrack(trackIndex);
   };
 
-  const playTrack = (index: number, specificTrackId?: string, specificAudioUrl?: string) => {
+  const playTrack = async (index: number, specificTrackId?: string, specificAudioUrl?: string) => {
     if (index < 0 || index >= playlist.length) return;
 
     const music = playlist[index];
     const trackId = specificTrackId || music.primaryTrack.id;
     const audioUrl = specificAudioUrl || music.primaryTrack.audio_url;
 
-    // 停止当前播放
-    if (audioRef.current) {
-      audioRef.current.pause();
-    }
+    // 使用AudioService播放歌曲
+    await audioPlayer.playTrack({
+      id: trackId,
+      title: music.title,
+      audioUrl: audioUrl,
+      duration: typeof music.primaryTrack.duration === 'string' ? parseFloat(music.primaryTrack.duration) : music.primaryTrack.duration,
+      coverImage: music.primaryTrack.cover_r2_url,
+      genre: music.genre,
+    });
 
-    // 创建新的音频元素
-    const audio = new Audio(audioUrl);
-    audioRef.current = audio;
-
-    // 设置当前播放的歌曲信息
-    setCurrentTrackIndex(index);
+    // 更新本地状态
     setCurrentlyPlaying(trackId);
-    setCurrentPlayingTrack({ trackId, audioUrl }); // 跟踪当前播放的具体track
-    setCurrentTime(0);
-    setDuration(0);
-
-    // 音频事件监听
-    audio.addEventListener('loadedmetadata', () => {
-      setDuration(audio.duration || 0);
-    });
-
-    audio.addEventListener('timeupdate', () => {
-      setCurrentTime(audio.currentTime);
-    });
-
-    audio.addEventListener('ended', () => {
-      setIsPlaying(false);
-      setCurrentTime(0);
-      // 自动播放下一首
-      if (index < playlist.length - 1) {
-        playTrack(index + 1);
-      }
-    });
-
-    // 设置音量
-    audio.volume = isMuted ? 0 : volume;
-
-    // 播放音频
-    audio.play();
-    setIsPlaying(true);
   };
 
   // 播放器控制函数
   const handlePlayerPlayPause = () => {
-    if (audioRef.current) {
-      if (isPlaying) {
-        audioRef.current.pause();
-        setIsPlaying(false);
-      } else {
-        audioRef.current.play();
-        setIsPlaying(true);
-      }
-    }
+    audioPlayer.togglePlayPause();
   };
 
   const handlePrevious = () => {
-    if (currentTrackIndex > 0) {
-      playTrack(currentTrackIndex - 1);
+    const currentIndex = playlist.findIndex(music => music.primaryTrack.id === currentlyPlaying);
+    if (currentIndex > 0) {
+      playTrack(currentIndex - 1);
     }
   };
 
   const handleNext = () => {
-    if (currentTrackIndex < playlist.length - 1) {
-      playTrack(currentTrackIndex + 1);
+    const currentIndex = playlist.findIndex(music => music.primaryTrack.id === currentlyPlaying);
+    if (currentIndex < playlist.length - 1) {
+      playTrack(currentIndex + 1);
     }
   };
 
   const handleSeek = (time: number) => {
-    if (audioRef.current) {
-      audioRef.current.currentTime = time;
-      setCurrentTime(time);
-    }
+    audioPlayer.seek(time);
   };
 
   const handleVolumeChange = (newVolume: number) => {
-    setVolume(newVolume);
-    if (audioRef.current) {
-      audioRef.current.volume = isMuted ? 0 : newVolume;
-    }
+    audioPlayer.setVolume(newVolume);
   };
 
   const handleMuteToggle = () => {
-    const newMuted = !isMuted;
-    setIsMuted(newMuted);
-    if (audioRef.current) {
-      audioRef.current.volume = newMuted ? 0 : volume;
-    }
+    audioPlayer.toggleMute();
   };
 
   const handleTrackChange = (index: number) => {
@@ -331,7 +266,7 @@ export default function ExplorePage() {
     return (
       <div className="min-h-screen bg-background ">
         <div className="container mx-auto px-4 pt-32 pb-6 sm:pb-12">
-          <div className="max-w-6xl mx-auto">
+          <div className="max-w-7xl mx-auto">
             {/* Header */}
             <div className="text-center mb-8">
               <p className="text-sm font-medium text-white/60 uppercase tracking-wider mb-4">
@@ -361,7 +296,7 @@ export default function ExplorePage() {
     return (
       <div className="min-h-screen bg-background ">
         <div className="container mx-auto px-4 pt-32 pb-6 sm:pb-12">
-          <div className="max-w-6xl mx-auto">
+          <div className="max-w-7xl mx-auto">
             <div className="text-center">
               <p className="text-red-400 mb-4">{error}</p>
               <Button onClick={() => fetchExploreData()} variant="outline">
@@ -377,7 +312,7 @@ export default function ExplorePage() {
   return (
     <div className="min-h-screen bg-background ">
       <div className={`container mx-auto px-4 pt-32 pb-6 sm:pb-12 ${playlist.length > 0 && currentlyPlaying ? 'pb-20 md:pb-20' : ''}`}>
-        <div className="max-w-6xl mx-auto">
+        <div className="max-w-7xl mx-auto">
           {/* Header */}
           <div className="text-center mb-8">
             <p className="text-sm font-medium text-white/60 uppercase tracking-wider mb-4">
@@ -416,10 +351,10 @@ export default function ExplorePage() {
                         />
 
                         {/* Playing Wave Effect - 播放时音波效果 */}
-                        {currentlyPlaying === music.primaryTrack.id && isPlaying && (
+                        {currentlyPlaying === music.primaryTrack.id && audioPlayer.isPlaying && (
                           <div className="absolute inset-0 flex items-center justify-center bg-black/20 group-hover:opacity-0 transition-opacity duration-300">
                             <CustomAudioWaveIndicator
-                              isPlaying={isPlaying}
+                              isPlaying={audioPlayer.isPlaying}
                               size="lg"
                               className="text-white"
                             />
@@ -435,7 +370,7 @@ export default function ExplorePage() {
                               className="h-12 w-12 p-0 bg-white/20 hover:bg-white/30 backdrop-blur-sm"
                               onClick={() => handlePlayPause(music.primaryTrack.id, music.primaryTrack.audio_url, music)}
                             >
-                              {currentlyPlaying === music.primaryTrack.id && isPlaying ? (
+                              {currentlyPlaying === music.primaryTrack.id && audioPlayer.isPlaying ? (
                                 <Pause className="h-5 w-5 text-white" />
                               ) : (
                                 <Play className="h-5 w-5 text-white" />
@@ -492,43 +427,31 @@ export default function ExplorePage() {
       {/* Footer */}
       <FooterSection />
 
-      {/* 播放器 - 固定在底部 */}
+      {/* 播放器 - 移动端固定，桌面端固定带底部边距，与内容区域宽度一致 */}
       {playlist.length > 0 && currentlyPlaying && (
         <>
-          {/* Mobile Music Player - 移动端播放器 */}
-          <div className="fixed md:hidden left-3 right-3 bottom-6 z-50">
-            <div className="[&>div]:!pr-3">
-              <MusicPlayer
-                tracks={playlist.map(music => ({
-                  id: music.primaryTrack.id,
-                  title: music.title,
-                  audioUrl: music.primaryTrack.audio_url,
-                  duration: typeof music.totalDuration === 'string' ? parseFloat(music.totalDuration) : music.totalDuration,
-                  coverImage: music.primaryTrack.cover_r2_url,
-                  artist: music.genre,
-                  allTracks: music.allTracks
-                }))}
-                currentTrackIndex={currentTrackIndex}
-                currentPlayingTrack={currentPlayingTrack}
-                isPlaying={isPlaying}
-                currentTime={currentTime}
-                duration={duration}
-                volume={volume}
-                isMuted={isMuted}
-                hideProgress={true}
-                onPlayPause={handlePlayerPlayPause}
-                onPrevious={handlePrevious}
-                onNext={handleNext}
-                onSeek={handleSeek}
-                onVolumeChange={handleVolumeChange}
-                onMuteToggle={handleMuteToggle}
-                onTrackChange={handleTrackChange}
-              />
-            </div>
-          </div>
-
-          {/* Desktop Music Player - 桌面端播放器 */}
-          <div className="hidden md:block fixed bottom-0 left-0 right-0 z-50">
+          <style dangerouslySetInnerHTML={{
+            __html: `
+              .player-container-explore-page {
+                position: fixed;
+                left: 0.75rem;
+                right: 0.75rem;
+                bottom: calc(var(--mobile-nav-height, 0px) + 0.75rem);
+                z-index: 60;
+              }
+              @media (min-width: 768px) {
+                .player-container-explore-page {
+                  bottom: 0.75rem !important;
+                  left: 50% !important;
+                  right: auto !important;
+                  transform: translateX(-50%) !important;
+                  max-width: 80rem !important;
+                  width: calc(100% - 3rem) !important;
+                }
+              }
+            `
+          }} />
+          <div className="player-container-explore-page">
             <MusicPlayer
               tracks={playlist.map(music => ({
                 id: music.primaryTrack.id,
@@ -539,13 +462,12 @@ export default function ExplorePage() {
                 artist: music.genre,
                 allTracks: music.allTracks
               }))}
-              currentTrackIndex={currentTrackIndex}
-              currentPlayingTrack={currentPlayingTrack}
-              isPlaying={isPlaying}
-              currentTime={currentTime}
-              duration={duration}
-              volume={volume}
-              isMuted={isMuted}
+              currentTrackIndex={playlist.findIndex(music => music.primaryTrack.id === currentlyPlaying)}
+              isPlaying={audioPlayer.isPlaying}
+              currentTime={audioPlayer.currentTime}
+              duration={audioPlayer.duration}
+              volume={audioPlayer.volume}
+              isMuted={audioPlayer.isMuted}
               hideProgress={false}
               onPlayPause={handlePlayerPlayPause}
               onPrevious={handlePrevious}

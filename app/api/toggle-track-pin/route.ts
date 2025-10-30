@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getUserIdFromRequest, isAdmin } from '@/lib/auth-utils-optimized';
+import { getUserIdFromRequest, isAdmin } from '@/lib/auth';
 import { query } from '@/lib/db-query-builder';
 
 export const dynamic = 'force-dynamic';

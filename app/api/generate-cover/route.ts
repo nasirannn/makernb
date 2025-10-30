@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getUserIdFromRequest } from '@/lib/auth-utils-optimized';
+import { getUserIdFromRequest } from '@/lib/auth';
 import { createCoverGeneration, updateCoverGeneration } from '@/lib/cover-db';
 import MusicApiService from '@/lib/music-api';
 import { downloadFromUrl, uploadCoverImage } from '@/lib/r2-storage';

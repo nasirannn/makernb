@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getUserCredits } from '@/lib/user-db';
-import { createClient } from '@supabase/supabase-js';
+import { supabase } from '@/lib/supabase';
 
 export const dynamic = 'force-dynamic';
 
@@ -18,20 +18,6 @@ export async function GET(request: NextRequest) {
     }
 
     const token = authHeader.split(' ')[1];
-
-    // 为后端API创建独立的supabase客户端，确保使用最新的环境变量
-    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-    const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
-
-    if (!supabaseUrl || !supabaseAnonKey) {
-      console.error('[user-credits] Missing Supabase environment variables');
-      return NextResponse.json(
-        { error: 'Server configuration error' },
-        { status: 500 }
-      );
-    }
-
-    const supabase = createClient(supabaseUrl, supabaseAnonKey);
 
     // 验证token
     const { data: { user }, error } = await supabase.auth.getUser(token);

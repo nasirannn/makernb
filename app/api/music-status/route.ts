@@ -42,10 +42,9 @@ export async function GET(request: NextRequest) {
         mt.audio_url,
         mt.stream_audio_url,
         mt.duration,
-        mt.side_letter,
         mt.cover_image_url,
         mt.created_at,
-        mg.title as title,
+        COALESCE(mt.title, mg.title) as title,
         mg.genre as genre,
         mg.tags as tags,
         (
@@ -58,16 +57,14 @@ export async function GET(request: NextRequest) {
       INNER JOIN music mg ON mt.music_id = mg.id
       WHERE mg.task_id = $1
         AND (mt.is_deleted IS NULL OR mt.is_deleted = FALSE)
-      ORDER BY mt.side_letter ASC, mt.created_at ASC`,
+      ORDER BY mt.created_at ASC, mt.id ASC`,
       [taskId]
     );
-    // 检查是否完成最终音频生成
-    const isComplete = generation.status === 'complete';
     
     const tracks = tracksResult.rows.map((row: any) => ({
       // 基础信息
       id: row.track_id,
-      sideLetter: row.side_letter,
+      suno_track_id: row.suno_track_id || null, // 添加 suno_track_id 用于匹配
       createdAt: row.created_at, // 添加创建时间
       
       // 文本数据 - text回调时就有
@@ -75,11 +72,9 @@ export async function GET(request: NextRequest) {
       tags: row.tags || '',
       genre: row.genre || null,
       lyrics: row.lyrics_content || '',
+      audioUrl: row.audio_url || row.stream_audio_url || '',
       streamAudioUrl: row.stream_audio_url || '',
-      
-      // 最终音频数据 - complete回调时才有
-      audioUrl: isComplete ? (row.audio_url || '') : '',
-      duration: isComplete ? (row.duration || null) : null,
+      duration: row.duration || null, // first回调后就有duration，不需要等到complete
       
       // 封面数据 - 图片回调时就有
       coverImage: row.cover_image_url || null,
@@ -88,7 +83,7 @@ export async function GET(request: NextRequest) {
     // 计算状态：与数据库状态完全统一
     // - complete: generation.status === 'complete'
     // - first: generation.status === 'first' (first回调完成，第一首歌有最终音频)
-    // - text: generation.status === 'text' (text回调完成，包含文本和stream_audio_url)
+    // - text: generation.status === 'text' (text回调完成，包含文本和stream audio)
     // - error: generation.status === 'error' (生成失败)
     // - generating: 否则
     let status: 'generating' | 'text' | 'first' | 'complete' | 'error' = 'generating';

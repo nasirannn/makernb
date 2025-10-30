@@ -195,7 +195,7 @@ async function processCoverCallbackAsync(callbackData: any) {
             
             // 查找对应的tracks记录
             const tracksQuery = await query(
-              'SELECT id, side_letter FROM tracks WHERE music_id = (SELECT id FROM music WHERE task_id = $1) AND (is_deleted IS NULL OR is_deleted = FALSE) ORDER BY side_letter ASC',
+              'SELECT id FROM tracks WHERE music_id = (SELECT id FROM music WHERE task_id = $1) AND (is_deleted IS NULL OR is_deleted = FALSE) ORDER BY created_at ASC, id ASC',
               [musicTaskId]
             );
             
@@ -210,6 +210,9 @@ async function processCoverCallbackAsync(callbackData: any) {
                    AND cover_image_url IS NULL`,
                   [data.images[i], tracksQuery.rows[i].id] // 使用临时图片URL，前端立即可用
                 );
+                
+                // ✅ 不需要触发事件！前端轮询会自动获取新数据
+                console.log(`Updated cover_image_url for track ${tracksQuery.rows[i].id}`);
               }
               
               console.log(`Successfully updated ${Math.min(tracksQuery.rows.length, data.images.length)} tracks with cover_image_url`);
@@ -289,13 +292,13 @@ async function processCoverCallbackAsync(callbackData: any) {
 
             // 查询tracks数据，获取封面图片信息（使用新的cover_image_url字段）
             const tracksQuery = await query(
-              `SELECT mt.id, mt.side_letter, mt.cover_image_url
+              `SELECT mt.id, mt.cover_image_url
                FROM tracks mt
                WHERE mt.music_id = (
                  SELECT id FROM music WHERE task_id = $1
                )
                AND (mt.is_deleted IS NULL OR mt.is_deleted = FALSE)
-               ORDER BY mt.side_letter ASC`,
+               ORDER BY mt.created_at ASC, mt.id ASC`,
               [musicTaskId]
             );
 
@@ -306,8 +309,7 @@ async function processCoverCallbackAsync(callbackData: any) {
               // 构建封面更新信息
               const coverUpdateInfo = tracksQuery.rows.map((track: any, index: number) => ({
                 trackIndex: index,
-                coverImage: track.cover_image_url || null,
-                sideLetter: track.side_letter
+                coverImage: track.cover_image_url || null
               }));
 
               // 推送封面更新到前端

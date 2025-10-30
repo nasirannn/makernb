@@ -64,76 +64,99 @@ export const updateStatesFromTextarea = (
     harmonyPalette: string;
   }
 ) => {
+  // Prevent infinite loops by batching all state updates
   const textLower = text.toLowerCase();
-  
+  const updates: Array<() => void> = [];
+
   // Check for genre options
   const genreFound = genres.find(genre => textLower.includes(genre.name.toLowerCase()));
   if (genreFound && currentStates.selectedGenre !== genreFound.id) {
-    setters.setSelectedGenre(genreFound.id);
+    updates.push(() => setters.setSelectedGenre(genreFound.id));
   } else if (!genreFound && currentStates.selectedGenre) {
-    setters.setSelectedGenre("");
+    updates.push(() => setters.setSelectedGenre(""));
   }
-  
+
   // Check for vibe options
   const vibeFound = vibes.find(vibe => textLower.includes(vibe.name.toLowerCase()));
   if (vibeFound && currentStates.selectedVibe !== vibeFound.id) {
-    setters.setSelectedVibe(vibeFound.id);
+    updates.push(() => setters.setSelectedVibe(vibeFound.id));
   } else if (!vibeFound && currentStates.selectedVibe) {
-    setters.setSelectedVibe("");
+    updates.push(() => setters.setSelectedVibe(""));
   }
-  
+
   // Check for groove options
   const grooveFound = grooveTypes.find(groove => textLower.includes(groove.name.toLowerCase()));
   if (grooveFound && currentStates.grooveType !== grooveFound.id) {
-    setters.setGrooveType(grooveFound.id);
+    updates.push(() => setters.setGrooveType(grooveFound.id));
   } else if (!grooveFound && currentStates.grooveType) {
-    setters.setGrooveType("");
+    updates.push(() => setters.setGrooveType(""));
   }
-  
+
   // Check for tempo options
+  let newBpmMode: 'slow' | 'moderate' | 'medium' | '' = currentStates.bpmMode;
+  let shouldUpdateBpm = false;
+
   if (textLower.includes('slow') && currentStates.bpmMode !== 'slow') {
-    setters.setBpmMode('slow');
-    setters.setBpm([getRandomBpm('slow')]);
+    newBpmMode = 'slow';
+    shouldUpdateBpm = true;
   } else if (textLower.includes('moderate') && currentStates.bpmMode !== 'moderate') {
-    setters.setBpmMode('moderate');
-    setters.setBpm([getRandomBpm('moderate')]);
+    newBpmMode = 'moderate';
+    shouldUpdateBpm = true;
   } else if (textLower.includes('medium') && currentStates.bpmMode !== 'medium') {
-    setters.setBpmMode('medium');
-    setters.setBpm([getRandomBpm('medium')]);
+    newBpmMode = 'medium';
+    shouldUpdateBpm = true;
   } else if (!textLower.includes('slow') && !textLower.includes('moderate') && !textLower.includes('medium') && currentStates.bpmMode) {
-    setters.setBpmMode('');
-    setters.setBpm([getRandomBpm('slow')]);
+    newBpmMode = '';
+    shouldUpdateBpm = true;
   }
-  
+
+  if (shouldUpdateBpm) {
+    updates.push(() => {
+      setters.setBpmMode(newBpmMode);
+      if (newBpmMode) {
+        setters.setBpm([getRandomBpm(newBpmMode)]);
+      } else {
+        setters.setBpm([getRandomBpm('slow')]);
+      }
+    });
+  }
+
   // Check for instrument options
   const instrumentFound = leadInstruments.find(instrument => textLower.includes(instrument.name.toLowerCase()));
   if (instrumentFound && !currentStates.leadInstrument.includes(instrumentFound.id)) {
-    setters.setLeadInstrument([instrumentFound.id]);
+    updates.push(() => setters.setLeadInstrument([instrumentFound.id]));
   } else if (!instrumentFound && currentStates.leadInstrument.length > 0) {
-    setters.setLeadInstrument([]);
+    updates.push(() => setters.setLeadInstrument([]));
   }
-  
+
   // Check for drum kit options
   const drumFound = drumKits.find(kit => textLower.includes(kit.name.toLowerCase()));
   if (drumFound && currentStates.drumKit !== drumFound.id) {
-    setters.setDrumKit(drumFound.id);
+    updates.push(() => setters.setDrumKit(drumFound.id));
   } else if (!drumFound && currentStates.drumKit) {
-    setters.setDrumKit("");
+    updates.push(() => setters.setDrumKit(""));
   }
-  
+
   // Check for bass tone options
   const bassFound = bassTones.find(tone => textLower.includes(tone.name.toLowerCase()));
   if (bassFound && currentStates.bassTone !== bassFound.id) {
-    setters.setBassTone(bassFound.id);
+    updates.push(() => setters.setBassTone(bassFound.id));
   } else if (!bassFound && currentStates.bassTone) {
-    setters.setBassTone("");
+    updates.push(() => setters.setBassTone(""));
   }
-  
+
   // Check for harmony palette options
   const harmonyFound = harmonyPalettes.find(palette => textLower.includes(palette.name.toLowerCase()));
   if (harmonyFound && currentStates.harmonyPalette !== harmonyFound.id) {
-    setters.setHarmonyPalette(harmonyFound.id);
+    updates.push(() => setters.setHarmonyPalette(harmonyFound.id));
   } else if (!harmonyFound && currentStates.harmonyPalette) {
-    setters.setHarmonyPalette("");
+    updates.push(() => setters.setHarmonyPalette(""));
+  }
+
+  // Execute all updates in the next tick to prevent infinite loops
+  if (updates.length > 0) {
+    setTimeout(() => {
+      updates.forEach(update => update());
+    }, 0);
   }
 };
