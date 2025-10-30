@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { query } from '@/lib/db-query-builder';
-import { getUserIdFromRequest } from '@/lib/auth-utils-optimized';
+import { getUserIdFromRequest } from '@/lib/auth';
 
 // 强制动态渲染
 export const dynamic = 'force-dynamic';
@@ -28,19 +28,20 @@ export async function GET(
         mt.id as track_id,
         mt.suno_track_id,
         mt.audio_url,
+        mt.stream_audio_url,
         mt.duration,
-        mt.side_letter,
         mt.is_published,
         mt.is_pinned,
         mt.created_at as track_created_at,
         mt.cover_image_url as cover_r2_url,
         mg.id as generation_id,
-        mg.title,
+        COALESCE(mt.title, mg.title) as title,
         mg.genre,
         mg.tags,
         mg.prompt,
         mg.is_instrumental,
         mg.status,
+        mg.user_id,
         mg.created_at as generation_created_at,
         ml.content as lyrics_content
       FROM tracks mt
@@ -63,12 +64,33 @@ export async function GET(
     const row = trackResult.rows[0];
 
     // 构建 track 信息
-    const track = {
+    const track: {
+      id: any;
+      suno_track_id: any;
+      audioUrl: any;
+      streamAudioUrl: any;
+      duration: any;
+      isPublished: any;
+      isPinned: any;
+      createdAt: any;
+      coverImage: any;
+      generationId: any;
+      title: any;
+      genre: any;
+      tags: any;
+      prompt: any;
+      isInstrumental: any;
+      status: any;
+      userId: any;
+      generationCreatedAt: any;
+      lyrics: any;
+      isFavorited: boolean;
+    } = {
       id: row.track_id,
       suno_track_id: row.suno_track_id,
       audioUrl: row.audio_url,
+      streamAudioUrl: row.stream_audio_url,
       duration: row.duration,
-      sideLetter: row.side_letter,
       isPublished: row.is_published,
       isPinned: row.is_pinned,
       createdAt: row.track_created_at,
@@ -80,8 +102,10 @@ export async function GET(
       prompt: row.prompt,
       isInstrumental: row.is_instrumental,
       status: row.status,
+      userId: row.user_id,
       generationCreatedAt: row.generation_created_at,
       lyrics: row.lyrics_content || '',
+      isFavorited: false, // 初始值，稍后会根据用户状态更新
     };
 
     // 如果有请求用户，检查收藏状态
