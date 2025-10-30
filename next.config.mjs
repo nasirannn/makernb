@@ -5,8 +5,8 @@ const nextConfig = {
   async redirects() {
     return [
       {
-        source: '/(.*)/',
-        destination: '/$1',
+        source: '/:path+/',
+        destination: '/:path+',
         permanent: true,
       },
     ];
