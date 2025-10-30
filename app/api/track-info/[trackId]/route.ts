@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { query } from '@/lib/db-query-builder';
 import { getUserIdFromRequest } from '@/lib/auth';
+import type { TrackInfoResponse } from '@/types/track';
 
 // 强制动态渲染
 export const dynamic = 'force-dynamic';
@@ -64,28 +65,7 @@ export async function GET(
     const row = trackResult.rows[0];
 
     // 构建 track 信息
-    const track: {
-      id: any;
-      suno_track_id: any;
-      audioUrl: any;
-      streamAudioUrl: any;
-      duration: any;
-      isPublished: any;
-      isPinned: any;
-      createdAt: any;
-      coverImage: any;
-      generationId: any;
-      title: any;
-      genre: any;
-      tags: any;
-      prompt: any;
-      isInstrumental: any;
-      status: any;
-      userId: any;
-      generationCreatedAt: any;
-      lyrics: any;
-      isFavorited: boolean;
-    } = {
+    const track: TrackInfoResponse = {
       id: row.track_id,
       suno_track_id: row.suno_track_id,
       audioUrl: row.audio_url,
