@@ -12,7 +12,7 @@ export const metadata = {
   title: "MakeRNB | Free Online AI R&B Music Generator",
   description: "MakeRNB lets you instantly create and download professional R&B songs with AI. Explore Neo-Soul, Quiet Storm & more — free, online, and easy to use.",
   alternates: {
-    canonical: 'https://makernb.com/',
+    canonical: '/',
   },
   openGraph: {
     type: "website",
