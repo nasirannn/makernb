@@ -32,6 +32,8 @@ const monthlyPlans: PricingPlan[] = [
     features: [
       "1,000 credits/month (approx. 143 songs)",
       "Create up to 2,500 lyrics with AI",
+      "Download MP3",
+      "Vocal remover",
       "Email customer support",
       "Access to all R&B styles and genres"
     ],
@@ -47,9 +49,10 @@ const monthlyPlans: PricingPlan[] = [
     features: [
       "2,500 credits/month (approx. 357 songs)",
       "Create up to 6,250 lyrics with AI",
+      "Download MP3, WAV(Coming Soon)",
+      "Vocal remover",
       "Email customer support",
       "Access to all R&B styles and genres",
-      "Priority processing for faster generation"
     ],
     productId: process.env.NEXT_PUBLIC_MONTHLY_PREMIUM!
   }
@@ -65,6 +68,8 @@ const yearlyPlans: PricingPlan[] = [
     features: [
       "12,000 credits/year (approx. 1,714 songs)",
       "Create up to 30,000 lyrics with AI",
+      "Download MP3",
+      "Vocal remover",
       "Email customer support",
       "Access to all R&B styles and genres"
     ],
@@ -80,9 +85,10 @@ const yearlyPlans: PricingPlan[] = [
     features: [
       "30,000 credits/year (approx. 4,286 songs)",
       "Create up to 75,000 lyrics with AI",
+      "Download MP3, WAV(Coming Soon)",
+      "Vocal remover",
       "Email customer support",
       "Access to all R&B styles and genres",
-      "Priority processing for faster generation"
     ],
     productId: process.env.NEXT_PUBLIC_YEARLY_PREMIUM!
   }
