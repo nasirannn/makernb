@@ -8,12 +8,5 @@
       "path": "/api/cron/subscription-credits",
       "schedule": "0 1 * * *"
     }
-  ],
-  "redirects": [
-    {
-      "source": "/(.*)/",
-      "destination": "/$1",
-      "permanent": true
-    }
   ]
 }
