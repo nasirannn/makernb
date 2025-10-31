@@ -23,7 +23,7 @@ export const viewport: Viewport = {
 };
 
 export const metadata: Metadata = {
-  metadataBase: new URL('https://makernb.com'),
+  metadataBase: new URL('https://makernb.com/'),
   title: "MakeRNB - AI-Powered Music Creation for R&B",
   description: "MakeRNB lets you instantly create and download professional R&B songs with AI. Explore Neo-Soul, Quiet Storm & more — free, online, and easy to use.",
   other: {

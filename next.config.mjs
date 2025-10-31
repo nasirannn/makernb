@@ -2,11 +2,14 @@ import createMDX from '@next/mdx';
 
 /** @type {import('next').NextConfig} */
 const nextConfig = {
+  // 确保所有 URL 都带有尾部斜杠
+  trailingSlash: true,
   async redirects() {
     return [
       {
-        source: '/:path+/',
-        destination: '/:path+',
+        // 将不带斜杠的 URL 重定向到带斜杠的版本
+        source: '/:path((?!.*\\.).*)',
+        destination: '/:path/',
         permanent: true,
       },
     ];

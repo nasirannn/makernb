@@ -4,12 +4,12 @@ export const metadata: Metadata = {
   title: "AI Vocal Remover Free Online - MakeRNB",
   description: "Enjoy fast and seamless audio separation with our AI-powered vocal remover.",
   alternates: {
-    canonical: 'https://makernb.com/vocal-remover',
+    canonical: 'https://makernb.com/vocal-remover/',
   },
   openGraph: {
     title: "AI Vocal Remover Free Online - MakeRNB",
     description: "Enjoy fast and seamless audio separation with our AI-powered vocal remover.",
-    url: "https://makernb.com/vocal-remover",
+    url: "https://makernb.com/vocal-remover/",
     type: "website",
   },
   twitter: {
