@@ -14,6 +14,7 @@ interface AuthContextType {
   checkDailyCredits: (sessionToken?: string) => Promise<void>;
   manualCheckCredits: () => Promise<void>;
   onCreditsUpdated?: (callback: () => void) => void; // 新增回调注册函数
+  onPermissionsUpdated?: (callback: () => void) => void; // 权限更新回调注册函数
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -29,6 +30,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [isUserAdmin, setIsUserAdmin] = useState<boolean | null>(null);
   const adminCheckCache = useRef<Map<string, boolean>>(new Map());
   const creditsUpdatedCallback = useRef<(() => void) | null>(null);
+  const permissionsUpdatedCallback = useRef<(() => void) | null>(null);
 
   // 定义checkDailyCredits函数
   const checkDailyCredits = async (sessionToken?: string) => {
@@ -287,6 +289,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     manualCheckCredits,
     onCreditsUpdated: (callback: () => void) => {
       creditsUpdatedCallback.current = callback;
+    },
+    onPermissionsUpdated: (callback: () => void) => {
+      permissionsUpdatedCallback.current = callback;
     },
   };
 

@@ -5,11 +5,13 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { CheckCircle, Music, AlertCircle } from "lucide-react";
 import { useCredits } from "@/contexts/CreditsContext";
+import { useFeaturePermissions } from "@/contexts/FeaturePermissionsContext";
 
 function PaymentSuccessContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const { refreshCredits } = useCredits();
+  const { refreshPermissions } = useFeaturePermissions();
   const [isLoading, setIsLoading] = useState(true);
   const [isValidPayment, setIsValidPayment] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -43,7 +45,9 @@ function PaymentSuccessContent() {
         
         // 暂时模拟验证成功（实际应该调用支付验证API）
         setIsValidPayment(true);
+        // 刷新积分和权限（订阅成功后需要立即更新）
         refreshCredits();
+        refreshPermissions();
         
         // 延迟显示成功页面
         setTimeout(() => {
@@ -56,7 +60,7 @@ function PaymentSuccessContent() {
     };
 
     verifyPayment();
-  }, [searchParams, refreshCredits]);
+  }, [searchParams, refreshCredits, refreshPermissions]);
 
   // 如果有错误，显示错误页面并重定向
   if (error) {

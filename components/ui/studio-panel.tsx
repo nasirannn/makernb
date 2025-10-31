@@ -7,7 +7,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
-import { Music, RotateCcw, ChevronRight, ChevronDown, Wand2, Play, Pause, X, Sparkles } from "lucide-react";
+import { Music, RotateCcw, ChevronRight, Wand2, Play, CreditCard } from "lucide-react";
 import musicOptions from '@/data/music-options.json';
 import { useAuth } from '@/contexts/AuthContext';
 import { useCredits } from '@/contexts/CreditsContext';
@@ -16,7 +16,7 @@ import { Tooltip } from '@/components/ui/tooltip';
 import Image from 'next/image';
 import { getInstrumentIcon, getInstrumentAudio, getDrumKitIcon, getDrumKitAudio } from '@/lib/music-resources';
 import { replaceTextInStyle, updateStatesFromTextarea, getRandomBpm } from '@/lib/studio-utils';
-import { TEMPO_KEYWORDS, BUTTON_CLASSES, STYLES, BPM_VALUES } from '@/lib/studio-constants';
+import { TEMPO_KEYWORDS, BUTTON_CLASSES, STYLES } from '@/lib/studio-constants';
 import { useAudioPlayer } from '@/hooks/use-audio-player';
 
 // Extract options from musicOptions
@@ -181,7 +181,8 @@ export const StudioPanel = (props: StudioPanelProps) => {
     if (credits < requiredCredits) {
       // 使用 sonner 显示积分不足提示
       toast(`Insufficient Credits`, {
-        description: `Need ${requiredCredits} credits (you have ${credits}). Please wait for daily rewards.`,
+        description: `Need ${requiredCredits} credits (you have ${credits}). Please wait for daily rewards or buy credits.`,
+        icon: <CreditCard className="h-4 w-4" />,
       });
       return;
     }
@@ -1058,7 +1059,7 @@ export const StudioPanel = (props: StudioPanelProps) => {
                     handleGenerateWithAuth();
                   }}
                   disabled={isDisabled}
-                  className="w-full h-14 px-6 text-base font-semibold bg-gradient-to-r from-purple-600 via-purple-500 to-blue-600 disabled:bg-muted disabled:bg-none border-transparent text-white disabled:text-muted-foreground shadow-lg disabled:shadow-none disabled:cursor-not-allowed transition-all duration-300 hover:-translate-y-1 hover:scale-[1.02] disabled:hover:translate-y-0 disabled:hover:scale-100 rounded-2xl relative overflow-hidden"
+                  className="w-full h-14 px-6 text-base font-semibold bg-gradient-create disabled:bg-muted disabled:bg-none border-transparent text-white disabled:text-muted-foreground shadow-lg disabled:shadow-none disabled:cursor-not-allowed transition-all duration-300 hover:-translate-y-1 hover:scale-[1.02] disabled:hover:translate-y-0 disabled:hover:scale-100 rounded-2xl relative overflow-hidden"
                 >
                   {/* 光效动画 - 只在可点击状态显示 */}
                   {!isDisabled && (

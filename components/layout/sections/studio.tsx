@@ -8,6 +8,7 @@ import { useMusicGeneration } from "@/hooks/use-music-generation";
 import { useLyricsGeneration } from "@/hooks/use-lyrics-generation";
 import { useAuth } from "@/contexts/AuthContext";
 import { useCredits } from "@/contexts/CreditsContext";
+import { useFeaturePermissions } from "@/contexts/FeaturePermissionsContext";
 import { useAudioPlayer } from "@/hooks/use-audio-player";
 import { getAudioService } from "@/lib/audio-service";
 import { useTrackGenerationMonitor } from "@/hooks/use-track-generation-monitor";
@@ -58,6 +59,7 @@ const StudioContent = () => {
     const lyricsGeneration = useLyricsGeneration();
     const { user, signOut } = useAuth();
     const { credits, refreshCredits } = useCredits();
+    const { hasPermission } = useFeaturePermissions();
 
     // UI States
     const [mobileCreateOpen, setMobileCreateOpen] = useState(false);
@@ -463,14 +465,74 @@ const StudioContent = () => {
     }, [player, togglePlayPause, playTrackById, createTrackObject]);
 
     // ==================== 下载和收藏处理函数 ====================
-    const handleDownload = React.useCallback((track: any, music: any) => {
-        if (track.audio_url) {
-            const link = document.createElement('a');
-            link.href = track.audio_url;
-            link.download = `${music.title || 'track'}.mp3`;
-            document.body.appendChild(link);
-            link.click();
-            document.body.removeChild(link);
+    const handleDownload = React.useCallback(async (track: any, music: any, format: 'mp3' | 'wav' = 'mp3') => {
+        if (!track.id) {
+            toast.error('Track ID is required');
+            return;
+        }
+
+        // 注意：权限检查现在在按钮层面完成，这里只处理实际下载逻辑
+        // 后端API仍然会验证权限作为双重保险
+
+        try {
+            // 显示下载开始提示
+            const downloadToast = toast.loading('Downloading...', {
+                description: 'Preparing your file...'
+            });
+
+            // 使用新的下载API（后端仍然会验证权限），添加格式参数
+            const response = await fetch(`/api/download-track?trackId=${track.id}&format=${format}`);
+            
+            if (!response.ok) {
+                const errorData = await response.json().catch(() => ({}));
+                throw new Error(errorData.message || errorData.error || `HTTP error! status: ${response.status}`);
+            }
+
+            // 检查是否是 fallback 模式（返回 JSON 包含 audioUrl）
+            const contentType = response.headers.get('content-type');
+            if (contentType?.includes('application/json')) {
+                const data = await response.json();
+                if (data.fallback && data.audioUrl) {
+                    // Fallback 模式：直接下载原始URL
+                    const audioResponse = await fetch(data.audioUrl);
+                    if (!audioResponse.ok) {
+                        throw new Error(`Failed to fetch audio: ${audioResponse.status}`);
+                    }
+                    const blob = await audioResponse.blob();
+                    const blobUrl = window.URL.createObjectURL(blob);
+                    const link = document.createElement('a');
+                    link.href = blobUrl;
+                    link.download = `${music.title || 'track'}.${format}`;
+                    document.body.appendChild(link);
+                    link.click();
+                    document.body.removeChild(link);
+                    window.URL.revokeObjectURL(blobUrl);
+                } else {
+                    throw new Error(data.error || 'Download failed');
+                }
+            } else {
+                // 正常模式：直接获取音频文件
+                const blob = await response.blob();
+                const blobUrl = window.URL.createObjectURL(blob);
+                const link = document.createElement('a');
+                link.href = blobUrl;
+                link.download = `${music.title || 'track'}.${format}`;
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+                window.URL.revokeObjectURL(blobUrl);
+            }
+            
+            // 更新 toast 为成功状态
+            toast.success('Download started!', {
+                id: downloadToast,
+                description: `${music.title || 'track'}.${format}`
+            });
+        } catch (error) {
+            console.error('Download error:', error);
+            toast.error('Download failed', {
+                description: error instanceof Error ? error.message : 'Unable to download file'
+            });
         }
     }, []);
 

@@ -52,6 +52,7 @@ export interface UserSubscription {
   subscription_id: string;
   product_id: string;
   plan_id: string;
+  tier_id?: string;  // 外键关联到 subscription_tiers 表
   status: 'active' | 'cancelled' | 'expired' | 'past_due';
   current_period_start: string;
   current_period_end: string;
@@ -85,7 +86,24 @@ export const createOrUpdateUserSubscription = async (
     const nextCreditGrantDate = new Date(subscriptionData.currentPeriodEnd);
     nextCreditGrantDate.setDate(nextCreditGrantDate.getDate() + 1); // 订阅期结束后第二天发放
 
+    // 根据 plan_id 确定 tier_code，然后查询对应的 tier_id
+    // monthly_basic / yearly_basic → basic
+    // monthly_premium / yearly_premium → premium
+    const tierCode = plan.id.includes('premium') ? 'premium' : 'basic';
+    
     return await withTransaction(async (queryFn) => {
+      // 查询 tier_id
+      const tierResult = await queryFn(
+        'SELECT id FROM subscription_tiers WHERE code = $1',
+        [tierCode]
+      );
+      
+      if (tierResult.rows.length === 0) {
+        throw new Error(`Subscription tier '${tierCode}' not found`);
+      }
+      
+      const tierId = tierResult.rows[0].id;
+
       // 检查是否已存在订阅记录
       const existingSubscription = await queryFn(
         'SELECT * FROM user_subscriptions WHERE user_id = $1::uuid AND subscription_id = $2',
@@ -93,40 +111,43 @@ export const createOrUpdateUserSubscription = async (
       );
 
       if (existingSubscription.rows.length > 0) {
-        // 更新现有订阅
+        // 更新现有订阅（同时更新 tier_id）
         const result = await queryFn(
           `UPDATE user_subscriptions SET
             status = $1,
             current_period_start = $2,
             current_period_end = $3,
             next_credit_grant_date = $4,
+            tier_id = $5,
             updated_at = NOW()
-          WHERE user_id = $5::uuid AND subscription_id = $6
+          WHERE user_id = $6::uuid AND subscription_id = $7
           RETURNING *`,
           [
             subscriptionData.status,
             subscriptionData.currentPeriodStart,
             subscriptionData.currentPeriodEnd,
             nextCreditGrantDate.toISOString(),
+            tierId,
             userId,
             subscriptionData.subscriptionId
           ]
         );
         return result.rows[0];
       } else {
-        // 创建新订阅记录
+        // 创建新订阅记录（包含 tier_id）
         const result = await queryFn(
           `INSERT INTO user_subscriptions (
-            user_id, subscription_id, product_id, plan_id, status,
+            user_id, subscription_id, product_id, plan_id, tier_id, status,
             current_period_start, current_period_end, next_credit_grant_date,
             credits_per_period, created_at, updated_at
-          ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, NOW(), NOW())
+          ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, NOW(), NOW())
           RETURNING *`,
           [
             userId,
             subscriptionData.subscriptionId,
             subscriptionData.productId,
             plan.id,
+            tierId,
             subscriptionData.status,
             subscriptionData.currentPeriodStart,
             subscriptionData.currentPeriodEnd,

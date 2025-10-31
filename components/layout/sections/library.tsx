@@ -321,14 +321,72 @@ const LibraryContent = () => {
                                     handleFavoriteToggle(track);
                                 }
                             }}
-                            onDownload={(trackInfo) => {
-                                if (trackInfo.audioUrl) {
-                                    const link = document.createElement('a');
-                                    link.href = trackInfo.audioUrl;
-                                    link.download = `${trackInfo.title || 'track'}.mp3`;
-                                    document.body.appendChild(link);
-                                    link.click();
-                                    document.body.removeChild(link);
+                            onDownload={async (trackInfo) => {
+                                if (!trackInfo.id) {
+                                    toast.error('Track ID is required');
+                                    return;
+                                }
+
+                                // 显示下载开始提示
+                                const downloadToast = toast.loading('Downloading...', {
+                                    description: 'Preparing your file...'
+                                });
+
+                                try {
+                                    // 使用新的下载API
+                                    const response = await fetch(`/api/download-track?trackId=${trackInfo.id}`);
+                                    
+                                    if (!response.ok) {
+                                        const errorData = await response.json().catch(() => ({}));
+                                        throw new Error(errorData.message || errorData.error || `HTTP error! status: ${response.status}`);
+                                    }
+
+                                    // 检查是否是 fallback 模式（返回 JSON 包含 audioUrl）
+                                    const contentType = response.headers.get('content-type');
+                                    if (contentType?.includes('application/json')) {
+                                        const data = await response.json();
+                                        if (data.fallback && data.audioUrl) {
+                                            // Fallback 模式：直接下载原始URL
+                                            const audioResponse = await fetch(data.audioUrl);
+                                            if (!audioResponse.ok) {
+                                                throw new Error(`Failed to fetch audio: ${audioResponse.status}`);
+                                            }
+                                            const blob = await audioResponse.blob();
+                                            const blobUrl = window.URL.createObjectURL(blob);
+                                            const link = document.createElement('a');
+                                            link.href = blobUrl;
+                                            link.download = `${trackInfo.title || 'track'}.mp3`;
+                                            document.body.appendChild(link);
+                                            link.click();
+                                            document.body.removeChild(link);
+                                            window.URL.revokeObjectURL(blobUrl);
+                                        } else {
+                                            throw new Error(data.error || 'Download failed');
+                                        }
+                                    } else {
+                                        // 正常模式：直接获取音频文件
+                                        const blob = await response.blob();
+                                        const blobUrl = window.URL.createObjectURL(blob);
+                                        const link = document.createElement('a');
+                                        link.href = blobUrl;
+                                        link.download = `${trackInfo.title || 'track'}.mp3`;
+                                        document.body.appendChild(link);
+                                        link.click();
+                                        document.body.removeChild(link);
+                                        window.URL.revokeObjectURL(blobUrl);
+                                    }
+                                    
+                                    // 更新 toast 为成功状态
+                                    toast.success('Download started!', {
+                                        id: downloadToast,
+                                        description: `${trackInfo.title || 'track'}.mp3`
+                                    });
+                                } catch (error) {
+                                    console.error('Download error:', error);
+                                    toast.error('Download failed', {
+                                        id: downloadToast,
+                                        description: error instanceof Error ? error.message : 'Unable to download file'
+                                    });
                                 }
                             }}
                             onPublishToggle={(trackId, isPublished) => {

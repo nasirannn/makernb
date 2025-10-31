@@ -42,6 +42,7 @@ import { supabase } from '@/lib/supabase';
 import { toast } from 'sonner';
 import { useAuth } from '@/contexts/AuthContext';
 import { useCredits } from '@/contexts/CreditsContext';
+import { useFeaturePermissions } from '@/contexts/FeaturePermissionsContext';
 import { CustomAudioWaveIndicator } from './audio-wave-indicator';
 import { LoadingState } from './loading-dots';
 import { LibraryTrack } from '@/types/track';
@@ -114,6 +115,14 @@ export const LibraryPanel = ({
 }: LibraryPanelProps) => {
   const { user, signOut } = useAuth();
   const { credits } = useCredits();
+  
+  // 获取权限检查函数
+  const { hasPermission } = useFeaturePermissions();
+  
+  // 检查下载权限
+  const canDownloadMP3 = hasPermission('download_mp3_track');
+  const canDownloadWAV = hasPermission('download_wav_track');
+  
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [trackToDelete, setTrackToDelete] = useState<LibraryTrack | null>(null);
   const [publishDialogOpen, setPublishDialogOpen] = useState(false);
@@ -218,19 +227,73 @@ export const LibraryPanel = ({
     }
   };
 
-  const handleDownload = (track: LibraryTrack) => {
-    if (track.audioUrl) {
-      const link = document.createElement('a');
-      link.href = track.audioUrl;
-      link.download = `${track.title}.mp3`;
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-      toast('Download started!', {
+  const handleDownload = async (track: LibraryTrack, format: 'mp3' | 'wav' = 'mp3') => {
+    if (!track.id) {
+      toast.error('Track ID is required');
+      return;
+    }
+
+    try {
+      // 显示下载开始提示
+      const downloadToast = toast.loading('Downloading...', {
+        description: 'Preparing your file...',
         icon: <ArrowDown className="h-4 w-4 text-blue-500" />
       });
-    } else {
-      toast('No audio file available for download');
+
+      // 使用新的下载API，添加格式参数
+      const response = await fetch(`/api/download-track?trackId=${track.id}&format=${format}`);
+      
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.message || errorData.error || `HTTP error! status: ${response.status}`);
+      }
+
+      // 检查是否是 fallback 模式（返回 JSON 包含 audioUrl）
+      const contentType = response.headers.get('content-type');
+      if (contentType?.includes('application/json')) {
+        const data = await response.json();
+        if (data.fallback && data.audioUrl) {
+          // Fallback 模式：直接下载原始URL
+          const audioResponse = await fetch(data.audioUrl);
+          if (!audioResponse.ok) {
+            throw new Error(`Failed to fetch audio: ${audioResponse.status}`);
+          }
+          const blob = await audioResponse.blob();
+          const blobUrl = window.URL.createObjectURL(blob);
+          const link = document.createElement('a');
+          link.href = blobUrl;
+          link.download = `${track.title}.${format}`;
+          document.body.appendChild(link);
+          link.click();
+          document.body.removeChild(link);
+          window.URL.revokeObjectURL(blobUrl);
+        } else {
+          throw new Error(data.error || 'Download failed');
+        }
+      } else {
+        // 正常模式：直接获取音频文件
+        const blob = await response.blob();
+        const blobUrl = window.URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = blobUrl;
+        link.download = `${track.title}.${format}`;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        window.URL.revokeObjectURL(blobUrl);
+      }
+      
+      // 更新 toast 为成功状态
+      toast.success('Download started!', {
+        id: downloadToast,
+        description: `${track.title}.${format}`,
+        icon: <ArrowDown className="h-4 w-4 text-blue-500" />
+      });
+    } catch (error) {
+      console.error('Download error:', error);
+      toast.error('Download failed', {
+        description: error instanceof Error ? error.message : 'Unable to download file'
+      });
     }
   };
 
@@ -933,19 +996,66 @@ export const LibraryPanel = ({
                         )}
                       </Button>
 
-                      {/* Download Button - 只在桌面端显示 */}
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        className="h-8 w-8 p-0"
-                        title="Download"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          handleDownload(track);
-                        }}
-                      >
-                        <Download className="h-4 w-4" />
-                      </Button>
+                      {/* Download Button - Dropdown Menu - 只在桌面端显示 */}
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="h-8 w-8 p-0"
+                            title="Download"
+                            onClick={(e) => {
+                              e.preventDefault();
+                              e.stopPropagation();
+                            }}
+                            aria-label="Download track"
+                          >
+                            <Download className="h-4 w-4" />
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end" onClick={(e) => e.stopPropagation()} className="p-2 min-w-[180px]">
+                          <DropdownMenuItem
+                            onClick={(e) => {
+                              e.preventDefault();
+                              e.stopPropagation();
+                              if (!canDownloadMP3) {
+                                toast.error('Download MP3 requires Basic subscription');
+                                // 跳转到订阅页面
+                                window.location.href = '/#pricing';
+                                return;
+                              }
+                              handleDownload(track, 'mp3');
+                            }}
+                            className="flex items-center justify-between gap-3 cursor-pointer px-3 py-2.5"
+                          >
+                            <span className="text-sm font-medium">Download MP3</span>
+                            {!canDownloadMP3 && (
+                              <Badge variant="outline" className="text-xs px-2 py-0.5 bg-gradient-create text-white border-0 shrink-0">
+                                Subscription
+                              </Badge>
+                            )}
+                          </DropdownMenuItem>
+                          {/* <DropdownMenuItem
+                            onClick={(e) => {
+                              e.preventDefault();
+                              e.stopPropagation();
+                              if (!canDownloadWAV) {
+                                toast.error('Download WAV requires Premium subscription');
+                                // 跳转到订阅页面
+                                window.location.href = '/#pricing';
+                                return;
+                              }
+                              handleDownload(track, 'wav');
+                            }}
+                            className="flex items-center justify-between gap-3 cursor-pointer px-3 py-2.5"
+                          >
+                            <span className="text-sm font-medium">Download WAV</span>
+                            <Badge variant="outline" className="text-xs px-2 py-0.5 bg-gradient-create text-white border-0 shrink-0">
+                              Premium
+                            </Badge>
+                          </DropdownMenuItem> */}
+                        </DropdownMenuContent>
+                      </DropdownMenu>
 
                       {/* More Actions Dropdown - 桌面端 */}
                       <DropdownMenu>
@@ -1420,19 +1530,57 @@ export const LibraryPanel = ({
               </button>
             )}
 
-            {/* Download */}
+            {/* Download MP3 */}
             {selectedTrackForMenu && (
               <button
                 onClick={() => {
-                  handleDownload(selectedTrackForMenu);
+                  if (!canDownloadMP3) {
+                    toast.error('Download MP3 requires Basic subscription');
+                    setMobileMenuOpen(false);
+                    window.location.href = '/#pricing';
+                    return;
+                  }
+                  handleDownload(selectedTrackForMenu, 'mp3');
                   setMobileMenuOpen(false);
                 }}
-                className="w-full flex items-center gap-3 p-3 rounded-lg hover:bg-muted transition-colors"
+                className="w-full flex items-center justify-between gap-3 p-3 rounded-lg hover:bg-muted transition-colors"
               >
-                <Download className="h-5 w-5" />
-                <span className="font-medium">Download</span>
+                <div className="flex items-center gap-3">
+                  <Download className="h-5 w-5" />
+                  <span className="font-medium">Download MP3</span>
+                </div>
+                {!canDownloadMP3 && (
+                  <Badge variant="outline" className="text-xs px-2 py-0.5 bg-gradient-create text-white border-0 shrink-0">
+                    Subscription
+                  </Badge>
+                )}
               </button>
             )}
+
+            {/* Download WAV */}
+            {/* {selectedTrackForMenu && (
+              <button
+                onClick={() => {
+                  if (!canDownloadWAV) {
+                    toast.error('Download WAV requires Premium subscription');
+                    setMobileMenuOpen(false);
+                    window.location.href = '/#pricing';
+                    return;
+                  }
+                  handleDownload(selectedTrackForMenu, 'wav');
+                  setMobileMenuOpen(false);
+                }}
+                className="w-full flex items-center justify-between gap-3 p-3 rounded-lg hover:bg-muted transition-colors"
+              >
+                <div className="flex items-center gap-3">
+                  <Download className="h-5 w-5" />
+                  <span className="font-medium">Download WAV</span>
+                </div>
+                <Badge variant="outline" className="text-xs px-2 py-0.5 bg-gradient-create text-white border-0 shrink-0">
+                  Premium
+                </Badge>
+              </button>
+            )} */}
 
             {/* Remove from library */}
             {onFavoriteToggle && selectedTrackForMenu && (

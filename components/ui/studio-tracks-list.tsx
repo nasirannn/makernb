@@ -2,6 +2,13 @@
 
 import React, { useState, useEffect } from 'react';
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { Play, Pause, Music, Trash2, Download, Star, Share2, Check, Search, X } from "lucide-react";
 import { CustomAudioWaveIndicator } from './audio-wave-indicator';
 import { LoadingDots, LoadingState } from './loading-dots';
@@ -11,6 +18,7 @@ import { supabase } from "@/lib/supabase";
 import { toast } from 'sonner';
 import { LibraryTrack } from '@/types/track';
 import { useAudioPlayingState } from "@/hooks/use-audio-playing-state";
+import { useFeaturePermissions } from "@/contexts/FeaturePermissionsContext";
 
 interface MusicGeneration {
   id: string;
@@ -44,7 +52,7 @@ interface StudioTracksListProps {
   // 新增：专门处理生成tracks的回调
   onGeneratedTrackSelect?: (trackId: string) => void;  // 修改：接收 trackId 而不是完整对象
   // 新增：下载和收藏回调
-  onDownload?: (track: LibraryTrack, music: MusicGeneration) => void;
+  onDownload?: (track: LibraryTrack, music: MusicGeneration, format?: 'mp3' | 'wav') => void;
   onFavoriteToggle?: (track: LibraryTrack, music: MusicGeneration) => void;
   onDelete?: (track: LibraryTrack, music: MusicGeneration) => void;
   hasPlayer?: boolean; // 新增：是否有播放器显示
@@ -71,6 +79,13 @@ export const StudioTracksList: React.FC<StudioTracksListProps> = React.memo(func
   
   // 使用 EventBus 监听全局播放状态
   const globalAudioState = useAudioPlayingState();
+  
+  // 获取权限检查函数
+  const { hasPermission } = useFeaturePermissions();
+  
+  // 检查下载权限
+  const canDownloadMP3 = hasPermission('download_mp3_track');
+  const canDownloadWAV = hasPermission('download_wav_track');
   
   // 分享按钮状态 - 跟踪复制成功的歌曲
   const [copiedTrackId, setCopiedTrackId] = useState<string | null>(null);
@@ -522,20 +537,66 @@ export const StudioTracksList: React.FC<StudioTracksListProps> = React.memo(func
                                      )}
                                    </Button>
                                    
-                                  {/* 下载按钮 */}
+                                  {/* 下载按钮 - 下拉菜单 */}
                                   {onDownload && (
-                                    <Button
-                                      variant="ghost"
-                                      size="sm"
-                                      className="h-6 w-6 p-0 text-muted-foreground hover:text-foreground hover:bg-muted/50"
-                                      onClick={(e) => {
-                                        e.stopPropagation();
-                                        onDownload(track, track.musicGeneration);
-                                      }}
-                                      aria-label="Download track"
-                                    >
-                                      <Download className="h-3 w-3" />
-                                    </Button>
+                                    <DropdownMenu>
+                                      <DropdownMenuTrigger asChild>
+                                        <Button
+                                          variant="ghost"
+                                          size="sm"
+                                          className="h-6 w-6 p-0 text-muted-foreground hover:text-foreground hover:bg-muted/50"
+                                          onClick={(e) => {
+                                            e.preventDefault();
+                                            e.stopPropagation();
+                                          }}
+                                          aria-label="Download track"
+                                        >
+                                          <Download className="h-3 w-3" />
+                                        </Button>
+                                      </DropdownMenuTrigger>
+                                      <DropdownMenuContent align="end" onClick={(e) => e.stopPropagation()} className="p-2 min-w-[180px]">
+                                        <DropdownMenuItem
+                                          onClick={(e) => {
+                                            e.preventDefault();
+                                            e.stopPropagation();
+                                            if (!canDownloadMP3) {
+                                              toast.error('Download MP3 requires Basic subscription');
+                                              // 跳转到订阅页面
+                                              window.location.href = '/#pricing';
+                                              return;
+                                            }
+                                            onDownload(track, track.musicGeneration, 'mp3');
+                                          }}
+                                          className="flex items-center justify-between gap-3 cursor-pointer px-3 py-2.5"
+                                        >
+                                          <span className="text-sm font-medium">Download MP3</span>
+                                          {!canDownloadMP3 && (
+                                            <Badge variant="outline" className="text-xs px-2 py-0.5 bg-gradient-create text-white border-0 shrink-0">
+                                              Subscription
+                                            </Badge>
+                                          )}
+                                        </DropdownMenuItem>
+                                        {/* <DropdownMenuItem
+                                          onClick={(e) => {
+                                            e.preventDefault();
+                                            e.stopPropagation();
+                                            if (!canDownloadWAV) {
+                                              toast.error('Download WAV requires Premium subscription');
+                                              // 跳转到订阅页面
+                                              window.location.href = '/#pricing';
+                                              return;
+                                            }
+                                            onDownload(track, track.musicGeneration, 'wav');
+                                          }}
+                                          className="flex items-center justify-between gap-3 cursor-pointer px-3 py-2.5"
+                                        >
+                                          <span className="text-sm font-medium">Download WAV</span>
+                                          <Badge variant="outline" className="text-xs px-2 py-0.5 bg-gradient-create text-white border-0 shrink-0">
+                                            Premium
+                                          </Badge>
+                                        </DropdownMenuItem> */}
+                                      </DropdownMenuContent>
+                                    </DropdownMenu>
                                   )}
                                   
                                   {/* 删除按钮 */}
@@ -599,19 +660,65 @@ export const StudioTracksList: React.FC<StudioTracksListProps> = React.memo(func
                                      )}
                                    </button>
                                    
-                                   {/* 下载按钮 */}
+                                   {/* 下载按钮 - 下拉菜单 */}
                                    {onDownload && (
-                                     <button
-                                       onClick={(e) => {
-                                         e.stopPropagation();
-                                         onDownload(track, track.musicGeneration);
-                                       }}
-                                       className="h-7 w-7 flex items-center justify-center text-muted-foreground hover:text-foreground transition-colors"
-                                       aria-label="Download track"
-                                     >
-                                       <Download className="h-4 w-4" />
-                                     </button>
-                                  )}
+                                     <DropdownMenu>
+                                       <DropdownMenuTrigger asChild>
+                                         <button
+                                           onClick={(e) => {
+                                             e.preventDefault();
+                                             e.stopPropagation();
+                                           }}
+                                           className="h-7 w-7 flex items-center justify-center text-muted-foreground hover:text-foreground transition-colors"
+                                           aria-label="Download track"
+                                         >
+                                           <Download className="h-4 w-4" />
+                                         </button>
+                                       </DropdownMenuTrigger>
+                                       <DropdownMenuContent align="end" onClick={(e) => e.stopPropagation()} className="p-2 min-w-[180px]">
+                                         <DropdownMenuItem
+                                           onClick={(e) => {
+                                             e.preventDefault();
+                                             e.stopPropagation();
+                                             if (!canDownloadMP3) {
+                                               toast.error('Download MP3 requires Basic subscription');
+                                               // 跳转到订阅页面
+                                               window.location.href = '/#pricing';
+                                               return;
+                                             }
+                                             onDownload(track, track.musicGeneration, 'mp3');
+                                           }}
+                                           className="flex items-center justify-between gap-3 cursor-pointer px-3 py-2.5"
+                                         >
+                                           <span className="text-sm font-medium">Download MP3</span>
+                                           {!canDownloadMP3 && (
+                                             <Badge variant="outline" className="text-xs px-2 py-0.5 bg-gradient-create text-white border-0 shrink-0">
+                                               Subscription
+                                             </Badge>
+                                           )}
+                                         </DropdownMenuItem>
+                                         {/* <DropdownMenuItem
+                                           onClick={(e) => {
+                                             e.preventDefault();
+                                             e.stopPropagation();
+                                             if (!canDownloadWAV) {
+                                               toast.error('Download WAV requires Premium subscription');
+                                               // 跳转到订阅页面
+                                               window.location.href = '/#pricing';
+                                               return;
+                                             }
+                                             onDownload(track, track.musicGeneration, 'wav');
+                                           }}
+                                           className="flex items-center justify-between gap-3 cursor-pointer px-3 py-2.5"
+                                         >
+                                           <span className="text-sm font-medium">Download WAV</span>
+                                           <Badge variant="outline" className="text-xs px-2 py-0.5 bg-gradient-create text-white border-0 shrink-0">
+                                             Premium
+                                           </Badge>
+                                         </DropdownMenuItem> */}
+                                       </DropdownMenuContent>
+                                     </DropdownMenu>
+                                   )}
                                   
                                   {/* 删除按钮 */}
                                   {onDelete && (
@@ -859,20 +966,66 @@ export const StudioTracksList: React.FC<StudioTracksListProps> = React.memo(func
                               )}
                             </Button>
                             
-                            {/* 下载按钮 */}
+                            {/* 下载按钮 - 下拉菜单 */}
                             {onDownload && (
-                              <Button
-                                variant="ghost"
-                                size="sm"
-                                className="h-6 w-6 p-0 text-muted-foreground hover:text-foreground hover:bg-muted/50"
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  onDownload(track, track.musicGeneration);
-                                }}
-                                aria-label="Download track"
-                              >
-                                <Download className="h-3 w-3" />
-                              </Button>
+                              <DropdownMenu>
+                                <DropdownMenuTrigger asChild>
+                                  <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    className="h-6 w-6 p-0 text-muted-foreground hover:text-foreground hover:bg-muted/50"
+                                    onClick={(e) => {
+                                      e.preventDefault();
+                                      e.stopPropagation();
+                                    }}
+                                    aria-label="Download track"
+                                  >
+                                    <Download className="h-3 w-3" />
+                                  </Button>
+                                </DropdownMenuTrigger>
+                                <DropdownMenuContent align="end" onClick={(e) => e.stopPropagation()} className="p-2 min-w-[180px]">
+                                  <DropdownMenuItem
+                                    onClick={(e) => {
+                                      e.preventDefault();
+                                      e.stopPropagation();
+                                      if (!canDownloadMP3) {
+                                        toast.error('Download MP3 requires Basic subscription');
+                                        // 跳转到订阅页面
+                                        window.location.href = '/#pricing';
+                                        return;
+                                      }
+                                      onDownload(track, track.musicGeneration, 'mp3');
+                                    }}
+                                    className="flex items-center justify-between gap-3 cursor-pointer px-3 py-2.5"
+                                  >
+                                    <span className="text-sm font-medium">Download MP3</span>
+                                    {!canDownloadMP3 && (
+                                      <Badge variant="outline" className="text-xs px-2 py-0.5 bg-gradient-create text-white border-0 shrink-0">
+                                        Subscription
+                                      </Badge>
+                                    )}
+                                  </DropdownMenuItem>
+                                  {/* <DropdownMenuItem
+                                    onClick={(e) => {
+                                      e.preventDefault();
+                                      e.stopPropagation();
+                                      if (!canDownloadWAV) {
+                                        toast.error('Download WAV requires Premium subscription');
+                                        // 跳转到订阅页面
+                                        window.location.href = '/#pricing';
+                                        return;
+                                      }
+                                      onDownload(track, track.musicGeneration, 'wav');
+                                    }}
+                                    className="flex items-center justify-between gap-3 cursor-pointer px-3 py-2.5"
+                                  >
+                                    <span className="text-sm font-medium">Download WAV</span>
+                                    <Badge variant="outline" className="text-xs px-2 py-0.5 bg-gradient-create text-white border-0 shrink-0">
+                                      Premium
+                                    </Badge>
+                                  </DropdownMenuItem> */}
+                                </DropdownMenuContent>
+                              </DropdownMenu>
                             )}
                             
                             {/* 删除按钮 */}
@@ -942,18 +1095,64 @@ export const StudioTracksList: React.FC<StudioTracksListProps> = React.memo(func
                       )}
                     </button>
                     
-                    {/* 下载按钮 */}
+                    {/* 下载按钮 - 下拉菜单 */}
                     {onDownload && (
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          onDownload(track, track.musicGeneration);
-                        }}
-                        className="h-7 w-7 flex items-center justify-center text-muted-foreground hover:text-foreground transition-colors"
-                        aria-label="Download track"
-                      >
-                        <Download className="h-4 w-4" />
-                      </button>
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <button
+                            onClick={(e) => {
+                              e.preventDefault();
+                              e.stopPropagation();
+                            }}
+                            className="h-7 w-7 flex items-center justify-center text-muted-foreground hover:text-foreground transition-colors"
+                            aria-label="Download track"
+                          >
+                            <Download className="h-4 w-4" />
+                          </button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end" onClick={(e) => e.stopPropagation()} className="p-2 min-w-[180px]">
+                          <DropdownMenuItem
+                            onClick={(e) => {
+                              e.preventDefault();
+                              e.stopPropagation();
+                              if (!canDownloadMP3) {
+                                toast.error('Download MP3 requires Basic subscription');
+                                // 跳转到订阅页面
+                                window.location.href = '/#pricing';
+                                return;
+                              }
+                              onDownload(track, track.musicGeneration, 'mp3');
+                            }}
+                            className="flex items-center justify-between gap-3 cursor-pointer px-3 py-2.5"
+                          >
+                            <span className="text-sm font-medium">Download MP3</span>
+                            {!canDownloadMP3 && (
+                              <Badge variant="outline" className="text-xs px-2 py-0.5 bg-gradient-create text-white border-0 shrink-0">
+                                Subscription
+                              </Badge>
+                            )}
+                          </DropdownMenuItem>
+                          {/* <DropdownMenuItem
+                            onClick={(e) => {
+                              e.preventDefault();
+                              e.stopPropagation();
+                              if (!canDownloadWAV) {
+                                toast.error('Download WAV requires Premium subscription');
+                                // 跳转到订阅页面
+                                window.location.href = '/#pricing';
+                                return;
+                              }
+                              onDownload(track, track.musicGeneration, 'wav');
+                            }}
+                            className="flex items-center justify-between gap-3 cursor-pointer px-3 py-2.5"
+                          >
+                            <span className="text-sm font-medium">Download WAV</span>
+                            <Badge variant="outline" className="text-xs px-2 py-0.5 bg-gradient-create text-white border-0 shrink-0">
+                              Premium
+                            </Badge>
+                          </DropdownMenuItem> */}
+                        </DropdownMenuContent>
+                      </DropdownMenu>
                     )}
                     
                     {/* 删除按钮 */}

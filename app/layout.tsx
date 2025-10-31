@@ -6,6 +6,7 @@ import { ThemeProvider } from "@/components/layout/theme-provider";
 import { NavbarWrapper } from "@/components/layout/navbar-wrapper";
 import { AuthProvider } from "@/contexts/AuthContext";
 import { CreditsProvider } from "@/contexts/CreditsContext";
+import { FeaturePermissionsProvider } from "@/contexts/FeaturePermissionsContext";
 import { Toaster } from "@/components/ui/sonner";
 import { Inter } from 'next/font/google';
 
@@ -70,16 +71,18 @@ export default function RootLayout({
 
         <AuthProvider>
           <CreditsProvider>
-            <ThemeProvider>
-              <NavbarWrapper />
+            <FeaturePermissionsProvider>
+              <ThemeProvider>
+                <NavbarWrapper />
 
-              {children}
-              
-              <Toaster
-                position="top-right"
-                expand={false}
-              />
-            </ThemeProvider>
+                {children}
+                
+                <Toaster
+                  position="top-right"
+                  expand={false}
+                />
+              </ThemeProvider>
+            </FeaturePermissionsProvider>
           </CreditsProvider>
         </AuthProvider>
       </body>

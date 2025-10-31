@@ -105,6 +105,14 @@ export default function TermsOfService() {
             <li>With 15 daily credits, you can create at least one Custom Mode track or two Basic Mode tracks per day</li>
           </ul>
 
+          <h3 className="text-xl font-medium mb-3">Download Feature</h3>
+          <ul className="list-disc pl-6 mb-4">
+            <li>Download functionality is available exclusively to paid subscribers</li>
+            <li>Basic subscription includes MP3 download capability</li>
+            <li>Premium subscription includes both MP3 and WAV download capabilities</li>
+            <li>Free users cannot download tracks and must subscribe to access download features</li>
+          </ul>
+
           <h3 className="text-xl font-medium mb-3">General Terms</h3>
           <ul className="list-disc pl-6 mb-4">
             <li>Credits are non-transferable and cannot be exchanged for cash</li>

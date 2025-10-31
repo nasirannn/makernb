@@ -71,15 +71,19 @@ export const HeroSection = () => {
       <div className="relative z-10 container mx-auto h-full flex items-center">
         <div className="grid place-items-center lg:max-w-screen-xl gap-8 mx-auto w-full">
           <div className="text-center space-y-8">
-            <span className="relative mb-4 inline-block rounded-full border border-zinc-700 bg-zinc-900/20 px-2 py-2 text-xs text-zinc-50 md:mb-0 animate-border-marquee">
-              <span className="text-foreground/90 font-medium"> AI-Powered Music Generator </span>
-              <span className="absolute bottom-0 left-3 right-3 h-[1px] bg-gradient-to-r from-zinc-500/0 via-zinc-300 to-zinc-500/0"></span>
+            <span className="relative mb-4 inline-block rounded-full bg-gradient-create px-2 py-2 text-xs text-white border-0 md:mb-0 animate-border-marquee">
+              <span className="font-medium"> AI-Powered Music Generator </span>
             </span>
 
             <div className="max-w-screen-lg mx-auto text-center">
               <h1 className="text-4xl md:text-6xl lg:text-7xl font-bold text-white leading-tight mb-6">
                 Free Online AI{" "}
-                <span className="text-transparent px-2 bg-gradient-to-r from-purple-400 via-purple-500 to-purple-600 bg-clip-text">
+                <span 
+                  className="text-transparent px-2 bg-clip-text"
+                  style={{
+                    backgroundImage: 'linear-gradient(to right, rgb(147, 51, 234), rgb(168, 85, 247), rgb(37, 99, 235))'
+                  }}
+                >
                   R&B
                 </span>{" "}
                 Music Generator
