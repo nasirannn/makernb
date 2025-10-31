@@ -65,12 +65,18 @@ export const FooterSection = () => {
           <p className="text-sm text-muted-foreground">
             &copy; 2025 MakeRNB. All rights reserved.
           </p>
-          <div className="flex gap-6">
+          <div className="flex gap-6 flex-wrap justify-center">
             <Link href="/privacy" className="text-sm opacity-60 hover:opacity-100 transition-opacity">
               Privacy Policy
             </Link>
             <Link href="/terms" className="text-sm opacity-60 hover:opacity-100 transition-opacity">
               Terms of Service
+            </Link>
+            <Link href="/license" className="text-sm opacity-60 hover:opacity-100 transition-opacity">
+              Commercial License
+            </Link>
+            <Link href="/refund" className="text-sm opacity-60 hover:opacity-100 transition-opacity">
+              Refund Policy
             </Link>
           </div>
         </section>
