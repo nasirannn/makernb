@@ -475,13 +475,27 @@ const StudioContent = () => {
         // 后端API仍然会验证权限作为双重保险
 
         try {
+            // 获取Supabase session token
+            const { data: { session } } = await supabase.auth.getSession();
+            
+            if (!session?.access_token) {
+                toast.error('Authentication required', {
+                    description: 'Please log in to download tracks'
+                });
+                return;
+            }
+
             // 显示下载开始提示
             const downloadToast = toast.loading('Downloading...', {
                 description: 'Preparing your file...'
             });
 
-            // 使用新的下载API（后端仍然会验证权限），添加格式参数
-            const response = await fetch(`/api/download-track?trackId=${track.id}&format=${format}`);
+            // 使用新的下载API（后端仍然会验证权限），添加格式参数和认证headers
+            const response = await fetch(`/api/download-track?trackId=${track.id}&format=${format}`, {
+                headers: {
+                    'Authorization': `Bearer ${session.access_token}`
+                }
+            });
             
             if (!response.ok) {
                 const errorData = await response.json().catch(() => ({}));
