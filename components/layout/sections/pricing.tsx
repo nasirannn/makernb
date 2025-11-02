@@ -7,92 +7,9 @@ import { Badge } from "@/components/ui/badge";
 import { useAuth } from "@/contexts/AuthContext";
 import { useCredits } from "@/contexts/CreditsContext";
 import { supabase } from "@/lib/supabase";
-import { Check, Star, Crown } from "lucide-react";
+import { Check } from "lucide-react";
 import AuthModal from "@/components/ui/auth-modal";
-
-interface PricingPlan {
-  id: string;
-  name: string;
-  credits: number;
-  price: number;
-  originalPrice?: number;
-  popular?: boolean;
-  icon: React.ReactNode;
-  features: string[];
-  productId: string;
-}
-
-const monthlyPlans: PricingPlan[] = [
-  {
-    id: "monthly-basic",
-    name: "Basic",
-    credits: 1000,
-    price: 12.9,
-    icon: <Star className="h-6 w-6" />,
-    features: [
-      "1,000 credits/month (approx. 143 songs)",
-      "Create up to 2,500 lyrics with AI",
-      "Download MP3",
-      "Vocal remover",
-      "Email customer support",
-      "Access to all R&B styles and genres"
-    ],
-    productId: process.env.NEXT_PUBLIC_MONTHLY_BASIC!
-  },
-  {
-    id: "monthly-premium",
-    name: "Premium",
-    credits: 2500,
-    price: 25.9,
-    popular: true,
-    icon: <Crown className="h-6 w-6" />,
-    features: [
-      "2,500 credits/month (approx. 357 songs)",
-      "Create up to 6,250 lyrics with AI",
-      "Download MP3, WAV",
-      "Vocal remover",
-      "Email customer support",
-      "Access to all R&B styles and genres",
-    ],
-    productId: process.env.NEXT_PUBLIC_MONTHLY_PREMIUM!
-  }
-];
-
-const yearlyPlans: PricingPlan[] = [
-  {
-    id: "yearly-basic",
-    name: "Basic",
-    credits: 12000,
-    price: 8.3,
-    icon: <Star className="h-6 w-6" />,
-    features: [
-      "12,000 credits/year (approx. 1,714 songs)",
-      "Create up to 30,000 lyrics with AI",
-      "Download MP3",
-      "Vocal remover",
-      "Email customer support",
-      "Access to all R&B styles and genres"
-    ],
-    productId: process.env.NEXT_PUBLIC_YEARLY_BASIC!
-  },
-  {
-    id: "yearly-premium",
-    name: "Premium",
-    credits: 30000,
-    price: 16.6,
-    popular: true,
-    icon: <Crown className="h-6 w-6" />,
-    features: [
-      "30,000 credits/year (approx. 4,286 songs)",
-      "Create up to 75,000 lyrics with AI",
-      "Download MP3, WAV",
-      "Vocal remover",
-      "Email customer support",
-      "Access to all R&B styles and genres",
-    ],
-    productId: process.env.NEXT_PUBLIC_YEARLY_PREMIUM!
-  }
-];
+import { monthlyPlans, yearlyPlans, type PricingPlan } from "@/lib/pricing-config";
 
 export const PricingSection = () => {
   const { user } = useAuth();

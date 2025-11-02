@@ -7,44 +7,43 @@ import { FeaturesSection } from "@/components/layout/sections/features";
 import { PricingSection } from "@/components/layout/sections/pricing";
 import { FAQSection } from "@/components/layout/sections/faq";
 import { CTASection } from "@/components/layout/sections/cta";
+import { HomeCanonical } from "./HomeCanonical";
 import type { Metadata } from "next";
 
-export async function generateMetadata(): Promise<Metadata> {
-  return {
+export const metadata: Metadata = {
+  title: "MakeRNB | Free Online AI R&B Music Generator",
+  description: "MakeRNB lets you instantly create and download professional R&B songs with AI. Explore Neo-Soul, Quiet Storm & more — free, online, and easy to use.",
+  openGraph: {
+    type: "website",
+    url: "https://makernb.com/",
     title: "MakeRNB | Free Online AI R&B Music Generator",
     description: "MakeRNB lets you instantly create and download professional R&B songs with AI. Explore Neo-Soul, Quiet Storm & more — free, online, and easy to use.",
-    alternates: {
-      canonical: 'https://makernb.com/',
-    },
-    openGraph: {
-      type: "website",
-      url: "https://makernb.com/",
-      title: "MakeRNB | Free Online AI R&B Music Generator",
-      description: "MakeRNB lets you instantly create and download professional R&B songs with AI. Explore Neo-Soul, Quiet Storm & more — free, online, and easy to use.",
-      images: [
-        {
-          url: "/hero-image-dark.jpeg",
-          width: 1200,
-          height: 630,
-          alt: "MakeRNB",
-        },
-      ],
-    },
-    twitter: {
-      card: "summary_large_image",
-      site: "https://makernb.com/",
-      title: "MakeRNB | Free Online AI R&B Music Generator",
-      description: "MakeRNB lets you instantly create and download professional R&B songs with AI. Explore Neo-Soul, Quiet Storm & more — free, online, and easy to use.",
-      images: [
-        "/hero-image-dark.jpeg",
-      ],
-    },
-  };
-}
+    images: [
+      {
+        url: "/hero-image-dark.jpeg",
+        width: 1200,
+        height: 630,
+        alt: "MakeRNB",
+      },
+    ],
+  },
+  twitter: {
+    card: "summary_large_image",
+    site: "https://makernb.com/",
+    title: "MakeRNB | Free Online AI R&B Music Generator",
+    description: "MakeRNB lets you instantly create and download professional R&B songs with AI. Explore Neo-Soul, Quiet Storm & more — free, online, and easy to use.",
+    images: [
+      "/hero-image-dark.jpeg",
+    ],
+  },
+};
 
 export default function Home() {
   return (
     <>
+      {/* Client component to inject canonical link with trailing slash */}
+      <HomeCanonical />
+      
       <HeroSection />
       <IntroductionSection />
       <ExploreSection />
