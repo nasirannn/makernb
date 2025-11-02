@@ -49,7 +49,7 @@ const monthlyPlans: PricingPlan[] = [
     features: [
       "2,500 credits/month (approx. 357 songs)",
       "Create up to 6,250 lyrics with AI",
-      "Download MP3, WAV(Coming Soon)",
+      "Download MP3, WAV",
       "Vocal remover",
       "Email customer support",
       "Access to all R&B styles and genres",
@@ -85,7 +85,7 @@ const yearlyPlans: PricingPlan[] = [
     features: [
       "30,000 credits/year (approx. 4,286 songs)",
       "Create up to 75,000 lyrics with AI",
-      "Download MP3, WAV(Coming Soon)",
+      "Download MP3, WAV",
       "Vocal remover",
       "Email customer support",
       "Access to all R&B styles and genres",

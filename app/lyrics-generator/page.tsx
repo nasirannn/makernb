@@ -8,6 +8,7 @@ import AuthModal from '@/components/ui/auth-modal';
 import { FooterSection } from '@/components/layout/sections/footer';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
 import { Separator } from '@/components/ui/separator';
+import { CLIENT_FEATURE_CREDITS } from '@/lib/credits-config';
 import { useAuth } from '@/contexts/AuthContext';
 import presetsData from '@/data/lyrics-presets.json';
 import Image from 'next/image';
@@ -289,7 +290,7 @@ export default function LyricsGeneratorPage() {
             </div>
             
             <div className="text-center text-sm text-muted-foreground">
-              <p>Estimated time: 30-60 seconds • This action will cost {process.env.NEXT_PUBLIC_LYRICS_GENERATION_CREDITS || '0.4'} credits</p>
+              <p>Estimated time: 30-60 seconds • This action will cost {CLIENT_FEATURE_CREDITS.generate_lyrics.credits} credits</p>
             </div>
           </div>
 

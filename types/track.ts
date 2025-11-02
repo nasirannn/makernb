@@ -159,3 +159,42 @@ export const createDefaultTrack = (id: string, title: string = 'Untitled Track')
   createdAt: new Date().toISOString(),
   is_favorited: false,
 });
+
+// ============================================================================
+// WAV转换相关类型定义
+// ============================================================================
+
+/**
+ * WAV转换记录接口
+ * 用于存储MP3到WAV格式转换的任务记录
+ */
+export interface TrackWavConversion {
+  id: string;
+  track_id: string;
+  task_id: string; // WAV转换任务的taskId
+  wav_url: string | null; // 接口返回的临时 WAV 文件 URL（可立即下载）
+  wav_r2_url: string | null; // 持久化到 R2 的 WAV 文件 URL（永久链接）
+  status: 'generating' | 'complete' | 'error' | 'expired'; // 转换状态
+  created_at: string;
+  updated_at: string;
+}
+
+/**
+ * 创建WAV转换记录的数据接口
+ */
+export interface CreateTrackWavConversionData {
+  track_id: string;
+  task_id: string;
+  status?: 'generating' | 'complete' | 'error' | 'expired';
+  wav_url?: string | null; // 接口返回的临时 URL
+  wav_r2_url?: string | null; // R2 持久化 URL
+}
+
+/**
+ * 更新WAV转换记录的数据接口
+ */
+export interface UpdateTrackWavConversionData {
+  wav_url?: string | null; // 接口返回的临时 URL
+  wav_r2_url?: string | null; // R2 持久化 URL
+  status?: 'generating' | 'complete' | 'error' | 'expired';
+}

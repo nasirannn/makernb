@@ -5,10 +5,10 @@ export const metadata: Metadata = {
   title: "Refund Policy - MakeRNB",
   description: "MakeRNB service satisfaction guarantee and refund policy. Learn about our 7-day trial period and refund procedures.",
   alternates: {
-    canonical: 'https://makernb.com/refund/',
+    canonical: 'https://makernb.com/refund',
   },
   openGraph: {
-    url: 'https://makernb.com/refund/',
+    url: 'https://makernb.com/refund',
   },
 };
 

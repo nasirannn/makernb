@@ -1,3 +1,5 @@
+import { getMusicModel } from '@/lib/credits-config';
+
 // API service configuration
 export interface GenerateMusicRequest {
   mode: 'basic' | 'custom';
@@ -83,6 +85,35 @@ export interface VocalSeparationStatusResponse {
   };
 }
 
+// ============================================================================
+// WAV CONVERSION INTERFACES
+// ============================================================================
+
+export interface WavConversionRequest {
+  taskId: string; // 原始音乐生成任务的taskId
+  audioId: string; // 要转换的音频曲目的audioId
+  callBackUrl?: string; // 回调URL
+}
+
+export interface WavConversionApiResponse {
+  code: number;
+  msg: string;
+  data: {
+    taskId: string; // WAV转换任务的taskId（与原始taskId相同）
+  };
+}
+
+export interface WavConversionStatusResponse {
+  code: number;
+  msg: string;
+  data: {
+    taskId: string;
+    status?: 'processing' | 'completed' | 'error';
+    audio_wav_url?: string;
+    errorMessage?: string;
+  };
+}
+
 class MusicApiService {
   private baseUrl: string;
   private apiKey: string;
@@ -142,7 +173,7 @@ class MusicApiService {
       // Basic模式: customMode: false（style 等参数将被忽略）
       apiParams.customMode = false;
       apiParams.instrumental = request.instrumentalMode || false;
-      apiParams.model = process.env.BASIC_MODE_MODEL || 'V3_5'; // Basic Mode使用配置的模型
+      apiParams.model = getMusicModel('basic'); // Basic Mode使用配置的模型
 
       // 拼接一个≤100字符的R&B风格短语到prompt
       const styleHint = 'Create in R&B style.'; 
@@ -158,7 +189,7 @@ class MusicApiService {
       // Custom模式: customMode: true
       apiParams.customMode = true;
       apiParams.instrumental = request.instrumentalMode || false;
-      apiParams.model = process.env.CUSTOM_MODE_MODEL; // Custom Mode使用配置的模型
+      apiParams.model = getMusicModel('custom'); // Custom Mode使用配置的模型
 
       // Custom Mode: 直接使用用户输入的styleText
       if (request.styleText && request.styleText.trim()) {
@@ -503,6 +534,138 @@ class MusicApiService {
     }
     
     throw new Error('Vocal separation timeout');
+  }
+
+  // ============================================================================
+  // WAV CONVERSION METHODS
+  // ============================================================================
+
+  /**
+   * Starts WAV conversion process
+   * Converts MP3 audio to WAV format
+   */
+  async generateWavConversion(request: WavConversionRequest): Promise<WavConversionApiResponse> {
+    // 确保回调 URL 不包含尾部斜杠（middleware 会处理重定向）
+    // Next.js trailingSlash: true 可能导致 API 路由重定向
+    // middleware 会统一将带尾部斜杠的 URL 重定向到不带尾部斜杠的版本
+    const baseUrl = process.env.CallBackURL?.replace(/\/$/, ''); // 移除基础 URL 的尾部斜杠
+    const callBackUrl = request.callBackUrl || `${baseUrl}/api/wav-callback`; // API 路由不使用尾部斜杠
+    console.log(`[WAV-CONVERSION] Callback URL configured: ${callBackUrl}`);
+    
+    const apiParams = {
+      taskId: request.taskId,
+      audioId: request.audioId,
+      callBackUrl: callBackUrl,
+    };
+    
+    console.log(`[WAV-CONVERSION] Sending API request with params:`, JSON.stringify(apiParams, null, 2));
+    
+    const response = await this.fetchWithRetry(`${this.baseUrl}/api/v1/wav/generate`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${this.apiKey}`,
+      },
+      body: JSON.stringify(apiParams),
+    });
+
+    if (!response.ok) {
+      const errorData = await response.text();
+      console.error(`WAV conversion API call failed: ${response.status} - ${errorData}`);
+      throw new Error(`WAV conversion API call failed: ${response.statusText} - ${errorData}`);
+    }
+
+    const data = await response.json();
+    
+    // 根据官方文档处理响应
+    if (data.code === 200) {
+      return {
+        code: data.code,
+        msg: data.msg || 'WAV conversion started successfully',
+        data: {
+          taskId: data.data?.taskId,
+        }
+      };
+    } else {
+      console.error(`WAV conversion API error: ${data.code} - ${data.msg}`);
+      throw new Error(`WAV conversion API error (${data.code}): ${data.msg || 'Unknown error'}`);
+    }
+  }
+
+  /**
+   * Gets WAV conversion status
+   */
+  async getWavConversionStatus(taskId: string): Promise<WavConversionStatusResponse> {
+    try {
+      const response = await fetch(`${this.baseUrl}/api/v1/wav/record-info?taskId=${taskId}`, {
+        method: 'GET',
+        headers: {
+          'Authorization': `Bearer ${this.apiKey}`,
+        },
+      });
+
+      if (!response.ok) {
+        // 如果API Key没有权限，返回默认状态
+        if (response.status === 401) {
+          console.warn('WAV conversion status query not available: API key lacks permissions');
+          return {
+            code: 202,
+            msg: 'WAV conversion in progress (status query unavailable)',
+            data: {
+              taskId: taskId,
+              status: 'processing'
+            }
+          };
+        }
+        
+        const errorData = await response.text();
+        throw new Error(`Get WAV conversion status failed: ${response.statusText} - ${errorData}`);
+      }
+
+      const data = await response.json();
+      
+      return {
+        code: data.code,
+        msg: data.msg,
+        data: {
+          taskId: data.data?.taskId,
+          status: data.data?.status || 'processing',
+          audio_wav_url: data.data?.audio_wav_url,
+          errorMessage: data.data?.errorMessage
+        }
+      };
+    } catch (error) {
+      console.warn('WAV conversion status query failed, falling back to callback-only mode:', error);
+      // 返回进行中状态，依赖回调机制
+      return {
+        code: 202,
+        msg: 'WAV conversion in progress (callback-only mode)',
+        data: {
+          taskId: taskId,
+          status: 'processing'
+        }
+      };
+    }
+  }
+
+  /**
+   * Poll until WAV conversion complete
+   */
+  async waitForWavConversionCompletion(taskId: string, maxAttempts = 30): Promise<WavConversionStatusResponse> {
+    for (let i = 0; i < maxAttempts; i++) {
+      const status = await this.getWavConversionStatus(taskId);
+      
+      if (status.code === 200 && status.data.audio_wav_url) {
+        return status;
+      } else if (status.code === 501 || status.data.status === 'error') {
+        throw new Error('WAV conversion failed');
+      }
+      
+      // Wait 5 seconds before retry
+      await new Promise(resolve => setTimeout(resolve, 5000));
+    }
+    
+    throw new Error('WAV conversion timeout');
   }
 
 }

@@ -83,6 +83,35 @@ export const Navbar = ({ credits = null }: NavbarProps) => {
   const pathname = usePathname();
   const { user, signOut } = useAuth();
 
+  // 处理 Pricing 链接的跳转和滚动
+  const handlePricingClick = (e: React.MouseEvent<HTMLAnchorElement>) => {
+    if (pathname === '/') {
+      // 如果已经在首页，阻止默认行为并平滑滚动
+      e.preventDefault();
+      const pricingElement = document.getElementById('pricing');
+      if (pricingElement) {
+        pricingElement.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }
+    }
+    // 如果不在首页，让 Link 组件正常处理导航
+    // 跨页面跳转后，通过 useEffect 处理滚动
+  };
+
+  // 处理跨页面跳转后的滚动（当 URL 包含 #pricing hash 时）
+  React.useEffect(() => {
+    if (pathname === '/' && window.location.hash === '#pricing') {
+      // 等待页面渲染完成后滚动
+      setTimeout(() => {
+        const pricingElement = document.getElementById('pricing');
+        if (pricingElement) {
+          pricingElement.scrollIntoView({ behavior: 'smooth', block: 'start' });
+          // 清除 hash 以避免刷新时重复滚动
+          window.history.replaceState(null, '', window.location.pathname);
+        }
+      }, 100);
+    }
+  }, [pathname]);
+
   // 处理下拉菜单的悬停逻辑
   const handleDropdownMouseEnter = () => {
     if (dropdownTimeout) {
@@ -239,6 +268,7 @@ export const Navbar = ({ credits = null }: NavbarProps) => {
               <li key={href}>
                 <Link
                   href={href}
+                  onClick={href === "/#pricing" ? handlePricingClick : undefined}
                   className={`text-sm px-5 py-3 rounded-lg transition-all duration-200 ${
                     isActive
                       ? 'text-primary bg-primary/10 font-medium'
@@ -388,7 +418,18 @@ export const Navbar = ({ credits = null }: NavbarProps) => {
                   return (
                     <Button
                       key={href}
-                      onClick={() => setIsOpen(false)}
+                      onClick={() => {
+                        setIsOpen(false);
+                        // 如果是 pricing 链接且已在首页，平滑滚动
+                        if (href === "/#pricing" && pathname === '/') {
+                          setTimeout(() => {
+                            const pricingElement = document.getElementById('pricing');
+                            if (pricingElement) {
+                              pricingElement.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                            }
+                          }, 100);
+                        }
+                      }}
                       asChild
                       variant="ghost"
                       className={`justify-start text-base ${

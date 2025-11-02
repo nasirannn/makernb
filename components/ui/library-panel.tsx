@@ -43,8 +43,10 @@ import { toast } from 'sonner';
 import { useAuth } from '@/contexts/AuthContext';
 import { useCredits } from '@/contexts/CreditsContext';
 import { useFeaturePermissions } from '@/contexts/FeaturePermissionsContext';
+import { usePricingModal } from '@/contexts/PricingModalContext';
 import { CustomAudioWaveIndicator } from './audio-wave-indicator';
 import { LoadingState } from './loading-dots';
+import { Progress } from './progress';
 import { LibraryTrack } from '@/types/track';
 import { getEventBus, TRACK_EVENTS } from '@/lib/event-bus';
 import {
@@ -115,6 +117,7 @@ export const LibraryPanel = ({
 }: LibraryPanelProps) => {
   const { user, signOut } = useAuth();
   const { credits } = useCredits();
+  const { openModal: openPricingModal } = usePricingModal();
   
   // 获取权限检查函数
   const { hasPermission } = useFeaturePermissions();
@@ -240,7 +243,13 @@ export const LibraryPanel = ({
         icon: <ArrowDown className="h-4 w-4 text-blue-500" />
       });
 
-      // 使用新的下载API，添加格式参数
+      // WAV格式需要处理轮询逻辑
+      if (format === 'wav') {
+        await handleWavDownloadWithPolling(track, downloadToast);
+        return;
+      }
+
+      // MP3格式直接下载
       const response = await fetch(`/api/download-track?trackId=${track.id}&format=${format}`);
       
       if (!response.ok) {
@@ -295,6 +304,151 @@ export const LibraryPanel = ({
         description: error instanceof Error ? error.message : 'Unable to download file'
       });
     }
+  };
+
+  // WAV下载轮询函数
+  const handleWavDownloadWithPolling = async (
+    track: LibraryTrack,
+    downloadToast: string | number
+  ) => {
+    const POLL_INTERVAL = 3000; // 每3秒轮询一次
+    const MAX_POLL_TIME = 180000; // 最大轮询时间：3分钟
+    const startTime = Date.now();
+    let lastProgress = 0;
+
+    // 计算进度百分比
+    const calculateProgress = (hasWavUrl: boolean, elapsedTime: number): number => {
+      // 基于状态和时间计算进度
+      if (hasWavUrl) {
+        // 回调已收到，WAV URL 存在，进度在 70-90% 之间
+        const baseProgress = 70;
+        const timeBasedProgress = Math.min(20, (elapsedTime / MAX_POLL_TIME) * 20);
+        return Math.min(90, baseProgress + timeBasedProgress);
+      } else {
+        // 还在等待回调，进度在 10-50% 之间
+        const baseProgress = 10;
+        const timeBasedProgress = Math.min(40, (elapsedTime / MAX_POLL_TIME) * 40);
+        return Math.min(50, baseProgress + timeBasedProgress);
+      }
+    };
+
+    const pollForWav = async (): Promise<void> => {
+      try {
+        const response = await fetch(`/api/download-track?trackId=${track.id}&format=wav`);
+        const elapsedTime = Date.now() - startTime;
+        
+        // 检查是否超时
+        if (elapsedTime > MAX_POLL_TIME) {
+          toast.error('WAV generation timeout', {
+            id: downloadToast,
+            description: 'WAV conversion is taking longer than expected. Please try again later.'
+          });
+          return;
+        }
+
+        if (response.status === 202) {
+          // WAV正在生成中，继续轮询
+          const data = await response.json();
+          if (data.status === 'generating') {
+            // 根据状态计算进度
+            const progress = calculateProgress(data.hasWavUrl || false, elapsedTime);
+            lastProgress = Math.max(lastProgress, progress); // 确保进度不会倒退
+            
+            // 显示带进度条的 toast
+            const statusText = data.hasWavUrl 
+              ? 'Processing WAV file...' 
+              : 'Waiting for conversion...';
+            
+            toast.loading('Generating WAV...', {
+              id: downloadToast,
+              description: (
+                <div className="w-full space-y-2">
+                  <p className="text-sm">{statusText}</p>
+                  <Progress value={lastProgress} className="h-2" />
+                  <p className="text-xs text-muted-foreground">{Math.round(lastProgress)}%</p>
+                </div>
+              )
+            });
+            
+            // 继续轮询
+            setTimeout(pollForWav, POLL_INTERVAL);
+            return;
+          } else {
+            throw new Error(data.error || data.message || 'WAV generation failed');
+          }
+        } else if (response.status === 200) {
+          // WAV已准备好，显示完成进度
+          toast.loading('Finalizing download...', {
+            id: downloadToast,
+            description: (
+              <div className="w-full space-y-2">
+                <p className="text-sm">Preparing file for download</p>
+                <Progress value={100} className="h-2" />
+                <p className="text-xs text-muted-foreground">100%</p>
+              </div>
+            )
+          });
+
+          // 检查响应类型
+          const contentType = response.headers.get('content-type');
+          
+          if (contentType?.includes('application/json')) {
+            // 可能是fallback模式或错误
+            const data = await response.json();
+            if (data.fallback && data.wavUrl) {
+              // Fallback模式：直接下载原始URL
+              const wavResponse = await fetch(data.wavUrl);
+              if (!wavResponse.ok) {
+                throw new Error(`Failed to fetch WAV: ${wavResponse.status}`);
+              }
+              const blob = await wavResponse.blob();
+              downloadFile(blob, track.title || 'track', 'wav');
+              toast.success('Download started!', {
+                id: downloadToast,
+                description: `${track.title}.wav`,
+                icon: <ArrowDown className="h-4 w-4 text-blue-500" />
+              });
+            } else {
+              throw new Error(data.error || 'Download failed');
+            }
+          } else {
+            // 正常模式：直接获取WAV文件
+            const blob = await response.blob();
+            downloadFile(blob, track.title || 'track', 'wav');
+            toast.success('Download started!', {
+              id: downloadToast,
+              description: `${track.title}.wav`,
+              icon: <ArrowDown className="h-4 w-4 text-blue-500" />
+            });
+          }
+        } else {
+          // 其他错误状态
+          const errorData = await response.json().catch(() => ({}));
+          throw new Error(errorData.message || errorData.error || `HTTP error! status: ${response.status}`);
+        }
+      } catch (error) {
+        console.error('WAV download polling error:', error);
+        toast.error('WAV download failed', {
+          id: downloadToast,
+          description: error instanceof Error ? error.message : 'Unable to download WAV file'
+        });
+      }
+    };
+
+    // 开始首次请求
+    await pollForWav();
+  };
+
+  // 辅助函数：下载文件
+  const downloadFile = (blob: Blob, filename: string, format: string) => {
+    const blobUrl = window.URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = blobUrl;
+    link.download = `${filename}.${format}`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    window.URL.revokeObjectURL(blobUrl);
   };
 
   const handlePublishClick = (track: LibraryTrack) => {
@@ -1019,9 +1173,8 @@ export const LibraryPanel = ({
                               e.preventDefault();
                               e.stopPropagation();
                               if (!canDownloadMP3) {
-                                toast.error('Download MP3 requires Basic subscription');
-                                // 跳转到订阅页面
-                                window.location.href = '/#pricing';
+                                // 打开订阅弹窗
+                                openPricingModal();
                                 return;
                               }
                               handleDownload(track, 'mp3');
@@ -1031,18 +1184,17 @@ export const LibraryPanel = ({
                             <span className="text-sm font-medium">Download MP3</span>
                             {!canDownloadMP3 && (
                               <Badge variant="outline" className="text-xs px-2 py-0.5 bg-gradient-create text-white border-0 shrink-0">
-                                Subscription
+                                Basic
                               </Badge>
                             )}
                           </DropdownMenuItem>
-                          {/* <DropdownMenuItem
+                          <DropdownMenuItem
                             onClick={(e) => {
                               e.preventDefault();
                               e.stopPropagation();
                               if (!canDownloadWAV) {
-                                toast.error('Download WAV requires Premium subscription');
-                                // 跳转到订阅页面
-                                window.location.href = '/#pricing';
+                                // 打开订阅弹窗
+                                openPricingModal();
                                 return;
                               }
                               handleDownload(track, 'wav');
@@ -1050,10 +1202,12 @@ export const LibraryPanel = ({
                             className="flex items-center justify-between gap-3 cursor-pointer px-3 py-2.5"
                           >
                             <span className="text-sm font-medium">Download WAV</span>
-                            <Badge variant="outline" className="text-xs px-2 py-0.5 bg-gradient-create text-white border-0 shrink-0">
-                              Premium
-                            </Badge>
-                          </DropdownMenuItem> */}
+                            {!canDownloadWAV && (
+                              <Badge variant="outline" className="text-xs px-2 py-0.5 bg-gradient-create text-white border-0 shrink-0">
+                                Premium
+                              </Badge>
+                            )}
+                          </DropdownMenuItem>
                         </DropdownMenuContent>
                       </DropdownMenu>
 
@@ -1535,9 +1689,8 @@ export const LibraryPanel = ({
               <button
                 onClick={() => {
                   if (!canDownloadMP3) {
-                    toast.error('Download MP3 requires Basic subscription');
                     setMobileMenuOpen(false);
-                    window.location.href = '/#pricing';
+                    openPricingModal();
                     return;
                   }
                   handleDownload(selectedTrackForMenu, 'mp3');
@@ -1551,20 +1704,19 @@ export const LibraryPanel = ({
                 </div>
                 {!canDownloadMP3 && (
                   <Badge variant="outline" className="text-xs px-2 py-0.5 bg-gradient-create text-white border-0 shrink-0">
-                    Subscription
+                    Basic
                   </Badge>
                 )}
               </button>
             )}
 
             {/* Download WAV */}
-            {/* {selectedTrackForMenu && (
+            {selectedTrackForMenu && (
               <button
                 onClick={() => {
                   if (!canDownloadWAV) {
-                    toast.error('Download WAV requires Premium subscription');
                     setMobileMenuOpen(false);
-                    window.location.href = '/#pricing';
+                    openPricingModal();
                     return;
                   }
                   handleDownload(selectedTrackForMenu, 'wav');
@@ -1576,11 +1728,13 @@ export const LibraryPanel = ({
                   <Download className="h-5 w-5" />
                   <span className="font-medium">Download WAV</span>
                 </div>
-                <Badge variant="outline" className="text-xs px-2 py-0.5 bg-gradient-create text-white border-0 shrink-0">
-                  Premium
-                </Badge>
+                {!canDownloadWAV && (
+                  <Badge variant="outline" className="text-xs px-2 py-0.5 bg-gradient-create text-white border-0 shrink-0">
+                    Premium
+                  </Badge>
+                )}
               </button>
-            )} */}
+            )}
 
             {/* Remove from library */}
             {onFavoriteToggle && selectedTrackForMenu && (

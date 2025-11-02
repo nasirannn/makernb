@@ -15,12 +15,17 @@ import { FooterSection } from '@/components/layout/sections/footer';
 import { supabase } from '@/lib/supabase';
 import AuthModal from '@/components/ui/auth-modal';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
+import { CLIENT_FEATURE_CREDITS } from '@/lib/credits-config';
 import {
   Accordion,
   AccordionContent,
   AccordionItem,
   AccordionTrigger,
 } from "@/components/ui/accordion";
+
+function VocalSeparationCreditsDisplay() {
+  return <>{CLIENT_FEATURE_CREDITS.vocal_separation.credits}</>;
+}
 
 export default function VocalSeparationDemo() {
   const { separations } = useVocalSeparation();
@@ -576,7 +581,7 @@ export default function VocalSeparationDemo() {
               )}
             </Button>
             <div className="text-center text-sm text-muted-foreground">
-              <p>Estimated time: 1~3 minutes • This action will cost {process.env.NEXT_PUBLIC_VOCAL_SEPARATION_CREDITS || '3'} credits</p>
+              <p>Estimated time: 1~3 minutes • This action will cost <VocalSeparationCreditsDisplay /> credits</p>
             </div>
           </div>
 

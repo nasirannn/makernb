@@ -14,6 +14,7 @@ import { useCredits } from '@/contexts/CreditsContext';
 import { toast } from 'sonner';
 import { Tooltip } from '@/components/ui/tooltip';
 import Image from 'next/image';
+import { CLIENT_MUSIC_CREDITS } from '@/lib/credits-config';
 import { getInstrumentIcon, getInstrumentAudio, getDrumKitIcon, getDrumKitAudio } from '@/lib/music-resources';
 import { replaceTextInStyle, updateStatesFromTextarea, getRandomBpm } from '@/lib/studio-utils';
 import { TEMPO_KEYWORDS, BUTTON_CLASSES, STYLES } from '@/lib/studio-constants';
@@ -175,8 +176,8 @@ export const StudioPanel = (props: StudioPanelProps) => {
     }
 
     const requiredCredits = mode === 'custom' 
-      ? parseInt(process.env.NEXT_PUBLIC_CUSTOM_MODE_CREDITS || '12') 
-      : parseInt(process.env.NEXT_PUBLIC_BASIC_MODE_CREDITS || '7'); // 使用环境变量配置的积分
+      ? CLIENT_MUSIC_CREDITS.custom
+      : CLIENT_MUSIC_CREDITS.basic;
 
     if (credits < requiredCredits) {
       // 使用 sonner 显示积分不足提示
@@ -231,7 +232,7 @@ export const StudioPanel = (props: StudioPanelProps) => {
               <div className="flex items-center gap-1 md:gap-2 text-xs md:text-sm">
                 <div className="flex items-center gap-1 px-2 py-1 bg-muted/20 rounded-md">
                   <span className="font-semibold text-primary">
-                    {mode === 'basic' ? '7' : '12'}
+                    {mode === 'basic' ? CLIENT_MUSIC_CREDITS.basic : CLIENT_MUSIC_CREDITS.custom}
                   </span>
                   <span className="text-muted-foreground">credit per song</span>
                 </div>

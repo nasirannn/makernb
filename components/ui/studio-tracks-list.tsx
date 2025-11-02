@@ -19,6 +19,7 @@ import { toast } from 'sonner';
 import { LibraryTrack } from '@/types/track';
 import { useAudioPlayingState } from "@/hooks/use-audio-playing-state";
 import { useFeaturePermissions } from "@/contexts/FeaturePermissionsContext";
+import { usePricingModal } from "@/contexts/PricingModalContext";
 
 interface MusicGeneration {
   id: string;
@@ -76,6 +77,7 @@ export const StudioTracksList: React.FC<StudioTracksListProps> = React.memo(func
   
   // 移除分页状态，显示所有歌曲
   const { user } = useAuth();
+  const { openModal: openPricingModal } = usePricingModal();
   
   // 使用 EventBus 监听全局播放状态
   const globalAudioState = useAudioPlayingState();
@@ -560,9 +562,8 @@ export const StudioTracksList: React.FC<StudioTracksListProps> = React.memo(func
                                             e.preventDefault();
                                             e.stopPropagation();
                                             if (!canDownloadMP3) {
-                                              toast.error('Download MP3 requires Basic subscription');
-                                              // 跳转到订阅页面
-                                              window.location.href = '/#pricing';
+                                              // 打开订阅弹窗
+                                              openPricingModal();
                                               return;
                                             }
                                             onDownload(track, track.musicGeneration, 'mp3');
@@ -572,7 +573,7 @@ export const StudioTracksList: React.FC<StudioTracksListProps> = React.memo(func
                                           <span className="text-sm font-medium">Download MP3</span>
                                           {!canDownloadMP3 && (
                                             <Badge variant="outline" className="text-xs px-2 py-0.5 bg-gradient-create text-white border-0 shrink-0">
-                                              Subscription
+                                              Basic
                                             </Badge>
                                           )}
                                         </DropdownMenuItem>
@@ -581,9 +582,8 @@ export const StudioTracksList: React.FC<StudioTracksListProps> = React.memo(func
                                             e.preventDefault();
                                             e.stopPropagation();
                                             if (!canDownloadWAV) {
-                                              toast.error('Download WAV requires Premium subscription');
-                                              // 跳转到订阅页面
-                                              window.location.href = '/#pricing';
+                                              // 打开订阅弹窗
+                                              openPricingModal();
                                               return;
                                             }
                                             onDownload(track, track.musicGeneration, 'wav');
@@ -681,9 +681,8 @@ export const StudioTracksList: React.FC<StudioTracksListProps> = React.memo(func
                                              e.preventDefault();
                                              e.stopPropagation();
                                              if (!canDownloadMP3) {
-                                               toast.error('Download MP3 requires Basic subscription');
-                                               // 跳转到订阅页面
-                                               window.location.href = '/#pricing';
+                                               // 打开订阅弹窗
+                                               openPricingModal();
                                                return;
                                              }
                                              onDownload(track, track.musicGeneration, 'mp3');
@@ -693,18 +692,17 @@ export const StudioTracksList: React.FC<StudioTracksListProps> = React.memo(func
                                            <span className="text-sm font-medium">Download MP3</span>
                                            {!canDownloadMP3 && (
                                              <Badge variant="outline" className="text-xs px-2 py-0.5 bg-gradient-create text-white border-0 shrink-0">
-                                               Subscription
+                                               Basic
                                              </Badge>
                                            )}
                                          </DropdownMenuItem>
-                                         {/* <DropdownMenuItem
+                                         <DropdownMenuItem
                                            onClick={(e) => {
                                              e.preventDefault();
                                              e.stopPropagation();
                                              if (!canDownloadWAV) {
-                                               toast.error('Download WAV requires Premium subscription');
-                                               // 跳转到订阅页面
-                                               window.location.href = '/#pricing';
+                                               // 打开订阅弹窗
+                                               openPricingModal();
                                                return;
                                              }
                                              onDownload(track, track.musicGeneration, 'wav');
@@ -712,10 +710,12 @@ export const StudioTracksList: React.FC<StudioTracksListProps> = React.memo(func
                                            className="flex items-center justify-between gap-3 cursor-pointer px-3 py-2.5"
                                          >
                                            <span className="text-sm font-medium">Download WAV</span>
-                                           <Badge variant="outline" className="text-xs px-2 py-0.5 bg-gradient-create text-white border-0 shrink-0">
-                                             Premium
-                                           </Badge>
-                                         </DropdownMenuItem> */}
+                                           {!canDownloadWAV && (
+                                             <Badge variant="outline" className="text-xs px-2 py-0.5 bg-gradient-create text-white border-0 shrink-0">
+                                               Premium
+                                             </Badge>
+                                           )}
+                                         </DropdownMenuItem>
                                        </DropdownMenuContent>
                                      </DropdownMenu>
                                    )}
@@ -989,9 +989,8 @@ export const StudioTracksList: React.FC<StudioTracksListProps> = React.memo(func
                                       e.preventDefault();
                                       e.stopPropagation();
                                       if (!canDownloadMP3) {
-                                        toast.error('Download MP3 requires Basic subscription');
-                                        // 跳转到订阅页面
-                                        window.location.href = '/#pricing';
+                                        // 打开订阅弹窗
+                                        openPricingModal();
                                         return;
                                       }
                                       onDownload(track, track.musicGeneration, 'mp3');
@@ -1001,18 +1000,17 @@ export const StudioTracksList: React.FC<StudioTracksListProps> = React.memo(func
                                     <span className="text-sm font-medium">Download MP3</span>
                                     {!canDownloadMP3 && (
                                       <Badge variant="outline" className="text-xs px-2 py-0.5 bg-gradient-create text-white border-0 shrink-0">
-                                        Subscription
+                                        Basic
                                       </Badge>
                                     )}
                                   </DropdownMenuItem>
-                                  {/* <DropdownMenuItem
+                                  <DropdownMenuItem
                                     onClick={(e) => {
                                       e.preventDefault();
                                       e.stopPropagation();
                                       if (!canDownloadWAV) {
-                                        toast.error('Download WAV requires Premium subscription');
-                                        // 跳转到订阅页面
-                                        window.location.href = '/#pricing';
+                                        // 打开订阅弹窗
+                                        openPricingModal();
                                         return;
                                       }
                                       onDownload(track, track.musicGeneration, 'wav');
@@ -1020,10 +1018,12 @@ export const StudioTracksList: React.FC<StudioTracksListProps> = React.memo(func
                                     className="flex items-center justify-between gap-3 cursor-pointer px-3 py-2.5"
                                   >
                                     <span className="text-sm font-medium">Download WAV</span>
-                                    <Badge variant="outline" className="text-xs px-2 py-0.5 bg-gradient-create text-white border-0 shrink-0">
-                                      Premium
-                                    </Badge>
-                                  </DropdownMenuItem> */}
+                                    {!canDownloadWAV && (
+                                      <Badge variant="outline" className="text-xs px-2 py-0.5 bg-gradient-create text-white border-0 shrink-0">
+                                        Premium
+                                      </Badge>
+                                    )}
+                                  </DropdownMenuItem>
                                 </DropdownMenuContent>
                               </DropdownMenu>
                             )}
@@ -1116,9 +1116,8 @@ export const StudioTracksList: React.FC<StudioTracksListProps> = React.memo(func
                               e.preventDefault();
                               e.stopPropagation();
                               if (!canDownloadMP3) {
-                                toast.error('Download MP3 requires Basic subscription');
-                                // 跳转到订阅页面
-                                window.location.href = '/#pricing';
+                                // 打开订阅弹窗
+                                openPricingModal();
                                 return;
                               }
                               onDownload(track, track.musicGeneration, 'mp3');
@@ -1128,18 +1127,17 @@ export const StudioTracksList: React.FC<StudioTracksListProps> = React.memo(func
                             <span className="text-sm font-medium">Download MP3</span>
                             {!canDownloadMP3 && (
                               <Badge variant="outline" className="text-xs px-2 py-0.5 bg-gradient-create text-white border-0 shrink-0">
-                                Subscription
+                                Basic
                               </Badge>
                             )}
                           </DropdownMenuItem>
-                          {/* <DropdownMenuItem
+                          <DropdownMenuItem
                             onClick={(e) => {
                               e.preventDefault();
                               e.stopPropagation();
                               if (!canDownloadWAV) {
-                                toast.error('Download WAV requires Premium subscription');
-                                // 跳转到订阅页面
-                                window.location.href = '/#pricing';
+                                // 打开订阅弹窗
+                                openPricingModal();
                                 return;
                               }
                               onDownload(track, track.musicGeneration, 'wav');
@@ -1147,10 +1145,12 @@ export const StudioTracksList: React.FC<StudioTracksListProps> = React.memo(func
                             className="flex items-center justify-between gap-3 cursor-pointer px-3 py-2.5"
                           >
                             <span className="text-sm font-medium">Download WAV</span>
-                            <Badge variant="outline" className="text-xs px-2 py-0.5 bg-gradient-create text-white border-0 shrink-0">
-                              Premium
-                            </Badge>
-                          </DropdownMenuItem> */}
+                            {!canDownloadWAV && (
+                              <Badge variant="outline" className="text-xs px-2 py-0.5 bg-gradient-create text-white border-0 shrink-0">
+                                Premium
+                              </Badge>
+                            )}
+                          </DropdownMenuItem>
                         </DropdownMenuContent>
                       </DropdownMenu>
                     )}

@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { consumeUserCredit } from '@/lib/user-db';
 import { createGenerationError } from '@/lib/generation-errors-db';
 import { query, withTransaction } from '@/lib/db-query-builder';
+import { getFeatureCredits } from '@/lib/credits-config';
 
 
 // Cache for processed tasks to handle idempotency
@@ -115,7 +116,7 @@ async function processLyricsCallbackAsync(callbackData: any) {
 
             if (result.rows.length > 0) {
               const userId = result.rows[0].user_id;
-              const lyricsCreditCost = parseFloat(process.env.LYRICS_GENERATION_CREDITS || '0.4');
+              const lyricsCreditCost = getFeatureCredits('generate_lyrics');
               console.log(`Deducting ${lyricsCreditCost} credits for lyrics generation success, userId: ${userId}`);
 
               // 扣减歌词生成积分

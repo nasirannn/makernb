@@ -465,6 +465,110 @@ const StudioContent = () => {
     }, [player, togglePlayPause, playTrackById, createTrackObject]);
 
     // ==================== 下载和收藏处理函数 ====================
+    // 辅助函数：下载文件
+    const downloadFile = React.useCallback((blob: Blob, filename: string, format: string) => {
+        const blobUrl = window.URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = blobUrl;
+        link.download = `${filename}.${format}`;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        window.URL.revokeObjectURL(blobUrl);
+    }, []);
+
+    // WAV下载轮询函数
+    const handleWavDownloadWithPolling = React.useCallback(async (
+        track: any,
+        music: any,
+        downloadToast: string | number,
+        accessToken: string
+    ) => {
+        const POLL_INTERVAL = 3000; // 每3秒轮询一次
+        const MAX_POLL_TIME = 180000; // 最大轮询时间：3分钟
+        const startTime = Date.now();
+
+        const pollForWav = async (): Promise<void> => {
+            try {
+                const response = await fetch(`/api/download-track?trackId=${track.id}&format=wav`, {
+                    headers: {
+                        'Authorization': `Bearer ${accessToken}`
+                    }
+                });
+                
+                // 检查是否超时
+                if (Date.now() - startTime > MAX_POLL_TIME) {
+                    toast.error('WAV generation timeout', {
+                        id: downloadToast,
+                        description: 'WAV conversion is taking longer than expected. Please try again later.'
+                    });
+                    return;
+                }
+
+                if (response.status === 202) {
+                    // WAV正在生成中，继续轮询
+                    const data = await response.json();
+                    if (data.status === 'generating') {
+                        toast.loading('Generating WAV...', {
+                            id: downloadToast,
+                            description: 'WAV conversion in progress. Please wait...'
+                        });
+                        
+                        // 继续轮询
+                        setTimeout(pollForWav, POLL_INTERVAL);
+                        return;
+                    } else {
+                        throw new Error(data.error || data.message || 'WAV generation failed');
+                    }
+                } else if (response.status === 200) {
+                    // WAV已准备好，检查响应类型
+                    const contentType = response.headers.get('content-type');
+                    
+                    if (contentType?.includes('application/json')) {
+                        // 可能是fallback模式或错误
+                        const data = await response.json();
+                        if (data.fallback && data.wavUrl) {
+                            // Fallback模式：直接下载原始URL
+                            const wavResponse = await fetch(data.wavUrl);
+                            if (!wavResponse.ok) {
+                                throw new Error(`Failed to fetch WAV: ${wavResponse.status}`);
+                            }
+                            const blob = await wavResponse.blob();
+                            downloadFile(blob, music.title || 'track', 'wav');
+                            toast.success('Download started!', {
+                                id: downloadToast,
+                                description: `${music.title || 'track'}.wav`
+                            });
+                        } else {
+                            throw new Error(data.error || 'Download failed');
+                        }
+                    } else {
+                        // 正常模式：直接获取WAV文件
+                        const blob = await response.blob();
+                        downloadFile(blob, music.title || 'track', 'wav');
+                        toast.success('Download started!', {
+                            id: downloadToast,
+                            description: `${music.title || 'track'}.wav`
+                        });
+                    }
+                } else {
+                    // 其他错误状态
+                    const errorData = await response.json().catch(() => ({}));
+                    throw new Error(errorData.message || errorData.error || `HTTP error! status: ${response.status}`);
+                }
+            } catch (error) {
+                console.error('WAV download polling error:', error);
+                toast.error('WAV download failed', {
+                    id: downloadToast,
+                    description: error instanceof Error ? error.message : 'Unable to download WAV file'
+                });
+            }
+        };
+
+        // 开始首次请求
+        await pollForWav();
+    }, [downloadFile]);
+
     const handleDownload = React.useCallback(async (track: any, music: any, format: 'mp3' | 'wav' = 'mp3') => {
         if (!track.id) {
             toast.error('Track ID is required');
@@ -490,6 +594,13 @@ const StudioContent = () => {
                 description: 'Preparing your file...'
             });
 
+            // WAV格式需要处理轮询逻辑
+            if (format === 'wav') {
+                await handleWavDownloadWithPolling(track, music, downloadToast, session.access_token);
+                return;
+            }
+
+            // MP3格式直接下载
             // 使用新的下载API（后端仍然会验证权限），添加格式参数和认证headers
             const response = await fetch(`/api/download-track?trackId=${track.id}&format=${format}`, {
                 headers: {
@@ -513,28 +624,14 @@ const StudioContent = () => {
                         throw new Error(`Failed to fetch audio: ${audioResponse.status}`);
                     }
                     const blob = await audioResponse.blob();
-                    const blobUrl = window.URL.createObjectURL(blob);
-                    const link = document.createElement('a');
-                    link.href = blobUrl;
-                    link.download = `${music.title || 'track'}.${format}`;
-                    document.body.appendChild(link);
-                    link.click();
-                    document.body.removeChild(link);
-                    window.URL.revokeObjectURL(blobUrl);
+                    downloadFile(blob, music.title || 'track', format);
                 } else {
                     throw new Error(data.error || 'Download failed');
                 }
             } else {
                 // 正常模式：直接获取音频文件
                 const blob = await response.blob();
-                const blobUrl = window.URL.createObjectURL(blob);
-                const link = document.createElement('a');
-                link.href = blobUrl;
-                link.download = `${music.title || 'track'}.${format}`;
-                document.body.appendChild(link);
-                link.click();
-                document.body.removeChild(link);
-                window.URL.revokeObjectURL(blobUrl);
+                downloadFile(blob, music.title || 'track', format);
             }
             
             // 更新 toast 为成功状态
@@ -548,7 +645,7 @@ const StudioContent = () => {
                 description: error instanceof Error ? error.message : 'Unable to download file'
             });
         }
-    }, []);
+    }, [downloadFile, handleWavDownloadWithPolling]);
 
     const handleFavoriteToggle = React.useCallback(async (track: any, music: any) => {
         if (!user?.id) {

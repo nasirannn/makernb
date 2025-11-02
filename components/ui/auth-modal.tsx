@@ -20,6 +20,7 @@ interface AuthModalProps {
 export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
   const [email, setEmail] = useState('');
   const [loading, setLoading] = useState(false);
+  const [isGoogleAuthLoading, setIsGoogleAuthLoading] = useState(false);
   const [message, setMessage] = useState('');
   const [showCodeInput, setShowCodeInput] = useState(false);
   const [verificationCode, setVerificationCode] = useState('');
@@ -44,6 +45,7 @@ export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
       setShowCodeInput(false);
       setMessage('');
       setLoading(false);
+      setIsGoogleAuthLoading(false);
       setCaptchaToken(undefined);
     }
   }, [isOpen]);
@@ -152,7 +154,7 @@ export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
   };
 
   const handleGoogleAuth = async () => {
-    setLoading(true);
+    setIsGoogleAuthLoading(true);
     try {
       const currentPath = window.location.pathname;
       const { error } = await supabase.auth.signInWithOAuth({
@@ -164,7 +166,7 @@ export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
       if (error) throw error;
     } catch (error: any) {
       setMessage(error instanceof Error ? error.message : 'Unknown error');
-      setLoading(false);
+      setIsGoogleAuthLoading(false);
     }
   };
 
@@ -269,10 +271,10 @@ export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
             {/* Google Sign In */}
                 <Button
                   onClick={handleGoogleAuth}
-                  disabled={loading}
+                  disabled={isGoogleAuthLoading || loading}
                   className="w-full h-11 md:h-12 bg-white hover:bg-white/90 text-black font-medium rounded-xl transition-all duration-200 disabled:opacity-50 text-sm md:text-base"
                 >
-              {loading ? (
+              {isGoogleAuthLoading ? (
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />
               ) : (
                 <svg className="mr-2 h-4 w-4" viewBox="0 0 24 24">
@@ -356,10 +358,10 @@ export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
               
               <Button
                 type="submit"
-                disabled={loading || (!showCodeInput && !canSendCode)}
+                disabled={(loading || isGoogleAuthLoading) || (!showCodeInput && !canSendCode)}
                 className="w-full h-11 md:h-12 bg-primary hover:bg-primary/90 text-primary-foreground font-medium rounded-xl transition-all duration-200 disabled:opacity-50 text-sm md:text-base"
               >
-                {loading ? (
+                {loading && !isGoogleAuthLoading ? (
                   <LoadingDots size="sm" color="white" className="mr-2" />
                 ) : null}
                 {showCodeInput

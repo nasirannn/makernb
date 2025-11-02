@@ -5,6 +5,7 @@ import { createGenerationError } from '@/lib/generation-errors-db';
 import { addUserCredits } from '@/lib/user-db';
 import { downloadFromUrl, uploadAudioFile, uploadCoverImage } from '@/lib/r2-storage';
 import { query } from '@/lib/db-query-builder';
+import { getMusicCredits } from '@/lib/credits-config';
 
 // Cache for processed tasks to handle idempotency
 const processedTasks = new Set<string>();
@@ -544,7 +545,8 @@ async function processCallbackAsync(callbackData: any, callbackId: string) {
               [taskId]
             );
 
-            let creditCost = parseInt(process.env.BASIC_MODE_CREDITS || '7'); // 默认 Basic Mode 的积分消耗
+            // 优先从数据库获取已扣除的积分（最准确）
+            let creditCost = getMusicCredits('basic'); // 默认 Basic Mode 的积分消耗
             if (creditTransactionResult.rows.length > 0) {
               // 消费记录是负数，退款应该是正数
               creditCost = Math.abs(creditTransactionResult.rows[0].amount);

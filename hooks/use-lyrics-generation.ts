@@ -39,7 +39,8 @@ export const useLyricsGeneration = () => {
     if (creditsResponse.ok) {
       const creditsData = await creditsResponse.json();
       const userCredits = creditsData.user?.credits || 0;
-      const lyricsCreditCost = parseFloat(process.env.NEXT_PUBLIC_LYRICS_GENERATION_CREDITS || '0.4');
+      const { CLIENT_FEATURE_CREDITS } = await import('@/lib/credits-config');
+      const lyricsCreditCost = CLIENT_FEATURE_CREDITS.generate_lyrics.credits;
       if (userCredits < lyricsCreditCost) {
         toast("Insufficient credits for lyrics generation", {
           description: `You need ${lyricsCreditCost} credits to generate lyrics. Purchase more credits or wait for daily bonus.`

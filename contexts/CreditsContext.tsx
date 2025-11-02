@@ -130,10 +130,11 @@ export function CreditsProvider({ children }: { children: React.ReactNode }) {
 
   const consumeCredit = (modelVersion: string = 'V3_5') => {
     // 这个函数现在只用于前端检查，实际扣减在后端进行
-    let creditCost = parseInt(process.env.NEXT_PUBLIC_BASIC_MODE_CREDITS || '7'); // Basic Mode 默认积分
+    const { CLIENT_MUSIC_CREDITS } = require('@/lib/credits-config');
+    let creditCost = CLIENT_MUSIC_CREDITS.basic; // Basic Mode 默认积分
     
     if (modelVersion.startsWith('V4')) {
-      creditCost = parseInt(process.env.NEXT_PUBLIC_CUSTOM_MODE_CREDITS || '12'); // Custom Mode 积分
+      creditCost = CLIENT_MUSIC_CREDITS.custom; // Custom Mode 积分
     }
     
     // 如果积分还未加载，返回false（不允许生成）

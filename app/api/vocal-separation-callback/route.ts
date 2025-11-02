@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { query } from '@/lib/db-query-builder';
 import { addUserCredits } from '@/lib/user-db';
 import { updateVocalSeparationByPredictionId } from '@/lib/vocal-separation-db';
+import { getFeatureCredits } from '@/lib/credits-config';
 
 // Cache for processed predictions to handle idempotency
 const processedPredictions = new Set<string>();
@@ -34,7 +35,7 @@ export async function POST(request: NextRequest) {
       
       if (userId) {
         // 扣除积分
-        const creditCost = parseInt(process.env.VOCAL_SEPARATION_CREDITS || '3');
+        const creditCost = getFeatureCredits('vocal_separation');
         await addUserCredits(
           userId, 
           -creditCost, 

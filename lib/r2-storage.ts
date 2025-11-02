@@ -139,6 +139,41 @@ export async function uploadAudioFile(
 }
 
 /**
+ * 上传WAV文件到R2
+ */
+export async function uploadWavFile(
+  buffer: Buffer,
+  taskId: string,
+  filename: string,
+  userId: string
+): Promise<string> {
+  try {
+    const key = `wav/${userId}/${taskId}/${filename}`;
+    
+    const command = new PutObjectCommand({
+      Bucket: BUCKET_NAME,
+      Key: key,
+      Body: buffer,
+      ContentType: 'audio/wav',
+      Metadata: {
+        taskId,
+        userId,
+        type: 'wav'
+      }
+    });
+
+    await r2Client.send(command);
+    
+    // 返回公开访问URL
+    const publicUrl = `${PUBLIC_DOMAIN}/${key}`;
+    return publicUrl;
+  } catch (error) {
+    console.error('Error uploading WAV file:', error);
+    throw error;
+  }
+}
+
+/**
  * 上传封面图片到R2
  */
 export async function uploadCoverImage(

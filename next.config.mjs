@@ -2,9 +2,9 @@ import createMDX from '@next/mdx';
 
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  // 确保所有 URL 都带有尾部斜杠
-  // Next.js 会自动处理重定向，无需额外的 redirect 规则
-  trailingSlash: true,
+  // 默认不使用尾部斜杠，但主页需要保留尾部斜杠
+  // middleware 会处理主页的尾部斜杠重定向
+  trailingSlash: false,
   async headers() {
     return [
       {

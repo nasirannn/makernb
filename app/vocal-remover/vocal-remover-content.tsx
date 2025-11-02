@@ -21,6 +21,7 @@ import {
   AccordionItem,
   AccordionTrigger,
 } from "@/components/ui/accordion";
+import { CLIENT_FEATURE_CREDITS } from '@/lib/credits-config';
 
 export default function VocalSeparationDemo() {
   const { separations } = useVocalSeparation();
@@ -576,7 +577,7 @@ export default function VocalSeparationDemo() {
               )}
             </Button>
             <div className="text-center text-sm text-muted-foreground">
-              <p>Estimated time: 1~3 minutes • This action will cost {process.env.NEXT_PUBLIC_VOCAL_SEPARATION_CREDITS || '3'} credits</p>
+              <p>Estimated time: 1~3 minutes • This action will cost {CLIENT_FEATURE_CREDITS.vocal_separation.credits} credits</p>
             </div>
           </div>
 

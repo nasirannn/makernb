@@ -7,10 +7,10 @@ export const metadata: Metadata = {
   title: "MakeRNB Blog - R&B Music Knowledge & History",
   description: "MakeRNB lets you instantly create and download professional R&B songs with AI. Explore Neo-Soul, Quiet Storm & more — free, online, and easy to use.",
   alternates: {
-    canonical: 'https://makernb.com/blog/',
+    canonical: 'https://makernb.com/blog',
   },
   openGraph: {
-    url: 'https://makernb.com/blog/',
+    url: 'https://makernb.com/blog',
   },
 };
 

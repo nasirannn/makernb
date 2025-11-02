@@ -127,6 +127,40 @@ export const hasFeaturePermission = async (
 };
 
 /**
+ * 通过 feature ID 检查用户是否有某个功能的权限
+ * 直接使用 tier_id 和 feature_id 查询，避免不必要的 JOIN 操作
+ */
+export const hasFeaturePermissionById = async (
+  userId: string,
+  featureId: string
+): Promise<boolean> => {
+  try {
+    // 获取用户的 tier_id
+    const tierId = await getUserTierId(userId);
+    
+    if (!tierId) {
+      return false;
+    }
+
+    // 直接使用 tier_id 和 feature_id 查询功能权限
+    const result = await query(
+      `SELECT tf.id 
+       FROM tier_features tf
+       WHERE tf.feature_id = $1::uuid 
+       AND tf.tier_id = $2::uuid
+       AND tf.is_enabled = TRUE`,
+      [featureId, tierId]
+    );
+
+    return result.rows.length > 0;
+  } catch (error) {
+    console.error(`[FEATURE-PERMISSIONS] Error checking feature permission for feature ID ${featureId}:`, error);
+    // 出错时返回 false，确保安全
+    return false;
+  }
+};
+
+/**
  * 批量检查用户的多个功能权限
  * 直接使用 tier_id 查询，避免不必要的 JOIN 操作
  */

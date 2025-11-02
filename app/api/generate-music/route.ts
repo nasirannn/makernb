@@ -4,6 +4,7 @@ import { createMusicGeneration } from '@/lib/music-db';
 import { createGenerationError } from '@/lib/generation-errors-db';
 import { consumeUserCredit } from '@/lib/user-db';
 import { getUserIdFromRequest } from '@/lib/auth';
+import { getMusicModel, getMusicCredits } from '@/lib/credits-config';
 
 export const dynamic = 'force-dynamic';
 
@@ -49,9 +50,10 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // 根据模式确定积分成本
-    const modelVersion = mode === 'custom' ? (process.env.CUSTOM_MODE_MODEL || 'V4_5') : (process.env.BASIC_MODE_MODEL || 'V3_5');
-    const creditCost = mode === 'custom' ? parseInt(process.env.CUSTOM_MODE_CREDITS || '12') : parseInt(process.env.BASIC_MODE_CREDITS || '7');
+    // 根据模式确定积分成本和模型版本
+    const musicMode = mode === 'custom' ? 'custom' : 'basic';
+    const modelVersion = getMusicModel(musicMode);
+    const creditCost = getMusicCredits(musicMode);
 
     try {
       const { query } = await import('@/lib/db-query-builder');

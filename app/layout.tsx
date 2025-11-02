@@ -7,6 +7,8 @@ import { NavbarWrapper } from "@/components/layout/navbar-wrapper";
 import { AuthProvider } from "@/contexts/AuthContext";
 import { CreditsProvider } from "@/contexts/CreditsContext";
 import { FeaturePermissionsProvider } from "@/contexts/FeaturePermissionsContext";
+import { PricingModalProvider } from "@/contexts/PricingModalContext";
+import { PricingModal } from "@/components/ui/pricing-modal";
 import { Toaster } from "@/components/ui/sonner";
 import { Inter } from 'next/font/google';
 
@@ -72,16 +74,20 @@ export default function RootLayout({
         <AuthProvider>
           <CreditsProvider>
             <FeaturePermissionsProvider>
-              <ThemeProvider>
-                <NavbarWrapper />
+              <PricingModalProvider>
+                <ThemeProvider>
+                  <NavbarWrapper />
 
-                {children}
-                
-                <Toaster
-                  position="top-right"
-                  expand={false}
-                />
-              </ThemeProvider>
+                  {children}
+                  
+                  <PricingModal />
+                  
+                  <Toaster
+                    position="top-right"
+                    expand={false}
+                  />
+                </ThemeProvider>
+              </PricingModalProvider>
             </FeaturePermissionsProvider>
           </CreditsProvider>
         </AuthProvider>
