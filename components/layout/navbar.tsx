@@ -194,7 +194,7 @@ export const Navbar = ({ credits = null }: NavbarProps) => {
 
   return (
     <header 
-      className={`w-full flex items-center px-6 lg:px-20 py-3 absolute top-0 left-0 ${getZIndexClass('NAVBAR')}`}
+      className={`w-full flex items-center px-6 lg:px-20 py-3 lg:py-4 absolute top-0 left-0 ${getZIndexClass('NAVBAR')}`}
     >
       <Link href="/" className="font-bold text-lg flex items-center text-foreground">
         <Image
@@ -208,7 +208,7 @@ export const Navbar = ({ credits = null }: NavbarProps) => {
       </Link>
       
       {/* <!-- Desktop Navigation --> */}
-      <nav className="hidden lg:block absolute left-1/2 transform -translate-x-1/2">
+      <nav className="hidden lg:block ml-8">
         <ul className="flex items-center space-x-2">
           {routeList.map(({ href, label, hasDropdown, dropdownItems }) => {
             const isActive = pathname === href ||
@@ -370,7 +370,7 @@ export const Navbar = ({ credits = null }: NavbarProps) => {
                     size="default" 
                     className="w-full bg-primary hover:bg-primary/90 text-primary-foreground px-6 py-1.5 rounded-lg font-medium"
                   >
-                    Get Started
+                    Sign In
                   </Button>
                 </div>
               )}
@@ -517,9 +517,9 @@ export const Navbar = ({ credits = null }: NavbarProps) => {
           <Button 
             onClick={() => setIsAuthModalOpen(true)}
             size="default" 
-            className="bg-primary hover:bg-primary/90 text-primary-foreground px-6 py-2 rounded-lg font-medium h-10"
+            className="bg-primary hover:bg-primary/90 text-primary-foreground px-4 py-2 rounded-lg font-medium h-10"
           >
-            Get Started
+            Sign In
           </Button>
         )}
       </div>
