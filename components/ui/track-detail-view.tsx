@@ -173,7 +173,21 @@ export const TrackDetailView: React.FC<TrackDetailViewProps> = ({
           
           // API 返回 { success: true, track: {...} } 格式
           if (data.success && data.track) {
-            setTrackInfo(data.track);
+            const apiTrack = data.track;
+            setTrackInfo({
+              id: apiTrack.id,
+              title: apiTrack.title,
+              tags: apiTrack.tags || '',
+              lyrics: apiTrack.lyrics || '',
+              coverImage: apiTrack.coverImage,
+              audioUrl: apiTrack.audioUrl || '',
+              createdAt: apiTrack.createdAt,
+              duration: apiTrack.duration?.toString() || '0',
+              isPublished: apiTrack.isPublished || false,
+              isFavorited: apiTrack.isFavorited || false,
+              userId: apiTrack.userId,
+              status: apiTrack.status
+            });
           } else {
             throw new Error('Invalid response format');
           }

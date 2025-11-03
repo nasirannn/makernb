@@ -550,15 +550,12 @@ class MusicApiService {
     // middleware 会统一将带尾部斜杠的 URL 重定向到不带尾部斜杠的版本
     const baseUrl = process.env.CallBackURL?.replace(/\/$/, ''); // 移除基础 URL 的尾部斜杠
     const callBackUrl = request.callBackUrl || `${baseUrl}/api/wav-callback`; // API 路由不使用尾部斜杠
-    console.log(`[WAV-CONVERSION] Callback URL configured: ${callBackUrl}`);
     
     const apiParams = {
       taskId: request.taskId,
       audioId: request.audioId,
       callBackUrl: callBackUrl,
     };
-    
-    console.log(`[WAV-CONVERSION] Sending API request with params:`, JSON.stringify(apiParams, null, 2));
     
     const response = await this.fetchWithRetry(`${this.baseUrl}/api/v1/wav/generate`, {
       method: 'POST',

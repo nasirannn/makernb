@@ -46,8 +46,6 @@ export const LyricsPanel: React.FC<LyricsPanelProps> = ({
 
   // 预加载封面图片 - 简化逻辑
   useEffect(() => {
-    console.log('[LyricsPanel] coverImage changed:', coverImage);
-    
     if (!coverImage) {
       setCurrentCoverUrl(undefined);
       return;
@@ -60,7 +58,6 @@ export const LyricsPanel: React.FC<LyricsPanelProps> = ({
 
     const img = new window.Image();
     img.onload = () => {
-      console.log('[LyricsPanel] Cover loaded:', coverImage);
       setCurrentCoverUrl(coverImage);
     };
     img.onerror = () => {

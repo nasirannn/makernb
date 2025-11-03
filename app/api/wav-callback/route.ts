@@ -17,25 +17,12 @@ const processedWavTasks = new Set<string>();
  */
 export async function POST(request: NextRequest) {
   const callbackId = `wav_callback_${Date.now()}_${Math.random().toString(36).substring(2, 11)}`;
-  
-  // 记录详细的请求信息
-  const url = request.url;
-  const method = request.method;
-  const headers = Object.fromEntries(request.headers.entries());
-  
-  console.log(`[WAV-CALLBACK-${callbackId}] ========================================`);
-  console.log(`[WAV-CALLBACK-${callbackId}] WAV callback received`);
-  console.log(`[WAV-CALLBACK-${callbackId}] Method: ${method}`);
-  console.log(`[WAV-CALLBACK-${callbackId}] URL: ${url}`);
-  console.log(`[WAV-CALLBACK-${callbackId}] Headers:`, JSON.stringify(headers, null, 2));
 
   try {
     // 1. 快速响应 - 必须在15秒内返回响应
     const callbackData = await request.json();
     const { code, msg, data } = callbackData;
     const taskId = data?.task_id;
-
-    console.log(`[WAV-CALLBACK-${callbackId}] Processing callback: ${taskId}, code: ${code}`);
 
     // 验证回调数据
     if (!taskId) {
@@ -49,7 +36,6 @@ export async function POST(request: NextRequest) {
     // 幂等处理 - 避免重复处理同一回调
     const taskKey = `${taskId}_${code}`;
     if (processedWavTasks.has(taskKey)) {
-      console.log(`[WAV-CALLBACK-${callbackId}] Already processed`);
       return NextResponse.json({ status: 'received' });
     }
 
@@ -83,7 +69,6 @@ export async function POST(request: NextRequest) {
 
 // 添加 OPTIONS 方法支持 CORS 预检请求
 export async function OPTIONS(request: NextRequest) {
-  console.log(`[WAV-CALLBACK] OPTIONS request received from: ${request.url}`);
   return NextResponse.json(null, {
     status: 200,
     headers: {
@@ -98,8 +83,6 @@ export async function OPTIONS(request: NextRequest) {
  * 异步处理 WAV 转换回调的核心函数
  */
 async function processWavCallbackAsync(callbackData: any, callbackId: string) {
-  console.log(`[WAV-CALLBACK-${callbackId}] Starting async processing`);
-
   try {
     const { code, msg, data } = callbackData;
     const taskId = data?.task_id;
@@ -111,8 +94,6 @@ async function processWavCallbackAsync(callbackData: any, callbackId: string) {
       console.error(`[WAV-CALLBACK-${callbackId}] WAV conversion record not found for taskId: ${taskId}`);
       return;
     }
-
-    console.log(`[WAV-CALLBACK-${callbackId}] Found WAV conversion record for taskId: ${taskId}, trackId: ${conversion.track_id}`);
 
     // 处理不同的状态码
     if (code === 200) {
@@ -126,8 +107,6 @@ async function processWavCallbackAsync(callbackData: any, callbackId: string) {
         });
         return;
       }
-
-      console.log(`[WAV-CALLBACK-${callbackId}] WAV conversion completed for taskId: ${taskId}, wavUrl: ${wavUrl}`);
 
       try {
         // 获取track信息以获取user_id
@@ -163,34 +142,25 @@ async function processWavCallbackAsync(callbackData: any, callbackId: string) {
           wav_url: wavUrl,
           status: 'complete'
         });
-        console.log(`[WAV-CALLBACK-${callbackId}] Saved temporary WAV URL for immediate download`);
 
         // 第二步：异步下载并上传到 R2（不阻塞回调响应）
         // 使用 setImmediate 确保回调已返回，然后再处理持久化
         setImmediate(async () => {
           try {
-            console.log(`[WAV-CALLBACK-${callbackId}] Starting async R2 upload for taskId: ${taskId}`);
-            
             // 下载WAV文件并上传到R2
-            console.log(`[WAV-CALLBACK-${callbackId}] Downloading WAV file from: ${wavUrl}`);
             const wavBuffer = await downloadFromUrl(wavUrl);
-            console.log(`[WAV-CALLBACK-${callbackId}] Downloaded WAV file, size: ${wavBuffer.length} bytes`);
 
             // 生成文件名
             const timestamp = Date.now();
             const filename = `${trackTitle.replace(/[^a-zA-Z0-9]/g, '_')}_${timestamp}.wav`;
 
             // 上传到R2
-            console.log(`[WAV-CALLBACK-${callbackId}] Uploading WAV file to R2...`);
             const r2Url = await uploadWavFile(wavBuffer, taskId, filename, userId);
-            console.log(`[WAV-CALLBACK-${callbackId}] Uploaded WAV file to R2: ${r2Url}`);
 
             // 更新数据库记录：保存 R2 URL 到 wav_r2_url 字段
             await updateTrackWavConversionByTaskId(taskId, {
               wav_r2_url: r2Url
             });
-
-            console.log(`[WAV-CALLBACK-${callbackId}] Updated WAV conversion record with R2 URL for taskId: ${taskId}`);
           } catch (r2Error) {
             console.error(`[WAV-CALLBACK-${callbackId}] Error during async R2 upload:`, r2Error);
             // R2 上传失败不影响已保存的临时 URL，用户仍可下载
@@ -200,7 +170,6 @@ async function processWavCallbackAsync(callbackData: any, callbackId: string) {
         // 扣除积分（WAV转换成功即可扣除，不等待R2上传）
         try {
           const wavCreditCost = getFeatureCredits('convert_to_wav');
-          console.log(`[WAV-CALLBACK-${callbackId}] Deducting ${wavCreditCost} credits for WAV conversion, userId: ${userId}`);
           
           const creditConsumed = await consumeUserCredit(
             userId,
@@ -210,9 +179,7 @@ async function processWavCallbackAsync(callbackData: any, callbackId: string) {
             'wav_conversion'
           );
 
-          if (creditConsumed) {
-            console.log(`[WAV-CALLBACK-${callbackId}] Successfully deducted ${wavCreditCost} credits for WAV conversion task ${taskId}`);
-          } else {
+          if (!creditConsumed) {
             console.warn(`[WAV-CALLBACK-${callbackId}] Failed to deduct credits for WAV conversion task ${taskId} - insufficient credits`);
           }
         } catch (error) {
@@ -228,7 +195,6 @@ async function processWavCallbackAsync(callbackData: any, callbackId: string) {
             wav_url: wavUrl,
             status: 'complete'
           });
-          console.log(`[WAV-CALLBACK-${callbackId}] Fallback: Saved original WAV URL to database`);
         } catch (fallbackError) {
           console.error(`[WAV-CALLBACK-${callbackId}] Failed to save fallback URL:`, fallbackError);
         }
@@ -241,8 +207,6 @@ async function processWavCallbackAsync(callbackData: any, callbackId: string) {
       await updateTrackWavConversionByTaskId(taskId, {
         status: 'error'
       });
-
-      console.log(`[WAV-CALLBACK-${callbackId}] Updated WAV conversion status to error for taskId: ${taskId}`);
 
     } else {
       // 其他错误状态码

@@ -294,6 +294,28 @@ const LibraryContent = () => {
                         /* 歌曲详情视图 */
                         <TrackDetailView 
                             trackId={selectedTrackId}
+                            trackData={
+                                (() => {
+                                    const foundTrack = tracks.find(t => t.id === selectedTrackId);
+                                    if (foundTrack) {
+                                        return {
+                                            id: foundTrack.id,
+                                            title: foundTrack.title,
+                                            tags: foundTrack.tags || '',
+                                            lyrics: foundTrack.lyrics || '',
+                                            coverImage: foundTrack.coverImage || null,
+                                            audioUrl: foundTrack.audioUrl || '',
+                                            createdAt: foundTrack.created_at,
+                                            duration: foundTrack.duration?.toString() || '0',
+                                            isPublished: foundTrack.is_published || false,
+                                            isFavorited: foundTrack.is_favorited || false,
+                                            userId: undefined,
+                                            status: 'complete'
+                                        };
+                                    }
+                                    return undefined;
+                                })()
+                            }
                             onBack={handleBackToList}
                             // currentPlayingTrackId 和 isPlaying 通过 EventBus 自动获取
                             onPlayTrack={(trackInfo) => {

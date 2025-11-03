@@ -11,9 +11,11 @@ export async function GET(
   { params }: { params: { trackId: string } }
 ) {
   try {
-    const trackId = params.trackId;
+    // 使用解构方式获取 trackId，与其他路由保持一致
+    const { trackId } = params;
 
     if (!trackId) {
+      console.error('Track info API: trackId is missing from params');
       return NextResponse.json(
         { error: 'Track ID is required' },
         { status: 400 }
@@ -56,8 +58,9 @@ export async function GET(
     );
 
     if (trackResult.rows.length === 0) {
+      console.warn(`Track info API: Track not found for trackId: ${trackId}`);
       return NextResponse.json(
-        { error: 'Track not found' },
+        { error: 'Track not found', trackId },
         { status: 404 }
       );
     }
@@ -107,11 +110,12 @@ export async function GET(
 
   } catch (error) {
     console.error('Get track info error:', error);
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
 
     return NextResponse.json(
       {
         error: 'Failed to get track info',
-        details: error instanceof Error ? error.message : 'Unknown error'
+        details: errorMessage
       },
       { status: 500 }
     );

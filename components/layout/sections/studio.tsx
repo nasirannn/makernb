@@ -1248,6 +1248,56 @@ const StudioContent = () => {
                         /* Track Detail View - Responsive */
                         <TrackDetailView 
                             trackId={selectedTrackId}
+                            trackData={
+                                (() => {
+                                    const generatedTrack = generatedTracks.find(t => t.id === selectedTrackId);
+                                    if (generatedTrack) {
+                                        return {
+                                            id: generatedTrack.id,
+                                            title: generatedTrack.title,
+                                            tags: generatedTrack.tags || '',
+                                            lyrics: generatedTrack.lyrics || '',
+                                            coverImage: generatedTrack.coverImage || null,
+                                            audioUrl: generatedTrack.audioUrl || '',
+                                            createdAt: generatedTrack.createdAt || new Date().toISOString(),
+                                            duration: generatedTrack.duration?.toString() || '0',
+                                            isPublished: false,
+                                            isFavorited: (generatedTrack as any).is_favorited || false,
+                                            userId: user?.id,
+                                            status: generatedTrack.isCompleted ? 'complete' : 'generating'
+                                        };
+                                    }
+                                    
+                                    const foundUserTrack = userTracks
+                                        .flatMap(gen => gen.allTracks || [])
+                                        .find((t: any) => t.id === selectedTrackId);
+                                    
+                                    if (foundUserTrack) {
+                                        const music = userTracks.find(gen => 
+                                            gen.allTracks?.some((t: any) => t.id === selectedTrackId)
+                                        );
+                                        
+                                        if (music) {
+                                            return {
+                                                id: foundUserTrack.id,
+                                                title: music.title || foundUserTrack.title || '',
+                                                tags: music.tags || '',
+                                                lyrics: foundUserTrack.lyrics || music.lyrics || '',
+                                                coverImage: foundUserTrack.cover_r2_url || null,
+                                                audioUrl: foundUserTrack.audio_url || '',
+                                                createdAt: music.created_at || new Date().toISOString(),
+                                                duration: foundUserTrack.duration?.toString() || '0',
+                                                isPublished: music.is_published || false,
+                                                isFavorited: foundUserTrack.is_favorited || false,
+                                                userId: user?.id,
+                                                status: music.status || 'complete'
+                                            };
+                                        }
+                                    }
+                                    
+                                    return undefined;
+                                })()
+                            }
                             onBack={handleBackToList}
                             // currentPlayingTrackId 和 isPlaying 通过 EventBus 自动获取
                             onPlayTrack={(trackInfo) => {

@@ -86,12 +86,6 @@ export const VocalSeparationButtonSimple: React.FC<VocalSeparationButtonProps> =
     try {
       // 这里可以调用快速分离API
       // 暂时显示提示
-      console.log('Starting quick vocal separation...', {
-        trackId,
-        audioId,
-        taskId,
-        trackTitle
-      });
       
       // 模拟处理时间
       setTimeout(() => {
