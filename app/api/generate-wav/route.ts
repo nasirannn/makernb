@@ -3,7 +3,7 @@ import { getUserIdFromRequest } from '@/lib/auth';
 import { hasFeaturePermission } from '@/lib/feature-permissions';
 import { query } from '@/lib/db-query-builder';
 import MusicApiService from '@/lib/music-api';
-import { createTrackWavConversion, getTrackWavConversionsByTrackId } from '@/lib/track-wav-db';
+import { upsertTrackWavConversion, getTrackWavConversionsByTrackId } from '@/lib/track-wav-db';
 
 // 强制动态渲染
 export const dynamic = 'force-dynamic';
@@ -98,17 +98,29 @@ export async function POST(request: NextRequest) {
 
     // 获取所有该track的WAV转换记录（按创建时间倒序）
     const allConversions = await getTrackWavConversionsByTrackId(trackId);
-    const latestConversion = allConversions[0]; // 最新的记录
+    const latestConversionRaw = allConversions[0] as any; // 最新的记录（数据库返回的是蛇形命名）
 
     // 如果存在转换记录，检查状态
-    if (latestConversion) {
+    if (latestConversionRaw) {
+      // 将数据库字段转换为驼峰命名
+      const latestConversion = {
+        id: latestConversionRaw.id,
+        trackId: latestConversionRaw.track_id || latestConversionRaw.trackId,
+        taskId: latestConversionRaw.task_id || latestConversionRaw.taskId,
+        wavUrl: latestConversionRaw.wav_url || latestConversionRaw.wavUrl,
+        wavR2Url: latestConversionRaw.wav_r2_url || latestConversionRaw.wavR2Url,
+        status: latestConversionRaw.status,
+        createdAt: latestConversionRaw.created_at || latestConversionRaw.createdAt,
+        updatedAt: latestConversionRaw.updated_at || latestConversionRaw.updatedAt
+      };
+
       // 1. 正在生成中 - 避免重复创建
       if (latestConversion.status === 'generating') {
         return NextResponse.json({
           success: true,
           data: {
             trackId,
-            taskId: latestConversion.task_id,
+            taskId: latestConversion.taskId,
             status: 'generating',
             message: 'WAV conversion is already in progress'
           }
@@ -116,17 +128,17 @@ export async function POST(request: NextRequest) {
       }
 
       // 2. 已完成 - 优先使用 R2 URL，如果没有则使用临时 URL
-      const availableWavUrl = latestConversion.wav_r2_url || latestConversion.wav_url;
-      if (latestConversion.status === 'complete' && availableWavUrl) {
+      const availableWavUrl = latestConversion.wavR2Url || latestConversion.wavUrl;
+      if (latestConversion.status === 'completed' && availableWavUrl) {
         // 如果有 R2 URL，直接返回（永久链接，不过期）
-        if (latestConversion.wav_r2_url) {
+        if (latestConversion.wavR2Url) {
           return NextResponse.json({
             success: true,
             data: {
               trackId,
-              taskId: latestConversion.task_id,
-              wavUrl: latestConversion.wav_r2_url,
-              status: 'complete',
+            taskId: latestConversion.taskId,
+            wavUrl: latestConversion.wavR2Url,
+              status: 'completed',
               isExisting: true,
               isPersistent: true // 标记为持久化链接
             }
@@ -138,9 +150,9 @@ export async function POST(request: NextRequest) {
           success: true,
           data: {
             trackId,
-            taskId: latestConversion.task_id,
-            wavUrl: latestConversion.wav_url,
-            status: 'complete',
+            taskId: latestConversion.taskId,
+            wavUrl: latestConversion.wavUrl,
+            status: 'completed',
             isExisting: true,
             isPersistent: false // 临时链接
           }
@@ -166,10 +178,10 @@ export async function POST(request: NextRequest) {
       audioId: track.audio_id,
     });
 
-    // 创建数据库记录
-    const conversion = await createTrackWavConversion({
-      track_id: trackId,
-      task_id: result.data.taskId,
+    // 创建或更新数据库记录（使用 upsert 避免重复键错误）
+    const conversion = await upsertTrackWavConversion({
+      trackId: trackId,
+      taskId: result.data.taskId,
       status: 'generating'
     });
 

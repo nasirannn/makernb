@@ -42,7 +42,7 @@ export const VocalSeparationPanel: React.FC<VocalSeparationPanelProps> = ({
 
   const [playingAudio, setPlayingAudio] = useState<string | null>(null);
 
-  // 获取当前轨道的分离记录 - 简化版本，显示所有分离记录
+  // 获取当前轨道的分离记录
   const currentSeparations = separations;
 
   const handleStartSeparation = async () => {
@@ -55,6 +55,7 @@ export const VocalSeparationPanel: React.FC<VocalSeparationPanelProps> = ({
       toast.success('Vocal separation started! Processing time: ~1 minute');
     } catch (error) {
       console.error('Failed to start vocal separation:', error);
+      toast.error('Failed to start vocal separation');
     }
   };
 
@@ -230,7 +231,9 @@ export const VocalSeparationPanel: React.FC<VocalSeparationPanelProps> = ({
                         </AlertDialogHeader>
                         <AlertDialogFooter>
                           <AlertDialogCancel>取消</AlertDialogCancel>
-                          <AlertDialogAction onClick={() => deleteSeparation(separation.id)}>
+                          <AlertDialogAction onClick={() => {
+                            deleteSeparation(separation.id);
+                          }}>
                             删除
                           </AlertDialogAction>
                         </AlertDialogFooter>

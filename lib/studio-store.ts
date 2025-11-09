@@ -97,15 +97,15 @@ export const useStudioStore = create<StudioStore>()(
             tags: completedTracks[0].tags,
             genre: completedTracks[0].genre,
             status: 'completed',
-            created_at: new Date().toISOString(),
+            createdAt: new Date().toISOString(),
             allTracks: completedTracks.map((track: StudioTrack) => ({
               id: track.id,
-              audio_url: track.audioUrl || '',
+              audioUrl: track.audioUrl || '',
               duration: track.duration || 0,
-              cover_r2_url: track.coverImage,
+              coverR2Url: track.coverImage,
               lyrics: track.lyrics,
-              is_deleted: false,
-              is_favorited: track.is_favorited || false
+              isDeleted: false,
+              isFavorited: track.isFavorited || false
             }))
           };
 

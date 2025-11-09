@@ -261,12 +261,12 @@ const processGenerationRows = (rows: any[]): MusicGenerationWithTracks[] => {
     if (row.track_id) {
       const track = {
         id: row.track_id,
-        audio_url: row.audio_url,
+        audioUrl: row.audio_url, // 映射数据库字段为 JavaScript 字段名
         duration: typeof row.duration === 'string' ? parseFloat(row.duration) : (row.duration || 0),
-        cover_r2_url: row.cover_r2_url,
+        coverR2Url: row.cover_r2_url, // 映射数据库字段为 JavaScript 字段名
         lyrics: row.lyrics_content || '',
-        is_deleted: false,
-        is_favorited: false
+        isDeleted: false, // 映射数据库字段为 JavaScript 字段名
+        isFavorited: false // 映射数据库字段为 JavaScript 字段名
       };
 
       generationsMap.get(generationId)!.allTracks.push(track as any);
@@ -338,8 +338,8 @@ const addFavoriteStatusToTracks = async (musicGenerations: MusicGenerationWithTr
       // Add favorite status to each track
       musicGenerations.forEach(generation => {
         generation.allTracks.forEach((track: any) => {
-          track.is_favorited = favoriteStatus[track.id] || false;
-          // is_pinned and is_published are directly from database fields
+          track.isFavorited = favoriteStatus[track.id] || false; // 映射数据库字段为 JavaScript 字段名
+          // isPinned and isPublished are directly from database fields (mapped in query results)
         });
       });
     } catch (error) {

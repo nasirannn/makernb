@@ -13,9 +13,9 @@ import { useAudioPlayer } from '@/hooks/use-audio-player';
 
 interface Track {
   id: string;
-  audio_url: string;
+  audioUrl: string;
   duration: number | string;
-  cover_r2_url?: string;
+  coverR2Url?: string;
 }
 
 interface MusicGeneration {
@@ -211,7 +211,7 @@ export default function ExplorePage() {
 
     const music = playlist[index];
     const trackId = specificTrackId || music.primaryTrack.id;
-    const audioUrl = specificAudioUrl || music.primaryTrack.audio_url;
+    const audioUrl = specificAudioUrl || music.primaryTrack.audioUrl;
 
     // 使用AudioService播放歌曲
     await audioPlayer.playTrack({
@@ -219,7 +219,7 @@ export default function ExplorePage() {
       title: music.title,
       audioUrl: audioUrl,
       duration: typeof music.primaryTrack.duration === 'string' ? parseFloat(music.primaryTrack.duration) : music.primaryTrack.duration,
-      coverImage: music.primaryTrack.cover_r2_url,
+      coverImage: music.primaryTrack.coverR2Url,
       genre: music.genre,
     });
 
@@ -339,7 +339,7 @@ export default function ExplorePage() {
                       {/* Cover Image */}
                       <div className="relative aspect-square overflow-hidden">
                         <SafeImage
-                          src={music.primaryTrack.cover_r2_url || ''}
+                          src={music.primaryTrack.coverR2Url || ''}
                           alt={music.title}
                           fill
                           className="object-cover transition-transform duration-300 group-hover:scale-105"
@@ -362,13 +362,13 @@ export default function ExplorePage() {
                         )}
 
                         {/* Play Button Overlay - 只在有封面图时显示 */}
-                        {music.primaryTrack.cover_r2_url && (
+                        {music.primaryTrack.coverR2Url && (
                           <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-center justify-center">
                             <Button
                               variant="ghost"
                               size="sm"
                               className="h-12 w-12 p-0 bg-white/20 hover:bg-white/30 backdrop-blur-sm"
-                              onClick={() => handlePlayPause(music.primaryTrack.id, music.primaryTrack.audio_url, music)}
+                              onClick={() => handlePlayPause(music.primaryTrack.id, music.primaryTrack.audioUrl, music)}
                             >
                               {currentlyPlaying === music.primaryTrack.id && audioPlayer.isPlaying ? (
                                 <Pause className="h-5 w-5 text-white" />
@@ -456,11 +456,15 @@ export default function ExplorePage() {
               tracks={playlist.map(music => ({
                 id: music.primaryTrack.id,
                 title: music.title,
-                audioUrl: music.primaryTrack.audio_url,
+                audioUrl: music.primaryTrack.audioUrl,
                 duration: typeof music.totalDuration === 'string' ? parseFloat(music.totalDuration) : music.totalDuration,
-                coverImage: music.primaryTrack.cover_r2_url,
+                coverImage: music.primaryTrack.coverR2Url,
                 artist: music.genre,
-                allTracks: music.allTracks
+                allTracks: music.allTracks.map(track => ({
+                  id: track.id,
+                  audioUrl: track.audioUrl,
+                  duration: track.duration
+                }))
               }))}
               currentTrackIndex={playlist.findIndex(music => music.primaryTrack.id === currentlyPlaying)}
               isPlaying={audioPlayer.isPlaying}

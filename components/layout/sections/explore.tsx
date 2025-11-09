@@ -12,9 +12,9 @@ import { useAudioPlayer } from '@/hooks/use-audio-player';
 
 interface Track {
   id: string;
-  audio_url: string;
+  audioUrl?: string;
   duration: number;
-  cover_r2_url?: string;
+  coverR2Url?: string;
   artist?: string;
 }
 
@@ -83,19 +83,19 @@ export const ExploreSection = () => {
           tags: track.tags,
           prompt: track.prompt,
           lyrics: null,
-          createdAt: track.created_at,
-          updatedAt: track.updated_at,
+          createdAt: track.createdAt,
+          updatedAt: track.updatedAt,
           primaryTrack: {
             id: track.id,
-            audio_url: track.audio_url,
+            audioUrl: track.audioUrl || '',
             duration: track.duration,
-            cover_r2_url: track.cover_r2_url
+            coverR2Url: track.coverR2Url || ''
           },
           allTracks: [{
             id: track.id,
-            audio_url: track.audio_url,
+            audioUrl: track.audioUrl || '',
             duration: track.duration,
-            cover_r2_url: track.cover_r2_url
+            coverR2Url: track.coverR2Url || ''
           }],
           totalDuration: track.duration,
           trackCount: 1
@@ -136,7 +136,7 @@ export const ExploreSection = () => {
 
     const music = playlist[index];
     const trackId = specificTrackId || music.primaryTrack.id;
-    const audioUrl = specificAudioUrl || music.primaryTrack.audio_url;
+    const audioUrl = specificAudioUrl || music.primaryTrack.audioUrl || '';
 
     // 使用AudioService播放歌曲
     await audioPlayer.playTrack({
@@ -144,7 +144,7 @@ export const ExploreSection = () => {
       title: music.title,
       audioUrl: audioUrl,
       duration: music.primaryTrack.duration,
-      coverImage: music.primaryTrack.cover_r2_url,
+      coverImage: music.primaryTrack.coverR2Url || '',
       genre: music.genre,
     });
 
@@ -228,13 +228,13 @@ export const ExploreSection = () => {
                 <div
                   key={music.id}
                   className="group cursor-pointer transition-all duration-300"
-                  onClick={() => handlePlayPause(music.primaryTrack.id, music.primaryTrack.audio_url, music)}
+                  onClick={() => handlePlayPause(music.primaryTrack.id, music.primaryTrack.audioUrl || '', music)}
                 >
                   {/* Cover Image */}
                   <div className="relative aspect-square rounded-xl overflow-hidden">
-                    {music.primaryTrack.cover_r2_url ? (
+                    {music.primaryTrack.coverR2Url ? (
                       <SafeImage
-                        src={music.primaryTrack.cover_r2_url}
+                        src={music.primaryTrack.coverR2Url}
                         alt={music.title}
                         fill
                         className="object-cover"
@@ -261,7 +261,7 @@ export const ExploreSection = () => {
                         className="h-12 w-12 p-0 bg-white/20 hover:bg-white/30 backdrop-blur-sm"
                         onClick={(e) => {
                           e.stopPropagation();
-                          handlePlayPause(music.primaryTrack.id, music.primaryTrack.audio_url, music);
+                          handlePlayPause(music.primaryTrack.id, music.primaryTrack.audioUrl || '', music);
                         }}
                       >
                         {currentlyPlaying === music.primaryTrack.id && audioPlayer.isPlaying ? (
@@ -332,11 +332,15 @@ export const ExploreSection = () => {
             tracks={playlist.map(music => ({
               id: music.primaryTrack.id,
               title: music.title,
-              audioUrl: music.primaryTrack.audio_url,
+              audioUrl: music.primaryTrack.audioUrl || '',
               duration: music.totalDuration,
-              coverImage: music.primaryTrack.cover_r2_url,
+              coverImage: music.primaryTrack.coverR2Url || '',
               artist: music.primaryTrack.artist || 'Unknown Artist',
-              allTracks: music.allTracks
+              allTracks: music.allTracks.map(track => ({
+                id: track.id,
+                audioUrl: track.audioUrl || '',
+                duration: track.duration
+              }))
             }))}
             currentTrackIndex={playlist.findIndex(music => music.primaryTrack.id === currentlyPlaying)}
             isPlaying={audioPlayer.isPlaying}

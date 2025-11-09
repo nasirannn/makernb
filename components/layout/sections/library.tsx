@@ -84,9 +84,9 @@ const LibraryContent = () => {
             coverImage: track.coverImage || undefined,
             allTracks: [{
                 id: track.id,
-                audio_url: track.audioUrl,
+                audioUrl: track.audioUrl,
                 duration: track.duration,
-                cover_r2_url: track.coverImage
+                coverR2Url: track.coverImage // 映射为 JavaScript 字段名
             }]
         }));
     }, [tracks]);
@@ -98,27 +98,26 @@ const LibraryContent = () => {
             title: track.title,
             tags: track.tags,
             genre: track.genre,
-            audio_url: track.audioUrl,
             audioUrl: track.audioUrl,
             duration: track.duration,
-            is_published: track.is_published,
-            is_favorited: track.is_favorited,
-            is_pinned: track.is_pinned,
-            cover_r2_url: track.coverImage || undefined,
+            isPublished: track.isPublished ?? false,
+            isFavorited: track.isFavorited ?? false,
+            isPinned: track.isPinned ?? false,
+            coverR2Url: (track as any).coverR2Url || track.coverImage || undefined, // 优先使用新字段名
             coverUrl: track.coverImage || undefined,
             coverImage: track.coverImage || undefined,
             lyrics: track.lyrics,
-            created_at: track.created_at,
-            favorited_at: track.favorited_at,
+            createdAt: track.createdAt ?? new Date().toISOString(),
+            favoritedAt: track.favoritedAt,
             status: 'completed',
             allTracks: [{
                 id: track.id,
-                audio_url: track.audioUrl,
+                audioUrl: track.audioUrl,
                 duration: track.duration,
-                cover_r2_url: track.coverImage || undefined,
+                coverR2Url: (track as any).coverR2Url || track.coverImage || undefined, // 映射为 JavaScript 字段名
                 lyrics: track.lyrics || undefined,
-                is_deleted: false,
-                is_favorited: track.is_favorited
+                isDeleted: false, // 映射为 JavaScript 字段名
+                isFavorited: track.isFavorited ?? false
             }]
         }));
     }, [tracks]);
@@ -171,12 +170,12 @@ const LibraryContent = () => {
         player.playTrack({
             id: track.id,
             title: track.title,
-            audioUrl: track.audioUrl || track.audio_url,
+            audioUrl: track.audioUrl,
             duration: track.duration,
             genre: track.genre,
             lyrics: track.lyrics,
             tags: track.tags,
-            coverImage: track.coverImage || track.cover_r2_url,
+            coverImage: track.coverImage ?? track.coverR2Url,
         });
     }, [player]);
 
@@ -245,9 +244,11 @@ const LibraryContent = () => {
         if (action === 'update') {
             updateTrack(track.id, { title: track.title });
         } else if (action === 'publish_toggle') {
-            updateTrack(track.id, { is_published: !track.is_published });
+            const currentIsPublished = track.isPublished ?? false;
+            updateTrack(track.id, { isPublished: !currentIsPublished });
         } else if (action === 'pin') {
-            updateTrack(track.id, { is_pinned: !track.is_pinned });
+            const currentIsPinned = track.isPinned ?? false;
+            updateTrack(track.id, { isPinned: !currentIsPinned });
         } else if (action === 'delete') {
             // 如果删除的是当前正在查看的歌曲，返回列表
             if (selectedTrackId === track.id) {
@@ -305,10 +306,10 @@ const LibraryContent = () => {
                                             lyrics: foundTrack.lyrics || '',
                                             coverImage: foundTrack.coverImage || null,
                                             audioUrl: foundTrack.audioUrl || '',
-                                            createdAt: foundTrack.created_at,
+                                            createdAt: foundTrack.createdAt ?? new Date().toISOString(),
                                             duration: foundTrack.duration?.toString() || '0',
-                                            isPublished: foundTrack.is_published || false,
-                                            isFavorited: foundTrack.is_favorited || false,
+                                            isPublished: foundTrack.isPublished ?? false,
+                                            isFavorited: foundTrack.isFavorited ?? false,
                                             userId: undefined,
                                             status: 'complete'
                                         };
@@ -414,7 +415,7 @@ const LibraryContent = () => {
                             onPublishToggle={(trackId, isPublished) => {
                                 const track = tracks.find(t => t.id === trackId);
                                 if (track) {
-                                    handleTrackAction({ ...track, is_published: !isPublished }, 'publish_toggle');
+                                    handleTrackAction({ ...track, isPublished: !isPublished }, 'publish_toggle');
                                 }
                             }}
                             onEditTitle={(trackId, newTitle) => {
@@ -432,17 +433,17 @@ const LibraryContent = () => {
                             onPinToggle={(trackId, isPinned) => {
                                 const track = tracks.find(t => t.id === trackId);
                                 if (track) {
-                                    handleTrackAction({ ...track, is_pinned: !isPinned }, 'pin');
+                                    handleTrackAction({ ...track, isPinned: !isPinned }, 'pin');
                                 }
                             }}
                             isFavorited={
-                                tracks.find(t => t.id === selectedTrackId)?.is_favorited || false
+                                tracks.find(t => t.id === selectedTrackId)?.isFavorited ?? false
                             }
                             isPublished={
-                                tracks.find(t => t.id === selectedTrackId)?.is_published || false
+                                tracks.find(t => t.id === selectedTrackId)?.isPublished ?? false
                             }
                             isPinned={
-                                tracks.find(t => t.id === selectedTrackId)?.is_pinned || false
+                                tracks.find(t => t.id === selectedTrackId)?.isPinned ?? false
                             }
                             isAdmin={false}
                             currentUserId={user?.id || null}

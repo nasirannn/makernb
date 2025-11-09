@@ -44,7 +44,7 @@ export const MobileLyricsOverlay = React.memo(({
             lyrics={selectedTrack?.lyrics}
             title={selectedTrack?.title}
             tags={selectedTrack?.tags}
-            coverImage={selectedTrack?.coverImage || selectedTrack?.cover_r2_url || undefined}
+            coverImage={selectedTrack?.coverImage || selectedTrack?.coverR2Url || undefined}
             isGenerating={selectedTrack?.isGenerating || false}
             isPlaying={isPlaying && currentPlayingTrack?.id === selectedTrack?.id}
             currentPlayingTrack={currentPlayingTrack}

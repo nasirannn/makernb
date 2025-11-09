@@ -70,23 +70,23 @@ export async function GET(
     // 构建 track 信息
     const track: TrackInfoResponse = {
       id: row.track_id,
-      suno_track_id: row.suno_track_id,
-      audioUrl: row.audio_url,
-      streamAudioUrl: row.stream_audio_url,
+      sunoTrackId: row.suno_track_id, // 映射数据库字段为 JavaScript 字段名
+      audioUrl: row.audio_url, // 映射数据库字段为 JavaScript 字段名
+      streamAudioUrl: row.stream_audio_url, // 映射数据库字段为 JavaScript 字段名
       duration: row.duration,
-      isPublished: row.is_published,
-      isPinned: row.is_pinned,
-      createdAt: row.track_created_at,
-      coverImage: row.cover_r2_url,
-      generationId: row.generation_id,
+      isPublished: row.is_published, // 映射数据库字段为 JavaScript 字段名
+      isPinned: row.is_pinned, // 映射数据库字段为 JavaScript 字段名
+      createdAt: row.track_created_at, // 映射数据库字段为 JavaScript 字段名
+      coverImage: row.cover_r2_url, // 映射数据库字段为 JavaScript 字段名
+      generationId: row.generation_id, // 映射数据库字段为 JavaScript 字段名
       title: row.title,
       genre: row.genre,
       tags: row.tags,
       prompt: row.prompt,
-      isInstrumental: row.is_instrumental,
+      isInstrumental: row.is_instrumental, // 映射数据库字段为 JavaScript 字段名
       status: row.status,
-      userId: row.user_id,
-      generationCreatedAt: row.generation_created_at,
+      userId: row.user_id, // 映射数据库字段为 JavaScript 字段名
+      generationCreatedAt: row.generation_created_at, // 映射数据库字段为 JavaScript 字段名
       lyrics: row.lyrics_content || '',
       isFavorited: false, // 初始值，稍后会根据用户状态更新
     };

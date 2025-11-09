@@ -11,12 +11,12 @@ export interface BaseTrack {
   streamAudioUrl?: string;
   duration?: number;
   coverImage?: string;
-  cover_r2_url?: string;
+  coverR2Url?: string; // R2存储的封面图片URL（兼容旧字段名 cover_r2_url）
   tags?: string;
   genre?: string;
   lyrics?: string;
   createdAt?: string;
-  is_favorited?: boolean;
+  isFavorited?: boolean;
 }
 
 // 音乐生成相关的Track接口
@@ -38,7 +38,7 @@ export interface AudioPlayerTrack extends BaseTrack {
   taskId?: string;
   allTracks?: Array<{
     id: string;
-    audio_url: string;
+    audioUrl: string;
     duration: number | string;
   }>;
 }
@@ -58,22 +58,22 @@ export interface StudioTrack extends BaseTrack {
 // 库面板相关的Track接口
 export interface LibraryTrack extends BaseTrack {
   status: string;
-  created_at: string;
-  favorited_at?: string; // 收藏时间
-  is_published?: boolean;
-  is_deleted?: boolean;
-  is_pinned?: boolean; // 从admin_pinned表获取
+  createdAt: string; // 创建时间（兼容旧字段名 created_at）
+  favoritedAt?: string; // 收藏时间（兼容旧字段名 favorited_at）
+  isPublished?: boolean; // 是否发布（兼容旧字段名 is_published）
+  isDeleted?: boolean; // 是否删除（兼容旧字段名 is_deleted）
+  isPinned?: boolean; // 是否置顶，从admin_pinned表获取（兼容旧字段名 is_pinned）
   audioUrl?: string; // 主音频文件URL，从allTracks[0]获取
   streamAudioUrl?: string; // 流媒体音频URL
   allTracks: Array<{
     id: string;
     title?: string; // 每个track可以有自己的标题
-    audio_url: string;
+    audioUrl: string;
     duration: number;
-    cover_r2_url?: string;
+    coverR2Url?: string; // R2存储的封面图片URL（兼容旧字段名 cover_r2_url）
     lyrics?: string;
-    is_deleted: boolean;
-    is_favorited?: boolean;
+    isDeleted: boolean; // 是否删除（兼容旧字段名 is_deleted）
+    isFavorited?: boolean; // 是否收藏（兼容旧字段名 is_favorited）
   }>;
 }
 
@@ -85,7 +85,7 @@ export interface ExploreTrack extends BaseTrack {
 // Track详情API响应接口
 export interface TrackInfoResponse {
   id: string;
-  suno_track_id: string | null;
+  sunoTrackId: string | null; // Suno track ID（兼容旧字段名 suno_track_id）
   audioUrl: string | null;
   streamAudioUrl: string | null;
   duration: number | null;
@@ -131,16 +131,16 @@ export function convertToBaseTrack(track: any): BaseTrack {
   return {
     id: track.id || '',
     title: track.title || 'Untitled Track',
-    audioUrl: track.audioUrl || track.audio_url,
+    audioUrl: track.audioUrl || track.audio_url || '', // 兼容旧数据，但优先使用 audioUrl
     streamAudioUrl: track.streamAudioUrl || track.stream_audio_url,
     duration: track.duration,
-    coverImage: track.coverImage || track.cover_image_url || track.cover_r2_url,
-    cover_r2_url: track.cover_r2_url || track.cover_image_url,
+    coverImage: track.coverImage || track.cover_image_url || track.cover_r2_url || track.coverR2Url,
+    coverR2Url: track.coverR2Url || track.cover_r2_url || track.cover_image_url, // 兼容旧字段名
     tags: track.tags,
     genre: track.genre,
     lyrics: track.lyrics,
     createdAt: track.createdAt || track.created_at,
-    is_favorited: track.is_favorited || track.isFavorited,
+    isFavorited: track.isFavorited ?? track.is_favorited ?? false // 兼容旧字段名
   };
 }
 
@@ -152,12 +152,12 @@ export const createDefaultTrack = (id: string, title: string = 'Untitled Track')
   streamAudioUrl: '',
   duration: 0,
   coverImage: '',
-  cover_r2_url: '',
+  coverR2Url: '',
   tags: '',
   genre: '',
   lyrics: '',
   createdAt: new Date().toISOString(),
-  is_favorited: false,
+  isFavorited: false,
 });
 
 // ============================================================================
@@ -170,31 +170,31 @@ export const createDefaultTrack = (id: string, title: string = 'Untitled Track')
  */
 export interface TrackWavConversion {
   id: string;
-  track_id: string;
-  task_id: string; // WAV转换任务的taskId
-  wav_url: string | null; // 接口返回的临时 WAV 文件 URL（可立即下载）
-  wav_r2_url: string | null; // 持久化到 R2 的 WAV 文件 URL（永久链接）
-  status: 'generating' | 'complete' | 'error' | 'expired'; // 转换状态
-  created_at: string;
-  updated_at: string;
+  trackId: string; // 关联的track ID（兼容旧字段名 track_id）
+  taskId: string; // WAV转换任务的taskId（兼容旧字段名 task_id）
+  wavUrl: string | null; // 接口返回的临时 WAV 文件 URL（可立即下载）（兼容旧字段名 wav_url）
+  wavR2Url: string | null; // 持久化到 R2 的 WAV 文件 URL（永久链接）（兼容旧字段名 wav_r2_url）
+  status: 'generating' | 'completed' | 'error' | 'expired'; // 转换状态
+  createdAt: string; // 创建时间（兼容旧字段名 created_at）
+  updatedAt: string; // 更新时间（兼容旧字段名 updated_at）
 }
 
 /**
  * 创建WAV转换记录的数据接口
  */
 export interface CreateTrackWavConversionData {
-  track_id: string;
-  task_id: string;
-  status?: 'generating' | 'complete' | 'error' | 'expired';
-  wav_url?: string | null; // 接口返回的临时 URL
-  wav_r2_url?: string | null; // R2 持久化 URL
+  trackId: string; // 关联的track ID（兼容旧字段名 track_id）
+  taskId: string; // WAV转换任务的taskId（兼容旧字段名 task_id）
+  status?: 'generating' | 'completed' | 'error' | 'expired';
+  wavUrl?: string | null; // 接口返回的临时 URL（兼容旧字段名 wav_url）
+  wavR2Url?: string | null; // R2 持久化 URL（兼容旧字段名 wav_r2_url）
 }
 
 /**
  * 更新WAV转换记录的数据接口
  */
 export interface UpdateTrackWavConversionData {
-  wav_url?: string | null; // 接口返回的临时 URL
-  wav_r2_url?: string | null; // R2 持久化 URL
-  status?: 'generating' | 'complete' | 'error' | 'expired';
+  wavUrl?: string | null; // 接口返回的临时 URL（兼容旧字段名 wav_url）
+  wavR2Url?: string | null; // R2 持久化 URL（兼容旧字段名 wav_r2_url）
+  status?: 'generating' | 'completed' | 'error' | 'expired';
 }

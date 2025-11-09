@@ -120,7 +120,7 @@ export const useMusicGeneration = () => {
     return initialTracks.map((t: any) => ({
       id: t.id,
       generationId: t.generationId || '',
-      sunoTrackId: t.suno_track_id || null,
+      sunoTrackId: t.sunoTrackId || t.suno_track_id || null,
       title: t.title || 'Untitled Track',
       audioUrl: t.audioUrl || '',
       streamAudioUrl: t.streamAudioUrl || '',
@@ -129,7 +129,7 @@ export const useMusicGeneration = () => {
       tags: t.tags || '',
       genre: t.genre || '',
       lyrics: t.lyrics || '',
-      createdAt: t.createdAt || t.created_at || new Date().toISOString(),
+      createdAt: t.createdAt || new Date().toISOString(),
       isGenerating: true, // 初始状态都在生成中
       isCompleted: false, // 初始状态都未完成
       isPlaceholder: false, // 使用真实ID，不是placeholder
@@ -146,7 +146,7 @@ export const useMusicGeneration = () => {
       return {
         id: t.id,
         generationId: t.generationId || generationId || '',
-        sunoTrackId: t.suno_track_id || null, // 保存 suno_track_id 用于匹配
+        sunoTrackId: t.sunoTrackId || t.suno_track_id || null, // 保存 suno_track_id 用于匹配
         title: t.title || 'Untitled Track',
         audioUrl: t.audioUrl || '',
         streamAudioUrl: t.streamAudioUrl || '',

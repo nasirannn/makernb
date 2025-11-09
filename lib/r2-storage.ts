@@ -1,17 +1,39 @@
-import { S3Client, PutObjectCommand, DeleteObjectCommand, ListObjectsV2Command } from '@aws-sdk/client-s3';
+import { S3Client, PutObjectCommand, DeleteObjectCommand, ListObjectsV2Command, HeadObjectCommand } from '@aws-sdk/client-s3';
 
-// R2客户端配置
-export const r2Client = new S3Client({
-  region: 'auto',
-  endpoint: `https://${process.env.R2_ACCOUNT_ID}.r2.cloudflarestorage.com`,
-  credentials: {
-    accessKeyId: process.env.R2_ACCESS_KEY_ID!,
-    secretAccessKey: process.env.R2_SECRET_ACCESS_KEY!,
-  },
+// R2客户端配置（延迟初始化）
+let _r2Client: S3Client | null = null;
+
+function getR2Client(): S3Client {
+  if (!_r2Client) {
+    const accountId = process.env.R2_ACCOUNT_ID;
+    const accessKeyId = process.env.R2_ACCESS_KEY_ID;
+    const secretAccessKey = process.env.R2_SECRET_ACCESS_KEY;
+    
+    if (!accountId || !accessKeyId || !secretAccessKey) {
+      throw new Error('R2 credentials are not set. Please check R2_ACCOUNT_ID, R2_ACCESS_KEY_ID, and R2_SECRET_ACCESS_KEY environment variables.');
+    }
+    
+    _r2Client = new S3Client({
+      region: 'auto',
+      endpoint: `https://${accountId}.r2.cloudflarestorage.com`,
+      credentials: {
+        accessKeyId,
+        secretAccessKey,
+      },
+    });
+  }
+  return _r2Client;
+}
+
+// 导出客户端（保持向后兼容，但延迟初始化）
+export const r2Client = new Proxy({} as S3Client, {
+  get(target, prop) {
+    return getR2Client()[prop as keyof S3Client];
+  }
 });
 
-export const BUCKET_NAME = process.env.R2_BUCKET_NAME;
-const PUBLIC_DOMAIN = process.env.R2_PUBLIC_DOMAIN;
+export const BUCKET_NAME = process.env.R2_BUCKET_NAME || '';
+const PUBLIC_DOMAIN = process.env.R2_PUBLIC_DOMAIN || '';
 
 /**
  * 从URL下载文件（带重试机制）
@@ -46,6 +68,8 @@ export async function downloadFromUrl(url: string, maxRetries = 5): Promise<Buff
         },
         redirect: 'follow',
         keepalive: true,
+        // 禁用缓存，避免 Next.js 尝试缓存超过 2MB 的文件
+        cache: 'no-store',
       });
       
       clearTimeout(timeoutId);
@@ -127,7 +151,7 @@ export async function uploadAudioFile(
       }
     });
 
-    await r2Client.send(command);
+    await getR2Client().send(command);
     
     // 返回公开访问URL
     const publicUrl = `${PUBLIC_DOMAIN}/${key}`;
@@ -148,10 +172,21 @@ export async function uploadWavFile(
   userId: string
 ): Promise<string> {
   try {
+    const bucketName = process.env.R2_BUCKET_NAME || BUCKET_NAME;
+    const publicDomain = process.env.R2_PUBLIC_DOMAIN || PUBLIC_DOMAIN;
+    
+    if (!bucketName) {
+      throw new Error('R2_BUCKET_NAME is not set');
+    }
+    
+    if (!publicDomain) {
+      throw new Error('R2_PUBLIC_DOMAIN is not set');
+    }
+    
     const key = `wav/${userId}/${taskId}/${filename}`;
     
     const command = new PutObjectCommand({
-      Bucket: BUCKET_NAME,
+      Bucket: bucketName,
       Key: key,
       Body: buffer,
       ContentType: 'audio/wav',
@@ -162,10 +197,10 @@ export async function uploadWavFile(
       }
     });
 
-    await r2Client.send(command);
+    await getR2Client().send(command);
     
     // 返回公开访问URL
-    const publicUrl = `${PUBLIC_DOMAIN}/${key}`;
+    const publicUrl = `${publicDomain}/${key}`;
     return publicUrl;
   } catch (error) {
     console.error('Error uploading WAV file:', error);
@@ -197,7 +232,7 @@ export async function uploadCoverImage(
       }
     });
 
-    await r2Client.send(command);
+    await getR2Client().send(command);
     
     // 返回公开访问URL
     return `${PUBLIC_DOMAIN}/${key}`;
@@ -333,6 +368,87 @@ export async function deleteAudioFiles(fileKeys: string[]): Promise<void> {
     await Promise.all(deletePromises);
   } catch (error) {
     console.error('Error deleting audio files:', error);
+    throw error;
+  }
+}
+
+/**
+ * 检查R2文件是否存在
+ */
+export async function checkR2FileExists(key: string): Promise<boolean> {
+  try {
+    const command = new HeadObjectCommand({
+      Bucket: BUCKET_NAME,
+      Key: key
+    });
+    
+    await getR2Client().send(command);
+    return true;
+  } catch (error: any) {
+    // 404 表示文件不存在
+    if (error.name === 'NotFound' || error.$metadata?.httpStatusCode === 404) {
+      return false;
+    }
+    // 其他错误抛出
+    throw error;
+  }
+}
+
+/**
+ * 从R2 URL提取key
+ */
+export function extractKeyFromR2Url(url: string): string | null {
+  try {
+    const urlObj = new URL(url);
+    // 移除开头的斜杠
+    const path = urlObj.pathname.startsWith('/') ? urlObj.pathname.slice(1) : urlObj.pathname;
+    return path || null;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * 根据 taskId 和 userId 查找 R2 中的 WAV 文件
+ * 返回找到的第一个文件的 key 和 URL，如果不存在则返回 null
+ */
+export async function findWavFileByTaskId(
+  taskId: string,
+  userId: string
+): Promise<{ key: string; url: string } | null> {
+  try {
+    const bucketName = process.env.R2_BUCKET_NAME || BUCKET_NAME;
+    const publicDomain = process.env.R2_PUBLIC_DOMAIN || PUBLIC_DOMAIN;
+    
+    if (!bucketName) {
+      throw new Error('R2_BUCKET_NAME is not set');
+    }
+    
+    if (!publicDomain) {
+      throw new Error('R2_PUBLIC_DOMAIN is not set');
+    }
+    
+    // 列出 wav/{userId}/{taskId}/ 下的所有文件
+    const prefix = `wav/${userId}/${taskId}/`;
+    const command = new ListObjectsV2Command({
+      Bucket: bucketName,
+      Prefix: prefix,
+      MaxKeys: 10 // 通常一个 taskId 只有一个文件
+    });
+    
+    const response = await getR2Client().send(command);
+    
+    if (response.Contents && response.Contents.length > 0) {
+      // 返回第一个找到的文件
+      const firstFile = response.Contents[0];
+      const key = firstFile.Key!;
+      const url = `${publicDomain}/${key}`;
+      return { key, url };
+    }
+    
+    return null;
+  } catch (error) {
+    console.error('Error finding WAV file by taskId:', error);
     throw error;
   }
 }

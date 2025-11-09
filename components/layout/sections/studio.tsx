@@ -27,6 +27,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { MobileStudioHeader } from "@/components/ui/mobile-studio-header";
 import { MobileCreateDrawer } from "@/components/ui/mobile-create-drawer";
 import { GenerationConfirmDialog } from "@/components/ui/generation-confirm-dialog";
+import { DownloadProgressDialog } from "@/components/ui/download-progress-dialog";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -41,12 +42,9 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import AuthModal from "@/components/ui/auth-modal";
 import { LoadingDots } from "@/components/ui/loading-dots";
-import { CheckCircle, Star, Music, ListMusic, X, Sparkles, ChevronLeft, ChevronRight, Plus, LogOut, LogIn, Library, Wand2 } from "lucide-react";
-import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
+import { CheckCircle, Star, Music, Wand2 } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 import { toast } from "sonner";
-import Image from "next/image";
-import Link from "next/link";
 
 const StudioContent = () => {
     // Router 和 Search Params
@@ -69,6 +67,14 @@ const StudioContent = () => {
     const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
     const [isLoadingUserTracks, setIsLoadingUserTracks] = useState(false);
     const [userMenuOpen, setUserMenuOpen] = useState(false);
+    
+    // WAV 下载进度弹窗状态
+    const [wavDownloadDialogOpen, setWavDownloadDialogOpen] = useState(false);
+    const [wavDownloadProgress, setWavDownloadProgress] = useState(0);
+    const [wavDownloadStatus, setWavDownloadStatus] = useState<'preparing' | 'generating' | 'downloading' | 'completed' | 'error'>('preparing');
+    const [wavDownloadStatusText, setWavDownloadStatusText] = useState<string>('');
+    const [wavDownloadErrorMessage, setWavDownloadErrorMessage] = useState<string>('');
+    const [wavDownloadTrackTitle, setWavDownloadTrackTitle] = useState<string>('');
 
     // 本地状态管理 - 替换zustand store
     const [userTracks, setUserTracks] = useState<any[]>([]);
@@ -171,11 +177,11 @@ const StudioContent = () => {
         streamAudioUrl,
         duration,
         coverImage,
-        cover_r2_url: coverImage, // 确保 cover_r2_url 也被设置
+        coverR2Url: coverImage, // 使用驼峰命名
         tags,
         genre,
         lyrics,
-        is_favorited: isFavorited
+        isFavorited: isFavorited // 使用驼峰命名
     }), []);
 
     // 合并所有歌曲的所有 tracks 来创建完整的 track 列表
@@ -194,8 +200,8 @@ const StudioContent = () => {
                 track.tags,
                 track.genre,
                 track.lyrics,
-                (track as any).is_favorited || false,
-                (track as any).streamAudioUrl || ''
+                track.isFavorited ?? false,
+                track.streamAudioUrl ?? ''
             ));
         });
         
@@ -207,14 +213,14 @@ const StudioContent = () => {
                         track.id,
                         music.id,
                         music.title,
-                        track.audio_url,
+                        track.audioUrl ?? '',
                         track.duration,
-                        track.cover_r2_url,
+                        track.coverR2Url ?? undefined,
                         music.tags,
                         music.genre,
-                        track.lyrics || music.lyrics,
-                        track.is_favorited || false,
-                        track.stream_audio_url
+                        track.lyrics ?? music.lyrics ?? '',
+                        track.isFavorited ?? false,
+                        track.streamAudioUrl ?? ''
                     ));
                 });
             }
@@ -233,7 +239,7 @@ const StudioContent = () => {
             artist: track.genre,
             allTracks: [{
                 id: track.id,
-                audio_url: track.audioUrl,
+                audioUrl: track.audioUrl,
                 duration: track.duration,
             }]
         }));
@@ -260,7 +266,7 @@ const StudioContent = () => {
                 lyrics: localTrack.lyrics,
                 tags: localTrack.tags,
                 generationId: localTrack.generationId,
-                is_favorited: localTrack.is_favorited,
+                isFavorited: localTrack.isFavorited,
             });
             
         } catch (error) {
@@ -339,17 +345,6 @@ const StudioContent = () => {
         }
     }, [user?.id, fetchUserTracks]);
 
-    // 在生成开始时自动打开移动端歌曲列表弹窗以显示skeleton
-    useEffect(() => {
-        if (isGenerating && state === 'generating') {
-            // 检查是否为移动端
-            const isMobile = typeof window !== 'undefined' && window.innerWidth < 768;
-            if (isMobile) {
-                // 移动端不需要额外操作，因为歌曲列表默认显示
-            }
-        }
-    }, [isGenerating, state]);
-
     // 监听状态机变化，当歌曲生成完成时更新播放器duration
     useEffect(() => {
         if (!player.currentTrack || generatedTracks.length === 0) return;
@@ -422,14 +417,14 @@ const StudioContent = () => {
                 track.id,
                 music.id,
                 music.title,
-                track.audio_url || track.audioUrl,
+                track.audioUrl || '',
                 track.duration,
-                track.cover_r2_url || track.coverImage,
+                track.coverR2Url || track.coverImage,
                 music.tags,
                 music.genre,
                 track.lyrics || music.lyrics,
-                track.is_favorited || false,
-                track.stream_audio_url || track.streamAudioUrl
+                track.isFavorited || false,
+                track.streamAudioUrl || ''
             );
             setSelectedStudioTrack(selectedTrack);
             
@@ -445,14 +440,14 @@ const StudioContent = () => {
             track.id,
             music.id,
             music.title,
-            track.audio_url || track.audioUrl,
+            track.audioUrl || track.audio_url || '', // 优先使用 audioUrl，兼容旧数据
             track.duration,
-            track.cover_r2_url || track.coverImage,
+            track.coverR2Url || track.cover_r2_url || track.coverImage,
             music.tags,
             music.genre,
             track.lyrics || music.lyrics,
-            track.is_favorited || false,
-            track.stream_audio_url || track.streamAudioUrl
+            track.isFavorited ?? track.is_favorited ?? false,
+            track.streamAudioUrl || track.stream_audio_url
         );
         setSelectedStudioTrack(selectedTrack);
         
@@ -481,12 +476,36 @@ const StudioContent = () => {
     const handleWavDownloadWithPolling = React.useCallback(async (
         track: any,
         music: any,
-        downloadToast: string | number,
         accessToken: string
     ) => {
         const POLL_INTERVAL = 3000; // 每3秒轮询一次
         const MAX_POLL_TIME = 180000; // 最大轮询时间：3分钟
         const startTime = Date.now();
+        let lastProgress = 0;
+
+        // 初始化弹窗状态
+        setWavDownloadDialogOpen(true);
+        setWavDownloadProgress(0);
+        setWavDownloadStatus('preparing');
+        setWavDownloadStatusText('Preparing download...');
+        setWavDownloadErrorMessage('');
+        setWavDownloadTrackTitle(music.title || track.title || 'Track');
+
+        // 计算进度百分比
+        const calculateProgress = (hasWavUrl: boolean, elapsedTime: number): number => {
+            // 基于状态和时间计算进度
+            if (hasWavUrl) {
+                // 回调已收到，WAV URL 存在，进度在 70-90% 之间
+                const baseProgress = 70;
+                const timeBasedProgress = Math.min(20, (elapsedTime / MAX_POLL_TIME) * 20);
+                return Math.min(90, baseProgress + timeBasedProgress);
+            } else {
+                // 还在等待回调，进度在 10-50% 之间
+                const baseProgress = 10;
+                const timeBasedProgress = Math.min(40, (elapsedTime / MAX_POLL_TIME) * 40);
+                return Math.min(50, baseProgress + timeBasedProgress);
+            }
+        };
 
         const pollForWav = async (): Promise<void> => {
             try {
@@ -496,12 +515,13 @@ const StudioContent = () => {
                     }
                 });
                 
+                const elapsedTime = Date.now() - startTime;
+                
                 // 检查是否超时
-                if (Date.now() - startTime > MAX_POLL_TIME) {
-                    toast.error('WAV generation timeout', {
-                        id: downloadToast,
-                        description: 'WAV conversion is taking longer than expected. Please try again later.'
-                    });
+                if (elapsedTime > MAX_POLL_TIME) {
+                    setWavDownloadStatus('error');
+                    setWavDownloadStatusText('Download timeout');
+                    setWavDownloadErrorMessage('WAV conversion is taking longer than expected. Please try again later.');
                     return;
                 }
 
@@ -509,10 +529,18 @@ const StudioContent = () => {
                     // WAV正在生成中，继续轮询
                     const data = await response.json();
                     if (data.status === 'generating') {
-                        toast.loading('Generating WAV...', {
-                            id: downloadToast,
-                            description: 'WAV conversion in progress. Please wait...'
-                        });
+                        // 根据状态计算进度
+                        const progress = calculateProgress(data.hasWavUrl || false, elapsedTime);
+                        lastProgress = Math.max(lastProgress, progress); // 确保进度不会倒退
+                        
+                        // 更新弹窗状态
+                        const statusText = data.hasWavUrl 
+                            ? 'Processing WAV file...' 
+                            : 'Waiting for conversion...';
+                        
+                        setWavDownloadProgress(lastProgress);
+                        setWavDownloadStatus(data.hasWavUrl ? 'generating' : 'preparing');
+                        setWavDownloadStatusText(statusText);
                         
                         // 继续轮询
                         setTimeout(pollForWav, POLL_INTERVAL);
@@ -521,6 +549,11 @@ const StudioContent = () => {
                         throw new Error(data.error || data.message || 'WAV generation failed');
                     }
                 } else if (response.status === 200) {
+                    // WAV已准备好，更新状态为下载中
+                    setWavDownloadProgress(95);
+                    setWavDownloadStatus('downloading');
+                    setWavDownloadStatusText('Preparing file for download');
+                    
                     // WAV已准备好，检查响应类型
                     const contentType = response.headers.get('content-type');
                     
@@ -535,10 +568,11 @@ const StudioContent = () => {
                             }
                             const blob = await wavResponse.blob();
                             downloadFile(blob, music.title || 'track', 'wav');
-                            toast.success('Download started!', {
-                                id: downloadToast,
-                                description: `${music.title || 'track'}.wav`
-                            });
+                            
+                            // 更新为完成状态
+                            setWavDownloadProgress(100);
+                            setWavDownloadStatus('completed');
+                            setWavDownloadStatusText('Download completed!');
                         } else {
                             throw new Error(data.error || 'Download failed');
                         }
@@ -546,10 +580,11 @@ const StudioContent = () => {
                         // 正常模式：直接获取WAV文件
                         const blob = await response.blob();
                         downloadFile(blob, music.title || 'track', 'wav');
-                        toast.success('Download started!', {
-                            id: downloadToast,
-                            description: `${music.title || 'track'}.wav`
-                        });
+                        
+                        // 更新为完成状态
+                        setWavDownloadProgress(100);
+                        setWavDownloadStatus('completed');
+                        setWavDownloadStatusText('Download completed!');
                     }
                 } else {
                     // 其他错误状态
@@ -558,10 +593,9 @@ const StudioContent = () => {
                 }
             } catch (error) {
                 console.error('WAV download polling error:', error);
-                toast.error('WAV download failed', {
-                    id: downloadToast,
-                    description: error instanceof Error ? error.message : 'Unable to download WAV file'
-                });
+                setWavDownloadStatus('error');
+                setWavDownloadStatusText('Download failed');
+                setWavDownloadErrorMessage(error instanceof Error ? error.message : 'Unable to download WAV file');
             }
         };
 
@@ -589,20 +623,42 @@ const StudioContent = () => {
                 return;
             }
 
-            // 显示下载开始提示
-            const downloadToast = toast.loading('Downloading...', {
-                description: 'Preparing your file...'
-            });
-
-            // WAV格式需要处理轮询逻辑
+            // WAV格式：统一通过下载 API 处理（API 会查询 track_wav_conversions 表）
             if (format === 'wav') {
-                await handleWavDownloadWithPolling(track, music, downloadToast, session.access_token);
+                await handleWavDownloadWithPolling(track, music, session.access_token);
                 return;
             }
 
-            // MP3格式直接下载
-            // 使用新的下载API（后端仍然会验证权限），添加格式参数和认证headers
-            const response = await fetch(`/api/download-track?trackId=${track.id}&format=${format}`, {
+            // MP3格式：直接检查 track.audioUrl 字段
+            const audioUrl = track.audioUrl;
+            
+            // 严格检查：必须是字符串且不为空
+            const hasAudioUrl = audioUrl && typeof audioUrl === 'string' && audioUrl.trim() !== '';
+            
+            if (hasAudioUrl) {
+                // 直接下载，不显示任何toast
+                try {
+                    const audioResponse = await fetch(audioUrl, {
+                        headers: {
+                            'User-Agent': 'Mozilla/5.0 (compatible; MakernbBot/1.0)',
+                        },
+                    });
+
+                    if (!audioResponse.ok) {
+                        throw new Error(`Failed to fetch MP3: ${audioResponse.status}`);
+                    }
+
+                    const blob = await audioResponse.blob();
+                    downloadFile(blob, music.title || 'track', 'mp3');
+                    return;
+                } catch (error) {
+                    console.error('[DOWNLOAD] Error downloading MP3 from audio URL:', error);
+                    // 如果直接下载失败，继续走API流程
+                }
+            }
+
+            // 如果 audioUrl 不存在或下载失败，使用API下载（后端会验证权限）
+            const response = await fetch(`/api/download-track?trackId=${track.id}&format=mp3`, {
                 headers: {
                     'Authorization': `Bearer ${session.access_token}`
                 }
@@ -624,26 +680,18 @@ const StudioContent = () => {
                         throw new Error(`Failed to fetch audio: ${audioResponse.status}`);
                     }
                     const blob = await audioResponse.blob();
-                    downloadFile(blob, music.title || 'track', format);
+                    downloadFile(blob, music.title || 'track', 'mp3');
                 } else {
                     throw new Error(data.error || 'Download failed');
                 }
             } else {
                 // 正常模式：直接获取音频文件
                 const blob = await response.blob();
-                downloadFile(blob, music.title || 'track', format);
+                downloadFile(blob, music.title || 'track', 'mp3');
             }
-            
-            // 更新 toast 为成功状态
-            toast.success('Download started!', {
-                id: downloadToast,
-                description: `${music.title || 'track'}.${format}`
-            });
         } catch (error) {
             console.error('Download error:', error);
-            toast.error('Download failed', {
-                description: error instanceof Error ? error.message : 'Unable to download file'
-            });
+            // 不显示toast，直接静默失败
         }
     }, [downloadFile, handleWavDownloadWithPolling]);
 
@@ -682,7 +730,7 @@ const StudioContent = () => {
                 ...generation,
                 allTracks: generation.allTracks.map((t: any) =>
                     t.id === track.id
-                        ? { ...t, is_favorited: data.isFavorited }
+                        ? { ...t, isFavorited: data.isFavorited }
                         : t
                 )
             }));
@@ -693,7 +741,7 @@ const StudioContent = () => {
                 if (prev?.id === track.id) {
                     return {
                         ...prev,
-                        is_favorited: data.isFavorited
+                        isFavorited: data.isFavorited
                     } as StudioTrack;
                 }
                 return prev;
@@ -742,7 +790,7 @@ const StudioContent = () => {
                 ...generation,
                 allTracks: generation.allTracks.map((t: any) =>
                     t.id === trackId
-                        ? { ...t, is_published: !isPublished }
+                        ? { ...t, isPublished: !isPublished }
                         : t
                 )
             }));
@@ -785,12 +833,20 @@ const StudioContent = () => {
             });
             setUserTracks(updatedUserTracks);
 
+            // 如果当前选中的 track 被编辑了，更新 selectedStudioTrack
+            if (selectedStudioTrack?.id === trackId) {
+                setSelectedStudioTrack({
+                    ...selectedStudioTrack,
+                    title: newTitle
+                });
+            }
+
             toast('Title updated successfully');
         } catch (error) {
             console.error('Error updating title:', error);
             toast.error('Failed to update title');
         }
-    }, [userTracks]);
+    }, [userTracks, selectedStudioTrack]);
 
     const handlePinToggle = React.useCallback(async (trackId: string, isPinned: boolean) => {
         try {
@@ -809,7 +865,7 @@ const StudioContent = () => {
                 ...generation,
                 allTracks: generation.allTracks.map((t: any) =>
                     t.id === trackId
-                        ? { ...t, is_pinned: !isPinned }
+                        ? { ...t, isPinned: !isPinned }
                         : t
                 )
             }));
@@ -876,17 +932,17 @@ const StudioContent = () => {
             tags: completedTrack.tags || '',
             prompt: '', // 生成时没有 prompt，可以留空
             status: 'completed',
-            created_at: completedTrack.createdAt || new Date().toISOString(),
-            lyrics_content: completedTrack.lyrics || '',
+            createdAt: completedTrack.createdAt || new Date().toISOString(),
+            lyricsContent: completedTrack.lyrics || '',
             allTracks: [{
                 id: completedTrack.id,
-                audio_url: completedTrack.audioUrl || completedTrack.streamAudioUrl,
+                audioUrl: completedTrack.audioUrl || completedTrack.streamAudioUrl,
                 duration: completedTrack.duration || 0,
-                is_published: false,
-                is_pinned: false,
-                cover_r2_url: completedTrack.coverImage || completedTrack.cover_r2_url,
+                isPublished: false,
+                isPinned: false,
+                coverR2Url: completedTrack.coverImage || completedTrack.coverR2Url,
                 lyrics: completedTrack.lyrics || '',
-                is_favorited: false
+                isFavorited: false
             }]
         };
 
@@ -1001,8 +1057,8 @@ const StudioContent = () => {
         return userTracks.map(userTrack => ({
             ...userTrack,
             prompt: userTrack.title, // 使用 title 作为 prompt
-            is_instrumental: false, // 默认值
-            updated_at: userTrack.created_at, // 使用 created_at
+            isInstrumental: false, // 默认值
+            updatedAt: userTrack.createdAt, // 使用 createdAt
             totalDuration: userTrack.allTracks.reduce((total: number, track: any) => total + track.duration, 0)
         }));
     };
@@ -1149,7 +1205,7 @@ const StudioContent = () => {
                         ...generation,
                         allTracks: generation.allTracks.map((t: any) =>
                             t.id === trackToDelete.id
-                                ? { ...t, is_deleted: true }
+                                ? { ...t, isDeleted: true }
                                 : t
                         )
                     }));
@@ -1165,11 +1221,7 @@ const StudioContent = () => {
                 }
 
                 // If the deleted track is currently playing, stop playback
-                // ✅ 现在通过 EventBus 自动处理
-                if (player.currentTrack?.id === trackToDelete.id ||
-                    (player.currentTrack as any)?.generationId === trackToDelete.generationId) {
-                    // AudioPlayer 会监听 TRACK_EVENTS.DELETED 事件并自动停止播放
-                }
+                // 现在通过 EventBus 自动处理，AudioPlayer 会监听 TRACK_EVENTS.DELETED 事件并自动停止播放
 
                 // If the deleted track is selected for lyrics, close lyrics panel
                 if (selectedStudioTrack?.id === trackToDelete.id ||
@@ -1262,7 +1314,7 @@ const StudioContent = () => {
                                             createdAt: generatedTrack.createdAt || new Date().toISOString(),
                                             duration: generatedTrack.duration?.toString() || '0',
                                             isPublished: false,
-                                            isFavorited: (generatedTrack as any).is_favorited || false,
+                                            isFavorited: generatedTrack.isFavorited || false,
                                             userId: user?.id,
                                             status: generatedTrack.isCompleted ? 'complete' : 'generating'
                                         };
@@ -1283,12 +1335,12 @@ const StudioContent = () => {
                                                 title: music.title || foundUserTrack.title || '',
                                                 tags: music.tags || '',
                                                 lyrics: foundUserTrack.lyrics || music.lyrics || '',
-                                                coverImage: foundUserTrack.cover_r2_url || null,
-                                                audioUrl: foundUserTrack.audio_url || '',
-                                                createdAt: music.created_at || new Date().toISOString(),
+                                                coverImage: foundUserTrack.coverR2Url || null,
+                                                audioUrl: foundUserTrack.audioUrl || '',
+                                                createdAt: music.createdAt || new Date().toISOString(),
                                                 duration: foundUserTrack.duration?.toString() || '0',
-                                                isPublished: music.is_published || false,
-                                                isFavorited: foundUserTrack.is_favorited || false,
+                                                isPublished: music.isPublished || false,
+                                                isFavorited: foundUserTrack.isFavorited || false,
                                                 userId: user?.id,
                                                 status: music.status || 'complete'
                                             };
@@ -1310,11 +1362,11 @@ const StudioContent = () => {
                                 // 播放新歌曲 - 构造track和music对象
                                 const track = {
                                     id: trackInfo.id,
-                                    audio_url: trackInfo.audioUrl,
+                                    audioUrl: trackInfo.audioUrl,
                                     duration: parseFloat(trackInfo.duration),
-                                    cover_r2_url: trackInfo.coverImage,
+                                    coverR2Url: trackInfo.coverImage,
                                     lyrics: trackInfo.lyrics,
-                                    is_favorited: trackInfo.isFavorited
+                                    isFavorited: trackInfo.isFavorited
                                 };
                                 
                                 const music = {
@@ -1340,7 +1392,7 @@ const StudioContent = () => {
                             onDownload={(trackInfo) => {
                                 const track = {
                                     id: trackInfo.id,
-                                    audio_url: trackInfo.audioUrl
+                                    audioUrl: trackInfo.audioUrl
                                 };
                                 const music = {
                                     title: trackInfo.title
@@ -1349,7 +1401,7 @@ const StudioContent = () => {
                             }}
                             isFavorited={
                                 userTracks.flatMap(gen => gen.allTracks)
-                                    .find((t: any) => t.id === selectedTrackId)?.is_favorited || false
+                                    .find((t: any) => t.id === selectedTrackId)?.isFavorited || false
                             }
                             onPublishToggle={handlePublishToggle}
                             onEditTitle={handleEditTitle}
@@ -1357,11 +1409,11 @@ const StudioContent = () => {
                             onPinToggle={handlePinToggle}
                             isPublished={
                                 userTracks.flatMap(gen => gen.allTracks)
-                                    .find((t: any) => t.id === selectedTrackId)?.is_published || false
+                                    .find((t: any) => t.id === selectedTrackId)?.isPublished || false
                             }
                             isPinned={
                                 userTracks.flatMap(gen => gen.allTracks)
-                                    .find((t: any) => t.id === selectedTrackId)?.is_pinned || false
+                                    .find((t: any) => t.id === selectedTrackId)?.isPinned || false
                             }
                             isAdmin={false}
                             currentUserId={user?.id || null}
@@ -1405,6 +1457,8 @@ const StudioContent = () => {
                                     isLoading={isLoadingUserTracks}
                                     selectedTrack={selectedStudioTrack?.id}
                                     hasPlayer={!!player.currentTrack}
+                                    onPublishToggle={handlePublishToggle}
+                                    onEditTitle={handleEditTitle}
                                 />
                             </div>
 
@@ -1418,13 +1472,13 @@ const StudioContent = () => {
                                     // currentlyPlaying 和 isPlaying 通过 EventBus 自动获取
                                     selectedTrack={selectedStudioTrack?.id}
                                     generatedTracks={stableGeneratedTracks}
-                                    panelOpen={panelOpen}
-                                    onExpandPanel={() => setPanelOpen(true)}
                                     onGeneratedTrackSelect={handleGeneratedTrackSelect}
                                     onDownload={handleDownload}
                                     onFavoriteToggle={handleFavoriteToggle}
                                     onDelete={handleTrackDelete}
                                     hasPlayer={!!player.currentTrack}
+                                    onPublishToggle={handlePublishToggle}
+                                    onEditTitle={handleEditTitle}
                                 />
                             </div>
                         </div>
@@ -1520,6 +1574,25 @@ const StudioContent = () => {
                     // 🔧 修复：移动端关闭生成确认弹窗时，同时关闭create music panel
                     setMobileCreateOpen(false);
                 }}
+            />
+
+            {/* WAV Download Progress Dialog */}
+            <DownloadProgressDialog
+                isOpen={wavDownloadDialogOpen}
+                onClose={() => {
+                    setWavDownloadDialogOpen(false);
+                    // 重置状态
+                    setWavDownloadProgress(0);
+                    setWavDownloadStatus('preparing');
+                    setWavDownloadStatusText('');
+                    setWavDownloadErrorMessage('');
+                    setWavDownloadTrackTitle('');
+                }}
+                trackTitle={wavDownloadTrackTitle}
+                progress={wavDownloadProgress}
+                status={wavDownloadStatus}
+                statusText={wavDownloadStatusText}
+                errorMessage={wavDownloadErrorMessage}
             />
         </>
     );

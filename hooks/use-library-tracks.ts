@@ -15,11 +15,11 @@ export interface LibraryTrack {
   duration: number;
   coverImage: string | null;
   lyrics: string;
-  is_favorited: boolean;
-  is_published: boolean;
-  is_pinned: boolean;
-  created_at: string;
-  favorited_at: string;
+  isFavorited?: boolean;
+  isPublished?: boolean;
+  isPinned?: boolean;
+  createdAt?: string;
+  favoritedAt?: string;
 }
 
 export const useLibraryTracks = (userId: string | undefined) => {
@@ -55,21 +55,21 @@ export const useLibraryTracks = (userId: string | undefined) => {
       const data = await response.json();
       const favorites = data.data?.favorites || [];
       
-      // 转换为统一的track格式
+      // 转换为统一的track格式（API 已经返回 camelCase，直接使用）
       const formattedTracks: LibraryTrack[] = favorites.map((fav: any) => ({
         id: fav.id,
         title: fav.title,
         genre: fav.genre || '',
         tags: fav.tags || '',
-        audioUrl: fav.audio_url,
+        audioUrl: fav.audioUrl,
         duration: fav.duration || 0,
-        coverImage: fav.cover_r2_url || null,
-        lyrics: fav.lyrics_content || '',
-        is_favorited: true,
-        is_published: fav.is_published || false,
-        is_pinned: fav.is_pinned || false,
-        created_at: fav.created_at,
-        favorited_at: fav.favorited_at
+        coverImage: fav.coverR2Url || null,
+        lyrics: fav.lyrics || '',
+        isFavorited: true,
+        isPublished: fav.isPublished ?? false,
+        isPinned: fav.isPinned ?? false,
+        createdAt: fav.createdAt,
+        favoritedAt: fav.favoritedAt
       }));
       
       setTracks(formattedTracks);
@@ -130,7 +130,7 @@ export const useLibraryTracks = (userId: string | undefined) => {
       if (!data.isFavorited) {
         removeTrack(trackId);
       } else {
-        updateTrack(trackId, { is_favorited: true });
+        updateTrack(trackId, { isFavorited: true });
       }
       
       return data.isFavorited;

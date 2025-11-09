@@ -32,7 +32,13 @@ export const createTrackWavConversion = async (
   data: CreateTrackWavConversionData
 ): Promise<TrackWavConversion> => {
   try {
-    validateRequiredParams(data, ['track_id', 'task_id']);
+    // 验证必需字段（支持驼峰和蛇形命名）
+    const trackId = data.trackId || (data as any).track_id;
+    const taskId = data.taskId || (data as any).task_id;
+    
+    if (!trackId || !taskId) {
+      throw new Error('Missing required parameter: trackId and taskId are required');
+    }
 
     const result = await query(
       `INSERT INTO track_wav_conversions (
@@ -40,17 +46,84 @@ export const createTrackWavConversion = async (
       ) VALUES ($1, $2, $3, $4, $5)
       RETURNING *`,
       [
-        data.track_id,
-        data.task_id,
+        trackId,
+        taskId,
         data.status || 'generating',
-        data.wav_url || null,
-        data.wav_r2_url || null
+        data.wavUrl || (data as any).wav_url || null,
+        data.wavR2Url || (data as any).wav_r2_url || null
       ]
     );
 
-    return result.rows[0];
+    // 将数据库返回的蛇形命名转换为驼峰命名
+    const row = result.rows[0];
+    return {
+      id: row.id,
+      trackId: row.track_id,
+      taskId: row.task_id,
+      wavUrl: row.wav_url,
+      wavR2Url: row.wav_r2_url,
+      status: row.status,
+      createdAt: row.created_at,
+      updatedAt: row.updated_at
+    };
   } catch (error) {
     console.error('Error creating track WAV conversion:', error);
+    throw error;
+  }
+};
+
+/**
+ * Creates or updates a WAV conversion record (upsert)
+ * If a record with the same task_id exists, it will be updated
+ * Otherwise, a new record will be created
+ */
+export const upsertTrackWavConversion = async (
+  data: CreateTrackWavConversionData
+): Promise<TrackWavConversion> => {
+  try {
+    // 验证必需字段（支持驼峰和蛇形命名）
+    const trackId = data.trackId || (data as any).track_id;
+    const taskId = data.taskId || (data as any).task_id;
+    
+    if (!trackId || !taskId) {
+      throw new Error('Missing required parameter: trackId and taskId are required');
+    }
+
+    const result = await query(
+      `INSERT INTO track_wav_conversions (
+        track_id, task_id, status, wav_url, wav_r2_url
+      ) VALUES ($1, $2, $3, $4, $5)
+      ON CONFLICT (task_id) 
+      DO UPDATE SET
+        track_id = EXCLUDED.track_id,
+        status = EXCLUDED.status,
+        wav_url = COALESCE(EXCLUDED.wav_url, track_wav_conversions.wav_url),
+        wav_r2_url = COALESCE(EXCLUDED.wav_r2_url, track_wav_conversions.wav_r2_url),
+        updated_at = NOW()
+      RETURNING *`,
+      [
+        trackId,
+        taskId,
+        data.status || 'generating',
+        data.wavUrl || (data as any).wav_url || null,
+        data.wavR2Url || (data as any).wav_r2_url || null
+      ]
+    );
+
+    // 将数据库返回的蛇形命名转换为驼峰命名
+    const row = result.rows[0];
+    return {
+      id: row.id,
+      trackId: row.track_id,
+      taskId: row.task_id,
+      wavUrl: row.wav_url,
+      wavR2Url: row.wav_r2_url,
+      status: row.status,
+      createdAt: row.created_at,
+      updatedAt: row.updated_at
+    };
+  } catch (error) {
+    console.error('Error upserting track WAV conversion:', error);
     throw error;
   }
 };
@@ -89,7 +162,7 @@ export const getTrackWavConversionByTrackId = async (
     const result = await query(
       `SELECT * FROM track_wav_conversions 
        WHERE track_id = $1 
-         AND status = 'complete'
+         AND status = 'completed'
        ORDER BY created_at DESC 
        LIMIT 1`,
       [trackId]
@@ -116,17 +189,26 @@ export const updateTrackWavConversionByTaskId = async (
     const values: any[] = [];
     let paramIndex = 1;
 
-    if (data.wav_url !== undefined) {
+    // 支持驼峰和蛇形命名
+    const wavUrl = data.wavUrl !== undefined ? data.wavUrl : (data as any).wav_url;
+    const wavR2Url = data.wavR2Url !== undefined ? data.wavR2Url : (data as any).wav_r2_url;
+
+    if (wavUrl !== undefined) {
       updateFields.push(`wav_url = $${paramIndex++}`);
-      values.push(data.wav_url);
+      values.push(wavUrl);
     }
 
-    if (data.wav_r2_url !== undefined) {
+    if (wavR2Url !== undefined) {
       updateFields.push(`wav_r2_url = $${paramIndex++}`);
-      values.push(data.wav_r2_url);
+      values.push(wavR2Url);
     }
 
-    if (data.status !== undefined) {
+    if (data.status !== undefined && data.status !== null) {
+      // 验证 status 值是否符合数据库约束
+      const validStatuses = ['generating', 'completed', 'error', 'expired'];
+      if (!validStatuses.includes(data.status)) {
+        throw new Error(`Invalid status value: ${data.status}. Must be one of: ${validStatuses.join(', ')}`);
+      }
       updateFields.push(`status = $${paramIndex++}`);
       values.push(data.status);
     }
@@ -151,7 +233,18 @@ export const updateTrackWavConversionByTaskId = async (
       throw new Error('Track WAV conversion not found');
     }
 
-    return result.rows[0];
+    // 将数据库返回的蛇形命名转换为驼峰命名
+    const row = result.rows[0];
+    return {
+      id: row.id,
+      trackId: row.track_id,
+      taskId: row.task_id,
+      wavUrl: row.wav_url,
+      wavR2Url: row.wav_r2_url,
+      status: row.status,
+      createdAt: row.created_at,
+      updatedAt: row.updated_at
+    };
   } catch (error) {
     console.error('Error updating track WAV conversion by task_id:', error);
     throw error;
@@ -209,7 +302,7 @@ export const deleteTrackWavConversion = async (
  */
 export const getTrackWavConversionStatus = async (
   trackId: string
-): Promise<'none' | 'generating' | 'complete' | 'error' | 'expired'> => {
+): Promise<'none' | 'generating' | 'completed' | 'error' | 'expired'> => {
   try {
     const conversion = await getTrackWavConversionByTrackId(trackId);
     

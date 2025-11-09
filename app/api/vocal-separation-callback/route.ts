@@ -35,13 +35,13 @@ export async function POST(request: NextRequest) {
       
       if (userId) {
         // 扣除积分
-        const creditCost = getFeatureCredits('vocal_separation');
+        const creditCost = getFeatureCredits('separate_vocals_from_music_local');
         await addUserCredits(
           userId, 
           -creditCost, 
           'Vocal separation', 
           predictionId, 
-          'vocal_separation'
+          'separate_vocals_from_music_local'
         );
         console.log(`[CALLBACK-${callbackId}] Deducted ${creditCost} credits from user ${userId}`);
       }

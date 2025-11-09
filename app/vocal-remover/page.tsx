@@ -1,21 +1,23 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
+import { Progress } from '@/components/ui/progress';
 import { VocalSeparationPanel } from '@/components/ui/vocal-separation-panel';
 import { useVocalSeparation, VocalSeparationData } from '@/hooks/use-vocal-separation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { MusicPlayer } from '@/components/ui/music-player';
 import { WaveformPlayer } from '@/components/ui/waveform-player';
-import { Download, Mic, Music, Volume2, Clock, CheckCircle, XCircle, AlertCircle, Upload, Library, Play, Pause } from 'lucide-react';
+import { Download, Mic, Music, Volume2, Clock, CheckCircle, XCircle, AlertCircle, Upload, Library, Play, Pause, Search, X } from 'lucide-react';
 import Image from 'next/image';
 import { FooterSection } from '@/components/layout/sections/footer';
 import { supabase } from '@/lib/supabase';
 import AuthModal from '@/components/ui/auth-modal';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
-import { CLIENT_FEATURE_CREDITS } from '@/lib/credits-config';
+import { CLIENT_VOCAL_SEPARATION_CREDITS } from '@/lib/credits-config';
 import {
   Accordion,
   AccordionContent,
@@ -23,12 +25,24 @@ import {
   AccordionTrigger,
 } from "@/components/ui/accordion";
 
-function VocalSeparationCreditsDisplay() {
-  return <>{CLIENT_FEATURE_CREDITS.vocal_separation.credits}</>;
+function VocalSeparationCreditsDisplay({ source }: { source: 'local' | 'studio' }) {
+  return <span className="text-primary font-medium">{CLIENT_VOCAL_SEPARATION_CREDITS[source]}</span>;
 }
 
+// 格式化时长
+const formatDuration = (seconds: number) => {
+  if (isNaN(seconds) || seconds <= 0) {
+    return '';
+  }
+  const minutes = Math.floor(seconds / 60);
+  const remainingSeconds = Math.floor(seconds % 60);
+  return `${minutes}:${remainingSeconds.toString().padStart(2, '0')}`;
+};
+
 export default function VocalSeparationDemo() {
-  const { separations } = useVocalSeparation();
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const { separations, startVocalSeparation, startVocalSeparationFromStudio } = useVocalSeparation();
   const [selectedSeparation, setSelectedSeparation] = useState<VocalSeparationData | null>(null);
   const [isPlaying, setIsPlaying] = useState(false);
   const [currentTime, setCurrentTime] = useState(0);
@@ -56,16 +70,280 @@ export default function VocalSeparationDemo() {
     accompaniment: string;
   } | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [separationProgress, setSeparationProgress] = useState(0);
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [showAuthModal, setShowAuthModal] = useState(false);
   const [showConfirmDialog, setShowConfirmDialog] = useState(false);
+  
+  // Tab 状态
+  const [activeTab, setActiveTab] = useState<'upload' | 'studio'>('upload');
+  
+  // Studio tracks 状态
+  const [studioTracks, setStudioTracks] = useState<any[]>([]);
+  const [selectedStudioTrack, setSelectedStudioTrack] = useState<any | null>(null);
+  const [isLoadingStudioTracks, setIsLoadingStudioTracks] = useState(false);
+  const [studioTracksSearchQuery, setStudioTracksSearchQuery] = useState('');
+  const hasLoadedStudioTracks = useRef(false); // 跟踪是否已加载过数据
+
+  // 为 taskId 轮询状态的函数
+  const startPollingStatusForTaskId = useCallback((taskId: string) => {
+    const startTime = Date.now();
+    let cancelled = false;
+
+    const poll = async () => {
+      if (cancelled) return;
+
+      const elapsed = Math.floor((Date.now() - startTime) / 1000);
+      
+      try {
+        const { data: { session } } = await supabase.auth.getSession();
+        if (!session) {
+          setIsGenerating(false);
+          return;
+        }
+
+        const res = await fetch(`/api/vocal-removal-status?taskId=${taskId}`, { 
+          cache: 'no-store',
+          headers: {
+            Authorization: `Bearer ${session.access_token}`,
+          },
+        });
+
+        if (!res.ok) {
+          setTimeout(poll, 2000);
+          return;
+        }
+
+        const payload = await res.json();
+
+        if (!payload?.success || !payload.data) {
+          setTimeout(poll, 2000);
+          return;
+        }
+
+        const data = payload.data;
+
+        // 设置原始音频 URL（如果需要）
+        if (data.trackId && !audioUrl) {
+          try {
+            const trackResponse = await fetch(`/api/studio-tracks-for-separation?limit=100`, {
+              headers: {
+                'Authorization': `Bearer ${session.access_token}`,
+              },
+            });
+            if (trackResponse.ok) {
+              const trackResult = await trackResponse.json();
+              if (trackResult.success && trackResult.data) {
+                const track = trackResult.data.find((t: any) => t.id === data.trackId);
+                if (track?.audioUrl) {
+                  setAudioUrl(track.audioUrl);
+                }
+              }
+            }
+          } catch (e) {
+            console.error('Error fetching track audio URL:', e);
+          }
+        }
+
+        // 设置分离结果
+        if (data.vocalUrl || data.instrumentalUrl) {
+          setSeparationResults({ 
+            vocals: data.vocalUrl || '', 
+            accompaniment: data.instrumentalUrl || '' 
+          });
+        }
+
+        // 检查状态
+        if (data.status === 'completed') {
+          setSeparationComplete(true);
+          setIsGenerating(false);
+          return;
+        }
+
+        if (data.status === 'error') {
+          setError(data.errorMessage || 'Vocal removal failed');
+          setIsGenerating(false);
+          return;
+        }
+
+        // 继续轮询
+        if (elapsed > 300) {
+          setError('Separation timeout');
+          setIsGenerating(false);
+          return;
+        }
+
+        // 根据时间调整轮询间隔
+        const nextDelay = elapsed < 30 ? 1000 : elapsed < 120 ? 2000 : 3000;
+        setTimeout(poll, nextDelay);
+
+      } catch (error) {
+        console.error('Polling error:', error);
+        setTimeout(poll, 2000);
+      }
+    };
+
+    // 立即开始第一次轮询
+    poll();
+
+    // 返回取消函数
+    return () => {
+      cancelled = true;
+    };
+  }, [audioUrl]);
+
+  // 通过 taskId 加载 vocal removal 结果
+  const loadVocalRemovalResult = useCallback(async (taskId: string) => {
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session?.access_token) {
+        setError('Authentication required');
+        return;
+      }
+
+      setIsGenerating(true);
+      setError(null);
+      setSeparationComplete(false);
+      setSeparationResults(null);
+      setSeparationProgress(0);
+      setAudioUrl('');
+
+      const response = await fetch(`/api/vocal-removal-status?taskId=${taskId}`, {
+        headers: {
+          'Authorization': `Bearer ${session.access_token}`,
+        },
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to load vocal removal result');
+      }
+
+      const result = await response.json();
+
+      if (result.success && result.data) {
+        const { status, vocalUrl, instrumentalUrl, trackId } = result.data;
+
+        if (status === 'completed') {
+          // 查询原始音频 URL
+          if (trackId) {
+            try {
+              const trackResponse = await fetch(`/api/studio-tracks-for-separation?limit=100`, {
+                headers: {
+                  'Authorization': `Bearer ${session.access_token}`,
+                },
+              });
+              if (trackResponse.ok) {
+                const trackResult = await trackResponse.json();
+                if (trackResult.success && trackResult.data) {
+                  const track = trackResult.data.find((t: any) => t.id === trackId);
+                  if (track?.audioUrl) {
+                    setAudioUrl(track.audioUrl);
+                  }
+                }
+              }
+            } catch (e) {
+              console.error('Error fetching track audio URL:', e);
+            }
+          }
+
+          setSeparationResults({
+            vocals: vocalUrl || '',
+            accompaniment: instrumentalUrl || ''
+          });
+          setSeparationComplete(true);
+          setIsGenerating(false);
+          setActiveTab('studio');
+        } else if (status === 'processing') {
+          // 仍在处理中，开始轮询
+          setIsGenerating(true);
+          startPollingStatusForTaskId(taskId);
+        } else if (status === 'error') {
+          setError('Vocal removal failed');
+          setIsGenerating(false);
+        }
+      } else {
+        throw new Error('Invalid response from server');
+      }
+    } catch (error) {
+      console.error('Error loading vocal removal result:', error);
+      setError(error instanceof Error ? error.message : 'Failed to load result');
+      setIsGenerating(false);
+    }
+  }, [startPollingStatusForTaskId]);
+
+  // 获取 Studio tracks
+  const fetchStudioTracks = useCallback(async () => {
+    setIsLoadingStudioTracks(true);
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session?.access_token) {
+        console.log('No session token available');
+        setIsLoadingStudioTracks(false);
+        return;
+      }
+
+      const response = await fetch('/api/studio-tracks-for-separation?limit=50', {
+        headers: {
+          'Authorization': `Bearer ${session.access_token}`,
+        },
+      });
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error('Failed to fetch studio tracks:', response.status, errorText);
+        setStudioTracks([]);
+        setIsLoadingStudioTracks(false);
+        return;
+      }
+
+      const result = await response.json();
+      console.log('Studio tracks API response:', result);
+      
+      if (result.success && result.data) {
+        setStudioTracks(result.data || []);
+        hasLoadedStudioTracks.current = true; // 标记已加载
+        
+        // 如果 URL 中有 trackId，自动选择
+        const trackIdFromUrl = searchParams.get('trackId');
+        if (trackIdFromUrl) {
+          const track = result.data.find((t: any) => t.id === trackIdFromUrl);
+          if (track) {
+            setSelectedStudioTrack(track);
+            setActiveTab('studio');
+            // 清除 URL 参数
+            router.replace('/vocal-remover', { scroll: false });
+          }
+        }
+      } else {
+        console.warn('API returned unsuccessful or missing data:', result);
+        setStudioTracks([]);
+        hasLoadedStudioTracks.current = true; // 即使失败也标记为已加载，避免重复请求
+      }
+    } catch (error) {
+      console.error('Error fetching studio tracks:', error);
+      setStudioTracks([]);
+    } finally {
+      setIsLoadingStudioTracks(false);
+    }
+  }, [searchParams, router]);
 
   useEffect(() => {
     // Only sync login status for upload permission control; no historical data requests
     const syncAuth = async () => {
       try {
         const { data: { session } } = await supabase.auth.getSession();
-        setIsLoggedIn(!!session?.access_token);
+        const loggedIn = !!session?.access_token;
+        setIsLoggedIn(loggedIn);
+        
+        // 如果 URL 中有 taskId，直接加载结果（优先于加载 tracks）
+        const taskIdFromUrl = searchParams.get('taskId');
+        if (taskIdFromUrl && loggedIn) {
+          loadVocalRemovalResult(taskIdFromUrl);
+          router.replace('/vocal-remover', { scroll: false });
+        } else if (loggedIn && !hasLoadedStudioTracks.current) {
+          // 如果已登录且未加载过数据，则加载
+          fetchStudioTracks();
+        }
       } catch (error) {
         console.error('Error checking user session:', error);
         setIsLoggedIn(false);
@@ -76,12 +354,30 @@ export default function VocalSeparationDemo() {
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
       setIsLoggedIn(!!session);
+      // 登录后自动获取 Studio tracks（只在首次加载时加载，避免重复）
+      if (session?.access_token && !hasLoadedStudioTracks.current) {
+        // 检查是否有 taskId
+        const taskIdFromUrl = searchParams.get('taskId');
+        if (taskIdFromUrl) {
+          loadVocalRemovalResult(taskIdFromUrl);
+        } else {
+          fetchStudioTracks();
+        }
+      } else if (!session?.access_token) {
+        // 登出后重置状态
+        hasLoadedStudioTracks.current = false;
+        setStudioTracks([]);
+        setSelectedStudioTrack(null);
+      }
     });
 
     return () => {
       subscription.unsubscribe();
     };
-  }, []);
+  }, [searchParams, router, fetchStudioTracks, loadVocalRemovalResult]);
+
+  // 不再监听 tab 切换，只在首次加载或登录时加载数据
+  // 移除这个 useEffect，避免每次切换 tab 都重新加载
 
   const handlePlayPause = () => {
     setIsPlaying(!isPlaying);
@@ -263,6 +559,32 @@ export default function VocalSeparationDemo() {
   };
 
   const handleStartSeparating = async () => {
+    // 检查是否选择了 Studio track
+    if (activeTab === 'studio') {
+      if (!selectedStudioTrack) {
+        setError('Please select a track from Studio');
+        return;
+      }
+      
+      // 检查 track 是否可以用于分离
+      if (selectedStudioTrack.canSeparate === false) {
+        setError('This track cannot be used for vocal separation. It requires a valid audio ID.');
+        return;
+      }
+      
+      try {
+        setIsGenerating(true);
+        setError(null);
+        await startVocalSeparationFromStudio(selectedStudioTrack.id);
+      } catch (error) {
+        setError(error instanceof Error ? error.message : 'Failed to start vocal separation');
+      } finally {
+        setIsGenerating(false);
+      }
+      return;
+    }
+
+    // 原有的上传文件/URL 逻辑
     if (!selectedFile && !userInputUrl) {
       setError('Please select a file or enter an audio URL');
       return;
@@ -301,6 +623,7 @@ export default function VocalSeparationDemo() {
     setError(null);
     setSeparationComplete(false);
     setSeparationResults(null);
+    setSeparationProgress(0);
 
     // 重置播放状态
     setIsOriginalPlaying(false);
@@ -358,7 +681,24 @@ export default function VocalSeparationDemo() {
 
   const startPollingStatus = (predictionId: string) => {
     const startTime = Date.now();
+    const MAX_POLL_TIME = 300; // 最大轮询时间：5分钟（300秒）
     let cancelled = false;
+
+    // 计算进度百分比
+    const calculateProgress = (elapsed: number, hasResults: boolean): number => {
+      // 基于时间和结果状态计算进度
+      if (hasResults) {
+        // 已有部分结果，进度在 60-90% 之间
+        const baseProgress = 60;
+        const timeBasedProgress = Math.min(30, (elapsed / MAX_POLL_TIME) * 30);
+        return Math.min(90, baseProgress + timeBasedProgress);
+      } else {
+        // 还在等待结果，进度在 10-50% 之间
+        const baseProgress = 10;
+        const timeBasedProgress = Math.min(40, (elapsed / MAX_POLL_TIME) * 40);
+        return Math.min(50, baseProgress + timeBasedProgress);
+      }
+    };
 
     const poll = async () => {
       if (cancelled) return;
@@ -369,6 +709,7 @@ export default function VocalSeparationDemo() {
         const { data: { session } } = await supabase.auth.getSession();
         if (!session) {
           setIsGenerating(false);
+          setSeparationProgress(0);
           return;
         }
 
@@ -380,6 +721,10 @@ export default function VocalSeparationDemo() {
         });
 
         if (!res.ok) {
+          // 更新进度（即使请求失败也显示进度）
+          const hasResults = !!(audioUrl || separationResults?.vocals || separationResults?.accompaniment);
+          const progress = calculateProgress(elapsed, hasResults);
+          setSeparationProgress(progress);
           setTimeout(poll, 2000);
           return;
         }
@@ -387,6 +732,10 @@ export default function VocalSeparationDemo() {
         const payload = await res.json();
 
         if (!payload?.success || !payload.data) {
+          // 更新进度
+          const hasResults = !!(audioUrl || separationResults?.vocals || separationResults?.accompaniment);
+          const progress = calculateProgress(elapsed, hasResults);
+          setSeparationProgress(progress);
           setTimeout(poll, 2000);
           return;
         }
@@ -394,19 +743,27 @@ export default function VocalSeparationDemo() {
         const data = payload.data;
 
         // 立即设置所有可用的URL
-        if (data.originalAudioUrl && data.originalAudioUrl !== audioUrl) {
+        const hasOriginalUrl = !!(data.originalAudioUrl && data.originalAudioUrl !== audioUrl);
+        const hasResults = !!(data.vocalUrl || data.instrumentalUrl);
+
+        if (hasOriginalUrl) {
           setAudioUrl(data.originalAudioUrl);
         }
 
-        if (data.vocalUrl || data.instrumentalUrl) {
+        if (hasResults) {
           setSeparationResults({ 
             vocals: data.vocalUrl || '', 
             accompaniment: data.instrumentalUrl || '' 
           });
         }
 
+        // 更新进度
+        const progress = calculateProgress(elapsed, hasOriginalUrl || hasResults);
+        setSeparationProgress(progress);
+
         // 检查状态
         if (data.status === 'completed') {
+          setSeparationProgress(100);
           setSeparationComplete(true);
           setIsGenerating(false);
           return;
@@ -415,13 +772,15 @@ export default function VocalSeparationDemo() {
         if (data.status === 'error') {
           setError(data.errorMessage || 'Separation failed');
           setIsGenerating(false);
+          setSeparationProgress(0);
           return;
         }
 
         // 继续轮询
-        if (elapsed > 300) {
+        if (elapsed > MAX_POLL_TIME) {
           setError('Separation timeout');
           setIsGenerating(false);
+          setSeparationProgress(0);
           return;
         }
 
@@ -431,6 +790,10 @@ export default function VocalSeparationDemo() {
 
       } catch (error) {
         console.error('Polling error:', error);
+        // 更新进度（即使出错也显示进度）
+        const hasResults = !!(audioUrl || separationResults?.vocals || separationResults?.accompaniment);
+        const progress = calculateProgress(elapsed, hasResults);
+        setSeparationProgress(progress);
         setTimeout(poll, 2000);
       }
     };
@@ -441,6 +804,7 @@ export default function VocalSeparationDemo() {
     // 返回取消函数
     return () => {
       cancelled = true;
+      setSeparationProgress(0);
     };
   };
 
@@ -490,74 +854,297 @@ export default function VocalSeparationDemo() {
 
           {/* Main Content */}
           <div className="space-y-8">
-            {/* Track URL Input with Button */}
-            <div className="w-full space-y-2">
-              <label className="text-sm font-medium text-foreground text-left block">Audio URL</label>
-              <div className="relative">
-                <input
-                  type="url"
-                    placeholder="Paste your audio file URL here..."
-                    className="w-full px-4 py-3 pr-14 bg-muted rounded-lg text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary transition-colors"
-                    value={userInputUrl}
-                    onChange={handleUrlInputChange}
-                />
-                {urlValidationError && (
-                  <p className="text-red-500 text-xs mt-1">{urlValidationError}</p>
-                )}
+            {/* Tab Switcher */}
+            <div className="bg-muted/30 rounded-xl p-1 flex-shrink-0">
+              <div className="grid grid-cols-2 gap-1">
+                <button
+                  onClick={() => setActiveTab('upload')}
+                  className={`py-2 px-4 md:px-6 text-xs md:text-sm font-semibold tracking-tight transition-all duration-200 rounded-xl ${
+                    activeTab === 'upload'
+                      ? 'bg-primary/20 border-transparent text-primary shadow-sm'
+                      : 'text-muted-foreground hover:text-foreground hover:bg-muted/50'
+                  }`}
+                >
+                  <Upload className="h-4 w-4 inline mr-2" />
+                  Upload File / URL
+                </button>
+                <button
+                  onClick={() => {
+                    if (!isLoggedIn) {
+                      setShowAuthModal(true);
+                      return;
+                    }
+                    setActiveTab('studio');
+                  }}
+                  className={`py-2 px-4 md:px-6 text-xs md:text-sm font-semibold tracking-tight transition-all duration-200 rounded-xl ${
+                    activeTab === 'studio'
+                      ? 'bg-primary/20 border-transparent text-primary shadow-sm'
+                      : 'text-muted-foreground hover:text-foreground hover:bg-muted/50'
+                  }`}
+                >
+                  <Library className="h-4 w-4 inline mr-2" />
+                  From Studio
+                </button>
               </div>
             </div>
 
-          {/* Upload Area */}
-            <div className="w-full space-y-2">
-              <label className="text-sm font-medium text-foreground text-left block">Upload Local File</label>
-              <Card 
-                className={`border-2 border-dashed transition-colors cursor-pointer ${
-                  isLoggedIn 
-                    ? 'border-primary/50 hover:border-primary/70' 
-                    : 'border-muted-foreground/50 hover:border-muted-foreground/70'
-                }`}
-                onClick={handleUploadAreaClick}
-              >
-                <CardContent className="p-8">
-                  <div className="text-center space-y-4">
-                    <div className={`w-16 h-16 rounded-lg flex items-center justify-center mx-auto ${
-                      isLoggedIn ? 'bg-primary/20' : 'bg-muted-foreground/20'
-                    }`}>
-                      <Upload className={`h-8 w-8 ${isLoggedIn ? 'text-primary' : 'text-muted-foreground'}`} />
-                    </div>
-                    <div className="space-y-2">
-                      {selectedFile ? (
-                        <div className="space-y-2">
-                          <p className="text-sm text-foreground font-medium">
-                            {selectedFile.name}
-                          </p>
-                          <p className="text-xs text-muted-foreground">
-                            {(selectedFile.size / (1024 * 1024)).toFixed(2)} MB
-                          </p>
-                        </div>
-                      ) : (
-                        <>
-                          <p className="text-sm text-muted-foreground">
-                            Drag and drop your file or click to browse
-                          </p>
-                          <p className="text-xs text-muted-foreground">
-                            Supports WAV, MP3, FLAC, OGG, OPUS, SPHERE, MP4, M4V, AVI, MOV, AAC, M4A, BIN
-                          </p>
-                        </>
-                      )}
-                    </div>
+            {/* Upload Tab Content */}
+            {activeTab === 'upload' && (
+              <div className="bg-muted/20 rounded-lg p-3">
+                {/* Track URL Input with Button */}
+                <div className="w-full space-y-2">
+                  <label className="text-sm font-medium text-foreground text-left block">Audio URL</label>
+                  <div className="relative">
+                    <input
+                      type="url"
+                        placeholder="Paste your audio file URL here..."
+                        className="w-full px-4 py-3 pr-14 bg-muted rounded-lg text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary transition-colors"
+                        value={userInputUrl}
+                        onChange={handleUrlInputChange}
+                    />
+                    {urlValidationError && (
+                      <p className="text-red-500 text-xs mt-1">{urlValidationError}</p>
+                    )}
                   </div>
-                </CardContent>
-              </Card>
-              <input
-                id="file-upload"
-                type="file"
-                accept="audio/*,video/*"
-                onChange={handleFileSelect}
-                className="hidden"
-                disabled={!isLoggedIn}
-              />
-            </div>
+                </div>
+
+              {/* Upload Area */}
+                <div className="w-full space-y-2 mt-4">
+                  <label className="text-sm font-medium text-foreground text-left block">Upload Local File</label>
+                  <Card 
+                    className={`border-2 border-dashed transition-colors cursor-pointer ${
+                      isLoggedIn 
+                        ? 'border-primary/50 hover:border-primary/70' 
+                        : 'border-muted-foreground/50 hover:border-muted-foreground/70'
+                    }`}
+                    onClick={handleUploadAreaClick}
+                  >
+                    <CardContent className="p-8">
+                      <div className="text-center space-y-4">
+                        <div className={`w-16 h-16 rounded-lg flex items-center justify-center mx-auto ${
+                          isLoggedIn ? 'bg-primary/20' : 'bg-muted-foreground/20'
+                        }`}>
+                          <Upload className={`h-8 w-8 ${isLoggedIn ? 'text-primary' : 'text-muted-foreground'}`} />
+                        </div>
+                        <div className="space-y-2">
+                          {selectedFile ? (
+                            <div className="space-y-2">
+                              <p className="text-sm text-foreground font-medium">
+                                {selectedFile.name}
+                              </p>
+                              <p className="text-xs text-muted-foreground">
+                                {(selectedFile.size / (1024 * 1024)).toFixed(2)} MB
+                              </p>
+                            </div>
+                          ) : (
+                            <>
+                              <p className="text-sm text-muted-foreground">
+                                Drag and drop your file or click to browse
+                              </p>
+                              <p className="text-xs text-muted-foreground">
+                                Supports WAV, MP3, FLAC, OGG, OPUS, SPHERE, MP4, M4V, AVI, MOV, AAC, M4A, BIN
+                              </p>
+                            </>
+                          )}
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                  <input
+                    id="file-upload"
+                    type="file"
+                    accept="audio/*,video/*"
+                    onChange={handleFileSelect}
+                    className="hidden"
+                    disabled={!isLoggedIn}
+                  />
+                </div>
+              </div>
+            )}
+
+            {/* Studio Tab Content */}
+            {activeTab === 'studio' && (
+              <div className="bg-muted/20 rounded-lg p-3">
+                <div className="w-full space-y-4">
+                  {!isLoggedIn ? (
+                    <Card className="p-8 text-center">
+                      <CardContent>
+                        <p className="text-muted-foreground mb-4">Please log in to select tracks from Studio</p>
+                        <Button onClick={() => setShowAuthModal(true)}>Log In</Button>
+                      </CardContent>
+                    </Card>
+                  ) : (
+                    <>
+                      {/* Search Studio Tracks */}
+                      <div className="relative">
+                        <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                        <input
+                          type="text"
+                          placeholder="Search your tracks..."
+                          className="w-full pl-10 pr-10 py-2 bg-muted rounded-lg text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary"
+                          value={studioTracksSearchQuery}
+                          onChange={(e) => setStudioTracksSearchQuery(e.target.value)}
+                        />
+                        {studioTracksSearchQuery && (
+                          <button
+                            onClick={() => setStudioTracksSearchQuery('')}
+                            className="absolute right-3 top-1/2 transform -translate-y-1/2"
+                          >
+                            <X className="h-4 w-4 text-muted-foreground" />
+                          </button>
+                        )}
+                      </div>
+
+                      {/* Studio Tracks List */}
+                      <div className="max-h-96 overflow-y-auto space-y-2">
+                        {isLoadingStudioTracks ? (
+                          <div className="text-center py-8 text-muted-foreground">Loading tracks...</div>
+                        ) : studioTracks.filter(track => 
+                            studioTracksSearchQuery === '' || 
+                            track.title.toLowerCase().includes(studioTracksSearchQuery.toLowerCase()) ||
+                            track.tags.toLowerCase().includes(studioTracksSearchQuery.toLowerCase())
+                          ).length === 0 ? (
+                          <div className="text-center py-8 text-muted-foreground">No tracks found</div>
+                        ) : (
+                          studioTracks
+                            .filter(track => 
+                              studioTracksSearchQuery === '' || 
+                              track.title.toLowerCase().includes(studioTracksSearchQuery.toLowerCase()) ||
+                              track.tags?.toLowerCase().includes(studioTracksSearchQuery.toLowerCase())
+                            )
+                            .map((track) => {
+                              const canSeparate = track.canSeparate !== false; // 默认为 true（向后兼容）
+                              return (
+                                <div
+                                  key={track.id}
+                                  className={`flex items-center gap-4 px-2 py-2 mx-3 transition-all duration-300 group rounded-lg border ${
+                                    track.isError || !canSeparate
+                                      ? 'opacity-60 cursor-not-allowed'
+                                      : `cursor-pointer ${
+                                          selectedStudioTrack?.id === track.id
+                                            ? 'bg-muted/60 border-border/60'
+                                            : 'hover:bg-muted/20 border-transparent'
+                                        }`
+                                  }`}
+                                  onClick={() => {
+                                    if (canSeparate) {
+                                      setSelectedStudioTrack(track);
+                                    } else {
+                                      setError('This track cannot be used for vocal separation. It requires a valid audio ID.');
+                                    }
+                                  }}
+                                >
+                                  {/* 封面 */}
+                                  <div className="relative w-16 h-16 rounded-md overflow-hidden flex-shrink-0">
+                                    {track.coverImage ? (
+                                      <Image
+                                        src={track.coverImage}
+                                        alt={track.title}
+                                        width={64}
+                                        height={64}
+                                        className="w-full h-full object-cover"
+                                      />
+                                    ) : (
+                                      <div className="w-full h-full bg-gradient-to-br from-primary/20 to-primary/40 flex items-center justify-center">
+                                        <Music className="h-6 w-6 text-primary" />
+                                      </div>
+                                    )}
+                                  </div>
+
+                                  {/* Track Info */}
+                                  <div className="flex-1 min-w-0 flex items-center gap-4">
+                                    <div className="flex-1 min-w-0 flex items-center h-16">
+                                      <div className="flex items-center justify-between gap-2 w-full">
+                                        {/* 歌曲信息列 */}
+                                        <div className="flex-1 min-w-0 flex flex-col justify-center h-16">
+                                          <div className="flex items-center gap-2">
+                                            <h3 className={`font-semibold text-sm truncate ${
+                                              selectedStudioTrack?.id === track.id
+                                                ? 'text-primary'
+                                                : 'text-foreground'
+                                            }`}>
+                                              {track.title}
+                                            </h3>
+                                            {!canSeparate && (
+                                              <span className="text-xs text-muted-foreground px-2 py-0.5 bg-muted rounded">
+                                                Unavailable
+                                              </span>
+                                            )}
+                                          </div>
+                                          {/* 标签信息 */}
+                                          {track.tags && (
+                                            <div className="flex items-center gap-2 mt-0.5">
+                                              {/* 时长显示在 tags 前面，用竖线分隔 */}
+                                              {track.duration > 0 && (
+                                                <>
+                                                  <span className="text-xs text-muted-foreground whitespace-nowrap">
+                                                    {formatDuration(track.duration)}
+                                                  </span>
+                                                  <span className="text-xs text-muted-foreground/60">|</span>
+                                                </>
+                                              )}
+                                              <p 
+                                                className="text-xs text-muted-foreground truncate flex-1"
+                                                title={track.tags}
+                                              >
+                                                {track.tags.split(/[,;.]/).filter((tag: string) => tag.trim()).map((tag: string, index: number, array: string[]) => (
+                                                  <span key={index}>
+                                                    <span>{tag.trim()}</span>
+                                                    {index < array.length - 1 && <span className="mx-1">•</span>}
+                                                  </span>
+                                                ))}
+                                                {track.tags.length > 100 && '...'}
+                                              </p>
+                                            </div>
+                                          )}
+                                          {/* 只有时长没有标签时 */}
+                                          {!track.tags && track.duration > 0 && (
+                                            <span className="text-xs text-muted-foreground mt-0.5">
+                                              {formatDuration(track.duration)}
+                                            </span>
+                                          )}
+                                          {/* 创建时间 - 参考 studio-tracks-list 的格式 */}
+                                          {track.createdAt && (
+                                            <p className="text-xs text-muted-foreground/60 truncate mt-1">
+                                              {new Date(track.createdAt).toLocaleString('en-US', {
+                                                month: 'numeric',
+                                                day: 'numeric',
+                                                year: 'numeric',
+                                                hour: 'numeric',
+                                                minute: '2-digit',
+                                                second: '2-digit',
+                                                hour12: true
+                                              })}
+                                            </p>
+                                          )}
+                                        </div>
+                                        
+                                        {/* 操作按钮列 - 只显示选中对勾 */}
+                                        <div className="flex items-center justify-end gap-1 flex-shrink-0">
+                                          {selectedStudioTrack?.id === track.id && (
+                                            <CheckCircle className="h-5 w-5 text-primary" />
+                                          )}
+                                        </div>
+                                      </div>
+                                    </div>
+                                  </div>
+                                </div>
+                              );
+                            })
+                        )}
+                      </div>
+
+                      {selectedStudioTrack && (
+                        <div className="p-4 bg-muted/50 rounded-lg flex items-center justify-between">
+                          <p className="text-sm font-medium text-foreground">Selected Track:</p>
+                          <p className="text-sm font-medium text-foreground">{selectedStudioTrack.title}</p>
+                        </div>
+                      )}
+                    </>
+                  )}
+                </div>
+              </div>
+            )}
 
           {/* Action Button */}
           <div className="w-full space-y-3">
@@ -565,11 +1152,16 @@ export default function VocalSeparationDemo() {
               size="lg" 
               className="w-full bg-primary hover:bg-primary/90 text-primary-foreground px-8 py-3"
               onClick={handleStartSeparating}
-              disabled={(!selectedFile && !userInputUrl) || isGenerating || !!urlValidationError}
+              disabled={
+                (activeTab === 'upload' && (!selectedFile && !userInputUrl)) ||
+                (activeTab === 'studio' && !selectedStudioTrack) ||
+                isGenerating || 
+                !!urlValidationError
+              }
             >
               {isGenerating ? (
                 <div className="flex items-center gap-2">
-                  Separating
+                  Separating ({Math.round(separationProgress)}%)
                   <div className="flex items-center gap-1.5">
                     <div className="w-2 h-2 bg-white rounded-full animate-bounce" style={{ animationDelay: '0ms' }}></div>
                     <div className="w-2 h-2 bg-white rounded-full animate-bounce" style={{ animationDelay: '150ms' }}></div>
@@ -580,8 +1172,16 @@ export default function VocalSeparationDemo() {
                 "Start Separating"
               )}
             </Button>
+            {isGenerating && (
+              <div className="w-full space-y-2 mt-2">
+                <Progress value={separationProgress} className="h-2" />
+                <p className="text-xs text-center text-muted-foreground">
+                  Processing: {Math.round(separationProgress)}%
+                </p>
+              </div>
+            )}
             <div className="text-center text-sm text-muted-foreground">
-              <p>Estimated time: 1~3 minutes • This action will cost <VocalSeparationCreditsDisplay /> credits</p>
+              <p>Estimated time: 1~3 minutes • This action will cost <VocalSeparationCreditsDisplay source={activeTab === 'upload' ? 'local' : 'studio'} /> <span className="text-primary font-medium">credits</span></p>
             </div>
           </div>
 

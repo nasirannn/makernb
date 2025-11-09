@@ -46,7 +46,7 @@ export async function GET(
         // 添加收藏状态到tracks
         musicGenerations.forEach(generation => {
           generation.allTracks?.forEach((track: any) => {
-            track.is_favorited = favoriteStatus[track.id] || false;
+            track.isFavorited = favoriteStatus[track.id] || false; // 映射数据库字段为 JavaScript 字段名
           });
         });
       }
@@ -92,16 +92,16 @@ function processUserMusicData(rawData: any[]) {
         genre: row.genre,
         tags: row.tags,
         prompt: row.prompt,
-        is_instrumental: row.is_instrumental,
+        isInstrumental: row.is_instrumental, // 映射数据库字段为 JavaScript 字段名
         status: row.status,
-        created_at: row.generation_created_at,
-        updated_at: row.generation_updated_at,
-        lyrics_content: row.lyrics_content,
+        createdAt: row.generation_created_at, // 映射数据库字段为 JavaScript 字段名
+        updatedAt: row.generation_updated_at, // 映射数据库字段为 JavaScript 字段名
+        lyricsContent: row.lyrics_content, // 映射数据库字段为 JavaScript 字段名
         allTracks: [],
         totalDuration: 0,
         errorInfo: row.error_message ? {
-          error_message: row.error_message,
-          error_code: row.error_code
+          errorMessage: row.error_message, // 映射数据库字段为 JavaScript 字段名
+          errorCode: row.error_code // 映射数据库字段为 JavaScript 字段名
         } : null
       });
     }
@@ -110,16 +110,17 @@ function processUserMusicData(rawData: any[]) {
     if (row.track_id) {
       const track = {
         id: row.track_id,
-        suno_track_id: row.suno_track_id,
-        audio_url: row.audio_url,
-        stream_audio_url: row.stream_audio_url,
+        sunoTrackId: row.suno_track_id, // 映射数据库字段为 JavaScript 字段名
+        audioUrl: row.audio_url, // 映射数据库字段为 JavaScript 字段名
+        streamAudioUrl: row.stream_audio_url, // 映射数据库字段为 JavaScript 字段名
         duration: row.duration,
-        is_published: row.is_published,
-        is_pinned: row.is_pinned,
-        created_at: row.track_created_at,
-        cover_r2_url: row.cover_r2_url,
+        isPublished: row.is_published, // 映射数据库字段为 JavaScript 字段名
+        isPinned: row.is_pinned, // 映射数据库字段为 JavaScript 字段名
+        createdAt: row.track_created_at, // 映射数据库字段为 JavaScript 字段名
+        coverR2Url: row.cover_r2_url, // 映射数据库字段为 JavaScript 字段名
         title: row.track_title, // 使用 COALESCE(tracks.title, music.title) 的结果
         lyrics: row.lyrics_content || ''
+        // wavR2Url 不再在列表加载时查询，只在下载时查询 track_wav_conversions 表
       };
 
       generationsMap.get(generationId).allTracks.push(track);

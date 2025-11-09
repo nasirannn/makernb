@@ -159,8 +159,11 @@ const generateTransactionDescription = (
     case 'lyrics_generation':
       return 'Lyrics generation';
     
-    case 'vocal_separation':
-      return 'Vocal separation';
+    case 'separate_vocals_from_music_local':
+      return 'Vocal separation (Local file)';
+    
+    case 'separate_vocals_from_music_studio':
+      return 'Vocal separation (Studio track)';
     
     case 'system':
       return context?.operation 

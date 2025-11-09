@@ -32,8 +32,6 @@ import {
   ArrowUp,
   ArrowDown as ArrowDownIcon,
   Pencil,
-  Check,
-  X as XIcon,
   Send
 } from 'lucide-react';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
@@ -49,6 +47,9 @@ import { LoadingState } from './loading-dots';
 import { Progress } from './progress';
 import { LibraryTrack } from '@/types/track';
 import { getEventBus, TRACK_EVENTS } from '@/lib/event-bus';
+import { TrackCover } from './track-cover';
+import { formatDuration, formatDateTime } from '@/lib/format-utils';
+import { LibraryTrackActions } from './library-track-actions';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -74,19 +75,6 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
-
-// 格式化时长显示
-const formatDuration = (totalSeconds: number) => {
-  // 处理 NaN 或无效值
-  if (isNaN(totalSeconds) || totalSeconds <= 0) {
-    return '';
-  }
-  
-  const minutes = Math.floor(totalSeconds / 60);
-  const seconds = Math.floor(totalSeconds % 60);
-  
-  return `${minutes}:${seconds.toString().padStart(2, '0')}`;
-};
 
 interface LibraryPanelProps {
   tracks: LibraryTrack[];
@@ -167,13 +155,13 @@ export const LibraryPanel = ({
     // 根据筛选条件过滤
     if (activeFilter === 'published') {
       // 只显示已发布的收藏歌曲
-      if (!track.is_published || track.is_deleted) return false;
+      if (!track.isPublished || track.isDeleted) return false;
     } else if (activeFilter === 'pinned') {
       // 只显示被pin的收藏歌曲
-      if (!track.is_pinned || track.is_deleted) return false;
+      if (!track.isPinned || track.isDeleted) return false;
     } else if (activeFilter === 'all') {
       // 显示所有收藏的歌曲（未删除的）
-      if (track.is_deleted) return false;
+      if (track.isDeleted) return false;
     }
     
     // 搜索过滤
@@ -201,9 +189,9 @@ export const LibraryPanel = ({
   const sortedTracks = [...filteredTracks].sort((a, b) => {
     if (sortOrder === null) return 0;
     
-    // 对于收藏歌曲，使用favorited_at（收藏时间）而不是created_at（歌曲创建时间）
-    const dateA = new Date(a.favorited_at || a.created_at).getTime();
-    const dateB = new Date(b.favorited_at || b.created_at).getTime();
+    // 对于收藏歌曲，使用favoritedAt（收藏时间）而不是createdAt（歌曲创建时间）
+    const dateA = new Date(a.favoritedAt || a.createdAt).getTime();
+    const dateB = new Date(b.favoritedAt || b.createdAt).getTime();
     
     if (sortOrder === 'asc') {
       return dateA - dateB; // 升序：旧的在前面
@@ -215,10 +203,6 @@ export const LibraryPanel = ({
   // Show all tracks without pagination
   const paginatedTracks = sortedTracks;
 
-
-  const formatDate = (dateString: string) => {
-    return new Date(dateString).toISOString().split('T')[0];
-  };
 
   const handleTrackAction = (track: LibraryTrack, action: 'play' | 'select') => {
     
@@ -243,7 +227,7 @@ export const LibraryPanel = ({
         icon: <ArrowDown className="h-4 w-4 text-blue-500" />
       });
 
-      // WAV格式需要处理轮询逻辑
+      // WAV格式：统一通过下载 API 处理（API 会查询 track_wav_conversions 表）
       if (format === 'wav') {
         await handleWavDownloadWithPolling(track, downloadToast);
         return;
@@ -1027,58 +1011,14 @@ export const LibraryPanel = ({
 
                   {/* Cover Image and Play Button - 桌面端统一 */}
                   <div className="col-span-2 flex items-center gap-3 py-2">
-                    <div className="relative w-16 h-16 rounded-md overflow-hidden flex-shrink-0 transition-transform duration-300 group/cover group-hover:scale-105">
-                    {track.cover_r2_url ? (
-                      <SafeImage
-                        src={track.cover_r2_url}
-                        alt={track.title}
-                        width={64}
-                        height={64}
-                        className="w-full h-full object-cover"
-                        fallbackContent={
-                          <span className="text-sm font-bold text-primary">
-                            {track.id.slice(-2).toUpperCase()}
-                          </span>
-                        }
-                      />
-                    ) : (
-                      <div className="w-full h-full bg-gradient-to-br from-primary/20 to-primary/40 flex items-center justify-center">
-                        <span className="text-sm font-bold text-primary">
-                          {track.id.slice(-2).toUpperCase()}
-                        </span>
-                      </div>
-                    )}
-
-                    {/* Play Button Overlay - 鼠标悬浮时显示 */}
-                    <div className="absolute inset-0 bg-black/50 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        className="h-10 w-10 p-0 bg-white/20 hover:bg-white/30"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          handleTrackAction(track, 'play');
-                        }}
-                      >
-                        {currentPlayingTrack === track.id && isPlaying ? (
-                          <Pause className="h-4 w-4 text-white" />
-                        ) : (
-                          <Play className="h-4 w-4 text-white" />
-                        )}
-                      </Button>
-                    </div>
-
-                    {/* Audio Wave Indicator - 只在播放时显示，鼠标悬浮时隐藏 */}
-                    {currentPlayingTrack === track.id && isPlaying && (
-                      <div className="absolute inset-0 flex items-center justify-center opacity-100 group-hover:opacity-0 transition-opacity pointer-events-none">
-                        <CustomAudioWaveIndicator 
-                          isPlaying={isPlaying} 
-                          size="sm" 
-                          className="text-white"
-                        />
-                      </div>
-                    )}
-                    </div>
+                    <TrackCover
+                      coverUrl={track.coverR2Url}
+                      title={track.title}
+                      isPlaying={isPlaying}
+                      isCurrentTrack={currentPlayingTrack === track.id}
+                      onPlayPause={() => handleTrackAction(track, 'play')}
+                      trackId={track.id}
+                    />
                     {/* Song Title */}
                     <div className="flex-1 min-w-0 flex flex-col justify-center">
                       <h3 className={`font-semibold text-sm truncate ${
@@ -1110,15 +1050,7 @@ export const LibraryPanel = ({
                   {/* Favorited Time Column - 收藏时间 - 桌面端 */}
                   <div className="col-span-2 flex items-center py-2">
                     <span className="text-sm text-muted-foreground truncate">
-                      {track.favorited_at ? new Date(track.favorited_at).toLocaleString('en-US', {
-                        month: 'numeric',
-                        day: 'numeric',
-                        year: 'numeric',
-                        hour: 'numeric',
-                        minute: '2-digit',
-                        second: '2-digit',
-                        hour12: true
-                      }) : 'Unknown'}
+                      {track.favoritedAt ? formatDateTime(track.favoritedAt) : 'Unknown'}
                     </span>
                   </div>
 
@@ -1131,144 +1063,19 @@ export const LibraryPanel = ({
 
                   {/* Actions Column - 操作按钮 */}
                   <div className="col-span-2 flex items-center justify-center py-2">
-                    <div className="flex items-center gap-2">
-                      {/* Publish/Unpublish Button - 桌面端直接显示 */}
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        className="h-8 w-8 p-0"
-                        title={track.is_published ? "Unpublish" : "Publish"}
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          handlePublishClick(track);
-                        }}
-                      >
-                        {track.is_published ? (
-                          <Send className="h-4 w-4 text-green-600" />
-                        ) : (
-                          <Send className="h-4 w-4 text-muted-foreground" />
-                        )}
-                      </Button>
-
-                      {/* Download Button - Dropdown Menu - 只在桌面端显示 */}
-                      <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            className="h-8 w-8 p-0"
-                            title="Download"
-                            onClick={(e) => {
-                              e.preventDefault();
-                              e.stopPropagation();
-                            }}
-                            aria-label="Download track"
-                          >
-                            <Download className="h-4 w-4" />
-                          </Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end" onClick={(e) => e.stopPropagation()} className="p-2 min-w-[180px]">
-                          <DropdownMenuItem
-                            onClick={(e) => {
-                              e.preventDefault();
-                              e.stopPropagation();
-                              if (!canDownloadMP3) {
-                                // 打开订阅弹窗
-                                openPricingModal();
-                                return;
-                              }
-                              handleDownload(track, 'mp3');
-                            }}
-                            className="flex items-center justify-between gap-3 cursor-pointer px-3 py-2.5"
-                          >
-                            <span className="text-sm font-medium">Download MP3</span>
-                            {!canDownloadMP3 && (
-                              <Badge variant="outline" className="text-xs px-2 py-0.5 bg-gradient-create text-white border-0 shrink-0">
-                                Basic
-                              </Badge>
-                            )}
-                          </DropdownMenuItem>
-                          <DropdownMenuItem
-                            onClick={(e) => {
-                              e.preventDefault();
-                              e.stopPropagation();
-                              if (!canDownloadWAV) {
-                                // 打开订阅弹窗
-                                openPricingModal();
-                                return;
-                              }
-                              handleDownload(track, 'wav');
-                            }}
-                            className="flex items-center justify-between gap-3 cursor-pointer px-3 py-2.5"
-                          >
-                            <span className="text-sm font-medium">Download WAV</span>
-                            {!canDownloadWAV && (
-                              <Badge variant="outline" className="text-xs px-2 py-0.5 bg-gradient-create text-white border-0 shrink-0">
-                                Premium
-                              </Badge>
-                            )}
-                          </DropdownMenuItem>
-                        </DropdownMenuContent>
-                      </DropdownMenu>
-
-                      {/* More Actions Dropdown - 桌面端 */}
-                      <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            className="h-8 w-8 p-0"
-                            title="More actions"
-                            onClick={(e) => e.stopPropagation()}
-                          >
-                            <MoreHorizontal className="h-4 w-4" />
-                          </Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end" className="w-48">
-                          {/* Edit Title */}
-                          <DropdownMenuItem
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              handleEditStart(track);
-                            }}
-                            className="cursor-pointer"
-                          >
-                            <Pencil className="mr-2 h-4 w-4" />
-                            Edit Title
-                          </DropdownMenuItem>
-
-                          {/* Pin/Unpin - Only for admins */}
-                          {userIsAdmin && (
-                            <DropdownMenuItem
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                handlePinToggle(track);
-                              }}
-                              className="cursor-pointer"
-                            >
-                              {track.is_pinned ? (
-                                <PinOff className="mr-2 h-4 w-4" />
-                              ) : (
-                                <Pin className="mr-2 h-4 w-4" />
-                              )}
-                              {track.is_pinned ? "Unpin" : "Pin"}
-                            </DropdownMenuItem>
-                          )}
-
-                          {/* Delete - Available for all users */}
-                          <DropdownMenuItem
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              handleDeleteClick(track);
-                            }}
-                            className="cursor-pointer text-destructive focus:text-destructive"
-                          >
-                            <Trash2 className="mr-2 h-4 w-4" />
-                            Delete
-                          </DropdownMenuItem>
-                        </DropdownMenuContent>
-                      </DropdownMenu>
-                    </div>
+                    <LibraryTrackActions
+                      track={track}
+                      isMobile={false}
+                      userIsAdmin={userIsAdmin}
+                      canDownloadMP3={canDownloadMP3}
+                      canDownloadWAV={canDownloadWAV}
+                      onDownload={(format) => handleDownload(track, format)}
+                      onPublish={() => handlePublishClick(track)}
+                      onPin={() => handlePinToggle(track)}
+                      onEdit={() => handleEditStart(track)}
+                      onDelete={() => handleDeleteClick(track)}
+                      onPricingModalOpen={openPricingModal}
+                    />
                   </div>
                   </div>
                   
@@ -1284,55 +1091,15 @@ export const LibraryPanel = ({
                     }}
                   >
                   {/* Cover Image and Play Button - 移动端 */}
-                  <div className="relative w-16 h-16 rounded-md overflow-hidden flex-shrink-0 transition-transform duration-300 group/cover group-hover:scale-105 ml-2">
-                    {track.cover_r2_url ? (
-                      <SafeImage
-                        src={track.cover_r2_url}
-                        alt={track.title}
-                        width={64}
-                        height={64}
-                        className="w-full h-full object-cover"
-                        fallbackContent={
-                          <span className="text-sm font-bold text-primary">
-                            {track.id.slice(-2).toUpperCase()}
-                          </span>
-                        }
-                      />
-                    ) : (
-                      <div className="w-full h-full bg-gradient-to-br from-primary/20 to-primary/40 flex items-center justify-center">
-                        <span className="text-sm font-bold text-primary">
-                          {track.id.slice(-2).toUpperCase()}
-                        </span>
-                      </div>
-                    )}
-
-                    <div className="absolute inset-0 bg-black/50 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        className="h-10 w-10 p-0 bg-white/20 hover:bg-white/30"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          handleTrackAction(track, 'play');
-                        }}
-                      >
-                        {currentPlayingTrack === track.id && isPlaying ? (
-                          <Pause className="h-4 w-4 text-white" />
-                        ) : (
-                          <Play className="h-4 w-4 text-white" />
-                        )}
-                      </Button>
-                    </div>
-
-                    {currentPlayingTrack === track.id && isPlaying && (
-                      <div className="absolute inset-0 flex items-center justify-center opacity-100 group-hover:opacity-0 transition-opacity pointer-events-none">
-                        <CustomAudioWaveIndicator 
-                          isPlaying={isPlaying} 
-                          size="sm" 
-                          className="text-white"
-                        />
-                      </div>
-                    )}
+                  <div className="ml-2">
+                    <TrackCover
+                      coverUrl={track.coverR2Url}
+                      title={track.title}
+                      isPlaying={isPlaying}
+                      isCurrentTrack={currentPlayingTrack === track.id}
+                      onPlayPause={() => handleTrackAction(track, 'play')}
+                      trackId={track.id}
+                    />
                   </div>
 
                   {/* Song Title and Info - 移动端 */}
@@ -1368,30 +1135,14 @@ export const LibraryPanel = ({
                       </div>
                     )}
                     {!track.tags || track.tags.trim() === '' ? (
-                      track.favorited_at && (
+                      track.favoritedAt && (
                         <p className="text-xs text-muted-foreground/60 truncate mt-1">
-                          {new Date(track.favorited_at).toLocaleString('en-US', {
-                            month: 'numeric',
-                            day: 'numeric',
-                            year: 'numeric',
-                            hour: 'numeric',
-                            minute: '2-digit',
-                            second: '2-digit',
-                            hour12: true
-                          })}
+                          {formatDateTime(track.favoritedAt)}
                         </p>
                       )
-                    ) : track.favorited_at && (
+                    ) : track.favoritedAt && (
                       <p className="text-xs text-muted-foreground/60 truncate mt-1">
-                        {new Date(track.favorited_at).toLocaleString('en-US', {
-                          month: 'numeric',
-                          day: 'numeric',
-                          year: 'numeric',
-                          hour: 'numeric',
-                          minute: '2-digit',
-                          second: '2-digit',
-                          hour12: true
-                        })}
+                        {formatDateTime(track.favoritedAt)}
                       </p>
                     )}
                   </div>
@@ -1466,10 +1217,10 @@ export const LibraryPanel = ({
         <AlertDialogContent className="max-w-[calc(100vw-2rem)] sm:max-w-[425px]">
           <AlertDialogHeader className="space-y-2 sm:space-y-3">
             <AlertDialogTitle className="text-lg sm:text-xl">
-              {trackToPublish?.is_published ? 'Unpublish Track' : 'Publish Track'}
+              {trackToPublish?.isPublished ? 'Unpublish Track' : 'Publish Track'}
             </AlertDialogTitle>
             <AlertDialogDescription className="text-sm sm:text-base">
-              {trackToPublish?.is_published 
+              {trackToPublish?.isPublished 
                 ? `Are you sure you want to unpublish "${trackToPublish?.title}"? It will no longer be visible in explore.`
                 : `Are you sure you want to publish "${trackToPublish?.title}"? It will be visible in explore.`
               }
@@ -1481,7 +1232,7 @@ export const LibraryPanel = ({
               onClick={handlePublishConfirm}
               className="w-full sm:w-auto bg-primary text-primary-foreground hover:bg-primary/90"
             >
-              {trackToPublish?.is_published ? 'Unpublish' : 'Publish'}
+              {trackToPublish?.isPublished ? 'Unpublish' : 'Publish'}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
@@ -1605,9 +1356,9 @@ export const LibraryPanel = ({
 
           <DialogHeader className="p-4 pb-3 border-b">
             <DialogTitle className="flex items-center gap-3 mb-3 text-left">
-              {selectedTrackForMenu?.cover_r2_url && (
+              {selectedTrackForMenu?.coverR2Url && (
                 <SafeImage
-                  src={selectedTrackForMenu.cover_r2_url}
+                  src={selectedTrackForMenu.coverR2Url}
                   alt={selectedTrackForMenu.title}
                   width={48}
                   height={48}
@@ -1628,17 +1379,9 @@ export const LibraryPanel = ({
                     </div>
                   )}
                 </div>
-                {selectedTrackForMenu?.favorited_at && (
+                {selectedTrackForMenu?.favoritedAt && (
                   <div className="text-xs text-muted-foreground/60 mt-1 text-left">
-                    {new Date(selectedTrackForMenu.favorited_at).toLocaleString('en-US', {
-                      month: 'numeric',
-                      day: 'numeric',
-                      year: 'numeric',
-                      hour: 'numeric',
-                      minute: '2-digit',
-                      second: '2-digit',
-                      hour12: true
-                    })}
+                    {formatDateTime(selectedTrackForMenu.favoritedAt)}
                   </div>
                 )}
               </div>
@@ -1761,17 +1504,17 @@ export const LibraryPanel = ({
                 }}
               >
                 <div className="flex items-center gap-3">
-                  {selectedTrackForMenu.is_published ? (
+                  {selectedTrackForMenu.isPublished ? (
                     <Send className="h-5 w-5" />
                   ) : (
                     <Send className="h-5 w-5" />
                   )}
                   <span className="font-medium">
-                    {selectedTrackForMenu.is_published ? "Unpublish" : "Publish"}
+                    {selectedTrackForMenu.isPublished ? "Unpublish" : "Publish"}
                   </span>
                 </div>
                 <Switch
-                  checked={selectedTrackForMenu.is_published}
+                  checked={selectedTrackForMenu.isPublished}
                   onCheckedChange={() => {
                     handlePublishClick(selectedTrackForMenu);
                     setMobileMenuOpen(false);
@@ -1789,13 +1532,13 @@ export const LibraryPanel = ({
                 }}
                 className="w-full flex items-center gap-3 p-3 rounded-lg hover:bg-muted transition-colors"
               >
-                {selectedTrackForMenu.is_pinned ? (
+                {selectedTrackForMenu.isPinned ? (
                   <PinOff className="h-5 w-5" />
                 ) : (
                   <Pin className="h-5 w-5" />
                 )}
                 <span className="font-medium">
-                  {selectedTrackForMenu.is_pinned ? "Unpin" : "Pin"}
+                  {selectedTrackForMenu.isPinned ? "Unpin" : "Pin"}
                 </span>
               </button>
             )}

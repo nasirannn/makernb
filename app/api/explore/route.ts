@@ -54,7 +54,7 @@ export async function GET(request: NextRequest) {
       LIMIT $1 OFFSET $2
     `, genre && genre !== 'all' ? [limit, offset, genre] : [limit, offset]);
 
-    // 将tracks数据转换为前端需要的格式
+    // 将tracks数据转换为前端需要的格式（使用驼峰命名）
     const tracks = result.rows.map(row => ({
       id: row.track_id,
       title: row.title,
@@ -66,15 +66,15 @@ export async function GET(request: NextRequest) {
       updatedAt: row.updated_at,
       primaryTrack: {
         id: row.track_id,
-        audio_url: row.audio_url,
+        audioUrl: row.audio_url, // 映射数据库字段为 JavaScript 字段名
         duration: row.duration,
-        cover_r2_url: row.cover_r2_url
+        coverR2Url: row.cover_r2_url // 映射数据库字段为 JavaScript 字段名
       },
       allTracks: [{
         id: row.track_id,
-        audio_url: row.audio_url,
+        audioUrl: row.audio_url, // 映射数据库字段为 JavaScript 字段名
         duration: row.duration,
-        cover_r2_url: row.cover_r2_url
+        coverR2Url: row.cover_r2_url // 映射数据库字段为 JavaScript 字段名
       }],
       totalDuration: parseFloat(row.duration) || 0,
       trackCount: 1

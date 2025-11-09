@@ -1,25 +1,20 @@
 "use client";
 
-import React, { useState, useEffect } from 'react';
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
-import { Play, Pause, Music, Trash2, Download, Star, Share2, Check, Search, X } from "lucide-react";
-import { CustomAudioWaveIndicator } from './audio-wave-indicator';
-import { LoadingDots, LoadingState } from './loading-dots';
-import Image from "next/image";
-import { useAuth } from "@/contexts/AuthContext";
+import React, { useState, useCallback } from 'react';
+import { Music, Search, X } from "lucide-react";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
+import { LoadingState } from './loading-dots';
 import { supabase } from "@/lib/supabase";
 import { toast } from 'sonner';
 import { LibraryTrack } from '@/types/track';
 import { useAudioPlayingState } from "@/hooks/use-audio-playing-state";
 import { useFeaturePermissions } from "@/contexts/FeaturePermissionsContext";
 import { usePricingModal } from "@/contexts/PricingModalContext";
+import { VocalRemovalProgressDialog } from './vocal-removal-progress-dialog';
+import { CLIENT_VOCAL_SEPARATION_CREDITS } from '@/lib/credits-config';
+import { useVocalRemovalManager } from '@/hooks/use-vocal-removal-manager';
+import { TrackItem } from './track-item';
+import { formatDuration, formatDurationInMinutes } from '@/lib/format-utils';
 
 interface MusicGeneration {
   id: string;
@@ -27,11 +22,11 @@ interface MusicGeneration {
   genre: string;
   tags: string;
   prompt: string;
-  is_instrumental: boolean;
+  isInstrumental: boolean;
   status: string;
-  created_at: string;
-  updated_at: string;
-  lyrics_content?: string;
+  createdAt: string;
+  updatedAt: string;
+  lyricsContent?: string;
   allTracks: LibraryTrack[];
   totalDuration: number;
   errorInfo?: any;
@@ -40,23 +35,17 @@ interface MusicGeneration {
 interface StudioTracksListProps {
   userTracks: MusicGeneration[];
   isLoading: boolean;
-  onTrackSelect?: (trackId: string) => void;  // 修改：接收 trackId 而不是完整对象
+  onTrackSelect?: (trackId: string) => void;
   onTrackPlay?: (track: LibraryTrack, music: MusicGeneration) => void;
-  // currentlyPlaying?: string | null; // ❌ 冗余 - 使用 EventBus
   selectedTrack?: string | null;
-  // isPlaying?: boolean; // ❌ 冗余 - 使用 EventBus
-  // 新增：生成中的tracks
   generatedTracks?: any[];
-  // 新增：panel状态和展开函数
-  panelOpen?: boolean;
-  onExpandPanel?: () => void;
-  // 新增：专门处理生成tracks的回调
-  onGeneratedTrackSelect?: (trackId: string) => void;  // 修改：接收 trackId 而不是完整对象
-  // 新增：下载和收藏回调
+  onGeneratedTrackSelect?: (trackId: string) => void;
   onDownload?: (track: LibraryTrack, music: MusicGeneration, format?: 'mp3' | 'wav') => void;
   onFavoriteToggle?: (track: LibraryTrack, music: MusicGeneration) => void;
   onDelete?: (track: LibraryTrack, music: MusicGeneration) => void;
-  hasPlayer?: boolean; // 新增：是否有播放器显示
+  onPublishToggle?: (trackId: string, isPublished: boolean) => void;
+  onEditTitle?: (trackId: string, newTitle: string) => void;
+  hasPlayer?: boolean;
 }
 
 export const StudioTracksList: React.FC<StudioTracksListProps> = React.memo(function StudioTracksList({
@@ -64,43 +53,130 @@ export const StudioTracksList: React.FC<StudioTracksListProps> = React.memo(func
   isLoading,
   onTrackSelect,
   onTrackPlay,
-  // currentlyPlaying, // ❌ 冗余 - 不再使用
   selectedTrack,
-  // isPlaying = false, // ❌ 冗余 - 不再使用
   generatedTracks = [],
   onGeneratedTrackSelect,
   onDownload,
   onFavoriteToggle,
   onDelete,
+  onPublishToggle,
+  onEditTitle,
   hasPlayer = false,
 }) {
   
-  // 移除分页状态，显示所有歌曲
-  const { user } = useAuth();
   const { openModal: openPricingModal } = usePricingModal();
-  
-  // 使用 EventBus 监听全局播放状态
   const globalAudioState = useAudioPlayingState();
-  
-  // 获取权限检查函数
   const { hasPermission } = useFeaturePermissions();
   
-  // 检查下载权限
+  // 权限检查
   const canDownloadMP3 = hasPermission('download_mp3_track');
   const canDownloadWAV = hasPermission('download_wav_track');
   
-  // 分享按钮状态 - 跟踪复制成功的歌曲
+  // UI 状态
   const [copiedTrackId, setCopiedTrackId] = useState<string | null>(null);
-  
-  // 搜索状态
   const [searchQuery, setSearchQuery] = useState('');
+  
+  // Vocal Removal 管理
+  const vocalRemovalManager = useVocalRemovalManager();
+  
+  // Vocal Removal 弹窗状态
+  const [showVocalRemovalConfirmDialog, setShowVocalRemovalConfirmDialog] = useState(false);
+  const [pendingVocalRemovalTrackId, setPendingVocalRemovalTrackId] = useState<string | null>(null);
+  const [existingVocalRemovalData, setExistingVocalRemovalData] = useState<{
+    trackTitle: string;
+    vocalUrl?: string;
+    instrumentalUrl?: string;
+    hasExistingResults?: boolean;
+  } | null>(null);
+  
+  const [showVocalRemovalProgressDialog, setShowVocalRemovalProgressDialog] = useState(false);
+  const [currentProcessingTrackId, setCurrentProcessingTrackId] = useState<string | null>(null);
+  const [currentProcessingTrackTitle, setCurrentProcessingTrackTitle] = useState<string>('');
+  
+  // 将所有 tracks 展平
+  const allTracks = userTracks.flatMap(music => {
+    if (!music.allTracks || !Array.isArray(music.allTracks)) {
+      return [];
+    }
+    return music.allTracks
+      .filter(track => !(track.isDeleted ?? false))
+      .map(track => ({
+        ...track,
+        isFavorited: track.isFavorited ?? false,
+        coverR2Url: track.coverR2Url ?? undefined,
+        musicTitle: music.title,
+        musicTags: music.tags,
+        musicGenre: music.genre,
+        musicStatus: music.status,
+        musicGeneration: music,
+        isError: !track.audioUrl || track.audioUrl.trim() === '',
+        errorMessage: (!track.audioUrl || track.audioUrl.trim() === '') ? 'Audio file missing' : undefined
+      }));
+  });
 
-  // 删除歌曲函数
-  const handleDeleteTrack = async (trackId: string) => {
+  // 搜索过滤
+  const filterTracks = useCallback((tracks: any[]) => {
+    if (!searchQuery.trim()) return tracks;
+    const query = searchQuery.toLowerCase();
+    return tracks.filter(track => {
+      if (track.title?.toLowerCase().includes(query)) return true;
+      if (track.musicTitle?.toLowerCase().includes(query)) return true;
+      if (track.tags?.toLowerCase().includes(query)) return true;
+      if (track.musicTags?.toLowerCase().includes(query)) return true;
+      return false;
+    });
+  }, [searchQuery]);
+
+  const stableGeneratedTracks = React.useMemo(() => {
+    const tracks = generatedTracks || [];
+    return filterTracks(tracks);
+  }, [generatedTracks, filterTracks]);
+
+  const currentTracks = filterTracks(allTracks);
+
+  // 处理歌曲选择
+  const handleTrackSelect = useCallback((track: any) => {
+    if (track.isPlaceholder) return;
+    if (onTrackSelect) {
+      onTrackSelect(track.id);
+    }
+  }, [onTrackSelect]);
+
+  // 处理播放/暂停
+  const handlePlayPause = useCallback((track: any) => {
+    if (track.isPlaceholder) return;
+    if (onTrackPlay) {
+      onTrackPlay(track, track.musicGeneration);
+    }
+  }, [onTrackPlay]);
+  
+  // 处理分享
+  const handleShare = useCallback((trackId: string) => {
+    const url = `${window.location.origin}/studio?track=${trackId}`;
+    navigator.clipboard.writeText(url).then(() => {
+      setCopiedTrackId(trackId);
+      setTimeout(() => setCopiedTrackId(null), 2000);
+    });
+  }, []);
+  
+  // 处理下载
+  const handleDownload = useCallback((track: any, format: 'mp3' | 'wav') => {
+    if (onDownload) {
+      onDownload(track, track.musicGeneration, format);
+    }
+  }, [onDownload]);
+  
+  // 处理收藏
+  const handleFavoriteToggle = useCallback((track: any) => {
+    if (onFavoriteToggle) {
+      onFavoriteToggle(track, track.musicGeneration);
+    }
+  }, [onFavoriteToggle]);
+  
+  // 处理删除
+  const handleDelete = useCallback(async (trackId: string) => {
     try {
-      // 获取当前session的access token
       const { data: { session } } = await supabase.auth.getSession();
-      
       if (!session?.access_token) {
         toast.error('Authentication required. Please log in again.');
         return;
@@ -116,7 +192,6 @@ export const StudioTracksList: React.FC<StudioTracksListProps> = React.memo(func
 
       if (response.ok) {
         toast.success('Track deleted successfully');
-        // 刷新页面或更新状态
         window.location.reload();
       } else {
         const errorData = await response.json();
@@ -126,93 +201,175 @@ export const StudioTracksList: React.FC<StudioTracksListProps> = React.memo(func
       console.error('Delete track error:', error);
       toast.error('Failed to delete track');
     }
-  };
+  }, []);
 
-  // 格式化时长
-  const formatDuration = (seconds: number) => {
-    // 处理 NaN 或无效值
-    if (isNaN(seconds) || seconds <= 0) {
-      return '0:00';
-    }
-    
-    const minutes = Math.floor(seconds / 60);
-    const remainingSeconds = Math.floor(seconds % 60);
-    return `${minutes}:${remainingSeconds.toString().padStart(2, '0')}`;
-  };
-
-  // 将所有 tracks 展平，过滤掉已删除的tracks
-  const allTracks = userTracks.flatMap(music => {
-    // 安全检查：确保 allTracks 存在且是数组
-    if (!music.allTracks || !Array.isArray(music.allTracks)) {
-      return [];
-    }
-    return music.allTracks
-      .filter(track => !track.is_deleted) // 过滤掉已删除的tracks
-      .map(track => ({
-        ...track,
-        musicTitle: music.title,
-        musicTags: music.tags,
-        musicGenre: music.genre,
-        musicStatus: music.status,
-        musicGeneration: music,
-        // 检查是否有audio_url，如果没有则标记为错误状态
-        isError: !(track as any).audio_url || (track as any).audio_url.trim() === '',
-        errorMessage: (!(track as any).audio_url || (track as any).audio_url.trim() === '') ? 'Audio file missing' : undefined
-      }));
-  });
-
-  // 搜索过滤函数 - 只按名称和标签匹配
-  const filterTracks = React.useCallback((tracks: any[]) => {
-    if (!searchQuery.trim()) return tracks;
-    
-    const query = searchQuery.toLowerCase();
-    return tracks.filter(track => {
-      // 搜索标题
-      if (track.title?.toLowerCase().includes(query)) return true;
-      if (track.musicTitle?.toLowerCase().includes(query)) return true;
-      
-      // 搜索标签
-      if (track.tags?.toLowerCase().includes(query)) return true;
-      if (track.musicTags?.toLowerCase().includes(query)) return true;
-      
-      return false;
-    });
-  }, [searchQuery]);
-
-  // 使用 useMemo 稳定 generatedTracks 数组并应用搜索过滤
-  const stableGeneratedTracks = React.useMemo(() => {
-    const tracks = generatedTracks || [];
-    return filterTracks(tracks);
-  }, [generatedTracks, filterTracks]);
-
-  // 显示所有歌曲，不分页，应用搜索过滤
-  const currentTracks = filterTracks(allTracks);
-
-  // 处理歌曲选择（点击歌曲行）- 调用父组件回调
-  const handleTrackSelect = (track: any) => {
-    // 🚫 阻止占位数据的点击
-    if (track.isPlaceholder) {
+  // 处理 Vocal Removal
+  const handleVocalRemoval = useCallback(async (trackId: string) => {
+    const track = allTracks.find(t => t.id === trackId);
+    if (track?.musicGeneration?.isInstrumental) {
+      toast.error('Instrumental tracks cannot be processed for vocal removal');
       return;
     }
-    
-    // 调用父组件传递的回调，传递 track.id
-    if (onTrackSelect) {
-      onTrackSelect(track.id);
-    }
-  };
 
-  // 处理播放/暂停（点击播放按钮）
-  const handlePlayPause = (track: any) => {
-    // 🚫 阻止占位数据的播放
-    if (track.isPlaceholder) {
-      return;
-    }
-    
-    if (onTrackPlay) {
-      onTrackPlay(track, track.musicGeneration);
-    }
-  };
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session?.access_token) {
+        toast.error('Authentication required');
+        return;
+      }
+      
+      const trackTitle = track?.title || 'Unknown Track';
+      setCurrentProcessingTrackTitle(trackTitle);
 
+      // 检查是否存在分离结果
+      const statusResponse = await fetch(`/api/vocal-removal-status?trackId=${trackId}`, {
+        headers: {
+          'Authorization': `Bearer ${session.access_token}`,
+        },
+      });
+
+      let hasCompletedResults = false;
+      let completedRemoval: any = null;
+
+      if (statusResponse.ok) {
+        const statusResult = await statusResponse.json();
+        if (statusResult.success && statusResult.data && Array.isArray(statusResult.data) && statusResult.data.length > 0) {
+          completedRemoval = statusResult.data.find((r: any) => {
+            return r.status === 'completed' && (r.vocalUrl || r.instrumentalUrl);
+          });
+          
+          if (completedRemoval) {
+            hasCompletedResults = true;
+          }
+        }
+      }
+
+      // 显示确认弹窗
+            setPendingVocalRemovalTrackId(trackId);
+            setExistingVocalRemovalData({
+              trackTitle: track?.title || 'Unknown Track',
+        vocalUrl: completedRemoval?.vocalUrl,
+        instrumentalUrl: completedRemoval?.instrumentalUrl,
+        hasExistingResults: hasCompletedResults,
+            });
+            setShowVocalRemovalConfirmDialog(true);
+    } catch (error) {
+      console.error('Vocal removal error:', error);
+    }
+  }, [allTracks]);
+
+  // 开始 Vocal Removal 处理
+  const startVocalRemovalProcess = useCallback(async (trackId: string) => {
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session?.access_token) {
+        toast.error('Authentication required');
+        return;
+      }
+      
+      const track = allTracks.find(t => t.id === trackId);
+      const trackTitle = track?.title || 'Unknown Track';
+      
+      setCurrentProcessingTrackId(trackId);
+      setCurrentProcessingTrackTitle(trackTitle);
+      setShowVocalRemovalProgressDialog(true);
+      
+      vocalRemovalManager.updateTrackState(trackId, {
+        status: 'processing',
+        progress: 0,
+      });
+
+      const response = await fetch('/api/vocal-removal', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${session.access_token}`,
+        },
+        body: JSON.stringify({
+          trackId,
+          type: 'separate_vocal'
+        }),
+      });
+
+      if (!response.ok) {
+        let errorMessage = 'Failed to start vocal removal';
+        try {
+          const errorData = await response.json();
+          errorMessage = errorData.error || errorData.message || errorMessage;
+        } catch (e) {
+          errorMessage = response.statusText || errorMessage;
+        }
+        
+        vocalRemovalManager.updateTrackState(trackId, {
+          status: 'error',
+          progress: 0,
+          errorMessage,
+        });
+        return;
+      }
+
+      const result = await response.json();
+
+      if (result.success && result.data?.taskId) {
+        const taskId = result.data.taskId;
+        
+        vocalRemovalManager.updateTrackState(trackId, {
+          status: 'processing',
+          taskId,
+        });
+        
+        // 开始轮询
+        vocalRemovalManager.startPolling(trackId, taskId);
+      } else {
+        const errorMessage = result.error || result.message || 'Failed to start vocal removal';
+        vocalRemovalManager.updateTrackState(trackId, {
+          status: 'error',
+          progress: 0,
+          errorMessage,
+        });
+      }
+    } catch (error) {
+      console.error('Vocal removal error:', error);
+      const errorMessage = error instanceof Error ? error.message : 'Failed to start vocal removal';
+      vocalRemovalManager.updateTrackState(trackId, {
+        status: 'error',
+        progress: 0,
+        errorMessage,
+      });
+    }
+  }, [allTracks, vocalRemovalManager]);
+
+  // 确认重新分离
+  const handleConfirmReSeparation = useCallback(() => {
+    setShowVocalRemovalConfirmDialog(false);
+    if (pendingVocalRemovalTrackId) {
+      startVocalRemovalProcess(pendingVocalRemovalTrackId);
+      setPendingVocalRemovalTrackId(null);
+    }
+  }, [pendingVocalRemovalTrackId, startVocalRemovalProcess]);
+
+  // 查看已有结果
+  const handleViewExistingResults = useCallback(() => {
+    setShowVocalRemovalConfirmDialog(false);
+    if (existingVocalRemovalData?.hasExistingResults && pendingVocalRemovalTrackId) {
+      const trackId = pendingVocalRemovalTrackId;
+      
+      setCurrentProcessingTrackId(trackId);
+      setCurrentProcessingTrackTitle(existingVocalRemovalData.trackTitle);
+      
+      vocalRemovalManager.updateTrackState(trackId, {
+        status: 'completed',
+        progress: 100,
+          vocalUrl: existingVocalRemovalData.vocalUrl,
+          instrumentalUrl: existingVocalRemovalData.instrumentalUrl,
+      });
+      
+      setShowVocalRemovalProgressDialog(true);
+    }
+    setPendingVocalRemovalTrackId(null);
+  }, [existingVocalRemovalData, pendingVocalRemovalTrackId, vocalRemovalManager]);
+
+  // 渲染 Loading 状态
   if (isLoading) {
     return (
       <div className="flex flex-col items-center justify-center h-full space-y-4">
@@ -221,7 +378,7 @@ export const StudioTracksList: React.FC<StudioTracksListProps> = React.memo(func
     );
   }
 
-  // 如果没有任何tracks，显示空状态
+  // 渲染空状态
   const showEmptyState = (!userTracks || userTracks.length === 0 || allTracks.length === 0) 
     && stableGeneratedTracks.length === 0;
 
@@ -235,7 +392,6 @@ export const StudioTracksList: React.FC<StudioTracksListProps> = React.memo(func
               <div className="absolute inset-0 bg-gradient-to-br from-primary/10 to-transparent rounded-full blur-2xl" />
             </div>
           </div>
-          
           <div className="space-y-3">
             <h3 className="text-2xl font-bold text-foreground">
               Your tracks will appear here
@@ -251,10 +407,9 @@ export const StudioTracksList: React.FC<StudioTracksListProps> = React.memo(func
 
   return (
     <div className="flex flex-col h-full min-h-0">
-      {/* Search Bar - 搜索框 */}
+      {/* Search Bar */}
       <div className="flex-shrink-0 px-6 pb-4 md:pt-6 md:pb-4 md:px-6">
         <div className="flex items-center justify-end">
-          {/* Search Input */}
           <div className="relative w-full">
             <div className="relative">
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
@@ -278,915 +433,71 @@ export const StudioTracksList: React.FC<StudioTracksListProps> = React.memo(func
         </div>
       </div>
 
-      {/* Studio Tracks - 可滚动区域 */}
+      {/* Tracks List */}
       <div className="flex-1 overflow-hidden">
         <div 
           className="h-full overflow-y-auto px-0 relative"
           style={{
-            // 🎯 让内容延伸到页面底部，播放器悬浮遮挡
-            // 有播放器：播放器高度 + 间距 + 额外padding，让播放器悬浮遮挡内容
-            // 无播放器：较大padding用于底部留白
             paddingBottom: hasPlayer ? 'calc(var(--player-height, 80px) + 1.5rem)' : '5rem'
           }}
         >
         <div className="relative">
-          {/* Generated Tracks - 新生成的歌曲 */}
+            {/* Generated Tracks */}
           {stableGeneratedTracks.length > 0 && (
             <div className="space-y-1">
               {stableGeneratedTracks.map((track, index) => (
-                <div
+                  <TrackItem
                   key={`generated-${index}`}
-                  className={`relative flex items-center gap-4 px-2 py-2 mx-3 transition-all duration-300 group rounded-lg border
-                    ${track.isError || (!track.audioUrl && !track.isGenerating)
-                      ? 'cursor-default'
-                      : `cursor-pointer ${selectedTrack === track.id
-                          ? 'bg-muted/60 border-border/60'
-                          : 'hover:bg-muted/20 border-transparent'
-                        }`
-                    }`}
-                  onClick={() => {
+                    track={track}
+                    isSelected={selectedTrack === track.id}
+                    isPlaying={globalAudioState.isPlaying}
+                    isCurrentTrack={globalAudioState.currentPlayingTrackId === track.id}
+                    isCopied={copiedTrackId === track.id}
+                    canDownloadMP3={canDownloadMP3}
+                    canDownloadWAV={canDownloadWAV}
+                    onSelect={() => {
                     if (!track.isError && track.audioUrl && onGeneratedTrackSelect) {
-                      // 调用父组件回调
                       onGeneratedTrackSelect(track.id);
                     }
                   }}
-                >
-                  {/* Loading 状态显示遮罩和 Progress indicators - 只在generating状态显示 */}
-                  {track.isLoading && (
-                    <div className="absolute inset-0 bg-black/60 flex items-center justify-center pointer-events-none z-10">
-                      <LoadingDots size="md" color="white" />
-                    </div>
-                  )}
-                  
-                  
-                  <div className={`relative w-16 h-16 rounded-md overflow-hidden flex-shrink-0 transition-transform duration-300 group/cover ${!track.isLoading && !track.isError && !(!track.audioUrl && !track.isGenerating) ? 'group-hover:scale-105' : ''}`}>
-                    {track.isError || (!track.audioUrl && !track.isGenerating) ? (
-                      // 错误状态或没有音频URL时显示logo图片作为封面
-                      <Image
-                        src="/logo.svg"
-                        alt="Error"
-                        width={64}
-                        height={64}
-                        className="w-full h-full object-cover transition-all duration-300"
-                      />
-                    ) : track.coverImage ? (
-                      <Image
-                        src={track.coverImage}
-                        alt={track.title}
-                        width={64}
-                        height={64}
-                        className="w-full h-full object-cover transition-all duration-300"
-                      />
-                    ) : (
-                      <div className="w-full h-full bg-gradient-to-br from-primary/20 to-primary/40 flex items-center justify-center transition-all duration-300">
-                        {track.isGenerating ? (
-                          // text回调后显示旋转的loading效果
-                          <div className="animate-spin rounded-full h-6 w-6 border-2 border-primary border-t-transparent"></div>
-                        ) : (
-                          <Music className="h-6 w-6 text-primary" />
-                        )}
-                      </div>
-                    )}
-
-                    {/* Play Button Overlay for Generated Tracks - 鼠标悬浮时显示 */}
-                    {!track.isError && track.audioUrl && (
-                      <div className="absolute inset-0 bg-black/50 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          className="h-10 w-10 p-0 bg-white/20 hover:bg-white/30"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            // 处理新生成歌曲的播放逻辑
-                            if (onGeneratedTrackSelect) {
-                              onGeneratedTrackSelect(track);
-                            }
-                          }}
-                        >
-                          {globalAudioState.currentPlayingTrackId === track.id && globalAudioState.isPlaying ? (
-                            <Pause className="h-4 w-4 text-white" />
-                          ) : (
-                            <Play className="h-4 w-4 text-white" />
-                          )}
-                        </Button>
-                      </div>
-                    )}
-
-                    {/* Audio Wave Indicator for Generated Tracks - 只在播放时显示，鼠标悬浮时隐藏 */}
-                    {globalAudioState.currentPlayingTrackId === track.id && globalAudioState.isPlaying && !track.isError && (
-                      <div className="absolute inset-0 flex items-center justify-center opacity-100 group-hover:opacity-0 transition-opacity pointer-events-none">
-                        <CustomAudioWaveIndicator
-                          isPlaying={globalAudioState.isPlaying}
-                          size="sm"
-                          className="text-white"
-                        />
-                      </div>
-                    )}
-                  </div>
-                  
-                  {/* Track Info */}
-                  <div className="flex-1 min-w-0 flex items-center gap-4">
-                    <div className="flex-1 min-w-0 flex items-center h-16">
-                      <div className="flex items-center justify-between gap-2 w-full">
-                        {/* 歌曲信息列 - 自适应宽度 */}
-                        <div className="flex-1 min-w-0 flex flex-col justify-center h-16">
-                          <div className="flex items-center gap-2">
-                            <h3 className={`font-semibold text-sm truncate ${
-                              track.isError || (!track.audioUrl && !track.isGenerating)
-                                ? 'text-red-400'
-                                : selectedTrack === track.id
-                                  ? 'text-primary'
-                                  : 'text-foreground'
-                            }`}>
-                              {track.isError || (!track.audioUrl && !track.isGenerating) 
-                                ? (track.errorMessage || track.originalPrompt || track.title || 'Generation failed') 
-                                : (track.title || 'Untitled Track')
-                              }
-                            </h3>
-                            {/* 时长紧跟在歌曲名称后面 */}
-                            {!track.isError && track.audioUrl && (!track.duration || track.duration === 0) && (
-                              <div className="flex items-center gap-1">
-                                <div className="w-1 h-1 bg-muted-foreground rounded-full animate-pulse"></div>
-                                <div className="w-1 h-1 bg-muted-foreground rounded-full animate-pulse" style={{ animationDelay: '0.3s' }}></div>
-                                <div className="w-1 h-1 bg-muted-foreground rounded-full animate-pulse" style={{ animationDelay: '0.6s' }}></div>
-                              </div>
-                            )}
-                          </div>
-                          {/* 优先显示 tags，没有 tags 才显示生成提示 */}
-                          {!track.isError && (
-                            <>
-                              {track.tags && track.tags.trim() !== '' ? (
-                                <div className="flex items-center gap-2 mt-0.5">
-                                  {/* 时长显示在 tags 前面，用竖线分隔 */}
-                                  {track.audioUrl && track.duration && track.duration > 0 && (
-                                    <>
-                                      <span className="text-xs text-muted-foreground whitespace-nowrap">
-                                        {formatDuration(track.duration || 0)}
-                                      </span>
-                                      <span className="text-xs text-muted-foreground/60">|</span>
-                                    </>
-                                  )}
-                                  <p 
-                                    className="text-xs text-muted-foreground truncate flex-1"
-                                    title={track.tags}
-                                  >
-                                    {track.tags.split(/[,;.]/).filter((tag: string) => tag.trim()).map((tag: string, index: number, array: string[]) => (
-                                      <span key={index}>
-                                        <span>{tag.trim()}</span>
-                                        {index < array.length - 1 && <span className="mx-1">•</span>}
-                                      </span>
-                                    ))}
-                                    {track.tags.length > 100 && '...'}
-                                  </p>
+                    onPlayPause={() => handlePlayPause(track)}
+                    onFavoriteToggle={onFavoriteToggle ? () => handleFavoriteToggle(track) : undefined}
+                    onShare={() => handleShare(track.id)}
+                    onDownload={onDownload ? (format) => handleDownload(track, format) : undefined}
+                    onVocalRemoval={() => handleVocalRemoval(track.id)}
+                    onDelete={onDelete ? () => handleDelete(track.id) : undefined}
+                    onPricingModalOpen={openPricingModal}
+                    onPublishToggle={onPublishToggle}
+                    onEditTitle={onEditTitle}
+                  />
+                ))}
                                 </div>
-                              ) : (
-                                track.isGenerating && !track.audioUrl && (
-                                  <p className="text-xs text-muted-foreground truncate mt-0.5">
-                                    Generating your track, please wait...
-                                  </p>
-                                )
-                              )}
-                            </>
-                          )}
-                          {/* 所有卡片都显示创建时间（包括生成中的卡片） */}
-                          {!track.isError && track.createdAt && (
-                            <p className="text-xs text-muted-foreground/60 truncate mt-1">
-                              {new Date(track.createdAt).toLocaleString('en-US', {
-                                month: 'numeric',
-                                day: 'numeric',
-                                year: 'numeric',
-                                hour: 'numeric',
-                                minute: '2-digit',
-                                second: '2-digit',
-                                hour12: true
-                              })}
-                            </p>
-                          )}
-                          {(track.isError || (!track.audioUrl && !track.isGenerating)) && (
-                            <p className="text-xs text-red-400/80 truncate mt-1">
-                              Click delete to remove this failed track
-                            </p>
-                          )}
-                        </div>
-                        
-                        {/* 操作按钮列 - 自适应宽度 */}
-                        <div className="flex items-center justify-end gap-1 flex-shrink-0">
-                          {(track.isError || (!track.audioUrl && !track.isGenerating)) ? (
-                            // 失败状态：显示删除按钮
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              className="h-6 w-6 p-0 text-red-400 hover:text-red-600 hover:bg-red-50"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                if (track.id) {
-                                  handleDeleteTrack(track.id);
-                                }
-                              }}
-                            >
-                              <Trash2 className="h-3 w-3" />
-                            </Button>
-                          ) : (
-                            <>
-                              {/* 只有在歌曲完成生成后才显示操作按钮 */}
-                              {track.audio_url && track.musicStatus !== 'generating' && (
-                               <div className="flex items-center gap-1">
-                                 {/* 桌面端操作按钮 */}
-                                 <div className="hidden md:flex items-center gap-3">
-                                   {/* 收藏按钮 */}
-                                   {!track.isError && onFavoriteToggle && (
-                                     <Button
-                                       variant="ghost"
-                                       size="sm"
-                                       className={`h-6 w-6 p-0 hover:bg-muted/50 ${
-                                         track.is_favorited 
-                                           ? 'text-red-500 hover:text-red-600' 
-                                           : 'text-muted-foreground hover:text-foreground'
-                                       }`}
-                                       onClick={(e) => {
-                                         e.stopPropagation();
-                                         onFavoriteToggle(track, track.musicGeneration);
-                                       }}
-                                       aria-label={track.is_favorited ? "Remove from library" : "Add to library"}
-                                     >
-                                       <Star className={`h-3 w-3 ${track.is_favorited ? 'fill-current' : ''}`} />
-                                     </Button>
-                                   )}
-                                   
-                                   {/* 分享按钮 */}
-                                   <Button
-                                     variant="ghost"
-                                     size="sm"
-                                     className={`h-6 w-6 p-0 hover:bg-muted/50 transition-colors ${
-                                       copiedTrackId === track.id 
-                                         ? 'text-green-500' 
-                                         : 'text-muted-foreground hover:text-foreground'
-                                     }`}
-                                     onClick={(e) => {
-                                       e.stopPropagation();
-                                       const url = `${window.location.origin}/studio?track=${track.id}`;
-                                       navigator.clipboard.writeText(url).then(() => {
-                                         setCopiedTrackId(track.id);
-                                         setTimeout(() => setCopiedTrackId(null), 2000);
-                                       });
-                                     }}
-                                     aria-label="Share track"
-                                   >
-                                     {copiedTrackId === track.id ? (
-                                       <Check className="h-3 w-3" />
-                                     ) : (
-                                       <Share2 className="h-3 w-3" />
-                                     )}
-                                   </Button>
-                                   
-                                  {/* 下载按钮 - 下拉菜单 */}
-                                  {onDownload && (
-                                    <DropdownMenu>
-                                      <DropdownMenuTrigger asChild>
-                                        <Button
-                                          variant="ghost"
-                                          size="sm"
-                                          className="h-6 w-6 p-0 text-muted-foreground hover:text-foreground hover:bg-muted/50"
-                                          onClick={(e) => {
-                                            e.preventDefault();
-                                            e.stopPropagation();
-                                          }}
-                                          aria-label="Download track"
-                                        >
-                                          <Download className="h-3 w-3" />
-                                        </Button>
-                                      </DropdownMenuTrigger>
-                                      <DropdownMenuContent align="end" onClick={(e) => e.stopPropagation()} className="p-2 min-w-[180px]">
-                                        <DropdownMenuItem
-                                          onClick={(e) => {
-                                            e.preventDefault();
-                                            e.stopPropagation();
-                                            if (!canDownloadMP3) {
-                                              // 打开订阅弹窗
-                                              openPricingModal();
-                                              return;
-                                            }
-                                            onDownload(track, track.musicGeneration, 'mp3');
-                                          }}
-                                          className="flex items-center justify-between gap-3 cursor-pointer px-3 py-2.5"
-                                        >
-                                          <span className="text-sm font-medium">Download MP3</span>
-                                          {!canDownloadMP3 && (
-                                            <Badge variant="outline" className="text-xs px-2 py-0.5 bg-gradient-create text-white border-0 shrink-0">
-                                              Basic
-                                            </Badge>
-                                          )}
-                                        </DropdownMenuItem>
-                                        {/* <DropdownMenuItem
-                                          onClick={(e) => {
-                                            e.preventDefault();
-                                            e.stopPropagation();
-                                            if (!canDownloadWAV) {
-                                              // 打开订阅弹窗
-                                              openPricingModal();
-                                              return;
-                                            }
-                                            onDownload(track, track.musicGeneration, 'wav');
-                                          }}
-                                          className="flex items-center justify-between gap-3 cursor-pointer px-3 py-2.5"
-                                        >
-                                          <span className="text-sm font-medium">Download WAV</span>
-                                          <Badge variant="outline" className="text-xs px-2 py-0.5 bg-gradient-create text-white border-0 shrink-0">
-                                            Premium
-                                          </Badge>
-                                        </DropdownMenuItem> */}
-                                      </DropdownMenuContent>
-                                    </DropdownMenu>
-                                  )}
-                                  
-                                  {/* 删除按钮 */}
-                                  {onDelete && (
-                                    <Button
-                                      variant="ghost"
-                                      size="sm"
-                                      className="h-6 w-6 p-0 text-muted-foreground hover:text-destructive hover:bg-muted/50"
-                                      onClick={(e) => {
-                                        e.stopPropagation();
-                                        onDelete(track, track.musicGeneration);
-                                      }}
-                                      aria-label="Delete track"
-                                    >
-                                      <Trash2 className="h-3 w-3" />
-                                    </Button>
-                                  )}
-                                </div>
-                                
-                                {/* 移动端操作按钮 */}
-                                <div className="md:hidden flex items-center gap-1.5 flex-shrink-0">
-                                   {/* 收藏按钮 */}
-                                   {!track.isError && onFavoriteToggle && (
-                                     <button
-                                       onClick={(e) => {
-                                         e.stopPropagation();
-                                         onFavoriteToggle(track, track.musicGeneration);
-                                       }}
-                                       className={`h-7 w-7 flex items-center justify-center rounded-lg transition-colors ${
-                                         track.is_favorited 
-                                           ? 'text-red-500' 
-                                           : 'text-muted-foreground hover:text-foreground'
-                                       }`}
-                                       aria-label={track.is_favorited ? "Remove from library" : "Add to library"}
-                                     >
-                                       <Star className={`h-4 w-4 ${track.is_favorited ? 'fill-current' : ''}`} />
-                                     </button>
-                                   )}
-                                   
-                                   {/* 分享按钮 */}
-                                   <button
-                                     onClick={(e) => {
-                                       e.stopPropagation();
-                                       const url = `${window.location.origin}/studio?track=${track.id}`;
-                                       navigator.clipboard.writeText(url).then(() => {
-                                         setCopiedTrackId(track.id);
-                                         setTimeout(() => setCopiedTrackId(null), 2000);
-                                       });
-                                     }}
-                                     className={`h-7 w-7 flex items-center justify-center transition-colors ${
-                                       copiedTrackId === track.id
-                                         ? 'text-green-500'
-                                         : 'text-muted-foreground hover:text-foreground'
-                                     }`}
-                                     aria-label="Share track"
-                                   >
-                                     {copiedTrackId === track.id ? (
-                                       <Check className="h-4 w-4" />
-                                     ) : (
-                                       <Share2 className="h-4 w-4" />
-                                     )}
-                                   </button>
-                                   
-                                   {/* 下载按钮 - 下拉菜单 */}
-                                   {onDownload && (
-                                     <DropdownMenu>
-                                       <DropdownMenuTrigger asChild>
-                                         <button
-                                           onClick={(e) => {
-                                             e.preventDefault();
-                                             e.stopPropagation();
-                                           }}
-                                           className="h-7 w-7 flex items-center justify-center text-muted-foreground hover:text-foreground transition-colors"
-                                           aria-label="Download track"
-                                         >
-                                           <Download className="h-4 w-4" />
-                                         </button>
-                                       </DropdownMenuTrigger>
-                                       <DropdownMenuContent align="end" onClick={(e) => e.stopPropagation()} className="p-2 min-w-[180px]">
-                                         <DropdownMenuItem
-                                           onClick={(e) => {
-                                             e.preventDefault();
-                                             e.stopPropagation();
-                                             if (!canDownloadMP3) {
-                                               // 打开订阅弹窗
-                                               openPricingModal();
-                                               return;
-                                             }
-                                             onDownload(track, track.musicGeneration, 'mp3');
-                                           }}
-                                           className="flex items-center justify-between gap-3 cursor-pointer px-3 py-2.5"
-                                         >
-                                           <span className="text-sm font-medium">Download MP3</span>
-                                           {!canDownloadMP3 && (
-                                             <Badge variant="outline" className="text-xs px-2 py-0.5 bg-gradient-create text-white border-0 shrink-0">
-                                               Basic
-                                             </Badge>
-                                           )}
-                                         </DropdownMenuItem>
-                                         <DropdownMenuItem
-                                           onClick={(e) => {
-                                             e.preventDefault();
-                                             e.stopPropagation();
-                                             if (!canDownloadWAV) {
-                                               // 打开订阅弹窗
-                                               openPricingModal();
-                                               return;
-                                             }
-                                             onDownload(track, track.musicGeneration, 'wav');
-                                           }}
-                                           className="flex items-center justify-between gap-3 cursor-pointer px-3 py-2.5"
-                                         >
-                                           <span className="text-sm font-medium">Download WAV</span>
-                                           {!canDownloadWAV && (
-                                             <Badge variant="outline" className="text-xs px-2 py-0.5 bg-gradient-create text-white border-0 shrink-0">
-                                               Premium
-                                             </Badge>
-                                           )}
-                                         </DropdownMenuItem>
-                                       </DropdownMenuContent>
-                                     </DropdownMenu>
-                                   )}
-                                  
-                                  {/* 删除按钮 */}
-                                  {onDelete && (
-                                    <button
-                                      onClick={(e) => {
-                                        e.stopPropagation();
-                                        onDelete(track, track.musicGeneration);
-                                      }}
-                                      className="h-7 w-7 flex items-center justify-center text-muted-foreground hover:text-destructive transition-colors"
-                                      aria-label="Delete track"
-                                    >
-                                      <Trash2 className="h-4 w-4" />
-                                    </button>
-                                  )}
-                                </div>
-                              </div>
-                            )}
-                           </>
-                         )}
-                       </div>
-                     </div>
-                   </div>
-                 </div>
+            )}
 
-               </div>
-             ))}
-           </div>
-         )}
-
-         {/* User Tracks - 用户已保存的歌曲 */}
+            {/* User Tracks */}
           {currentTracks.length > 0 && (
             <div className="space-y-1">
               {currentTracks.map((track) => (
-                <div
+                  <TrackItem
                   key={track.id}
-                  className={`flex items-center gap-4 px-2 py-2 mx-3 transition-all duration-300 group rounded-lg border
-                    ${track.isError
-                      ? 'cursor-default'
-                      : `cursor-pointer ${selectedTrack === track.id
-                          ? 'bg-muted/60 border-border/60'
-                          : 'hover:bg-muted/20 border-transparent'
-                        }`
-                    }`}
-                  onClick={() => {
-                    if (!track.isError) {
-                      handleTrackSelect(track);
-                    }
-                  }}
-                >
-              
-
-              {/* 封面 */}
-              <div 
-                className="relative w-16 h-16 rounded-md overflow-hidden flex-shrink-0 group/cover"
-              >
-                {track.isError ? (
-                  // 错误状态：显示logo图片作为封面
-                  <Image
-                    src="/logo.svg"
-                    alt="Error"
-                    width={64}
-                    height={64}
-                    className="w-full h-full object-cover transition-all duration-300"
-                  />
-                ) : track.cover_r2_url ? (
-                  <Image
-                    src={track.cover_r2_url}
-                    alt={track.musicTitle}
-                    width={64}
-                    height={64}
-                    className="w-full h-full object-cover cursor-pointer"
-                  />
-                ) : (
-                  <div className="w-full h-full bg-gradient-to-br from-primary/20 to-primary/40 flex items-center justify-center cursor-pointer">
-                    <span className="text-sm font-bold text-primary">
-                      {track.id.slice(-2).toUpperCase()}
-                    </span>
-                  </div>
-                )}
-
-                {/* Play Button Overlay - 鼠标悬浮时显示，错误状态不显示 */}
-                {!track.isError && (
-                  <div className="absolute inset-0 bg-black/50 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      className="h-10 w-10 p-0 bg-white/20 hover:bg-white/30"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handlePlayPause(track);
-                      }}
-                    >
-                      {globalAudioState.currentPlayingTrackId === track.id && globalAudioState.isPlaying ? (
-                        <Pause className="h-4 w-4 text-white" />
-                      ) : (
-                        <Play className="h-4 w-4 text-white" />
-                      )}
-                    </Button>
-                  </div>
-                )}
-
-                {/* Audio Wave Indicator - 只在播放时显示，鼠标悬浮时隐藏，错误状态不显示 */}
-                {globalAudioState.currentPlayingTrackId === track.id && globalAudioState.isPlaying && !track.isError && (
-                  <div className="absolute inset-0 flex items-center justify-center opacity-100 group-hover:opacity-0 transition-opacity pointer-events-none">
-                    <CustomAudioWaveIndicator
+                    track={track}
+                    isSelected={selectedTrack === track.id}
                       isPlaying={globalAudioState.isPlaying}
-                      size="sm"
-                      className="text-white"
-                    />
-                  </div>
-                )}
-                
-              </div>
-
-              {/* Track Info */}
-              <div className="flex-1 min-w-0 flex items-center gap-4">
-                <div className="flex-1 min-w-0 flex items-center h-16">
-                  <div className="flex items-center justify-between gap-2 w-full">
-                    {/* 歌曲信息列 - 自适应宽度 */}
-                    <div className="flex-1 min-w-0 flex flex-col justify-center h-16">
-                      <div className="flex items-center gap-2">
-                        <h3 className={`font-semibold text-sm truncate ${
-                          track.isError
-                            ? 'text-red-400'
-                            : selectedTrack === track.id
-                              ? 'text-primary'
-                              : 'text-foreground'
-                        }`}>
-                          {track.isError 
-                            ? (track.errorMessage || track.musicTitle || 'Unknown')
-                            : track.musicTitle
-                          }
-                        </h3>
-                      </div>
-                      {/* 标签信息 - 进一步增加显示长度 */}
-                      {!track.isError && track.musicTags && (
-                        <div className="flex items-center gap-2 mt-0.5">
-                          {/* 时长显示在 tags 前面，用竖线分隔 */}
-                          {!track.isError && (
-                            <>
-                              <span className="text-xs text-muted-foreground whitespace-nowrap">
-                                {formatDuration(track.duration || 0)}
-                              </span>
-                              <span className="text-xs text-muted-foreground/60">|</span>
-                            </>
-                          )}
-                          <p 
-                            className="text-xs text-muted-foreground truncate flex-1"
-                            title={track.musicTags}
-                          >
-                            {track.musicTags.split(/[,;.]/).filter((tag: string) => tag.trim()).map((tag: string, index: number, array: string[]) => (
-                              <span key={index}>
-                                <span>{tag.trim()}</span>
-                                {index < array.length - 1 && <span className="mx-1">•</span>}
-                              </span>
-                            ))}
-                            {track.musicTags.length > 100 && '...'}
-                          </p>
-                        </div>
-                      )}
-                      {track.isError && (
-                        <p className="text-xs text-red-400/80 truncate mt-1">
-                          Click delete to remove this failed track
-                        </p>
-                      )}
-                      {!track.isError && track.musicGeneration?.created_at && (
-                        <p className="text-xs text-muted-foreground/60 truncate mt-1">
-                          {new Date(track.musicGeneration.created_at).toLocaleString('en-US', {
-                            month: 'numeric',
-                            day: 'numeric',
-                            year: 'numeric',
-                            hour: 'numeric',
-                            minute: '2-digit',
-                            second: '2-digit',
-                            hour12: true
-                          })}
-                        </p>
-                      )}
-                    </div>
-                    
-                    {/* 操作按钮列 - 自适应宽度 */}
-                    <div className="flex items-center justify-end gap-1 flex-shrink-0">
-                      {track.isError ? (
-                        // 失败状态：显示删除按钮
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          className="h-6 w-6 p-0 text-red-400 hover:text-red-600 hover:bg-red-50"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            if (track.id) {
-                              handleDeleteTrack(track.id);
-                            }
-                          }}
-                        >
-                          <Trash2 className="h-3 w-3" />
-                        </Button>
-                      ) : track.musicGeneration?.status !== 'generating' && (track as any).audio_url ? (
-                        <div className="flex items-center gap-1">
-                          {/* 桌面端操作按钮 - 只在歌曲完成后显示 */}
-                          <div className="hidden md:flex items-center gap-3">
-                            {/* 收藏按钮 */}
-                            {!track.isError && onFavoriteToggle && (
-                              <Button
-                                variant="ghost"
-                                size="sm"
-                                className={`h-6 w-6 p-0 hover:bg-muted/50 ${
-                                  track.is_favorited 
-                                    ? 'text-red-500 hover:text-red-600' 
-                                    : 'text-muted-foreground hover:text-foreground'
-                                }`}
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  onFavoriteToggle(track, track.musicGeneration);
-                                }}
-                                aria-label={track.is_favorited ? "Remove from library" : "Add to library"}
-                              >
-                                <Star className={`h-3 w-3 ${track.is_favorited ? 'fill-current' : ''}`} />
-                              </Button>
-                            )}
-                            
-                            {/* 分享按钮 */}
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              className={`h-6 w-6 p-0 hover:bg-muted/50 transition-colors ${
-                                copiedTrackId === track.id
-                                  ? 'text-green-500'
-                                  : 'text-muted-foreground hover:text-foreground'
-                              }`}
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                const url = `${window.location.origin}/studio?track=${track.id}`;
-                                navigator.clipboard.writeText(url).then(() => {
-                                  setCopiedTrackId(track.id);
-                                  setTimeout(() => setCopiedTrackId(null), 2000);
-                                });
-                              }}
-                              aria-label="Share track"
-                            >
-                              {copiedTrackId === track.id ? (
-                                <Check className="h-3 w-3" />
-                              ) : (
-                                <Share2 className="h-3 w-3" />
-                              )}
-                            </Button>
-                            
-                            {/* 下载按钮 - 下拉菜单 */}
-                            {onDownload && (
-                              <DropdownMenu>
-                                <DropdownMenuTrigger asChild>
-                                  <Button
-                                    variant="ghost"
-                                    size="sm"
-                                    className="h-6 w-6 p-0 text-muted-foreground hover:text-foreground hover:bg-muted/50"
-                                    onClick={(e) => {
-                                      e.preventDefault();
-                                      e.stopPropagation();
-                                    }}
-                                    aria-label="Download track"
-                                  >
-                                    <Download className="h-3 w-3" />
-                                  </Button>
-                                </DropdownMenuTrigger>
-                                <DropdownMenuContent align="end" onClick={(e) => e.stopPropagation()} className="p-2 min-w-[180px]">
-                                  <DropdownMenuItem
-                                    onClick={(e) => {
-                                      e.preventDefault();
-                                      e.stopPropagation();
-                                      if (!canDownloadMP3) {
-                                        // 打开订阅弹窗
-                                        openPricingModal();
-                                        return;
-                                      }
-                                      onDownload(track, track.musicGeneration, 'mp3');
-                                    }}
-                                    className="flex items-center justify-between gap-3 cursor-pointer px-3 py-2.5"
-                                  >
-                                    <span className="text-sm font-medium">Download MP3</span>
-                                    {!canDownloadMP3 && (
-                                      <Badge variant="outline" className="text-xs px-2 py-0.5 bg-gradient-create text-white border-0 shrink-0">
-                                        Basic
-                                      </Badge>
-                                    )}
-                                  </DropdownMenuItem>
-                                  <DropdownMenuItem
-                                    onClick={(e) => {
-                                      e.preventDefault();
-                                      e.stopPropagation();
-                                      if (!canDownloadWAV) {
-                                        // 打开订阅弹窗
-                                        openPricingModal();
-                                        return;
-                                      }
-                                      onDownload(track, track.musicGeneration, 'wav');
-                                    }}
-                                    className="flex items-center justify-between gap-3 cursor-pointer px-3 py-2.5"
-                                  >
-                                    <span className="text-sm font-medium">Download WAV</span>
-                                    {!canDownloadWAV && (
-                                      <Badge variant="outline" className="text-xs px-2 py-0.5 bg-gradient-create text-white border-0 shrink-0">
-                                        Premium
-                                      </Badge>
-                                    )}
-                                  </DropdownMenuItem>
-                                </DropdownMenuContent>
-                              </DropdownMenu>
-                            )}
-                            
-                            {/* 删除按钮 */}
-                            {onDelete && (
-                              <Button
-                                variant="ghost"
-                                size="sm"
-                                className="h-6 w-6 p-0 text-muted-foreground hover:text-destructive hover:bg-muted/50"
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  onDelete(track, track.musicGeneration);
-                                }}
-                                aria-label="Delete track"
-                              >
-                                <Trash2 className="h-3 w-3" />
-                              </Button>
-                            )}
-                          </div>
-                        </div>
-                      ) : null}
-                    </div>
-                  </div>
-                </div>
-                
-                {/* Mobile Action Buttons - 移动端操作按钮 */}
-                {!track.isError && (track as any).audio_url && track.musicGeneration?.status !== 'generating' && (
-                  <div className="md:hidden flex items-center gap-1.5 flex-shrink-0">
-                    {/* 收藏按钮 */}
-                    {onFavoriteToggle && (
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          onFavoriteToggle(track, track.musicGeneration);
-                        }}
-                        className={`h-7 w-7 flex items-center justify-center rounded-lg transition-colors ${
-                          track.is_favorited 
-                            ? 'text-red-500' 
-                            : 'text-muted-foreground hover:text-foreground'
-                        }`}
-                        aria-label={track.is_favorited ? "Remove from library" : "Add to library"}
-                      >
-                        <Star className={`h-4 w-4 ${track.is_favorited ? 'fill-current' : ''}`} />
-                      </button>
-                    )}
-                    
-                    {/* 分享按钮 */}
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        const url = `${window.location.origin}/studio?track=${track.id}`;
-                        navigator.clipboard.writeText(url).then(() => {
-                          setCopiedTrackId(track.id);
-                          setTimeout(() => setCopiedTrackId(null), 2000);
-                        });
-                      }}
-                      className={`h-7 w-7 flex items-center justify-center transition-colors ${
-                        copiedTrackId === track.id
-                          ? 'text-green-500'
-                          : 'text-muted-foreground hover:text-foreground'
-                      }`}
-                      aria-label="Share track"
-                    >
-                      {copiedTrackId === track.id ? (
-                        <Check className="h-4 w-4" />
-                      ) : (
-                        <Share2 className="h-4 w-4" />
-                      )}
-                    </button>
-                    
-                    {/* 下载按钮 - 下拉菜单 */}
-                    {onDownload && (
-                      <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                          <button
-                            onClick={(e) => {
-                              e.preventDefault();
-                              e.stopPropagation();
-                            }}
-                            className="h-7 w-7 flex items-center justify-center text-muted-foreground hover:text-foreground transition-colors"
-                            aria-label="Download track"
-                          >
-                            <Download className="h-4 w-4" />
-                          </button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end" onClick={(e) => e.stopPropagation()} className="p-2 min-w-[180px]">
-                          <DropdownMenuItem
-                            onClick={(e) => {
-                              e.preventDefault();
-                              e.stopPropagation();
-                              if (!canDownloadMP3) {
-                                // 打开订阅弹窗
-                                openPricingModal();
-                                return;
-                              }
-                              onDownload(track, track.musicGeneration, 'mp3');
-                            }}
-                            className="flex items-center justify-between gap-3 cursor-pointer px-3 py-2.5"
-                          >
-                            <span className="text-sm font-medium">Download MP3</span>
-                            {!canDownloadMP3 && (
-                              <Badge variant="outline" className="text-xs px-2 py-0.5 bg-gradient-create text-white border-0 shrink-0">
-                                Basic
-                              </Badge>
-                            )}
-                          </DropdownMenuItem>
-                          <DropdownMenuItem
-                            onClick={(e) => {
-                              e.preventDefault();
-                              e.stopPropagation();
-                              if (!canDownloadWAV) {
-                                // 打开订阅弹窗
-                                openPricingModal();
-                                return;
-                              }
-                              onDownload(track, track.musicGeneration, 'wav');
-                            }}
-                            className="flex items-center justify-between gap-3 cursor-pointer px-3 py-2.5"
-                          >
-                            <span className="text-sm font-medium">Download WAV</span>
-                            {!canDownloadWAV && (
-                              <Badge variant="outline" className="text-xs px-2 py-0.5 bg-gradient-create text-white border-0 shrink-0">
-                                Premium
-                              </Badge>
-                            )}
-                          </DropdownMenuItem>
-                        </DropdownMenuContent>
-                      </DropdownMenu>
-                    )}
-                    
-                    {/* 删除按钮 */}
-                    {onDelete && (
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          onDelete(track, track.musicGeneration);
-                        }}
-                        className="h-7 w-7 flex items-center justify-center text-muted-foreground hover:text-destructive transition-colors"
-                        aria-label="Delete track"
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </button>
-                    )}
-                  </div>
-                )}
-                {/* Mobile Delete Button - 移动端删除按钮，错误状态显示 */}
-                {track.isError && (
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      if (track.id) {
-                        handleDeleteTrack(track.id);
-                      }
-                    }}
-                    className="md:hidden flex-shrink-0 h-7 w-7 flex items-center justify-center text-red-400 hover:text-red-600 transition-colors"
-                    aria-label="Delete track"
-                  >
-                    <Trash2 className="h-4 w-4" />
-                  </button>
-                )}
-              </div>
-            </div>
+                    isCurrentTrack={globalAudioState.currentPlayingTrackId === track.id}
+                    isCopied={copiedTrackId === track.id}
+                    canDownloadMP3={canDownloadMP3}
+                    canDownloadWAV={canDownloadWAV}
+                    onSelect={() => handleTrackSelect(track)}
+                    onPlayPause={() => handlePlayPause(track)}
+                    onFavoriteToggle={onFavoriteToggle ? () => handleFavoriteToggle(track) : undefined}
+                    onShare={() => handleShare(track.id)}
+                    onDownload={onDownload ? (format) => handleDownload(track, format) : undefined}
+                    onVocalRemoval={() => handleVocalRemoval(track.id)}
+                    onDelete={onDelete ? () => handleDelete(track.id) : undefined}
+                    onPricingModalOpen={openPricingModal}
+                    onPublishToggle={onPublishToggle}
+                    onEditTitle={onEditTitle}
+                  />
               ))}
               
               {/* Tracks Summary */}
@@ -1196,15 +507,10 @@ export const StudioTracksList: React.FC<StudioTracksListProps> = React.memo(func
                     {(() => {
                       const totalSongs = currentTracks.length;
                       const totalDuration = currentTracks.reduce((sum, track) => {
-                        // 使用与 LibraryPanel 相同的数据源：track.duration
                         const duration = typeof track.duration === 'string' ? parseFloat(track.duration) : (track.duration || 0);
                         return sum + (isNaN(duration) ? 0 : duration);
                       }, 0);
-                      
-                      // 底部汇总使用分钟格式，与 LibraryPanel 保持一致
-                      const totalMinutes = Math.floor(totalDuration / 60);
-                      const durationText = totalMinutes > 0 ? `${totalMinutes} minute${totalMinutes > 1 ? 's' : ''}` : '';
-                      
+                        const durationText = formatDurationInMinutes(totalDuration);
                       return `${totalSongs} song${totalSongs > 1 ? 's' : ''}${durationText ? `, ${durationText}` : ''}`;
                     })()}
                   </div>
@@ -1213,7 +519,7 @@ export const StudioTracksList: React.FC<StudioTracksListProps> = React.memo(func
             </div>
           )}
 
-          {/* No Search Results - 无搜索结果提示 */}
+            {/* No Search Results */}
           {searchQuery && currentTracks.length === 0 && stableGeneratedTracks.length === 0 && (
             <div className="flex items-center justify-center h-full relative min-h-[400px]">
               <div className="text-center max-w-md px-6 py-12">
@@ -1241,6 +547,100 @@ export const StudioTracksList: React.FC<StudioTracksListProps> = React.memo(func
         </div>
         </div>
       </div>
+      
+      {/* Vocal Removal 确认弹窗 */}
+      <AlertDialog open={showVocalRemovalConfirmDialog} onOpenChange={setShowVocalRemovalConfirmDialog}>
+        <AlertDialogContent className="max-w-[calc(100vw-2rem)] sm:max-w-[425px]">
+          <button
+            onClick={() => {
+              setShowVocalRemovalConfirmDialog(false);
+              setPendingVocalRemovalTrackId(null);
+            }}
+            className="absolute right-4 top-4 rounded-sm opacity-70 ring-offset-background transition-opacity hover:opacity-100 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:pointer-events-none"
+          >
+            <X className="h-4 w-4" />
+            <span className="sr-only">Close</span>
+          </button>
+          <AlertDialogHeader>
+            <AlertDialogTitle>
+              {existingVocalRemovalData?.hasExistingResults 
+                ? 'Separation Result Exists' 
+                : 'Confirm Vocal Removal'}
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              {existingVocalRemovalData && (
+                <span>
+                  {existingVocalRemovalData.hasExistingResults ? (
+                    <>
+                      &quot;{existingVocalRemovalData.trackTitle}&quot; already has separation results. Do you want to separate again? It will cost <span className="font-semibold text-primary">{CLIENT_VOCAL_SEPARATION_CREDITS.studio}</span> credits.
+                    </>
+                  ) : (
+                    <>
+                      Separate &quot;{existingVocalRemovalData.trackTitle}&quot; into vocals and instrumental? This will cost <span className="font-semibold text-primary">{CLIENT_VOCAL_SEPARATION_CREDITS.studio}</span> credits.
+                    </>
+                  )}
+                </span>
+              )}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter className="flex-col sm:flex-row gap-2 sm:gap-0">
+            {existingVocalRemovalData?.hasExistingResults ? (
+              <>
+            <AlertDialogCancel 
+              onClick={handleConfirmReSeparation}
+              className="w-full sm:w-auto"
+            >
+                  Separate
+            </AlertDialogCancel>
+            <AlertDialogAction 
+              onClick={handleViewExistingResults}
+              className="w-full sm:w-auto bg-primary text-primary-foreground hover:bg-primary/90"
+            >
+                  View
+            </AlertDialogAction>
+              </>
+            ) : (
+              <>
+                <AlertDialogCancel className="w-full sm:w-auto">
+                  Cancel
+                </AlertDialogCancel>
+                <AlertDialogAction 
+                  onClick={handleConfirmReSeparation}
+                  className="w-full sm:w-auto bg-primary text-primary-foreground hover:bg-primary/90"
+                >
+                  Confirm
+                </AlertDialogAction>
+              </>
+            )}
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Vocal Removal 进度弹窗 */}
+      {currentProcessingTrackId && (
+        <VocalRemovalProgressDialog
+          isOpen={showVocalRemovalProgressDialog}
+          onClose={() => {
+            setShowVocalRemovalProgressDialog(false);
+            const status = vocalRemovalManager.getTrackState(currentProcessingTrackId).status;
+            if (status === 'completed' || status === 'error') {
+              setCurrentProcessingTrackId(null);
+              setCurrentProcessingTrackTitle('');
+            }
+          }}
+          trackTitle={currentProcessingTrackTitle}
+          progress={vocalRemovalManager.getTrackState(currentProcessingTrackId).progress || 0}
+          status={vocalRemovalManager.getTrackState(currentProcessingTrackId).status || 'processing'}
+          errorMessage={
+            vocalRemovalManager.getTrackState(currentProcessingTrackId).status === 'error'
+              ? vocalRemovalManager.getTrackState(currentProcessingTrackId).errorMessage || 'Vocal removal failed. Please try again.'
+              : undefined
+          }
+          vocalUrl={vocalRemovalManager.getTrackState(currentProcessingTrackId).vocalUrl}
+          instrumentalUrl={vocalRemovalManager.getTrackState(currentProcessingTrackId).instrumentalUrl}
+        />
+      )}
     </div>
   );
 });
+

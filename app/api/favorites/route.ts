@@ -20,10 +20,26 @@ export async function GET(request: NextRequest) {
     const limit = parseInt(searchParams.get('limit') || '50');
     const offset = parseInt(searchParams.get('offset') || '0');
 
-    const [favorites, totalCount] = await Promise.all([
+    const [rawFavorites, totalCount] = await Promise.all([
       getUserFavorites(userId, limit, offset),
       getUserFavoritesCount(userId)
     ]);
+    
+    const favorites = rawFavorites.map((fav: any) => ({
+      id: fav.id,
+      title: fav.title,
+      genre: fav.genre || '',
+      tags: fav.tags || '',
+      prompt: fav.prompt || '',
+      audioUrl: fav.audio_url,
+      duration: fav.duration || 0,
+      coverR2Url: fav.cover_r2_url || null,
+      lyrics: fav.lyrics_content || '', 
+      isPublished: fav.is_published ?? false,
+      isPinned: fav.is_pinned ?? false, 
+      createdAt: fav.created_at, 
+      favoritedAt: fav.favorited_at
+    }));
 
     return NextResponse.json({
       success: true,

@@ -35,17 +35,23 @@ export const FEATURE_CREDITS_CONFIG: Record<string, FeatureConfig> = {
     enabled: true,
     description: '生成歌词'
   },
-  vocal_separation: {
-    name: 'Vocal Separation',
-    credits: 3,
-    enabled: true,
-    description: '人声分离'
-  },
   convert_to_wav: {
     name: 'Convert to WAV Format',
     credits: 1,
     enabled: true,
     description: '转换为WAV格式'
+  },
+  separate_vocals_from_music_local: {
+    name: 'Separate Vocals from Music (Local File)',
+    credits: 3,
+    enabled: true,
+    description: '从本地文件分离人声'
+  },
+  separate_vocals_from_music_studio: {
+    name: 'Separate Vocals from Music (Studio Track)',
+    credits: 10,
+    enabled: true,
+    description: '从Studio曲目分离人声'
   }
 } as const;
 
@@ -87,6 +93,18 @@ export function getFeatureCredits(feature: FeatureKey): number {
     return 0;
   }
   return config.credits;
+}
+
+/**
+ * 获取人声分离功能的积分消耗（根据来源类型）
+ * @param source 来源类型：'local' 或 'studio'
+ * @returns 积分消耗数量
+ */
+export function getVocalSeparationCredits(source: 'local' | 'studio'): number {
+  const feature = source === 'local' 
+    ? 'separate_vocals_from_music_local' 
+    : 'separate_vocals_from_music_studio';
+  return getFeatureCredits(feature as FeatureKey);
 }
 
 /**
@@ -154,6 +172,14 @@ export const CLIENT_FEATURE_CREDITS = Object.fromEntries(
   ])
 ) as Record<FeatureKey, { credits: number; name: string }>;
 
+/**
+ * 客户端可用的人声分离积分配置（根据来源）
+ */
+export const CLIENT_VOCAL_SEPARATION_CREDITS = {
+  local: FEATURE_CREDITS_CONFIG.separate_vocals_from_music_local.credits,
+  studio: FEATURE_CREDITS_CONFIG.separate_vocals_from_music_studio.credits,
+} as const;
+
 export const CLIENT_MUSIC_CREDITS = {
   basic: MUSIC_GENERATION_CONFIG.basic.credits,
   custom: MUSIC_GENERATION_CONFIG.custom.credits
@@ -170,7 +196,7 @@ export const CLIENT_CREDITS = {
   CUSTOM_MODE_CREDITS: MUSIC_GENERATION_CONFIG.custom.credits,
   /** 歌词生成积分消耗 */
   LYRICS_GENERATION_CREDITS: FEATURE_CREDITS_CONFIG.generate_lyrics.credits,
-  /** 人声分离积分消耗 */
-  VOCAL_SEPARATION_CREDITS: FEATURE_CREDITS_CONFIG.vocal_separation.credits,
+  /** 人声分离积分消耗（本地文件，已废弃，使用 CLIENT_VOCAL_SEPARATION_CREDITS 替代） */
+  VOCAL_SEPARATION_CREDITS: FEATURE_CREDITS_CONFIG.separate_vocals_from_music_local.credits,
 } as const;
 

@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from 'next/server';
 import { vocalSeparationService } from '@/lib/vocal-separation-api';
 import { getUserIdFromRequest } from '@/lib/auth';
 import { createVocalSeparation } from '@/lib/vocal-separation-db';
+import { getFeatureCredits } from '@/lib/credits-config';
+import { getUserCredits } from '@/lib/user-db';
 
 export const dynamic = 'force-dynamic';
 
@@ -27,6 +29,22 @@ export async function POST(request: NextRequest) {
     const userId = await getUserIdFromRequest(request);
     if (!userId) {
       return NextResponse.json({ error: 'Authentication required' }, { status: 401 });
+    }
+
+    // 检查积分
+    const creditCost = getFeatureCredits('separate_vocals_from_music_local');
+    const userCredits = await getUserCredits(userId);
+    const credits = userCredits?.credits || 0;
+    
+    if (credits < creditCost) {
+      return NextResponse.json(
+        { 
+          error: 'Insufficient credits',
+          required: creditCost,
+          current: credits
+        },
+        { status: 403 }
+      );
     }
 
     if (file) {

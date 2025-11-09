@@ -34,7 +34,24 @@ export async function GET(request: NextRequest) {
       LIMIT $1 OFFSET $2
     `, [limit, offset]);
 
-    const pinnedTracks = result.rows;
+    // 将tracks数据转换为前端需要的格式（使用驼峰命名）
+    const pinnedTracks = result.rows.map(row => ({
+      id: row.id,
+      title: row.title,
+      genre: row.genre,
+      tags: row.tags,
+      prompt: row.prompt,
+      audioUrl: row.audio_url, // 映射数据库字段为 JavaScript 字段名
+      duration: row.duration,
+      coverR2Url: row.cover_r2_url, // 映射数据库字段为 JavaScript 字段名
+      createdAt: row.generation_created_at, // 映射数据库字段为 JavaScript 字段名
+      updatedAt: row.updated_at, // 映射数据库字段为 JavaScript 字段名
+      created_at: row.created_at, // 保留原始字段名用于兼容
+      updated_at: row.updated_at, // 保留原始字段名用于兼容
+      music_id: row.music_id, // 保留原始字段名用于兼容
+      track_owner_id: row.track_owner_id // 保留原始字段名用于兼容
+    }));
+    
     const hasMore = pinnedTracks.length === limit;
 
     return NextResponse.json({

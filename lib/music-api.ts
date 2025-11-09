@@ -28,14 +28,14 @@ export interface SunoApiResponse {
   data?: {
     id: string;
     title: string;
-    audio_url: string;
+    audioUrl: string;
     image_url?: string;
     duration: number;
   }[];
   // For task status response
   id?: string;
   title?: string;
-  audio_url?: string;
+  audioUrl?: string; // 统一使用 audioUrl
   image_url?: string;
   duration?: number;
   // For error handling
@@ -60,7 +60,7 @@ export interface CoverApiResponse {
 export interface VocalSeparationRequest {
   taskId: string; // 原始音乐任务的ID
   audioId: string; // 要进行人声分离处理的特定音频轨道ID
-  type: 'separate_vocal' | 'split_stem'; // 分离类型
+  type: 'separate_vocal' | 'split_stem'; // 分离类型（当前项目只使用 separate_vocal）
   callBackUrl?: string; // 回调URL
 }
 

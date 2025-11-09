@@ -167,6 +167,10 @@ module.exports = {
           from: { transform: "translateX(-100%)" },
           to: { transform: "translateX(100%)" },
         },
+        "shimmer": {
+          "0%": { transform: "translateX(-100%)" },
+          "100%": { transform: "translateX(100%)" },
+        },
         
         // Twinkle animations
         "twinkle": {
@@ -201,6 +205,7 @@ module.exports = {
         
         // Visual effects
         "shine": "shine 2s ease-in-out infinite",
+        "shimmer": "shimmer 2s ease-in-out infinite",
         
         // Twinkle
         "twinkle": "twinkle 3s ease-in-out infinite",
