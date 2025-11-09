@@ -8,7 +8,6 @@ import { Separator } from '@/components/ui/separator';
 import { Progress } from '@/components/ui/progress';
 import { VocalSeparationPanel } from '@/components/ui/vocal-separation-panel';
 import { useVocalSeparation, VocalSeparationData } from '@/hooks/use-vocal-separation';
-import { useRouter, useSearchParams } from 'next/navigation';
 import { MusicPlayer } from '@/components/ui/music-player';
 import { WaveformPlayer } from '@/components/ui/waveform-player';
 import { Download, Mic, Music, Volume2, Clock, CheckCircle, XCircle, AlertCircle, Upload, Library, Play, Pause, Search, X } from 'lucide-react';
@@ -40,8 +39,6 @@ const formatDuration = (seconds: number) => {
 };
 
 export default function VocalSeparationDemo() {
-  const router = useRouter();
-  const searchParams = useSearchParams();
   const { separations, startVocalSeparation, startVocalSeparationFromStudio } = useVocalSeparation();
   const [selectedSeparation, setSelectedSeparation] = useState<VocalSeparationData | null>(null);
   const [isPlaying, setIsPlaying] = useState(false);
@@ -85,192 +82,6 @@ export default function VocalSeparationDemo() {
   const [studioTracksSearchQuery, setStudioTracksSearchQuery] = useState('');
   const hasLoadedStudioTracks = useRef(false); // 跟踪是否已加载过数据
 
-  // 为 taskId 轮询状态的函数
-  const startPollingStatusForTaskId = useCallback((taskId: string) => {
-    const startTime = Date.now();
-    let cancelled = false;
-
-    const poll = async () => {
-      if (cancelled) return;
-
-      const elapsed = Math.floor((Date.now() - startTime) / 1000);
-      
-      try {
-        const { data: { session } } = await supabase.auth.getSession();
-        if (!session) {
-          setIsGenerating(false);
-          return;
-        }
-
-        const res = await fetch(`/api/vocal-removal-status?taskId=${taskId}`, { 
-          cache: 'no-store',
-          headers: {
-            Authorization: `Bearer ${session.access_token}`,
-          },
-        });
-
-        if (!res.ok) {
-          setTimeout(poll, 2000);
-          return;
-        }
-
-        const payload = await res.json();
-
-        if (!payload?.success || !payload.data) {
-          setTimeout(poll, 2000);
-          return;
-        }
-
-        const data = payload.data;
-
-        // 设置原始音频 URL（如果需要）
-        if (data.trackId && !audioUrl) {
-          try {
-            const trackResponse = await fetch(`/api/studio-tracks-for-separation?limit=100`, {
-              headers: {
-                'Authorization': `Bearer ${session.access_token}`,
-              },
-            });
-            if (trackResponse.ok) {
-              const trackResult = await trackResponse.json();
-              if (trackResult.success && trackResult.data) {
-                const track = trackResult.data.find((t: any) => t.id === data.trackId);
-                if (track?.audioUrl) {
-                  setAudioUrl(track.audioUrl);
-                }
-              }
-            }
-          } catch (e) {
-            console.error('Error fetching track audio URL:', e);
-          }
-        }
-
-        // 设置分离结果
-        if (data.vocalUrl || data.instrumentalUrl) {
-          setSeparationResults({ 
-            vocals: data.vocalUrl || '', 
-            accompaniment: data.instrumentalUrl || '' 
-          });
-        }
-
-        // 检查状态
-        if (data.status === 'completed') {
-          setSeparationComplete(true);
-          setIsGenerating(false);
-          return;
-        }
-
-        if (data.status === 'error') {
-          setError(data.errorMessage || 'Vocal removal failed');
-          setIsGenerating(false);
-          return;
-        }
-
-        // 继续轮询
-        if (elapsed > 300) {
-          setError('Separation timeout');
-          setIsGenerating(false);
-          return;
-        }
-
-        // 根据时间调整轮询间隔
-        const nextDelay = elapsed < 30 ? 1000 : elapsed < 120 ? 2000 : 3000;
-        setTimeout(poll, nextDelay);
-
-      } catch (error) {
-        console.error('Polling error:', error);
-        setTimeout(poll, 2000);
-      }
-    };
-
-    // 立即开始第一次轮询
-    poll();
-
-    // 返回取消函数
-    return () => {
-      cancelled = true;
-    };
-  }, [audioUrl]);
-
-  // 通过 taskId 加载 vocal removal 结果
-  const loadVocalRemovalResult = useCallback(async (taskId: string) => {
-    try {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session?.access_token) {
-        setError('Authentication required');
-        return;
-      }
-
-      setIsGenerating(true);
-      setError(null);
-      setSeparationComplete(false);
-      setSeparationResults(null);
-      setSeparationProgress(0);
-      setAudioUrl('');
-
-      const response = await fetch(`/api/vocal-removal-status?taskId=${taskId}`, {
-        headers: {
-          'Authorization': `Bearer ${session.access_token}`,
-        },
-      });
-
-      if (!response.ok) {
-        throw new Error('Failed to load vocal removal result');
-      }
-
-      const result = await response.json();
-
-      if (result.success && result.data) {
-        const { status, vocalUrl, instrumentalUrl, trackId } = result.data;
-
-        if (status === 'completed') {
-          // 查询原始音频 URL
-          if (trackId) {
-            try {
-              const trackResponse = await fetch(`/api/studio-tracks-for-separation?limit=100`, {
-                headers: {
-                  'Authorization': `Bearer ${session.access_token}`,
-                },
-              });
-              if (trackResponse.ok) {
-                const trackResult = await trackResponse.json();
-                if (trackResult.success && trackResult.data) {
-                  const track = trackResult.data.find((t: any) => t.id === trackId);
-                  if (track?.audioUrl) {
-                    setAudioUrl(track.audioUrl);
-                  }
-                }
-              }
-            } catch (e) {
-              console.error('Error fetching track audio URL:', e);
-            }
-          }
-
-          setSeparationResults({
-            vocals: vocalUrl || '',
-            accompaniment: instrumentalUrl || ''
-          });
-          setSeparationComplete(true);
-          setIsGenerating(false);
-          setActiveTab('studio');
-        } else if (status === 'processing') {
-          // 仍在处理中，开始轮询
-          setIsGenerating(true);
-          startPollingStatusForTaskId(taskId);
-        } else if (status === 'error') {
-          setError('Vocal removal failed');
-          setIsGenerating(false);
-        }
-      } else {
-        throw new Error('Invalid response from server');
-      }
-    } catch (error) {
-      console.error('Error loading vocal removal result:', error);
-      setError(error instanceof Error ? error.message : 'Failed to load result');
-      setIsGenerating(false);
-    }
-  }, [startPollingStatusForTaskId]);
-
   // 获取 Studio tracks
   const fetchStudioTracks = useCallback(async () => {
     setIsLoadingStudioTracks(true);
@@ -302,18 +113,6 @@ export default function VocalSeparationDemo() {
       if (result.success && result.data) {
         setStudioTracks(result.data || []);
         hasLoadedStudioTracks.current = true; // 标记已加载
-        
-        // 如果 URL 中有 trackId，自动选择
-        const trackIdFromUrl = searchParams.get('trackId');
-        if (trackIdFromUrl) {
-          const track = result.data.find((t: any) => t.id === trackIdFromUrl);
-          if (track) {
-            setSelectedStudioTrack(track);
-            setActiveTab('studio');
-            // 清除 URL 参数
-            router.replace('/vocal-remover', { scroll: false });
-          }
-        }
       } else {
         console.warn('API returned unsuccessful or missing data:', result);
         setStudioTracks([]);
@@ -325,7 +124,7 @@ export default function VocalSeparationDemo() {
     } finally {
       setIsLoadingStudioTracks(false);
     }
-  }, [searchParams, router]);
+  }, []);
 
   useEffect(() => {
     // Only sync login status for upload permission control; no historical data requests
@@ -335,13 +134,8 @@ export default function VocalSeparationDemo() {
         const loggedIn = !!session?.access_token;
         setIsLoggedIn(loggedIn);
         
-        // 如果 URL 中有 taskId，直接加载结果（优先于加载 tracks）
-        const taskIdFromUrl = searchParams.get('taskId');
-        if (taskIdFromUrl && loggedIn) {
-          loadVocalRemovalResult(taskIdFromUrl);
-          router.replace('/vocal-remover', { scroll: false });
-        } else if (loggedIn && !hasLoadedStudioTracks.current) {
-          // 如果已登录且未加载过数据，则加载
+        // 如果已登录且未加载过数据，则加载
+        if (loggedIn && !hasLoadedStudioTracks.current) {
           fetchStudioTracks();
         }
       } catch (error) {
@@ -356,13 +150,7 @@ export default function VocalSeparationDemo() {
       setIsLoggedIn(!!session);
       // 登录后自动获取 Studio tracks（只在首次加载时加载，避免重复）
       if (session?.access_token && !hasLoadedStudioTracks.current) {
-        // 检查是否有 taskId
-        const taskIdFromUrl = searchParams.get('taskId');
-        if (taskIdFromUrl) {
-          loadVocalRemovalResult(taskIdFromUrl);
-        } else {
-          fetchStudioTracks();
-        }
+        fetchStudioTracks();
       } else if (!session?.access_token) {
         // 登出后重置状态
         hasLoadedStudioTracks.current = false;
@@ -374,7 +162,7 @@ export default function VocalSeparationDemo() {
     return () => {
       subscription.unsubscribe();
     };
-  }, [searchParams, router, fetchStudioTracks, loadVocalRemovalResult]);
+  }, [fetchStudioTracks]);
 
   // 不再监听 tab 切换，只在首次加载或登录时加载数据
   // 移除这个 useEffect，避免每次切换 tab 都重新加载
