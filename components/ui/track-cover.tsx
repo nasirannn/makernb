@@ -15,6 +15,7 @@ interface TrackCoverProps {
   isCurrentTrack?: boolean;
   onPlayPause?: () => void;
   trackId?: string;
+  isExtension?: boolean;
 }
 
 export const TrackCover: React.FC<TrackCoverProps> = ({
@@ -26,35 +27,41 @@ export const TrackCover: React.FC<TrackCoverProps> = ({
   isCurrentTrack = false,
   onPlayPause,
   trackId,
+  isExtension = false,
 }) => {
   const showPlayButton = !isError && onPlayPause;
   const showWaveIndicator = isCurrentTrack && isPlaying && !isError;
+  const sizeClass = isExtension ? 'w-12 h-12' : 'w-16 h-16';
+  const imageSize = isExtension ? 48 : 64;
+  const iconSize = isExtension ? 'h-4 w-4' : 'h-6 w-6';
+  const buttonSize = isExtension ? 'h-8 w-8' : 'h-10 w-10';
+  const iconButtonSize = isExtension ? 'h-3 w-3' : 'h-4 w-4';
 
   return (
-    <div className="relative w-16 h-16 rounded-md overflow-hidden flex-shrink-0 transition-transform duration-300 group/cover">
+    <div className={`relative ${sizeClass} rounded-md overflow-hidden flex-shrink-0 transition-transform duration-300 group/cover`}>
       {/* 封面图片 */}
       {isError ? (
         <Image
           src="/logo.svg"
           alt="Error"
-          width={64}
-          height={64}
+          width={imageSize}
+          height={imageSize}
           className="w-full h-full object-cover transition-all duration-300"
         />
       ) : coverUrl ? (
         <Image
           src={coverUrl}
           alt={title}
-          width={64}
-          height={64}
+          width={imageSize}
+          height={imageSize}
           className="w-full h-full object-cover transition-all duration-300"
         />
       ) : (
         <div className="w-full h-full bg-gradient-to-br from-primary/20 to-primary/40 flex items-center justify-center transition-all duration-300">
           {isGenerating ? (
-            <div className="animate-spin rounded-full h-6 w-6 border-2 border-primary border-t-transparent"></div>
+            <div className={`animate-spin rounded-full ${iconSize} border-2 border-primary border-t-transparent`}></div>
           ) : (
-            <Music className="h-6 w-6 text-primary" />
+            <Music className={`${iconSize} text-primary`} />
           )}
         </div>
       )}
@@ -65,16 +72,16 @@ export const TrackCover: React.FC<TrackCoverProps> = ({
           <Button
             variant="ghost"
             size="sm"
-            className="h-10 w-10 p-0 bg-white/20 hover:bg-white/30"
+            className={`${buttonSize} p-0 bg-white/20 hover:bg-white/30`}
             onClick={(e) => {
               e.stopPropagation();
               onPlayPause?.();
             }}
           >
             {isPlaying && isCurrentTrack ? (
-              <Pause className="h-4 w-4 text-white" />
+              <Pause className={`${iconButtonSize} text-white`} />
             ) : (
-              <Play className="h-4 w-4 text-white" />
+              <Play className={`${iconButtonSize} text-white`} />
             )}
           </Button>
         </div>

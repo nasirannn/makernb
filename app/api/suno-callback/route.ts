@@ -473,7 +473,7 @@ async function processCallbackAsync(callbackData: any, callbackId: string) {
               try {
                 
                 const imageBuffer = await downloadFromUrl(track.cover_image_url);
-                const filename = `cover_backup_${Date.now()}_${track.id}.jpeg`;
+                const filename = `cover_backup_${Date.now()}_${track.id}.png`;
                 
                 const r2ImageUrl = await uploadCoverImage(
                   imageBuffer, 

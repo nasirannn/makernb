@@ -23,6 +23,7 @@ import {
   AccordionItem,
   AccordionTrigger,
 } from "@/components/ui/accordion";
+import { formatDateTime } from "@/lib/format-utils";
 
 function VocalSeparationCreditsDisplay({ source }: { source: 'local' | 'studio' }) {
   return <span className="text-primary font-medium">{CLIENT_VOCAL_SEPARATION_CREDITS[source]}</span>;
@@ -894,15 +895,7 @@ export default function VocalSeparationDemo() {
                                           {/* 创建时间 - 参考 studio-tracks-list 的格式 */}
                                           {track.createdAt && (
                                             <p className="text-xs text-muted-foreground/60 truncate mt-1">
-                                              {new Date(track.createdAt).toLocaleString('en-US', {
-                                                month: 'numeric',
-                                                day: 'numeric',
-                                                year: 'numeric',
-                                                hour: 'numeric',
-                                                minute: '2-digit',
-                                                second: '2-digit',
-                                                hour12: true
-                                              })}
+                                              {formatDateTime(track.createdAt)}
                                             </p>
                                           )}
                                         </div>

@@ -46,9 +46,13 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // Get API base URL from environment variables
+    const baseUrl = process.env.KIE_API_BASE_URL || 'https://api.kie.ai';
+    const apiUrl = `${baseUrl}/api/v1/lyrics`;
+
     console.log('Generating lyrics with prompt:', prompt);
 
-    const response = await fetch('https://api.kie.ai/api/v1/lyrics', {
+    const response = await fetch(apiUrl, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -56,7 +60,6 @@ export async function POST(request: NextRequest) {
       },
       body: JSON.stringify({
         prompt,
-        // Remove trailing slash to match trailingSlash: false configuration
         callBackUrl: `${process.env.CallBackURL}/api/lyrics-callback`,
       }),
     });

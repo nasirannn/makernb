@@ -52,6 +52,12 @@ export const FEATURE_CREDITS_CONFIG: Record<string, FeatureConfig> = {
     credits: 10,
     enabled: true,
     description: '从Studio曲目分离人声'
+  },
+  extend_music: {
+    name: 'Extend Music',
+    credits: 12, // 默认值，实际值根据模型版本而定
+    enabled: true,
+    description: '扩展音乐长度'
   }
 } as const;
 
@@ -69,6 +75,38 @@ export const MUSIC_GENERATION_CONFIG = {
     credits: 12,
     enabled: true
   } as ModelConfig
+} as const;
+
+/**
+ * Extend Music 模型版本配置
+ * 根据不同的模型版本设置不同的积分消耗
+ */
+export const EXTEND_MUSIC_MODEL_CONFIG: Record<string, ModelConfig> = {
+  V5: {
+    model: 'V5',
+    credits: 12,
+    enabled: true
+  } as ModelConfig,
+  'V4.5+': {
+    model: 'V4.5+',
+    credits: 12,
+    enabled: true
+  } as ModelConfig,
+  V4_5: {
+    model: 'V4.5',
+    credits: 12,
+    enabled: true
+  } as ModelConfig,
+  V4: {
+    model: 'V4',
+    credits: 12,
+    enabled: true
+  } as ModelConfig,
+  V3_5: {
+    model: 'V3.5',
+    credits: 7,
+    enabled: true
+  } as ModelConfig,
 } as const;
 
 /**
@@ -162,6 +200,38 @@ export function getMusicModeConfig(mode: MusicMode): ModelConfig | null {
 }
 
 /**
+ * Extend Music 模型版本类型
+ */
+export type ExtendMusicModel = keyof typeof EXTEND_MUSIC_MODEL_CONFIG;
+
+/**
+ * 获取 Extend Music 模型版本的积分消耗
+ * @param model 模型版本：'V5' | 'V4.5+' | 'V4_5' | 'V4' | 'V3_5'
+ * @returns 积分消耗数量
+ */
+export function getExtendMusicCredits(model: ExtendMusicModel): number {
+  const config = EXTEND_MUSIC_MODEL_CONFIG[model];
+  if (!config || !config.enabled) {
+    console.warn(`Extend Music model ${model} is not configured or disabled`);
+    return 12; // 默认值
+  }
+  return config.credits;
+}
+
+/**
+ * 获取 Extend Music 模型版本配置
+ * @param model 模型版本
+ * @returns 模型配置
+ */
+export function getExtendMusicModelConfig(model: ExtendMusicModel): ModelConfig | null {
+  const config = EXTEND_MUSIC_MODEL_CONFIG[model];
+  if (!config || !config.enabled) {
+    return null;
+  }
+  return config;
+}
+
+/**
  * 导出客户端可用的配置（仅积分，不包含模型版本）
  * 用于前端显示积分消耗提示
  */
@@ -186,6 +256,17 @@ export const CLIENT_MUSIC_CREDITS = {
 } as const;
 
 /**
+ * 客户端可用的 Extend Music 积分配置（根据模型版本）
+ */
+export const CLIENT_EXTEND_MUSIC_CREDITS = {
+  V5: EXTEND_MUSIC_MODEL_CONFIG.V5.credits,
+  'V4.5+': EXTEND_MUSIC_MODEL_CONFIG['V4.5+'].credits,
+  V4_5: EXTEND_MUSIC_MODEL_CONFIG.V4_5.credits,
+  V4: EXTEND_MUSIC_MODEL_CONFIG.V4.credits,
+  V3_5: EXTEND_MUSIC_MODEL_CONFIG.V3_5.credits,
+} as const;
+
+/**
  * 客户端可用的积分配置常量（替代 NEXT_PUBLIC_ 环境变量）
  * 这些值可以在客户端组件中直接使用
  */
@@ -198,5 +279,7 @@ export const CLIENT_CREDITS = {
   LYRICS_GENERATION_CREDITS: FEATURE_CREDITS_CONFIG.generate_lyrics.credits,
   /** 人声分离积分消耗（本地文件，已废弃，使用 CLIENT_VOCAL_SEPARATION_CREDITS 替代） */
   VOCAL_SEPARATION_CREDITS: FEATURE_CREDITS_CONFIG.separate_vocals_from_music_local.credits,
+  /** Extend Music 积分消耗（根据模型版本，使用 CLIENT_EXTEND_MUSIC_CREDITS 替代） */
+  EXTEND_MUSIC_CREDITS: FEATURE_CREDITS_CONFIG.extend_music.credits,
 } as const;
 

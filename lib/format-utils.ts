@@ -44,18 +44,29 @@ export const formatDate = (dateString: string): string => {
 
 /**
  * Format date to localized date time string
+ * Format: "Nov 11, 2025, 10:03 AM"
  * @param dateString - Date string to format
  * @returns Formatted date time string
  */
 export const formatDateTime = (dateString: string): string => {
-  return new Date(dateString).toLocaleString('en-US', {
-    month: 'numeric',
-    day: 'numeric',
-    year: 'numeric',
-    hour: 'numeric',
-    minute: '2-digit',
-    second: '2-digit',
-    hour12: true
-  });
+  const date = new Date(dateString);
+  
+  // 月份名称数组
+  const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+  
+  // 获取日期组件
+  const month = monthNames[date.getMonth()];
+  const day = date.getDate();
+  const year = date.getFullYear();
+  
+  // 格式化时间
+  let hours = date.getHours();
+  const minutes = date.getMinutes();
+  const ampm = hours >= 12 ? 'PM' : 'AM';
+  hours = hours % 12;
+  hours = hours ? hours : 12; // 如果为0，显示12
+  const minutesStr = minutes.toString().padStart(2, '0');
+  
+  return `${month} ${day}, ${year}, ${hours}:${minutesStr} ${ampm}`;
 };
 

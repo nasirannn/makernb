@@ -128,6 +128,65 @@ export async function downloadFromUrl(url: string, maxRetries = 5): Promise<Buff
 }
 
 /**
+ * 从URL下载文件，返回buffer与响应的Content-Type等元信息（带重试）
+ */
+export async function downloadFromUrlWithMeta(
+  url: string,
+  maxRetries = 5
+): Promise<{ buffer: Buffer; contentType: string | null; filenameFromUrl: string | null }> {
+  let lastError: Error | null = null;
+  if (!url || typeof url !== 'string' || url.trim() === '') {
+    throw new Error('Invalid URL: URL is empty or undefined');
+  }
+  try {
+    new URL(url);
+  } catch {
+    throw new Error(`Invalid URL format: ${url}`);
+  }
+  for (let attempt = 1; attempt <= maxRetries; attempt++) {
+    try {
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 45000);
+      const response = await fetch(url, {
+        signal: controller.signal,
+        headers: {
+          'User-Agent': 'Mozilla/5.0 (compatible; MakerNB/1.0)',
+          'Accept': '*/*',
+          'Connection': 'keep-alive',
+        },
+        redirect: 'follow',
+        keepalive: true,
+        cache: 'no-store',
+      });
+      clearTimeout(timeoutId);
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+      }
+      const arrayBuffer = await response.arrayBuffer();
+      if (arrayBuffer.byteLength === 0) {
+        throw new Error('Downloaded file is empty');
+      }
+      const contentType = response.headers.get('content-type');
+      let filenameFromUrl: string | null = null;
+      try {
+        const u = new URL(url);
+        filenameFromUrl = (u.pathname.split('/').pop() || '') || null;
+      } catch {
+        filenameFromUrl = null;
+      }
+      return { buffer: Buffer.from(arrayBuffer), contentType, filenameFromUrl };
+    } catch (error) {
+      lastError = error as Error;
+      if (attempt < maxRetries) {
+        const delayMs = Math.min(3000 * Math.pow(2, attempt - 1), 20000);
+        await new Promise(resolve => setTimeout(resolve, delayMs));
+      }
+    }
+  }
+  throw lastError || new Error('Download failed after all retries');
+}
+
+/**
  * 上传音频文件到R2
  */
 export async function uploadAudioFile(
@@ -215,7 +274,8 @@ export async function uploadCoverImage(
   buffer: Buffer,
   taskId: string,
   filename: string,
-  userId: string
+  userId: string,
+  contentType?: string | null
 ): Promise<string> {
   try {
     const key = `covers/${userId}/${taskId}/${filename}`;
@@ -224,7 +284,7 @@ export async function uploadCoverImage(
       Bucket: BUCKET_NAME,
       Key: key,
       Body: buffer,
-      ContentType: 'image/png',
+      ContentType: resolveImageContentType(filename, contentType),
       Metadata: {
         taskId,
         userId,
@@ -240,6 +300,18 @@ export async function uploadCoverImage(
     console.error('Error uploading cover image:', error);
     throw error;
   }
+}
+
+function resolveImageContentType(filename: string, provided?: string | null): string {
+  if (provided && provided.trim() !== '') return provided;
+  const lower = filename.toLowerCase();
+  if (lower.endsWith('.png')) return 'image/png';
+  if (lower.endsWith('.jpg') || lower.endsWith('.jpeg')) return 'image/jpeg';
+  if (lower.endsWith('.webp')) return 'image/webp';
+  if (lower.endsWith('.gif')) return 'image/gif';
+  if (lower.endsWith('.svg')) return 'image/svg+xml';
+  if (lower.endsWith('.avif')) return 'image/avif';
+  return 'application/octet-stream';
 }
 
 /**

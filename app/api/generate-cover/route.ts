@@ -10,7 +10,9 @@ export async function POST(request: NextRequest) {
   try {
     // 先解析请求体
     const body = await request.json();
-    const { musicTaskId, userId: bodyUserId } = body;
+    const { musicTaskId, originalTaskId, userId: bodyUserId } = body;
+    // originalTaskId: 用于 KIE API 生成封面（可选，如果未提供则使用 musicTaskId）
+    // musicTaskId: 用于存储到 cover_generations.music_task_id，cover-callback 据此更新 tracks
     
     // 检查用户是否登录
     let userId = await getUserIdFromRequest(request);
@@ -53,12 +55,14 @@ export async function POST(request: NextRequest) {
     }
 
     // 由于封面生成现在只在音乐成功完成后触发，不需要额外的状态检查
-    console.log(`Generating cover for music task: ${musicTaskId}`);
+    // 使用 originalTaskId（如果提供）调用 KIE API，否则使用 musicTaskId
+    // 注意：originalTaskId 仅用于 KIE API 生成封面，不能作为更新 tracks 的依据
+    const taskIdForKIE = originalTaskId || musicTaskId;
+    console.log(`Generating cover for music task: ${musicTaskId}${originalTaskId ? ` (using original taskId: ${originalTaskId} for KIE API)` : ''}`);
 
-    // 调用封面生成API
+    // 调用封面生成API（使用 originalTaskId 或 musicTaskId）
     const result = await musicApi.generateCover({ 
-      taskId: musicTaskId,
-      // Remove trailing slash to match trailingSlash: false configuration
+      taskId: taskIdForKIE,
       callBackUrl: `${process.env.CallBackURL}/api/cover-callback`
     });
     console.log('KIE API cover generation response:', result);

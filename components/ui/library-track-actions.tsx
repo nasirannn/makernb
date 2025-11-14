@@ -2,7 +2,6 @@
 
 import React from 'react';
 import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
 import {
   Download,
   MoreHorizontal,
@@ -27,7 +26,8 @@ interface LibraryTrackActionsProps {
   userIsAdmin?: boolean;
   canDownloadMP3?: boolean;
   canDownloadWAV?: boolean;
-  onDownload?: (format: 'mp3' | 'wav') => void;
+  canDownloadCover?: boolean;
+  onDownload?: (format: 'mp3' | 'wav' | 'cover') => void;
   onPublish?: () => void;
   onPin?: () => void;
   onEdit?: () => void;
@@ -48,6 +48,7 @@ export const LibraryTrackActions: React.FC<LibraryTrackActionsProps> = ({
   userIsAdmin = false,
   canDownloadMP3 = false,
   canDownloadWAV = false,
+  canDownloadCover = false,
   onDownload,
   onPublish,
   onPin,
@@ -56,6 +57,12 @@ export const LibraryTrackActions: React.FC<LibraryTrackActionsProps> = ({
   onDelete,
   onPricingModalOpen,
 }) => {
+  const hasCoverImage = Boolean(
+    track.coverImage ||
+    track.coverR2Url ||
+    track.allTracks?.[0]?.coverR2Url
+  );
+
   // Mobile: Return "More" button only (triggers bottom sheet in parent)
   if (isMobile) {
     return (
@@ -129,11 +136,6 @@ export const LibraryTrackActions: React.FC<LibraryTrackActionsProps> = ({
               className="flex items-center justify-between gap-1.5 cursor-pointer px-2.5 py-1.5 text-xs data-[highlighted]:bg-transparent data-[highlighted]:text-primary focus:bg-transparent"
             >
               <span className="font-medium">Download MP3</span>
-              {!canDownloadMP3 && (
-                <Badge variant="outline" className="text-xs px-2 py-0.5 bg-gradient-create text-white border-0 shrink-0">
-                  Basic
-                </Badge>
-              )}
             </DropdownMenuItem>
             <DropdownMenuItem
               onClick={(e) => {
@@ -148,12 +150,23 @@ export const LibraryTrackActions: React.FC<LibraryTrackActionsProps> = ({
               className="flex items-center justify-between gap-1.5 cursor-pointer px-2.5 py-1.5 text-xs data-[highlighted]:bg-transparent data-[highlighted]:text-primary focus:bg-transparent"
             >
               <span className="font-medium">Download WAV</span>
-              {!canDownloadWAV && (
-                <Badge variant="outline" className="text-xs px-2 py-0.5 bg-gradient-create text-white border-0 shrink-0">
-                  Premium
-                </Badge>
-              )}
             </DropdownMenuItem>
+            {hasCoverImage ? (
+              <DropdownMenuItem
+                onClick={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  if (!canDownloadCover) {
+                    onPricingModalOpen?.();
+                    return;
+                  }
+                  onDownload('cover');
+                }}
+                className="flex items-center justify-between gap-1.5 cursor-pointer px-2.5 py-1.5 text-xs data-[highlighted]:bg-transparent data-[highlighted]:text-primary focus:bg-transparent"
+              >
+                <span className="font-medium">Download PNG</span>
+              </DropdownMenuItem>
+            ) : null}
           </DropdownMenuContent>
         </DropdownMenu>
       )}
@@ -222,4 +235,3 @@ export const LibraryTrackActions: React.FC<LibraryTrackActionsProps> = ({
     </div>
   );
 };
-

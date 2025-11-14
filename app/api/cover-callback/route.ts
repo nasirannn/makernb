@@ -203,11 +203,12 @@ async function processCoverCallbackAsync(callbackData: any) {
               console.log(`Found ${tracksQuery.rows.length} music tracks, updating cover_image_url directly`);
               
               // 直接更新tracks表的cover_image_url字段（更安全的方式）
+              // 注意：生成图片接口生成的图片应该优先于延长音乐接口回传的图片
+              // 所以这里应该覆盖已有的 cover_image_url（如果存在）
               for (let i = 0; i < Math.min(tracksQuery.rows.length, data.images.length); i++) {
                 await query(
                   `UPDATE tracks SET cover_image_url = $1, updated_at = NOW() 
-                   WHERE id = $2 
-                   AND cover_image_url IS NULL`,
+                   WHERE id = $2`,
                   [data.images[i], tracksQuery.rows[i].id] // 使用临时图片URL，前端立即可用
                 );
                 
@@ -216,6 +217,9 @@ async function processCoverCallbackAsync(callbackData: any) {
               }
               
               console.log(`Successfully updated ${Math.min(tracksQuery.rows.length, data.images.length)} tracks with cover_image_url`);
+              
+              // 注意：如果延长音乐也调用了封面生成接口，这里的查询会找到延长音乐的 tracks 并更新封面
+              // 延长音乐的封面会在延长音乐回调时，通过检查原音乐的封面来更新（如果封面回调还没更新）
               
               // 立即开始R2备份，不等待complete回调
               console.log(`Starting immediate R2 backup for cover images`);
@@ -243,7 +247,7 @@ async function processCoverCallbackAsync(callbackData: any) {
                         console.log(`Starting backup for track: ${track.id}`);
                         
                         const imageBuffer = await downloadFromUrl(track.cover_image_url);
-                        const filename = `cover_backup_${Date.now()}_${track.id}.jpeg`;
+                        const filename = `cover_backup_${Date.now()}_${track.id}.png`;
                         
                         const r2ImageUrl = await uploadCoverImage(
                           imageBuffer, 

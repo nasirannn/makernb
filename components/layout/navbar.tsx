@@ -3,6 +3,7 @@ import { Menu, Sparkles, ChevronDown, Mic, Music, Wand2, FileText } from "lucide
 import React from "react";
 import { Button } from "../ui/button";
 import { Avatar, AvatarImage, AvatarFallback } from "../ui/avatar";
+import { Badge } from "../ui/badge";
 import Link from "next/link";
 import Image from "next/image";
 import { usePathname } from "next/navigation";
@@ -10,6 +11,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import AuthModal from "../ui/auth-modal";
 import { LogOut } from "lucide-react";
 import { getZIndexClass } from "@/lib/z-index";
+import { supabase } from "@/lib/supabase";
 
 interface RouteProps {
   href: string;
@@ -80,6 +82,7 @@ export const Navbar = ({ credits = null }: NavbarProps) => {
   const [isUserMenuOpen, setIsUserMenuOpen] = React.useState(false);
   const [isDropdownOpen, setIsDropdownOpen] = React.useState(false);
   const [dropdownTimeout, setDropdownTimeout] = React.useState<NodeJS.Timeout | null>(null);
+  const [tierCode, setTierCode] = React.useState<'basic' | 'premium' | null>(null);
   const pathname = usePathname();
   const { user, signOut } = useAuth();
 
@@ -191,6 +194,51 @@ export const Navbar = ({ credits = null }: NavbarProps) => {
       }
     };
   }, [dropdownTimeout]);
+
+  // 获取用户订阅信息
+  React.useEffect(() => {
+    const fetchUserSubscription = async () => {
+      if (!user) {
+        setTierCode(null);
+        return;
+      }
+
+      try {
+        const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+
+        if (sessionError || !session?.access_token) {
+          setTierCode(null);
+          return;
+        }
+
+        const response = await fetch('/api/user-subscription', {
+          method: 'GET',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${session.access_token}`,
+          },
+        });
+
+        if (response.ok) {
+          const data = await response.json();
+          // 只有当 tierCode 不为 null 时才设置（有活跃订阅）
+          setTierCode(data.tierCode || null);
+        } else {
+          setTierCode(null);
+        }
+      } catch (error) {
+        console.error('Failed to fetch user subscription:', error);
+        setTierCode(null);
+      }
+    };
+
+    // 延迟获取，确保session已准备好
+    const timer = setTimeout(() => {
+      fetchUserSubscription();
+    }, 1000);
+
+    return () => clearTimeout(timer);
+  }, [user?.id]);
 
   return (
     <header 
@@ -325,9 +373,17 @@ export const Navbar = ({ credits = null }: NavbarProps) => {
                       </AvatarFallback>
                     </Avatar>
                     <div className="flex-1 min-w-0">
-                      <p className="text-white font-medium text-sm truncate">
-                        {user.user_metadata?.full_name || user.user_metadata?.name || user.email?.split('@')[0] || 'User'}
-                      </p>
+                      <div className="flex items-center justify-between gap-2 mb-1">
+                        <p className="text-white font-medium text-sm truncate flex-1">
+                          {user.user_metadata?.full_name || user.user_metadata?.name || user.email?.split('@')[0] || 'User'}
+                        </p>
+                        {tierCode && (
+                          <Badge className="relative inline-block rounded-full border border-zinc-700 bg-zinc-900/20 px-2 py-0.5 text-xs text-zinc-50 animate-border-marquee flex-shrink-0">
+                            <span className="text-foreground/90 font-medium capitalize">{tierCode}</span>
+                            <span className="absolute bottom-0 left-1 right-1 h-[1px] bg-gradient-to-r from-zinc-500/0 via-zinc-300 to-zinc-500/0"></span>
+                          </Badge>
+                        )}
+                      </div>
                       <p className="text-white/70 text-xs truncate">
                         {user.email}
                       </p>
@@ -484,9 +540,17 @@ export const Navbar = ({ credits = null }: NavbarProps) => {
               >
                 {/* User Info */}
                 <div className="px-4 py-3">
-                  <p className="text-foreground font-medium text-sm truncate">
-                    {user.user_metadata?.full_name || user.user_metadata?.name || user.email?.split('@')[0] || 'User'}
-                  </p>
+                  <div className="flex items-center justify-between gap-2 mb-1">
+                    <p className="text-foreground font-medium text-sm truncate flex-1">
+                      {user.user_metadata?.full_name || user.user_metadata?.name || user.email?.split('@')[0] || 'User'}
+                    </p>
+                    {tierCode && (
+                      <Badge className="relative inline-block rounded-full border border-zinc-700 bg-zinc-900/20 px-2 py-0.5 text-xs text-zinc-50 animate-border-marquee flex-shrink-0">
+                        <span className="text-foreground/90 font-medium capitalize">{tierCode}</span>
+                        <span className="absolute bottom-0 left-1 right-1 h-[1px] bg-gradient-to-r from-zinc-500/0 via-zinc-300 to-zinc-500/0"></span>
+                      </Badge>
+                    )}
+                  </div>
                   <p className="text-muted-foreground text-xs truncate">
                     {user.email}
                   </p>

@@ -213,7 +213,8 @@ export const getUserMusicGenerationsOptimized = async (
   // 只返回至少有一个未删除 track 的 music 记录
   const sql = `
     WITH user_generations AS (
-      SELECT DISTINCT mg.id, mg.title, mg.genre, mg.tags, mg.prompt, mg.is_instrumental, mg.status, mg.created_at, mg.updated_at
+      SELECT DISTINCT mg.id, mg.title, mg.genre, mg.tags, mg.prompt, mg.is_instrumental, mg.status, mg.created_at, mg.updated_at,
+             mg.is_extension, mg.original_music_id
       FROM music mg
       INNER JOIN tracks mt ON mg.id = mt.music_id
       WHERE mg.user_id = $1::uuid 
@@ -226,15 +227,20 @@ export const getUserMusicGenerationsOptimized = async (
         ug.id as generation_id,
         ug.title, ug.genre, ug.tags, ug.prompt, ug.is_instrumental, ug.status,
         ug.created_at as generation_created_at, ug.updated_at as generation_updated_at,
+        ug.is_extension, ug.original_music_id,
         mt.id as track_id, mt.suno_track_id, mt.audio_url, mt.stream_audio_url, mt.duration,
         mt.is_published, mt.is_pinned, mt.created_at as track_created_at,
         mt.cover_image_url as cover_r2_url,
+        mt.original_track_id,
         COALESCE(mt.title, ug.title) as track_title,
-        ml.content as lyrics_content
+        ml.content as lyrics_content,
+        COALESCE(omt.title, omg.title) as original_track_title
       FROM user_generations ug
       LEFT JOIN tracks mt ON ug.id = mt.music_id
         AND (mt.is_deleted IS NULL OR mt.is_deleted = FALSE)
       LEFT JOIN lyrics ml ON ug.id = ml.music_id
+      LEFT JOIN tracks omt ON mt.original_track_id = omt.id
+      LEFT JOIN music omg ON ug.original_music_id = omg.id
     ),
     error_info AS (
       SELECT reference_id, error_message, error_code, created_at

@@ -193,7 +193,7 @@ export const StudioPanel = (props: StudioPanelProps) => {
   };
 
   return (
-    <div className={`transition-all duration-300 ease-in-out bg-background/95 ${
+    <div className={`transition-all duration-300 ease-in-out bg-[#05060b] border border-white/5 rounded-[32px] shadow-[0_20px_60px_rgba(4,6,15,0.45)] ${
       // 桌面：左侧固定宽度；移动端：当 forceVisibleOnMobile=true 时占满宽度
       panelOpen ? (forceVisibleOnMobile ? 'w-full md:w-[28rem]' : 'w-[28rem]') : 'w-0'
     } ${forceVisibleOnMobile ? 'flex flex-col' : 'h-full flex flex-col overflow-hidden'} ${forceVisibleOnMobile ? 'flex md:flex' : 'hidden md:flex'}`}>
@@ -1036,7 +1036,7 @@ export const StudioPanel = (props: StudioPanelProps) => {
           </div>
 
           {/* Floating Generate Button - Bottom */}
-          <div className="flex-shrink-0 px-4 md:px-6 py-4 bg-background/95 backdrop-blur-sm border-t border-border/20">
+          <div className="flex-shrink-0 px-4 md:px-6 pt-4 pb-6">
             {(() => {
               // 只根据prompt输入内容来禁用按钮，积分检查移到点击后
               let isDisabled = isGenerating;

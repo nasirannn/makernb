@@ -6,6 +6,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 // Custom Hooks
 import { useMusicGeneration } from "@/hooks/use-music-generation";
 import { useLyricsGeneration } from "@/hooks/use-lyrics-generation";
+import { useExtendMusic } from "@/hooks/use-extend-music";
 import { useAuth } from "@/contexts/AuthContext";
 import { useCredits } from "@/contexts/CreditsContext";
 import { useFeaturePermissions } from "@/contexts/FeaturePermissionsContext";
@@ -55,9 +56,13 @@ const StudioContent = () => {
     // Custom Hooks
     const musicGeneration = useMusicGeneration();
     const lyricsGeneration = useLyricsGeneration();
+    const {
+        isGenerating,
+        generatedTracks,
+        updateTracks,
+    } = musicGeneration;
     const { user, signOut } = useAuth();
     const { credits, refreshCredits } = useCredits();
-    const { hasPermission } = useFeaturePermissions();
 
     // UI States
     const [mobileCreateOpen, setMobileCreateOpen] = useState(false);
@@ -106,9 +111,6 @@ const StudioContent = () => {
         updateCurrentTrackDuration: (duration: number) => audioPlayerRef.current.updateCurrentTrackDuration(duration),
     }), []); // ✅ 空依赖，完全稳定
     
-    // 收藏状态管理
-    const [favoriteLoading, setFavoriteLoading] = React.useState<Record<string, boolean>>({});
-    
     // BPM Mode状态
     const [bpmMode, setBpmMode] = React.useState<'slow' | 'moderate' | 'medium' | ''>('');
 
@@ -135,10 +137,6 @@ const StudioContent = () => {
         bassTone, setBassTone,
         vocalGender, setVocalGender,
         harmonyPalette, setHarmonyPalette,
-        isGenerating,
-        generatedTracks,
-        state,
-        updateTracks,
     } = musicGeneration;
 
     // 页面卸载时清理状态
@@ -156,6 +154,30 @@ const StudioContent = () => {
     }, []);
 
     // ==================== Track 对象管理 ====================
+    // 统一的 track 查找函数（从 userTracks 中查找 track 和对应的 music）
+    const findTrackAndMusic = React.useCallback((trackId: string) => {
+        const track = userTracks.flatMap(gen => gen.allTracks || []).find((t: any) => t.id === trackId);
+        if (!track) return { track: null, music: null };
+        
+        const music = userTracks.find(gen => gen.allTracks?.some((t: any) => t.id === trackId));
+        return { track, music: music || null };
+    }, [userTracks]);
+
+    // 统一的 userTracks 更新函数
+    const updateTrack = React.useCallback((
+        trackId: string,
+        updater: (track: any) => any
+    ) => {
+        setUserTracks((prevUserTracks) => 
+            prevUserTracks.map(generation => ({
+                ...generation,
+                allTracks: generation.allTracks.map((t: any) =>
+                    t.id === trackId ? updater(t) : t
+                )
+            }))
+        );
+    }, []);
+
     // 统一的Track对象创建函数
     const createTrackObject = React.useCallback((
         id: string,
@@ -248,8 +270,49 @@ const StudioContent = () => {
     // ==================== 播放歌曲核心函数 ====================
     const playTrackById = React.useCallback(async (trackId: string) => {
         try {
-            // 查找track信息
-            const localTrack = allTracks.find(track => track.id === trackId);
+            // 首先查找本地track信息
+            let localTrack = allTracks.find(track => track.id === trackId);
+            
+            // 如果在本地找不到，可能是新创建的延长音乐track，尝试从数据库获取
+            if (!localTrack || !localTrack.audioUrl) {
+                console.log('Track not found in local cache, fetching from server:', trackId);
+                
+                try {
+                    // 获取当前会话
+                    const { data: { session } } = await supabase.auth.getSession();
+                    
+                    const response = await fetch(`/api/track-info/${trackId}`, {
+                        headers: {
+                            'Authorization': `Bearer ${session?.access_token}`,
+                        },
+                    });
+                    
+                    if (response.ok) {
+                        const trackData = await response.json();
+                        if (trackData.success && trackData.track) {
+                            const track = trackData.track;
+                            localTrack = createTrackObject(
+                                track.id,
+                                track.musicId,
+                                track.title,
+                                track.audioUrl,
+                                track.duration,
+                                track.coverR2Url,
+                                track.tags,
+                                track.genre,
+                                track.lyrics,
+                                track.isFavorited || false,
+                                track.streamAudioUrl
+                            );
+                            console.log('Successfully fetched track from server:', localTrack);
+                        }
+                    }
+                } catch (fetchError) {
+                    console.error('Failed to fetch track from server:', fetchError);
+                }
+            }
+            
+            // 最终检查
             if (!localTrack || !localTrack.audioUrl) {
                 console.warn('Track not found or no audio URL:', trackId);
                 return;
@@ -272,7 +335,7 @@ const StudioContent = () => {
         } catch (error) {
             console.error('Error playing track:', error);
         }
-    }, [allTracks, player]);
+    }, [allTracks, player, createTrackObject]);
 
     // ==================== 上一首/下一首函数 ====================
     const handlePrevious = React.useCallback(() => {
@@ -338,6 +401,19 @@ const StudioContent = () => {
         }
     }, [user?.id]);
 
+    // 使用 ref 存储 fetchUserTracks，供 useExtendMusic 使用
+    const fetchUserTracksRef = React.useRef(fetchUserTracks);
+    React.useEffect(() => {
+        fetchUserTracksRef.current = fetchUserTracks;
+    }, [fetchUserTracks]);
+
+    // 传递 updateTracks 回调给 useExtendMusic，直接更新 generatedTracks
+    // 延长音乐完成时，刷新 userTracks（数据已写入数据库）
+    const extendMusic = useExtendMusic(
+        updateTracks,
+        () => fetchUserTracksRef.current()
+    );
+
     // 初始化时获取用户 tracks 或使用模拟数据
     useEffect(() => {
         if (user?.id) {
@@ -357,6 +433,48 @@ const StudioContent = () => {
             player.updateCurrentTrackDuration(currentTrackInGenerated.duration);
         }
     }, [generatedTracks, player]);
+
+    // 监听 EventBus 删除事件，更新本地状态
+    useEffect(() => {
+        if (typeof window === 'undefined') return;
+        
+        const eventBus = getEventBus();
+        if (!eventBus) return;
+
+        const handleTrackDeleted = (data: { trackId: string }) => {
+            const deletedTrackId = data.trackId;
+            
+            // 从 generatedTracks 中移除
+            updateTracks((prevTracks) => 
+                prevTracks.filter(track => track.id !== deletedTrackId)
+            );
+
+            // 从 userTracks 中更新（标记为已删除或直接过滤）
+            setUserTracks((prevUserTracks) => {
+                return prevUserTracks.map(generation => ({
+                    ...generation,
+                    allTracks: generation.allTracks
+                        .map((t: any) => 
+                            t.id === deletedTrackId
+                                ? { ...t, isDeleted: true }
+                                : t
+                        )
+                        .filter((t: any) => !(t.isDeleted ?? false))
+                })).filter(generation => generation.allTracks.length > 0);
+            });
+
+            // 如果删除的是当前选中的 track，清空选中状态
+            if (selectedStudioTrack?.id === deletedTrackId) {
+                setSelectedStudioTrack(null);
+            }
+        };
+
+        eventBus.on(TRACK_EVENTS.DELETED, handleTrackDeleted);
+
+        return () => {
+            eventBus.off(TRACK_EVENTS.DELETED, handleTrackDeleted);
+        };
+    }, [updateTracks, selectedStudioTrack]);
 
     // Lyrics generation
     const {
@@ -603,7 +721,7 @@ const StudioContent = () => {
         await pollForWav();
     }, [downloadFile]);
 
-    const handleDownload = React.useCallback(async (track: any, music: any, format: 'mp3' | 'wav' = 'mp3') => {
+    const handleDownload = React.useCallback(async (track: any, music: any, format: 'mp3' | 'wav' | 'cover' = 'mp3') => {
         if (!track.id) {
             toast.error('Track ID is required');
             return;
@@ -621,6 +739,48 @@ const StudioContent = () => {
                     description: 'Please log in to download tracks'
                 });
                 return;
+            }
+
+        // Cover格式：通过后端API代理下载，确保权限校验与CORS安全
+            if (format === 'cover') {
+            try {
+                const apiUrl = `/api/download-cover?trackId=${encodeURIComponent(track.id)}`;
+                const coverResponse = await fetch(apiUrl, {
+                    method: 'GET',
+                    headers: {
+                        Authorization: `Bearer ${session.access_token}`,
+                    },
+                    cache: 'no-store',
+                });
+                if (!coverResponse.ok) {
+                    const text = await coverResponse.text().catch(() => '');
+                    throw new Error(text || `Failed to download cover: ${coverResponse.status}`);
+                }
+                const blob = await coverResponse.blob();
+                const contentType = coverResponse.headers.get('content-type') || '';
+                const lowerType = contentType.toLowerCase();
+                let ext = 'png';
+                if (lowerType.includes('jpeg') || lowerType.includes('jpg')) {
+                    ext = 'jpg';
+                } else if (lowerType.includes('png')) {
+                    ext = 'png';
+                } else if (lowerType.includes('webp')) {
+                    ext = 'webp';
+                } else if (lowerType.includes('gif')) {
+                    ext = 'gif';
+                } else if (lowerType.includes('bmp')) {
+                    ext = 'bmp';
+                } else if (lowerType.includes('tiff')) {
+                    ext = 'tiff';
+                }
+                downloadFile(blob, music.title || track.title || 'cover', ext);
+            } catch (error) {
+                console.error('Cover download error:', error);
+                toast.error('Download failed', {
+                    description: error instanceof Error ? error.message : 'Unable to download cover image'
+                });
+            }
+            return;
             }
 
             // WAV格式：统一通过下载 API 处理（API 会查询 track_wav_conversions 表）
@@ -726,15 +886,7 @@ const StudioContent = () => {
             }
             
             // 更新本地状态
-            const updatedUserTracks = userTracks.map(generation => ({
-                ...generation,
-                allTracks: generation.allTracks.map((t: any) =>
-                    t.id === track.id
-                        ? { ...t, isFavorited: data.isFavorited }
-                        : t
-                )
-            }));
-            setUserTracks(updatedUserTracks);
+            updateTrack(track.id, (t) => ({ ...t, isFavorited: data.isFavorited }));
 
             // 更新selectedStudioTrack状态，使用函数式更新避免依赖
             setSelectedStudioTrack(prev => {
@@ -763,7 +915,7 @@ const StudioContent = () => {
             console.error('Error toggling favorite:', error);
             toast.error('Failed to update favorite status');
         }
-    }, [user?.id, userTracks]);
+    }, [user?.id, updateTrack]);
 
     // ==================== 歌曲列表删除处理函数 ====================
     const handleTrackDelete = React.useCallback((track: any, music: any) => {
@@ -786,22 +938,14 @@ const StudioContent = () => {
             }
 
             // 更新本地状态
-            const updatedUserTracks = userTracks.map(generation => ({
-                ...generation,
-                allTracks: generation.allTracks.map((t: any) =>
-                    t.id === trackId
-                        ? { ...t, isPublished: !isPublished }
-                        : t
-                )
-            }));
-            setUserTracks(updatedUserTracks);
+            updateTrack(trackId, (t) => ({ ...t, isPublished: !isPublished }));
 
             toast(isPublished ? 'Track unpublished' : 'Track published');
         } catch (error) {
             console.error('Error toggling publish:', error);
             toast.error('Failed to update publish status');
         }
-    }, [userTracks]);
+    }, [updateTrack]);
 
     const handleEditTitle = React.useCallback(async (trackId: string, newTitle: string) => {
         try {
@@ -816,22 +960,7 @@ const StudioContent = () => {
             }
 
             // 更新本地状态 - 更新特定track的title而不是generation的title
-            const updatedUserTracks = userTracks.map(generation => {
-                const trackIndex = generation.allTracks.findIndex((t: any) => t.id === trackId);
-                if (trackIndex !== -1) {
-                    const updatedTracks = [...generation.allTracks];
-                    updatedTracks[trackIndex] = {
-                        ...updatedTracks[trackIndex],
-                        title: newTitle
-                    };
-                    return {
-                        ...generation,
-                        allTracks: updatedTracks
-                    };
-                }
-                return generation;
-            });
-            setUserTracks(updatedUserTracks);
+            updateTrack(trackId, (t) => ({ ...t, title: newTitle }));
 
             // 如果当前选中的 track 被编辑了，更新 selectedStudioTrack
             if (selectedStudioTrack?.id === trackId) {
@@ -846,7 +975,51 @@ const StudioContent = () => {
             console.error('Error updating title:', error);
             toast.error('Failed to update title');
         }
-    }, [userTracks, selectedStudioTrack]);
+    }, [updateTrack, selectedStudioTrack]);
+
+    const handleEditMusicInfo = React.useCallback(async (trackId: string, data: { title: string; coverImageUrl?: string }) => {
+        try {
+            const response = await fetch('/api/update-track-info', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ 
+                    trackId, 
+                    title: data.title,
+                    coverImageUrl: data.coverImageUrl 
+                })
+            });
+
+            if (!response.ok) {
+                const errorData = await response.json();
+                throw new Error(errorData.error || 'Failed to update music info');
+            }
+
+            const result = await response.json();
+
+            // 更新本地状态
+            updateTrack(trackId, (t) => ({ 
+                ...t, 
+                title: result.data?.title || data.title,
+                coverImage: result.data?.coverImageUrl || t.coverImage,
+                coverR2Url: result.data?.coverImageUrl || t.coverR2Url
+            }));
+
+            // 如果当前选中的 track 被编辑了，更新 selectedStudioTrack
+            if (selectedStudioTrack?.id === trackId) {
+                setSelectedStudioTrack({
+                    ...selectedStudioTrack,
+                    title: result.data?.title || data.title,
+                    coverImage: result.data?.coverImageUrl || selectedStudioTrack.coverImage,
+                    coverR2Url: result.data?.coverImageUrl || selectedStudioTrack.coverR2Url
+                });
+            }
+
+            toast('Music info updated successfully');
+        } catch (error) {
+            console.error('Error updating music info:', error);
+            toast.error(error instanceof Error ? error.message : 'Failed to update music info');
+        }
+    }, [updateTrack, selectedStudioTrack]);
 
     const handlePinToggle = React.useCallback(async (trackId: string, isPinned: boolean) => {
         try {
@@ -861,22 +1034,14 @@ const StudioContent = () => {
             }
 
             // 更新本地状态
-            const updatedUserTracks = userTracks.map(generation => ({
-                ...generation,
-                allTracks: generation.allTracks.map((t: any) =>
-                    t.id === trackId
-                        ? { ...t, isPinned: !isPinned }
-                        : t
-                )
-            }));
-            setUserTracks(updatedUserTracks);
+            updateTrack(trackId, (t) => ({ ...t, isPinned: !isPinned }));
 
             toast(isPinned ? 'Track unpinned' : 'Track pinned');
         } catch (error) {
             console.error('Error toggling pin:', error);
             toast.error('Failed to update pin status');
         }
-    }, [userTracks]);
+    }, [updateTrack]);
 
     const handleDeleteTrack = React.useCallback(async (trackId: string) => {
         try {
@@ -1020,17 +1185,14 @@ const StudioContent = () => {
         handleViewTrackDetail(trackId);
         
         // 从 userTracks 中找到对应的 track
-        const found = userTracks.flatMap(gen => gen.allTracks).find((t: any) => t.id === trackId);
-        if (found) {
-            const music = userTracks.find(gen => gen.allTracks.some((t: any) => t.id === trackId));
-            if (music) {
-                // 🎯 如果点击的是当前播放的歌曲，则不播放（只选中）
-                // 如果点击的是不同的歌曲，则自动播放
-                const isDifferentTrack = player.currentTrack?.id !== trackId;
-                handleTrackSelect(found, music, { autoPlay: isDifferentTrack });
-            }
+        const { track: found, music } = findTrackAndMusic(trackId);
+        if (found && music) {
+            // 🎯 如果点击的是当前播放的歌曲，则不播放（只选中）
+            // 如果点击的是不同的歌曲，则自动播放
+            const isDifferentTrack = player.currentTrack?.id !== trackId;
+            handleTrackSelect(found, music, { autoPlay: isDifferentTrack });
         }
-    }, [handleViewTrackDetail, userTracks, handleTrackSelect, player.currentTrack?.id]);
+    }, [handleViewTrackDetail, findTrackAndMusic, handleTrackSelect, player.currentTrack?.id]);
 
     // 用户歌曲播放（点击播放按钮时直接播放）
     const handleUserTrackPlay = React.useCallback((track: any, music: any) => {
@@ -1288,14 +1450,6 @@ const StudioContent = () => {
                             : 'calc(var(--mobile-nav-height, 64px))'
                     }}
                 >
-                    {/* Background Image for Studio Area - Desktop only */}
-                    <div 
-                        className="hidden md:block absolute inset-0 bg-cover bg-center bg-no-repeat opacity-5 pointer-events-none"
-                        style={{
-                            backgroundImage: "url('/bg-studio-background.webp')"
-                        }}
-                    />
-
                     {selectedTrackId ? (
                         /* Track Detail View - Responsive */
                         <TrackDetailView 
@@ -1320,16 +1474,10 @@ const StudioContent = () => {
                                         };
                                     }
                                     
-                                    const foundUserTrack = userTracks
-                                        .flatMap(gen => gen.allTracks || [])
-                                        .find((t: any) => t.id === selectedTrackId);
-                                    
-                                    if (foundUserTrack) {
-                                        const music = userTracks.find(gen => 
-                                            gen.allTracks?.some((t: any) => t.id === selectedTrackId)
-                                        );
+                                    if (selectedTrackId) {
+                                        const { track: foundUserTrack, music } = findTrackAndMusic(selectedTrackId);
                                         
-                                        if (music) {
+                                        if (foundUserTrack && music) {
                                             return {
                                                 id: foundUserTrack.id,
                                                 title: music.title || foundUserTrack.title || '',
@@ -1381,15 +1529,12 @@ const StudioContent = () => {
                             }}
                             onFavoriteToggle={(trackId, isFavorited) => {
                                 // 从userTracks中找到对应的track
-                                const found = userTracks.flatMap(gen => gen.allTracks).find((t: any) => t.id === trackId);
-                                if (found) {
-                                    const music = userTracks.find(gen => gen.allTracks.some((t: any) => t.id === trackId));
-                                    if (music) {
-                                        handleFavoriteToggle(found, music);
-                                    }
+                                const { track: found, music } = findTrackAndMusic(trackId);
+                                if (found && music) {
+                                    handleFavoriteToggle(found, music);
                                 }
                             }}
-                            onDownload={(trackInfo) => {
+                            onDownload={(trackInfo, format) => {
                                 const track = {
                                     id: trackInfo.id,
                                     audioUrl: trackInfo.audioUrl
@@ -1397,23 +1542,21 @@ const StudioContent = () => {
                                 const music = {
                                     title: trackInfo.title
                                 };
-                                handleDownload(track, music);
+                                handleDownload(track, music, format);
                             }}
                             isFavorited={
-                                userTracks.flatMap(gen => gen.allTracks)
-                                    .find((t: any) => t.id === selectedTrackId)?.isFavorited || false
+                                selectedTrackId ? findTrackAndMusic(selectedTrackId).track?.isFavorited || false : false
                             }
                             onPublishToggle={handlePublishToggle}
                             onEditTitle={handleEditTitle}
+                            onEditMusicInfo={handleEditMusicInfo}
                             onDelete={handleDeleteTrack}
                             onPinToggle={handlePinToggle}
                             isPublished={
-                                userTracks.flatMap(gen => gen.allTracks)
-                                    .find((t: any) => t.id === selectedTrackId)?.isPublished || false
+                                selectedTrackId ? findTrackAndMusic(selectedTrackId).track?.isPublished || false : false
                             }
                             isPinned={
-                                userTracks.flatMap(gen => gen.allTracks)
-                                    .find((t: any) => t.id === selectedTrackId)?.isPinned || false
+                                selectedTrackId ? findTrackAndMusic(selectedTrackId).track?.isPinned || false : false
                             }
                             isAdmin={false}
                             currentUserId={user?.id || null}
@@ -1459,6 +1602,10 @@ const StudioContent = () => {
                                     hasPlayer={!!player.currentTrack}
                                     onPublishToggle={handlePublishToggle}
                                     onEditTitle={handleEditTitle}
+                            onEditMusicInfo={handleEditMusicInfo}
+                                    extendMusicStartPolling={extendMusic.startPolling}
+                                    extendMusicGetState={extendMusic.getExtendMusicState}
+                                    extendMusicClearState={extendMusic.clearExtendMusicState}
                                 />
                             </div>
 
@@ -1479,6 +1626,10 @@ const StudioContent = () => {
                                     hasPlayer={!!player.currentTrack}
                                     onPublishToggle={handlePublishToggle}
                                     onEditTitle={handleEditTitle}
+                            onEditMusicInfo={handleEditMusicInfo}
+                                    extendMusicStartPolling={extendMusic.startPolling}
+                                    extendMusicGetState={extendMusic.getExtendMusicState}
+                                    extendMusicClearState={extendMusic.clearExtendMusicState}
                                 />
                             </div>
                         </div>

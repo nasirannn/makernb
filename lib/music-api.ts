@@ -162,7 +162,6 @@ class MusicApiService {
 
     // 根据文档设置正确的API参数
     const apiParams: any = {
-      // Remove trailing slash to match trailingSlash: false configuration
       callBackUrl: `${process.env.CallBackURL}/api/suno-callback`,
     };
 
@@ -292,7 +291,6 @@ class MusicApiService {
 
     const apiParams = {
       taskId: request.taskId,
-      // Remove trailing slash to match trailingSlash: false configuration
       callBackUrl: request.callBackUrl || `${process.env.CallBackURL}/api/cover-callback`,
     };
     
@@ -545,11 +543,7 @@ class MusicApiService {
    * Converts MP3 audio to WAV format
    */
   async generateWavConversion(request: WavConversionRequest): Promise<WavConversionApiResponse> {
-    // 确保回调 URL 不包含尾部斜杠（middleware 会处理重定向）
-    // Next.js trailingSlash: true 可能导致 API 路由重定向
-    // middleware 会统一将带尾部斜杠的 URL 重定向到不带尾部斜杠的版本
-    const baseUrl = process.env.CallBackURL?.replace(/\/$/, ''); // 移除基础 URL 的尾部斜杠
-    const callBackUrl = request.callBackUrl || `${baseUrl}/api/wav-callback`; // API 路由不使用尾部斜杠
+    const callBackUrl = request.callBackUrl || `${process.env.CallBackURL}/api/wav-callback`;
     
     const apiParams = {
       taskId: request.taskId,

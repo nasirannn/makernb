@@ -113,6 +113,7 @@ export const LibraryPanel = ({
   // 检查下载权限
   const canDownloadMP3 = hasPermission('download_mp3_track');
   const canDownloadWAV = hasPermission('download_wav_track');
+  const canDownloadCover = hasPermission('download_cover_track');
   
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [trackToDelete, setTrackToDelete] = useState<LibraryTrack | null>(null);
@@ -214,7 +215,11 @@ export const LibraryPanel = ({
     }
   };
 
-  const handleDownload = async (track: LibraryTrack, format: 'mp3' | 'wav' = 'mp3') => {
+  const handleDownload = async (track: LibraryTrack, format: 'mp3' | 'wav' | 'cover' = 'mp3') => {
+    if (format === 'cover' && !canDownloadCover) {
+      openPricingModal();
+      return;
+    }
     if (!track.id) {
       toast.error('Track ID is required');
       return;
@@ -226,6 +231,64 @@ export const LibraryPanel = ({
         description: 'Preparing your file...',
         icon: <ArrowDown className="h-4 w-4 text-blue-500" />
       });
+
+      // Cover格式：下载封面图片（通过 API 代理下载，避免 CORS 问题）
+      if (format === 'cover') {
+        const coverUrl = track.coverImage || track.coverR2Url || track.allTracks?.[0]?.coverR2Url;
+        if (!coverUrl) {
+          toast.error('No cover image available', {
+            id: downloadToast
+          });
+          return;
+        }
+
+        try {
+          // 获取 session token
+          const { data: { session } } = await supabase.auth.getSession();
+          if (!session?.access_token) {
+            toast.error('Authentication required', {
+              id: downloadToast,
+              description: 'Please log in to download cover image'
+            });
+            return;
+          }
+
+          // 通过 API 代理下载封面
+          const response = await fetch(`/api/download-cover?trackId=${track.id}`, {
+            headers: {
+              'Authorization': `Bearer ${session.access_token}`
+            }
+          });
+
+          if (!response.ok) {
+            const errorData = await response.json().catch(() => ({}));
+            throw new Error(errorData.message || errorData.error || `HTTP error! status: ${response.status}`);
+          }
+
+          const blob = await response.blob();
+          const blobUrl = window.URL.createObjectURL(blob);
+          const link = document.createElement('a');
+          link.href = blobUrl;
+          link.download = `${track.title || 'cover'}.png`;
+          document.body.appendChild(link);
+          link.click();
+          document.body.removeChild(link);
+          window.URL.revokeObjectURL(blobUrl);
+
+          toast.success('Download started!', {
+            id: downloadToast,
+            description: `${track.title || 'cover'}.png`,
+            icon: <ArrowDown className="h-4 w-4 text-blue-500" />
+          });
+        } catch (error) {
+          console.error('Cover download error:', error);
+          toast.error('Download failed', {
+            id: downloadToast,
+            description: error instanceof Error ? error.message : 'Unable to download cover image'
+          });
+        }
+        return;
+      }
 
       // WAV格式：统一通过下载 API 处理（API 会查询 track_wav_conversions 表）
       if (format === 'wav') {
@@ -1069,6 +1132,7 @@ export const LibraryPanel = ({
                       userIsAdmin={userIsAdmin}
                       canDownloadMP3={canDownloadMP3}
                       canDownloadWAV={canDownloadWAV}
+                      canDownloadCover={canDownloadCover}
                       onDownload={(format) => handleDownload(track, format)}
                       onPublish={() => handlePublishClick(track)}
                       onPin={() => handlePinToggle(track)}
@@ -1471,11 +1535,32 @@ export const LibraryPanel = ({
                   <Download className="h-5 w-5" />
                   <span className="font-medium">Download WAV</span>
                 </div>
-                {!canDownloadWAV && (
-                  <Badge variant="outline" className="text-xs px-2 py-0.5 bg-gradient-create text-white border-0 shrink-0">
-                    Premium
-                  </Badge>
-                )}
+              </button>
+            )}
+
+            {/* Download Cover */}
+            {selectedTrackForMenu && (selectedTrackForMenu.coverImage || selectedTrackForMenu.coverR2Url || selectedTrackForMenu.allTracks?.[0]?.coverR2Url) && (
+              <button
+                onClick={() => {
+                  if (!canDownloadCover) {
+                    setMobileMenuOpen(false);
+                    openPricingModal();
+                    return;
+                  }
+                  handleDownload(selectedTrackForMenu, 'cover');
+                  setMobileMenuOpen(false);
+                }}
+                className="w-full flex items-center gap-3 p-3 rounded-lg hover:bg-muted transition-colors"
+              >
+                <Download className="h-5 w-5" />
+                <div className="flex-1 flex items-center justify-between gap-3">
+                  <span className="font-medium">Download PNG</span>
+                  {!canDownloadCover && (
+                    <Badge variant="outline" className="text-xs px-2 py-0.5 bg-gradient-create text-white border-0 shrink-0">
+                      Basic
+                    </Badge>
+                  )}
+                </div>
               </button>
             )}
 

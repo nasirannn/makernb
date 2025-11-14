@@ -5,6 +5,7 @@ import { createVocalRemoval } from '@/lib/vocal-removal-db';
 import MusicApiService from '@/lib/music-api';
 import { getFeatureCredits } from '@/lib/credits-config';
 import { getUserCredits } from '@/lib/user-db';
+import { hasFeaturePermission } from '@/lib/feature-permissions';
 
 export const dynamic = 'force-dynamic';
 
@@ -46,7 +47,8 @@ export async function POST(request: NextRequest) {
         mt.music_id,
         mg.task_id as music_task_id,
         COALESCE(mt.title, mg.title) as title,
-        mt.audio_url
+        mt.audio_url,
+        mg.is_instrumental
       FROM tracks mt
       INNER JOIN music mg ON mt.music_id = mg.id
       WHERE mt.id = $1::uuid
@@ -76,6 +78,28 @@ export async function POST(request: NextRequest) {
       return NextResponse.json(
         { error: 'Track does not have original music generation task_id. Cannot proceed with vocal removal.' },
         { status: 400 }
+      );
+    }
+
+    // 检查是否是纯器乐歌曲（纯器乐无法进行人声分离）
+    if (track.is_instrumental) {
+      return NextResponse.json(
+        { 
+          error: 'Cannot separate vocals from instrumental tracks. Instrumental tracks have no vocals to separate.' 
+        },
+        { status: 400 }
+      );
+    }
+
+    // 检查权限
+    const hasPermission = await hasFeaturePermission(userId, 'vocal_removal_studio');
+    if (!hasPermission) {
+      return NextResponse.json(
+        { 
+          error: 'Permission denied',
+          message: 'You do not have permission to use vocal removal in Studio'
+        },
+        { status: 403 }
       );
     }
 

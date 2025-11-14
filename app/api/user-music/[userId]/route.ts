@@ -97,6 +97,12 @@ function processUserMusicData(rawData: any[]) {
         createdAt: row.generation_created_at, // 映射数据库字段为 JavaScript 字段名
         updatedAt: row.generation_updated_at, // 映射数据库字段为 JavaScript 字段名
         lyricsContent: row.lyrics_content, // 映射数据库字段为 JavaScript 字段名
+        // 扩展相关字段（从 music 表获取）
+        isExtension: row.is_extension || false,
+        originalMusicId: row.original_music_id,
+        // originalTrackId 现在从 tracks 表获取，所以这里先设为 undefined，后续从 track 中获取
+        originalTrackId: undefined,
+        originalTrackTitle: row.original_track_title,
         allTracks: [],
         totalDuration: 0,
         errorInfo: row.error_message ? {
@@ -108,6 +114,7 @@ function processUserMusicData(rawData: any[]) {
 
     // 添加track数据
     if (row.track_id) {
+      const generation = generationsMap.get(generationId);
       const track = {
         id: row.track_id,
         sunoTrackId: row.suno_track_id, // 映射数据库字段为 JavaScript 字段名
@@ -119,11 +126,16 @@ function processUserMusicData(rawData: any[]) {
         createdAt: row.track_created_at, // 映射数据库字段为 JavaScript 字段名
         coverR2Url: row.cover_r2_url, // 映射数据库字段为 JavaScript 字段名
         title: row.track_title, // 使用 COALESCE(tracks.title, music.title) 的结果
-        lyrics: row.lyrics_content || ''
+        lyrics: row.lyrics_content || '',
         // wavR2Url 不再在列表加载时查询，只在下载时查询 track_wav_conversions 表
+        // 扩展相关字段（从 track 和 generation 获取）
+        isExtension: generation.isExtension,
+        originalMusicId: generation.originalMusicId,
+        originalTrackId: row.original_track_id || generation.originalTrackId, // 优先使用 track 的 original_track_id
+        originalTrackTitle: row.original_track_title || generation.originalTrackTitle,
       };
 
-      generationsMap.get(generationId).allTracks.push(track);
+      generation.allTracks.push(track);
 
       // 计算总时长
       const duration = typeof row.duration === 'string' ? parseFloat(row.duration) : (row.duration || 0);

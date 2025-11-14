@@ -2,7 +2,6 @@
 
 import React, { useState } from 'react';
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -19,8 +18,9 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
-import { Star, Share2, Check, Download, MoreVertical, Mic, Trash2, Eye, EyeOff, Pencil } from "lucide-react";
+import { Star, Share2, Check, Download, MoreVertical, Mic, Trash2, Eye, EyeOff, Pencil, Maximize2 } from "lucide-react";
 import { LibraryTrack } from '@/types/track';
+import { EditMusicInfoDialog } from './edit-music-info-dialog';
 
 interface TrackActionButtonsProps {
   track: LibraryTrack & any;
@@ -34,16 +34,21 @@ interface TrackActionButtonsProps {
   // 权限
   canDownloadMP3?: boolean;
   canDownloadWAV?: boolean;
+  canDownloadCover?: boolean;
+  canVocalRemoval?: boolean;
+  canExtendMusic?: boolean;
   
   // 回调函数
   onFavoriteToggle?: () => void;
   onShare?: () => void;
-  onDownload?: (format: 'mp3' | 'wav') => void;
+  onDownload?: (format: 'mp3' | 'wav' | 'cover') => void;
   onVocalRemoval?: () => void;
+  onExtendMusic?: () => void;
   onDelete?: () => void;
   onPricingModalOpen?: () => void;
   onPublishToggle?: (trackId: string, isPublished: boolean) => void;
   onEditTitle?: (trackId: string, newTitle: string) => void;
+  onEditMusicInfo?: (trackId: string, data: { title: string; coverImageUrl?: string }) => Promise<void>;
 }
 
 export const TrackActionButtons: React.FC<TrackActionButtonsProps> = ({
@@ -54,39 +59,62 @@ export const TrackActionButtons: React.FC<TrackActionButtonsProps> = ({
   isPublished: isPublishedProp,
   canDownloadMP3 = false,
   canDownloadWAV = false,
+  canDownloadCover = false,
+  canVocalRemoval = false,
+  canExtendMusic = false,
   onFavoriteToggle,
   onShare,
   onDownload,
   onVocalRemoval,
+  onExtendMusic,
   onDelete,
   onPricingModalOpen,
   onPublishToggle,
   onEditTitle,
+  onEditMusicInfo,
 }) => {
   const isInstrumental = track.musicGeneration?.isInstrumental || track.isInstrumental;
   const hasAudioUrl = !!track.audioUrl;
   const isPublished = isPublishedProp ?? track.isPublished ?? false;
+  const hasCoverImage = Boolean(
+    track.coverR2Url ||
+    track.coverImage ||
+    track.coverImageUrl ||
+    track.musicGeneration?.coverImage ||
+    track.musicGeneration?.coverImageUrl
+  );
   
-  // 编辑标题对话框状态
+  // 编辑音乐信息对话框状态
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
-  const [editingTitle, setEditingTitle] = useState("");
   
-  // 处理编辑标题
-  const handleEditTitleClick = () => {
-    setEditingTitle(track.title || '');
+  // 处理编辑音乐信息
+  const handleEditMusicInfoClick = (e?: React.MouseEvent) => {
+    if (e) {
+      e.preventDefault();
+      e.stopPropagation();
+    }
     setIsEditDialogOpen(true);
   };
   
-  // 保存编辑的标题
-  const handleSaveTitle = () => {
-    if (onEditTitle && editingTitle.trim()) {
-      onEditTitle(track.id, editingTitle.trim());
+  // 保存编辑的音乐信息
+  const handleSaveMusicInfo = async (data: { title: string; coverImageUrl?: string }) => {
+    if (onEditMusicInfo) {
+      await onEditMusicInfo(track.id, data);
+      setIsEditDialogOpen(false);
+    } else if (onEditTitle && data.title) {
+      // Fallback to old onEditTitle if onEditMusicInfo is not provided
+      onEditTitle(track.id, data.title);
       setIsEditDialogOpen(false);
     }
   };
+
+  // 处理对话框关闭，确保不会触发其他事件
+  const handleDialogClose = () => {
+    setIsEditDialogOpen(false);
+  };
   
   // 判断是否显示更多菜单（需要至少有一个功能）
-  const shouldShowMoreMenu = onVocalRemoval || onDelete || onPublishToggle || onEditTitle;
+  const shouldShowMoreMenu = onVocalRemoval || onExtendMusic || onDelete || onPublishToggle || onEditTitle || onEditMusicInfo;
 
   // 桌面端按钮
   if (!isMobile) {
@@ -166,12 +194,7 @@ export const TrackActionButtons: React.FC<TrackActionButtonsProps> = ({
                 }}
                 className="flex items-center justify-between gap-1.5 cursor-pointer px-2.5 py-1.5 text-xs data-[highlighted]:bg-transparent data-[highlighted]:text-primary focus:bg-transparent"
               >
-                <span className="font-medium">Download MP3</span>
-                {!canDownloadMP3 && (
-                  <Badge variant="outline" className="text-xs px-2 py-0.5 bg-gradient-create text-white border-0 shrink-0">
-                    Basic
-                  </Badge>
-                )}
+                <span className="font-medium">MP3 (Song)</span>
               </DropdownMenuItem>
               {canDownloadWAV !== undefined && (
                 <DropdownMenuItem
@@ -186,12 +209,23 @@ export const TrackActionButtons: React.FC<TrackActionButtonsProps> = ({
                   }}
                   className="flex items-center justify-between gap-1.5 cursor-pointer px-2.5 py-1.5 text-xs data-[highlighted]:bg-transparent data-[highlighted]:text-primary focus:bg-transparent"
                 >
-                  <span className="font-medium">Download WAV</span>
-                  {!canDownloadWAV && (
-                    <Badge variant="outline" className="text-xs px-2 py-0.5 bg-gradient-create text-white border-0 shrink-0">
-                      Premium
-                    </Badge>
-                  )}
+                  <span className="font-medium">WAV (High Quality Song)</span>
+                </DropdownMenuItem>
+              )}
+              {hasCoverImage && (
+                <DropdownMenuItem
+                  onClick={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    if (!canDownloadCover) {
+                      onPricingModalOpen?.();
+                      return;
+                    }
+                    onDownload('cover');
+                  }}
+                  className="flex items-center justify-between gap-1.5 cursor-pointer px-2.5 py-1.5 text-xs data-[highlighted]:bg-transparent data-[highlighted]:text-primary focus:bg-transparent"
+                >
+                  <span className="font-medium">PNG (Cover Art)</span>
                 </DropdownMenuItem>
               )}
             </DropdownMenuContent>
@@ -240,44 +274,70 @@ export const TrackActionButtons: React.FC<TrackActionButtonsProps> = ({
                 </DropdownMenuItem>
               )}
               
-              {/* Edit Title 选项 */}
-              {onEditTitle && (
+              {/* Edit Music Info 选项 */}
+              {(onEditMusicInfo || onEditTitle) && (
                 <>
                   <DropdownMenuItem
                     onClick={(e) => {
                       e.preventDefault();
                       e.stopPropagation();
-                      handleEditTitleClick();
+                      handleEditMusicInfoClick();
                     }}
                     className="flex items-center gap-1.5 cursor-pointer px-2.5 py-1.5 text-xs data-[highlighted]:bg-transparent data-[highlighted]:text-primary focus:bg-transparent"
                   >
                     <Pencil className="h-3.5 w-3.5" />
-                    <span>Edit Title</span>
+                    <span>Edit Music Info</span>
                   </DropdownMenuItem>
-                  {(onVocalRemoval || onDelete) && <DropdownMenuSeparator className="my-1" />}
+                  {(onVocalRemoval || onExtendMusic || onDelete) && <DropdownMenuSeparator className="my-1" />}
                 </>
               )}
               
-              {/* Vocal Remover 选项 */}
-              {hasAudioUrl && onVocalRemoval && (
+              {/* Premium Features 标题和选项 */}
+              {hasAudioUrl && (onVocalRemoval || onExtendMusic) && (
                 <>
-                  <DropdownMenuItem
-                    onClick={(e) => {
-                      e.preventDefault();
-                      e.stopPropagation();
-                      if (isInstrumental) return;
-                      onVocalRemoval();
-                    }}
-                    disabled={isInstrumental}
-                    className={`flex items-center justify-between gap-1.5 px-2.5 py-1.5 text-xs data-[highlighted]:bg-transparent data-[highlighted]:text-primary focus:bg-transparent ${
-                      isInstrumental ? 'cursor-not-allowed' : 'cursor-pointer'
-                    }`}
-                  >
-                    <div className="flex items-center gap-1.5">
-                      <Mic className="h-3.5 w-3.5" />
-                      <span>Vocal Remover</span>
-                    </div>
-                  </DropdownMenuItem>
+                  <div className="px-2.5 py-1 text-[10px] text-muted-foreground uppercase">
+                    Advanced Features
+                  </div>
+                  {onVocalRemoval && (
+                    <DropdownMenuItem
+                      onClick={(e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        if (isInstrumental) return;
+                        if (!canVocalRemoval) {
+                          onPricingModalOpen?.();
+                          return;
+                        }
+                        onVocalRemoval();
+                      }}
+                      disabled={isInstrumental}
+                      className={`flex items-center justify-between gap-1.5 px-2.5 py-1.5 text-xs data-[highlighted]:bg-transparent data-[highlighted]:text-primary focus:bg-transparent ${
+                        isInstrumental ? 'cursor-not-allowed' : 'cursor-pointer'
+                      }`}
+                    >
+                      <div className="flex items-center gap-1.5">
+                        <Mic className="h-3.5 w-3.5" />
+                        <span>Vocal Remover</span>
+                      </div>
+                    </DropdownMenuItem>
+                  )}
+                  {onExtendMusic && (
+                    <DropdownMenuItem
+                      onClick={(e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        if (!canExtendMusic) {
+                          onPricingModalOpen?.();
+                          return;
+                        }
+                        onExtendMusic();
+                      }}
+                      className="flex items-center gap-1.5 cursor-pointer px-2.5 py-1.5 text-xs data-[highlighted]:bg-transparent data-[highlighted]:text-primary focus:bg-transparent"
+                    >
+                      <Maximize2 className="h-3.5 w-3.5" />
+                      <span>Extend Music</span>
+                    </DropdownMenuItem>
+                  )}
                   {onDelete && <DropdownMenuSeparator className="my-1" />}
                 </>
               )}
@@ -300,47 +360,16 @@ export const TrackActionButtons: React.FC<TrackActionButtonsProps> = ({
           </DropdownMenu>
         )}
         
-        {/* 编辑标题对话框 */}
-        <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
-          <DialogContent className="max-w-[calc(100vw-2rem)] sm:max-w-[425px]">
-            <DialogHeader>
-              <DialogTitle>Edit Title</DialogTitle>
-              <DialogDescription>
-                Enter a new title for your track.
-              </DialogDescription>
-            </DialogHeader>
-            <div className="py-4">
-              <Input
-                value={editingTitle}
-                onChange={(e) => setEditingTitle(e.target.value)}
-                placeholder="Track title"
-                maxLength={80}
-                className="w-full"
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter' && !e.shiftKey) {
-                    e.preventDefault();
-                    handleSaveTitle();
-                  }
-                }}
-                autoFocus
-              />
-            </div>
-            <DialogFooter>
-              <Button
-                variant="outline"
-                onClick={() => setIsEditDialogOpen(false)}
-              >
-                Cancel
-              </Button>
-              <Button
-                onClick={handleSaveTitle}
-                disabled={!editingTitle.trim()}
-              >
-                Save
-              </Button>
-            </DialogFooter>
-          </DialogContent>
-        </Dialog>
+        {/* 编辑音乐信息对话框 */}
+        {(onEditMusicInfo || onEditTitle) && (
+          <EditMusicInfoDialog
+            isOpen={isEditDialogOpen}
+            onClose={handleDialogClose}
+            onSave={handleSaveMusicInfo}
+            initialTitle={track.title || ''}
+            initialCoverImage={track.coverImage || track.coverR2Url}
+          />
+        )}
       </div>
     );
   }
@@ -416,12 +445,7 @@ export const TrackActionButtons: React.FC<TrackActionButtonsProps> = ({
               }}
               className="flex items-center justify-between gap-1.5 cursor-pointer px-2.5 py-1.5 text-xs data-[highlighted]:bg-transparent data-[highlighted]:text-primary focus:bg-transparent"
             >
-              <span className="font-medium">Download MP3</span>
-              {!canDownloadMP3 && (
-                <Badge variant="outline" className="text-xs px-2 py-0.5 bg-gradient-create text-white border-0 shrink-0">
-                  Basic
-                </Badge>
-              )}
+              <span className="font-medium">MP3 (Song)</span>
             </DropdownMenuItem>
             {canDownloadWAV !== undefined && (
               <DropdownMenuItem
@@ -436,12 +460,23 @@ export const TrackActionButtons: React.FC<TrackActionButtonsProps> = ({
                 }}
                 className="flex items-center justify-between gap-1.5 cursor-pointer px-2.5 py-1.5 text-xs data-[highlighted]:bg-transparent data-[highlighted]:text-primary focus:bg-transparent"
               >
-                <span className="font-medium">Download WAV</span>
-                {!canDownloadWAV && (
-                  <Badge variant="outline" className="text-xs px-2 py-0.5 bg-gradient-create text-white border-0 shrink-0">
-                    Premium
-                  </Badge>
-                )}
+                <span className="font-medium">WAV (High Quality Song)</span>
+              </DropdownMenuItem>
+            )}
+            {hasCoverImage && (
+              <DropdownMenuItem
+                onClick={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  if (!canDownloadCover) {
+                    onPricingModalOpen?.();
+                    return;
+                  }
+                  onDownload('cover');
+                }}
+                className="flex items-center justify-between gap-1.5 cursor-pointer px-2.5 py-1.5 text-xs data-[highlighted]:bg-transparent data-[highlighted]:text-primary focus:bg-transparent"
+              >
+                <span className="font-medium">PNG (Cover Art)</span>
               </DropdownMenuItem>
             )}
           </DropdownMenuContent>
@@ -488,44 +523,70 @@ export const TrackActionButtons: React.FC<TrackActionButtonsProps> = ({
               </DropdownMenuItem>
             )}
             
-            {/* Edit Title 选项 */}
-            {onEditTitle && (
+            {/* Edit Music Info 选项 */}
+            {(onEditMusicInfo || onEditTitle) && (
               <>
                 <DropdownMenuItem
                   onClick={(e) => {
                     e.preventDefault();
                     e.stopPropagation();
-                    handleEditTitleClick();
+                    handleEditMusicInfoClick();
                   }}
                   className="flex items-center gap-1.5 cursor-pointer px-2.5 py-1.5 text-xs data-[highlighted]:bg-transparent data-[highlighted]:text-primary focus:bg-transparent"
                 >
                   <Pencil className="h-3.5 w-3.5" />
-                  <span>Edit Title</span>
+                  <span>Edit Music Info</span>
                 </DropdownMenuItem>
-                {(onVocalRemoval || onDelete) && <DropdownMenuSeparator className="my-1" />}
+                {(onVocalRemoval || onExtendMusic || onDelete) && <DropdownMenuSeparator className="my-1" />}
               </>
             )}
             
-            {/* Vocal Remover 选项 */}
-            {hasAudioUrl && onVocalRemoval && (
+            {/* Premium Features 标题和选项 */}
+            {hasAudioUrl && (onVocalRemoval || onExtendMusic) && (
               <>
-                <DropdownMenuItem
-                  onClick={(e) => {
-                    e.preventDefault();
-                    e.stopPropagation();
-                    if (isInstrumental) return;
-                    onVocalRemoval();
-                  }}
-                  disabled={isInstrumental}
-                  className={`flex items-center justify-between gap-1.5 px-2.5 py-1.5 text-xs data-[highlighted]:bg-transparent data-[highlighted]:text-primary focus:bg-transparent ${
-                    isInstrumental ? 'cursor-not-allowed' : 'cursor-pointer'
-                  }`}
-                >
-                  <div className="flex items-center gap-1.5">
-                    <Mic className="h-3.5 w-3.5" />
-                    <span>Vocal Remover</span>
-                  </div>
-                </DropdownMenuItem>
+                <div className="px-2.5 py-1 text-[10px] text-muted-foreground uppercase">
+                  Premium Features
+                </div>
+                {onVocalRemoval && (
+                  <DropdownMenuItem
+                    onClick={(e) => {
+                      e.preventDefault();
+                      e.stopPropagation();
+                      if (isInstrumental) return;
+                      if (!canVocalRemoval) {
+                        onPricingModalOpen?.();
+                        return;
+                      }
+                      onVocalRemoval();
+                    }}
+                    disabled={isInstrumental}
+                    className={`flex items-center justify-between gap-1.5 px-2.5 py-1.5 text-xs data-[highlighted]:bg-transparent data-[highlighted]:text-primary focus:bg-transparent ${
+                      isInstrumental ? 'cursor-not-allowed' : 'cursor-pointer'
+                    }`}
+                  >
+                    <div className="flex items-center gap-1.5">
+                      <Mic className="h-3.5 w-3.5" />
+                      <span>Vocal Remover</span>
+                    </div>
+                  </DropdownMenuItem>
+                )}
+                {onExtendMusic && (
+                  <DropdownMenuItem
+                    onClick={(e) => {
+                      e.preventDefault();
+                      e.stopPropagation();
+                      if (!canExtendMusic) {
+                        onPricingModalOpen?.();
+                        return;
+                      }
+                      onExtendMusic();
+                    }}
+                    className="flex items-center gap-1.5 cursor-pointer px-2.5 py-1.5 text-xs data-[highlighted]:bg-transparent data-[highlighted]:text-primary focus:bg-transparent"
+                  >
+                    <Maximize2 className="h-3.5 w-3.5" />
+                    <span>Extend Music</span>
+                  </DropdownMenuItem>
+                )}
                 {onDelete && <DropdownMenuSeparator className="my-1" />}
               </>
             )}
@@ -548,48 +609,16 @@ export const TrackActionButtons: React.FC<TrackActionButtonsProps> = ({
         </DropdownMenu>
       )}
       
-      {/* 编辑标题对话框 */}
-      <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
-        <DialogContent className="max-w-[calc(100vw-2rem)] sm:max-w-[425px]">
-          <DialogHeader>
-            <DialogTitle>Edit Title</DialogTitle>
-            <DialogDescription>
-              Enter a new title for your track.
-            </DialogDescription>
-          </DialogHeader>
-          <div className="py-4">
-            <Input
-              value={editingTitle}
-              onChange={(e) => setEditingTitle(e.target.value)}
-              placeholder="Track title"
-              maxLength={80}
-              className="w-full"
-              onKeyDown={(e) => {
-                if (e.key === 'Enter' && !e.shiftKey) {
-                  e.preventDefault();
-                  handleSaveTitle();
-                }
-              }}
-              autoFocus
-            />
-          </div>
-          <DialogFooter>
-            <Button
-              variant="outline"
-              onClick={() => setIsEditDialogOpen(false)}
-            >
-              Cancel
-            </Button>
-            <Button
-              onClick={handleSaveTitle}
-              disabled={!editingTitle.trim()}
-            >
-              Save
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+      {/* 编辑音乐信息对话框 */}
+      {(onEditMusicInfo || onEditTitle) && (
+        <EditMusicInfoDialog
+          isOpen={isEditDialogOpen}
+          onClose={() => setIsEditDialogOpen(false)}
+          onSave={handleSaveMusicInfo}
+          initialTitle={track.title || ''}
+          initialCoverImage={track.coverImage || track.coverR2Url}
+        />
+      )}
     </div>
   );
 };
-

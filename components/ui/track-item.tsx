@@ -17,18 +17,23 @@ interface TrackItemProps {
   // 权限
   canDownloadMP3?: boolean;
   canDownloadWAV?: boolean;
+  canDownloadCover?: boolean;
+  canVocalRemoval?: boolean;
+  canExtendMusic?: boolean;
   
   // 回调函数
   onSelect?: () => void;
   onPlayPause?: () => void;
   onFavoriteToggle?: () => void;
   onShare?: () => void;
-  onDownload?: (format: 'mp3' | 'wav') => void;
+  onDownload?: (format: 'mp3' | 'wav' | 'cover') => void;
   onVocalRemoval?: () => void;
+  onExtendMusic?: () => void;
   onDelete?: () => void;
   onPricingModalOpen?: () => void;
   onPublishToggle?: (trackId: string, isPublished: boolean) => void;
   onEditTitle?: (trackId: string, newTitle: string) => void;
+  onEditMusicInfo?: (trackId: string, data: { title: string; coverImageUrl?: string }) => Promise<void>;
 }
 
 export const TrackItem: React.FC<TrackItemProps> = ({
@@ -39,16 +44,21 @@ export const TrackItem: React.FC<TrackItemProps> = ({
   isCopied = false,
   canDownloadMP3 = false,
   canDownloadWAV = false,
+  canDownloadCover = false,
+  canVocalRemoval = false,
+  canExtendMusic = false,
   onSelect,
   onPlayPause,
   onFavoriteToggle,
   onShare,
   onDownload,
   onVocalRemoval,
+  onExtendMusic,
   onDelete,
   onPricingModalOpen,
   onPublishToggle,
   onEditTitle,
+  onEditMusicInfo,
 }) => {
   const isError = track.isError || (!track.audioUrl && !track.isGenerating && !track.isLoading);
   const isGenerating = track.isGenerating || track.isLoading;
@@ -62,18 +72,23 @@ export const TrackItem: React.FC<TrackItemProps> = ({
   const title = track.title || track.musicTitle || 'Untitled Track';
   const tags = track.tags || track.musicTags;
   
+  // 检测是否为延长版本
+  const isExtension = track.isExtension || false;
+  const paddingClass = isExtension ? 'px-2 py-1.5' : 'px-2 py-2';
+  const gapClass = isExtension ? 'gap-3' : 'gap-4';
+  
   return (
     <div
-      className={`relative flex items-center gap-4 px-2 py-2 mx-3 transition-all duration-300 group rounded-lg border
-        ${isError
-          ? 'cursor-default'
+      className={`relative flex items-center ${gapClass} ${paddingClass} w-full transition-all duration-300 group rounded-2xl border border-transparent ${
+        isError
+          ? 'cursor-default bg-transparent'
           : isClickable
             ? `cursor-pointer ${isSelected
-                ? 'bg-muted/60 border-border/60'
-                : 'hover:bg-muted/20 border-transparent'
+                ? 'bg-white/10 text-white'
+                : 'bg-white/[0.02] hover:bg-white/5'
               }`
-            : 'cursor-default border-transparent'
-        }`}
+            : 'cursor-default bg-white/[0.02]'
+      }`}
       onClick={() => {
         if (isClickable && onSelect) {
           onSelect();
@@ -97,11 +112,12 @@ export const TrackItem: React.FC<TrackItemProps> = ({
         isCurrentTrack={isCurrentTrack}
         onPlayPause={onPlayPause}
         trackId={track.id}
+        isExtension={isExtension}
       />
       
       {/* Track Info */}
-      <div className="flex-1 min-w-0 flex items-center gap-4">
-        <div className="flex-1 min-w-0 flex items-center h-16">
+      <div className={`flex-1 min-w-0 flex ${isExtension ? 'items-start' : 'items-center'} ${gapClass}`}>
+        <div className={`flex-1 min-w-0 flex ${isExtension ? 'items-start' : 'items-center'} ${isExtension ? 'h-12' : 'h-16'}`}>
           <div className="flex items-center justify-between gap-2 w-full">
             {/* 歌曲信息 */}
             <TrackInfo
@@ -114,6 +130,7 @@ export const TrackItem: React.FC<TrackItemProps> = ({
               isGenerating={isGenerating}
               isSelected={isSelected}
               showDuration={true}
+              isExtension={isExtension}
             />
             
             {/* 操作按钮 - 桌面端 */}
@@ -127,14 +144,19 @@ export const TrackItem: React.FC<TrackItemProps> = ({
                   isPublished={track.isPublished}
                   canDownloadMP3={canDownloadMP3}
                   canDownloadWAV={canDownloadWAV}
+                  canDownloadCover={canDownloadCover}
+                  canVocalRemoval={canVocalRemoval}
+                  canExtendMusic={canExtendMusic}
                   onFavoriteToggle={onFavoriteToggle}
                   onShare={onShare}
                   onDownload={onDownload}
                   onVocalRemoval={onVocalRemoval}
+                  onExtendMusic={onExtendMusic}
                   onDelete={onDelete}
                   onPricingModalOpen={onPricingModalOpen}
                   onPublishToggle={onPublishToggle}
                   onEditTitle={onEditTitle}
+                  onEditMusicInfo={onEditMusicInfo}
                 />
               </div>
             )}
@@ -169,10 +191,14 @@ export const TrackItem: React.FC<TrackItemProps> = ({
             isPublished={track.isPublished}
             canDownloadMP3={canDownloadMP3}
             canDownloadWAV={canDownloadWAV}
+            canDownloadCover={canDownloadCover}
+            canVocalRemoval={canVocalRemoval}
+            canExtendMusic={canExtendMusic}
             onFavoriteToggle={onFavoriteToggle}
             onShare={onShare}
             onDownload={onDownload}
             onVocalRemoval={onVocalRemoval}
+            onExtendMusic={onExtendMusic}
             onDelete={onDelete}
             onPricingModalOpen={onPricingModalOpen}
             onPublishToggle={onPublishToggle}
@@ -199,4 +225,3 @@ export const TrackItem: React.FC<TrackItemProps> = ({
     </div>
   );
 };
-

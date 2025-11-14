@@ -35,6 +35,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
+import { formatDateTime } from "@/lib/format-utils";
 
 interface TrackDetailViewProps {
   // 优先使用 trackData，如果没有则使用 trackId 请求API
@@ -47,11 +48,12 @@ interface TrackDetailViewProps {
   onPlayTrack?: (trackInfo: TrackInfo) => void;
   // 操作按钮回调
   onFavoriteToggle?: (trackId: string, isFavorited: boolean) => void;
-  onDownload?: (trackInfo: TrackInfo) => void;
+  onDownload?: (trackInfo: TrackInfo, format: 'mp3' | 'wav' | 'cover') => void;
   isFavorited?: boolean;
   // 更多操作回调
   onPublishToggle?: (trackId: string, isPublished: boolean) => void;
   onEditTitle?: (trackId: string, newTitle: string) => void;
+  onEditMusicInfo?: (trackId: string, data: { title: string; coverImageUrl?: string }) => Promise<void>;
   onDelete?: (trackId: string) => void;
   onPinToggle?: (trackId: string, isPinned: boolean) => void;
   isPublished?: boolean;
@@ -347,21 +349,23 @@ export const TrackDetailView: React.FC<TrackDetailViewProps> = ({
   };
 
   return (
-    <div className="w-full h-full overflow-y-auto overscroll-contain">
-      {/* 顶部导航栏 */}
-      <div className="sticky top-0 z-10 backdrop-blur-lg bg-background/80 px-4 sm:px-6 lg:px-8">
-        <div className="flex items-center h-16">
-          {/* 返回按钮 */}
-          <Button
-            onClick={onBack}
-            variant="ghost"
-            size="sm"
-            className="flex items-center gap-2 hover:bg-muted/50 hover:text-white hover:scale-105 transition-all duration-300 rounded-lg text-muted-foreground px-3 py-2"
-          >
-            <ChevronLeft className="h-5 w-5" />
-            <span>Back</span>
-          </Button>
-        </div>
+    <div className="relative w-full h-full overflow-y-auto overscroll-contain">
+      <div 
+        className="pointer-events-none fixed inset-0 bg-cover bg-center bg-no-repeat opacity-5"
+        style={{ backgroundImage: "url('/bg-studio-background.webp')" }}
+      />
+      <div className="relative z-10">
+      {/* 返回按钮 */}
+      <div className="sticky top-4 z-20 pl-4 sm:pl-6 lg:pl-8">
+        <Button
+          onClick={onBack}
+          variant="ghost"
+          size="sm"
+          className="flex items-center gap-2 rounded-full border border-white/10 bg-black/30 text-white hover:bg-black/50"
+        >
+          <ChevronLeft className="h-5 w-5" />
+          <span>Back</span>
+        </Button>
       </div>
 
       {/* 主内容容器 */}
@@ -411,7 +415,7 @@ export const TrackDetailView: React.FC<TrackDetailViewProps> = ({
                 <div className="flex items-center gap-4 text-sm text-muted-foreground">
                   <div className="flex items-center gap-1">
                     <Calendar className="h-4 w-4" />
-                    <span>{new Date(trackInfo.createdAt).toLocaleString()}</span>
+                    <span>{formatDateTime(trackInfo.createdAt)}</span>
                   </div>
                   {trackInfo.duration && (
                     <div className="flex items-center gap-1">
@@ -493,21 +497,35 @@ export const TrackDetailView: React.FC<TrackDetailViewProps> = ({
                     </Button>
                   )}
 
-                  {/* 下载按钮 - 仅所有者可见，且非生成中 */}
-                  {!isGenerating && isOwner && onDownload && (
-                    <Button
-                      variant="outline"
-                      size="icon"
-                      className="h-10 w-10"
-                      onClick={() => {
-                        if (trackInfo) {
-                          onDownload(trackInfo);
-                        }
-                      }}
-                      aria-label="Download track"
-                    >
-                      <Download className="h-5 w-5" />
-                    </Button>
+                  {/* 下载按钮（下拉） - 仅所有者可见，且非生成中 */}
+                  {!isGenerating && isOwner && onDownload && trackInfo && (
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button
+                          variant="outline"
+                          size="icon"
+                          className="h-10 w-10"
+                          aria-label="Download options"
+                        >
+                          <Download className="h-5 w-5" />
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end" className="w-56">
+                        <DropdownMenuItem
+                          className="cursor-pointer"
+                          onClick={() => onDownload(trackInfo, 'mp3')}
+                        >
+                          Download MP3
+                        </DropdownMenuItem>
+                        <DropdownMenuItem
+                          className="cursor-pointer"
+                          onClick={() => onDownload(trackInfo, 'wav')}
+                        >
+                          Download WAV
+                        </DropdownMenuItem>
+                        
+                      </DropdownMenuContent>
+                    </DropdownMenu>
                   )}
 
                   {/* 更多操作按钮 - 仅所有者可见，且非生成中 */}
@@ -631,7 +649,7 @@ export const TrackDetailView: React.FC<TrackDetailViewProps> = ({
             <div className="flex items-center gap-4 text-sm text-muted-foreground">
               <div className="flex items-center gap-1">
                 <Calendar className="h-4 w-4" />
-                <span>{new Date(trackInfo.createdAt).toLocaleDateString()}</span>
+                <span>{formatDateTime(trackInfo.createdAt)}</span>
               </div>
               {trackInfo.duration && (
                 <div className="flex items-center gap-1">
@@ -706,21 +724,29 @@ export const TrackDetailView: React.FC<TrackDetailViewProps> = ({
             </Button>
           )}
 
-          {/* 下载 */}
-          {!isGenerating && isOwner && onDownload && (
-            <Button
-              variant="outline"
-              size="icon"
-              className="h-11 w-11"
-              onClick={() => {
-                if (trackInfo) {
-                  onDownload(trackInfo);
-                }
-              }}
-              aria-label="Download track"
-            >
-              <Download className="h-5 w-5" />
-            </Button>
+          {/* 下载（下拉） */}
+          {!isGenerating && isOwner && onDownload && trackInfo && (
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="outline" size="icon" className="h-11 w-11" aria-label="Download options">
+                  <Download className="h-5 w-5" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-56">
+                <DropdownMenuItem
+                  className="cursor-pointer"
+                  onClick={() => onDownload(trackInfo, 'mp3')}
+                >
+                  Download MP3
+                </DropdownMenuItem>
+                <DropdownMenuItem
+                  className="cursor-pointer"
+                  onClick={() => onDownload(trackInfo, 'wav')}
+                >
+                  Download WAV
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
           )}
 
           {/* 更多 */}
@@ -889,7 +915,7 @@ export const TrackDetailView: React.FC<TrackDetailViewProps> = ({
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+      </div>
     </div>
   );
 };
-

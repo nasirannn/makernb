@@ -1,6 +1,7 @@
 "use client";
 
-import React, { useState } from 'react';
+import React, { useEffect, useLayoutEffect, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { Z_INDEX } from '@/lib/z-index';
 
 interface TooltipProps {
@@ -24,6 +25,9 @@ export const Tooltip: React.FC<TooltipProps> = ({
 }) => {
   const [isVisible, setIsVisible] = useState(false);
   const [timeoutId, setTimeoutId] = useState<NodeJS.Timeout | null>(null);
+  const [mounted, setMounted] = useState(false);
+  const [positionStyle, setPositionStyle] = useState<React.CSSProperties | null>(null);
+  const triggerRef = useRef<HTMLDivElement | null>(null);
 
   const showTooltip = () => {
     if (timeoutId) clearTimeout(timeoutId);
@@ -37,54 +41,97 @@ export const Tooltip: React.FC<TooltipProps> = ({
     setTimeoutId(id);
   };
 
-  const getPositionClasses = () => {
-    const whitespaceClass = allowWrap ? 'break-words' : 'whitespace-nowrap';
-    const widthClass = matchWidth ? 'w-full' : '';
-    const baseClasses = `absolute px-2 py-1.5 text-xs text-foreground bg-card/95 backdrop-blur-md rounded-lg shadow-lg border border-border/50 pointer-events-none transition-all duration-200 ease-out ${whitespaceClass} ${widthClass} z-[${Z_INDEX.TOOLTIP}]`;
-    
-    switch (position) {
-      case 'top':
-        return `${baseClasses} bottom-full mb-2 left-1/2 transform -translate-x-1/2`;
-      case 'bottom':
-        return `${baseClasses} top-full mt-2 left-1/2 transform -translate-x-1/2`;
-      case 'left':
-        return `${baseClasses} right-full mr-2 top-1/2 transform -translate-y-1/2`;
-      case 'right':
-      default:
-        return `${baseClasses} left-full ml-2 top-1/2 transform -translate-y-1/2`;
-    }
-  };
+  useEffect(() => {
+    setMounted(true);
+    return () => setMounted(false);
+  }, []);
 
-  const getArrowClasses = () => {
-    const baseArrow = "absolute w-2 h-2 bg-card/95 backdrop-blur-md border border-border/50";
-    
-    switch (position) {
-      case 'top':
-        return `${baseArrow} top-full left-1/2 transform -translate-x-1/2 rotate-45 border-t-0 border-l-0`;
-      case 'bottom':
-        return `${baseArrow} bottom-full left-1/2 transform -translate-x-1/2 rotate-45 border-b-0 border-r-0`;
-      case 'left':
-        return `${baseArrow} left-full top-1/2 transform -translate-y-1/2 rotate-45 border-l-0 border-b-0`;
-      case 'right':
-      default:
-        return `${baseArrow} right-full top-1/2 transform -translate-y-1/2 rotate-45 border-r-0 border-t-0`;
+  useLayoutEffect(() => {
+    if (!mounted || !isVisible) {
+      setPositionStyle(null);
+      return;
     }
+
+    const updatePosition = () => {
+      if (!triggerRef.current) return;
+      const rect = triggerRef.current.getBoundingClientRect();
+      const offset = 16;
+      const style: React.CSSProperties = {
+        position: 'fixed',
+        pointerEvents: 'none',
+        top: rect.top + rect.height / 2,
+        left: rect.right + offset,
+        transform: 'translateY(-50%)',
+      };
+
+      switch (position) {
+        case 'top':
+          style.top = rect.top - offset;
+          style.left = rect.left + rect.width / 2;
+          style.transform = 'translate(-50%, -100%)';
+          break;
+        case 'bottom':
+          style.top = rect.bottom + offset;
+          style.left = rect.left + rect.width / 2;
+          style.transform = 'translate(-50%, 0)';
+          break;
+        case 'left':
+          style.left = rect.left - offset;
+          style.top = rect.top + rect.height / 2;
+          style.transform = 'translate(-100%, -50%)';
+          break;
+        case 'right':
+        default:
+          style.left = rect.right + offset;
+          style.top = rect.top + rect.height / 2;
+          style.transform = 'translate(0, -50%)';
+          break;
+      }
+
+      if (matchWidth) {
+        style.minWidth = rect.width;
+      }
+
+      setPositionStyle(style);
+    };
+
+    updatePosition();
+    window.addEventListener('scroll', updatePosition, true);
+    window.addEventListener('resize', updatePosition);
+    return () => {
+      window.removeEventListener('scroll', updatePosition, true);
+      window.removeEventListener('resize', updatePosition);
+    };
+  }, [isVisible, position, matchWidth, mounted]);
+
+  const getTooltipClasses = () => {
+    const whitespaceClass = allowWrap ? 'break-words' : 'whitespace-nowrap';
+    const widthClass = matchWidth ? 'min-w-full text-center' : '';
+    return `relative inline-flex items-center rounded-full px-3 py-1 text-xs font-semibold tracking-tight text-[#0c0c16] bg-white shadow-[0_12px_32px_rgba(5,5,15,0.35)] border border-white/80 transition-all duration-200 ease-out ${whitespaceClass} ${widthClass}`;
   };
 
   return (
     <div 
       className={`relative inline-block ${className}`}
-      style={{ zIndex: Z_INDEX.TOOLTIP }}
+      ref={triggerRef}
       onMouseEnter={showTooltip}
       onMouseLeave={hideTooltip}
     >
       {children}
-      {isVisible && (
-        <div className={getPositionClasses()}>
-          {content}
-          <div className={getArrowClasses()} />
-        </div>
-      )}
+      {isVisible && mounted && positionStyle &&
+        createPortal(
+          <div
+            className={getTooltipClasses()}
+            style={{
+              ...positionStyle,
+              zIndex: Z_INDEX.TOOLTIP,
+            }}
+          >
+            {content}
+          </div>,
+          document.body
+        )
+      }
     </div>
   );
 };
