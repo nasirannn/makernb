@@ -1,3 +1,5 @@
+import { MusicType } from './music';
+
 /**
  * 音乐扩展相关类型定义
  */
@@ -14,8 +16,6 @@ export interface ExtendMusicParams {
   style?: string;
   title?: string;
   continueAt?: number;
-  // 可选高级参数
-  negativeTags?: string;
   vocalGender?: 'm' | 'f';
   styleWeight?: number;
   weirdnessConstraint?: number;
@@ -43,6 +43,7 @@ export interface ExtendMusicTask {
   status: ExtendMusicStatus;
   createdAt: string;
   updatedAt: string;
+  type: MusicType;
   
   // 扩展相关字段
   isExtension: boolean; // 标记为扩展任务
@@ -55,15 +56,14 @@ export interface ExtendMusicAPIRequest {
   trackId: string; // 要扩展的曲目 ID
   model: ExtendMusicModel;
   defaultParamFlag: boolean;
-  
+
   // 自定义模式参数（可选）
   prompt?: string;
   style?: string;
   title?: string;
   continueAt?: number;
-  
+
   // 高级参数（可选）
-  negativeTags?: string;
   vocalGender?: 'm' | 'f';
   styleWeight?: number;
   weirdnessConstraint?: number;
@@ -178,4 +178,3 @@ export interface KIEExtendMusicCallbackResponse {
     error_message?: string; // 错误信息（失败时）
   };
 }
-

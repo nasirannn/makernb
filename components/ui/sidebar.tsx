@@ -265,7 +265,7 @@ const aiMusicToolsDropdown = [
     }, 1000);
 
     return () => clearTimeout(timer);
-  }, [user?.id]);
+  }, [user]);
 
   // 动态测量移动端底部导航高度，设置 CSS 变量 --mobile-nav-height
   React.useEffect(() => {

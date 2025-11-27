@@ -12,6 +12,7 @@ import { useFeaturePermissions } from "@/contexts/FeaturePermissionsContext";
 import { usePricingModal } from "@/contexts/PricingModalContext";
 import { VocalRemovalProgressDialog } from './vocal-removal-progress-dialog';
 import { ExtendMusicDialog, ExtendMusicParams } from './extend-music-dialog';
+import { ReplaceSectionDialog, ReplaceSectionParams } from './replace-section-dialog';
 import { CLIENT_VOCAL_SEPARATION_CREDITS } from '@/lib/credits-config';
 import { useVocalRemovalManager } from '@/hooks/use-vocal-removal-manager';
 import { TrackItem } from './track-item';
@@ -100,6 +101,7 @@ export const StudioTracksList: React.FC<StudioTracksListProps> = React.memo(func
   const canDownloadCover = hasPermission('download_cover_track');
   const canVocalRemoval = hasPermission('vocal_removal_studio');
   const canExtendMusic = hasPermission('extend_music');
+  const canReplaceSection = hasPermission('replace_section');
   
   // UI 状态
   const [copiedTrackId, setCopiedTrackId] = useState<string | null>(null);
@@ -136,6 +138,14 @@ export const StudioTracksList: React.FC<StudioTracksListProps> = React.memo(func
   const [pendingExtendMusicTrackDuration, setPendingExtendMusicTrackDuration] = useState<number>(120);
   const [pendingExtendMusicOriginalStyle, setPendingExtendMusicOriginalStyle] = useState<string>('');
   const [pendingExtendMusicAudioUrl, setPendingExtendMusicAudioUrl] = useState<string>('');
+
+  // Replace Section 弹窗状态
+  const [showReplaceSectionDialog, setShowReplaceSectionDialog] = useState(false);
+  const [pendingReplaceSectionTrackId, setPendingReplaceSectionTrackId] = useState<string | null>(null);
+  const [pendingReplaceSectionTrackTitle, setPendingReplaceSectionTrackTitle] = useState<string>('');
+  const [pendingReplaceSectionTrackDuration, setPendingReplaceSectionTrackDuration] = useState<number>(120);
+  const [pendingReplaceSectionOriginalStyle, setPendingReplaceSectionOriginalStyle] = useState<string>('');
+  const [pendingReplaceSectionAudioUrl, setPendingReplaceSectionAudioUrl] = useState<string>('');
   
   
   // 删除确认弹窗状态
@@ -213,8 +223,25 @@ export const StudioTracksList: React.FC<StudioTracksListProps> = React.memo(func
 
   // 合并所有 tracks：生成音乐（已包含延长音乐）+ 用户 tracks
   // 注意：延长音乐已通过 studio.tsx 合并到 generatedTracks 中
+  // 去重：基于track.id去重，优先保留generatedTracks中的track（因为它有最新的生成状态）
   const allTracksCombined = React.useMemo(() => {
-    return [...stableGeneratedTracks, ...allTracks];
+    // 创建一个Map来存储track.id -> track的映射
+    const trackMap = new Map();
+
+    // 先添加stableGeneratedTracks（优先级更高，因为是正在生成的）
+    stableGeneratedTracks.forEach(track => {
+      trackMap.set(track.id, track);
+    });
+
+    // 再添加allTracks（只添加不存在的track）
+    allTracks.forEach(track => {
+      if (!trackMap.has(track.id)) {
+        trackMap.set(track.id, track);
+      }
+    });
+
+    // 转换为数组
+    return Array.from(trackMap.values());
   }, [stableGeneratedTracks, allTracks]);
 
   const currentTracks = filterTracks(allTracksCombined);
@@ -224,88 +251,29 @@ export const StudioTracksList: React.FC<StudioTracksListProps> = React.memo(func
     return allTracksCombined.find(t => t.id === trackId);
   }, [allTracksCombined]);
 
-  // 分组逻辑：将原曲和延长版本分组
-  const groupedTracks = React.useMemo(() => {
-    // 分离原曲和延长版本
-    const originalTracks: Array<LibraryTrack & any> = [];
-    const extensionTracks: Array<LibraryTrack & any> = [];
-    
-    currentTracks.forEach(track => {
-      if (track.isExtension && track.originalTrackId) {
-        // 这是延长版本
-        extensionTracks.push(track);
-      } else {
-        // 这是原曲
-        originalTracks.push(track);
+  // 平铺布局逻辑：所有音乐平铺显示，并添加来源信息
+  const flatTracks = React.useMemo(() => {
+    // 为所有音乐添加来源信息
+    const tracksWithSource = currentTracks.map(track => {
+      // 如果有原始音乐ID，查找原始音乐的标题
+      if (track.originalTrackId) {
+        const originalTrack = allTracksCombined.find(t => t.id === track.originalTrackId);
+        return {
+          ...track,
+          originalTrackTitle: originalTrack?.title || 'Unknown Track',
+        };
       }
+      return track;
     });
-    
-    // 创建分组映射：原曲ID -> 延长版本列表
-    const extensionMap = new Map<string, Array<LibraryTrack & any>>();
-    extensionTracks.forEach(extension => {
-      const originalId = extension.originalTrackId;
-      if (originalId) {
-        if (!extensionMap.has(originalId)) {
-          extensionMap.set(originalId, []);
-        }
-        extensionMap.get(originalId)!.push(extension);
-      }
-    });
-    
-    // 构建分组列表
-    const groups: Array<{
-      originalTrack: LibraryTrack & any;
-      extensionTracks: Array<LibraryTrack & any>;
-    }> = [];
-    
-    // 处理有延长版本的原曲
-    originalTracks.forEach(original => {
-      const extensions = extensionMap.get(original.id) || [];
-      if (extensions.length > 0) {
-        // 有延长版本，创建分组
-        groups.push({
-          originalTrack: original,
-          extensionTracks: extensions,
-        });
-        // 从 extensionMap 中移除，避免重复处理
-        extensionMap.delete(original.id);
-      } else {
-        // 没有延长版本，单独显示
-        groups.push({
-          originalTrack: original,
-          extensionTracks: [],
-        });
-      }
-    });
-    
-    // 处理延长版本的原曲不在列表中的情况（理论上不应该发生，但为了健壮性）
-    extensionMap.forEach((extensions, originalId) => {
-      // 尝试从 allTracksCombined 中查找原曲
-      const original = allTracksCombined.find(t => t.id === originalId);
-      if (original) {
-        groups.push({
-          originalTrack: original,
-          extensionTracks: extensions,
-        });
-      } else {
-        // 如果找不到原曲，将延长版本作为独立项显示
-        extensions.forEach(extension => {
-          groups.push({
-            originalTrack: extension,
-            extensionTracks: [],
-          });
-        });
-      }
-    });
-    
-    // 按原曲创建时间排序（最新的在前）
-    groups.sort((a, b) => {
-      const dateA = new Date(a.originalTrack.createdAt || a.originalTrack.musicGeneration?.createdAt || 0).getTime();
-      const dateB = new Date(b.originalTrack.createdAt || b.originalTrack.musicGeneration?.createdAt || 0).getTime();
+
+    // 按创建时间排序（最新的在前）
+    tracksWithSource.sort((a, b) => {
+      const dateA = new Date(a.createdAt || a.musicGeneration?.createdAt || 0).getTime();
+      const dateB = new Date(b.createdAt || b.musicGeneration?.createdAt || 0).getTime();
       return dateB - dateA; // 降序排列
     });
-    
-    return groups;
+
+    return tracksWithSource;
   }, [currentTracks, allTracksCombined]);
 
   // 处理歌曲选择
@@ -364,14 +332,34 @@ export const StudioTracksList: React.FC<StudioTracksListProps> = React.memo(func
     if (!trackToDelete) return;
 
     try {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session?.access_token) {
-        toast.error('Authentication required. Please log in again.');
-        setDeleteDialogOpen(false);
-        setTrackToDelete(null);
-        return;
+      // Get session with refresh to ensure token is valid
+      let { data: { session }, error: sessionError } = await supabase.auth.getSession();
+
+      console.log('[Delete Track] Initial session check:', {
+        hasSession: !!session,
+        hasToken: !!session?.access_token,
+        tokenLength: session?.access_token?.length,
+        sessionError: sessionError?.message,
+      });
+
+      // If no session or error, try to refresh
+      if (!session?.access_token || sessionError) {
+        console.log('[Delete Track] Attempting to refresh session');
+        const { data: refreshData, error: refreshError } = await supabase.auth.refreshSession();
+
+        if (refreshError || !refreshData?.session?.access_token) {
+          console.error('[Delete Track] Session refresh failed:', refreshError?.message);
+          toast.error('Session expired. Please log in again.');
+          setDeleteDialogOpen(false);
+          setTrackToDelete(null);
+          return;
+        }
+
+        session = refreshData.session;
+        console.log('[Delete Track] Session refreshed successfully');
       }
 
+      console.log('[Delete Track] Sending DELETE request to:', `/api/delete-track/${trackToDelete.id}`);
       const response = await fetch(`/api/delete-track/${trackToDelete.id}`, {
         method: 'DELETE',
         headers: {
@@ -379,6 +367,8 @@ export const StudioTracksList: React.FC<StudioTracksListProps> = React.memo(func
           'Authorization': `Bearer ${session.access_token}`,
         },
       });
+
+      console.log('[Delete Track] Response status:', response.status);
 
       if (response.ok) {
         const data = await response.json();
@@ -469,7 +459,6 @@ export const StudioTracksList: React.FC<StudioTracksListProps> = React.memo(func
         requestBody.continueAt = params.continueAt;
 
         // 添加可选的高级参数
-        if (params.negativeTags) requestBody.negativeTags = params.negativeTags;
         if (params.vocalGender) requestBody.vocalGender = params.vocalGender;
         if (params.styleWeight !== undefined) requestBody.styleWeight = params.styleWeight;
         if (params.weirdnessConstraint !== undefined) requestBody.weirdnessConstraint = params.weirdnessConstraint;
@@ -549,6 +538,118 @@ export const StudioTracksList: React.FC<StudioTracksListProps> = React.memo(func
       return;
     }
   }, [pendingExtendMusicTrackId, findTrackById, startExtendMusicPolling, refreshCredits, pendingExtendMusicOriginalStyle, pendingExtendMusicTrackTitle]);
+
+  // 处理 Replace Section
+  const handleReplaceSection = useCallback((trackId: string) => {
+    if (!user) {
+      toast.error('Please sign in to replace section');
+      return;
+    }
+
+    const track = findTrackById(trackId);
+    if (!track) {
+      toast.error('Track not found');
+      return;
+    }
+
+    // 设置待处理的曲目信息并打开对话框
+    setPendingReplaceSectionTrackId(trackId);
+    setPendingReplaceSectionTrackTitle(track.title || 'Untitled Track');
+    setPendingReplaceSectionTrackDuration(track.duration || 120);
+    setPendingReplaceSectionOriginalStyle(track.musicGeneration?.genre || '');
+    setPendingReplaceSectionAudioUrl(track.audioUrl || track.streamAudioUrl || '');
+    setShowReplaceSectionDialog(true);
+  }, [user, findTrackById]);
+
+  // 确认 Replace Section
+  const handleConfirmReplaceSection = useCallback(async (params: ReplaceSectionParams): Promise<{ taskId: string } | void> => {
+    if (!pendingReplaceSectionTrackId) return;
+
+    try {
+      // 获取认证令牌
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session?.access_token) {
+        toast.error('Authentication required. Please log in again.');
+        return;
+      }
+
+      // 准备 API 请求数据
+      const requestBody: any = {
+        trackId: pendingReplaceSectionTrackId,
+        infillStartS: params.infillStartS,
+        infillEndS: params.infillEndS,
+        prompt: params.prompt,
+        tags: params.tags,
+        title: params.title,
+        fullLyrics: params.fullLyrics || '', // 使用用户输入的歌词，如果为空则传空字符串
+      };
+
+      // 调用 Replace Section API
+      const response = await fetch('/api/replace-section', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${session.access_token}`,
+        },
+        body: JSON.stringify(requestBody),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+
+        // 如果是积分不足错误，刷新积分余额
+        if (response.status === 402 || errorData.insufficientCredits) {
+          if (refreshCredits) {
+            await refreshCredits();
+          }
+        }
+
+        throw new Error(errorData.error || 'Failed to replace section');
+      }
+
+      const result = await response.json();
+
+      if (result.success && result.data) {
+        const { taskId, musicId, initialTracks } = result.data;
+
+        // 使用 startExtendMusicPolling 来处理轮询（复用延长音乐的轮询逻辑）
+        startExtendMusicPolling(
+          taskId,
+          musicId,
+          params.title,
+          params.tags,
+          params.tags,
+          initialTracks
+        );
+
+        toast.success('Replace section started successfully!', {
+          description: 'Your modified track is being generated.',
+        });
+
+        // 清理状态
+        setPendingReplaceSectionTrackId(null);
+        setPendingReplaceSectionTrackTitle('');
+        setPendingReplaceSectionTrackDuration(120);
+        setPendingReplaceSectionOriginalStyle('');
+        setPendingReplaceSectionAudioUrl('');
+
+        // 刷新积分
+        if (refreshCredits) {
+          await refreshCredits();
+        }
+
+        // 返回 taskId，通知弹窗可以关闭了
+        return { taskId };
+      } else {
+        throw new Error(result.error || 'Failed to replace section');
+      }
+
+    } catch (error: any) {
+      console.error('Replace section error:', error);
+      toast.error(error.message || 'Failed to replace section. Please try again.');
+      return;
+    }
+  }, [pendingReplaceSectionTrackId, startExtendMusicPolling, refreshCredits]);
 
   // 处理 Vocal Removal
   const handleVocalRemoval = useCallback(async (trackId: string) => {
@@ -786,91 +887,45 @@ export const StudioTracksList: React.FC<StudioTracksListProps> = React.memo(func
         >
         <div className="relative">
             {/* All Tracks (包含 generatedTracks 和 userTracks，使用分组显示) */}
-          {groupedTracks.length > 0 && (
+          {flatTracks.length > 0 && (
             <div className="space-y-1">
-              {groupedTracks.map((group) => {
-                const { originalTrack, extensionTracks } = group;
+              {flatTracks.map((track) => {
                 // 判断是否为 generated track（通过检查是否有 isGenerating 或 isPlaceholder 属性）
-                const isGeneratedTrack = originalTrack.isGenerating !== undefined || originalTrack.isPlaceholder !== undefined;
-                
-                // 如果有延长版本，使用 TrackGroup 组件
-                if (extensionTracks.length > 0) {
-                  return (
-                    <div
-                      key={originalTrack.id}
-                      className="rounded-[28px] p-1.5"
-                    >
-                      <TrackGroup
-                        originalTrack={originalTrack}
-                        extensionTracks={extensionTracks}
-                        defaultVisibleCount={2}
-                        isSelected={selectedTrack}
-                        isPlaying={globalAudioState.isPlaying}
-                        currentPlayingTrackId={globalAudioState.currentPlayingTrackId}
-                        isCopied={copiedTrackId}
-                        canDownloadMP3={canDownloadMP3}
-                        canDownloadWAV={canDownloadWAV}
-                        canDownloadCover={canDownloadCover}
-                        canVocalRemoval={canVocalRemoval}
-                        canExtendMusic={canExtendMusic}
-                        onTrackSelect={(trackId) => {
-                          const track = findTrackById(trackId);
-                          if (track) {
-                            const isGenTrack = track.isGenerating !== undefined || track.isPlaceholder !== undefined;
-                            if (isGenTrack && !track.isError && track.audioUrl && onGeneratedTrackSelect) {
-                              onGeneratedTrackSelect(trackId);
-                            } else {
-                              handleTrackSelect(track);
-                            }
-                          }
-                        }}
-                        onTrackPlay={handlePlayPause}
-                        onFavoriteToggle={onFavoriteToggle ? handleFavoriteToggle : undefined}
-                        onShare={handleShare}
-                        onDownload={onDownload ? handleDownload : undefined}
-                        onVocalRemoval={handleVocalRemoval}
-                        onExtendMusic={handleExtendMusic}
-                        onDelete={onDelete ? handleDelete : undefined}
-                        onPricingModalOpen={openPricingModal}
-                        onPublishToggle={onPublishToggle}
-                        onEditTitle={onEditTitle}
-                        onEditMusicInfo={onEditMusicInfo}
-                      />
-                    </div>
-                  );
-                }
-                
-                // 没有延长版本，使用 TrackItem 单独显示
+                const isGeneratedTrack = track.isGenerating !== undefined || track.isPlaceholder !== undefined;
+
+                // 直接渲染 TrackItem，平铺显示
                 return (
                   <div
-                    key={originalTrack.id}
+                    key={track.id}
                     className="rounded-[28px] p-1.5"
                   >
                     <TrackItem
-                      track={originalTrack}
-                      isSelected={selectedTrack === originalTrack.id}
+                      track={track}
+                      isSelected={selectedTrack === track.id}
                       isPlaying={globalAudioState.isPlaying}
-                      isCurrentTrack={globalAudioState.currentPlayingTrackId === originalTrack.id}
-                      isCopied={copiedTrackId === originalTrack.id}
-                      canDownloadMP3={canDownloadMP3}
+                      isCurrentTrack={globalAudioState.currentPlayingTrackId === track.id}
+                      isCopied={copiedTrackId === track.id}
+                        canDownloadMP3={canDownloadMP3}
                       canDownloadWAV={canDownloadWAV}
                       canDownloadCover={canDownloadCover}
                       canVocalRemoval={canVocalRemoval}
                       canExtendMusic={canExtendMusic}
+                      canReplaceSection={canReplaceSection}
                       onSelect={() => {
-                        if (isGeneratedTrack && !originalTrack.isError && originalTrack.audioUrl && onGeneratedTrackSelect) {
-                          onGeneratedTrackSelect(originalTrack.id);
+                        if (isGeneratedTrack && !track.isError && track.audioUrl && onGeneratedTrackSelect) {
+                          onGeneratedTrackSelect(track.id);
                         } else {
-                          handleTrackSelect(originalTrack);
+                          handleTrackSelect(track);
                         }
                       }}
-                      onPlayPause={() => handlePlayPause(originalTrack)}
-                      onFavoriteToggle={onFavoriteToggle ? () => handleFavoriteToggle(originalTrack) : undefined}
-                      onShare={() => handleShare(originalTrack.id)}
-                      onDownload={onDownload ? (format) => handleDownload(originalTrack, originalTrack.musicGeneration, format) : undefined}
-                      onVocalRemoval={() => handleVocalRemoval(originalTrack.id)}
-                      onExtendMusic={() => handleExtendMusic(originalTrack.id)}
-                      onDelete={onDelete ? () => handleDelete(originalTrack.id) : undefined}
+                      onPlayPause={() => handlePlayPause(track)}
+                      onFavoriteToggle={onFavoriteToggle ? () => handleFavoriteToggle(track) : undefined}
+                      onShare={() => handleShare(track.id)}
+                      onDownload={onDownload ? (format) => handleDownload(track, track.musicGeneration, format) : undefined}
+                      onVocalRemoval={() => handleVocalRemoval(track.id)}
+                      onExtendMusic={() => handleExtendMusic(track.id)}
+                      onReplaceSection={() => handleReplaceSection(track.id)}
+                      onDelete={onDelete ? () => handleDelete(track.id) : undefined}
                       onPricingModalOpen={openPricingModal}
                       onPublishToggle={onPublishToggle}
                       onEditTitle={onEditTitle}
@@ -1039,6 +1094,25 @@ export const StudioTracksList: React.FC<StudioTracksListProps> = React.memo(func
         audioUrl={pendingExtendMusicAudioUrl}
         userCredits={credits ?? undefined}
         getExtendMusicState={extendMusicGetState}
+      />
+
+      {/* Replace Section 对话框 */}
+      <ReplaceSectionDialog
+        isOpen={showReplaceSectionDialog}
+        onClose={() => {
+          setShowReplaceSectionDialog(false);
+          setPendingReplaceSectionTrackId(null);
+          setPendingReplaceSectionTrackTitle('');
+          setPendingReplaceSectionTrackDuration(120);
+          setPendingReplaceSectionOriginalStyle('');
+          setPendingReplaceSectionAudioUrl('');
+        }}
+        onConfirm={handleConfirmReplaceSection}
+        trackTitle={pendingReplaceSectionTrackTitle}
+        trackDuration={pendingReplaceSectionTrackDuration}
+        originalStyle={pendingReplaceSectionOriginalStyle}
+        audioUrl={pendingReplaceSectionAudioUrl}
+        userCredits={credits ?? undefined}
       />
 
       {/* 删除确认弹窗 */}

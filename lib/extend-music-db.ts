@@ -4,6 +4,7 @@
 
 import { query } from './db-query-builder';
 import { ExtendMusicTask, ExtensionInfo, ExtensionHistory } from '@/types/extend-music';
+import { MusicType } from '@/types/music';
 
 /**
  * 创建扩展音乐任务记录
@@ -18,6 +19,7 @@ export async function createExtendMusicTask(params: {
   isInstrumental: boolean;
   originalMusicId: string;
   originalTrackId: string; // 保留参数以保持 API 兼容性，但不存储到 music 表
+  type?: MusicType;
 }): Promise<string> {
   const {
     userId,
@@ -28,8 +30,11 @@ export async function createExtendMusicTask(params: {
     prompt,
     isInstrumental,
     originalMusicId,
+    type = 'extended',
     // originalTrackId 不再存储到 music 表，而是在创建 track 时存储到 tracks 表
   } = params;
+
+  const normalizedType: MusicType = type || 'extended';
 
   const result = await query(
     `INSERT INTO music (
@@ -41,8 +46,8 @@ export async function createExtendMusicTask(params: {
       prompt,
       is_instrumental,
       status,
-      is_extension,
       original_music_id,
+      type,
       created_at,
       updated_at
     ) VALUES (
@@ -54,8 +59,8 @@ export async function createExtendMusicTask(params: {
       $6,
       $7,
       'generating',
-      TRUE,
       $8::uuid,
+      $9,
       NOW(),
       NOW()
     ) RETURNING id`,
@@ -68,6 +73,7 @@ export async function createExtendMusicTask(params: {
       prompt,
       isInstrumental,
       originalMusicId,
+      normalizedType,
     ]
   );
 
@@ -99,15 +105,15 @@ export async function updateExtendMusicTaskStatus(
  */
 export async function getExtensionInfo(musicId: string): Promise<ExtensionInfo | null> {
   const result = await query(
-    `SELECT 
-      m.is_extension,
+    `SELECT
+      m.type,
       m.original_music_id,
       t.original_track_id,
       om.title as original_music_title,
       COALESCE(ot.title, om.title) as original_track_title
     FROM music m
     LEFT JOIN music om ON m.original_music_id = om.id
-    LEFT JOIN tracks t ON t.music_id = m.id AND m.is_extension = TRUE
+    LEFT JOIN tracks t ON t.music_id = m.id AND m.type IN ('extended', 'upload_extend')
     LEFT JOIN tracks ot ON t.original_track_id = ot.id
     WHERE m.id = $1::uuid
     LIMIT 1`,
@@ -120,7 +126,10 @@ export async function getExtensionInfo(musicId: string): Promise<ExtensionInfo |
 
   const row = result.rows[0];
 
-  if (!row.is_extension) {
+  const musicType: MusicType = row.type || 'generated';
+  const isExtension = musicType === 'extended' || musicType === 'upload_extend';
+
+  if (!isExtension) {
     return {
       isExtension: false,
     };
@@ -279,6 +288,7 @@ export async function createExtendedTrack(params: {
   duration: number;
   coverImageUrl?: string;
   originalTrackId?: string;
+  sourceType?: 'extended' | 'replace_section';
 }): Promise<string> {
   const {
     musicId,
@@ -289,6 +299,7 @@ export async function createExtendedTrack(params: {
     duration,
     coverImageUrl,
     originalTrackId,
+    sourceType = 'extended',
   } = params;
 
   const result = await query(
@@ -301,6 +312,7 @@ export async function createExtendedTrack(params: {
       duration,
       cover_image_url,
       original_track_id,
+      source_type,
       created_at,
       updated_at
     ) VALUES (
@@ -312,6 +324,7 @@ export async function createExtendedTrack(params: {
       $6,
       $7,
       $8::uuid,
+      $9,
       NOW(),
       NOW()
     ) RETURNING id`,
@@ -324,6 +337,7 @@ export async function createExtendedTrack(params: {
       duration,
       coverImageUrl,
       originalTrackId || null,
+      sourceType,
     ]
   );
 
@@ -333,4 +347,3 @@ export async function createExtendedTrack(params: {
 
   return result.rows[0].id;
 }
-

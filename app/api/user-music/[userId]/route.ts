@@ -84,6 +84,8 @@ function processUserMusicData(rawData: any[]) {
 
   for (const row of rawData) {
     const generationId = row.generation_id;
+    const musicType = row.type || 'generated';
+    const isExtension = musicType === 'extended' || musicType === 'upload_extend';
 
     if (!generationsMap.has(generationId)) {
       generationsMap.set(generationId, {
@@ -98,11 +100,12 @@ function processUserMusicData(rawData: any[]) {
         updatedAt: row.generation_updated_at, // 映射数据库字段为 JavaScript 字段名
         lyricsContent: row.lyrics_content, // 映射数据库字段为 JavaScript 字段名
         // 扩展相关字段（从 music 表获取）
-        isExtension: row.is_extension || false,
+        isExtension,
         originalMusicId: row.original_music_id,
         // originalTrackId 现在从 tracks 表获取，所以这里先设为 undefined，后续从 track 中获取
         originalTrackId: undefined,
         originalTrackTitle: row.original_track_title,
+        musicType,
         allTracks: [],
         totalDuration: 0,
         errorInfo: row.error_message ? {
@@ -130,9 +133,11 @@ function processUserMusicData(rawData: any[]) {
         // wavR2Url 不再在列表加载时查询，只在下载时查询 track_wav_conversions 表
         // 扩展相关字段（从 track 和 generation 获取）
         isExtension: generation.isExtension,
+        musicType: generation.musicType,
         originalMusicId: generation.originalMusicId,
         originalTrackId: row.original_track_id || generation.originalTrackId, // 优先使用 track 的 original_track_id
         originalTrackTitle: row.original_track_title || generation.originalTrackTitle,
+        sourceType: row.source_type, // 映射来源类型字段
       };
 
       generation.allTracks.push(track);

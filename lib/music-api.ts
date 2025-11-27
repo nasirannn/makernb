@@ -1,4 +1,5 @@
 import { getMusicModel } from '@/lib/credits-config';
+import { DEFAULT_NEGATIVE_TAGS, DEFAULT_STYLE_WEIGHT, DEFAULT_WEIRDNESS_CONSTRAINT, DEFAULT_AUDIO_WEIGHT } from '@/lib/music-generation-config';
 
 // API service configuration
 export interface GenerateMusicRequest {
@@ -165,8 +166,8 @@ class MusicApiService {
       callBackUrl: `${process.env.CallBackURL}/api/suno-callback`,
     };
 
-    // negativeTags - 避免不符合R&B风格的元素（通用设置）
-    apiParams.negativeTags = "edm, techno, trance, dubstep, synthpop, electronic, house, distorted noise, pop, rock, metal, country, jazz, classical, folk, indie, alternative, punk, blues, reggae, hip hop, rap";
+    // negativeTags - 避免不符合R&B风格的元素
+    apiParams.negativeTags = DEFAULT_NEGATIVE_TAGS;
 
     if (request.mode === 'basic') {
       // Basic模式: customMode: false（style 等参数将被忽略）
@@ -214,9 +215,9 @@ class MusicApiService {
 
     }
     // 权重参数 - 最大styleWeight来更强制地遵循R&B风格
-    apiParams.styleWeight = 1.0;
-    apiParams.weirdnessConstraint = 0.05; // 降低到0.05，更严格遵循风格
-    apiParams.audioWeight = 0.0;
+    apiParams.styleWeight = DEFAULT_STYLE_WEIGHT;
+    apiParams.weirdnessConstraint = DEFAULT_WEIRDNESS_CONSTRAINT;
+    apiParams.audioWeight = DEFAULT_AUDIO_WEIGHT;
 
     const response = await this.fetchWithRetry(`${this.baseUrl}/api/v1/generate`, {
       method: 'POST',

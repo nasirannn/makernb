@@ -2,16 +2,15 @@
 
 import React, { useState, useRef, useCallback, useEffect } from 'react';
 import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
-import { Button } from "@/components/ui/button";
+  AlertDialog,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { Input } from "@/components/ui/input";
-import { Upload, X } from "lucide-react";
+import { Pencil, Upload, X } from "lucide-react";
 import Image from "next/image";
 
 interface EditMusicInfoDialogProps {
@@ -161,22 +160,31 @@ export const EditMusicInfoDialog: React.FC<EditMusicInfoDialogProps> = ({
   const displayImage = previewUrl || coverImage;
 
   return (
-    <Dialog open={isOpen} onOpenChange={(open) => !open && handleClose()}>
-      <DialogContent 
-        className="max-w-[calc(100vw-2rem)] sm:max-w-[500px]"
+    <AlertDialog open={isOpen} onOpenChange={(open) => !open && handleClose()}>
+      <AlertDialogContent
+        className="max-w-[calc(100vw-2rem)] sm:max-w-[500px] flex flex-col overflow-hidden"
         onClick={(e) => e.stopPropagation()}
-        onInteractOutside={(e) => {
-          e.preventDefault();
-        }}
       >
-        <DialogHeader>
-          <DialogTitle>Edit Music Info</DialogTitle>
-          <DialogDescription>
+        <AlertDialogHeader className="flex-shrink-0">
+          <div className="flex items-center justify-between">
+            <AlertDialogTitle className="flex items-center gap-2">
+              <Pencil className="h-5 w-5" />
+              Edit Music Info
+            </AlertDialogTitle>
+            <button
+              onClick={handleClose}
+              className="rounded-sm opacity-70 ring-offset-background transition-opacity hover:opacity-100 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:pointer-events-none"
+            >
+              <X className="h-4 w-4" />
+              <span className="sr-only">Close</span>
+            </button>
+          </div>
+          <AlertDialogDescription>
             Update your track title and cover image.
-          </DialogDescription>
-        </DialogHeader>
+          </AlertDialogDescription>
+        </AlertDialogHeader>
 
-        <div className="space-y-6 pt-2 pb-4">
+        <div className="flex-1 overflow-y-auto space-y-6 pt-2 pb-4 px-1">
           <div className="space-y-4">
             <div className="space-y-2">
               <label htmlFor="title" className="text-sm text-muted-foreground">
@@ -255,22 +263,30 @@ export const EditMusicInfoDialog: React.FC<EditMusicInfoDialogProps> = ({
           </div>
         </div>
 
-        <DialogFooter>
-          <Button
-            variant="outline"
+        <AlertDialogFooter className="flex-shrink-0 border-t pt-4">
+          <button
             onClick={handleClose}
             disabled={isSaving}
+            className="inline-flex items-center justify-center rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 border border-input bg-background hover:bg-accent hover:text-accent-foreground h-10 px-4 py-2"
           >
             Cancel
-          </Button>
-          <Button
+          </button>
+          <button
             onClick={handleSave}
             disabled={!title.trim() || isSaving}
+            className="inline-flex items-center justify-center rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 bg-primary text-primary-foreground hover:bg-primary/90 h-10 px-4 py-2"
           >
-            {isSaving ? 'Saving...' : 'Save'}
-          </Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
+            {isSaving ? (
+              <>
+                <div className="mr-2 h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent" />
+                Saving...
+              </>
+            ) : (
+              'Save'
+            )}
+          </button>
+        </AlertDialogFooter>
+      </AlertDialogContent>
+    </AlertDialog>
   );
 };

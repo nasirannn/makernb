@@ -9,12 +9,13 @@ import { getExtendMusicCredits } from '@/lib/credits-config';
 import { consumeUserCredit } from '@/lib/user-db';
 import { createExtendMusicTask, getOriginalTrackInfo } from '@/lib/extend-music-db';
 import { hasFeaturePermission } from '@/lib/feature-permissions';
-import { 
-  ExtendMusicAPIRequest, 
-  ExtendMusicAPIResponse, 
+import {
+  ExtendMusicAPIRequest,
+  ExtendMusicAPIResponse,
   KIEExtendMusicRequest,
-  KIEExtendMusicResponse 
+  KIEExtendMusicResponse
 } from '@/types/extend-music';
+import { DEFAULT_NEGATIVE_TAGS } from '@/lib/music-generation-config';
 
 // 强制动态渲染
 export const dynamic = 'force-dynamic';
@@ -89,7 +90,6 @@ export async function POST(request: NextRequest) {
       style,
       title,
       continueAt,
-      negativeTags,
       vocalGender,
       styleWeight,
       weirdnessConstraint,
@@ -257,9 +257,7 @@ export async function POST(request: NextRequest) {
       kieParams.style = style;
       kieParams.title = title;
       kieParams.continue_at = continueAt;
-
-      // 添加高级参数
-      if (negativeTags) kieParams.negative_tags = negativeTags;
+      kieParams.negative_tags = DEFAULT_NEGATIVE_TAGS;
       if (vocalGender) kieParams.vocal_gender = vocalGender;
       if (styleWeight !== undefined && styleWeight !== 0.65) kieParams.style_weight = styleWeight;
       if (weirdnessConstraint !== undefined && weirdnessConstraint !== 0.65) kieParams.weirdness_constraint = weirdnessConstraint;
@@ -364,8 +362,8 @@ export async function POST(request: NextRequest) {
       const isPublished = false; // 默认设置为私有状态
       const { query } = await import('@/lib/db-query-builder');
       const tracksResult = await query(
-        `INSERT INTO tracks (music_id, is_published, cover_image_url, suno_track_id, original_track_id)
-         VALUES ($1, $2, NULL, NULL, $3), ($1, $2, NULL, NULL, $3)
+        `INSERT INTO tracks (music_id, is_published, cover_image_url, suno_track_id, original_track_id, source_type)
+         VALUES ($1, $2, NULL, NULL, $3, 'extended'), ($1, $2, NULL, NULL, $3, 'extended')
          RETURNING *`,
         [musicId, isPublished, originalTrack.trackId]
       );
@@ -387,6 +385,8 @@ export async function POST(request: NextRequest) {
         streamAudioUrl: '',
         createdAt: row.created_at || new Date().toISOString(),
         originalTrackId: originalTrack.trackId, // 设置原歌曲ID，用于分组
+        originalTrackTitle: originalTrack.title, // 原歌曲标题
+        sourceType: 'extended', // 来源类型
       }));
 
       console.log(`[EXTEND-MUSIC-${requestId}] ✅ Created ${initialTracks.length} placeholder tracks`);

@@ -18,7 +18,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
-import { Star, Share2, Check, Download, MoreVertical, Mic, Trash2, Eye, EyeOff, Pencil, Maximize2 } from "lucide-react";
+import { Star, Share2, Check, Download, MoreVertical, Mic, Trash2, Eye, EyeOff, Pencil, Maximize2, Scissors } from "lucide-react";
 import { LibraryTrack } from '@/types/track';
 import { EditMusicInfoDialog } from './edit-music-info-dialog';
 
@@ -37,13 +37,15 @@ interface TrackActionButtonsProps {
   canDownloadCover?: boolean;
   canVocalRemoval?: boolean;
   canExtendMusic?: boolean;
-  
+  canReplaceSection?: boolean;
+
   // 回调函数
   onFavoriteToggle?: () => void;
   onShare?: () => void;
   onDownload?: (format: 'mp3' | 'wav' | 'cover') => void;
   onVocalRemoval?: () => void;
   onExtendMusic?: () => void;
+  onReplaceSection?: () => void;
   onDelete?: () => void;
   onPricingModalOpen?: () => void;
   onPublishToggle?: (trackId: string, isPublished: boolean) => void;
@@ -62,11 +64,13 @@ export const TrackActionButtons: React.FC<TrackActionButtonsProps> = ({
   canDownloadCover = false,
   canVocalRemoval = false,
   canExtendMusic = false,
+  canReplaceSection = false,
   onFavoriteToggle,
   onShare,
   onDownload,
   onVocalRemoval,
   onExtendMusic,
+  onReplaceSection,
   onDelete,
   onPricingModalOpen,
   onPublishToggle,
@@ -293,7 +297,7 @@ export const TrackActionButtons: React.FC<TrackActionButtonsProps> = ({
               )}
               
               {/* Premium Features 标题和选项 */}
-              {hasAudioUrl && (onVocalRemoval || onExtendMusic) && (
+              {hasAudioUrl && (onVocalRemoval || onExtendMusic || onReplaceSection) && (
                 <>
                   <div className="px-2.5 py-1 text-[10px] text-muted-foreground uppercase">
                     Advanced Features
@@ -336,6 +340,23 @@ export const TrackActionButtons: React.FC<TrackActionButtonsProps> = ({
                     >
                       <Maximize2 className="h-3.5 w-3.5" />
                       <span>Extend Music</span>
+                    </DropdownMenuItem>
+                  )}
+                  {onReplaceSection && (
+                    <DropdownMenuItem
+                      onClick={(e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        if (!canReplaceSection) {
+                          onPricingModalOpen?.();
+                          return;
+                        }
+                        onReplaceSection();
+                      }}
+                      className="flex items-center gap-1.5 cursor-pointer px-2.5 py-1.5 text-xs data-[highlighted]:bg-transparent data-[highlighted]:text-primary focus:bg-transparent"
+                    >
+                      <Scissors className="h-3.5 w-3.5" />
+                      <span>Replace Section</span>
                     </DropdownMenuItem>
                   )}
                   {onDelete && <DropdownMenuSeparator className="my-1" />}

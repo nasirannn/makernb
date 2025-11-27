@@ -14,6 +14,8 @@ interface TrackInfoProps {
   isSelected?: boolean;
   showDuration?: boolean;
   isExtension?: boolean;
+  originalTrackTitle?: string;
+  sourceType?: 'extended' | 'replace_section';
 }
 
 export const TrackInfo: React.FC<TrackInfoProps> = ({
@@ -27,18 +29,21 @@ export const TrackInfo: React.FC<TrackInfoProps> = ({
   isSelected = false,
   showDuration = true,
   isExtension = false,
+  originalTrackTitle,
+  sourceType,
 }) => {
-  const heightClass = isExtension ? 'h-12' : 'h-16';
-  const titleSizeClass = isExtension ? 'text-xs' : 'text-sm';
-  const textSizeClass = isExtension ? 'text-[10px]' : 'text-xs';
-  const justifyClass = isExtension ? 'justify-start' : 'justify-center';
-  const tagMarginClass = isExtension ? 'mt-0' : 'mt-0.5';
-  const timeMarginClass = isExtension ? 'mt-0' : 'mt-1';
+  // 统一所有track的样式，不再区分extension
+  const heightClass = 'h-16';
+  const titleSizeClass = 'text-sm';
+  const textSizeClass = 'text-xs';
+  const justifyClass = 'justify-center';
+  const tagMarginClass = 'mt-0.5';
+  const timeMarginClass = 'mt-1';
   
   return (
     <div className={`flex-1 min-w-0 flex flex-col ${justifyClass} ${heightClass}`}>
       {/* 标题行 */}
-      <div className="flex items-center gap-2">
+      <div className="flex items-center gap-1.5">
         <h3 className={`font-semibold ${titleSizeClass} truncate ${
           isError
             ? 'text-red-400'
@@ -48,6 +53,13 @@ export const TrackInfo: React.FC<TrackInfoProps> = ({
         }`}>
           {isError ? (errorMessage || title || 'Generation failed') : (title || 'Untitled Track')}
         </h3>
+
+        {/* 来源标识徽章 - 紧跟标题后面 */}
+        {!isError && originalTrackTitle && sourceType && (
+          <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium bg-primary/10 text-primary whitespace-nowrap flex-shrink-0">
+            {sourceType === 'extended' ? 'Extended' : 'Replaced'}
+          </span>
+        )}
         
         {/* 时长加载动画（仅在没有时长且不在生成中时显示，生成中会显示 --:--） */}
         {!isError && showDuration && (!duration || duration === 0) && !isGenerating && (
@@ -76,12 +88,14 @@ export const TrackInfo: React.FC<TrackInfoProps> = ({
                       <span className={`${textSizeClass} text-muted-foreground/60`}>|</span>
                     </>
                   ) : (
-                    /* 如果正在生成且没有时长，显示 --:-- */
+                    /* 如果正在生成且没有时长，显示旋转icon */
                     isGenerating && (
                       <>
-                        <span className={`${textSizeClass} text-muted-foreground whitespace-nowrap`}>
-                          --:--
-                        </span>
+                        <div className="flex items-center gap-0.5">
+                          <div className="w-1 h-1 bg-muted-foreground rounded-full animate-pulse"></div>
+                          <div className="w-1 h-1 bg-muted-foreground rounded-full animate-pulse" style={{ animationDelay: '0.3s' }}></div>
+                          <div className="w-1 h-1 bg-muted-foreground rounded-full animate-pulse" style={{ animationDelay: '0.6s' }}></div>
+                        </div>
                         <span className={`${textSizeClass} text-muted-foreground/60`}>|</span>
                       </>
                     )
@@ -110,7 +124,7 @@ export const TrackInfo: React.FC<TrackInfoProps> = ({
           )}
         </>
       )}
-      
+
       {/* 错误提示 */}
       {isError && (
         <p className={`${textSizeClass} text-red-400/80 truncate ${timeMarginClass}`}>

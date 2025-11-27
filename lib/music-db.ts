@@ -1,6 +1,7 @@
 import { query, withTransaction } from './db-query-builder';
 import { checkMultipleFavorites } from './favorites-db';
 import { LibraryTrack } from '@/types/track';
+import { MusicType } from '@/types/music';
 
 // ============================================================================
 // TYPES AND INTERFACES
@@ -18,6 +19,7 @@ export interface MusicGeneration {
   status?: 'generating' | 'text' | 'first' | 'complete' | 'error';
   created_at: string;
   updated_at: string;
+  type: MusicType;
 }
 
 export interface CreateMusicGenerationData {
@@ -28,6 +30,7 @@ export interface CreateMusicGenerationData {
   is_instrumental?: boolean;
   task_id?: string;
   status?: 'generating' | 'complete' | 'error' | 'text';
+  type?: MusicType;
 }
 
 export interface MusicGenerationWithTracks {
@@ -44,6 +47,7 @@ export interface MusicGenerationWithTracks {
   allTracks: LibraryTrack[];
   totalDuration: number;
   errorInfo?: any;
+  type?: MusicType;
 }
 
 // ============================================================================
@@ -89,8 +93,8 @@ export const createMusicGeneration = async (
     const result = await query(
       `INSERT INTO music (
         user_id, title, genre, tags, prompt,
-        is_instrumental, task_id, status
-      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+        is_instrumental, task_id, status, type
+      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
       RETURNING *`,
       [
         userId,
@@ -100,7 +104,8 @@ export const createMusicGeneration = async (
         data.prompt || null,
         data.is_instrumental || false,
         data.task_id || null,
-        data.status || 'generating'
+        data.status || 'generating',
+        data.type || 'generated'
       ]
     );
 

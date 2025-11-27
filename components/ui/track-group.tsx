@@ -25,7 +25,8 @@ interface TrackGroupProps {
   canDownloadCover?: boolean;
   canVocalRemoval?: boolean;
   canExtendMusic?: boolean;
-  
+  canReplaceSection?: boolean;
+
   // 回调函数
   onTrackSelect?: (trackId: string) => void;
   onTrackPlay?: (track: LibraryTrack, music: any) => void;
@@ -34,6 +35,7 @@ interface TrackGroupProps {
   onDownload?: (track: LibraryTrack, music: any, format?: 'mp3' | 'wav' | 'cover') => void;
   onVocalRemoval?: (trackId: string) => void;
   onExtendMusic?: (trackId: string) => void;
+  onReplaceSection?: (trackId: string) => void;
   onDelete?: (trackId: string) => void;
   onPricingModalOpen?: () => void;
   onPublishToggle?: (trackId: string, isPublished: boolean) => void;
@@ -59,6 +61,7 @@ export const TrackGroup: React.FC<TrackGroupProps> = ({
   canDownloadCover,
   canVocalRemoval,
   canExtendMusic,
+  canReplaceSection,
   onTrackSelect,
   onTrackPlay,
   onFavoriteToggle,
@@ -66,6 +69,7 @@ export const TrackGroup: React.FC<TrackGroupProps> = ({
   onDownload,
   onVocalRemoval,
   onExtendMusic,
+  onReplaceSection,
   onDelete,
   onPricingModalOpen,
   onPublishToggle,
@@ -133,6 +137,7 @@ export const TrackGroup: React.FC<TrackGroupProps> = ({
         canDownloadCover={canDownloadCover}
         canVocalRemoval={canVocalRemoval}
         canExtendMusic={canExtendMusic}
+        canReplaceSection={canReplaceSection}
         onSelect={handleOriginalTrackSelect}
         onPlayPause={handleOriginalTrackPlay}
         onFavoriteToggle={onFavoriteToggle ? () => onFavoriteToggle(originalTrack, originalTrack.musicGeneration) : undefined}
@@ -140,6 +145,7 @@ export const TrackGroup: React.FC<TrackGroupProps> = ({
         onDownload={onDownload ? (format) => onDownload(originalTrack, originalTrack.musicGeneration, format) : undefined}
         onVocalRemoval={onVocalRemoval ? () => onVocalRemoval(originalTrack.id) : undefined}
         onExtendMusic={onExtendMusic ? () => onExtendMusic(originalTrack.id) : undefined}
+        onReplaceSection={onReplaceSection ? () => onReplaceSection(originalTrack.id) : undefined}
         onDelete={onDelete ? () => onDelete(originalTrack.id) : undefined}
         onPricingModalOpen={onPricingModalOpen}
         onPublishToggle={onPublishToggle}
@@ -164,6 +170,7 @@ export const TrackGroup: React.FC<TrackGroupProps> = ({
                 canDownloadCover={canDownloadCover}
                 canVocalRemoval={canVocalRemoval}
                 canExtendMusic={canExtendMusic}
+                canReplaceSection={canReplaceSection}
                 onSelect={() => handleExtensionTrackSelect(extensionTrack)}
                 onPlayPause={() => handleExtensionTrackPlay(extensionTrack)}
                 onFavoriteToggle={onFavoriteToggle ? () => onFavoriteToggle(extensionTrack, extensionTrack.musicGeneration) : undefined}
@@ -171,6 +178,7 @@ export const TrackGroup: React.FC<TrackGroupProps> = ({
                 onDownload={onDownload ? (format) => onDownload(extensionTrack, extensionTrack.musicGeneration, format) : undefined}
                 onVocalRemoval={onVocalRemoval ? () => onVocalRemoval(extensionTrack.id) : undefined}
                 onExtendMusic={onExtendMusic ? () => onExtendMusic(extensionTrack.id) : undefined}
+                onReplaceSection={onReplaceSection ? () => onReplaceSection(extensionTrack.id) : undefined}
                 onDelete={onDelete ? () => onDelete(extensionTrack.id) : undefined}
                 onPricingModalOpen={onPricingModalOpen}
                 onPublishToggle={onPublishToggle}

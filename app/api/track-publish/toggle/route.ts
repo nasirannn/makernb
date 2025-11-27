@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { query } from '@/lib/db-query-builder';
-import { supabase } from '@/lib/supabase';
+import { supabaseServer } from '@/lib/supabase-server';
 
 // 强制动态渲染
 export const dynamic = 'force-dynamic';
@@ -27,9 +27,9 @@ export async function POST(request: NextRequest) {
     }
 
     const token = authHeader.substring(7); // 移除 'Bearer ' 前缀
-    
-    // 验证token并获取用户信息
-    const { data: { user }, error } = await supabase.auth.getUser(token);
+
+    // 验证token并获取用户信息 (使用服务端 Supabase client)
+    const { data: { user }, error } = await supabaseServer.auth.getUser(token);
     if (error || !user) {
       return NextResponse.json(
         { success: false, error: 'Unauthorized' },

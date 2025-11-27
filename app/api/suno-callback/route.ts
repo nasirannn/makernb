@@ -5,7 +5,8 @@ import { createGenerationError } from '@/lib/generation-errors-db';
 import { addUserCredits } from '@/lib/user-db';
 import { downloadFromUrl, uploadAudioFile, uploadCoverImage } from '@/lib/r2-storage';
 import { query } from '@/lib/db-query-builder';
-import { getMusicCredits } from '@/lib/credits-config';
+import { getMusicCredits, getFeatureCredits, FeatureKey } from '@/lib/credits-config';
+import { MusicType } from '@/types/music';
 
 // Cache for processed tasks to handle idempotency
 const processedTasks = new Set<string>();
@@ -183,9 +184,25 @@ async function processCallbackAsync(callbackData: any, callbackId: string) {
         // 使用第一个track的元数据更新数据库（除了audio_url以外的所有值）
         const primaryTrack = tracks[0];
 
-        // 4.1.1 更新音乐生成记录的元数据
+        // 4.1.1 查询music记录获取type和现有title
+        const musicGenQuery = await query(
+          'SELECT id, type, title FROM music WHERE task_id = $1',
+          [taskId]
+        );
+
+        if (musicGenQuery.rows.length === 0) {
+          console.error(`[CALLBACK-${callbackId}] No music record found for taskId: ${taskId}`);
+          return;
+        }
+
+        const musicRecord = musicGenQuery.rows[0];
+        const musicGenerationId = musicRecord.id;
+        const musicType = musicRecord.type as MusicType;
+        const existingTitle = musicRecord.title;
+
+        // 4.1.2 更新音乐生成记录的元数据
         const styleFromTags = primaryTrack.tags;
-        
+
         // 使用接口返回的标题，如果没有则使用默认值
         const extractedTitle = primaryTrack.title || 'Untitled';
 
@@ -194,79 +211,92 @@ async function processCallbackAsync(callbackData: any, callbackId: string) {
           status: 'text' // text回调已完成，文本信息已生成
         };
 
-        // 更新标题和tags
-        updateData.title = extractedTitle;
+        // 对于upload_cover和upload_extend类型，保留用户输入的title，不更新
+        // 对于普通generate类型，使用API返回的title
+        if (musicType === 'upload_cover' || musicType === 'upload_extend') {
+          console.log(`[CALLBACK-${callbackId}] Upload type detected (${musicType}), preserving user title: ${existingTitle}`);
+          // 不更新title，保留原有的
+        } else {
+          // 普通generate类型，更新title
+          updateData.title = extractedTitle;
+        }
         updateData.tags = styleFromTags;
 
         try {
           // 实际执行数据库更新操作
           await updateMusicGenerationByTaskId(taskId, updateData);
-          console.log(`[CALLBACK-${callbackId}] Updated music record with title and tags`);
+          console.log(`[CALLBACK-${callbackId}] Updated music record with tags${updateData.title ? ' and title' : ''}`);
         } catch (dbError) {
           console.error(`[CALLBACK-${callbackId}] Failed to update music generation record with text data:`, dbError);
         }
 
-        // 4.1.2 获取music_id
-        const musicGenQuery = await query(
-          'SELECT id FROM music WHERE task_id = $1',
-          [taskId]
-        );
-        
-        if (musicGenQuery.rows.length > 0) {
-          const musicGenerationId = musicGenQuery.rows[0].id;
+        // 4.1.3 存储歌词到lyrics表
+        const lyricsContent = primaryTrack.prompt;
+        // 对于upload类型，使用existingTitle；对于普通类型，使用extractedTitle
+        const titleForLyrics = (musicType === 'upload_cover' || musicType === 'upload_extend')
+          ? existingTitle
+          : extractedTitle;
 
-          // 4.1.3 存储歌词到lyrics表
-          const lyricsContent = primaryTrack.prompt;
-          if (lyricsContent && lyricsContent.trim() !== '') {
-            try {
-              await query(
-                `INSERT INTO lyrics (music_id, title, content)
-                 VALUES ($1, $2, $3)`,
-                [musicGenerationId, extractedTitle, lyricsContent]
-              );
-            } catch (lyricsError) {
-              console.error('Failed to create music lyrics record:', lyricsError);
-            }
-          }
-          
-          // 4.1.4 更新已存在的tracks记录
+        if (lyricsContent && lyricsContent.trim() !== '') {
           try {
-            // 获取已存在的tracks记录
-            const existingTracksQuery = await query(
-              'SELECT id FROM tracks WHERE music_id = $1 AND suno_track_id IS NULL ORDER BY id ASC',
-              [musicGenerationId]
+            await query(
+              `INSERT INTO lyrics (music_id, title, content)
+               VALUES ($1, $2, $3)`,
+              [musicGenerationId, titleForLyrics, lyricsContent]
             );
-
-            if (existingTracksQuery.rows.length > 0) {
-              // 依次更新tracks，每个API返回的track对应一个数据库record
-              for (let i = 0; i < Math.min(tracks.length, existingTracksQuery.rows.length); i++) {
-                const track = tracks[i];
-                const existingTrack = existingTracksQuery.rows[i];
-
-                console.log(`[CALLBACK-${callbackId}] Updating track ${i + 1} with suno_track_id ${track.id}`);
-
-                // text回调：将stream_audio_url和title存储到tracks表
-                await query(
-                  `UPDATE tracks SET
-                    suno_track_id = $1,
-                    stream_audio_url = $2,
-                    title = $3,
-                    updated_at = NOW()
-                  WHERE id = $4`,
-                  [
-                    track.id,
-                    track.stream_audio_url,
-                    track.title || extractedTitle, // 使用接口返回的track标题，如果没有则使用主标题
-                    existingTrack.id
-                  ]
-                );
-              }
-            } else {
-              console.error(`[CALLBACK-${callbackId}] No existing tracks found for music_id: ${musicGenerationId}`);
-            }
-          } catch (tracksError) {
-            console.error('Failed to update tracks records in text callback:', tracksError);
+          } catch (lyricsError) {
+            console.error('Failed to create music lyrics record:', lyricsError);
           }
+        }
+
+        // 4.1.4 更新已存在的tracks记录
+        try {
+          // 获取已存在的tracks记录（包括已有title的记录）
+          const existingTracksQuery = await query(
+            'SELECT id, title FROM tracks WHERE music_id = $1 AND suno_track_id IS NULL ORDER BY id ASC',
+            [musicGenerationId]
+          );
+
+          if (existingTracksQuery.rows.length > 0) {
+            // 依次更新tracks，每个API返回的track对应一个数据库record
+            for (let i = 0; i < Math.min(tracks.length, existingTracksQuery.rows.length); i++) {
+              const track = tracks[i];
+              const existingTrack = existingTracksQuery.rows[i];
+
+              console.log(`[CALLBACK-${callbackId}] Updating track ${i + 1} with suno_track_id ${track.id}`);
+
+              // 决定是否更新track的title
+              let trackTitle: string;
+              if (musicType === 'upload_cover' || musicType === 'upload_extend') {
+                // 对于upload类型，保留已有的title（从initialTracks设置的）
+                trackTitle = existingTrack.title || existingTitle;
+                console.log(`[CALLBACK-${callbackId}] Upload type: preserving track title: ${trackTitle}`);
+              } else {
+                // 对于普通generate类型，使用API返回的title
+                trackTitle = track.title || extractedTitle;
+              }
+
+              // text回调：将stream_audio_url和title存储到tracks表
+              await query(
+                `UPDATE tracks SET
+                  suno_track_id = $1,
+                  stream_audio_url = $2,
+                  title = $3,
+                  updated_at = NOW()
+                WHERE id = $4`,
+                [
+                  track.id,
+                  track.stream_audio_url,
+                  trackTitle,
+                  existingTrack.id
+                ]
+              );
+            }
+          } else {
+            console.error(`[CALLBACK-${callbackId}] No existing tracks found for music_id: ${musicGenerationId}`);
+          }
+        } catch (tracksError) {
+          console.error('Failed to update tracks records in text callback:', tracksError);
         }
 
         // 4.1.5 封面生成已在音乐生成API中立即启动，text回调不再需要调用
@@ -538,20 +568,43 @@ async function processCallbackAsync(callbackData: any, callbackId: string) {
           try {
             // 从 credit_transactions 表中查找该 taskId 的积分消耗记录
             const creditTransactionResult = await query(
-              `SELECT amount FROM credit_transactions 
-               WHERE reference_id = $1 
-               AND transaction_type = 'music_generation'
+              `SELECT amount FROM credit_transactions
+               WHERE reference_id = $1
                ORDER BY created_at DESC LIMIT 1`,
               [taskId]
             );
 
             // 优先从数据库获取已扣除的积分（最准确）
             let creditCost = getMusicCredits('basic'); // 默认 Basic Mode 的积分消耗
+
             if (creditTransactionResult.rows.length > 0) {
               // 消费记录是负数，退款应该是正数
               creditCost = Math.abs(creditTransactionResult.rows[0].amount);
             } else {
-              console.warn(`No credit transaction found for taskId ${taskId}, using default: ${creditCost} credits`);
+              // 如果没有找到交易记录，根据 MusicType 确定退款金额
+              console.warn(`No credit transaction found for taskId ${taskId}, determining refund by MusicType`);
+
+              // 查询 MusicType
+              const musicTypeQuery = await query(
+                'SELECT type FROM music WHERE task_id = $1',
+                [taskId]
+              );
+
+              const musicType = musicTypeQuery.rows[0]?.type as MusicType | undefined;
+
+              if (musicType === 'upload_cover') {
+                creditCost = getFeatureCredits('upload_cover_music' as FeatureKey);
+              } else if (musicType === 'upload_extend') {
+                creditCost = getFeatureCredits('upload_extend_music' as FeatureKey);
+              } else if (musicType === 'extended') {
+                // 扩展音乐使用默认值，因为模型版本可能不同
+                creditCost = 12; // 默认扩展音乐积分
+              } else {
+                // generated 或未知类型使用 basic 模式默认值
+                creditCost = getMusicCredits('basic');
+              }
+
+              console.log(`[CALLBACK-${callbackId}] Using refund amount based on MusicType ${musicType}: ${creditCost} credits`);
             }
 
             const refundSuccess = await addUserCredits(
@@ -563,6 +616,7 @@ async function processCallbackAsync(callbackData: any, callbackId: string) {
             );
 
             if (refundSuccess) {
+              console.log(`[CALLBACK-${callbackId}] Successfully refunded ${creditCost} credits`);
             } else {
               console.error(`[CALLBACK-${callbackId}] Failed to refund credits for failed music generation: ${musicGeneration.id}`);
             }
@@ -581,7 +635,7 @@ async function processCallbackAsync(callbackData: any, callbackId: string) {
 
     // Log completion of async processing
     const asyncProcessingTime = Date.now() - asyncStartTime;
-
+    console.log(`[CALLBACK-${callbackId}] Async processing completed in ${asyncProcessingTime}ms`);
   } catch (error) {
     console.error(`[CALLBACK-${callbackId}] Async callback processing failed:`, error);
     // 尝试获取taskId用于错误通知

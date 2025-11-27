@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { supabase } from '@/lib/supabase';
 import { toast } from 'sonner';
+import { MusicModel } from '@/components/ui/model-selection-dialog';
 
 // ============================================================================
 // TYPES
@@ -31,7 +32,8 @@ export const useMusicGeneration = () => {
   const [selectedVibe, setSelectedVibe] = useState("");
   const [instrumentalMode, setInstrumentalMode] = useState(false);
   const [isPublished] = useState(false);
-  
+  const [selectedModel, setSelectedModel] = useState<MusicModel>('V4_5'); // 默认使用 V4.5
+
   // 高级选项
   const [bpm, setBpm] = useState([60]);
   const [grooveType, setGrooveType] = useState("");
@@ -111,7 +113,8 @@ export const useMusicGeneration = () => {
     songTitle,
     styleText,
     vocalGender,
-    isPublished
+    isPublished,
+    model: selectedModel, // 添加模型参数
   });
 
 
@@ -438,6 +441,24 @@ export const useMusicGeneration = () => {
     setGeneratedTracks(newTracksOrUpdater);
   };
 
+  const trackExistingTask = useCallback((taskId: string, initialTracks?: any[]) => {
+    if (!taskId) return;
+    cleanup();
+    setIsGenerating(true);
+
+    // 如果有初始占位 tracks，立即显示
+    if (initialTracks && Array.isArray(initialTracks) && initialTracks.length > 0) {
+      setGeneratedTracks(prevTracks => {
+        const newTracks = convertInitialTracks(initialTracks);
+        // 保留已完成的歌曲，将新的tracks添加到顶部（与 handleGenerate 逻辑一致）
+        const completedTracks = prevTracks.filter(track => track.isCompleted && !newTracks.find(nt => nt.id === track.id));
+        return [...newTracks, ...completedTracks];
+      });
+    }
+
+    startPolling(taskId);
+  }, [cleanup, startPolling]);
+
   return {
     // 配置
     mode, setMode,
@@ -456,6 +477,7 @@ export const useMusicGeneration = () => {
     vocalStyle, setVocalStyle,
     vocalGender, setVocalGender,
     harmonyPalette, setHarmonyPalette,
+    selectedModel, setSelectedModel, // 添加模型状态
 
     // 状态
     isGenerating,
@@ -464,6 +486,7 @@ export const useMusicGeneration = () => {
 
     // 方法
     handleGenerate,
+    trackExistingTask,
     updateTracks,
   };
 };

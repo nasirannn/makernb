@@ -7,7 +7,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
-import { Music, RotateCcw, ChevronRight, Wand2, Play, CreditCard } from "lucide-react";
+import { Music, RotateCcw, ChevronRight, Wand2, Play, CreditCard, UploadCloud, X } from "lucide-react";
 import musicOptions from '@/data/music-options.json';
 import { useAuth } from '@/contexts/AuthContext';
 import { useCredits } from '@/contexts/CreditsContext';
@@ -19,6 +19,10 @@ import { getInstrumentIcon, getInstrumentAudio, getDrumKitIcon, getDrumKitAudio 
 import { replaceTextInStyle, updateStatesFromTextarea, getRandomBpm } from '@/lib/studio-utils';
 import { TEMPO_KEYWORDS, BUTTON_CLASSES, STYLES } from '@/lib/studio-constants';
 import { useAudioPlayer } from '@/hooks/use-audio-player';
+import { UploadAudioDialog } from '@/components/ui/upload-audio-dialog';
+import { ModelSelectionDialog, MusicModel, modelOptions } from '@/components/ui/model-selection-dialog';
+import { supabase } from '@/lib/supabase';
+import { PricingSection } from '@/components/layout/sections/pricing';
 
 // Extract options from musicOptions
 const { genres, vibes, grooveTypes, leadInstruments, drumKits, bassTones, vocalGenders, harmonyPalettes } = musicOptions;
@@ -72,9 +76,14 @@ interface StudioPanelProps {
   onCollapseToTracks?: () => void;
   // 新增：收起（关闭）面板
   onCollapse?: () => void;
+  // 上传任务回调
+  onUploadTaskCreated?: (taskId: string, initialTracks?: any[]) => void;
   // AuthModal相关
   isAuthModalOpen?: boolean;
   setIsAuthModalOpen?: (open: boolean) => void;
+  // Model selection
+  selectedModel?: MusicModel;
+  setSelectedModel?: (model: MusicModel) => void;
 }
 
 export const StudioPanel = (props: StudioPanelProps) => {
@@ -116,10 +125,90 @@ export const StudioPanel = (props: StudioPanelProps) => {
     isGenerating,
     onGenerationStart,
     onGenerateLyrics,
+    onUploadTaskCreated,
+    selectedModel = 'V4_5',
+    setSelectedModel,
   } = props;
 
   const { user } = useAuth();
-  const { credits } = useCredits();
+  const { credits, refreshCredits } = useCredits();
+
+  // Check if user has subscription (Basic or Premium tier)
+  const [hasSubscription, setHasSubscription] = React.useState(false);
+  const [isCheckingSubscription, setIsCheckingSubscription] = React.useState(false);
+
+  // Pricing dialog state
+  const [isPricingOpen, setIsPricingOpen] = React.useState(false);
+
+  // Check subscription status
+  React.useEffect(() => {
+    const checkSubscription = async () => {
+      if (!user?.id) {
+        setHasSubscription(false);
+        // 无订阅用户默认使用 V3.5
+        if (setSelectedModel && selectedModel !== 'V3_5') {
+          setSelectedModel('V3_5');
+        }
+        return;
+      }
+
+      setIsCheckingSubscription(true);
+      try {
+        const { data: { session } } = await supabase.auth.getSession();
+        if (!session?.access_token) {
+          setHasSubscription(false);
+          if (setSelectedModel && selectedModel !== 'V3_5') {
+            setSelectedModel('V3_5');
+          }
+          return;
+        }
+
+        const response = await fetch('/api/user-subscription', {
+          headers: {
+            Authorization: `Bearer ${session.access_token}`,
+          },
+        });
+
+        if (response.ok) {
+          const data = await response.json();
+          // API 返回 tierCode: 'basic' | 'premium' | null
+          const hasActive = data.tierCode !== null;
+          setHasSubscription(hasActive);
+
+          console.log('[STUDIO-PANEL] Subscription check:', {
+            userId: user.id,
+            tierCode: data.tierCode,
+            hasActive,
+            currentModel: selectedModel
+          });
+
+          // 有订阅用户默认使用 V4_5PLUS
+          if (hasActive && setSelectedModel && selectedModel === 'V3_5') {
+            setSelectedModel('V4_5PLUS');
+          }
+          // 无订阅用户默认使用 V3.5
+          else if (!hasActive && setSelectedModel && selectedModel !== 'V3_5') {
+            setSelectedModel('V3_5');
+          }
+        } else {
+          setHasSubscription(false);
+          if (setSelectedModel && selectedModel !== 'V3_5') {
+            setSelectedModel('V3_5');
+          }
+        }
+      } catch (error) {
+        console.error('Error checking subscription:', error);
+        setHasSubscription(false);
+        if (setSelectedModel && selectedModel !== 'V3_5') {
+          setSelectedModel('V3_5');
+        }
+      } finally {
+        setIsCheckingSubscription(false);
+      }
+    };
+
+    checkSubscription();
+  }, [user?.id, selectedModel, setSelectedModel]);
 
   // State for managing expanded categories
   const [expandedCategory, setExpandedCategory] = React.useState<string | null>(null);
@@ -132,6 +221,11 @@ export const StudioPanel = (props: StudioPanelProps) => {
   
   // Audio player hook
   const { playPreviewAudio } = useAudioPlayer();
+
+  const [isUploadDialogOpen, setIsUploadDialogOpen] = React.useState(false);
+
+  // Model selection state
+  const [isModelDialogOpen, setIsModelDialogOpen] = React.useState(false);
 
   // Function to update states based on textarea content with debouncing
   const handleUpdateStatesFromTextarea = React.useCallback((text: string) => {
@@ -227,16 +321,16 @@ export const StudioPanel = (props: StudioPanelProps) => {
                     </button>
                   </div>
                 </div>
-                
-              {/* Credits Display */}
-              <div className="flex items-center gap-1 md:gap-2 text-xs md:text-sm">
-                <div className="flex items-center gap-1 px-2 py-1 bg-muted/20 rounded-md">
-                  <span className="font-semibold text-primary">
-                    {mode === 'basic' ? CLIENT_MUSIC_CREDITS.basic : CLIENT_MUSIC_CREDITS.custom}
-                  </span>
-                  <span className="text-muted-foreground">credit per song</span>
-                </div>
-              </div>
+
+              {/* Model Selection Badge */}
+              <button
+                onClick={() => setIsModelDialogOpen(true)}
+                className="px-3 py-1.5 rounded-lg bg-gradient-create text-white text-xs md:text-sm font-semibold hover:opacity-90 transition-opacity flex items-center gap-1.5"
+                title="Click to change model version"
+              >
+                <span>{modelOptions.find(opt => opt.value === selectedModel)?.label || 'v4.5'}</span>
+                <ChevronRight className="w-3 h-3" />
+              </button>
             </div>
           </div>
 
@@ -1055,47 +1149,100 @@ export const StudioPanel = (props: StudioPanelProps) => {
                 }
               }
               return (
-                <button
-                  onClick={() => {
-                    handleGenerateWithAuth();
-                  }}
-                  disabled={isDisabled}
-                  className="w-full h-14 px-6 text-base font-semibold bg-gradient-create disabled:bg-muted disabled:bg-none border-transparent text-white disabled:text-muted-foreground shadow-lg disabled:shadow-none disabled:cursor-not-allowed transition-all duration-300 hover:-translate-y-1 hover:scale-[1.02] disabled:hover:translate-y-0 disabled:hover:scale-100 rounded-2xl relative overflow-hidden"
-                >
-                  {/* 光效动画 - 只在可点击状态显示 */}
-                  {!isDisabled && (
-                    <div className="absolute inset-0 -translate-x-full bg-gradient-to-r from-transparent via-white/30 to-transparent animate-shine"></div>
-                  )}
-                  
-                  
-                  <div className="relative z-10 flex items-center justify-center">
-                    {isGenerating ? (
-                      <div className="flex items-center justify-center gap-2">
-                        <span>Creating</span>
-                        <div className="flex items-center gap-1">
-                          <div className="w-1 h-1 bg-white rounded-full animate-pulse"></div>
-                          <div className="w-1 h-1 bg-white rounded-full animate-pulse" style={{ animationDelay: '0.3s' }}></div>
-                          <div className="w-1 h-1 bg-white rounded-full animate-pulse" style={{ animationDelay: '0.6s' }}></div>
-                        </div>
-                      </div>
-                    ) : (
-                      <div className="flex items-center justify-center gap-2">
-                        <Image
-                          src="/icons/create-button.svg"
-                          alt="Create"
-                          width={20}
-                          height={20}
-                          className="w-5 h-5"
-                        />
-                        <span>Create</span>
-                      </div>
+                <div className="flex flex-col gap-3 md:flex-row">
+                  <button
+                    type="button"
+                    onClick={() => setIsUploadDialogOpen(true)}
+                    className="h-14 w-14 rounded-2xl border border-white/10 bg-white/[0.04] text-white flex items-center justify-center hover:bg-white/10 transition-all"
+                    title="Upload Audio"
+                  >
+                    <UploadCloud className="w-5 h-5" />
+                  </button>
+                  <button
+                    onClick={() => {
+                      handleGenerateWithAuth();
+                    }}
+                    disabled={isDisabled}
+                    className="flex-1 h-14 px-4 text-base font-semibold bg-gradient-create disabled:bg-muted disabled:bg-none border-transparent text-white disabled:text-muted-foreground shadow-lg disabled:shadow-none disabled:cursor-not-allowed transition-all duration-300 hover:-translate-y-1 hover:scale-[1.02] disabled:hover:translate-y-0 disabled:hover:scale-100 rounded-2xl relative overflow-hidden"
+                  >
+                    {!isDisabled && (
+                      <div className="absolute inset-0 -translate-x-full bg-gradient-to-r from-transparent via-white/30 to-transparent animate-shine"></div>
                     )}
-                  </div>
-                </button>
+                    <div className="relative z-10 flex items-center justify-center">
+                      {isGenerating ? (
+                        <div className="flex items-center justify-center gap-2">
+                          <span>Creating</span>
+                          <div className="flex items-center gap-1">
+                            <div className="w-1 h-1 bg-white rounded-full animate-pulse"></div>
+                            <div className="w-1 h-1 bg-white rounded-full animate-pulse" style={{ animationDelay: '0.3s' }}></div>
+                            <div className="w-1 h-1 bg-white rounded-full animate-pulse" style={{ animationDelay: '0.6s' }}></div>
+                          </div>
+                        </div>
+                      ) : (
+                        <div className="flex items-center justify-center gap-2">
+                          <Image
+                            src="/icons/create-button.svg"
+                            alt="Create"
+                            width={20}
+                            height={20}
+                            className="w-5 h-5"
+                          />
+                          <span>Create</span>
+                        </div>
+                      )}
+                    </div>
+                  </button>
+                </div>
               );
             })()}
           </div>
         </>
+      )}
+
+      <UploadAudioDialog
+        isOpen={isUploadDialogOpen}
+        onClose={() => setIsUploadDialogOpen(false)}
+        onTaskCreated={(taskId, initialTracks) => {
+          onUploadTaskCreated?.(taskId, initialTracks);
+        }}
+        onSuccess={async () => {
+          try {
+            await refreshCredits?.();
+          } catch (error) {
+            console.error('Failed to refresh credits after upload:', error);
+          }
+        }}
+        selectedModel={selectedModel}
+      />
+
+      <ModelSelectionDialog
+        isOpen={isModelDialogOpen}
+        onClose={() => setIsModelDialogOpen(false)}
+        selectedModel={selectedModel}
+        onSelectModel={(model) => {
+          if (setSelectedModel) {
+            setSelectedModel(model);
+          }
+        }}
+        hasSubscription={hasSubscription}
+        onShowPricing={() => setIsPricingOpen(true)}
+      />
+
+      {/* Pricing Dialog */}
+      {isPricingOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-4" onClick={() => setIsPricingOpen(false)}>
+          <div className="relative max-w-6xl w-full max-h-[90vh] overflow-y-auto bg-background rounded-2xl" onClick={(e) => e.stopPropagation()}>
+            <button
+              onClick={() => setIsPricingOpen(false)}
+              className="sticky top-4 right-4 float-right text-muted-foreground hover:text-foreground transition-colors z-10"
+            >
+              <X className="w-6 h-6" />
+            </button>
+            <div className="pt-8">
+              <PricingSection />
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );

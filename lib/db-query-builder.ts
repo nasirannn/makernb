@@ -214,10 +214,10 @@ export const getUserMusicGenerationsOptimized = async (
   const sql = `
     WITH user_generations AS (
       SELECT DISTINCT mg.id, mg.title, mg.genre, mg.tags, mg.prompt, mg.is_instrumental, mg.status, mg.created_at, mg.updated_at,
-             mg.is_extension, mg.original_music_id
+             mg.original_music_id, mg.type
       FROM music mg
       INNER JOIN tracks mt ON mg.id = mt.music_id
-      WHERE mg.user_id = $1::uuid 
+      WHERE mg.user_id = $1::uuid
         AND (mt.is_deleted IS NULL OR mt.is_deleted = FALSE)
       ORDER BY mg.created_at DESC
       LIMIT $2 OFFSET $3
@@ -227,11 +227,12 @@ export const getUserMusicGenerationsOptimized = async (
         ug.id as generation_id,
         ug.title, ug.genre, ug.tags, ug.prompt, ug.is_instrumental, ug.status,
         ug.created_at as generation_created_at, ug.updated_at as generation_updated_at,
-        ug.is_extension, ug.original_music_id,
+        ug.original_music_id, ug.type,
         mt.id as track_id, mt.suno_track_id, mt.audio_url, mt.stream_audio_url, mt.duration,
         mt.is_published, mt.is_pinned, mt.created_at as track_created_at,
         mt.cover_image_url as cover_r2_url,
         mt.original_track_id,
+        mt.source_type,
         COALESCE(mt.title, ug.title) as track_title,
         ml.content as lyrics_content,
         COALESCE(omt.title, omg.title) as original_track_title

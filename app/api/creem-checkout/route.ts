@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { supabase } from '@/lib/supabase';
+import { supabaseServer } from '@/lib/supabase-server';
 
 export const dynamic = 'force-dynamic';
 
@@ -25,8 +25,9 @@ export async function POST(request: NextRequest) {
     }
 
     const token = authHeader.split(' ')[1];
-    
-    const { data: { user }, error } = await supabase.auth.getUser(token);
+
+    // 验证token (使用服务端 Supabase client)
+    const { data: { user }, error } = await supabaseServer.auth.getUser(token);
 
     if (error || !user || user.id !== userId) {
       return NextResponse.json(

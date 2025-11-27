@@ -22,7 +22,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Slider } from "@/components/ui/slider";
-import { X, Music2, CreditCard, ChevronDown, ChevronUp, Play, Pause, HelpCircle } from "lucide-react";
+import { X, Music2, CreditCard, ChevronDown, ChevronUp, Play, Pause, HelpCircle, Maximize2 } from "lucide-react";
 import { Tooltip } from "@/components/ui/tooltip";
 import { ExtendMusicModel, getExtendMusicCredits } from '@/lib/credits-config';
 import { formatDuration } from '@/lib/format-utils';
@@ -37,7 +37,6 @@ export interface ExtendMusicParams {
   title?: string;
   continueAt?: number;
   // 可选高级参数
-  negativeTags?: string;
   vocalGender?: 'm' | 'f';
   styleWeight?: number;
   weirdnessConstraint?: number;
@@ -101,7 +100,6 @@ export const ExtendMusicDialog: React.FC<ExtendMusicDialogProps> = ({
   
   // ==================== 高级选项 ====================
   const [showAdvanced, setShowAdvanced] = useState(false);
-  const [negativeTags, setNegativeTags] = useState('');
   const [vocalGender, setVocalGender] = useState<'m' | 'f' | 'auto'>('auto');
   const [styleWeight, setStyleWeight] = useState(0.65);
   const [weirdnessConstraint, setWeirdnessConstraint] = useState(0.65);
@@ -243,7 +241,6 @@ export const ExtendMusicDialog: React.FC<ExtendMusicDialogProps> = ({
     setTitle('');
     setContinueAt(0);
     setShowAdvanced(false);
-    setNegativeTags('');
     setVocalGender('auto');
     setStyleWeight(0.65);
     setWeirdnessConstraint(0.65);
@@ -294,7 +291,6 @@ export const ExtendMusicDialog: React.FC<ExtendMusicDialogProps> = ({
         params.continueAt = continueAt;
 
         // 添加高级选项（如果有值）
-        if (negativeTags.trim()) params.negativeTags = negativeTags;
         if (vocalGender && vocalGender !== 'auto') params.vocalGender = vocalGender;
         if (styleWeight !== 0.65) params.styleWeight = styleWeight;
         if (weirdnessConstraint !== 0.65) params.weirdnessConstraint = weirdnessConstraint;
@@ -351,7 +347,6 @@ export const ExtendMusicDialog: React.FC<ExtendMusicDialogProps> = ({
     setTitle('');
     setContinueAt(0);
     setShowAdvanced(false);
-    setNegativeTags('');
     setVocalGender('auto');
     setStyleWeight(0.65);
     setWeirdnessConstraint(0.65);
@@ -393,7 +388,7 @@ export const ExtendMusicDialog: React.FC<ExtendMusicDialogProps> = ({
         {/* 固定头部 */}
         <AlertDialogHeader className="flex-shrink-0 px-6 pt-6 pb-4">
           <AlertDialogTitle className="flex items-center gap-2 pr-8">
-            <Music2 className="h-5 w-5 text-primary" />
+            <Maximize2 className="h-5 w-5" />
             <span>Extend Music</span>
           </AlertDialogTitle>
           <AlertDialogDescription>
@@ -602,23 +597,6 @@ export const ExtendMusicDialog: React.FC<ExtendMusicDialogProps> = ({
 
                 {showAdvanced && (
                   <div className="space-y-4 pl-4 border-l-2 border-primary/20">
-                    {/* Negative Tags */}
-                    <div className="space-y-2">
-                      <div className="flex items-center gap-2">
-                        <Label htmlFor="negativeTags">Negative Tags (Optional)</Label>
-                        <Tooltip content="Styles or features to avoid" position="right">
-                          <HelpCircle className="h-3.5 w-3.5 text-muted-foreground cursor-help" />
-                        </Tooltip>
-                      </div>
-                      <Input
-                        id="negativeTags"
-                        type="text"
-                        value={negativeTags}
-                        onChange={(e) => setNegativeTags(e.target.value)}
-                        placeholder="e.g., heavy metal, fast drums"
-                      />
-                    </div>
-
                     {/* Vocal Gender */}
                     <div className="space-y-2">
                       <Label>Vocal Gender (Optional)</Label>
@@ -781,13 +759,6 @@ export const ExtendMusicDialog: React.FC<ExtendMusicDialogProps> = ({
           {!hasEnoughCredits && (
             <div className="rounded-lg bg-destructive/10 p-3 text-sm text-destructive">
               Insufficient credits. You need {requiredCredits - (userCredits || 0)} more credits to extend this track.
-            </div>
-          )}
-
-          {/* 表单验证提示 */}
-          {!useDefaultParams && !isFormValid && (
-            <div className="rounded-lg bg-amber-500/10 p-3 text-sm text-amber-600 dark:text-amber-400">
-              Please fill in all required fields marked with *
             </div>
           )}
           </div>

@@ -16,12 +16,25 @@ export async function GET(
       return NextResponse.json({ success: true, data: { status: 'not_found' } });
     }
 
+    // 解析 content - 可能是 JSON 数组或普通字符串
+    let lyricsArray;
+    try {
+      lyricsArray = JSON.parse(record.content);
+      // 确保是数组格式
+      if (!Array.isArray(lyricsArray)) {
+        lyricsArray = [{ title: record.title, text: record.content }];
+      }
+    } catch {
+      // 如果解析失败，说明是旧格式的普通字符串
+      lyricsArray = [{ title: record.title, text: record.content }];
+    }
+
     return NextResponse.json({
       success: true,
       data: {
         status: record.status,
         title: record.title,
-        content: record.content,
+        lyrics: lyricsArray, // 返回歌词数组
         taskId: record.task_id,
       },
     });

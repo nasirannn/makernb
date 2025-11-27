@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { supabase } from '@/lib/supabase';
+import { supabaseServer } from '@/lib/supabase-server';
 import { grantDailyLoginCredits, hasReceivedTodayCredits } from '@/lib/daily-login-credits';
 
 export const dynamic = 'force-dynamic';
@@ -18,9 +18,9 @@ export async function POST(request: NextRequest) {
     }
 
     const token = authHeader.split(' ')[1];
-    
-    // 验证token
-    const { data: { user }, error } = await supabase.auth.getUser(token);
+
+    // 验证token (使用服务端 Supabase client)
+    const { data: { user }, error } = await supabaseServer.auth.getUser(token);
 
     if (error) {
       console.error('[daily-login-credits] Token validation error:', error.message);
@@ -107,10 +107,10 @@ export async function GET(request: NextRequest) {
     }
 
     const token = authHeader.split(' ')[1];
-    
-    // 验证token
-    const { data: { user }, error } = await supabase.auth.getUser(token);
-    
+
+    // 验证token (使用服务端 Supabase client)
+    const { data: { user }, error } = await supabaseServer.auth.getUser(token);
+
     if (error) {
       console.error('[daily-login-credits GET] Token validation error:', error.message);
       return NextResponse.json(

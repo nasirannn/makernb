@@ -20,7 +20,8 @@ interface TrackItemProps {
   canDownloadCover?: boolean;
   canVocalRemoval?: boolean;
   canExtendMusic?: boolean;
-  
+  canReplaceSection?: boolean;
+
   // 回调函数
   onSelect?: () => void;
   onPlayPause?: () => void;
@@ -29,6 +30,7 @@ interface TrackItemProps {
   onDownload?: (format: 'mp3' | 'wav' | 'cover') => void;
   onVocalRemoval?: () => void;
   onExtendMusic?: () => void;
+  onReplaceSection?: () => void;
   onDelete?: () => void;
   onPricingModalOpen?: () => void;
   onPublishToggle?: (trackId: string, isPublished: boolean) => void;
@@ -47,6 +49,7 @@ export const TrackItem: React.FC<TrackItemProps> = ({
   canDownloadCover = false,
   canVocalRemoval = false,
   canExtendMusic = false,
+  canReplaceSection = false,
   onSelect,
   onPlayPause,
   onFavoriteToggle,
@@ -54,6 +57,7 @@ export const TrackItem: React.FC<TrackItemProps> = ({
   onDownload,
   onVocalRemoval,
   onExtendMusic,
+  onReplaceSection,
   onDelete,
   onPricingModalOpen,
   onPublishToggle,
@@ -72,10 +76,10 @@ export const TrackItem: React.FC<TrackItemProps> = ({
   const title = track.title || track.musicTitle || 'Untitled Track';
   const tags = track.tags || track.musicTags;
   
-  // 检测是否为延长版本
-  const isExtension = track.isExtension || false;
-  const paddingClass = isExtension ? 'px-2 py-1.5' : 'px-2 py-2';
-  const gapClass = isExtension ? 'gap-3' : 'gap-4';
+  // 统一样式，不再区分延长版本
+  const isExtension = false; // 统一样式
+  const paddingClass = 'px-2 py-2';
+  const gapClass = 'gap-4';
   
   return (
     <div
@@ -116,8 +120,8 @@ export const TrackItem: React.FC<TrackItemProps> = ({
       />
       
       {/* Track Info */}
-      <div className={`flex-1 min-w-0 flex ${isExtension ? 'items-start' : 'items-center'} ${gapClass}`}>
-        <div className={`flex-1 min-w-0 flex ${isExtension ? 'items-start' : 'items-center'} ${isExtension ? 'h-12' : 'h-16'}`}>
+      <div className={`flex-1 min-w-0 flex items-center ${gapClass}`}>
+        <div className={`flex-1 min-w-0 flex items-center h-16`}>
           <div className="flex items-center justify-between gap-2 w-full">
             {/* 歌曲信息 */}
             <TrackInfo
@@ -131,6 +135,8 @@ export const TrackItem: React.FC<TrackItemProps> = ({
               isSelected={isSelected}
               showDuration={true}
               isExtension={isExtension}
+              originalTrackTitle={track.originalTrackTitle}
+              sourceType={track.sourceType}
             />
             
             {/* 操作按钮 - 桌面端 */}
@@ -147,11 +153,13 @@ export const TrackItem: React.FC<TrackItemProps> = ({
                   canDownloadCover={canDownloadCover}
                   canVocalRemoval={canVocalRemoval}
                   canExtendMusic={canExtendMusic}
+                  canReplaceSection={canReplaceSection}
                   onFavoriteToggle={onFavoriteToggle}
                   onShare={onShare}
                   onDownload={onDownload}
                   onVocalRemoval={onVocalRemoval}
                   onExtendMusic={onExtendMusic}
+                  onReplaceSection={onReplaceSection}
                   onDelete={onDelete}
                   onPricingModalOpen={onPricingModalOpen}
                   onPublishToggle={onPublishToggle}
@@ -194,11 +202,13 @@ export const TrackItem: React.FC<TrackItemProps> = ({
             canDownloadCover={canDownloadCover}
             canVocalRemoval={canVocalRemoval}
             canExtendMusic={canExtendMusic}
+            canReplaceSection={canReplaceSection}
             onFavoriteToggle={onFavoriteToggle}
             onShare={onShare}
             onDownload={onDownload}
             onVocalRemoval={onVocalRemoval}
             onExtendMusic={onExtendMusic}
+            onReplaceSection={onReplaceSection}
             onDelete={onDelete}
             onPricingModalOpen={onPricingModalOpen}
             onPublishToggle={onPublishToggle}

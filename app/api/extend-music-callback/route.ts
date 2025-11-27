@@ -348,6 +348,7 @@ async function processCallbackAsync(
               duration: track.duration,
               coverImageUrl: coverImageUrl, // 使用延长音乐接口返回的 image_url
               originalTrackId,
+              sourceType: 'extended', // 设置来源类型
             });
 
             console.log(`[EXTEND-CALLBACK-${callbackId}] Extended track created successfully:`, {

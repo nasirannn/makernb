@@ -9,9 +9,10 @@ export async function POST(request: NextRequest) {
   try {
     // 检查用户是否登录 - 使用统一的身份验证方式
     const userId = await getUserIdFromRequest(request);
+
     if (!userId) {
       return NextResponse.json(
-        { 
+        {
           error: 'Authentication required',
           message: 'Please log in to generate lyrics'
         },
@@ -50,8 +51,6 @@ export async function POST(request: NextRequest) {
     const baseUrl = process.env.KIE_API_BASE_URL || 'https://api.kie.ai';
     const apiUrl = `${baseUrl}/api/v1/lyrics`;
 
-    console.log('Generating lyrics with prompt:', prompt);
-
     const response = await fetch(apiUrl, {
       method: 'POST',
       headers: {
@@ -70,9 +69,7 @@ export async function POST(request: NextRequest) {
     }
 
     const data = await response.json();
-    
-    console.log('Lyrics API response:', JSON.stringify(data, null, 2));
-    
+
     // Check for API success
     if (data.code === 200) {
       const taskId = data.data?.taskId;
@@ -84,7 +81,6 @@ export async function POST(request: NextRequest) {
             title: 'Generating...', // 临时标题，回调时会更新
             content: prompt // 使用用户输入的prompt作为初始文本
           });
-          console.log(`Lyrics generation record created for taskId: ${taskId}, userId: ${userId}`);
         } catch (dbError) {
           console.error('Failed to create lyrics generation record:', dbError);
           // 不阻止API调用，继续执行
@@ -99,8 +95,6 @@ export async function POST(request: NextRequest) {
         });
       } else {
         // 没有taskId，说明生成失败（可能包含敏感词等）
-        console.log('Lyrics generation failed - no taskId received');
-
         try {
           // 创建失败的歌词生成记录
           const failedGeneration = await createLyricsGeneration(null, userId, {
@@ -116,9 +110,6 @@ export async function POST(request: NextRequest) {
             data.msg || 'Lyrics generation failed - may contain sensitive content',
             `API_ERROR_${data.code}`
           );
-
-          console.log('Failed lyrics generation record created');
-
         } catch (dbError) {
           console.error('Failed to create failed lyrics generation record:', dbError);
         }

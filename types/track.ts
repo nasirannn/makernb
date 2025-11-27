@@ -1,3 +1,5 @@
+import { MusicType } from './music';
+
 /**
  * 统一的Track类型定义
  * 用于解决项目中多个Track接口定义不一致的问题
@@ -17,12 +19,14 @@ export interface BaseTrack {
   lyrics?: string;
   createdAt?: string;
   isFavorited?: boolean;
+  musicType?: MusicType;
   
   // 扩展相关字段
   isExtension?: boolean; // 是否是扩展歌曲
   originalMusicId?: string; // 原始音乐任务 ID（兼容数据库字段 original_music_id）
   originalTrackId?: string; // 原始曲目 ID（兼容数据库字段 original_track_id）
   originalTrackTitle?: string; // 原始曲目标题（用于UI显示）
+  sourceType?: 'extended' | 'replace_section'; // 来源类型：扩展音乐或替换分区
 }
 
 // 音乐生成相关的Track接口

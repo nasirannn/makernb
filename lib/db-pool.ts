@@ -68,8 +68,6 @@ function createPool(): Pool {
   if (!process.env.DATABASE_URL) {
     throw new Error('DATABASE_URL environment variable is not set');
   }
-
-  console.log('[DB-POOL] Creating new Neon-optimized connection pool');
   
   const newPool = new Pool({
     connectionString: process.env.DATABASE_URL,
@@ -78,7 +76,6 @@ function createPool(): Pool {
 
   // 连接成功事件
   newPool.on('connect', (client: PoolClient) => {
-    console.log('[DB-POOL] Client connected');
     consecutiveErrors = 0; // 重置错误计数
   });
 
@@ -93,11 +90,6 @@ function createPool(): Pool {
       console.error('[DB-POOL] Too many consecutive errors, resetting pool');
       resetPool();
     }
-  });
-
-  // 客户端移除事件
-  newPool.on('remove', () => {
-    console.log('[DB-POOL] Client removed');
   });
 
   return newPool;
@@ -252,8 +244,6 @@ export async function query<T extends QueryResultRow = any>(
       // 成功后重置错误计数
       consecutiveErrors = 0;
 
-      console.log(`[DB-POOL] Query completed successfully in ${totalTime}ms (attempt ${attempt})`);
-
       return {
         rows: result.rows,
         rowCount: result.rowCount,
@@ -281,7 +271,6 @@ export async function query<T extends QueryResultRow = any>(
         let delayMs;
         if (isClosedPoolError) {
           // Pool 已关闭，立即重置并重试
-          console.log(`[DB-POOL] Closed pool detected, resetting immediately...`);
           pool = null; // 直接设置为 null，让 getPool() 重新创建
           delayMs = 100; // 短暂延迟
         } else if (isNeonConnectionError(error)) {
@@ -300,8 +289,6 @@ export async function query<T extends QueryResultRow = any>(
             await resetPool();
           }
         }
-
-        console.log(`[DB-POOL] Retrying in ${delayMs}ms...`);
         await new Promise(resolve => setTimeout(resolve, delayMs));
 
         continue;
@@ -323,7 +310,6 @@ export async function query<T extends QueryResultRow = any>(
   }
 
   const totalTime = Date.now() - startTime;
-  console.error(`[DB-POOL] Query failed after ${maxRetries} attempts in ${totalTime}ms:`, lastError?.message);
   throw lastError || new Error('Query failed after retries');
 }
 
@@ -423,7 +409,6 @@ export async function batchQuery<T = any>(
 export async function testConnection(): Promise<boolean> {
   try {
     const result = await query('SELECT NOW() as current_time');
-    console.log('[DB-POOL] Connection test successful:', result.rows[0]);
     return true;
   } catch (error) {
     console.error('[DB-POOL] Connection test failed:', error);
@@ -457,13 +442,10 @@ export function getPoolStats() {
  * 关闭连接池
  */
 export async function closePool(): Promise<void> {
-  console.log('[DB-POOL] Closing pool...');
-  
   if (pool) {
     try {
       await pool.end();
       pool = null;
-      console.log('[DB-POOL] Pool closed successfully');
     } catch (error) {
       console.error('[DB-POOL] Error closing pool:', error);
     }
@@ -486,22 +468,4 @@ export const pool_legacy = {
     return closePool();
   },
 };
-
-// ============================================================================
-// GRACEFUL SHUTDOWN
-// ============================================================================
-
-if (typeof process !== 'undefined') {
-  process.on('SIGINT', async () => {
-    console.log('[DB-POOL] SIGINT received, closing pool...');
-    await closePool();
-    process.exit(0);
-  });
-  
-  process.on('SIGTERM', async () => {
-    console.log('[DB-POOL] SIGTERM received, closing pool...');
-    await closePool();
-    process.exit(0);
-  });
-}
 

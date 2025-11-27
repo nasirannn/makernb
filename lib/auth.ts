@@ -1,5 +1,5 @@
 import { NextRequest } from 'next/server';
-import { supabase } from '@/lib/supabase';
+import { supabaseServer } from '@/lib/supabase-server';
 
 // ============================================================================
 // AUTH CACHE
@@ -88,6 +88,7 @@ export async function getUserIdFromRequest(
   useCache: boolean = true
 ): Promise<string | null> {
   try {
+
     const token = extractTokenFromRequest(request);
     if (!token) {
       return null;
@@ -101,9 +102,9 @@ export async function getUserIdFromRequest(
       }
     }
 
-    // Verify token with Supabase
+    // Verify token with Supabase (using server-side client with anon key)
     const startTime = Date.now();
-    const { data: { user }, error: authError } = await supabase.auth.getUser(token);
+    const { data: { user }, error: authError } = await supabaseServer.auth.getUser(token);
     const authDuration = Date.now() - startTime;
 
     // Log slow auth requests
@@ -122,7 +123,7 @@ export async function getUserIdFromRequest(
 
     return user.id;
   } catch (error) {
-    console.error('Error extracting user ID from request:', error);
+    console.error('[Auth] Error extracting user ID from request:', error);
     return null;
   }
 }
@@ -146,7 +147,7 @@ export function getUserIdFromRequestCacheOnly(request: NextRequest): string | nu
 export async function preloadAuthCache(tokens: string[]): Promise<void> {
   const promises = tokens.map(async (token) => {
     try {
-      const { data: { user }, error } = await supabase.auth.getUser(token);
+      const { data: { user }, error } = await supabaseServer.auth.getUser(token);
       if (!error && user) {
         authCache.set(token, user.id);
       }
@@ -193,7 +194,7 @@ export async function batchVerifyTokens(tokens: string[]): Promise<Map<string, s
   if (uncachedTokens.length > 0) {
     const promises = uncachedTokens.map(async (token) => {
       try {
-        const { data: { user }, error } = await supabase.auth.getUser(token);
+        const { data: { user }, error } = await supabaseServer.auth.getUser(token);
         if (!error && user) {
           authCache.set(token, user.id);
           return { token, userId: user.id };

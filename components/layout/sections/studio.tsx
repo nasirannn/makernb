@@ -60,6 +60,8 @@ const StudioContent = () => {
         isGenerating,
         generatedTracks,
         updateTracks,
+        selectedModel,
+        setSelectedModel,
     } = musicGeneration;
     const { user, signOut } = useAuth();
     const { credits, refreshCredits } = useCredits();
@@ -137,6 +139,7 @@ const StudioContent = () => {
         bassTone, setBassTone,
         vocalGender, setVocalGender,
         harmonyPalette, setHarmonyPalette,
+        trackExistingTask,
     } = musicGeneration;
 
     // 页面卸载时清理状态
@@ -1146,10 +1149,15 @@ const StudioContent = () => {
         onTrackUpdate: setSelectedStudioTrack,
         onTrackCompleted: handleTrackCompleted, // 🆕 添加单个歌曲完成的回调
         onAllTracksCompleted: async () => {
-            
+
             // 🔧 清理已处理的歌曲记录
             processedTracksRef.current.clear();
-            
+
+            // 🔧 刷新 userTracks，确保上传任务完成后同步到列表
+            if (user?.id) {
+                await fetchUserTracksRef.current();
+            }
+
             // 🔧 延迟清理，确保所有回调都已完成
             setTimeout(() => {
                 musicGeneration.updateTracks([]); // 清空生成的tracks
@@ -1264,6 +1272,9 @@ const StudioContent = () => {
         onGenerateLyrics: handleGenerateLyrics,
         isAuthModalOpen,
         setIsAuthModalOpen,
+        onUploadTaskCreated: trackExistingTask,
+        selectedModel,
+        setSelectedModel,
     }), [
         mode, setMode, selectedGenre, setSelectedGenre, selectedVibe, setSelectedVibe,
         customPrompt, setCustomPrompt, songTitle, setSongTitle, instrumentalMode, setInstrumentalMode,
@@ -1271,7 +1282,7 @@ const StudioContent = () => {
         leadInstrument, setLeadInstrument, drumKit, setDrumKit, bassTone, setBassTone,
         vocalGender, setVocalGender, harmonyPalette, setHarmonyPalette, bpmMode, setBpmMode,
         isGenerating, handleGenerationStart, handleGenerateLyrics,
-        isAuthModalOpen, setIsAuthModalOpen
+        isAuthModalOpen, setIsAuthModalOpen, trackExistingTask, selectedModel, setSelectedModel
     ]);
 
     // MusicPlayer 通用 props

@@ -53,11 +53,29 @@ export const FEATURE_CREDITS_CONFIG: Record<string, FeatureConfig> = {
     enabled: true,
     description: '从Studio曲目分离人声'
   },
+  upload_cover_music: {
+    name: 'Upload Cover Music',
+    credits: 12,
+    enabled: true,
+    description: '上传音频生成翻唱版本'
+  },
+  upload_extend_music: {
+    name: 'Upload Extend Music',
+    credits: 12,
+    enabled: true,
+    description: '上传音频生成延长版本'
+  },
   extend_music: {
     name: 'Extend Music',
     credits: 12, // 默认值，实际值根据模型版本而定
     enabled: true,
     description: '扩展音乐长度'
+  },
+  replace_section: {
+    name: 'Replace Section',
+    credits: 5, // 默认值，实际值根据模型版本而定
+    enabled: true,
+    description: '替换音乐分区'
   }
 } as const;
 
@@ -255,6 +273,11 @@ export const CLIENT_MUSIC_CREDITS = {
   custom: MUSIC_GENERATION_CONFIG.custom.credits
 } as const;
 
+export const CLIENT_UPLOAD_AUDIO_CREDITS = {
+  cover: FEATURE_CREDITS_CONFIG.upload_cover_music.credits,
+  extend: FEATURE_CREDITS_CONFIG.upload_extend_music.credits,
+} as const;
+
 /**
  * 客户端可用的 Extend Music 积分配置（根据模型版本）
  */
@@ -282,4 +305,3 @@ export const CLIENT_CREDITS = {
   /** Extend Music 积分消耗（根据模型版本，使用 CLIENT_EXTEND_MUSIC_CREDITS 替代） */
   EXTEND_MUSIC_CREDITS: FEATURE_CREDITS_CONFIG.extend_music.credits,
 } as const;
-

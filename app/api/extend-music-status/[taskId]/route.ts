@@ -34,14 +34,14 @@ export async function GET(
 
     // 查询任务记录
     const musicResult = await query(
-      `SELECT 
+      `SELECT
         m.id as music_id,
         m.task_id,
         m.title,
         m.genre,
         m.tags,
         m.status,
-        m.is_extension,
+        m.type,
         m.original_music_id,
         m.created_at,
         m.updated_at
@@ -60,11 +60,13 @@ export async function GET(
     }
 
     const music = musicResult.rows[0];
+    const musicType = music.type || 'generated';
     console.log(`[EXTEND-STATUS-${requestId}] Task found:`, {
       musicId: music.music_id,
       taskId: music.task_id,
       status: music.status,
       title: music.title,
+      type: musicType,
     });
 
     // 查询 tracks（格式与音乐生成接口一致）
@@ -176,4 +178,3 @@ export async function GET(
     );
   }
 }
-

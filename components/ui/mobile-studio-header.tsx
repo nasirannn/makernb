@@ -75,7 +75,7 @@ export const MobileStudioHeader = React.memo(({
     }, 1000);
 
     return () => clearTimeout(timer);
-  }, [user?.id]);
+  }, [user]);
 
   return (
     <div className="flex-shrink-0 px-6 py-4 bg-background/60 backdrop-blur-sm">

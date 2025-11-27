@@ -21,9 +21,9 @@ export async function DELETE(
       );
     }
 
-    // 使用优化的认证函数 - 带缓存
+    // 使用优化的认证函数 - 禁用缓存以排除缓存问题
     const authStartTime = Date.now();
-    const userId = await getUserIdFromRequest(request, true); // 启用缓存
+    const userId = await getUserIdFromRequest(request, false); // 禁用缓存
     const authDuration = Date.now() - authStartTime;
 
     if (!userId) {
@@ -35,8 +35,6 @@ export async function DELETE(
         { status: 401 }
       );
     }
-
-    console.log(`Delete track API called with trackId: ${trackId}, userId: ${userId} (auth: ${authDuration}ms)`);
 
     // 使用优化的删除函数
     const deleteStartTime = Date.now();

@@ -52,12 +52,17 @@ export const useLyricsGeneration = () => {
     setIsGeneratingLyrics(true);
 
     try {
-
       // 获取Supabase session token
-      const { data: { session } } = await supabase.auth.getSession();
-      
+      const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+
+      if (sessionError) {
+        console.error('Session error:', sessionError);
+        throw new Error('Failed to get session. Please try logging in again.');
+      }
+
       if (!session?.access_token) {
-        throw new Error('No valid session found');
+        console.error('No valid session found');
+        throw new Error('Please log in to generate lyrics.');
       }
 
       // 调用歌词生成API - 使用统一的身份验证方式
@@ -74,6 +79,12 @@ export const useLyricsGeneration = () => {
 
       if (!response.ok) {
         const errorData = await response.json();
+
+        // 如果是 401 错误，提示用户重新登录
+        if (response.status === 401) {
+          throw new Error('Your session has expired. Please log in again.');
+        }
+
         throw new Error(errorData.error || 'Lyrics generation failed');
       }
 

@@ -26,7 +26,7 @@ export async function POST(request: NextRequest) {
     }
 
     const requestData = await request.json();
-    console.log(`[MUSIC-GEN-${requestId}] Request: ${requestData.mode} mode, ${requestData.instrumentalMode ? 'instrumental' : 'with vocals'}`);
+    console.log(`[MUSIC-GEN-${requestId}] Request: ${requestData.mode} mode, ${requestData.instrumentalMode ? 'instrumental' : 'with vocals'}, model: ${requestData.model || 'V4_5'}`);
 
     // 从前端获取所有参数
     const {
@@ -36,7 +36,8 @@ export async function POST(request: NextRequest) {
       songTitle,
       styleText,
       vocalGender,
-      genre
+      genre,
+      model = 'V4_5' // 默认使用 V4.5
     } = requestData;
     if (mode === 'basic') {
       // Basic mode validation
@@ -50,9 +51,40 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // 验证模型权限（V3.5 之外的所有模型都需要订阅）
+    if (model !== 'V3_5') {
+      try {
+        const { hasFeaturePermission } = await import('@/lib/feature-permissions');
+        const modelFeatureCode = `model_${model.toLowerCase().replace('+', '_plus').replace('.', '_')}`;
+        const hasModelPermission = await hasFeaturePermission(userId, modelFeatureCode);
+
+        if (!hasModelPermission) {
+          console.log(`[MUSIC-GEN-${requestId}] Model ${model} requires subscription`);
+          return NextResponse.json(
+            {
+              error: 'Subscription required',
+              message: `Model ${model} requires a subscription. Please subscribe or use V3.5 model.`,
+              success: false
+            },
+            { status: 403 }
+          );
+        }
+      } catch (error) {
+        console.error(`[MUSIC-GEN-${requestId}] Error checking model permission:`, error);
+        return NextResponse.json(
+          {
+            error: 'Permission check failed',
+            message: 'Unable to verify model permissions',
+            success: false
+          },
+          { status: 500 }
+        );
+      }
+    }
+
     // 根据模式确定积分成本和模型版本
     const musicMode = mode === 'custom' ? 'custom' : 'basic';
-    const modelVersion = getMusicModel(musicMode);
+    const modelVersion = model; // 使用前端传递的模型
     const creditCost = getMusicCredits(musicMode);
 
     try {
@@ -119,7 +151,8 @@ export async function POST(request: NextRequest) {
       instrumentalMode,
       songTitle,
       styleText,
-      vocalGender
+      vocalGender,
+      model: modelVersion // 添加模型参数
     };
 
     // Generate music

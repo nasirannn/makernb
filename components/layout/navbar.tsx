@@ -238,7 +238,7 @@ export const Navbar = ({ credits = null }: NavbarProps) => {
     }, 1000);
 
     return () => clearTimeout(timer);
-  }, [user?.id]);
+  }, [user]);
 
   return (
     <header 
