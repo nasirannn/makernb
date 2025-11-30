@@ -1,6 +1,7 @@
 "use client";
 
 import React from 'react';
+import { Clock } from 'lucide-react';
 import { formatDuration, formatDateTime } from '@/lib/format-utils';
 
 interface TrackInfoProps {
@@ -39,6 +40,15 @@ export const TrackInfo: React.FC<TrackInfoProps> = ({
   const justifyClass = 'justify-center';
   const tagMarginClass = 'mt-0.5';
   const timeMarginClass = 'mt-1';
+  const parsedTags = React.useMemo(() => {
+    if (!tags) return [];
+    return tags
+      .split(/[,;.]/)
+      .map((tag) => tag.trim())
+      .filter(Boolean);
+  }, [tags]);
+  const visibleTags = parsedTags.slice(0, 3);
+  const hiddenTagCount = parsedTags.length > 3 ? parsedTags.length - 3 : 0;
   
   return (
     <div className={`flex-1 min-w-0 flex flex-col ${justifyClass} ${heightClass}`}>
@@ -73,56 +83,54 @@ export const TrackInfo: React.FC<TrackInfoProps> = ({
       
       {/* 标签和时长行 */}
       {!isError && (
-        <>
-          {tags && tags.trim() !== '' ? (
-            <div className={`flex items-center gap-2 ${tagMarginClass}`}>
-              {/* 时长显示在 tags 前面，用竖线分隔 */}
-              {showDuration && (
+        <div className={`flex items-center gap-2 ${tagMarginClass}`}>
+          {showDuration && (
+            <>
+              {duration && duration > 0 ? (
+                <span className={`${textSizeClass} text-muted-foreground whitespace-nowrap inline-flex items-center gap-1`}>
+                  <Clock className="h-3 w-3" />
+                  {formatDuration(duration)}
+                </span>
+              ) : isGenerating ? (
+                <div className="flex items-center gap-0.5 text-muted-foreground">
+                  <div className="w-1 h-1 bg-current rounded-full animate-pulse"></div>
+                  <div className="w-1 h-1 bg-current rounded-full animate-pulse" style={{ animationDelay: '0.3s' }}></div>
+                  <div className="w-1 h-1 bg-current rounded-full animate-pulse" style={{ animationDelay: '0.6s' }}></div>
+                </div>
+              ) : (
+                <span className={`${textSizeClass} text-muted-foreground whitespace-nowrap`}>
+                  --:--
+                </span>
+              )}
+            </>
+          )}
+
+          {visibleTags.length > 0 ? (
+            <>
+              <span className="h-3 w-px bg-muted-foreground/40" aria-hidden="true" />
+              <div className={`${textSizeClass} text-muted-foreground truncate flex-1`} title={tags}>
+                {visibleTags.map((tag, index) => (
+                  <span key={`${tag}-${index}`}>
+                  <span>{tag.length > 50 ? `${tag.slice(0, 50)}...` : tag}</span>
+                  {index < visibleTags.length - 1 && <span className="mx-1">•</span>}
+                </span>
+              ))}
+              {hiddenTagCount > 0 && (
                 <>
-                  {/* 如果有有效时长，显示格式化的时长 */}
-                  {duration && duration > 0 ? (
-                    <>
-                      <span className={`${textSizeClass} text-muted-foreground whitespace-nowrap`}>
-                        {formatDuration(duration)}
-                      </span>
-                      <span className={`${textSizeClass} text-muted-foreground/60`}>|</span>
-                    </>
-                  ) : (
-                    /* 如果正在生成且没有时长，显示旋转icon */
-                    isGenerating && (
-                      <>
-                        <div className="flex items-center gap-0.5">
-                          <div className="w-1 h-1 bg-muted-foreground rounded-full animate-pulse"></div>
-                          <div className="w-1 h-1 bg-muted-foreground rounded-full animate-pulse" style={{ animationDelay: '0.3s' }}></div>
-                          <div className="w-1 h-1 bg-muted-foreground rounded-full animate-pulse" style={{ animationDelay: '0.6s' }}></div>
-                        </div>
-                        <span className={`${textSizeClass} text-muted-foreground/60`}>|</span>
-                      </>
-                    )
-                  )}
+                  {visibleTags.length > 0 && <span className="mx-1">•</span>}
+                  <span className="whitespace-nowrap">+{hiddenTagCount} more</span>
                 </>
               )}
-              <p 
-                className={`${textSizeClass} text-muted-foreground truncate flex-1`}
-                title={tags}
-              >
-                {tags.split(/[,;.]/).filter((tag: string) => tag.trim()).map((tag: string, index: number, array: string[]) => (
-                  <span key={index}>
-                    <span>{tag.trim()}</span>
-                    {index < array.length - 1 && <span className="mx-1">•</span>}
-                  </span>
-                ))}
-                {tags.length > 100 && '...'}
-              </p>
             </div>
+            </>
           ) : (
             isGenerating && (
-              <p className={`${textSizeClass} text-muted-foreground truncate ${tagMarginClass}`}>
+              <p className={`${textSizeClass} text-muted-foreground truncate flex-1`}>
                 Generating your track, please wait...
               </p>
             )
           )}
-        </>
+        </div>
       )}
 
       {/* 错误提示 */}
@@ -141,4 +149,3 @@ export const TrackInfo: React.FC<TrackInfoProps> = ({
     </div>
   );
 };
-

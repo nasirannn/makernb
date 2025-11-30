@@ -1,69 +1,46 @@
 "use client";
 
-import React, { useState, useEffect } from 'react';
+import React, { useEffect, useMemo, useState } from "react";
 import { Button } from "@/components/ui/button";
-import { ChevronLeft, Share2, Download, Clock, Calendar, Play, Pause, Star, Check, Eye, EyeOff, MoreHorizontal, Pencil, Trash2, Pin, PinOff } from "lucide-react";
+import {
+  Calendar,
+  Check,
+  ChevronLeft,
+  Clock,
+  Download,
+  Pause,
+  Play,
+  Share2
+} from "lucide-react";
 import Image from "next/image";
 import { LoadingDots } from "./loading-dots";
 import { CassetteTape } from "./cassette-tape";
-import { toast } from 'sonner';
+import { toast } from "sonner";
 import { useAudioPlayingState } from "@/hooks/use-audio-playing-state";
 import { getEventBus, COVER_EVENTS, TRACK_EVENTS } from "@/lib/event-bus";
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
+  DropdownMenuTrigger
 } from "@/components/ui/dropdown-menu";
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from "@/components/ui/alert-dialog";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
-import { Input } from "@/components/ui/input";
 import { formatDateTime } from "@/lib/format-utils";
+import { FooterSection } from "@/components/layout/sections/footer";
+import { useAuth } from "@/contexts/AuthContext";
+import AuthModal from "@/components/ui/auth-modal";
+import { usePricingModal } from "@/contexts/PricingModalContext";
+import { useFeaturePermissions } from "@/contexts/FeaturePermissionsContext";
 
 interface TrackDetailViewProps {
-  // 优先使用 trackData，如果没有则使用 trackId 请求API
   trackData?: TrackInfo;
   trackId?: string;
   onBack: () => void;
-  // 播放状态相关props（通过 EventBus 自动获取，不再需要 props 传递）
-  // currentPlayingTrackId?: string | null; // ❌ 冗余 - 使用 EventBus
-  // isPlaying?: boolean; // ❌ 冗余 - 使用 EventBus
   onPlayTrack?: (trackInfo: TrackInfo) => void;
-  // 操作按钮回调
-  onFavoriteToggle?: (trackId: string, isFavorited: boolean) => void;
-  onDownload?: (trackInfo: TrackInfo, format: 'mp3' | 'wav' | 'cover') => void;
-  isFavorited?: boolean;
-  // 更多操作回调
-  onPublishToggle?: (trackId: string, isPublished: boolean) => void;
-  onEditTitle?: (trackId: string, newTitle: string) => void;
-  onEditMusicInfo?: (trackId: string, data: { title: string; coverImageUrl?: string }) => Promise<void>;
-  onDelete?: (trackId: string) => void;
-  onPinToggle?: (trackId: string, isPinned: boolean) => void;
-  isPublished?: boolean;
-  isPinned?: boolean;
-  isAdmin?: boolean;
-  // 用户权限
-  currentUserId?: string | null;
+  onDownload?: (trackInfo: TrackInfo, format: "mp3" | "wav") => void;
+  fullPage?: boolean;
 }
 
-interface TrackInfo {
+export interface TrackInfo {
   id: string;
   title: string;
   tags: string;
@@ -78,125 +55,66 @@ interface TrackInfo {
   status?: string;
 }
 
-export const TrackDetailView: React.FC<TrackDetailViewProps> = ({ 
-  trackData, 
-  trackId, 
-  onBack,
+export const TrackDetailView: React.FC<TrackDetailViewProps> = ({
+  trackData,
+  trackId,
+  onBack: _onBack,
   onPlayTrack,
-  onFavoriteToggle,
   onDownload,
-  isFavorited = false,
-  onPublishToggle,
-  onEditTitle,
-  onDelete,
-  onPinToggle,
-  isPublished = false,
-  isPinned = false,
-  isAdmin = false,
-  currentUserId = null
+  fullPage = false
 }) => {
   const [trackInfo, setTrackInfo] = useState<TrackInfo | null>(trackData || null);
-  const [isLoading, setIsLoading] = useState(!trackData); // 如果有数据，不显示loading
+  const [isLoading, setIsLoading] = useState(!trackData);
   const [error, setError] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
-  const [showAllTags, setShowAllTags] = useState(false);
-  const [shouldShowTagsToggle, setShouldShowTagsToggle] = useState(false);
-  const tagsRef = React.useRef<HTMLParagraphElement | null>(null);
-  
-  // 使用 EventBus 监听播放状态
+  const [downloadMenuOpen, setDownloadMenuOpen] = useState(false);
+  const [authModalOpen, setAuthModalOpen] = useState(false);
+
   const audioState = useAudioPlayingState({ trackId: trackInfo?.id });
-  
-  // 调试：监控播放状态变化
-  React.useEffect(() => {
-  }, [audioState.isPlaying, audioState.currentPlayingTrackId, audioState.isCurrentTrack, trackInfo?.id, trackInfo?.title]);
-  
-  // 编辑和删除状态
-  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
-  const [editingTitle, setEditingTitle] = useState("");
-  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
-  
-  // 判断当前用户是否是歌曲所有者
-  const isOwner = React.useMemo(() => {
-    if (!currentUserId || !trackInfo?.userId) {
-      return false;
-    }
-    const owner = currentUserId === trackInfo.userId;
-    return owner;
-  }, [currentUserId, trackInfo?.userId]);
-  
-  // 判断歌曲是否在生成中或未完成
-  const isGenerating = React.useMemo(() => {
-    if (!trackInfo) return false;
-    // 如果没有音频URL，说明还未生成完成
-    if (!trackInfo.audioUrl) return true;
-    // 检查 status 是否为生成中
-    const generating = trackInfo.status === 'generating' || trackInfo.status === 'pending';
-    return generating;
-  }, [trackInfo]);
-  
-  // 计算最终的收藏状态：优先使用 prop，其次是 trackInfo
-  const finalIsFavorited = React.useMemo(() => {
-    // 如果 prop 有定义，优先使用 prop（父组件知道最新状态）
-    if (isFavorited !== undefined) {
-      return isFavorited;
-    }
-    // 否则使用 trackInfo 中的值
-    return trackInfo?.isFavorited ?? false;
-  }, [isFavorited, trackInfo?.isFavorited]);
-  
-  // 调试：监控收藏状态
-  React.useEffect(() => {
-  }, [finalIsFavorited, trackInfo?.isFavorited, isFavorited, trackInfo?.id]);
+  const { user } = useAuth();
+  const { openModal: openPricingModal } = usePricingModal();
+  const { hasPermission } = useFeaturePermissions();
 
-
-  // 获取歌曲详情（仅在没有直接提供数据时）
   useEffect(() => {
-    // 如果已经有trackData，直接使用，不请求API
     if (trackData) {
       setTrackInfo(trackData);
       setIsLoading(false);
       return;
     }
 
-    // 如果没有trackData但有trackId，请求API
     if (!trackData && trackId) {
       const fetchTrackInfo = async () => {
         try {
           setIsLoading(true);
           setError(null);
-          
           const response = await fetch(`/api/track-info/${trackId}`);
-          
           if (!response.ok) {
-            throw new Error('Failed to fetch track info');
+            throw new Error("Failed to fetch track info");
           }
-          
           const data = await response.json();
-          
-          // API 返回 { success: true, track: {...} } 格式
           if (data.success && data.track) {
             const apiTrack = data.track;
             setTrackInfo({
               id: apiTrack.id,
               title: apiTrack.title,
-              tags: apiTrack.tags || '',
-              lyrics: apiTrack.lyrics || '',
+              tags: apiTrack.tags || "",
+              lyrics: apiTrack.lyrics || "",
               coverImage: apiTrack.coverImage,
-              audioUrl: apiTrack.audioUrl || '',
+              audioUrl: apiTrack.audioUrl || "",
               createdAt: apiTrack.createdAt,
-              duration: apiTrack.duration?.toString() || '0',
+              duration: apiTrack.duration?.toString() || "0",
               isPublished: apiTrack.isPublished || false,
               isFavorited: apiTrack.isFavorited || false,
               userId: apiTrack.userId,
               status: apiTrack.status
             });
           } else {
-            throw new Error('Invalid response format');
+            throw new Error("Invalid response format");
           }
         } catch (err) {
-          console.error('Error fetching track info:', err);
-          setError('Failed to load track information');
-          toast.error('Failed to load track');
+          console.error("Error fetching track info:", err);
+          setError("Failed to load track information");
+          toast.error("Failed to load track");
         } finally {
           setIsLoading(false);
         }
@@ -206,716 +124,318 @@ export const TrackDetailView: React.FC<TrackDetailViewProps> = ({
     }
   }, [trackData, trackId]);
 
-  // 监听封面更新事件（通过 EventBus）
   useEffect(() => {
-    // 只在客户端执行
-    if (typeof window === 'undefined') return;
-    
+    if (typeof window === "undefined" || !trackInfo?.id) return;
     const eventBus = getEventBus();
-    
-    // 封面更新事件处理
+
     const handleCoverUpdated = (data: { trackId: string; coverUrl: string }) => {
-      
-      // 只更新当前歌曲的封面
       if (trackInfo?.id === data.trackId) {
-        setTrackInfo(prev => {
+        setTrackInfo((prev) => {
           if (!prev) return prev;
           return {
             ...prev,
             coverImage: data.coverUrl
           };
         });
-        
       }
     };
-    
-    // 注册事件监听器
+
     eventBus.on(COVER_EVENTS.UPDATED, handleCoverUpdated);
-    
-    
-    // 清理事件监听器
     return () => {
       eventBus.off(COVER_EVENTS.UPDATED, handleCoverUpdated);
     };
   }, [trackInfo?.id]);
 
-  // 监听歌曲完成事件（通过 EventBus）
   useEffect(() => {
-    // 只在客户端执行
-    if (typeof window === 'undefined') return;
-    
+    if (typeof window === "undefined" || !trackInfo?.id) return;
     const eventBus = getEventBus();
-    
-    // 歌曲完成事件处理
+
     const handleTrackCompleted = (data: { trackId: string; duration: number; audioUrl: string }) => {
-      
-      // 只更新当前歌曲的信息
       if (trackInfo?.id === data.trackId) {
-        setTrackInfo(prev => {
+        setTrackInfo((prev) => {
           if (!prev) return prev;
           return {
             ...prev,
             duration: data.duration.toString(),
             audioUrl: data.audioUrl,
-            status: 'complete' // 更新状态为已完成
+            status: "complete"
           };
         });
       }
     };
-    
-    // 注册事件监听器
+
     eventBus.on(TRACK_EVENTS.COMPLETED, handleTrackCompleted);
-    
-    // 清理事件监听器
     return () => {
       eventBus.off(TRACK_EVENTS.COMPLETED, handleTrackCompleted);
     };
   }, [trackInfo?.id]);
 
-  // 解析 tags（放在早期，确保下面的 hook 顺序稳定）
-  const tagsArray = React.useMemo(
-    () => trackInfo?.tags ? trackInfo.tags.split(',').map(tag => tag.trim()) : [],
-    [trackInfo?.tags]
-  );
-  
-  // 创建稳定的 tags 字符串用于依赖项检查
-  const tagsString = React.useMemo(() => tagsArray.join(' · '), [tagsArray]);
+  const tagsArray = useMemo(() => {
+    return trackInfo?.tags ? trackInfo.tags.split(/[,，]/).map((tag: string) => tag.trim()).filter(Boolean) : [];
+  }, [trackInfo?.tags]);
 
-  // 仅当 tags 超过两行时显示"展开/收起"按钮（保持在任何 return 之前，避免 Hook 顺序变化）
-  React.useEffect(() => {
-    const evaluate = () => {
-      if (!tagsRef.current) {
-        setShouldShowTagsToggle(false);
-        return;
-      }
-      const el = tagsRef.current;
-      const computed = window.getComputedStyle(el);
-      const lineHeightValue = parseFloat(computed.lineHeight || '0');
-      const lineHeight = Number.isFinite(lineHeightValue) && lineHeightValue > 0 ? lineHeightValue : 20;
+  const isPlayable = Boolean(trackInfo?.audioUrl && onPlayTrack);
+  const isDownloadable = Boolean(trackInfo?.audioUrl && onDownload);
+  const canDownloadTrack = hasPermission("download_mp3_track") || hasPermission("download_wav_track");
 
-      const prevWebkitLineClamp = (el.style as any).webkitLineClamp;
-      (el.style as any).webkitLineClamp = 'unset';
-      const naturalHeight = el.scrollHeight;
-      (el.style as any).webkitLineClamp = prevWebkitLineClamp || '';
+  const ensureDownloadAccess = React.useCallback(() => {
+    if (!isDownloadable) return false;
+    if (!user) {
+      setAuthModalOpen(true);
+      return false;
+    }
+    if (!canDownloadTrack) {
+      openPricingModal();
+      return false;
+    }
+    return true;
+  }, [isDownloadable, user, canDownloadTrack, openPricingModal]);
 
-      const twoLinesHeight = lineHeight * 2;
-      setShouldShowTagsToggle(naturalHeight > twoLinesHeight + 1);
-    };
+  const formatDuration = (duration: string | number) => {
+    const seconds = typeof duration === "string" ? parseFloat(duration) : duration;
+    if (isNaN(seconds) || seconds <= 0) {
+      return "0:00";
+    }
+    const minutes = Math.floor(seconds / 60);
+    const remainingSeconds = Math.floor(seconds % 60);
+    return `${minutes}:${remainingSeconds.toString().padStart(2, "0")}`;
+  };
 
-    const id = window.requestAnimationFrame(evaluate);
-    const onResize = () => evaluate();
-    window.addEventListener('resize', onResize);
-    return () => {
-      window.cancelAnimationFrame(id);
-      window.removeEventListener('resize', onResize);
-    };
-  }, [tagsString, showAllTags]);
+  const handleShare = () => {
+    if (!trackInfo) return;
+    const url = `${window.location.origin}/track/${trackInfo.id}`;
+    navigator.clipboard.writeText(url).then(() => {
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    });
+  };
 
-  // 加载状态
   if (isLoading) {
+    const loadingContainerClasses = fullPage
+      ? "flex min-h-screen w-full items-center justify-center bg-background"
+      : "flex h-full w-full items-center justify-center bg-background";
+
     return (
-      <div className="w-full h-full flex items-center justify-center bg-background">
+      <div className={loadingContainerClasses}>
         <LoadingDots size="lg" />
       </div>
     );
   }
 
-  // 错误状态
   if (error || !trackInfo) {
     return (
-      <div className="w-full h-full flex flex-col items-center justify-center bg-background p-6">
-        <p className="text-muted-foreground mb-4">{error || 'Track not found'}</p>
-        <Button onClick={onBack} variant="outline">
-          <ChevronLeft className="mr-2 h-4 w-4" />
+      <div className="flex h-full w-full flex-col items-center justify-center bg-background p-6 text-center space-y-4">
+        <p className="text-muted-foreground">{error || "Track not found"}</p>
+        <Button onClick={_onBack} variant="outline" className="gap-2">
+          <ChevronLeft className="h-4 w-4" />
           Back to List
         </Button>
       </div>
     );
   }
 
-
-  // 格式化时长
-  const formatDuration = (duration: string | number) => {
-    const seconds = typeof duration === 'string' ? parseFloat(duration) : duration;
-    
-    // 处理 NaN 或无效值
-    if (isNaN(seconds) || seconds <= 0) {
-      return '0:00';
-    }
-    
-    const minutes = Math.floor(seconds / 60);
-    const remainingSeconds = Math.floor(seconds % 60);
-    return `${minutes}:${remainingSeconds.toString().padStart(2, '0')}`;
-  };
-
-  return (
-    <div className="relative w-full h-full overflow-y-auto overscroll-contain">
-      <div 
-        className="pointer-events-none fixed inset-0 bg-cover bg-center bg-no-repeat opacity-5"
-        style={{ backgroundImage: "url('/bg-studio-background.webp')" }}
-      />
-      <div className="relative z-10">
-      {/* 返回按钮 */}
-      <div className="sticky top-4 z-20 pl-4 sm:pl-6 lg:pl-8">
-        <Button
-          onClick={onBack}
-          variant="ghost"
-          size="sm"
-          className="flex items-center gap-2 rounded-full border border-white/10 bg-black/30 text-white hover:bg-black/50"
-        >
-          <ChevronLeft className="h-5 w-5" />
-          <span>Back</span>
-        </Button>
-      </div>
-
-      {/* 主内容容器 */}
-      <div className="relative">
-        {/* 内容区域 */}
-        <div className="px-4 sm:px-6 lg:px-8 py-8">
-          {/* 桌面端：封面图和标题区域 */}
-          <div className="grid grid-cols-1 lg:grid-cols-[256px_1fr] gap-8 mb-8">
-            {/* 左侧：封面图 */}
-            {trackInfo?.coverImage ? (
-              <div className="relative w-full aspect-square rounded-xl overflow-hidden shadow-lg">
+  const detailContent = (
+    <div className="mx-auto flex w-full max-w-[1040px] flex-col gap-10 text-white">
+      <div className="w-full rounded-[32px] border border-white/10 bg-[radial-gradient(circle_at_top,_rgba(156,56,255,0.18),transparent_60%)] bg-gradient-to-br from-[rgba(33,18,55,0.95)] via-[rgba(12,16,34,0.95)] to-[rgba(5,7,18,0.93)] text-white shadow-[0_25px_80px_rgba(0,0,0,0.6)] backdrop-blur-2xl">
+        <div className="flex flex-col items-center gap-10 p-6 sm:p-10 lg:flex-row lg:items-stretch">
+          <div className="relative flex w-full justify-center lg:w-auto">
+            <div className="absolute inset-y-8 h-72 w-72 -translate-y-6 rounded-full bg-[#a855f7]/30 blur-3xl" />
+            <div className="relative flex h-64 w-64 items-center justify-center rounded-full border border-white/15 bg-black/40 shadow-[0_20px_60px_rgba(0,0,0,0.55)] overflow-hidden">
+              {trackInfo.coverImage ? (
                 <Image
                   src={trackInfo.coverImage}
                   alt={trackInfo.title}
                   fill
-                  className="object-cover"
+                  sizes="(min-width: 1024px) 16rem, 80vw"
+                  className="rounded-full object-cover"
                   priority
                 />
-              </div>
-            ) : (
-              <div className="relative w-full aspect-square flex items-center justify-center">
-                <CassetteTape 
-                  className="w-full h-full"
-                  isPlaying={audioState.isPlaying && audioState.isCurrentTrack}
-                />
-              </div>
-            )}
-
-            {/* 右侧：歌曲信息（播放按钮与封面图底部对齐）*/}
-            <div className="hidden lg:flex lg:flex-col lg:h-[256px]">
-              {/* 上方内容区域 */}
-              <div className="space-y-4">
-                <h1 className="text-4xl font-bold tracking-tight">{trackInfo.title}</h1>
-                
-                {/* Tags */}
-                {tagsArray.length > 0 && (
-                  <div className="flex flex-wrap items-center gap-2 text-sm text-muted-foreground">
-                    {tagsArray.map((tag, index) => (
-                      <span key={index}>
-                        {tag}
-                      </span>
-                    ))}
-                  </div>
-                )}
-
-                {/* 元数据 */}
-                <div className="flex items-center gap-4 text-sm text-muted-foreground">
-                  <div className="flex items-center gap-1">
-                    <Calendar className="h-4 w-4" />
-                    <span>{formatDateTime(trackInfo.createdAt)}</span>
-                  </div>
-                  {trackInfo.duration && (
-                    <div className="flex items-center gap-1">
-                      <Clock className="h-4 w-4" />
-                      <span>{formatDuration(trackInfo.duration)}</span>
-                    </div>
-                  )}
+              ) : (
+                <div className="flex h-full w-full items-center justify-center bg-black/60">
+                  <CassetteTape
+                    className="h-[210px] w-[210px]"
+                    isPlaying={audioState.isPlaying && audioState.isCurrentTrack}
+                  />
                 </div>
-              </div>
-
-              {/* 播放和操作按钮 - 与封面图底部对齐 */}
-              <div className="flex-1 flex items-end gap-3">
-                <Button
-                  variant="outline"
-                  size="icon"
-                  className="h-10 w-20 bg-primary text-primary-foreground border-primary hover:bg-primary/90 hover:text-primary-foreground"
-                  onClick={() => {
-                    if (trackInfo && onPlayTrack) {
-                      onPlayTrack(trackInfo);
-                    }
-                  }}
-                  aria-label={audioState.isPlaying && audioState.isCurrentTrack ? "Pause" : "Play"}
-                >
-                  {audioState.isPlaying && audioState.isCurrentTrack ? (
-                    <Pause className="h-5 w-5 fill-current" />
-                  ) : (
-                    <Play className="h-5 w-5 fill-current" />
-                  )}
-                </Button>
-
-                {/* 操作按钮组 */}
-                <div className="flex items-center gap-2">
-                  {/* 收藏按钮 - 仅所有者可见，且非生成中 */}
-                  {!isGenerating && isOwner && onFavoriteToggle && (
-                    <Button
-                      variant="outline"
-                      size="icon"
-                      className={`h-10 w-10 ${
-                        finalIsFavorited
-                          ? 'text-red-500 hover:bg-red-50' 
-                          : 'hover:text-red-500'
-                      }`}
-                      onClick={() => {
-                        if (trackInfo) {
-                          // 调用父组件的回调
-                          onFavoriteToggle(trackInfo.id, finalIsFavorited);
-                        }
-                      }}
-                      aria-label={finalIsFavorited ? "Remove from library" : "Add to library"}
-                    >
-                      <Star className={`h-5 w-5 ${finalIsFavorited ? 'fill-current' : ''}`} />
-                    </Button>
-                  )}
-
-                  {/* 分享按钮 - 所有人可见，且非生成中 */}
-                  {!isGenerating && (
-                    <Button
-                      variant="outline"
-                      size="icon"
-                      className={`h-10 w-10 transition-colors ${
-                        copied ? 'text-green-500 border-green-500' : ''
-                      }`}
-                      onClick={() => {
-                        if (trackInfo) {
-                          const url = `${window.location.origin}/studio?track=${trackInfo.id}`;
-                          navigator.clipboard.writeText(url).then(() => {
-                            setCopied(true);
-                            setTimeout(() => setCopied(false), 2000);
-                          });
-                        }
-                      }}
-                      aria-label="Share track"
-                    >
-                      {copied ? (
-                        <Check className="h-5 w-5" />
-                      ) : (
-                        <Share2 className="h-5 w-5" />
-                      )}
-                    </Button>
-                  )}
-
-                  {/* 下载按钮（下拉） - 仅所有者可见，且非生成中 */}
-                  {!isGenerating && isOwner && onDownload && trackInfo && (
-                    <DropdownMenu>
-                      <DropdownMenuTrigger asChild>
-                        <Button
-                          variant="outline"
-                          size="icon"
-                          className="h-10 w-10"
-                          aria-label="Download options"
-                        >
-                          <Download className="h-5 w-5" />
-                        </Button>
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent align="end" className="w-56">
-                        <DropdownMenuItem
-                          className="cursor-pointer"
-                          onClick={() => onDownload(trackInfo, 'mp3')}
-                        >
-                          Download MP3
-                        </DropdownMenuItem>
-                        <DropdownMenuItem
-                          className="cursor-pointer"
-                          onClick={() => onDownload(trackInfo, 'wav')}
-                        >
-                          Download WAV
-                        </DropdownMenuItem>
-                        
-                      </DropdownMenuContent>
-                    </DropdownMenu>
-                  )}
-
-                  {/* 更多操作按钮 - 仅所有者可见，且非生成中 */}
-                  {!isGenerating && isOwner && (
-                    <DropdownMenu>
-                      <DropdownMenuTrigger asChild>
-                        <Button
-                          variant="outline"
-                          size="icon"
-                          className="h-10 w-10"
-                        >
-                          <MoreHorizontal className="h-5 w-5" />
-                        </Button>
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent align="end" className="w-48">
-                        {/* 发布/取消发布 */}
-                        {onPublishToggle && (
-                          <DropdownMenuItem
-                            onClick={() => {
-                              if (trackInfo) {
-                                onPublishToggle(trackInfo.id, isPublished);
-                              }
-                            }}
-                            className="cursor-pointer"
-                          >
-                            {isPublished ? (
-                              <>
-                                <EyeOff className="mr-2 h-4 w-4" />
-                                Unpublish
-                              </>
-                            ) : (
-                              <>
-                                <Eye className="mr-2 h-4 w-4" />
-                                Publish
-                              </>
-                            )}
-                          </DropdownMenuItem>
-                        )}
-
-                        {/* 编辑标题 */}
-                        {onEditTitle && (
-                          <DropdownMenuItem
-                            onClick={() => {
-                              if (trackInfo) {
-                                setEditingTitle(trackInfo.title);
-                                setIsEditDialogOpen(true);
-                              }
-                            }}
-                            className="cursor-pointer"
-                          >
-                            <Pencil className="mr-2 h-4 w-4" />
-                            Edit Title
-                          </DropdownMenuItem>
-                        )}
-
-                        {/* Pin/Unpin - 仅管理员可见 */}
-                        {isAdmin && onPinToggle && (
-                          <DropdownMenuItem
-                            onClick={() => {
-                              if (trackInfo) {
-                                onPinToggle(trackInfo.id, isPinned);
-                              }
-                            }}
-                            className="cursor-pointer"
-                          >
-                            {isPinned ? (
-                              <PinOff className="mr-2 h-4 w-4" />
-                            ) : (
-                              <Pin className="mr-2 h-4 w-4" />
-                            )}
-                            {isPinned ? "Unpin" : "Pin"}
-                          </DropdownMenuItem>
-                        )}
-
-                        {/* 删除 */}
-                        {onDelete && (
-                          <>
-                            {(onPublishToggle || onEditTitle || (isAdmin && onPinToggle)) && <DropdownMenuSeparator />}
-                            <DropdownMenuItem
-                              onClick={() => {
-                                setDeleteDialogOpen(true);
-                              }}
-                              className="cursor-pointer text-destructive focus:text-destructive"
-                            >
-                              <Trash2 className="mr-2 h-4 w-4" />
-                              Delete
-                            </DropdownMenuItem>
-                          </>
-                        )}
-                      </DropdownMenuContent>
-                    </DropdownMenu>
-                  )}
-                </div>
-              </div>
+              )}
             </div>
           </div>
 
-          {/* 移动端：歌曲信息 */}
-          <div className="lg:hidden space-y-4 mt-6">
-            <h1 className="text-3xl font-bold tracking-tight">{trackInfo.title}</h1>
-            
-            {/* Tags */}
+          <div className="flex w-full flex-col gap-6 text-left text-white/90 lg:w-[640px]">
+            <div className="space-y-3">
+              <h1 className="text-4xl font-semibold leading-tight tracking-tight drop-shadow-[0_6px_25px_rgba(0,0,0,0.55)] sm:text-5xl">
+                {trackInfo.title}
+              </h1>
+            </div>
+
             {tagsArray.length > 0 && (
-              <div className="space-y-2">
-                <p ref={tagsRef} className={`text-sm text-muted-foreground ${showAllTags ? '' : 'line-clamp-2'}`}>
-                  {tagsArray.join(' · ')}
-                </p>
-                {shouldShowTagsToggle && (
-                  <button
-                    type="button"
-                    onClick={() => setShowAllTags(prev => !prev)}
-                    className="text-xs text-primary hover:underline"
+              <div className="flex flex-wrap gap-2 text-sm">
+                {tagsArray.map((tag, index) => (
+                  <span
+                    key={`${tag}-${index}`}
+                    className="rounded-full border border-white/15 bg-white/10 px-3 py-1 font-medium text-white/90 shadow-[0_4px_12px_rgba(0,0,0,0.25)]"
                   >
-                    {showAllTags ? 'Show less' : 'Show more'}
-                  </button>
-                )}
+                    {tag}
+                  </span>
+                ))}
               </div>
             )}
 
-            {/* 元数据 */}
-            <div className="flex items-center gap-4 text-sm text-muted-foreground">
-              <div className="flex items-center gap-1">
-                <Calendar className="h-4 w-4" />
-                <span>{formatDateTime(trackInfo.createdAt)}</span>
-              </div>
+            <div className="flex flex-wrap gap-3 text-sm text-white/85">
+              {trackInfo.createdAt && (
+                <div className="inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/5 px-3 py-1 backdrop-blur">
+                  <Calendar className="h-4 w-4 text-white" />
+                  <span>{formatDateTime(trackInfo.createdAt)}</span>
+                </div>
+              )}
               {trackInfo.duration && (
-                <div className="flex items-center gap-1">
-                  <Clock className="h-4 w-4" />
+                <div className="inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/5 px-3 py-1 backdrop-blur">
+                  <Clock className="h-4 w-4 text-white" />
                   <span>{formatDuration(trackInfo.duration)}</span>
                 </div>
               )}
             </div>
-          </div>
 
-        {/* 移动端操作区（仅在小屏显示） */}
-        <div className="lg:hidden mt-6 flex items-center gap-3 pt-2">
-          {/* 播放按钮 */}
-          <Button
-            variant="outline"
-            className="h-11 flex-1 min-w-0 bg-primary text-primary-foreground border-primary hover:bg-primary/90 hover:text-primary-foreground"
-            onClick={() => {
-              if (trackInfo && onPlayTrack) {
-                onPlayTrack(trackInfo);
-              }
-            }}
-            aria-label={audioState.isPlaying && audioState.isCurrentTrack ? "Pause" : "Play"}
-          >
-            {audioState.isPlaying && audioState.isCurrentTrack ? (
-              <Pause className="h-5 w-5 fill-current" />
-            ) : (
-              <Play className="h-5 w-5 fill-current" />
-            )}
-          </Button>
+            <div className="flex flex-wrap gap-3 pt-2">
+              <Button
+                disabled={!isPlayable}
+                onClick={() => trackInfo && onPlayTrack?.(trackInfo)}
+                className="flex h-12 items-center gap-2 rounded-full border-0 bg-gradient-to-r from-[#ff4d77] via-[#f04ad8] to-[#705ae8] px-6 text-base font-semibold text-white shadow-[0_12px_35px_rgba(122,0,255,0.45)] transition hover:scale-[1.01] disabled:opacity-50"
+              >
+                {audioState.isPlaying && audioState.isCurrentTrack ? (
+                  <Pause className="h-5 w-5" />
+                ) : (
+                  <Play className="h-5 w-5" />
+                )}
+                <span>{audioState.isPlaying && audioState.isCurrentTrack ? "Pause" : "Play"}</span>
+              </Button>
 
-          {/* 收藏 */}
-          {!isGenerating && isOwner && onFavoriteToggle && (
-            <Button
-              variant="outline"
-              size="icon"
-              className={`h-11 w-11 ${
-                finalIsFavorited ? 'text-red-500 hover:bg-red-50' : 'hover:text-red-500'
-              }`}
-              onClick={() => {
-                if (trackInfo) {
-                  onFavoriteToggle(trackInfo.id, finalIsFavorited);
-                }
-              }}
-              aria-label={finalIsFavorited ? "Remove from library" : "Add to library"}
-            >
-              <Star className={`h-5 w-5 ${finalIsFavorited ? 'fill-current' : ''}`} />
-            </Button>
-          )}
-
-          {/* 分享 */}
-          {!isGenerating && (
-            <Button
-              variant="outline"
-              size="icon"
-              className={`h-11 w-11 transition-colors ${copied ? 'text-green-500 border-green-500' : ''}`}
-              onClick={() => {
-                if (trackInfo) {
-                  const url = `${window.location.origin}/studio?track=${trackInfo.id}`;
-                  navigator.clipboard.writeText(url).then(() => {
-                    setCopied(true);
-                    setTimeout(() => setCopied(false), 2000);
-                  });
-                }
-              }}
-              aria-label="Share track"
-            >
-              {copied ? (
-                <Check className="h-5 w-5" />
-              ) : (
-                <Share2 className="h-5 w-5" />
-              )}
-            </Button>
-          )}
-
-          {/* 下载（下拉） */}
-          {!isGenerating && isOwner && onDownload && trackInfo && (
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button variant="outline" size="icon" className="h-11 w-11" aria-label="Download options">
-                  <Download className="h-5 w-5" />
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="w-56">
-                <DropdownMenuItem
-                  className="cursor-pointer"
-                  onClick={() => onDownload(trackInfo, 'mp3')}
-                >
-                  Download MP3
-                </DropdownMenuItem>
-                <DropdownMenuItem
-                  className="cursor-pointer"
-                  onClick={() => onDownload(trackInfo, 'wav')}
-                >
-                  Download WAV
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
-          )}
-
-          {/* 更多 */}
-          {!isGenerating && isOwner && (
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button variant="outline" size="icon" className="h-11 w-11">
-                  <MoreHorizontal className="h-5 w-5" />
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="w-48">
-                {onPublishToggle && (
-                  <DropdownMenuItem
-                    onClick={() => {
-                      if (trackInfo) {
-                        onPublishToggle(trackInfo.id, isPublished);
+            {onDownload && (
+              <DropdownMenu
+                open={downloadMenuOpen}
+                onOpenChange={(nextOpen) => {
+                  if (!nextOpen) {
+                    setDownloadMenuOpen(false);
+                    return;
+                  }
+                  if (ensureDownloadAccess()) {
+                    setDownloadMenuOpen(true);
+                  }
+                }}
+              >
+                <DropdownMenuTrigger asChild>
+                  <Button
+                    disabled={!isDownloadable}
+                    className="flex h-12 items-center gap-2 rounded-full border border-white/20 bg-white/10 px-6 text-base font-semibold text-white hover:bg-white/20 disabled:opacity-50"
+                    onClick={(event) => {
+                      if (!ensureDownloadAccess()) {
+                        event.preventDefault();
+                        event.stopPropagation();
                       }
                     }}
-                    className="cursor-pointer"
                   >
-                    {isPublished ? (
-                      <>
-                        <EyeOff className="mr-2 h-4 w-4" />
-                        Unpublish
-                      </>
-                    ) : (
-                      <>
-                        <Eye className="mr-2 h-4 w-4" />
-                        Publish
-                      </>
-                    )}
-                  </DropdownMenuItem>
-                )}
-
-                {onEditTitle && (
-                  <DropdownMenuItem
-                    onClick={() => {
-                      if (trackInfo) {
-                        setEditingTitle(trackInfo.title);
-                        setIsEditDialogOpen(true);
-                      }
-                    }}
-                    className="cursor-pointer"
+                    <Download className="h-5 w-5" />
+                    Download
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent
+                    align="start"
+                    className="w-36 border border-white/10 bg-[#070b1c]/95 text-white backdrop-blur"
                   >
-                    <Pencil className="mr-2 h-4 w-4" />
-                    Edit Title
-                  </DropdownMenuItem>
-                )}
-
-                {isAdmin && onPinToggle && (
-                  <DropdownMenuItem
-                    onClick={() => {
-                      if (trackInfo) {
-                        onPinToggle(trackInfo.id, isPinned);
-                      }
-                    }}
-                    className="cursor-pointer"
-                  >
-                    {isPinned ? (
-                      <PinOff className="mr-2 h-4 w-4" />
-                    ) : (
-                      <Pin className="mr-2 h-4 w-4" />
-                    )}
-                    {isPinned ? 'Unpin' : 'Pin'}
-                  </DropdownMenuItem>
-                )}
-
-                {onDelete && (
-                  <>
-                    {(onPublishToggle || onEditTitle || (isAdmin && onPinToggle)) && <DropdownMenuSeparator />}
                     <DropdownMenuItem
+                      className="cursor-pointer focus:bg-white/10"
                       onClick={() => {
-                        setDeleteDialogOpen(true);
+                        if (trackInfo) {
+                          onDownload(trackInfo, "mp3");
+                        }
+                        setDownloadMenuOpen(false);
                       }}
-                      className="cursor-pointer text-destructive focus:text-destructive"
                     >
-                      <Trash2 className="mr-2 h-4 w-4" />
-                      Delete
+                      MP3
                     </DropdownMenuItem>
-                  </>
-                )}
-              </DropdownMenuContent>
-            </DropdownMenu>
-          )}
-        </div>
+                    <DropdownMenuItem
+                      className="cursor-pointer focus:bg-white/10"
+                      onClick={() => {
+                        if (trackInfo) {
+                          onDownload(trackInfo, "wav");
+                        }
+                        setDownloadMenuOpen(false);
+                      }}
+                    >
+                      WAV
+                    </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            )}
 
-          {/* 歌词部分 - 与封面图左对齐 */}
-          <div className="grid grid-cols-1 lg:grid-cols-[256px_1fr] gap-8 pb-8 mt-8 lg:mt-0">
-            {/* 左侧：歌词内容，与封面图左对齐 */}
-            <div>
-              <pre className="whitespace-pre-wrap font-sans text-lg font-normal leading-relaxed text-foreground/90">
-                {trackInfo.lyrics || 'No lyrics available'}
-              </pre>
+              <Button
+                onClick={handleShare}
+                className="flex h-12 items-center gap-2 rounded-full border border-white/20 bg-white/10 px-6 text-base font-semibold text-white hover:bg-white/20"
+              >
+                {copied ? <Check className="h-5 w-5" /> : <Share2 className="h-5 w-5" />}
+                <span>{copied ? "Copied" : "Share"}</span>
+              </Button>
             </div>
-            
-            {/* 右侧：空白占位 */}
-            <div className="hidden lg:block"></div>
           </div>
-
         </div>
       </div>
 
-
-      {/* 编辑标题对话框 */}
-      <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
-        <DialogContent className="max-w-[calc(100vw-2rem)] sm:max-w-[425px]">
-          <DialogHeader>
-            <DialogTitle>Edit Title</DialogTitle>
-            <DialogDescription>
-              Enter a new title for your track.
-            </DialogDescription>
-          </DialogHeader>
-          <div className="py-4">
-            <Input
-              value={editingTitle}
-              onChange={(e) => setEditingTitle(e.target.value)}
-              placeholder="Track title"
-              maxLength={80}
-              className="w-full"
-            />
-          </div>
-          <DialogFooter>
-            <Button
-              variant="outline"
-              onClick={() => setIsEditDialogOpen(false)}
-            >
-              Cancel
-            </Button>
-            <Button
-              onClick={() => {
-                if (trackInfo && onEditTitle && editingTitle.trim()) {
-                  onEditTitle(trackInfo.id, editingTitle.trim());
-                  setIsEditDialogOpen(false);
-                }
-              }}
-            >
-              Save
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
-      {/* 删除确认对话框 */}
-      <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
-        <AlertDialogContent className="max-w-[calc(100vw-2rem)] sm:max-w-[425px]">
-          <AlertDialogHeader className="space-y-2 sm:space-y-3">
-            <AlertDialogTitle className="text-lg sm:text-xl">Delete Track</AlertDialogTitle>
-            <AlertDialogDescription className="text-sm sm:text-base">
-              Are you sure you want to delete &quot;{trackInfo?.title}&quot;? This action cannot be undone.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter className="flex-col sm:flex-row gap-2 sm:gap-0">
-            <AlertDialogCancel className="w-full sm:w-auto">Cancel</AlertDialogCancel>
-            <AlertDialogAction 
-              onClick={() => {
-                if (trackInfo && onDelete) {
-                  onDelete(trackInfo.id);
-                  setDeleteDialogOpen(false);
-                  onBack(); // 删除后返回列表
-                }
-              }}
-              className="w-full sm:w-auto bg-destructive text-destructive-foreground hover:bg-destructive/90"
-            >
-              Delete
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+      <div className="w-full rounded-[32px] border border-white/10 bg-gradient-to-br from-[rgba(19,19,36,0.95)] to-[rgba(7,8,18,0.95)] p-6 sm:p-10 text-white shadow-[0_25px_80px_rgba(0,0,0,0.55)] backdrop-blur-2xl">
+        <div className="flex items-center justify-between pb-4">
+          <p className="text-sm font-semibold uppercase tracking-[0.4em] text-white/70">
+            Lyrics
+          </p>
+        </div>
+        <div className="space-y-4 text-base leading-relaxed text-white/80">
+          {trackInfo.lyrics?.trim()
+            ? trackInfo.lyrics.split(/\n{2,}/).map((block, idx) => (
+              <p key={`${block}-${idx}`} className="whitespace-pre-line">
+                {block}
+              </p>
+            ))
+            : (
+              <p className="text-white/60">
+                这首歌还没有歌词，试试生成歌词或稍后再查看。
+              </p>
+            )}
+        </div>
       </div>
+    </div>
+  );
+
+  if (!fullPage) {
+    return (
+      <div className="relative h-full w-full overflow-y-auto">
+        <div className="pointer-events-none fixed inset-0 -z-10">
+          <div className="absolute inset-0 bg-[url('/bg-studio-background.webp')] bg-cover bg-center" />
+          <div className="absolute inset-0 bg-gradient-to-b from-black/35 via-black/55 to-black/80 backdrop-blur-md" />
+        </div>
+        <div className="relative z-10 mx-auto flex max-w-5xl flex-col gap-6 px-4 pb-12 pt-6 sm:px-6">
+          {detailContent}
+        </div>
+        <AuthModal isOpen={authModalOpen} onClose={() => setAuthModalOpen(false)} />
+      </div>
+    );
+  }
+
+  return (
+    <div className="relative min-h-screen w-full overflow-hidden text-white">
+      <div className="pointer-events-none absolute inset-0 -z-10">
+        <div className="absolute inset-0 bg-[url('/bg-studio-background.webp')] bg-cover bg-center" />
+        <div className="absolute inset-0 bg-gradient-to-b from-black/35 via-black/55 to-black/85 backdrop-blur-md" />
+      </div>
+
+      <div className="relative z-10 flex min-h-screen flex-col">
+        <main className="flex-1">
+          <div className="w-full px-4 pb-20 pt-28 sm:px-8 lg:px-14">
+            {detailContent}
+          </div>
+        </main>
+        <footer className="bg-transparent">
+          <FooterSection />
+        </footer>
+      </div>
+      <AuthModal isOpen={authModalOpen} onClose={() => setAuthModalOpen(false)} />
     </div>
   );
 };

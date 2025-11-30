@@ -1,20 +1,21 @@
 "use client";
 
-import { usePathname } from "next/navigation";
+import { usePathname, useSearchParams } from "next/navigation";
 import { Navbar } from "./navbar";
 import { useCredits } from "@/contexts/CreditsContext";
 
 export const NavbarWrapper = () => {
   const pathname = usePathname();
+  const searchParams = useSearchParams();
   const { credits } = useCredits();
   
-  // 在音乐生成页面、音乐库页面、隐私政策、条款页面、退款政策和支付页面不显示导航栏
+  const hasTrackQuery = pathname === "/studio" && Boolean(searchParams?.get("track"));
   const hideNavbarPaths = ["/studio", "/library", "/privacy", "/terms", "/refund", "/payment"];
-  const shouldHideNavbar = hideNavbarPaths.some(path => 
+  const shouldHideNavbarByPath = hideNavbarPaths.some(path => 
     pathname === path || pathname?.startsWith(`${path}/`)
   );
   
-  if (shouldHideNavbar) {
+  if (shouldHideNavbarByPath && !hasTrackQuery) {
     return null;
   }
   

@@ -84,6 +84,9 @@
 
     /* Border Radius */
     --radius: 1rem;
+
+    /* Component Specific */
+    --studio-panel-bg: #05060b;
   }
 }
 

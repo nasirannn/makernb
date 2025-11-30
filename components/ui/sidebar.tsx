@@ -18,6 +18,9 @@ import { Tooltip } from '@/components/ui/tooltip';
 interface CommonSidebarProps {
   // 移除 isGenerating 参数，因为不再需要显示生成状态
   hideMobileNav?: boolean; // 新增：是否隐藏移动端底部导航栏
+  onWidthChange?: (width: number) => void;
+  collapsedWidth?: number;
+  expandedWidth?: number;
 }
 
 type SidebarNavItem = {
@@ -27,7 +30,12 @@ type SidebarNavItem = {
   badge?: string;
 };
 
-export const CommonSidebar = ({ hideMobileNav = false }: CommonSidebarProps) => {
+export const CommonSidebar = ({
+  hideMobileNav = false,
+  onWidthChange,
+  collapsedWidth = 80,
+  expandedWidth = 256
+}: CommonSidebarProps) => {
   const pathname = usePathname();
   const router = useRouter();
   const { user, signOut } = useAuth();
@@ -43,14 +51,18 @@ export const CommonSidebar = ({ hideMobileNav = false }: CommonSidebarProps) => 
   const [isDropdownOpen, setIsDropdownOpen] = React.useState(false);
   const [dropdownTimeout, setDropdownTimeout] = React.useState<NodeJS.Timeout | null>(null);
   const [isRefreshingCredits, setIsRefreshingCredits] = React.useState(false);
-  const [isExpanded, setIsExpanded] = React.useState(true);
+  const [isExpanded, setIsExpanded] = React.useState(false);
   const [tierCode, setTierCode] = React.useState<'basic' | 'premium' | null>(null);
   const mobileNavRef = React.useRef<HTMLDivElement | null>(null);
 
   // 切换sidebar展开/收起状态
   const toggleSidebar = () => {
-    setIsExpanded(!isExpanded);
+    setIsExpanded((prev) => !prev);
   };
+
+  React.useEffect(() => {
+    onWidthChange?.(isExpanded ? expandedWidth : collapsedWidth);
+  }, [isExpanded, onWidthChange, expandedWidth, collapsedWidth]);
 
   // AI Music Tools dropdown items
 const aiMusicToolsDropdown = [
@@ -285,7 +297,11 @@ const aiMusicToolsDropdown = [
 
   return (
     <>
-      <div className={`hidden md:flex h-full flex-col transition-all duration-500 ${isExpanded ? 'w-64' : 'w-20'}`}>
+      <div
+        className={`hidden md:flex fixed left-0 top-0 bottom-0 z-[55] h-screen flex-col transition-[width] duration-500 ${
+          isExpanded ? 'w-64' : 'w-20'
+        }`}
+      >
         <div className="flex h-full flex-col rounded-r-[32px] border border-white/5 bg-[#05060b] shadow-[0_20px_60px_rgba(4,6,15,0.6)]">
           <div className="flex h-full flex-col">
             {/* Home Button */}

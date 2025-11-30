@@ -74,7 +74,11 @@ export const TrackItem: React.FC<TrackItemProps> = ({
   
   // 确定标题和标签
   const title = track.title || track.musicTitle || 'Untitled Track';
-  const tags = track.tags || track.musicTags;
+  const tags =
+    track.tags ||
+    track.musicGeneration?.tags ||
+    track.genre ||
+    (Array.isArray(track.tagList) ? track.tagList.join(', ') : undefined);
   
   // 统一样式，不再区分延长版本
   const isExtension = false; // 统一样式

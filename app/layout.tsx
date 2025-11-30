@@ -11,6 +11,7 @@ import { PricingModalProvider } from "@/contexts/PricingModalContext";
 import { PricingModal } from "@/components/ui/pricing-modal";
 import { Toaster } from "@/components/ui/sonner";
 import { Inter } from 'next/font/google';
+import { Suspense } from "react";
 
 const inter = Inter({ 
   subsets: ['latin'],
@@ -76,7 +77,9 @@ export default function RootLayout({
             <FeaturePermissionsProvider>
               <PricingModalProvider>
                 <ThemeProvider>
-                  <NavbarWrapper />
+                  <Suspense fallback={null}>
+                    <NavbarWrapper />
+                  </Suspense>
 
                   {children}
                   

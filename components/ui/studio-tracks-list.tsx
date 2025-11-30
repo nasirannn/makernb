@@ -42,6 +42,7 @@ interface StudioTracksListProps {
   userTracks: MusicGeneration[];
   isLoading: boolean;
   onTrackSelect?: (trackId: string) => void;
+  onTrackPreview?: (track: any) => void;
   onTrackPlay?: (track: LibraryTrack, music: MusicGeneration) => void;
   selectedTrack?: string | null;
   generatedTracks?: any[];
@@ -73,6 +74,7 @@ export const StudioTracksList: React.FC<StudioTracksListProps> = React.memo(func
   userTracks,
   isLoading,
   onTrackSelect,
+  onTrackPreview,
   onTrackPlay,
   selectedTrack,
   generatedTracks = [],
@@ -279,22 +281,28 @@ export const StudioTracksList: React.FC<StudioTracksListProps> = React.memo(func
   // 处理歌曲选择
   const handleTrackSelect = useCallback((track: any) => {
     if (track.isPlaceholder) return;
+    if (onTrackPreview) {
+      onTrackPreview(track);
+    }
     if (onTrackSelect) {
       onTrackSelect(track.id);
     }
-  }, [onTrackSelect]);
+  }, [onTrackSelect, onTrackPreview]);
 
   // 处理播放/暂停
   const handlePlayPause = useCallback((track: any) => {
     if (track.isPlaceholder) return;
+    if (onTrackPreview) {
+      onTrackPreview(track);
+    }
     if (onTrackPlay) {
       onTrackPlay(track, track.musicGeneration);
     }
-  }, [onTrackPlay]);
+  }, [onTrackPlay, onTrackPreview]);
   
   // 处理分享
   const handleShare = useCallback((trackId: string) => {
-    const url = `${window.location.origin}/studio?track=${trackId}`;
+    const url = `${window.location.origin}/track/${trackId}`;
     navigator.clipboard.writeText(url).then(() => {
       setCopiedTrackId(trackId);
       setTimeout(() => setCopiedTrackId(null), 2000);
@@ -856,24 +864,26 @@ export const StudioTracksList: React.FC<StudioTracksListProps> = React.memo(func
   return (
     <div className="flex flex-col h-full min-h-0">
       {/* Search Bar */}
-      <div className="flex-shrink-0 px-6 pt-6 pb-3">
-        <div className="relative w-full">
-          <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-white/60" />
-          <input
-            type="text"
-            placeholder="Search by title and tags..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full rounded-2xl border border-white/10 bg-white/[0.04] py-3 pl-11 pr-10 text-sm text-white placeholder:text-white/40 focus:border-white/30 focus:outline-none focus:ring-0"
-          />
-              {searchQuery && (
-                <button
-                  onClick={() => setSearchQuery('')}
-                  className="absolute right-4 top-1/2 -translate-y-1/2 h-4 w-4 text-white/50 hover:text-white transition-colors"
-                >
-                  <X className="h-4 w-4" />
-                </button>
-              )}
+      <div className="flex-shrink-0 pt-6 pb-3">
+        <div className="rounded-[28px] p-1.5">
+          <div className="relative w-full">
+            <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-white/60" />
+            <input
+              type="text"
+              placeholder="Search by title and tags..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="w-full rounded-2xl border border-white/10 bg-white/[0.04] py-3 pl-11 pr-10 text-sm text-white placeholder:text-white/40 focus:border-white/30 focus:outline-none focus:ring-0"
+            />
+                {searchQuery && (
+                  <button
+                    onClick={() => setSearchQuery('')}
+                    className="absolute right-4 top-1/2 -translate-y-1/2 h-4 w-4 text-white/50 hover:text-white transition-colors"
+                  >
+                    <X className="h-4 w-4" />
+                  </button>
+                )}
+          </div>
         </div>
       </div>
 
@@ -913,6 +923,7 @@ export const StudioTracksList: React.FC<StudioTracksListProps> = React.memo(func
                       canReplaceSection={canReplaceSection}
                       onSelect={() => {
                         if (isGeneratedTrack && !track.isError && track.audioUrl && onGeneratedTrackSelect) {
+                          onTrackPreview?.(track);
                           onGeneratedTrackSelect(track.id);
                         } else {
                           handleTrackSelect(track);
@@ -937,7 +948,7 @@ export const StudioTracksList: React.FC<StudioTracksListProps> = React.memo(func
               
               {/* Tracks Summary */}
               {currentTracks.length > 0 && (
-                <div className="flex justify-center items-center py-3 px-4">
+                <div className="flex justify-center items-center py-2 px-4">
                   <div className="text-sm text-muted-foreground font-medium">
                     {(() => {
                       const totalSongs = currentTracks.length;

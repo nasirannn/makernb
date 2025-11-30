@@ -199,6 +199,8 @@ async function processCallbackAsync(callbackData: any, callbackId: string) {
         const musicGenerationId = musicRecord.id;
         const musicType = musicRecord.type as MusicType;
         const existingTitle = musicRecord.title;
+        const trimmedExistingTitle = (existingTitle || '').trim();
+        const hasUserProvidedTitle = trimmedExistingTitle.length > 0;
 
         // 4.1.2 更新音乐生成记录的元数据
         const styleFromTags = primaryTrack.tags;
@@ -211,14 +213,13 @@ async function processCallbackAsync(callbackData: any, callbackId: string) {
           status: 'text' // text回调已完成，文本信息已生成
         };
 
-        // 对于upload_cover和upload_extend类型，保留用户输入的title，不更新
-        // 对于普通generate类型，使用API返回的title
+        // 对于 upload 类型或用户自定义标题，保持原始标题；否则采用 text 回调标题
         if (musicType === 'upload_cover' || musicType === 'upload_extend') {
           console.log(`[CALLBACK-${callbackId}] Upload type detected (${musicType}), preserving user title: ${existingTitle}`);
-          // 不更新title，保留原有的
-        } else {
-          // 普通generate类型，更新title
+        } else if (!hasUserProvidedTitle) {
           updateData.title = extractedTitle;
+        } else {
+          console.log(`[CALLBACK-${callbackId}] User provided custom title (${trimmedExistingTitle}), skipping API title`);
         }
         updateData.tags = styleFromTags;
 
@@ -233,8 +234,8 @@ async function processCallbackAsync(callbackData: any, callbackId: string) {
         // 4.1.3 存储歌词到lyrics表
         const lyricsContent = primaryTrack.prompt;
         // 对于upload类型，使用existingTitle；对于普通类型，使用extractedTitle
-        const titleForLyrics = (musicType === 'upload_cover' || musicType === 'upload_extend')
-          ? existingTitle
+        const titleForLyrics = (musicType === 'upload_cover' || musicType === 'upload_extend' || hasUserProvidedTitle)
+          ? (trimmedExistingTitle || existingTitle)
           : extractedTitle;
 
         if (lyricsContent && lyricsContent.trim() !== '') {
@@ -267,12 +268,12 @@ async function processCallbackAsync(callbackData: any, callbackId: string) {
 
               // 决定是否更新track的title
               let trackTitle: string;
-              if (musicType === 'upload_cover' || musicType === 'upload_extend') {
-                // 对于upload类型，保留已有的title（从initialTracks设置的）
-                trackTitle = existingTrack.title || existingTitle;
-                console.log(`[CALLBACK-${callbackId}] Upload type: preserving track title: ${trackTitle}`);
+              if (musicType === 'upload_cover' || musicType === 'upload_extend' || hasUserProvidedTitle) {
+                // 上传或用户自定义标题：保持原始值
+                trackTitle = existingTrack.title || trimmedExistingTitle || existingTitle || 'Untitled';
+                console.log(`[CALLBACK-${callbackId}] Preserving provided track title: ${trackTitle}`);
               } else {
-                // 对于普通generate类型，使用API返回的title
+                // 对于普通generate类型且没有用户标题，使用API返回的title
                 trackTitle = track.title || extractedTitle;
               }
 

@@ -1,0 +1,369 @@
+{
+  "tracks": [
+    {
+      "track_id": "fe9b0535-73ea-4a06-a768-34caddf43a9a",
+      "generation_id": "7344cb6f-ed76-4041-8731-e5571ce96be2",
+      "audio_url": null,
+      "stream_audio_url": null,
+      "suno_track_id": null,
+      "deleted_at": "2025-11-29T07:47:38.750Z",
+      "user_id": "94082d03-00cd-4ce0-b7da-ce411e4af948",
+      "task_id": "24557eabf959ce0adcc0771c6546b63c",
+      "title": null
+    },
+    {
+      "track_id": "306e0be3-39c3-4f2a-a756-5f1798828427",
+      "generation_id": "7344cb6f-ed76-4041-8731-e5571ce96be2",
+      "audio_url": null,
+      "stream_audio_url": null,
+      "suno_track_id": null,
+      "deleted_at": "2025-11-29T07:47:33.258Z",
+      "user_id": "94082d03-00cd-4ce0-b7da-ce411e4af948",
+      "task_id": "24557eabf959ce0adcc0771c6546b63c",
+      "title": null
+    },
+    {
+      "track_id": "9a63577f-4c9a-4220-9f51-2e8cc7bf9785",
+      "generation_id": "d44ad039-319d-4a95-a9c9-193b6fd3c85c",
+      "audio_url": "https://cdn.makernb.com/audio/1c8b3dd3-64bc-4757-9773-501caefb70b2/a9206664a89b697c4441c49dbf10e18b/Drift Away_1.mp3",
+      "stream_audio_url": "https://musicfile.kie.ai/YTI1NjlmMWYtNzZhOC00ODIxLWFiMTUtY2Y4ODJlY2I1MTdk",
+      "suno_track_id": "a2569f1f-76a8-4821-ab15-cf882ecb517d",
+      "deleted_at": "2025-11-27T07:36:19.294Z",
+      "user_id": "1c8b3dd3-64bc-4757-9773-501caefb70b2",
+      "task_id": "a9206664a89b697c4441c49dbf10e18b",
+      "title": "Drift Away"
+    },
+    {
+      "track_id": "80e44a25-b0ae-4c60-8c5a-f3c5e6c6e03f",
+      "generation_id": "62e197fb-9464-4be2-b5db-9374e4fb33b8",
+      "audio_url": "https://cdn.makernb.com/audio/1c8b3dd3-64bc-4757-9773-501caefb70b2/3df83bd19dd738265186070d3e29b0b6/f036d51b-f975-4000-a730-1b6bbbd2718a.mp3",
+      "stream_audio_url": "https://musicfile.kie.ai/ZjAzNmQ1MWItZjk3NS00MDAwLWE3MzAtMWI2YmJiZDI3MThh",
+      "suno_track_id": "f036d51b-f975-4000-a730-1b6bbbd2718a",
+      "deleted_at": "2025-11-27T07:36:12.639Z",
+      "user_id": "1c8b3dd3-64bc-4757-9773-501caefb70b2",
+      "task_id": "3df83bd19dd738265186070d3e29b0b6",
+      "title": "Ain't No One"
+    },
+    {
+      "track_id": "f22807fc-1693-4473-a151-690e1c9c6859",
+      "generation_id": "62e197fb-9464-4be2-b5db-9374e4fb33b8",
+      "audio_url": "https://cdn.makernb.com/audio/1c8b3dd3-64bc-4757-9773-501caefb70b2/3df83bd19dd738265186070d3e29b0b6/c8988fe0-9521-4c80-a5b0-2c09574f9faa.mp3",
+      "stream_audio_url": "https://musicfile.kie.ai/Yzg5ODhmZTAtOTUyMS00YzgwLWE1YjAtMmMwOTU3NGY5ZmFh",
+      "suno_track_id": "c8988fe0-9521-4c80-a5b0-2c09574f9faa",
+      "deleted_at": "2025-11-27T07:36:07.924Z",
+      "user_id": "1c8b3dd3-64bc-4757-9773-501caefb70b2",
+      "task_id": "3df83bd19dd738265186070d3e29b0b6",
+      "title": "Ain't No One"
+    },
+    {
+      "track_id": "88ebbcdd-5e7a-4950-8389-25dee87b31ba",
+      "generation_id": "a9c832c9-8751-4e25-a6fe-556361370444",
+      "audio_url": "https://cdn.makernb.com/audio/1c8b3dd3-64bc-4757-9773-501caefb70b2/5a8f5419c9d9bfcd9b2f1760831d8d5b/29e490be-474c-4388-af35-b8ef90a882a6.mp3",
+      "stream_audio_url": "https://musicfile.kie.ai/MjllNDkwYmUtNDc0Yy00Mzg4LWFmMzUtYjhlZjkwYTg4MmE2",
+      "suno_track_id": "29e490be-474c-4388-af35-b8ef90a882a6",
+      "deleted_at": "2025-11-27T06:27:20.953Z",
+      "user_id": "1c8b3dd3-64bc-4757-9773-501caefb70b2",
+      "task_id": "5a8f5419c9d9bfcd9b2f1760831d8d5b",
+      "title": "ain't no one"
+    },
+    {
+      "track_id": "7f111211-205b-4db7-a4d4-4e5e65802d02",
+      "generation_id": "a9c832c9-8751-4e25-a6fe-556361370444",
+      "audio_url": "https://cdn.makernb.com/audio/1c8b3dd3-64bc-4757-9773-501caefb70b2/5a8f5419c9d9bfcd9b2f1760831d8d5b/8b8ff0ab-dfd3-428b-abd6-c43ce2b6d0c3.mp3",
+      "stream_audio_url": "https://musicfile.kie.ai/OGI4ZmYwYWItZGZkMy00MjhiLWFiZDYtYzQzY2UyYjZkMGMz",
+      "suno_track_id": "8b8ff0ab-dfd3-428b-abd6-c43ce2b6d0c3",
+      "deleted_at": "2025-11-24T09:59:43.633Z",
+      "user_id": "1c8b3dd3-64bc-4757-9773-501caefb70b2",
+      "task_id": "5a8f5419c9d9bfcd9b2f1760831d8d5b",
+      "title": "ain't no one"
+    },
+    {
+      "track_id": "053969ce-ab07-49bf-a571-7bbff68879d5",
+      "generation_id": "b095598e-65f4-4f6e-a4d2-2c2def012b6c",
+      "audio_url": "https://cdn.makernb.com/audio/1c8b3dd3-64bc-4757-9773-501caefb70b2/24e7424752a6e463b8232ab26a38d41d/Whisper in the Rain_2.mp3",
+      "stream_audio_url": null,
+      "suno_track_id": "61167970-b8a3-4bd7-b3e8-8cce568f8014",
+      "deleted_at": "2025-11-21T09:46:52.683Z",
+      "user_id": "1c8b3dd3-64bc-4757-9773-501caefb70b2",
+      "task_id": "24e7424752a6e463b8232ab26a38d41d",
+      "title": "Whisper in the Rain"
+    },
+    {
+      "track_id": "1686fcc2-60c3-40d5-908a-a2bd7b51ee4c",
+      "generation_id": "3277cfd3-e749-40e9-9133-8981f3a525cd",
+      "audio_url": "https://cdn.makernb.com/audio/1c8b3dd3-64bc-4757-9773-501caefb70b2/1ffaad91a6f57ebf6971716661c30dd8/Frosted_Hearts__Extended__extended_1.mp3",
+      "stream_audio_url": "https://musicfile.kie.ai/ZjVlZTRkNDUtNDk2ZC00ODEwLTg0MDMtMDFjZTEzYTk4YTRi",
+      "suno_track_id": "f5ee4d45-496d-4810-8403-01ce13a98a4b",
+      "deleted_at": "2025-11-10T15:56:07.422Z",
+      "user_id": "1c8b3dd3-64bc-4757-9773-501caefb70b2",
+      "task_id": "1ffaad91a6f57ebf6971716661c30dd8",
+      "title": "Frosted Hearts (Extended)"
+    },
+    {
+      "track_id": "5c569b89-ae12-4e71-8f51-87f5cbba175e",
+      "generation_id": "8dfed180-1e1f-47f3-8c43-27c957fdbb2c",
+      "audio_url": "https://cdn.makernb.com/audio/1c8b3dd3-64bc-4757-9773-501caefb70b2/bf31caf5ecbb14501c9e67b12b2b58cd/Falling_Into_You__Extended__extended_1.mp3",
+      "stream_audio_url": "https://musicfile.kie.ai/MDZlNDgyMjEtMzc4ZC00MDhlLWI0ZjMtZmQwMjA0NjAxNDBh",
+      "suno_track_id": "06e48221-378d-408e-b4f3-fd020460140a",
+      "deleted_at": "2025-11-10T14:02:41.476Z",
+      "user_id": "1c8b3dd3-64bc-4757-9773-501caefb70b2",
+      "task_id": "bf31caf5ecbb14501c9e67b12b2b58cd",
+      "title": "Falling Into You (Extended)"
+    },
+    {
+      "track_id": "b0731072-b7ea-4a98-ad35-a7c0fa111854",
+      "generation_id": "8dfed180-1e1f-47f3-8c43-27c957fdbb2c",
+      "audio_url": "https://cdn.makernb.com/audio/1c8b3dd3-64bc-4757-9773-501caefb70b2/bf31caf5ecbb14501c9e67b12b2b58cd/Falling_Into_You__Extended__extended_2.mp3",
+      "stream_audio_url": "https://musicfile.kie.ai/YjBmZGE1ZjAtOTQxMC00YTI0LTgyY2UtNWZiMDI1NTczYTVj",
+      "suno_track_id": "b0fda5f0-9410-4a24-82ce-5fb025573a5c",
+      "deleted_at": "2025-11-10T14:02:36.714Z",
+      "user_id": "1c8b3dd3-64bc-4757-9773-501caefb70b2",
+      "task_id": "bf31caf5ecbb14501c9e67b12b2b58cd",
+      "title": "Falling Into You (Extended)"
+    },
+    {
+      "track_id": "715d388a-cb12-4f63-8184-9fe808bb0d42",
+      "generation_id": "98d42963-88ab-4837-b479-717a43907f4c",
+      "audio_url": "https://cdn.makernb.com/audio/1c8b3dd3-64bc-4757-9773-501caefb70b2/b639264105bd00eaed9ce2f8fc7d31f4/The_Love_Journey__Extended__extended_2.mp3",
+      "stream_audio_url": "https://musicfile.kie.ai/MWEwOGM4YTktMTMyMi00ZjM3LWFhMzMtZWZmYmEzMWY2MjVm",
+      "suno_track_id": "1a08c8a9-1322-4f37-aa33-effba31f625f",
+      "deleted_at": "2025-11-10T13:29:22.672Z",
+      "user_id": "1c8b3dd3-64bc-4757-9773-501caefb70b2",
+      "task_id": "b639264105bd00eaed9ce2f8fc7d31f4",
+      "title": "The Love Journey (Extended)"
+    },
+    {
+      "track_id": "410a357f-cfcb-4656-b984-9f2918b957c1",
+      "generation_id": "98d42963-88ab-4837-b479-717a43907f4c",
+      "audio_url": "https://cdn.makernb.com/audio/1c8b3dd3-64bc-4757-9773-501caefb70b2/b639264105bd00eaed9ce2f8fc7d31f4/The_Love_Journey__Extended__extended_1.mp3",
+      "stream_audio_url": "https://musicfile.kie.ai/MGFjODI2ODktYzA5ZC00MjUwLWIyZjgtMmU0MjAwZWM0Mzcx",
+      "suno_track_id": "0ac82689-c09d-4250-b2f8-2e4200ec4371",
+      "deleted_at": "2025-11-10T13:29:17.890Z",
+      "user_id": "1c8b3dd3-64bc-4757-9773-501caefb70b2",
+      "task_id": "b639264105bd00eaed9ce2f8fc7d31f4",
+      "title": "The Love Journey (Extended)"
+    },
+    {
+      "track_id": "3012751f-ee31-42e1-9b51-5e9f8ed119c0",
+      "generation_id": "65640855-acc2-4053-8ca1-3b7d1ba2add2",
+      "audio_url": "https://cdn.makernb.com/audio/1c8b3dd3-64bc-4757-9773-501caefb70b2/60998917d57abd2252a2386401bdd172/Crown on the Floor_1.mp3",
+      "stream_audio_url": null,
+      "suno_track_id": "980caa4b-c8b7-4bc4-b97b-3720523dc4b1",
+      "deleted_at": "2025-11-10T12:25:26.965Z",
+      "user_id": "1c8b3dd3-64bc-4757-9773-501caefb70b2",
+      "task_id": "60998917d57abd2252a2386401bdd172",
+      "title": "Crown on the Floor"
+    },
+    {
+      "track_id": "f094e38f-53f0-4325-bc8a-257b93d56093",
+      "generation_id": "65640855-acc2-4053-8ca1-3b7d1ba2add2",
+      "audio_url": "https://cdn.makernb.com/audio/1c8b3dd3-64bc-4757-9773-501caefb70b2/60998917d57abd2252a2386401bdd172/Crown on the Floor_2.mp3",
+      "stream_audio_url": null,
+      "suno_track_id": "65a7f6a3-29aa-4952-bf07-8f5540794b64",
+      "deleted_at": "2025-11-10T12:23:42.637Z",
+      "user_id": "1c8b3dd3-64bc-4757-9773-501caefb70b2",
+      "task_id": "60998917d57abd2252a2386401bdd172",
+      "title": "Crown on the Floor"
+    },
+    {
+      "track_id": "9844e3ad-131b-4f6b-955a-b33ddcc78ecc",
+      "generation_id": "15104989-f8ee-4864-afa8-30083c6c3ee2",
+      "audio_url": "https://cdn.makernb.com/audio/1c8b3dd3-64bc-4757-9773-501caefb70b2/7267c5766973d6d149a96940e30879ee/The_Love_Journey__Extended__extended_2.mp3",
+      "stream_audio_url": "https://musicfile.kie.ai/YmQyMWRhN2ItOGU3OS00ZTlkLWE2NDktYWJmNzk2N2FkN2Rl",
+      "suno_track_id": "bd21da7b-8e79-4e9d-a649-abf7967ad7de",
+      "deleted_at": "2025-11-10T12:23:31.220Z",
+      "user_id": "1c8b3dd3-64bc-4757-9773-501caefb70b2",
+      "task_id": "7267c5766973d6d149a96940e30879ee",
+      "title": "The Love Journey (Extended)"
+    },
+    {
+      "track_id": "4398179f-1d1a-4f1f-ba38-590dbaf95548",
+      "generation_id": "15104989-f8ee-4864-afa8-30083c6c3ee2",
+      "audio_url": "https://cdn.makernb.com/audio/1c8b3dd3-64bc-4757-9773-501caefb70b2/7267c5766973d6d149a96940e30879ee/The_Love_Journey__Extended__extended_1.mp3",
+      "stream_audio_url": "https://musicfile.kie.ai/NGY1OTZlODEtZmE1Yy00N2UxLWE4Y2UtNjEzODVmYzllMTk3",
+      "suno_track_id": "4f596e81-fa5c-47e1-a8ce-61385fc9e197",
+      "deleted_at": "2025-11-10T12:19:28.832Z",
+      "user_id": "1c8b3dd3-64bc-4757-9773-501caefb70b2",
+      "task_id": "7267c5766973d6d149a96940e30879ee",
+      "title": "The Love Journey (Extended)"
+    },
+    {
+      "track_id": "561720ed-df24-4ab7-a80a-32548c9ea640",
+      "generation_id": "d609d6de-defe-48e4-9656-7b3f7fe82ed4",
+      "audio_url": "https://cdn.makernb.com/audio/1c8b3dd3-64bc-4757-9773-501caefb70b2/c6abf12dbe5e021acbff8a10d7b96837/Cold_in_December__Extended__extended_2.mp3",
+      "stream_audio_url": "https://musicfile.kie.ai/ZmI2ZWVkMTAtMzY0Ni00Y2E2LWE4MmQtOWI4YWVhZmM1MTRi",
+      "suno_track_id": "fb6eed10-3646-4ca6-a82d-9b8aeafc514b",
+      "deleted_at": "2025-11-10T11:04:49.603Z",
+      "user_id": "1c8b3dd3-64bc-4757-9773-501caefb70b2",
+      "task_id": "c6abf12dbe5e021acbff8a10d7b96837",
+      "title": "Cold in December (Extended)"
+    },
+    {
+      "track_id": "40e3591a-db91-4ea9-aac2-8061cbe9d177",
+      "generation_id": "d609d6de-defe-48e4-9656-7b3f7fe82ed4",
+      "audio_url": "https://cdn.makernb.com/audio/1c8b3dd3-64bc-4757-9773-501caefb70b2/c6abf12dbe5e021acbff8a10d7b96837/Cold_in_December__Extended__extended_1.mp3",
+      "stream_audio_url": "https://musicfile.kie.ai/MTRlZWNlNjktZGYyNy00ZTUyLWI1MjktMzI4MjFjOGVjZTFj",
+      "suno_track_id": "14eece69-df27-4e52-b529-32821c8ece1c",
+      "deleted_at": "2025-11-10T11:04:36.564Z",
+      "user_id": "1c8b3dd3-64bc-4757-9773-501caefb70b2",
+      "task_id": "c6abf12dbe5e021acbff8a10d7b96837",
+      "title": "Cold in December (Extended)"
+    }
+  ],
+  "covers": [
+    {
+      "track_id": "9a63577f-4c9a-4220-9f51-2e8cc7bf9785",
+      "cover_image_url": "https://cdn.makernb.com/covers/1c8b3dd3-64bc-4757-9773-501caefb70b2/89655e87a71e5314fad4a18d704a1f39/cover_backup_1763715203997_9a63577f-4c9a-4220-9f51-2e8cc7bf9785.png",
+      "music_id": "d44ad039-319d-4a95-a9c9-193b6fd3c85c"
+    },
+    {
+      "track_id": "80e44a25-b0ae-4c60-8c5a-f3c5e6c6e03f",
+      "cover_image_url": "https://cdn.makernb.com/covers/1c8b3dd3-64bc-4757-9773-501caefb70b2/3df83bd19dd738265186070d3e29b0b6/80e44a25-b0ae-4c60-8c5a-f3c5e6c6e03f_cover.jpeg",
+      "music_id": "62e197fb-9464-4be2-b5db-9374e4fb33b8"
+    },
+    {
+      "track_id": "f22807fc-1693-4473-a151-690e1c9c6859",
+      "cover_image_url": "https://cdn.makernb.com/covers/1c8b3dd3-64bc-4757-9773-501caefb70b2/3df83bd19dd738265186070d3e29b0b6/f22807fc-1693-4473-a151-690e1c9c6859_cover.jpeg",
+      "music_id": "62e197fb-9464-4be2-b5db-9374e4fb33b8"
+    },
+    {
+      "track_id": "88ebbcdd-5e7a-4950-8389-25dee87b31ba",
+      "cover_image_url": "https://cdn.makernb.com/covers/1c8b3dd3-64bc-4757-9773-501caefb70b2/5a8f5419c9d9bfcd9b2f1760831d8d5b/29e490be-474c-4388-af35-b8ef90a882a6_cover.jpeg",
+      "music_id": "a9c832c9-8751-4e25-a6fe-556361370444"
+    },
+    {
+      "track_id": "7f111211-205b-4db7-a4d4-4e5e65802d02",
+      "cover_image_url": "https://cdn.makernb.com/covers/1c8b3dd3-64bc-4757-9773-501caefb70b2/5a8f5419c9d9bfcd9b2f1760831d8d5b/8b8ff0ab-dfd3-428b-abd6-c43ce2b6d0c3_cover.jpeg",
+      "music_id": "a9c832c9-8751-4e25-a6fe-556361370444"
+    },
+    {
+      "track_id": "053969ce-ab07-49bf-a571-7bbff68879d5",
+      "cover_image_url": "https://cdn.makernb.com/covers/1c8b3dd3-64bc-4757-9773-501caefb70b2/2e815f7f3fd7bf90c682928dc8dda979/cover_2.png",
+      "music_id": "b095598e-65f4-4f6e-a4d2-2c2def012b6c"
+    },
+    {
+      "track_id": "5c569b89-ae12-4e71-8f51-87f5cbba175e",
+      "cover_image_url": "https://cdn.makernb.com/covers/1c8b3dd3-64bc-4757-9773-501caefb70b2/bf31caf5ecbb14501c9e67b12b2b58cd/cover_backup_1762781606400_5c569b89-ae12-4e71-8f51-87f5cbba175e.jpeg",
+      "music_id": "8dfed180-1e1f-47f3-8c43-27c957fdbb2c"
+    },
+    {
+      "track_id": "b0731072-b7ea-4a98-ad35-a7c0fa111854",
+      "cover_image_url": "https://cdn.makernb.com/covers/1c8b3dd3-64bc-4757-9773-501caefb70b2/bf31caf5ecbb14501c9e67b12b2b58cd/cover_backup_1762781605109_b0731072-b7ea-4a98-ad35-a7c0fa111854.jpeg",
+      "music_id": "8dfed180-1e1f-47f3-8c43-27c957fdbb2c"
+    },
+    {
+      "track_id": "715d388a-cb12-4f63-8184-9fe808bb0d42",
+      "cover_image_url": "https://cdn.makernb.com/covers/1c8b3dd3-64bc-4757-9773-501caefb70b2/b639264105bd00eaed9ce2f8fc7d31f4/cover_backup_1762777897279_715d388a-cb12-4f63-8184-9fe808bb0d42.jpeg",
+      "music_id": "98d42963-88ab-4837-b479-717a43907f4c"
+    },
+    {
+      "track_id": "410a357f-cfcb-4656-b984-9f2918b957c1",
+      "cover_image_url": "https://cdn.makernb.com/covers/1c8b3dd3-64bc-4757-9773-501caefb70b2/b639264105bd00eaed9ce2f8fc7d31f4/cover_backup_1762777898655_410a357f-cfcb-4656-b984-9f2918b957c1.jpeg",
+      "music_id": "98d42963-88ab-4837-b479-717a43907f4c"
+    },
+    {
+      "track_id": "3012751f-ee31-42e1-9b51-5e9f8ed119c0",
+      "cover_image_url": "https://cdn.makernb.com/covers/1c8b3dd3-64bc-4757-9773-501caefb70b2/61689d40dd6baaff629029cc4876dff6/1757554998_4b9c150c120d43e4ac4438feaa76b973.png",
+      "music_id": "65640855-acc2-4053-8ca1-3b7d1ba2add2"
+    },
+    {
+      "track_id": "f094e38f-53f0-4325-bc8a-257b93d56093",
+      "cover_image_url": "https://cdn.makernb.com/covers/1c8b3dd3-64bc-4757-9773-501caefb70b2/61689d40dd6baaff629029cc4876dff6/1757555002_f53350baf6904b9391f9f5699f047df1.png",
+      "music_id": "65640855-acc2-4053-8ca1-3b7d1ba2add2"
+    },
+    {
+      "track_id": "9844e3ad-131b-4f6b-955a-b33ddcc78ecc",
+      "cover_image_url": "https://cdn.makernb.com/covers/1c8b3dd3-64bc-4757-9773-501caefb70b2/7267c5766973d6d149a96940e30879ee/cover_backup_1762773584947_9844e3ad-131b-4f6b-955a-b33ddcc78ecc.jpeg",
+      "music_id": "15104989-f8ee-4864-afa8-30083c6c3ee2"
+    },
+    {
+      "track_id": "4398179f-1d1a-4f1f-ba38-590dbaf95548",
+      "cover_image_url": "https://cdn.makernb.com/covers/1c8b3dd3-64bc-4757-9773-501caefb70b2/7267c5766973d6d149a96940e30879ee/cover_backup_1762773586142_4398179f-1d1a-4f1f-ba38-590dbaf95548.jpeg",
+      "music_id": "15104989-f8ee-4864-afa8-30083c6c3ee2"
+    },
+    {
+      "track_id": "561720ed-df24-4ab7-a80a-32548c9ea640",
+      "cover_image_url": "https://cdn.makernb.com/covers/1c8b3dd3-64bc-4757-9773-501caefb70b2/c6abf12dbe5e021acbff8a10d7b96837/cover_backup_1762770658096_561720ed-df24-4ab7-a80a-32548c9ea640.jpeg",
+      "music_id": "d609d6de-defe-48e4-9656-7b3f7fe82ed4"
+    },
+    {
+      "track_id": "40e3591a-db91-4ea9-aac2-8061cbe9d177",
+      "cover_image_url": "https://cdn.makernb.com/covers/1c8b3dd3-64bc-4757-9773-501caefb70b2/c6abf12dbe5e021acbff8a10d7b96837/cover_backup_1762770659300_40e3591a-db91-4ea9-aac2-8061cbe9d177.jpeg",
+      "music_id": "d609d6de-defe-48e4-9656-7b3f7fe82ed4"
+    }
+  ],
+  "vocalSeparations": [],
+  "vocalRemovals": [],
+  "generationErrors": [],
+  "lyrics": [
+    {
+      "lyrics_id": "bdc6a77c-366a-4ee5-aa85-50d6f29504fe",
+      "music_id": "c0eafb1c-9164-45e8-9826-d02427053eb2",
+      "title": "Midnight Glow",
+      "created_at": "2025-11-21T07:01:38.661Z"
+    },
+    {
+      "lyrics_id": "6ce09119-b6eb-4a4c-bedc-7f497999bdb3",
+      "music_id": "8dfed180-1e1f-47f3-8c43-27c957fdbb2c",
+      "title": "slow jam",
+      "created_at": "2025-11-10T13:31:59.464Z"
+    },
+    {
+      "lyrics_id": "2398535c-22f3-403c-a867-d8db6e55e4b8",
+      "music_id": "65640855-acc2-4053-8ca1-3b7d1ba2add2",
+      "title": "Crown on the Floor",
+      "created_at": "2025-09-11T01:43:02.634Z"
+    }
+  ],
+  "wavConversions": [],
+  "r2Files": [
+    "audio/1c8b3dd3-64bc-4757-9773-501caefb70b2/a9206664a89b697c4441c49dbf10e18b/Drift Away_1.mp3",
+    "YTI1NjlmMWYtNzZhOC00ODIxLWFiMTUtY2Y4ODJlY2I1MTdk",
+    "audio/1c8b3dd3-64bc-4757-9773-501caefb70b2/3df83bd19dd738265186070d3e29b0b6/f036d51b-f975-4000-a730-1b6bbbd2718a.mp3",
+    "ZjAzNmQ1MWItZjk3NS00MDAwLWE3MzAtMWI2YmJiZDI3MThh",
+    "audio/1c8b3dd3-64bc-4757-9773-501caefb70b2/3df83bd19dd738265186070d3e29b0b6/c8988fe0-9521-4c80-a5b0-2c09574f9faa.mp3",
+    "Yzg5ODhmZTAtOTUyMS00YzgwLWE1YjAtMmMwOTU3NGY5ZmFh",
+    "audio/1c8b3dd3-64bc-4757-9773-501caefb70b2/5a8f5419c9d9bfcd9b2f1760831d8d5b/29e490be-474c-4388-af35-b8ef90a882a6.mp3",
+    "MjllNDkwYmUtNDc0Yy00Mzg4LWFmMzUtYjhlZjkwYTg4MmE2",
+    "audio/1c8b3dd3-64bc-4757-9773-501caefb70b2/5a8f5419c9d9bfcd9b2f1760831d8d5b/8b8ff0ab-dfd3-428b-abd6-c43ce2b6d0c3.mp3",
+    "OGI4ZmYwYWItZGZkMy00MjhiLWFiZDYtYzQzY2UyYjZkMGMz",
+    "audio/1c8b3dd3-64bc-4757-9773-501caefb70b2/24e7424752a6e463b8232ab26a38d41d/Whisper in the Rain_2.mp3",
+    "audio/1c8b3dd3-64bc-4757-9773-501caefb70b2/1ffaad91a6f57ebf6971716661c30dd8/Frosted_Hearts__Extended__extended_1.mp3",
+    "ZjVlZTRkNDUtNDk2ZC00ODEwLTg0MDMtMDFjZTEzYTk4YTRi",
+    "audio/1c8b3dd3-64bc-4757-9773-501caefb70b2/bf31caf5ecbb14501c9e67b12b2b58cd/Falling_Into_You__Extended__extended_1.mp3",
+    "MDZlNDgyMjEtMzc4ZC00MDhlLWI0ZjMtZmQwMjA0NjAxNDBh",
+    "audio/1c8b3dd3-64bc-4757-9773-501caefb70b2/bf31caf5ecbb14501c9e67b12b2b58cd/Falling_Into_You__Extended__extended_2.mp3",
+    "YjBmZGE1ZjAtOTQxMC00YTI0LTgyY2UtNWZiMDI1NTczYTVj",
+    "audio/1c8b3dd3-64bc-4757-9773-501caefb70b2/b639264105bd00eaed9ce2f8fc7d31f4/The_Love_Journey__Extended__extended_2.mp3",
+    "MWEwOGM4YTktMTMyMi00ZjM3LWFhMzMtZWZmYmEzMWY2MjVm",
+    "audio/1c8b3dd3-64bc-4757-9773-501caefb70b2/b639264105bd00eaed9ce2f8fc7d31f4/The_Love_Journey__Extended__extended_1.mp3",
+    "MGFjODI2ODktYzA5ZC00MjUwLWIyZjgtMmU0MjAwZWM0Mzcx",
+    "audio/1c8b3dd3-64bc-4757-9773-501caefb70b2/60998917d57abd2252a2386401bdd172/Crown on the Floor_1.mp3",
+    "audio/1c8b3dd3-64bc-4757-9773-501caefb70b2/60998917d57abd2252a2386401bdd172/Crown on the Floor_2.mp3",
+    "audio/1c8b3dd3-64bc-4757-9773-501caefb70b2/7267c5766973d6d149a96940e30879ee/The_Love_Journey__Extended__extended_2.mp3",
+    "YmQyMWRhN2ItOGU3OS00ZTlkLWE2NDktYWJmNzk2N2FkN2Rl",
+    "audio/1c8b3dd3-64bc-4757-9773-501caefb70b2/7267c5766973d6d149a96940e30879ee/The_Love_Journey__Extended__extended_1.mp3",
+    "NGY1OTZlODEtZmE1Yy00N2UxLWE4Y2UtNjEzODVmYzllMTk3",
+    "audio/1c8b3dd3-64bc-4757-9773-501caefb70b2/c6abf12dbe5e021acbff8a10d7b96837/Cold_in_December__Extended__extended_2.mp3",
+    "ZmI2ZWVkMTAtMzY0Ni00Y2E2LWE4MmQtOWI4YWVhZmM1MTRi",
+    "audio/1c8b3dd3-64bc-4757-9773-501caefb70b2/c6abf12dbe5e021acbff8a10d7b96837/Cold_in_December__Extended__extended_1.mp3",
+    "MTRlZWNlNjktZGYyNy00ZTUyLWI1MjktMzI4MjFjOGVjZTFj",
+    "covers/1c8b3dd3-64bc-4757-9773-501caefb70b2/89655e87a71e5314fad4a18d704a1f39/cover_backup_1763715203997_9a63577f-4c9a-4220-9f51-2e8cc7bf9785.png",
+    "covers/1c8b3dd3-64bc-4757-9773-501caefb70b2/3df83bd19dd738265186070d3e29b0b6/80e44a25-b0ae-4c60-8c5a-f3c5e6c6e03f_cover.jpeg",
+    "covers/1c8b3dd3-64bc-4757-9773-501caefb70b2/3df83bd19dd738265186070d3e29b0b6/f22807fc-1693-4473-a151-690e1c9c6859_cover.jpeg",
+    "covers/1c8b3dd3-64bc-4757-9773-501caefb70b2/5a8f5419c9d9bfcd9b2f1760831d8d5b/29e490be-474c-4388-af35-b8ef90a882a6_cover.jpeg",
+    "covers/1c8b3dd3-64bc-4757-9773-501caefb70b2/5a8f5419c9d9bfcd9b2f1760831d8d5b/8b8ff0ab-dfd3-428b-abd6-c43ce2b6d0c3_cover.jpeg",
+    "covers/1c8b3dd3-64bc-4757-9773-501caefb70b2/2e815f7f3fd7bf90c682928dc8dda979/cover_2.png",
+    "covers/1c8b3dd3-64bc-4757-9773-501caefb70b2/bf31caf5ecbb14501c9e67b12b2b58cd/cover_backup_1762781606400_5c569b89-ae12-4e71-8f51-87f5cbba175e.jpeg",
+    "covers/1c8b3dd3-64bc-4757-9773-501caefb70b2/bf31caf5ecbb14501c9e67b12b2b58cd/cover_backup_1762781605109_b0731072-b7ea-4a98-ad35-a7c0fa111854.jpeg",
+    "covers/1c8b3dd3-64bc-4757-9773-501caefb70b2/b639264105bd00eaed9ce2f8fc7d31f4/cover_backup_1762777897279_715d388a-cb12-4f63-8184-9fe808bb0d42.jpeg",
+    "covers/1c8b3dd3-64bc-4757-9773-501caefb70b2/b639264105bd00eaed9ce2f8fc7d31f4/cover_backup_1762777898655_410a357f-cfcb-4656-b984-9f2918b957c1.jpeg",
+    "covers/1c8b3dd3-64bc-4757-9773-501caefb70b2/61689d40dd6baaff629029cc4876dff6/1757554998_4b9c150c120d43e4ac4438feaa76b973.png",
+    "covers/1c8b3dd3-64bc-4757-9773-501caefb70b2/61689d40dd6baaff629029cc4876dff6/1757555002_f53350baf6904b9391f9f5699f047df1.png",
+    "covers/1c8b3dd3-64bc-4757-9773-501caefb70b2/7267c5766973d6d149a96940e30879ee/cover_backup_1762773584947_9844e3ad-131b-4f6b-955a-b33ddcc78ecc.jpeg",
+    "covers/1c8b3dd3-64bc-4757-9773-501caefb70b2/7267c5766973d6d149a96940e30879ee/cover_backup_1762773586142_4398179f-1d1a-4f1f-ba38-590dbaf95548.jpeg",
+    "covers/1c8b3dd3-64bc-4757-9773-501caefb70b2/c6abf12dbe5e021acbff8a10d7b96837/cover_backup_1762770658096_561720ed-df24-4ab7-a80a-32548c9ea640.jpeg",
+    "covers/1c8b3dd3-64bc-4757-9773-501caefb70b2/c6abf12dbe5e021acbff8a10d7b96837/cover_backup_1762770659300_40e3591a-db91-4ea9-aac2-8061cbe9d177.jpeg"
+  ],
+  "estimatedR2Size": 78410508
+}

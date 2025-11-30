@@ -644,7 +644,7 @@ export const UploadAudioDialog = ({
                 <div className="relative">
                   <Textarea
                     id="style"
-                    placeholder="e.g., Jazz, Rock, Electronic..."
+                    placeholder="Enter music style here..."
                     value={style}
                     onChange={(e) => setStyle(e.target.value.slice(0, CHAR_LIMITS.STYLE))}
                     maxLength={CHAR_LIMITS.STYLE}
@@ -665,7 +665,7 @@ export const UploadAudioDialog = ({
                 <div className="relative">
                   <Textarea
                     id="lyrics"
-                    placeholder="Enter your lyrics here... The prompt will be strictly used as lyrics."
+                    placeholder="Enter your lyrics here..."
                     value={lyrics}
                     onChange={(e) => setLyrics(e.target.value.slice(0, CHAR_LIMITS.PROMPT_CUSTOM))}
                     maxLength={CHAR_LIMITS.PROMPT_CUSTOM}
@@ -789,6 +789,7 @@ export const UploadAudioDialog = ({
               </div>
             ) : (
               <div className="flex items-center justify-center gap-2">
+                <UploadCloud className="w-4 h-4" />
                 <span>Upload & Generate</span>
               </div>
             )}

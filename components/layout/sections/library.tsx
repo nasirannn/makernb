@@ -338,12 +338,6 @@ const LibraryContent = () => {
                                     coverImage: trackInfo.coverImage,
                                 });
                             }}
-                            onFavoriteToggle={(trackId, isFavorited) => {
-                                const track = tracks.find(t => t.id === trackId);
-                                if (track) {
-                                    handleFavoriteToggle(track);
-                                }
-                            }}
                             onDownload={async (trackInfo) => {
                                 if (!trackInfo.id) {
                                     toast.error('Track ID is required');
@@ -412,41 +406,6 @@ const LibraryContent = () => {
                                     });
                                 }
                             }}
-                            onPublishToggle={(trackId, isPublished) => {
-                                const track = tracks.find(t => t.id === trackId);
-                                if (track) {
-                                    handleTrackAction({ ...track, isPublished: !isPublished }, 'publish_toggle');
-                                }
-                            }}
-                            onEditTitle={(trackId, newTitle) => {
-                                const track = tracks.find(t => t.id === trackId);
-                                if (track) {
-                                    handleTrackAction({ ...track, title: newTitle }, 'update');
-                                }
-                            }}
-                            onDelete={(trackId) => {
-                                const track = tracks.find(t => t.id === trackId);
-                                if (track) {
-                                    handleTrackAction(track, 'delete');
-                                }
-                            }}
-                            onPinToggle={(trackId, isPinned) => {
-                                const track = tracks.find(t => t.id === trackId);
-                                if (track) {
-                                    handleTrackAction({ ...track, isPinned: !isPinned }, 'pin');
-                                }
-                            }}
-                            isFavorited={
-                                tracks.find(t => t.id === selectedTrackId)?.isFavorited ?? false
-                            }
-                            isPublished={
-                                tracks.find(t => t.id === selectedTrackId)?.isPublished ?? false
-                            }
-                            isPinned={
-                                tracks.find(t => t.id === selectedTrackId)?.isPinned ?? false
-                            }
-                            isAdmin={false}
-                            currentUserId={user?.id || null}
                         />
                     ) : (
                         /* 歌曲列表 */

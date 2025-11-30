@@ -6,7 +6,7 @@ import { Avatar, AvatarImage, AvatarFallback } from "../ui/avatar";
 import { Badge } from "../ui/badge";
 import Link from "next/link";
 import Image from "next/image";
-import { usePathname } from "next/navigation";
+import { usePathname, useSearchParams } from "next/navigation";
 import { useAuth } from "@/contexts/AuthContext";
 import AuthModal from "../ui/auth-modal";
 import { LogOut } from "lucide-react";
@@ -84,6 +84,7 @@ export const Navbar = ({ credits = null }: NavbarProps) => {
   const [dropdownTimeout, setDropdownTimeout] = React.useState<NodeJS.Timeout | null>(null);
   const [tierCode, setTierCode] = React.useState<'basic' | 'premium' | null>(null);
   const pathname = usePathname();
+  const searchParams = useSearchParams();
   const { user, signOut } = useAuth();
 
   // 处理 Pricing 链接的跳转和滚动
@@ -259,12 +260,14 @@ export const Navbar = ({ credits = null }: NavbarProps) => {
       <nav className="hidden lg:block ml-8">
         <ul className="flex items-center space-x-2">
           {routeList.map(({ href, label, hasDropdown, dropdownItems }) => {
-            const isActive = pathname === href ||
-                           (href === "/blog" && pathname.startsWith("/blog")) ||
-                           (href === "/explore" && pathname.startsWith("/explore")) ||
-                           (href === "/studio" && pathname.startsWith("/studio")) ||
-                           (href === "/library" && pathname.startsWith("/library")) ||
-                           (href === "#" && (pathname.startsWith("/vocal-remover") || pathname.startsWith("/lyrics-generator")));
+            const hasTrackParam = pathname === "/studio" && Boolean(searchParams?.get("track"));
+            const isActive =
+              href === "/blog" ? pathname.startsWith("/blog") :
+              href === "/explore" ? pathname.startsWith("/explore") :
+              href === "/studio" ? pathname.startsWith("/studio") && !hasTrackParam :
+              href === "/library" ? pathname.startsWith("/library") :
+              href === "#" ? (pathname.startsWith("/vocal-remover") || pathname.startsWith("/lyrics-generator")) :
+              pathname === href;
             
             if (hasDropdown && dropdownItems) {
               return (

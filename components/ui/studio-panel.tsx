@@ -132,6 +132,37 @@ export const StudioPanel = (props: StudioPanelProps) => {
 
   const { user } = useAuth();
   const { credits, refreshCredits } = useCredits();
+  const userSelectedModelRef = React.useRef(false);
+
+  const updateSelectedModel = React.useCallback((
+    model: MusicModel,
+    options: { userInitiated?: boolean; forceOverride?: boolean } = {}
+  ) => {
+    if (!setSelectedModel) return;
+    const { userInitiated = false, forceOverride = false } = options;
+
+    if (userInitiated) {
+      userSelectedModelRef.current = true;
+      setSelectedModel(model);
+      return;
+    }
+
+    if (forceOverride) {
+      userSelectedModelRef.current = false;
+      setSelectedModel(model);
+      return;
+    }
+
+    if (userSelectedModelRef.current) {
+      return;
+    }
+
+    setSelectedModel(model);
+  }, [setSelectedModel]);
+
+  React.useEffect(() => {
+    userSelectedModelRef.current = false;
+  }, [user?.id]);
 
   // Check if user has subscription (Basic or Premium tier)
   const [hasSubscription, setHasSubscription] = React.useState(false);
@@ -146,8 +177,8 @@ export const StudioPanel = (props: StudioPanelProps) => {
       if (!user?.id) {
         setHasSubscription(false);
         // 无订阅用户默认使用 V3.5
-        if (setSelectedModel && selectedModel !== 'V3_5') {
-          setSelectedModel('V3_5');
+        if (selectedModel !== 'V3_5') {
+          updateSelectedModel('V3_5', { forceOverride: true });
         }
         return;
       }
@@ -157,8 +188,8 @@ export const StudioPanel = (props: StudioPanelProps) => {
         const { data: { session } } = await supabase.auth.getSession();
         if (!session?.access_token) {
           setHasSubscription(false);
-          if (setSelectedModel && selectedModel !== 'V3_5') {
-            setSelectedModel('V3_5');
+          if (selectedModel !== 'V3_5') {
+            updateSelectedModel('V3_5', { forceOverride: true });
           }
           return;
         }
@@ -183,24 +214,24 @@ export const StudioPanel = (props: StudioPanelProps) => {
           });
 
           // 有订阅用户默认使用 V4_5PLUS
-          if (hasActive && setSelectedModel && selectedModel === 'V3_5') {
-            setSelectedModel('V4_5PLUS');
+          if (hasActive && selectedModel === 'V3_5' && !userSelectedModelRef.current) {
+            updateSelectedModel('V4_5PLUS');
           }
           // 无订阅用户默认使用 V3.5
-          else if (!hasActive && setSelectedModel && selectedModel !== 'V3_5') {
-            setSelectedModel('V3_5');
+          else if (!hasActive && selectedModel !== 'V3_5') {
+            updateSelectedModel('V3_5', { forceOverride: true });
           }
         } else {
           setHasSubscription(false);
-          if (setSelectedModel && selectedModel !== 'V3_5') {
-            setSelectedModel('V3_5');
+          if (selectedModel !== 'V3_5') {
+            updateSelectedModel('V3_5', { forceOverride: true });
           }
         }
       } catch (error) {
         console.error('Error checking subscription:', error);
         setHasSubscription(false);
-        if (setSelectedModel && selectedModel !== 'V3_5') {
-          setSelectedModel('V3_5');
+        if (selectedModel !== 'V3_5') {
+          updateSelectedModel('V3_5', { forceOverride: true });
         }
       } finally {
         setIsCheckingSubscription(false);
@@ -208,7 +239,7 @@ export const StudioPanel = (props: StudioPanelProps) => {
     };
 
     checkSubscription();
-  }, [user?.id, selectedModel, setSelectedModel]);
+  }, [user?.id, selectedModel, updateSelectedModel]);
 
   // State for managing expanded categories
   const [expandedCategory, setExpandedCategory] = React.useState<string | null>(null);
@@ -287,7 +318,7 @@ export const StudioPanel = (props: StudioPanelProps) => {
   };
 
   return (
-    <div className={`transition-all duration-300 ease-in-out bg-[#05060b] border border-white/5 rounded-[32px] shadow-[0_20px_60px_rgba(4,6,15,0.45)] ${
+    <div className={`transition-all duration-300 ease-in-out bg-[var(--studio-panel-bg)] border border-white/5 rounded-[32px] shadow-[0_20px_60px_rgba(4,6,15,0.45)] ${
       // 桌面：左侧固定宽度；移动端：当 forceVisibleOnMobile=true 时占满宽度
       panelOpen ? (forceVisibleOnMobile ? 'w-full md:w-[28rem]' : 'w-[28rem]') : 'w-0'
     } ${forceVisibleOnMobile ? 'flex flex-col' : 'h-full flex flex-col overflow-hidden'} ${forceVisibleOnMobile ? 'flex md:flex' : 'hidden md:flex'}`}>
@@ -1220,9 +1251,7 @@ export const StudioPanel = (props: StudioPanelProps) => {
         onClose={() => setIsModelDialogOpen(false)}
         selectedModel={selectedModel}
         onSelectModel={(model) => {
-          if (setSelectedModel) {
-            setSelectedModel(model);
-          }
+          updateSelectedModel(model, { userInitiated: true });
         }}
         hasSubscription={hasSubscription}
         onShowPricing={() => setIsPricingOpen(true)}
