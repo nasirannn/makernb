@@ -28,11 +28,11 @@ export default function BlogPostPage({ params }: BlogPostPageProps) {
   return (
     <div className="min-h-screen bg-background">
       {/* Hero Section */}
-      <section className="pt-20 pb-8">
+      <section className="pt-32 md:pt-40 pb-12">
         <div className="container mx-auto px-4 w-full">
           <div className="max-w-3xl mx-auto text-center">
             {/* Title */}
-            <h1 className="text-4xl md:text-5xl font-bold text-foreground mb-6 leading-tight">
+            <h1 className="text-4xl md:text-5xl font-bold text-foreground mb-8 leading-tight">
               {post.title}
             </h1>
             

@@ -1,4 +1,5 @@
 import { query, withTransaction } from './db-query-builder';
+import { validateRequiredParams, buildUpdateClause } from './db-utils';
 import { checkMultipleFavorites } from './favorites-db';
 import { LibraryTrack } from '@/types/track';
 import { MusicType } from '@/types/music';
@@ -49,32 +50,6 @@ export interface MusicGenerationWithTracks {
   errorInfo?: any;
   type?: MusicType;
 }
-
-// ============================================================================
-// UTILITY FUNCTIONS
-// ============================================================================
-
-/**
- * Validates required parameters for database operations
- */
-const validateRequiredParams = (params: Record<string, any>, requiredFields: string[]): void => {
-  for (const field of requiredFields) {
-    if (!params[field]) {
-      throw new Error(`Missing required parameter: ${field}`);
-    }
-  }
-};
-
-/**
- * Builds dynamic UPDATE SQL clause from data object
- */
-const buildUpdateClause = (data: Record<string, any>, excludeFields: string[] = []): { setClause: string; values: any[] } => {
-  const fields = Object.keys(data).filter(key => !excludeFields.includes(key));
-  const setClause = fields.map(field => `${field} = $${fields.indexOf(field) + 2}`).join(', ');
-  const values = fields.map(field => data[field]);
-
-  return { setClause, values };
-};
 
 // ============================================================================
 // CRUD OPERATIONS

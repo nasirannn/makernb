@@ -1,25 +1,10 @@
 import { query } from './db-query-builder';
-import { 
-  TrackWavConversion, 
-  CreateTrackWavConversionData, 
-  UpdateTrackWavConversionData 
+import { validateRequiredParams } from './db-utils';
+import {
+  TrackWavConversion,
+  CreateTrackWavConversionData,
+  UpdateTrackWavConversionData
 } from '@/types/track';
-
-// ============================================================================
-// UTILITY FUNCTIONS
-// ============================================================================
-
-/**
- * Validates required parameters for database operations
- */
-const validateRequiredParams = (params: Record<string, any>, requiredFields: string[]): void => {
-  for (const field of requiredFields) {
-    if (!params[field]) {
-      throw new Error(`Missing required parameter: ${field}`);
-    }
-  }
-};
-
 
 // ============================================================================
 // CRUD OPERATIONS

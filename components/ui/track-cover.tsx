@@ -38,7 +38,7 @@ export const TrackCover: React.FC<TrackCoverProps> = ({
   const iconButtonSize = isExtension ? 'h-3 w-3' : 'h-4 w-4';
 
   return (
-    <div className={`relative ${sizeClass} rounded-md overflow-hidden flex-shrink-0 transition-transform duration-300 group/cover`}>
+    <div className={`relative ${sizeClass} rounded-md overflow-hidden flex-shrink-0 transition-transform duration-300 group/cover border-0`}>
       {/* 封面图片 */}
       {isError ? (
         <Image
@@ -46,7 +46,7 @@ export const TrackCover: React.FC<TrackCoverProps> = ({
           alt="Error"
           width={imageSize}
           height={imageSize}
-          className="w-full h-full object-cover transition-all duration-300"
+          className="w-full h-full object-cover transition-all duration-300 border-0"
         />
       ) : coverUrl ? (
         <Image
@@ -54,10 +54,10 @@ export const TrackCover: React.FC<TrackCoverProps> = ({
           alt={title}
           width={imageSize}
           height={imageSize}
-          className="w-full h-full object-cover transition-all duration-300"
+          className="w-full h-full object-cover transition-all duration-300 border-0"
         />
       ) : (
-        <div className="w-full h-full bg-gradient-to-br from-primary/20 to-primary/40 flex items-center justify-center transition-all duration-300">
+        <div className="w-full h-full bg-gradient-to-br from-primary/20 to-primary/40 flex items-center justify-center transition-all duration-300 border-0">
           {isGenerating ? (
             <div className={`animate-spin rounded-full ${iconSize} border-2 border-primary border-t-transparent`}></div>
           ) : (

@@ -85,124 +85,6 @@ export const ReplaceSectionDialog: React.FC<ReplaceSectionDialogProps> = ({
     setIsPlaying(false);
   }, []);
 
-  // ==================== 时间范围选择器拖动逻辑 ====================
-  const progressBarRef = useRef<HTMLDivElement | null>(null);
-  const [isDraggingStart, setIsDraggingStart] = useState(false);
-  const [isDraggingEnd, setIsDraggingEnd] = useState(false);
-  const [isDraggingBar, setIsDraggingBar] = useState(false);
-
-  // 计算鼠标位置对应的时间
-  const getTimeFromMousePosition = useCallback(
-    (clientX: number): number => {
-      if (!progressBarRef.current) return 0;
-      const rect = progressBarRef.current.getBoundingClientRect();
-      const percentage = Math.max(0, Math.min(1, (clientX - rect.left) / rect.width));
-      return percentage * audioDuration;
-    },
-    [audioDuration]
-  );
-
-  // 开始手柄拖动
-  const handleStartHandleMouseDown = useCallback((e: React.MouseEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
-    setIsDraggingStart(true);
-  }, []);
-
-  // 结束手柄拖动
-  const handleEndHandleMouseDown = useCallback((e: React.MouseEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
-    setIsDraggingEnd(true);
-  }, []);
-
-  // 选中区域拖动
-  const handleBarMouseDown = useCallback(
-    (e: React.MouseEvent) => {
-      if (e.target !== e.currentTarget) return; // 只有点击选中区域本身才触发
-      e.preventDefault();
-      e.stopPropagation();
-      setIsDraggingBar(true);
-    },
-    []
-  );
-
-  // 进度条点击
-  const handleProgressBarClick = useCallback(
-    (e: React.MouseEvent) => {
-      // 如果正在拖动，不处理点击
-      if (isDraggingStart || isDraggingEnd || isDraggingBar) return;
-
-      const time = getTimeFromMousePosition(e.clientX);
-
-      // 点击进度条时，移动最近的手柄
-      const distToStart = Math.abs(time - infillStartS);
-      const distToEnd = Math.abs(time - infillEndS);
-
-      if (distToStart < distToEnd) {
-        setInfillStartS(Math.min(time, infillEndS - 0.5));
-      } else {
-        setInfillEndS(Math.max(time, infillStartS + 0.5));
-      }
-    },
-    [getTimeFromMousePosition, infillStartS, infillEndS, isDraggingStart, isDraggingEnd, isDraggingBar]
-  );
-
-  // 处理鼠标移动
-  useEffect(() => {
-    const handleMouseMove = (e: MouseEvent) => {
-      if (isDraggingStart) {
-        const time = getTimeFromMousePosition(e.clientX);
-        setInfillStartS(Math.max(0, Math.min(time, infillEndS - 0.5)));
-      } else if (isDraggingEnd) {
-        const time = getTimeFromMousePosition(e.clientX);
-        setInfillEndS(Math.min(audioDuration, Math.max(time, infillStartS + 0.5)));
-      } else if (isDraggingBar) {
-        const time = getTimeFromMousePosition(e.clientX);
-        const duration = infillEndS - infillStartS;
-        const halfDuration = duration / 2;
-
-        let newStart = time - halfDuration;
-        let newEnd = time + halfDuration;
-
-        // 边界检查
-        if (newStart < 0) {
-          newStart = 0;
-          newEnd = duration;
-        } else if (newEnd > audioDuration) {
-          newEnd = audioDuration;
-          newStart = audioDuration - duration;
-        }
-
-        setInfillStartS(newStart);
-        setInfillEndS(newEnd);
-      }
-    };
-
-    const handleMouseUp = () => {
-      setIsDraggingStart(false);
-      setIsDraggingEnd(false);
-      setIsDraggingBar(false);
-    };
-
-    if (isDraggingStart || isDraggingEnd || isDraggingBar) {
-      document.addEventListener('mousemove', handleMouseMove);
-      document.addEventListener('mouseup', handleMouseUp);
-      return () => {
-        document.removeEventListener('mousemove', handleMouseMove);
-        document.removeEventListener('mouseup', handleMouseUp);
-      };
-    }
-  }, [
-    isDraggingStart,
-    isDraggingEnd,
-    isDraggingBar,
-    getTimeFromMousePosition,
-    infillStartS,
-    infillEndS,
-    audioDuration,
-  ]);
-
   // ==================== 初始化默认值 ====================
   useEffect(() => {
     if (isOpen) {
@@ -303,49 +185,21 @@ export const ReplaceSectionDialog: React.FC<ReplaceSectionDialogProps> = ({
           {/* 音频播放器和时间选择 */}
           {audioUrl && (
             <div className="space-y-4">
-              {/* WaveformPlayer 播放器 */}
+              {/* WaveformPlayer 播放器（包含选择器） */}
               <WaveformPlayer
                 audioUrl={audioUrl}
                 isPlaying={isPlaying}
                 onPlayPause={handlePlayPause}
                 onFinish={handleFinish}
+                separateControls={true}
+                waveHeight={40}
+                showSelector={true}
+                selectorStart={infillStartS}
+                selectorEnd={infillEndS}
+                onSelectorStartChange={setInfillStartS}
+                onSelectorEndChange={setInfillEndS}
+                audioDuration={audioDuration}
               />
-
-              {/* 选择器进度条 */}
-              <div
-                ref={progressBarRef}
-                className="relative h-8 bg-[#0f1117] rounded-xl cursor-pointer select-none overflow-hidden"
-                onClick={handleProgressBarClick}
-                style={{ userSelect: 'none' }}
-              >
-                {/* 选中区域 */}
-                <div
-                  className="absolute top-0 h-full bg-primary/30 border-l-2 border-r-2 border-primary cursor-move transition-colors hover:bg-primary/40"
-                  style={{
-                    left: `${(infillStartS / audioDuration) * 100}%`,
-                    width: `${((infillEndS - infillStartS) / audioDuration) * 100}%`,
-                  }}
-                  onMouseDown={handleBarMouseDown}
-                />
-
-                {/* 开始手柄 */}
-                <div
-                  className="absolute top-1/2 -translate-y-1/2 -translate-x-1/2 w-4 h-6 bg-primary rounded-full cursor-ew-resize shadow-lg hover:scale-110 transition-transform z-10 flex items-center justify-center"
-                  style={{ left: `${(infillStartS / audioDuration) * 100}%` }}
-                  onMouseDown={handleStartHandleMouseDown}
-                >
-                  <div className="w-0.5 h-8 bg-primary-foreground rounded-full" />
-                </div>
-
-                {/* 结束手柄 */}
-                <div
-                  className="absolute top-1/2 -translate-y-1/2 -translate-x-1/2 w-4 h-6 bg-primary rounded-full cursor-ew-resize shadow-lg hover:scale-110 transition-transform z-10 flex items-center justify-center"
-                  style={{ left: `${(infillEndS / audioDuration) * 100}%` }}
-                  onMouseDown={handleEndHandleMouseDown}
-                >
-                  <div className="w-0.5 h-8 bg-primary-foreground rounded-full" />
-                </div>
-              </div>
 
               {/* 时间范围手动输入 */}
               <div className="flex items-center gap-3 text-sm text-muted-foreground">

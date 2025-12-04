@@ -520,13 +520,15 @@ export const LibraryPanel = ({
         return;
       }
 
-      const response = await fetch('/api/track-publish/toggle', {
+      const response = await fetch('/api/toggle-track-publish', {
         method: 'POST',
         headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${session.access_token}`
+          'Content-Type': 'application/json'
         },
-        body: JSON.stringify({ trackId: trackToPublish.id })
+        body: JSON.stringify({
+          trackId: trackToPublish.id,
+          isPublished: !trackToPublish.isPublished
+        })
       });
 
       const result = await response.json();
