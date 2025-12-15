@@ -1,21 +1,21 @@
-# MakeRNB
+# MakerNB
 
-**MakeRNB** is an AI-powered music generation platform that specializes in creating authentic R&B tracks. Generate professional-quality music with custom prompts, multiple genres, and real-time playback - all powered by advanced artificial intelligence.
+**MakerNB** is an AI-powered smart music generation platform that creates personalized, creative, and professional-quality R&B music in seconds. It supports multiple R&B music styles from New Jack Swing to Contemporary R&B, Hip-Hop Soul to Neo-Soul, providing a one-stop music creation solution for music lovers and creators.
 
 ## ✨ Features
 
-- **🎵 AI Music Generation**: Create authentic R&B tracks using advanced AI technology
-- **🎭 Multiple Genres**: New Jack Swing, Hip-Hop Soul, Contemporary R&B, Quiet Storm, Neo-Soul
-- **🎨 Custom Prompts**: Add specific details to customize your music generation
-- **🎧 Real-time Playback**: Built-in audio player with waveform visualization
-- **💾 Download & Save**: Save your favorite tracks to your device
-- **👤 User Authentication**: Secure login with Supabase
-- **💳 Credit System**: Manage generation credits and daily rewards
-- **📱 Responsive Design**: Works seamlessly on desktop and mobile
-- **🖼️ Cover Generation**: AI-generated cover art for your tracks
-- **📝 Lyrics Generation**: Generate lyrics for your music
-- **📚 Music Library**: Organize and manage your generated tracks
-- **🔍 Explore Section**: Discover and listen to community tracks
+- **🎵 AI Music Generation** - Create authentic R&B tracks using advanced AI technology
+- **🎭 Multiple Genres** - New Jack Swing, Hip-Hop Soul, Contemporary R&B, Quiet Storm, Neo-Soul
+- **🎨 Custom Prompts** - Customize your music generation with detailed descriptions
+- **🖼️ AI Cover Generation** - Automatically generate beautiful cover art for your tracks
+- **📝 Lyrics Generation** - AI-powered intelligent lyrics creation
+- **🎧 Real-time Playback** - Built-in audio player with waveform visualization
+- **📚 Music Library** - Organize and manage your music collection
+- **🔍 Explore Community** - Discover and listen to community-created music
+- **💾 Download & Save** - Easily save and share your favorite tracks
+- **📱 Responsive Design** - Seamlessly works on desktop and mobile devices
+- **🎤 Vocal Remover Studio** - Professional vocal and instrumental separation
+- **✂️ Audio Editing** - Upload audio and replace music sections
 
 ## 🚀 Quick Start
 
@@ -80,13 +80,13 @@ npm run dev
 
 ## 🎯 How to Use
 
-1. **Sign Up/Login**: Create an account or sign in
-2. **Select Genre**: Choose from 5 authentic R&B subgenres
-3. **Pick Style**: Select the musical style and mood
-4. **Add Prompt**: Customize with specific details (optional)
-5. **Generate**: Click to create your unique R&B track
-6. **Play & Download**: Listen to your creation and save it
-7. **Manage Library**: Organize your tracks and pin favorites
+1. **Sign Up/Login** - Create an account or sign in
+2. **Select Genre** - Choose from 5 authentic R&B subgenres
+3. **Pick Style** - Select the musical style and mood
+4. **Add Prompt** - Customize with specific details (optional)
+5. **Generate** - Click to create your unique R&B track
+6. **Play & Download** - Listen to your creation and save it
+7. **Manage Library** - Organize your tracks and pin favorites
 
 ## 🎼 Supported Genres
 
@@ -110,12 +110,13 @@ npm run dev
 
 - **Frontend**: Next.js 14, React 18, TypeScript
 - **UI Components**: Shadcn/ui, Tailwind CSS
-- **Database**: PostgreSQL with Neon
+- **Database**: PostgreSQL (Neon)
 - **Authentication**: Supabase Auth
 - **Storage**: Cloudflare R2
-- **API**: Suno API via Kie.ai
-- **Audio**: HTML5 Audio API with custom player
+- **Music API**: Suno API (via Kie.ai)
+- **Audio Processing**: HTML5 Audio API, WaveSurfer.js
 - **Icons**: Lucide React
+- **State Management**: Zustand
 - **Styling**: Tailwind CSS with custom animations
 
 ## 📁 Project Structure
@@ -196,17 +197,40 @@ You can customize the application by editing:
 - **API Logic**: `lib/music-api.ts`
 - **Database Schema**: `sql/` directory
 
+## 📜 Available Scripts
+
+```bash
+# Development server
+npm run dev
+
+# Production build
+npm run build
+
+# Start production server
+npm run start
+
+# Code linting
+npm run lint
+
+# Physical deletion scripts
+npm run physical-delete          # Preview mode
+npm run physical-delete:preview  # Preview items to be deleted
+npm run physical-delete:db-only  # Delete database records only
+npm run physical-delete:r2-only  # Delete R2 storage files only
+npm run physical-delete:execute  # Execute complete deletion
+```
+
 ## 📄 License
 
 MIT License - see [LICENSE](LICENSE) file for details.
 
 ## 🙏 Acknowledgments
 
-- Powered by [Suno API](https://docs.kie.ai/suno-api/quickstart)
-- Built with [Shadcn/ui](https://ui.shadcn.com/)
-- Database hosted on [Neon](https://neon.tech/)
-- Storage powered by [Cloudflare R2](https://www.cloudflare.com/products/r2/)
-- Authentication by [Supabase](https://supabase.com/)
+- Music Generation: [Suno API](https://docs.kie.ai/suno-api/quickstart)
+- UI Components: [Shadcn/ui](https://ui.shadcn.com/)
+- Database Hosting: [Neon](https://neon.tech/)
+- File Storage: [Cloudflare R2](https://www.cloudflare.com/products/r2/)
+- Authentication: [Supabase](https://supabase.com/)
 
 ## 🤝 Contributing
 
@@ -230,4 +254,4 @@ If you have any questions or need help, please:
 
 **Made with ❤️ for R&B music lovers**
 
-*Creating authentic R&B music, one AI-generated track at a time with MakeRNB.*
+*MakerNB - Creating authentic R&B music with AI*
