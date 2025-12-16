@@ -32,6 +32,20 @@ const LibraryContent = () => {
     const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
     // 内部选中状态 - 用于在列表中保持选中高亮，即使URL参数被清除
     const [selectedLibraryTrack, setSelectedLibraryTrack] = useState<string | null>(null);
+    // Sidebar宽度状态
+    const [sidebarWidth, setSidebarWidth] = useState(80); // 默认收起状态的宽度
+    const [isDesktop, setIsDesktop] = useState(false);
+
+    // 监听窗口大小变化
+    React.useEffect(() => {
+        const checkIsDesktop = () => {
+            setIsDesktop(window.innerWidth >= 768);
+        };
+
+        checkIsDesktop();
+        window.addEventListener('resize', checkIsDesktop);
+        return () => window.removeEventListener('resize', checkIsDesktop);
+    }, []);
 
     // ==================== 播放器稳定引用 ====================
     const audioPlayerRef = React.useRef(audioPlayer);
@@ -283,13 +297,16 @@ const LibraryContent = () => {
     // ==================== Render ====================
     return (
         <>
-            <section 
-                id="library" 
-                className="h-screen flex flex-col md:flex-row bg-background relative overflow-hidden"
+            <section
+                id="library"
+                className="h-screen flex flex-col bg-background relative overflow-hidden"
             >
                 {/* Main Library Interface */}
-                <div 
-                    className="flex-1 h-full flex z-10 md:order-2 relative pb-[var(--mobile-nav-height,64px)] md:pb-0"
+                <div
+                    className="flex-1 h-full flex z-10 relative pb-[var(--mobile-nav-height,64px)] md:pb-0 transition-[margin] duration-500"
+                    style={{
+                        marginLeft: isDesktop ? `${sidebarWidth}px` : '0'
+                    }}
                 >
                     {selectedTrackId ? (
                         /* 歌曲详情视图 */
@@ -441,9 +458,7 @@ const LibraryContent = () => {
 
 
                 {/* Common Sidebar */}
-                <div className="md:relative md:z-[40] md:order-1">
-                    <CommonSidebar />
-                </div>
+                <CommonSidebar onWidthChange={setSidebarWidth} />
             </section>
 
             {/* Auth Modal */}
