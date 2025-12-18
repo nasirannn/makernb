@@ -7,6 +7,7 @@ import { downloadFromUrl, uploadAudioFile, uploadCoverImage } from '@/lib/r2-sto
 import { query } from '@/lib/db-query-builder';
 import { getMusicCredits, getFeatureCredits, FeatureKey } from '@/lib/credits-config';
 import { MusicType } from '@/types/music';
+import { submitExplorePageToIndexNow } from '@/lib/indexnow';
 
 // Cache for processed tasks to handle idempotency
 const processedTasks = new Set<string>();
@@ -483,7 +484,27 @@ async function processCallbackAsync(callbackData: any, callbackId: string) {
             status: 'complete'
           });
         }, 5, callbackId, 'update status to complete'); // complete 回调使用 5 次重试
-        
+
+        // 音乐生成完成后，提交到 IndexNow（后台异步，不阻塞主流程）
+        setImmediate(async () => {
+          try {
+            // 查询是否有已发布的 tracks
+            const publishedTracksQuery = await query(
+              'SELECT id FROM tracks WHERE music_id = $1 AND is_published = true LIMIT 1',
+              [musicGenerationId]
+            );
+
+            // 如果有已发布的 tracks，提交 explore 页面到 IndexNow
+            if (publishedTracksQuery.rows.length > 0) {
+              await submitExplorePageToIndexNow();
+              console.log(`[CALLBACK-${callbackId}] Submitted explore page to IndexNow`);
+            }
+          } catch (indexError) {
+            console.error(`[CALLBACK-${callbackId}] Failed to submit to IndexNow:`, indexError);
+            // IndexNow 失败不影响主流程
+          }
+        });
+
         // 音乐生成完成后，备份封面图片到R2（兜底机制，cover-callback可能已经处理过）
         try {
           // 查询需要备份的封面图片（使用新的cover_image_url字段）

@@ -3,12 +3,14 @@ import type { Metadata } from 'next';
 
 export const metadata: Metadata = {
   title: "Terms of Service - MakeRNB",
-  description: "MakeRNB lets you instantly create and download professional R&B songs with AI. Explore Neo-Soul, Quiet Storm & more — free, online, and easy to use.",
+  description: "MakeRNB Terms of Service and user agreement. Read about account responsibilities, acceptable use policies, intellectual property rights, service limitations, and legal terms for using our AI music platform.",
   alternates: {
     canonical: 'https://makernb.com/terms',
   },
   openGraph: {
     url: 'https://makernb.com/terms',
+    title: "Terms of Service - MakeRNB",
+    description: "MakeRNB Terms of Service and user agreement. Read about account responsibilities, acceptable use policies, intellectual property rights, service limitations, and legal terms for using our AI music platform.",
   },
 };
 

@@ -4,6 +4,7 @@ import { getPostBySlug, getAllPosts } from '@/lib/mdx';
 import { MDXRemote } from 'next-mdx-remote/rsc';
 import { notFound } from 'next/navigation';
 import { FooterSection } from '@/components/layout/sections/footer';
+import type { Metadata } from 'next';
 
 interface BlogPostPageProps {
   params: {
@@ -16,6 +17,52 @@ export async function generateStaticParams() {
   return posts.map((post) => ({
     slug: post.slug,
   }));
+}
+
+export async function generateMetadata({ params }: BlogPostPageProps): Promise<Metadata> {
+  const post = getPostBySlug(params.slug);
+
+  if (!post) {
+    return {
+      title: 'Post Not Found | MakeRNB',
+      description: 'The requested blog post could not be found.',
+    };
+  }
+
+  // Ensure excerpt is within 150-160 characters for optimal SEO
+  const description = post.excerpt.length > 160
+    ? post.excerpt.substring(0, 157) + '...'
+    : post.excerpt;
+
+  return {
+    title: `${post.title} | MakeRNB Blog`,
+    description: description,
+    alternates: {
+      canonical: `https://makernb.com/blog/${params.slug}`,
+    },
+    openGraph: {
+      title: post.title,
+      description: description,
+      type: 'article',
+      publishedTime: post.date,
+      authors: [post.author],
+      url: `https://makernb.com/blog/${params.slug}`,
+      images: post.image ? [
+        {
+          url: post.image,
+          width: 1200,
+          height: 630,
+          alt: post.title,
+        }
+      ] : undefined,
+    },
+    twitter: {
+      card: 'summary_large_image',
+      title: post.title,
+      description: description,
+      images: post.image ? [post.image] : undefined,
+    },
+  };
 }
 
 export default function BlogPostPage({ params }: BlogPostPageProps) {

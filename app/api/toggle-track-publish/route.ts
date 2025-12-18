@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getUserIdFromRequest } from '@/lib/auth';
 import { query } from '@/lib/db-query-builder';
+import { submitExplorePageToIndexNow, submitTrackToIndexNow } from '@/lib/indexnow';
 
 export const dynamic = 'force-dynamic';
 
@@ -81,6 +82,27 @@ export async function POST(request: NextRequest) {
 
     const publishStatus = result.rows[0].is_published;
     console.log('Track publish status after update:', publishStatus);
+
+    // 提交到 IndexNow（后台异步，不阻塞响应）
+    setImmediate(async () => {
+      try {
+        if (publishStatus) {
+          // 音乐发布时，提交 explore 页面和 track 页面到 IndexNow
+          await Promise.all([
+            submitExplorePageToIndexNow(),
+            submitTrackToIndexNow(trackId)
+          ]);
+          console.log('Submitted published track to IndexNow:', trackId);
+        } else {
+          // 音乐取消发布时，仅提交 explore 页面更新
+          await submitExplorePageToIndexNow();
+          console.log('Submitted explore page update to IndexNow after unpublishing:', trackId);
+        }
+      } catch (indexError) {
+        console.error('Failed to submit to IndexNow:', indexError);
+        // IndexNow 失败不影响主流程
+      }
+    });
 
     return NextResponse.json({
       success: true,

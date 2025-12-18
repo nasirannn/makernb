@@ -3,12 +3,14 @@ import type { Metadata } from 'next';
 
 export const metadata: Metadata = {
   title: "Commercial License Agreement - MakeRNB",
-  description: "Commercial license agreement for MakeRNB users. Understand your rights to use generated music commercially.",
+  description: "Commercial music license for AI-generated R&B tracks. Understand your usage rights, commercial permissions, royalty-free terms, and distribution rights for music created with MakeRNB.",
   alternates: {
     canonical: 'https://makernb.com/license',
   },
   openGraph: {
     url: 'https://makernb.com/license',
+    title: "Commercial License Agreement - MakeRNB",
+    description: "Commercial music license for AI-generated R&B tracks. Understand your usage rights, commercial permissions, royalty-free terms, and distribution rights for music created with MakeRNB.",
   },
 };
 

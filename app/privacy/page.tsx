@@ -3,12 +3,14 @@ import type { Metadata } from 'next';
 
 export const metadata: Metadata = {
   title: "Privacy Policy - MakeRNB",
-  description: "MakeRNB lets you instantly create and download professional R&B songs with AI. Explore Neo-Soul, Quiet Storm & more — free, online, and easy to use.",
+  description: "MakeRNB Privacy Policy and data protection practices. Learn how we collect, use, protect, and manage your personal information, music data, and account details on our AI music generation platform.",
   alternates: {
     canonical: 'https://makernb.com/privacy',
   },
   openGraph: {
     url: 'https://makernb.com/privacy',
+    title: "Privacy Policy - MakeRNB",
+    description: "MakeRNB Privacy Policy and data protection practices. Learn how we collect, use, protect, and manage your personal information, music data, and account details on our AI music generation platform.",
   },
 };
 

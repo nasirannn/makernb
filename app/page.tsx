@@ -12,12 +12,12 @@ import type { Metadata } from "next";
 
 export const metadata: Metadata = {
   title: "MakeRNB | Free Online AI R&B Music Generator",
-  description: "MakeRNB lets you instantly create and download professional R&B songs with AI. Explore Neo-Soul, Quiet Storm & more — free, online, and easy to use.",
+  description: "Create professional R&B music instantly with AI. Generate Neo-Soul, Quiet Storm, Contemporary R&B & Hip-Hop Soul tracks. Free credits daily. Sign up to start creating.",
   openGraph: {
     type: "website",
     url: "https://makernb.com/",
     title: "MakeRNB | Free Online AI R&B Music Generator",
-    description: "MakeRNB lets you instantly create and download professional R&B songs with AI. Explore Neo-Soul, Quiet Storm & more — free, online, and easy to use.",
+    description: "Create professional R&B music instantly with AI. Generate Neo-Soul, Quiet Storm, Contemporary R&B & Hip-Hop Soul tracks. Free credits daily. Sign up to start creating.",
     images: [
       {
         url: "/hero-image-dark.jpeg",
@@ -31,7 +31,7 @@ export const metadata: Metadata = {
     card: "summary_large_image",
     site: "https://makernb.com/",
     title: "MakeRNB | Free Online AI R&B Music Generator",
-    description: "MakeRNB lets you instantly create and download professional R&B songs with AI. Explore Neo-Soul, Quiet Storm & more — free, online, and easy to use.",
+    description: "Create professional R&B music instantly with AI. Generate Neo-Soul, Quiet Storm, Contemporary R&B & Hip-Hop Soul tracks. Free credits daily. Sign up to start creating.",
     images: [
       "/hero-image-dark.jpeg",
     ],

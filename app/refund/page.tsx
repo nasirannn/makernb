@@ -3,12 +3,14 @@ import type { Metadata } from 'next';
 
 export const metadata: Metadata = {
   title: "Refund Policy - MakeRNB",
-  description: "MakeRNB service satisfaction guarantee and refund policy. Learn about our 7-day trial period and refund procedures.",
+  description: "MakeRNB refund policy and satisfaction guarantee. Learn about our 7-day trial period, refund eligibility, processing time, and step-by-step refund request procedures for subscription plans.",
   alternates: {
     canonical: 'https://makernb.com/refund',
   },
   openGraph: {
     url: 'https://makernb.com/refund',
+    title: "Refund Policy - MakeRNB",
+    description: "MakeRNB refund policy and satisfaction guarantee. Learn about our 7-day trial period, refund eligibility, processing time, and step-by-step refund request procedures for subscription plans.",
   },
 };
 
