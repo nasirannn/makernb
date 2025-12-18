@@ -7,14 +7,10 @@
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
-    "physical-delete": "npx tsx scripts/physical-delete-cleanup.ts",
     "physical-delete:preview": "npx tsx scripts/physical-delete-cleanup.ts",
     "physical-delete:db-only": "npx tsx scripts/physical-delete-cleanup.ts --delete --skip-r2 --force",
     "physical-delete:r2-only": "npx tsx scripts/physical-delete-cleanup.ts --delete --skip-db --force",
-    "physical-delete:execute": "npx tsx scripts/physical-delete-cleanup.ts --delete --force",
-    "migrate:images": "npx tsx scripts/migrate-historical-images.ts",
-    "migrate:images:preview": "npx tsx scripts/migrate-historical-images.ts --limit 10",
-    "migrate:images:execute": "npx tsx scripts/migrate-historical-images.ts --execute"
+    "physical-delete:execute": "npx tsx scripts/physical-delete-cleanup.ts --delete --force"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.882.0",
