@@ -1,7 +1,7 @@
 import { MetadataRoute } from 'next';
 import { query } from '@/lib/db-pool';
 
-const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || 'https://makernb.com';
+const SITE_URL = process.env.NEXT_PUBLIC_BASE_URL || 'https://makernb.com';
 
 interface Track {
   id: string;

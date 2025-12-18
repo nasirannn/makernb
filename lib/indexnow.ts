@@ -8,7 +8,7 @@
  */
 
 const INDEXNOW_KEY = process.env.INDEXNOW_KEY || 'a6aae107e81f4596bf98f78cf0f05672';
-const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || 'https://makernb.com';
+const SITE_URL = process.env.NEXT_PUBLIC_BASE_URL || 'https://makernb.com';
 
 /**
  * Submit URLs to IndexNow for immediate indexing
@@ -36,7 +36,7 @@ export async function submitToIndexNow(urls: string | string[]): Promise<boolean
 
   // Skip if site URL is not configured
   if (!SITE_URL || SITE_URL === 'https://yourdomain.com') {
-    console.warn('[IndexNow] NEXT_PUBLIC_SITE_URL not configured');
+    console.warn('[IndexNow] NEXT_PUBLIC_BASE_URL not configured');
     return false;
   }
 
