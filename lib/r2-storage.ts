@@ -1,4 +1,5 @@
 import { S3Client, PutObjectCommand, DeleteObjectCommand, ListObjectsV2Command, HeadObjectCommand } from '@aws-sdk/client-s3';
+import { compressImageForThumbnail, optimizeOriginalImage, getOptimizedFilename } from './image-optimization';
 
 // R2客户端配置（延迟初始化）
 let _r2Client: S3Client | null = null;
@@ -268,7 +269,104 @@ export async function uploadWavFile(
 }
 
 /**
- * 上传封面图片到R2
+ * 上传封面图片到R2（双版本：原图 + 缩略图）
+ *
+ * @param buffer - Original image buffer
+ * @param taskId - Task ID
+ * @param filename - Original filename
+ * @param userId - User ID
+ * @param contentType - Optional content type
+ * @returns Object containing thumbnail URL (for display) and original URL (for download)
+ */
+export async function uploadCoverImageWithVersions(
+  buffer: Buffer,
+  taskId: string,
+  filename: string,
+  userId: string,
+  contentType?: string | null
+): Promise<{ thumbnailUrl: string; originalUrl: string }> {
+  try {
+    console.log('[R2 Upload] Starting dual-version cover upload:', {
+      taskId,
+      userId,
+      originalSize: `${(buffer.length / 1024).toFixed(2)}KB`,
+    });
+
+    // 1. Optimize and upload thumbnail (WebP, 800px, for display)
+    const thumbnailData = await compressImageForThumbnail(buffer);
+    const thumbnailFilename = getOptimizedFilename(filename, 'webp', 'thumbnail');
+    const thumbnailKey = `covers/${userId}/${taskId}/${thumbnailFilename}`;
+
+    const thumbnailCommand = new PutObjectCommand({
+      Bucket: BUCKET_NAME,
+      Key: thumbnailKey,
+      Body: thumbnailData.buffer,
+      ContentType: 'image/webp',
+      Metadata: {
+        taskId,
+        userId,
+        type: 'cover_thumbnail',
+        width: thumbnailData.width.toString(),
+        height: thumbnailData.height.toString(),
+      },
+      CacheControl: 'public, max-age=31536000, immutable', // Cache for 1 year
+    });
+
+    await getR2Client().send(thumbnailCommand);
+    const thumbnailUrl = `${PUBLIC_DOMAIN}/${thumbnailKey}`;
+
+    console.log('[R2 Upload] Thumbnail uploaded:', {
+      url: thumbnailUrl,
+      size: `${(thumbnailData.size / 1024).toFixed(2)}KB`,
+    });
+
+    // 2. Optimize and upload original (PNG, high quality, for download)
+    const originalData = await optimizeOriginalImage(buffer);
+    const originalFilename = getOptimizedFilename(filename, 'png', 'original');
+    const originalKey = `covers/${userId}/${taskId}/${originalFilename}`;
+
+    const originalCommand = new PutObjectCommand({
+      Bucket: BUCKET_NAME,
+      Key: originalKey,
+      Body: originalData.buffer,
+      ContentType: 'image/png',
+      Metadata: {
+        taskId,
+        userId,
+        type: 'cover_original',
+        width: originalData.width.toString(),
+        height: originalData.height.toString(),
+      },
+      CacheControl: 'public, max-age=31536000, immutable', // Cache for 1 year
+    });
+
+    await getR2Client().send(originalCommand);
+    const originalUrl = `${PUBLIC_DOMAIN}/${originalKey}`;
+
+    console.log('[R2 Upload] Original uploaded:', {
+      url: originalUrl,
+      size: `${(originalData.size / 1024).toFixed(2)}KB`,
+    });
+
+    console.log('[R2 Upload] Dual-version upload complete:', {
+      thumbnailUrl,
+      originalUrl,
+      totalSavings: `${(((buffer.length - thumbnailData.size) / buffer.length) * 100).toFixed(1)}%`,
+    });
+
+    return {
+      thumbnailUrl,
+      originalUrl,
+    };
+  } catch (error) {
+    console.error('[R2 Upload] Error uploading dual-version cover image:', error);
+    throw error;
+  }
+}
+
+/**
+ * 上传封面图片到R2（单版本，保持向后兼容）
+ * @deprecated Use uploadCoverImageWithVersions for better performance
  */
 export async function uploadCoverImage(
   buffer: Buffer,
@@ -279,7 +377,7 @@ export async function uploadCoverImage(
 ): Promise<string> {
   try {
     const key = `covers/${userId}/${taskId}/${filename}`;
-    
+
     const command = new PutObjectCommand({
       Bucket: BUCKET_NAME,
       Key: key,
@@ -293,7 +391,7 @@ export async function uploadCoverImage(
     });
 
     await getR2Client().send(command);
-    
+
     // 返回公开访问URL
     return `${PUBLIC_DOMAIN}/${key}`;
   } catch (error) {

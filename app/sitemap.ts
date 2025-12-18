@@ -49,9 +49,9 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       SELECT
         id,
         updated_at
-      FROM music
-      WHERE deleted_at IS NULL
-        AND is_public = true
+      FROM tracks
+      WHERE (is_deleted IS NULL OR is_deleted = false)
+        AND is_published = true
       ORDER BY updated_at DESC
       LIMIT 1000
     `);

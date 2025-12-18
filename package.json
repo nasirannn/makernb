@@ -11,7 +11,10 @@
     "physical-delete:preview": "npx tsx scripts/physical-delete-cleanup.ts",
     "physical-delete:db-only": "npx tsx scripts/physical-delete-cleanup.ts --delete --skip-r2 --force",
     "physical-delete:r2-only": "npx tsx scripts/physical-delete-cleanup.ts --delete --skip-db --force",
-    "physical-delete:execute": "npx tsx scripts/physical-delete-cleanup.ts --delete --force"
+    "physical-delete:execute": "npx tsx scripts/physical-delete-cleanup.ts --delete --force",
+    "migrate:images": "npx tsx scripts/migrate-historical-images.ts",
+    "migrate:images:preview": "npx tsx scripts/migrate-historical-images.ts --limit 10",
+    "migrate:images:execute": "npx tsx scripts/migrate-historical-images.ts --execute"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.882.0",
@@ -47,6 +50,7 @@
     "pg": "^8.16.3",
     "react": "^18",
     "react-dom": "^18",
+    "sharp": "^0.34.5",
     "sonner": "^2.0.7",
     "tailwind-merge": "^2.3.0",
     "tailwindcss-animate": "^1.0.7",

@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { updateCoverGeneration } from '@/lib/cover-db';
 import { query } from '@/lib/db-query-builder';
-import { downloadFromUrl, uploadCoverImage } from '@/lib/r2-storage';
+import { downloadFromUrl, uploadCoverImageWithVersions } from '@/lib/r2-storage';
 
 // 强制动态渲染
 export const dynamic = 'force-dynamic';
@@ -245,24 +245,28 @@ async function processCoverCallbackAsync(callbackData: any) {
                     for (const track of backupQuery.rows) {
                       try {
                         console.log(`Starting backup for track: ${track.id}`);
-                        
+
                         const imageBuffer = await downloadFromUrl(track.cover_image_url);
-                        const filename = `cover_backup_${Date.now()}_${track.id}.png`;
-                        
-                        const r2ImageUrl = await uploadCoverImage(
-                          imageBuffer, 
-                          coverTaskId, 
-                          filename, 
+                        const filename = `cover_${Date.now()}_${track.id}.png`;
+
+                        // Use dual-version upload (thumbnail + original)
+                        const { thumbnailUrl, originalUrl } = await uploadCoverImageWithVersions(
+                          imageBuffer,
+                          coverTaskId,
+                          filename,
                           track.user_id || 'anonymous'
                         );
-                        
-                        // 更新tracks记录，将临时URL替换为R2备份URL
+
+                        // Update tracks record with both thumbnail (for display) and original (for download)
                         await query(
-                          'UPDATE tracks SET cover_image_url = $1 WHERE id = $2',
-                          [r2ImageUrl, track.id]
+                          'UPDATE tracks SET cover_image_url = $1, cover_original_url = $2 WHERE id = $3',
+                          [thumbnailUrl, originalUrl, track.id]
                         );
-                        
-                        console.log(`Successfully backed up cover image for track ${track.id} to R2: ${r2ImageUrl}`);
+
+                        console.log(`Successfully backed up cover image for track ${track.id}:`, {
+                          thumbnail: thumbnailUrl,
+                          original: originalUrl,
+                        });
                       } catch (imageError) {
                         console.error(`Failed to backup cover image for track ${track.id}:`, imageError);
                       }

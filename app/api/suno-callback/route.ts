@@ -3,7 +3,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { updateMusicGenerationByTaskId } from '@/lib/music-db';
 import { createGenerationError } from '@/lib/generation-errors-db';
 import { addUserCredits } from '@/lib/user-db';
-import { downloadFromUrl, uploadAudioFile, uploadCoverImage } from '@/lib/r2-storage';
+import { downloadFromUrl, uploadAudioFile, uploadCoverImageWithVersions } from '@/lib/r2-storage';
 import { query } from '@/lib/db-query-builder';
 import { getMusicCredits, getFeatureCredits, FeatureKey } from '@/lib/credits-config';
 import { MusicType } from '@/types/music';
@@ -523,23 +523,24 @@ async function processCallbackAsync(callbackData: any, callbackId: string) {
             
             for (const track of coverImagesQuery.rows) {
               try {
-                
+
                 const imageBuffer = await downloadFromUrl(track.cover_image_url);
-                const filename = `cover_backup_${Date.now()}_${track.id}.png`;
-                
-                const r2ImageUrl = await uploadCoverImage(
-                  imageBuffer, 
-                  track.cover_task_id, 
-                  filename, 
+                const filename = `cover_${Date.now()}_${track.id}.png`;
+
+                // Use dual-version upload (thumbnail + original)
+                const { thumbnailUrl, originalUrl } = await uploadCoverImageWithVersions(
+                  imageBuffer,
+                  track.cover_task_id,
+                  filename,
                   track.user_id || 'anonymous'
                 );
-                
-                // 更新tracks记录，将临时URL替换为R2备份URL
+
+                // Update tracks record with both URLs
                 await query(
-                  'UPDATE tracks SET cover_image_url = $1 WHERE id = $2',
-                  [r2ImageUrl, track.id]
+                  'UPDATE tracks SET cover_image_url = $1, cover_original_url = $2 WHERE id = $3',
+                  [thumbnailUrl, originalUrl, track.id]
                 );
-                
+
               } catch (imageError) {
                 console.error(`[CALLBACK-${callbackId}] Failed to backup cover image for track ${track.id}:`, imageError);
                 // 备份失败不影响主流程，前端仍可使用临时URL
