@@ -3,7 +3,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { updateMusicGenerationByTaskId } from '@/lib/music-db';
 import { createGenerationError } from '@/lib/generation-errors-db';
 import { addUserCredits } from '@/lib/user-db';
-import { downloadFromUrl, uploadAudioFile, uploadCoverImageWithVersions } from '@/lib/r2-storage';
+import { downloadFromUrl, uploadAudioFile, uploadCoverImage } from '@/lib/r2-storage';
 import { query } from '@/lib/db-query-builder';
 import { getMusicCredits, getFeatureCredits, FeatureKey } from '@/lib/credits-config';
 import { MusicType } from '@/types/music';
@@ -527,18 +527,18 @@ async function processCallbackAsync(callbackData: any, callbackId: string) {
                 const imageBuffer = await downloadFromUrl(track.cover_image_url);
                 const filename = `cover_${Date.now()}_${track.id}.png`;
 
-                // Use dual-version upload (thumbnail + original)
-                const { thumbnailUrl, originalUrl } = await uploadCoverImageWithVersions(
+                // Upload cover image
+                const coverImageUrl = await uploadCoverImage(
                   imageBuffer,
                   track.cover_task_id,
                   filename,
                   track.user_id || 'anonymous'
                 );
 
-                // Update tracks record with both URLs
+                // Update tracks record with cover URL
                 await query(
-                  'UPDATE tracks SET cover_image_url = $1, cover_original_url = $2 WHERE id = $3',
-                  [thumbnailUrl, originalUrl, track.id]
+                  'UPDATE tracks SET cover_image_url = $1 WHERE id = $2',
+                  [coverImageUrl, track.id]
                 );
 
               } catch (imageError) {

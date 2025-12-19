@@ -47,14 +47,12 @@ export async function GET(request: NextRequest) {
     }
 
     // 查询 track 信息，获取封面 URL
-    // cover_original_url: 高质量原图（用于下载）
-    // cover_image_url: 优化缩略图（用于前端显示）
     const trackResult = await query(
       `SELECT
         mt.id as track_id,
         COALESCE(mt.title, mg.title) as title,
         mg.user_id,
-        COALESCE(mt.cover_original_url, mt.cover_image_url) as track_cover_image_url
+        mt.cover_image_url as track_cover_image_url
       FROM tracks mt
       INNER JOIN music mg ON mt.music_id = mg.id
       WHERE mt.id = $1::uuid

@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { updateCoverGeneration } from '@/lib/cover-db';
 import { query } from '@/lib/db-query-builder';
-import { downloadFromUrl, uploadCoverImageWithVersions } from '@/lib/r2-storage';
+import { downloadFromUrl, uploadCoverImage } from '@/lib/r2-storage';
 
 // 强制动态渲染
 export const dynamic = 'force-dynamic';
@@ -249,23 +249,22 @@ async function processCoverCallbackAsync(callbackData: any) {
                         const imageBuffer = await downloadFromUrl(track.cover_image_url);
                         const filename = `cover_${Date.now()}_${track.id}.png`;
 
-                        // Use dual-version upload (thumbnail + original)
-                        const { thumbnailUrl, originalUrl } = await uploadCoverImageWithVersions(
+                        // Upload cover image
+                        const coverImageUrl = await uploadCoverImage(
                           imageBuffer,
                           coverTaskId,
                           filename,
                           track.user_id || 'anonymous'
                         );
 
-                        // Update tracks record with both thumbnail (for display) and original (for download)
+                        // Update tracks record with cover URL
                         await query(
-                          'UPDATE tracks SET cover_image_url = $1, cover_original_url = $2 WHERE id = $3',
-                          [thumbnailUrl, originalUrl, track.id]
+                          'UPDATE tracks SET cover_image_url = $1 WHERE id = $2',
+                          [coverImageUrl, track.id]
                         );
 
                         console.log(`Successfully backed up cover image for track ${track.id}:`, {
-                          thumbnail: thumbnailUrl,
-                          original: originalUrl,
+                          coverUrl: coverImageUrl,
                         });
                       } catch (imageError) {
                         console.error(`Failed to backup cover image for track ${track.id}:`, imageError);

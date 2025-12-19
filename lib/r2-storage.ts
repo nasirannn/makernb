@@ -1,5 +1,5 @@
 import { S3Client, PutObjectCommand, DeleteObjectCommand, ListObjectsV2Command, HeadObjectCommand } from '@aws-sdk/client-s3';
-import { compressImageForThumbnail, optimizeOriginalImage, getOptimizedFilename } from './image-optimization';
+import { detectImageFormat } from './image-optimization';
 
 // R2客户端配置（延迟初始化）
 let _r2Client: S3Client | null = null;
@@ -269,104 +269,14 @@ export async function uploadWavFile(
 }
 
 /**
- * 上传封面图片到R2（双版本：原图 + 缩略图）
+ * 上传封面图片到R2
  *
  * @param buffer - Original image buffer
  * @param taskId - Task ID
  * @param filename - Original filename
  * @param userId - User ID
  * @param contentType - Optional content type
- * @returns Object containing thumbnail URL (for display) and original URL (for download)
- */
-export async function uploadCoverImageWithVersions(
-  buffer: Buffer,
-  taskId: string,
-  filename: string,
-  userId: string,
-  contentType?: string | null
-): Promise<{ thumbnailUrl: string; originalUrl: string }> {
-  try {
-    console.log('[R2 Upload] Starting dual-version cover upload:', {
-      taskId,
-      userId,
-      originalSize: `${(buffer.length / 1024).toFixed(2)}KB`,
-    });
-
-    // 1. Optimize and upload thumbnail (WebP, 800px, for display)
-    const thumbnailData = await compressImageForThumbnail(buffer);
-    const thumbnailFilename = getOptimizedFilename(filename, 'webp', 'thumbnail');
-    const thumbnailKey = `covers/${userId}/${taskId}/${thumbnailFilename}`;
-
-    const thumbnailCommand = new PutObjectCommand({
-      Bucket: BUCKET_NAME,
-      Key: thumbnailKey,
-      Body: thumbnailData.buffer,
-      ContentType: 'image/webp',
-      Metadata: {
-        taskId,
-        userId,
-        type: 'cover_thumbnail',
-        width: thumbnailData.width.toString(),
-        height: thumbnailData.height.toString(),
-      },
-      CacheControl: 'public, max-age=31536000, immutable', // Cache for 1 year
-    });
-
-    await getR2Client().send(thumbnailCommand);
-    const thumbnailUrl = `${PUBLIC_DOMAIN}/${thumbnailKey}`;
-
-    console.log('[R2 Upload] Thumbnail uploaded:', {
-      url: thumbnailUrl,
-      size: `${(thumbnailData.size / 1024).toFixed(2)}KB`,
-    });
-
-    // 2. Optimize and upload original (PNG, high quality, for download)
-    const originalData = await optimizeOriginalImage(buffer);
-    const originalFilename = getOptimizedFilename(filename, 'png', 'original');
-    const originalKey = `covers/${userId}/${taskId}/${originalFilename}`;
-
-    const originalCommand = new PutObjectCommand({
-      Bucket: BUCKET_NAME,
-      Key: originalKey,
-      Body: originalData.buffer,
-      ContentType: 'image/png',
-      Metadata: {
-        taskId,
-        userId,
-        type: 'cover_original',
-        width: originalData.width.toString(),
-        height: originalData.height.toString(),
-      },
-      CacheControl: 'public, max-age=31536000, immutable', // Cache for 1 year
-    });
-
-    await getR2Client().send(originalCommand);
-    const originalUrl = `${PUBLIC_DOMAIN}/${originalKey}`;
-
-    console.log('[R2 Upload] Original uploaded:', {
-      url: originalUrl,
-      size: `${(originalData.size / 1024).toFixed(2)}KB`,
-    });
-
-    console.log('[R2 Upload] Dual-version upload complete:', {
-      thumbnailUrl,
-      originalUrl,
-      totalSavings: `${(((buffer.length - thumbnailData.size) / buffer.length) * 100).toFixed(1)}%`,
-    });
-
-    return {
-      thumbnailUrl,
-      originalUrl,
-    };
-  } catch (error) {
-    console.error('[R2 Upload] Error uploading dual-version cover image:', error);
-    throw error;
-  }
-}
-
-/**
- * 上传封面图片到R2（单版本，保持向后兼容）
- * @deprecated Use uploadCoverImageWithVersions for better performance
+ * @returns Image URL
  */
 export async function uploadCoverImage(
   buffer: Buffer,
@@ -376,40 +286,45 @@ export async function uploadCoverImage(
   contentType?: string | null
 ): Promise<string> {
   try {
+    console.log('[R2 Upload] Uploading cover image:', {
+      taskId,
+      userId,
+      size: `${(buffer.length / 1024).toFixed(2)}KB`,
+    });
+
+    // 直接上传原图
     const key = `covers/${userId}/${taskId}/${filename}`;
+
+    // 检测图片格式
+    const format = detectImageFormat(buffer);
+    const detectedContentType = contentType || `image/${format}`;
 
     const command = new PutObjectCommand({
       Bucket: BUCKET_NAME,
       Key: key,
       Body: buffer,
-      ContentType: resolveImageContentType(filename, contentType),
+      ContentType: detectedContentType,
       Metadata: {
         taskId,
         userId,
-        type: 'cover'
-      }
+        type: 'cover',
+      },
+      CacheControl: 'public, max-age=31536000, immutable',
     });
 
     await getR2Client().send(command);
+    const imageUrl = `${PUBLIC_DOMAIN}/${key}`;
 
-    // 返回公开访问URL
-    return `${PUBLIC_DOMAIN}/${key}`;
+    console.log('[R2 Upload] Cover uploaded:', {
+      url: imageUrl,
+      size: `${(buffer.length / 1024).toFixed(2)}KB`,
+    });
+
+    return imageUrl;
   } catch (error) {
-    console.error('Error uploading cover image:', error);
+    console.error('[R2 Upload] Error uploading cover image:', error);
     throw error;
   }
-}
-
-function resolveImageContentType(filename: string, provided?: string | null): string {
-  if (provided && provided.trim() !== '') return provided;
-  const lower = filename.toLowerCase();
-  if (lower.endsWith('.png')) return 'image/png';
-  if (lower.endsWith('.jpg') || lower.endsWith('.jpeg')) return 'image/jpeg';
-  if (lower.endsWith('.webp')) return 'image/webp';
-  if (lower.endsWith('.gif')) return 'image/gif';
-  if (lower.endsWith('.svg')) return 'image/svg+xml';
-  if (lower.endsWith('.avif')) return 'image/avif';
-  return 'application/octet-stream';
 }
 
 /**
