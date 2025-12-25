@@ -18,7 +18,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
-import { Star, Share2, Check, Download, MoreVertical, Mic, Trash2, Eye, EyeOff, Pencil, Maximize2, Scissors } from "lucide-react";
+import { Star, Share2, Check, Download, MoreVertical, Mic, Trash2, Pencil, Maximize2, Scissors, Send } from "lucide-react";
 import { LibraryTrack } from '@/types/track';
 import { EditMusicInfoDialog } from './edit-music-info-dialog';
 
@@ -264,17 +264,14 @@ export const TrackActionButtons: React.FC<TrackActionButtonsProps> = ({
                   }}
                   className="flex items-center gap-1.5 cursor-pointer px-2.5 py-1.5 text-xs data-[highlighted]:bg-transparent data-[highlighted]:text-primary focus:bg-transparent"
                 >
-                  {isPublished ? (
-                    <>
-                      <EyeOff className="h-3.5 w-3.5" />
-                      <span>Unpublish</span>
-                    </>
-                  ) : (
-                    <>
-                      <Eye className="h-3.5 w-3.5" />
-                      <span>Publish</span>
-                    </>
-                  )}
+                  <>
+                    <Send
+                      className={`h-3.5 w-3.5 ${
+                        isPublished ? 'text-green-600' : 'text-muted-foreground'
+                      }`}
+                    />
+                    <span>{isPublished ? 'Unpublish' : 'Publish'}</span>
+                  </>
                 </DropdownMenuItem>
               )}
               
@@ -530,17 +527,12 @@ export const TrackActionButtons: React.FC<TrackActionButtonsProps> = ({
                 }}
                 className="flex items-center gap-1.5 cursor-pointer px-2.5 py-1.5 text-xs data-[highlighted]:bg-transparent data-[highlighted]:text-primary focus:bg-transparent"
               >
-                {isPublished ? (
-                  <>
-                    <EyeOff className="h-3.5 w-3.5" />
-                    <span>Unpublish</span>
-                  </>
-                ) : (
-                  <>
-                    <Eye className="h-3.5 w-3.5" />
-                    <span>Publish</span>
-                  </>
-                )}
+                <Send
+                  className={`h-3.5 w-3.5 ${
+                    isPublished ? 'text-green-600' : 'text-muted-foreground'
+                  }`}
+                />
+                <span>{isPublished ? 'Unpublish' : 'Publish'}</span>
               </DropdownMenuItem>
             )}
             

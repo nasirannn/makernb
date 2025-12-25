@@ -195,7 +195,7 @@ export const LibraryTrackActions: React.FC<LibraryTrackActionsProps> = ({
               className="cursor-pointer"
             >
               <Pencil className="mr-2 h-4 w-4" />
-              Edit Title
+              Edit Music Info
             </DropdownMenuItem>
           )}
 

@@ -75,6 +75,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
+import { EditMusicInfoDialog } from '@/components/ui/edit-music-info-dialog';
 
 interface LibraryPanelProps {
   tracks: LibraryTrack[];
@@ -134,8 +135,6 @@ export const LibraryPanel = ({
   // 编辑对话框状态管理
   const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [trackToEdit, setTrackToEdit] = useState<LibraryTrack | null>(null);
-  const [editTitle, setEditTitle] = useState<string>('');
-  const [isSaving, setIsSaving] = useState(false);
   
   // 切换tags展开状态
   const toggleTagsExpansion = (trackId: string) => {
@@ -668,66 +667,76 @@ export const LibraryPanel = ({
       e.stopPropagation();
     }
     setTrackToEdit(track);
-    setEditTitle(track.title);
     setEditDialogOpen(true);
   };
 
   const handleEditCancel = () => {
     setEditDialogOpen(false);
     setTrackToEdit(null);
-    setEditTitle('');
   };
 
-  const handleEditSave = async () => {
-    if (!userId || !trackToEdit || !editTitle.trim()) {
-      return;
+  const handleEditSave = async (data: { title: string; coverImageUrl?: string }) => {
+    if (!userId || !trackToEdit) {
+      toast('Please log in to edit track info');
+      throw new Error('Not authenticated');
     }
-
-    setIsSaving(true);
 
     try {
       const { data: { session } } = await supabase.auth.getSession();
       if (!session?.access_token) {
-        toast('Please log in to edit track title');
-        setIsSaving(false);
-        return;
+        toast('Please log in to edit track info');
+        throw new Error('Authentication required');
       }
 
-      const response = await fetch('/api/update-track-title', {
+      const body: Record<string, any> = {
+        trackId: trackToEdit.id,
+        title: data.title,
+      };
+
+      if (data.coverImageUrl !== undefined) {
+        body.coverImageUrl = data.coverImageUrl;
+      }
+
+      const response = await fetch('/api/update-track-info', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${session.access_token}`
         },
-        body: JSON.stringify({ trackId: trackToEdit.id, title: editTitle.trim() })
+        body: JSON.stringify(body)
       });
 
       const result = await response.json();
 
-      if (response.ok && result.success) {
-        // 更新本地tracks状态
-        const updatedTrack = { ...trackToEdit, title: editTitle.trim() };
-        onTrackAction?.(updatedTrack, 'update');
-        
-        toast('Track title updated successfully', {
-          icon: <CheckCircle className="h-4 w-4 text-green-500" />
-        });
-        
-        setEditDialogOpen(false);
-        setTrackToEdit(null);
-        setEditTitle('');
-      } else {
-        toast(result.error || 'Failed to update track title', {
-          icon: <XCircle className="h-4 w-4 text-red-500" />
-        });
+      if (!response.ok || !result.success) {
+        throw new Error(result.error || 'Failed to update track info');
       }
+
+      const updatedTitle = result.data?.title || data.title;
+      const updatedCoverImage = result.data?.coverImageUrl !== undefined
+        ? (result.data.coverImageUrl || null)
+        : trackToEdit.coverImage || null;
+
+      const updatedTrack = {
+        ...trackToEdit,
+        title: updatedTitle,
+        coverImage: updatedCoverImage,
+      };
+
+      onTrackAction?.(updatedTrack as LibraryTrack, 'update');
+
+      toast('Track info updated successfully', {
+        icon: <CheckCircle className="h-4 w-4 text-green-500" />
+      });
+
+      setEditDialogOpen(false);
+      setTrackToEdit(null);
     } catch (error) {
-      console.error('Error updating track title:', error);
-      toast('Failed to update track title', {
+      console.error('Error updating track info:', error);
+      toast(error instanceof Error ? error.message : 'Failed to update track info', {
         icon: <XCircle className="h-4 w-4 text-red-500" />
       });
-    } finally {
-      setIsSaving(false);
+      throw error;
     }
   };
 
@@ -1325,59 +1334,14 @@ export const LibraryPanel = ({
         </AlertDialogContent>
       </AlertDialog>
 
-      {/* Edit Title Dialog */}
-      <Dialog open={editDialogOpen} onOpenChange={(open) => {
-        setEditDialogOpen(open);
-        if (!open) {
-          handleEditCancel();
-        }
-      }}>
-        <DialogContent className="max-w-[calc(100vw-2rem)] sm:max-w-md">
-          <DialogHeader>
-            <DialogTitle>Edit Track Title</DialogTitle>
-            <DialogDescription>
-              Enter a new title for your track.
-            </DialogDescription>
-          </DialogHeader>
-          <div className="py-4">
-            <input
-              type="text"
-              value={editTitle}
-              onChange={(e) => setEditTitle(e.target.value)}
-              placeholder="Enter track title"
-              maxLength={80}
-              className="w-full px-4 py-2 bg-background border border-border rounded-md focus:outline-none focus:ring-2 focus:ring-primary"
-              onKeyDown={(e) => {
-                if (e.key === 'Enter' && !e.shiftKey) {
-                  e.preventDefault();
-                  handleEditSave();
-                }
-              }}
-              autoFocus
-            />
-            <div className="text-right text-sm text-muted-foreground mt-1">
-              {editTitle.length}/80
-            </div>
-          </div>
-          <DialogFooter className="flex-col sm:flex-row gap-3 sm:gap-2">
-            <Button
-              variant="outline"
-              onClick={handleEditCancel}
-              disabled={isSaving}
-              className="w-full sm:w-auto"
-            >
-              Cancel
-            </Button>
-            <Button
-              onClick={handleEditSave}
-              disabled={isSaving || !editTitle.trim()}
-              className="w-full sm:w-auto"
-            >
-              {isSaving ? 'Saving...' : 'Save'}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+      {/* Edit Music Info Dialog */}
+      <EditMusicInfoDialog
+        isOpen={editDialogOpen && !!trackToEdit}
+        onClose={handleEditCancel}
+        onSave={handleEditSave}
+        initialTitle={trackToEdit?.title || ''}
+        initialCoverImage={trackToEdit?.coverR2Url || trackToEdit?.coverImage || undefined}
+      />
 
       {/* Mobile Bottom Sheet Menu */}
       <Dialog open={mobileMenuOpen} onOpenChange={setMobileMenuOpen}>
@@ -1489,7 +1453,7 @@ export const LibraryPanel = ({
                 className="w-full flex items-center gap-3 p-3 rounded-lg hover:bg-muted transition-colors"
               >
                 <Pencil className="h-5 w-5" />
-                <span className="font-medium">Edit Title</span>
+                <span className="font-medium">Edit Music Info</span>
               </button>
             )}
 
