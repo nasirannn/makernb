@@ -11,6 +11,8 @@ import {
   Pencil,
   Star,
   Send,
+  Share2,
+  Check,
 } from 'lucide-react';
 import {
   DropdownMenu,
@@ -31,9 +33,11 @@ interface LibraryTrackActionsProps {
   onPublish?: () => void;
   onPin?: () => void;
   onEdit?: () => void;
+  onShare?: () => void;
   onFavorite?: () => void;
   onDelete?: () => void;
   onPricingModalOpen?: () => void;
+  isCopied?: boolean;
 }
 
 /**
@@ -51,11 +55,13 @@ export const LibraryTrackActions: React.FC<LibraryTrackActionsProps> = ({
   canDownloadCover = false,
   onDownload,
   onPublish,
+  onShare,
   onPin,
   onEdit,
   onFavorite,
   onDelete,
   onPricingModalOpen,
+  isCopied = false,
 }) => {
   const hasCoverImage = Boolean(
     track.coverImage ||
@@ -100,6 +106,26 @@ export const LibraryTrackActions: React.FC<LibraryTrackActionsProps> = ({
             <Send className="h-4 w-4 text-green-600" />
           ) : (
             <Send className="h-4 w-4 text-muted-foreground" />
+          )}
+        </Button>
+      )}
+
+      {/* Share Button */}
+      {onShare && (
+        <Button
+          variant="ghost"
+          size="sm"
+          className={`h-8 w-8 p-0 ${isCopied ? 'text-green-500' : 'text-muted-foreground hover:text-foreground'} hover:bg-muted/50 transition-colors`}
+          title="Share track"
+          onClick={(e) => {
+            e.stopPropagation();
+            onShare();
+          }}
+        >
+          {isCopied ? (
+            <Check className="h-4 w-4" />
+          ) : (
+            <Share2 className="h-4 w-4" />
           )}
         </Button>
       )}

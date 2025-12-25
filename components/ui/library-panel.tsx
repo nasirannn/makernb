@@ -32,7 +32,9 @@ import {
   ArrowUp,
   ArrowDown as ArrowDownIcon,
   Pencil,
-  Send
+  Send,
+  Share2,
+  Check
 } from 'lucide-react';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
 import { isAdmin } from '@/lib/auth';
@@ -135,6 +137,7 @@ export const LibraryPanel = ({
   // 编辑对话框状态管理
   const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [trackToEdit, setTrackToEdit] = useState<LibraryTrack | null>(null);
+  const [copiedTrackId, setCopiedTrackId] = useState<string | null>(null);
   
   // 切换tags展开状态
   const toggleTagsExpansion = (trackId: string) => {
@@ -149,6 +152,7 @@ export const LibraryPanel = ({
 
   // Scroll container ref
   const scrollContainerRef = useRef<HTMLDivElement>(null);
+  const shareResetTimeout = useRef<number | null>(null);
 
   // Filter tracks based on search query and active filter
   const filteredTracks = tracks.filter(track => {
@@ -203,6 +207,13 @@ export const LibraryPanel = ({
   // Show all tracks without pagination
   const paginatedTracks = sortedTracks;
 
+  useEffect(() => {
+    return () => {
+      if (shareResetTimeout.current !== null) {
+        clearTimeout(shareResetTimeout.current);
+      }
+    };
+  }, []);
 
   const handleTrackAction = (track: LibraryTrack, action: 'play' | 'select') => {
     
@@ -213,6 +224,38 @@ export const LibraryPanel = ({
       // 不自动展开歌词面板，用户可以通过点击播放器中的歌曲信息来展开
     }
   };
+
+  const handleShare = useCallback(async (track: LibraryTrack): Promise<boolean> => {
+    if (!track?.id) {
+      toast.error('Track ID is required to share');
+      return false;
+    }
+
+    if (typeof window === 'undefined' || typeof navigator === 'undefined' || !navigator.clipboard?.writeText) {
+      toast.error('Sharing is not supported in this environment');
+      return false;
+    }
+
+    try {
+      const shareUrl = `${window.location.origin}/track/${track.id}`;
+      await navigator.clipboard.writeText(shareUrl);
+      setCopiedTrackId(track.id);
+
+      if (shareResetTimeout.current !== null) {
+        clearTimeout(shareResetTimeout.current);
+      }
+      shareResetTimeout.current = window.setTimeout(() => {
+        setCopiedTrackId(prev => (prev === track.id ? null : prev));
+        shareResetTimeout.current = null;
+      }, 2000);
+
+      return true;
+    } catch (error) {
+      console.error('Error copying share link:', error);
+      toast.error('Failed to copy link');
+      return false;
+    }
+  }, []);
 
   const handleDownload = async (track: LibraryTrack, format: 'mp3' | 'wav' | 'cover' = 'mp3') => {
     if (format === 'cover' && !canDownloadCover) {
@@ -1146,10 +1189,12 @@ export const LibraryPanel = ({
                       canDownloadCover={canDownloadCover}
                       onDownload={(format) => handleDownload(track, format)}
                       onPublish={() => handlePublishClick(track)}
+                      onShare={() => handleShare(track)}
                       onPin={() => handlePinToggle(track)}
                       onEdit={() => handleEditStart(track)}
                       onDelete={() => handleDeleteClick(track)}
                       onPricingModalOpen={openPricingModal}
+                      isCopied={copiedTrackId === track.id}
                     />
                   </div>
                   </div>
@@ -1572,6 +1617,29 @@ export const LibraryPanel = ({
                   }}
                 />
               </div>
+            )}
+
+            {/* Share */}
+            {selectedTrackForMenu && (
+              <button
+                onClick={() => {
+                  handleShare(selectedTrackForMenu).then((success) => {
+                    if (success) {
+                      setMobileMenuOpen(false);
+                    }
+                  });
+                }}
+                className="w-full flex items-center gap-3 p-3 rounded-lg hover:bg-muted transition-colors"
+              >
+                {copiedTrackId === selectedTrackForMenu.id ? (
+                  <Check className="h-5 w-5 text-green-500" />
+                ) : (
+                  <Share2 className="h-5 w-5" />
+                )}
+                <span className="font-medium">
+                  {copiedTrackId === selectedTrackForMenu.id ? 'Link copied' : 'Copy share link'}
+                </span>
+              </button>
             )}
 
             {/* Pin/Unpin - Only for admins */}
