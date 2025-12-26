@@ -202,126 +202,139 @@ export default function LyricsGeneratorPage() {
         <div className="max-w-5xl mx-auto">
           {/* Header */}
           <div className="text-center mb-8">
-            <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-4">
-              AI MUSIC TOOLS
+            <p className="text-sm font-semibold text-muted-foreground uppercase tracking-wider mb-4">
+              AI LYRICS GENERATOR TOOLS
             </p>
             <h1 className="text-4xl sm:text-5xl md:text-6xl font-bold text-foreground mb-4 tracking-tight">
             AI Lyrics Generator Free Online
             </h1>
             <p className="text-muted-foreground text-base sm:text-lg max-w-2xl mx-auto">
-              Create compelling lyrics with AI. Describe your vision and let our advanced technology craft the perfect words for your music.
+              Craft expressive lyrics instantly with our fast, AI-powered writing assistant.
             </p>
           </div>
 
-          {/* Main Panel - Studio Style */}
-          <div className="bg-[#05060b] border border-white/5 rounded-[32px] shadow-[0_20px_60px_rgba(4,6,15,0.45)] p-4 sm:p-6 md:p-8 mb-8">
+          {/* Main Section */}
+          <div className="space-y-8">
+            <section className="rounded-[32px] bg-background/60 backdrop-blur-sm border border-border/30 p-4 sm:p-6 md:p-8 space-y-6">
+                {/* Prompt Input Section */}
+                <div className="bg-muted/20 rounded-2xl p-4 sm:p-6">
+                  <div className="flex flex-wrap items-center justify-between gap-3 mb-4">
+                    <h3 className="text-lg font-semibold tracking-tight flex items-center gap-2">
+                      <Wand2 className="h-5 w-5 text-primary" />
+                      Describe Your Song
+                    </h3>
+                    {prompt && (
+                      <Button
+                        onClick={handleClearAll}
+                        variant="ghost"
+                        size="sm"
+                        className="text-xs text-muted-foreground hover:text-foreground"
+                      >
+                        <RefreshCw className="h-3 w-3 mr-1" />
+                        Clear All
+                      </Button>
+                    )}
+                  </div>
 
-            {/* Prompt Input Section */}
-            <div className="bg-muted/20 rounded-lg p-4 sm:p-6 mb-6">
-              <div className="flex items-center justify-between mb-4">
-                <h3 className="text-lg font-semibold tracking-tight flex items-center gap-2">
-                  <Wand2 className="h-5 w-5 text-primary" />
-                  Describe Your Song
+                  <div className="relative">
+                    <Textarea
+                      placeholder="Type your themes, moods, and styles... e.g., Love and Romance, Romantic and Intimate, R&B"
+                      value={prompt}
+                      onChange={(e) => setPrompt(e.target.value)}
+                      className="min-h-[140px] resize-none pr-16 pb-12 border border-border bg-background/70 focus-visible:ring-1 focus-visible:ring-primary focus-visible:ring-offset-0 rounded-xl"
+                      disabled={isGenerating}
+                    />
+                    <div className="absolute bottom-3 right-3 text-xs text-muted-foreground bg-background/80 px-2 py-1 rounded">
+                      {prompt.length}/200
+                    </div>
+                  </div>
+                </div>
+
+                {/* Preset Options */}
+                <div className="space-y-4">
+                  {/* Themes */}
+                  <div className="rounded-2xl border border-border/30 bg-background/40 p-4">
+                    <h4 className="text-sm font-semibold text-foreground mb-3">Popular Themes</h4>
+                    <div className="flex flex-wrap gap-2">
+                      {presetsData.themes.map((theme) => (
+                        <button
+                          key={theme}
+                          onClick={() => handlePresetClick('theme', theme)}
+                          className={`px-3 py-1.5 text-xs font-medium rounded-lg transition-all duration-200 ${
+                            selectedTheme === theme
+                              ? 'bg-primary text-primary-foreground shadow-lg shadow-primary/20'
+                              : 'bg-muted/40 text-foreground hover:bg-muted/60 border border-white/5'
+                          }`}
+                          disabled={isGenerating}
+                        >
+                          {theme}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Moods */}
+                  <div className="rounded-2xl border border-border/30 bg-background/40 p-4">
+                    <h4 className="text-sm font-semibold text-foreground mb-3">Moods</h4>
+                    <div className="flex flex-wrap gap-2">
+                      {presetsData.moods.map((mood) => (
+                        <button
+                          key={mood}
+                          onClick={() => handlePresetClick('mood', mood)}
+                          className={`px-3 py-1.5 text-xs font-medium rounded-lg transition-all duration-200 ${
+                            selectedMood === mood
+                              ? 'bg-primary text-primary-foreground shadow-lg shadow-primary/20'
+                              : 'bg-muted/40 text-foreground hover:bg-muted/60 border border-white/5'
+                          }`}
+                          disabled={isGenerating}
+                        >
+                          {mood}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Styles */}
+                  <div className="rounded-2xl border border-border/30 bg-background/40 p-4">
+                    <h4 className="text-sm font-semibold text-foreground mb-3">Musical Styles</h4>
+                    <div className="flex flex-wrap gap-2">
+                      {presetsData.styles.map((style) => (
+                        <button
+                          key={style}
+                          onClick={() => handlePresetClick('style', style)}
+                          className={`px-3 py-1.5 text-xs font-medium rounded-lg transition-all duration-200 ${
+                            selectedStyle === style
+                              ? 'bg-primary text-primary-foreground shadow-lg shadow-primary/20'
+                              : 'bg-muted/40 text-foreground hover:bg-muted/60 border border-white/5'
+                          }`}
+                          disabled={isGenerating}
+                        >
+                          {style}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              </section>
+
+            {/* Action Panel */}
+            <section className="rounded-[32px] border border-border/30 bg-muted/20 backdrop-blur-sm p-6 sm:p-8 flex flex-col gap-5">
+              <div>
+                <p className="text-xs font-semibold text-primary uppercase tracking-widest mb-2">
+                  Start creating
+                </p>
+                <h3 className="text-2xl font-bold text-foreground tracking-tight mb-2">
+                  Generate polished lyrics in one click
                 </h3>
-                {prompt && (
-                  <Button
-                    onClick={handleClearAll}
-                    variant="ghost"
-                    size="sm"
-                    className="text-xs text-muted-foreground hover:text-foreground"
-                  >
-                    <RefreshCw className="h-3 w-3 mr-1" />
-                    Clear All
-                  </Button>
-                )}
+                <p className="text-sm text-muted-foreground leading-relaxed">
+                  Describe your story, mood, or genre. Our AI writer delivers structured lyrics ready for any project.
+                </p>
               </div>
 
-              <div className="relative">
-                <Textarea
-                  placeholder="Type your themes, moods, and styles... e.g., Love and Romance, Romantic and Intimate, R&B"
-                  value={prompt}
-                  onChange={(e) => setPrompt(e.target.value)}
-                  className="min-h-[120px] resize-none pr-16 pb-12 border border-border bg-background/50 focus-visible:ring-1 focus-visible:ring-primary focus-visible:ring-offset-0 rounded-lg"
-                  disabled={isGenerating}
-                />
-                <div className="absolute bottom-3 right-3 text-xs text-muted-foreground bg-background/80 px-2 py-1 rounded">
-                  {prompt.length}/200
-                </div>
-              </div>
-            </div>
-
-            {/* Preset Options */}
-            <div className="space-y-3 mb-6">
-              {/* Themes */}
-              <div className="bg-muted/20 rounded-lg p-4">
-                <h4 className="text-sm font-semibold text-foreground mb-3">Popular Themes</h4>
-                <div className="flex flex-wrap gap-2">
-                  {presetsData.themes.map((theme) => (
-                    <button
-                      key={theme}
-                      onClick={() => handlePresetClick('theme', theme)}
-                      className={`px-3 py-1.5 text-xs font-medium rounded-lg transition-all duration-200 ${
-                        selectedTheme === theme
-                          ? 'bg-primary text-primary-foreground shadow-lg shadow-primary/20'
-                          : 'bg-muted/40 text-foreground hover:bg-muted/60 border border-white/5'
-                      }`}
-                      disabled={isGenerating}
-                    >
-                      {theme}
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              {/* Moods */}
-              <div className="bg-muted/20 rounded-lg p-4">
-                <h4 className="text-sm font-semibold text-foreground mb-3">Moods</h4>
-                <div className="flex flex-wrap gap-2">
-                  {presetsData.moods.map((mood) => (
-                    <button
-                      key={mood}
-                      onClick={() => handlePresetClick('mood', mood)}
-                      className={`px-3 py-1.5 text-xs font-medium rounded-lg transition-all duration-200 ${
-                        selectedMood === mood
-                          ? 'bg-primary text-primary-foreground shadow-lg shadow-primary/20'
-                          : 'bg-muted/40 text-foreground hover:bg-muted/60 border border-white/5'
-                      }`}
-                      disabled={isGenerating}
-                    >
-                      {mood}
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              {/* Styles */}
-              <div className="bg-muted/20 rounded-lg p-4">
-                <h4 className="text-sm font-semibold text-foreground mb-3">Musical Styles</h4>
-                <div className="flex flex-wrap gap-2">
-                  {presetsData.styles.map((style) => (
-                    <button
-                      key={style}
-                      onClick={() => handlePresetClick('style', style)}
-                      className={`px-3 py-1.5 text-xs font-medium rounded-lg transition-all duration-200 ${
-                        selectedStyle === style
-                          ? 'bg-primary text-primary-foreground shadow-lg shadow-primary/20'
-                          : 'bg-muted/40 text-foreground hover:bg-muted/60 border border-white/5'
-                      }`}
-                      disabled={isGenerating}
-                    >
-                      {style}
-                    </button>
-                  ))}
-                </div>
-              </div>
-            </div>
-
-            {/* Action Button */}
-            <div className="space-y-3">
               <Button
                 onClick={handleGenerateLyrics}
                 disabled={!prompt.trim() || isGenerating}
-                className="w-full h-12 bg-gradient-create text-white text-base font-semibold hover:opacity-90 transition-opacity rounded-lg"
+                className="w-full h-12 bg-gradient-create text-white text-base font-semibold hover:opacity-90 transition-opacity rounded-2xl"
                 size="lg"
               >
                 {isGenerating ? (
@@ -341,22 +354,24 @@ export default function LyricsGeneratorPage() {
                 )}
               </Button>
 
-              <div className="text-center">
+              <div className="rounded-2xl border border-border/20 bg-background/40 p-4">
+                <p className="text-sm font-semibold text-foreground mb-1">
+                  Generation details
+                </p>
                 <p className="text-xs text-muted-foreground">
                   Estimated time: 30-60 seconds • Cost: {CLIENT_FEATURE_CREDITS.generate_lyrics.credits} credits
                 </p>
               </div>
-            </div>
 
-            {/* Error Message */}
-            {error && (
-              <div className="mt-6 p-4 bg-destructive/10 border border-destructive/20 rounded-lg">
-                <div className="flex items-center gap-2 text-destructive">
-                  <AlertCircle className="h-5 w-5 flex-shrink-0" />
-                  <p className="text-sm">{error}</p>
+              {error && (
+                <div className="rounded-2xl border border-destructive/30 bg-destructive/10 p-4">
+                  <div className="flex items-center gap-2 text-destructive">
+                    <AlertCircle className="h-5 w-5 flex-shrink-0" />
+                    <p className="text-sm">{error}</p>
+                  </div>
                 </div>
-              </div>
-            )}
+              )}
+            </section>
           </div>
 
           {/* Generated Lyrics Section */}

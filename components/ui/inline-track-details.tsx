@@ -129,7 +129,7 @@ export const InlineTrackDetailsPanel: React.FC<InlineTrackDetailsPanelProps> = (
           )}
         </div>
 
-        <div className="text-sm text-foreground/80 whitespace-pre-line leading-relaxed">
+        <div className="text-sm text-foreground/90 whitespace-pre-wrap font-mono leading-relaxed">
           {track.lyrics?.trim()
             ? track.lyrics
             : "Lyrics are not available yet. Try generating lyrics or check back later."}

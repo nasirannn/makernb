@@ -35,7 +35,7 @@ interface FeatureProps {
 const aiMusicToolsDropdown: DropdownItemProps[] = [
   {
     href: "/vocal-remover",
-    label: "Vocal Remover",
+    label: "Vocal Separation",
     description: "Separate vocals from music",
     icon: <Mic className="h-4 w-4" />
   },

@@ -82,7 +82,7 @@ export const UploadAudioDialog = ({
   const { credits } = useCredits();
 
   const [mode, setMode] = React.useState<UploadMode>("cover");
-  const [customMode, setCustomMode] = React.useState(true); // 默认为 true
+  const [customMode, setCustomMode] = React.useState(false); // 默认为 false
   const [title, setTitle] = React.useState("");
   const [style, setStyle] = React.useState("");
   const [lyrics, setLyrics] = React.useState("");

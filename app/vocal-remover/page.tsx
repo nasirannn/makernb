@@ -629,14 +629,14 @@ export default function VocalSeparationDemo() {
         <div className="max-w-4xl mx-auto">
         {/* Header */}
         <div className="text-center mb-8">
-          <p className="text-sm font-medium text-white/60 uppercase tracking-wider mb-4">
+          <p className="text-sm font-semibold text-white/60 uppercase tracking-wider mb-4">
             AI VOCAL SEPARATION TOOL
           </p>
           <h1 className="text-5xl md:text-6xl font-bold text-foreground mb-4 tracking-tight">
-            AI Vocal Remover Free Online
+            AI Vocal Separation Free Online
           </h1>
           <p className="text-white/70 text-lg max-w-2xl mx-auto mb-8">
-            Enjoy fast and seamless audio separation with our AI-powered vocal remover.
+            Enjoy fast and seamless audio separation with our AI-powered vocal separation.
           </p>
         </div>
 
@@ -1074,14 +1074,14 @@ export default function VocalSeparationDemo() {
         </div>
       </div>
 
-      {/* What is MakeRNB's Vocal Remover Section */}
+      {/* What is MakeRNB's Vocal Separation Section */}
       <section className="py-16 px-4 bg-background">
         <div className="max-w-6xl mx-auto">
           <div className="flex flex-col lg:flex-row items-center gap-8">
             {/* Left Side - Text Content */}
             <div className="flex-1 lg:w-3/5 space-y-6 text-center lg:text-left">
               <h2 className="text-4xl lg:text-5xl font-bold text-foreground leading-tight">
-                About MakeRNB&apos;s Vocal Remover
+                About MakeRNB&apos;s Vocal Separation
               </h2>
               <p className="text-lg text-muted-foreground leading-relaxed">
                 Our AI-powered vocal separation technology analyzes audio tracks to extract vocals and instrumentals separately. Whether you&apos;re creating karaoke versions, producing remixes, or isolating vocal tracks for sampling, our tool delivers quality results in minutes. Perfect for musicians, content creators, and music enthusiasts who want to unlock creative possibilities from their favorite songs.
@@ -1093,7 +1093,7 @@ export default function VocalSeparationDemo() {
               <div className="flex items-center justify-center">
                 <Image 
                   src="/icons/Vocal-Remover.svg" 
-                  alt="Vocal Remover" 
+                  alt="Vocal Separation" 
                   width={256}
                   height={256}
                   className="h-64 w-64 object-contain"
@@ -1114,7 +1114,7 @@ export default function VocalSeparationDemo() {
             </h2>
 
             <h2 className="text-3xl md:text-4xl text-center font-bold mb-4">
-              Key Features of MakeRNB Vocal Remover
+              Key Features of MakeRNB Vocal Separation
             </h2>
 
             <h3 className="md:w-1/2 mx-auto text-lg text-center text-muted-foreground mb-8">

@@ -12,12 +12,12 @@ import {
   Pause,
   Library,
   Download,
+  MoreHorizontal,
   Pin,
   PinOff,
   Trash2,
-  Eye,
-  EyeOff,
-  MoreHorizontal,
+  Send,
+  Share2,
   CheckCircle,
   XCircle,
   ArrowDown,
@@ -32,8 +32,6 @@ import {
   ArrowUp,
   ArrowDown as ArrowDownIcon,
   Pencil,
-  Send,
-  Share2,
   Check
 } from 'lucide-react';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
@@ -904,7 +902,7 @@ export const LibraryPanel = ({
               }`}
               title="Published"
             >
-              <Eye className="w-4 h-4" />
+              <Send className="w-4 h-4" />
             </button>
             <button
               onClick={() => setActiveFilter('pinned')}
@@ -970,7 +968,7 @@ export const LibraryPanel = ({
                     : 'text-muted-foreground hover:text-foreground hover:bg-muted/50'
                 }`}
               >
-                <Eye className="h-4 w-4 mr-1.5 inline" />
+                <Send className="h-4 w-4 mr-1.5 inline" />
                 Published
               </button>
               <button
