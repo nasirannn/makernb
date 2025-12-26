@@ -563,7 +563,8 @@ export const LibraryPanel = ({
       const response = await fetch('/api/toggle-track-publish', {
         method: 'POST',
         headers: {
-          'Content-Type': 'application/json'
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${session.access_token}`
         },
         body: JSON.stringify({
           trackId: trackToPublish.id,
