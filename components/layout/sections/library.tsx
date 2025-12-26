@@ -14,7 +14,6 @@ import { LibraryPanel } from "@/components/ui/library-panel";
 import { MusicPlayer } from "@/components/ui/music-player";
 import { InlineTrackDetailsPanel } from "@/components/ui/inline-track-details";
 import AuthModal from "@/components/ui/auth-modal";
-import { PageLoading } from '@/components/ui/loading-dots';
 import { Star } from "lucide-react";
 import { toast } from "sonner";
 
@@ -429,7 +428,7 @@ const LibraryContent = () => {
 
 export const LibrarySection = () => {
     return (
-        <Suspense fallback={<PageLoading message="Loading library" />}>
+        <Suspense fallback={null}>
             <LibraryContent />
         </Suspense>
     );

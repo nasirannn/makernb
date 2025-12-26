@@ -24,7 +24,7 @@ export interface LibraryTrack {
 
 export const useLibraryTracks = (userId: string | undefined) => {
   const [tracks, setTracks] = useState<LibraryTrack[]>([]);
-  const [isLoading, setIsLoading] = useState(false);
+  const [isLoading, setIsLoading] = useState<boolean>(() => Boolean(userId));
   const [error, setError] = useState<string | null>(null);
 
   /**
@@ -33,6 +33,7 @@ export const useLibraryTracks = (userId: string | undefined) => {
   const fetchTracks = useCallback(async () => {
     if (!userId) {
       setTracks([]);
+      setIsLoading(false);
       return;
     }
 
@@ -157,4 +158,3 @@ export const useLibraryTracks = (userId: string | undefined) => {
     toggleFavorite
   };
 };
-
