@@ -1332,22 +1332,26 @@ export const LibraryPanel = ({
       </AlertDialog>
 
       {/* Publish Confirmation Dialog */}
-      <AlertDialog open={publishDialogOpen} onOpenChange={setPublishDialogOpen}>
+      <AlertDialog open={publishDialogOpen} onOpenChange={(open) => {
+        setPublishDialogOpen(open);
+        if (!open) {
+          setTrackToPublish(null);
+        }
+      }}>
         <AlertDialogContent className="max-w-[calc(100vw-2rem)] sm:max-w-[425px]">
           <AlertDialogHeader className="space-y-2 sm:space-y-3">
             <AlertDialogTitle className="text-lg sm:text-xl">
               {trackToPublish?.isPublished ? 'Unpublish Track' : 'Publish Track'}
             </AlertDialogTitle>
             <AlertDialogDescription className="text-sm sm:text-base">
-              {trackToPublish?.isPublished 
-                ? `Are you sure you want to unpublish "${trackToPublish?.title}"? It will no longer be visible in explore.`
-                : `Are you sure you want to publish "${trackToPublish?.title}"? It will be visible in explore.`
-              }
+              {trackToPublish?.isPublished
+                ? `Unpublish "${trackToPublish?.title}" so it is private again.`
+                : `Publish "${trackToPublish?.title}" so it can be shared publicly.`}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter className="flex-col sm:flex-row gap-2 sm:gap-0">
             <AlertDialogCancel className="w-full sm:w-auto">Cancel</AlertDialogCancel>
-            <AlertDialogAction 
+            <AlertDialogAction
               onClick={handlePublishConfirm}
               className="w-full sm:w-auto bg-primary text-primary-foreground hover:bg-primary/90"
             >

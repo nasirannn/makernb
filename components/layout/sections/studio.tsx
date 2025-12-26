@@ -68,6 +68,9 @@ const StudioContent = () => {
     const [mobileCreateOpen, setMobileCreateOpen] = useState(false);
     const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
     const [trackToDelete, setTrackToDelete] = useState<any>(null);
+    const [publishDialogOpen, setPublishDialogOpen] = useState(false);
+    const [trackToPublish, setTrackToPublish] = useState<{ trackId: string; isPublished: boolean; title: string } | null>(null);
+    const [isPublishing, setIsPublishing] = useState(false);
     const [generationConfirmOpen, setGenerationConfirmOpen] = useState(false);
     const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
     const [isLoadingUserTracks, setIsLoadingUserTracks] = useState(false);
@@ -969,27 +972,57 @@ const StudioContent = () => {
     }, []);
 
     // ==================== 其他Track操作函数 ====================
-    const handlePublishToggle = React.useCallback(async (trackId: string, isPublished: boolean) => {
+    const handlePublishRequest = React.useCallback((trackId: string, isPublished: boolean) => {
+        const { track } = findTrackAndMusic(trackId);
+        const title = track?.title || track?.musicTitle || 'Untitled Track';
+        setTrackToPublish({ trackId, isPublished, title });
+        setPublishDialogOpen(true);
+    }, [findTrackAndMusic]);
+
+    const handlePublishToggle = React.useCallback(async () => {
+        if (!trackToPublish) return;
+
+        const { trackId, isPublished, title } = trackToPublish;
+
         try {
+            const { data: { session } } = await supabase.auth.getSession();
+            if (!session?.access_token) {
+                toast.error('Please log in to update publish status');
+                setPublishDialogOpen(false);
+                setTrackToPublish(null);
+                return;
+            }
+
+            setIsPublishing(true);
+
             const response = await fetch('/api/toggle-track-publish', {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
+                headers: { 
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${session.access_token}`
+                },
                 body: JSON.stringify({ trackId, isPublished: !isPublished })
             });
 
-            if (!response.ok) {
-                throw new Error('Failed to toggle publish status');
+            const result = await response.json().catch(() => ({}));
+
+            if (!response.ok || !result.success) {
+                throw new Error(result?.error || 'Failed to toggle publish status');
             }
 
             // 更新本地状态
             updateTrack(trackId, (t) => ({ ...t, isPublished: !isPublished }));
 
-            toast(isPublished ? 'Track unpublished' : 'Track published');
+            toast(isPublished ? `"${title}" unpublished` : `"${title}" published`);
+            setPublishDialogOpen(false);
+            setTrackToPublish(null);
         } catch (error) {
             console.error('Error toggling publish:', error);
-            toast.error('Failed to update publish status');
+            toast.error(error instanceof Error ? error.message : 'Failed to update publish status');
+        } finally {
+            setIsPublishing(false);
         }
-    }, [updateTrack]);
+    }, [trackToPublish, updateTrack]);
 
     const handleEditTitle = React.useCallback(async (trackId: string, newTitle: string) => {
         try {
@@ -1582,7 +1615,7 @@ const StudioContent = () => {
                                     isLoading={isLoadingUserTracks}
                                     selectedTrack={selectedStudioTrack?.id}
                                     hasPlayer={!!player.currentTrack}
-                                    onPublishToggle={handlePublishToggle}
+                                    onPublishToggle={handlePublishRequest}
                                     onEditTitle={handleEditTitle}
                                     onEditMusicInfo={handleEditMusicInfo}
                                     extendMusicStartPolling={extendMusic.startPolling}
@@ -1605,7 +1638,7 @@ const StudioContent = () => {
                                     onFavoriteToggle={handleFavoriteToggle}
                                     onDelete={handleTrackDelete}
                                     hasPlayer={!!player.currentTrack}
-                                    onPublishToggle={handlePublishToggle}
+                                    onPublishToggle={handlePublishRequest}
                                     onEditTitle={handleEditTitle}
                                     onEditMusicInfo={handleEditMusicInfo}
                                     extendMusicStartPolling={extendMusic.startPolling}
@@ -1700,6 +1733,48 @@ const StudioContent = () => {
             />
 
             {/* Delete Confirmation Dialog */}
+            <AlertDialog open={publishDialogOpen} onOpenChange={(open) => {
+                setPublishDialogOpen(open);
+                if (!open) {
+                    setTrackToPublish(null);
+                    setIsPublishing(false);
+                }
+            }}>
+                <AlertDialogContent className="max-w-[calc(100vw-2rem)] sm:max-w-[425px]">
+                    <AlertDialogHeader className="space-y-2 sm:space-y-3">
+                        <AlertDialogTitle className="text-lg sm:text-xl">
+                            {trackToPublish?.isPublished ? 'Unpublish Track' : 'Publish Track'}
+                        </AlertDialogTitle>
+                        <AlertDialogDescription className="text-sm sm:text-base">
+                            {trackToPublish?.isPublished
+                                ? `Unpublish "${trackToPublish?.title}" so it is private again.`
+                                : `Publish "${trackToPublish?.title}" so it can be shared publicly.`}
+                        </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter className="flex-col sm:flex-row gap-2 sm:gap-0">
+                        <AlertDialogCancel
+                            className="w-full sm:w-auto"
+                            onClick={() => {
+                                setPublishDialogOpen(false);
+                                setTrackToPublish(null);
+                            }}
+                            disabled={isPublishing}
+                        >
+                            Cancel
+                        </AlertDialogCancel>
+                        <AlertDialogAction
+                            onClick={handlePublishToggle}
+                            disabled={isPublishing}
+                            className="w-full sm:w-auto"
+                        >
+                            {isPublishing
+                                ? (trackToPublish?.isPublished ? 'Unpublishing...' : 'Publishing...')
+                                : (trackToPublish?.isPublished ? 'Unpublish' : 'Publish')}
+                        </AlertDialogAction>
+                    </AlertDialogFooter>
+                </AlertDialogContent>
+            </AlertDialog>
+
             <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
                 <AlertDialogContent className="max-w-[calc(100vw-2rem)] sm:max-w-[425px]">
                     <AlertDialogHeader className="space-y-2 sm:space-y-3">
