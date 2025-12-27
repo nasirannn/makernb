@@ -311,6 +311,7 @@ const LibraryContent = () => {
             const currentIsPinned = track.isPinned ?? false;
             updateTrack(track.id, { isPinned: !currentIsPinned });
         } else if (action === 'delete') {
+            updateTrack(track.id, { isDeleted: true });
             // 如果删除的是当前正在查看的歌曲，返回列表
             if (selectedTrackId === track.id) {
                 handleBackToList();

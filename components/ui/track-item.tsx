@@ -33,7 +33,6 @@ interface TrackItemProps {
   onReplaceSection?: () => void;
   onDelete?: () => void;
   onPricingModalOpen?: () => void;
-  onPublishToggle?: (trackId: string, isPublished: boolean) => void;
   onEditTitle?: (trackId: string, newTitle: string) => void;
   onEditMusicInfo?: (trackId: string, data: { title: string; coverImageUrl?: string }) => Promise<void>;
 }
@@ -60,7 +59,6 @@ export const TrackItem: React.FC<TrackItemProps> = ({
   onReplaceSection,
   onDelete,
   onPricingModalOpen,
-  onPublishToggle,
   onEditTitle,
   onEditMusicInfo,
 }) => {
@@ -151,7 +149,6 @@ export const TrackItem: React.FC<TrackItemProps> = ({
                   isMobile={false}
                   isFavorited={track.isFavorited}
                   isCopied={isCopied}
-                  isPublished={track.isPublished}
                   canDownloadMP3={canDownloadMP3}
                   canDownloadWAV={canDownloadWAV}
                   canDownloadCover={canDownloadCover}
@@ -166,7 +163,6 @@ export const TrackItem: React.FC<TrackItemProps> = ({
                   onReplaceSection={onReplaceSection}
                   onDelete={onDelete}
                   onPricingModalOpen={onPricingModalOpen}
-                  onPublishToggle={onPublishToggle}
                   onEditTitle={onEditTitle}
                   onEditMusicInfo={onEditMusicInfo}
                 />
@@ -200,7 +196,6 @@ export const TrackItem: React.FC<TrackItemProps> = ({
             isMobile={true}
             isFavorited={track.isFavorited}
             isCopied={isCopied}
-            isPublished={track.isPublished}
             canDownloadMP3={canDownloadMP3}
             canDownloadWAV={canDownloadWAV}
             canDownloadCover={canDownloadCover}
@@ -215,7 +210,6 @@ export const TrackItem: React.FC<TrackItemProps> = ({
             onReplaceSection={onReplaceSection}
             onDelete={onDelete}
             onPricingModalOpen={onPricingModalOpen}
-            onPublishToggle={onPublishToggle}
             onEditTitle={onEditTitle}
           />
         )}

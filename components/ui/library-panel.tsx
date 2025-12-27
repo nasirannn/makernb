@@ -154,21 +154,18 @@ export const LibraryPanel = ({
 
   // Filter tracks based on search query and active filter
   const filteredTracks = tracks.filter(track => {
-    // 根据筛选条件过滤
+    if (track.isDeleted) return false;
+
     if (activeFilter === 'published') {
-      // 只显示已发布的收藏歌曲
-      if (!track.isPublished || track.isDeleted) return false;
+      if (!track.isPublished) return false;
     } else if (activeFilter === 'pinned') {
-      // 只显示被pin的收藏歌曲
-      if (!track.isPinned || track.isDeleted) return false;
-    } else if (activeFilter === 'all') {
-      // 显示所有收藏的歌曲（未删除的）
-      if (track.isDeleted) return false;
+      if (!track.isPinned) return false;
+    } else {
+      if (!track.isFavorited) return false;
     }
-    
-    // 搜索过滤
+
     if (!searchQuery.trim()) return true;
-    
+
     const query = searchQuery.toLowerCase();
     return (
       track.title.toLowerCase().includes(query) ||
@@ -1041,10 +1038,10 @@ export const LibraryPanel = ({
                 {searchQuery 
                   ? `No tracks found for "${searchQuery}". Try a different search term.`
                   : activeFilter === 'published'
-                    ? 'No published tracks yet. Publish some tracks to make them public.'
+                    ? 'No published tracks yet. Publish tracks to make them public.'
                     : activeFilter === 'pinned'
-                      ? 'No pinned tracks yet. Pin some tracks to organize your favorites.'
-                      : 'No tracks found. Generate some music in the Studio to get started.'
+                      ? 'No pinned tracks yet. Pin songs you want to highlight.'
+                      : 'No favourites yet. Add songs to your library to see them here.'
                 }
               </p>
             </div>
@@ -1067,7 +1064,7 @@ export const LibraryPanel = ({
                   className="col-span-2 flex items-center gap-1 cursor-pointer select-none hover:text-foreground transition-colors"
                   onClick={handleSortClick}
                 >
-                  <span>Favorited Time</span>
+                  <span>Created Time</span>
                   <div className="relative inline-flex items-center">
                     {sortOrder === null && (
                       <ArrowUpDown className="h-4 w-4" />
@@ -1106,23 +1103,24 @@ export const LibraryPanel = ({
                       handleTrackAction(track, 'select');
                     }}
                   >
-                  {/* Favorite Button - 收藏按钮 - 桌面端 */}
+                  {/* Play/Pause Button - 桌面端 */}
                   <div className="col-span-1 flex items-center justify-center py-2">
-                    {onFavoriteToggle && (
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        className="h-8 w-8 p-0"
-                        title="Remove from library"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          setTrackToRemoveFavorite(track);
-                          setFavoriteDialogOpen(true);
-                        }}
-                      >
-                        <Star className="h-4 w-4 text-red-500 fill-current" />
-                      </Button>
-                    )}
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="h-8 w-8 p-0"
+                      title={currentPlayingTrack === track.id && isPlaying ? 'Pause' : 'Play'}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleTrackAction(track, 'play');
+                      }}
+                    >
+                      {currentPlayingTrack === track.id && isPlaying ? (
+                        <Pause className="h-4 w-4" />
+                      ) : (
+                        <Play className="h-4 w-4" />
+                      )}
+                    </Button>
                   </div>
 
                   {/* Cover Image and Play Button - 桌面端统一 */}
@@ -1132,7 +1130,6 @@ export const LibraryPanel = ({
                       title={track.title}
                       isPlaying={isPlaying}
                       isCurrentTrack={currentPlayingTrack === track.id}
-                      onPlayPause={() => handleTrackAction(track, 'play')}
                       trackId={track.id}
                     />
                     {/* Song Title */}
@@ -1163,10 +1160,10 @@ export const LibraryPanel = ({
                     </span>
                   </div>
 
-                  {/* Favorited Time Column - 收藏时间 - 桌面端 */}
+                  {/* Created Time Column - 桌面端 */}
                   <div className="col-span-2 flex items-center py-2">
                     <span className="text-sm text-muted-foreground truncate">
-                      {track.favoritedAt ? formatDateTime(track.favoritedAt) : 'Unknown'}
+                      {track.createdAt ? formatDateTime(track.createdAt) : 'Unknown'}
                     </span>
                   </div>
 
@@ -1253,15 +1250,9 @@ export const LibraryPanel = ({
                         </p>
                       </div>
                     )}
-                    {!track.tags || track.tags.trim() === '' ? (
-                      track.favoritedAt && (
-                        <p className="text-xs text-muted-foreground/60 truncate mt-1">
-                          {formatDateTime(track.favoritedAt)}
-                        </p>
-                      )
-                    ) : track.favoritedAt && (
+                    {track.createdAt && (
                       <p className="text-xs text-muted-foreground/60 truncate mt-1">
-                        {formatDateTime(track.favoritedAt)}
+                        {formatDateTime(track.createdAt)}
                       </p>
                     )}
                   </div>
@@ -1362,26 +1353,6 @@ export const LibraryPanel = ({
       </AlertDialog>
 
       {/* Favorite Remove Confirmation Dialog */}
-      <AlertDialog open={favoriteDialogOpen} onOpenChange={setFavoriteDialogOpen}>
-        <AlertDialogContent className="max-w-[calc(100vw-2rem)] sm:max-w-[425px]">
-          <AlertDialogHeader className="space-y-2 sm:space-y-3">
-            <AlertDialogTitle className="text-lg sm:text-xl">Remove from Library</AlertDialogTitle>
-            <AlertDialogDescription className="text-sm sm:text-base">
-              Are you sure you want to remove &quot;{trackToRemoveFavorite?.title}&quot; from your library?
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter className="flex-col sm:flex-row gap-2 sm:gap-0">
-            <AlertDialogCancel className="w-full sm:w-auto">Cancel</AlertDialogCancel>
-            <AlertDialogAction 
-              onClick={handleFavoriteRemoveConfirm}
-              className="w-full sm:w-auto bg-destructive text-destructive-foreground hover:bg-destructive/90"
-            >
-              Remove
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
-
       {/* Edit Music Info Dialog */}
       <EditMusicInfoDialog
         isOpen={editDialogOpen && !!trackToEdit}
@@ -1457,9 +1428,9 @@ export const LibraryPanel = ({
                     </div>
                   )}
                 </div>
-                {selectedTrackForMenu?.favoritedAt && (
+                {selectedTrackForMenu?.createdAt && (
                   <div className="text-xs text-muted-foreground/60 mt-1 text-left">
-                    {formatDateTime(selectedTrackForMenu.favoritedAt)}
+                    {formatDateTime(selectedTrackForMenu.createdAt)}
                   </div>
                 )}
               </div>

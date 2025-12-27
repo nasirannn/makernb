@@ -50,7 +50,6 @@ interface StudioTracksListProps {
   onDownload?: (track: LibraryTrack, music: MusicGeneration, format?: 'mp3' | 'wav' | 'cover') => void;
   onFavoriteToggle?: (track: LibraryTrack, music: MusicGeneration) => void;
   onDelete?: (track: LibraryTrack, music: MusicGeneration) => void;
-  onPublishToggle?: (trackId: string, isPublished: boolean) => void;
   onEditTitle?: (trackId: string, newTitle: string) => void;
   onEditMusicInfo?: (trackId: string, data: { title: string; coverImageUrl?: string }) => Promise<void>;
   hasPlayer?: boolean;
@@ -82,7 +81,6 @@ export const StudioTracksList: React.FC<StudioTracksListProps> = React.memo(func
   onDownload,
   onFavoriteToggle,
   onDelete,
-  onPublishToggle,
   onEditTitle,
   onEditMusicInfo,
   hasPlayer = false,
@@ -938,7 +936,6 @@ export const StudioTracksList: React.FC<StudioTracksListProps> = React.memo(func
                       onReplaceSection={() => handleReplaceSection(track.id)}
                       onDelete={onDelete ? () => handleDelete(track.id) : undefined}
                       onPricingModalOpen={openPricingModal}
-                      onPublishToggle={onPublishToggle}
                       onEditTitle={onEditTitle}
                       onEditMusicInfo={onEditMusicInfo}
                     />

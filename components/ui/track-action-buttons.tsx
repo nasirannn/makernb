@@ -18,7 +18,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
-import { Star, Share2, Check, Download, MoreVertical, Mic, Trash2, Pencil, Maximize2, Scissors, Send } from "lucide-react";
+import { Star, Share2, Check, Download, MoreVertical, Mic, Trash2, Pencil, Maximize2, Scissors } from "lucide-react";
 import { LibraryTrack } from '@/types/track';
 import { EditMusicInfoDialog } from './edit-music-info-dialog';
 
@@ -29,7 +29,6 @@ interface TrackActionButtonsProps {
   // 状态
   isFavorited?: boolean;
   isCopied?: boolean;
-  isPublished?: boolean;
   
   // 权限
   canDownloadMP3?: boolean;
@@ -48,7 +47,6 @@ interface TrackActionButtonsProps {
   onReplaceSection?: () => void;
   onDelete?: () => void;
   onPricingModalOpen?: () => void;
-  onPublishToggle?: (trackId: string, isPublished: boolean) => void;
   onEditTitle?: (trackId: string, newTitle: string) => void;
   onEditMusicInfo?: (trackId: string, data: { title: string; coverImageUrl?: string }) => Promise<void>;
 }
@@ -58,7 +56,6 @@ export const TrackActionButtons: React.FC<TrackActionButtonsProps> = ({
   isMobile = false,
   isFavorited = false,
   isCopied = false,
-  isPublished: isPublishedProp,
   canDownloadMP3 = false,
   canDownloadWAV = false,
   canDownloadCover = false,
@@ -73,13 +70,11 @@ export const TrackActionButtons: React.FC<TrackActionButtonsProps> = ({
   onReplaceSection,
   onDelete,
   onPricingModalOpen,
-  onPublishToggle,
   onEditTitle,
   onEditMusicInfo,
 }) => {
   const isInstrumental = track.musicGeneration?.isInstrumental || track.isInstrumental;
   const hasAudioUrl = !!track.audioUrl;
-  const isPublished = isPublishedProp ?? track.isPublished ?? false;
   const hasCoverImage = Boolean(
     track.coverR2Url ||
     track.coverImage ||
@@ -118,32 +113,12 @@ export const TrackActionButtons: React.FC<TrackActionButtonsProps> = ({
   };
   
   // 判断是否显示更多菜单（需要至少有一个功能）
-  const shouldShowMoreMenu = onVocalRemoval || onExtendMusic || onDelete || onPublishToggle || onEditTitle || onEditMusicInfo;
+  const shouldShowMoreMenu = onFavoriteToggle || onVocalRemoval || onExtendMusic || onDelete || onEditTitle || onEditMusicInfo;
 
   // 桌面端按钮
   if (!isMobile) {
     return (
       <div className="hidden md:flex items-center gap-3">
-        {/* 收藏按钮 */}
-        {onFavoriteToggle && (
-          <Button
-            variant="ghost"
-            size="sm"
-            className={`h-6 w-6 p-0 hover:bg-muted/50 ${
-              isFavorited 
-                ? 'text-red-500 hover:text-red-600' 
-                : 'text-muted-foreground hover:text-foreground'
-            }`}
-            onClick={(e) => {
-              e.stopPropagation();
-              onFavoriteToggle();
-            }}
-            aria-label={isFavorited ? "Remove from library" : "Add to library"}
-          >
-            <Star className={`h-3 w-3 ${isFavorited ? 'fill-current' : ''}`} />
-          </Button>
-        )}
-        
         {/* 分享按钮 */}
         {onShare && (
           <Button
@@ -154,6 +129,7 @@ export const TrackActionButtons: React.FC<TrackActionButtonsProps> = ({
                 ? 'text-green-500' 
                 : 'text-muted-foreground hover:text-foreground'
             }`}
+            title={isCopied ? 'Link copied' : 'Share track'}
             onClick={(e) => {
               e.stopPropagation();
               onShare();
@@ -181,6 +157,7 @@ export const TrackActionButtons: React.FC<TrackActionButtonsProps> = ({
                   e.stopPropagation();
                 }}
                 aria-label="Download track"
+                title="Download track"
               >
                 <Download className="h-3 w-3" />
               </Button>
@@ -249,32 +226,12 @@ export const TrackActionButtons: React.FC<TrackActionButtonsProps> = ({
                   e.stopPropagation();
                 }}
                 aria-label="More options"
+                title="More options"
               >
                 <MoreVertical className="h-3 w-3" />
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" onClick={(e) => e.stopPropagation()} className="p-1.5 min-w-[140px]">
-              {/* Publish/Unpublish 选项 */}
-              {onPublishToggle && (
-                <DropdownMenuItem
-                  onClick={(e) => {
-                    e.preventDefault();
-                    e.stopPropagation();
-                    onPublishToggle(track.id, isPublished);
-                  }}
-                  className="flex items-center gap-1.5 cursor-pointer px-2.5 py-1.5 text-xs data-[highlighted]:bg-transparent data-[highlighted]:text-primary focus:bg-transparent"
-                >
-                  <>
-                    <Send
-                      className={`h-3.5 w-3.5 ${
-                        isPublished ? 'text-green-600' : 'text-muted-foreground'
-                      }`}
-                    />
-                    <span>{isPublished ? 'Unpublish' : 'Publish'}</span>
-                  </>
-                </DropdownMenuItem>
-              )}
-              
               {/* Edit Music Info 选项 */}
               {(onEditMusicInfo || onEditTitle) && (
                 <>
@@ -289,8 +246,26 @@ export const TrackActionButtons: React.FC<TrackActionButtonsProps> = ({
                     <Pencil className="h-3.5 w-3.5" />
                     <span>Edit Music Info</span>
                   </DropdownMenuItem>
-                  {(onVocalRemoval || onExtendMusic || onDelete) && <DropdownMenuSeparator className="my-1" />}
                 </>
+              )}
+
+              {/* 收藏选项 */}
+              {onFavoriteToggle && (
+                <DropdownMenuItem
+                  onClick={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    onFavoriteToggle();
+                  }}
+                  className="flex items-center gap-1.5 cursor-pointer px-2.5 py-1.5 text-xs data-[highlighted]:bg-transparent data-[highlighted]:text-primary focus:bg-transparent"
+                >
+              <Star className={`h-3.5 w-3.5 ${isFavorited ? 'text-red-500 fill-current' : ''}`} />
+              <span>{isFavorited ? 'Remove From Library' : 'Add To Library'}</span>
+            </DropdownMenuItem>
+          )}
+
+              {(onFavoriteToggle || onEditMusicInfo || onEditTitle) && (onVocalRemoval || onExtendMusic || onReplaceSection || onDelete) && (
+                <DropdownMenuSeparator className="my-1" />
               )}
               
               {/* Premium Features 标题和选项 */}
@@ -395,24 +370,6 @@ export const TrackActionButtons: React.FC<TrackActionButtonsProps> = ({
   // 移动端按钮
   return (
     <div className="md:hidden flex items-center gap-1.5 flex-shrink-0">
-      {/* 收藏按钮 */}
-      {onFavoriteToggle && (
-        <button
-          onClick={(e) => {
-            e.stopPropagation();
-            onFavoriteToggle();
-          }}
-          className={`h-7 w-7 flex items-center justify-center rounded-lg transition-colors ${
-            isFavorited 
-              ? 'text-red-500' 
-              : 'text-muted-foreground hover:text-foreground'
-          }`}
-          aria-label={isFavorited ? "Remove from library" : "Add to library"}
-        >
-          <Star className={`h-4 w-4 ${isFavorited ? 'fill-current' : ''}`} />
-        </button>
-      )}
-      
       {/* 分享按钮 */}
       {onShare && (
         <button
@@ -517,25 +474,6 @@ export const TrackActionButtons: React.FC<TrackActionButtonsProps> = ({
             </button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end" onClick={(e) => e.stopPropagation()} className="p-1.5 min-w-[140px]">
-            {/* Publish/Unpublish 选项 */}
-            {onPublishToggle && (
-              <DropdownMenuItem
-                onClick={(e) => {
-                  e.preventDefault();
-                  e.stopPropagation();
-                  onPublishToggle(track.id, isPublished);
-                }}
-                className="flex items-center gap-1.5 cursor-pointer px-2.5 py-1.5 text-xs data-[highlighted]:bg-transparent data-[highlighted]:text-primary focus:bg-transparent"
-              >
-                <Send
-                  className={`h-3.5 w-3.5 ${
-                    isPublished ? 'text-green-600' : 'text-muted-foreground'
-                  }`}
-                />
-                <span>{isPublished ? 'Unpublish' : 'Publish'}</span>
-              </DropdownMenuItem>
-            )}
-            
             {/* Edit Music Info 选项 */}
             {(onEditMusicInfo || onEditTitle) && (
               <>
@@ -550,8 +488,26 @@ export const TrackActionButtons: React.FC<TrackActionButtonsProps> = ({
                   <Pencil className="h-3.5 w-3.5" />
                   <span>Edit Music Info</span>
                 </DropdownMenuItem>
-                {(onVocalRemoval || onExtendMusic || onDelete) && <DropdownMenuSeparator className="my-1" />}
               </>
+            )}
+
+            {/* 收藏选项 */}
+            {onFavoriteToggle && (
+              <DropdownMenuItem
+                onClick={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  onFavoriteToggle();
+                }}
+                className="flex items-center gap-1.5 cursor-pointer px-2.5 py-1.5 text-xs data-[highlighted]:bg-transparent data-[highlighted]:text-primary focus:bg-transparent"
+              >
+            <Star className={`h-3.5 w-3.5 ${isFavorited ? 'text-red-500 fill-current' : ''}`} />
+            <span>{isFavorited ? 'Remove From Library' : 'Add To Library'}</span>
+          </DropdownMenuItem>
+        )}
+
+            {(onFavoriteToggle || onEditMusicInfo || onEditTitle) && (onVocalRemoval || onExtendMusic || onReplaceSection || onDelete) && (
+              <DropdownMenuSeparator className="my-1" />
             )}
             
             {/* Premium Features 标题和选项 */}
@@ -560,7 +516,7 @@ export const TrackActionButtons: React.FC<TrackActionButtonsProps> = ({
                 <div className="px-2.5 py-1 text-[10px] text-muted-foreground uppercase">
                   Premium Features
                 </div>
-                {onVocalRemoval && (
+                {(onVocalRemoval) && (
                   <DropdownMenuItem
                     onClick={(e) => {
                       e.preventDefault();

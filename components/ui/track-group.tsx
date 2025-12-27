@@ -38,7 +38,6 @@ interface TrackGroupProps {
   onReplaceSection?: (trackId: string) => void;
   onDelete?: (trackId: string) => void;
   onPricingModalOpen?: () => void;
-  onPublishToggle?: (trackId: string, isPublished: boolean) => void;
   onEditTitle?: (trackId: string, newTitle: string) => void;
   onEditMusicInfo?: (trackId: string, data: { title: string; coverImageUrl?: string }) => Promise<void>;
 }
@@ -72,7 +71,6 @@ export const TrackGroup: React.FC<TrackGroupProps> = ({
   onReplaceSection,
   onDelete,
   onPricingModalOpen,
-  onPublishToggle,
   onEditTitle,
   onEditMusicInfo,
 }) => {
@@ -148,7 +146,6 @@ export const TrackGroup: React.FC<TrackGroupProps> = ({
         onReplaceSection={onReplaceSection ? () => onReplaceSection(originalTrack.id) : undefined}
         onDelete={onDelete ? () => onDelete(originalTrack.id) : undefined}
         onPricingModalOpen={onPricingModalOpen}
-        onPublishToggle={onPublishToggle}
         onEditTitle={onEditTitle}
         onEditMusicInfo={onEditMusicInfo}
       />
@@ -181,7 +178,6 @@ export const TrackGroup: React.FC<TrackGroupProps> = ({
                 onReplaceSection={onReplaceSection ? () => onReplaceSection(extensionTrack.id) : undefined}
                 onDelete={onDelete ? () => onDelete(extensionTrack.id) : undefined}
                 onPricingModalOpen={onPricingModalOpen}
-                onPublishToggle={onPublishToggle}
                 onEditTitle={onEditTitle}
                 onEditMusicInfo={onEditMusicInfo}
               />

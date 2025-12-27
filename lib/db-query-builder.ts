@@ -235,6 +235,7 @@ export const getUserMusicGenerationsOptimized = async (
         mt.source_type,
         COALESCE(mt.title, ug.title) as track_title,
         ml.content as lyrics_content,
+        uf.created_at as favorited_at,
         COALESCE(omt.title, omg.title) as original_track_title
       FROM user_generations ug
       LEFT JOIN tracks mt ON ug.id = mt.music_id
@@ -242,6 +243,7 @@ export const getUserMusicGenerationsOptimized = async (
       LEFT JOIN lyrics ml ON ug.id = ml.music_id
       LEFT JOIN tracks omt ON mt.original_track_id = omt.id
       LEFT JOIN music omg ON ug.original_music_id = omg.id
+      LEFT JOIN user_favorites uf ON uf.track_id = mt.id AND uf.user_id = $1::uuid
     ),
     error_info AS (
       SELECT reference_id, error_message, error_code, created_at

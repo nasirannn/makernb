@@ -14,12 +14,24 @@ export interface LibraryTrack {
   audioUrl: string;
   duration: number;
   coverImage: string | null;
+  coverR2Url?: string | null;
   lyrics: string;
   isFavorited?: boolean;
   isPublished?: boolean;
   isPinned?: boolean;
+  isDeleted?: boolean;
+  status?: string;
   createdAt?: string;
-  favoritedAt?: string;
+  favoritedAt?: string | null;
+  allTracks?: Array<{
+    id: string;
+    audioUrl: string;
+    duration: number;
+    coverR2Url?: string | null;
+    lyrics?: string;
+    isDeleted?: boolean;
+    isFavorited?: boolean;
+  }>;
 }
 
 export const useLibraryTracks = (userId: string | undefined) => {
@@ -28,7 +40,7 @@ export const useLibraryTracks = (userId: string | undefined) => {
   const [error, setError] = useState<string | null>(null);
 
   /**
-   * 获取收藏的歌曲列表
+   * 获取用户的所有歌曲数据
    */
   const fetchTracks = useCallback(async () => {
     if (!userId) {
@@ -42,38 +54,81 @@ export const useLibraryTracks = (userId: string | undefined) => {
 
     try {
       const { data: { session } } = await supabase.auth.getSession();
-      
-      const response = await fetch(`/api/favorites?limit=50&offset=0`, {
+      if (!session?.access_token) {
+        throw new Error('Authentication required');
+      }
+
+      const timestamp = Date.now();
+      const response = await fetch(`/api/user-music/${userId}?limit=100&offset=0&_t=${timestamp}`, {
         headers: {
-          'Authorization': `Bearer ${session?.access_token}`
+          'Authorization': `Bearer ${session.access_token}`,
+          'Cache-Control': 'no-cache'
         }
       });
       
       if (!response.ok) {
-        throw new Error('Failed to fetch favorites');
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.error || 'Failed to fetch library tracks');
       }
       
       const data = await response.json();
-      const favorites = data.data?.favorites || [];
+      const musicGenerations = data.data?.music || [];
+
+      const flattenedTracks: LibraryTrack[] = musicGenerations.flatMap((generation: any) => {
+        const generationTags = generation.tags || '';
+        const generationGenre = generation.genre || '';
+        const generationLyrics = generation.lyricsContent || '';
+        const generationStatus = generation.status || 'completed';
+        const generationCreatedAt = generation.createdAt || generation.generationCreatedAt;
+
+        return (generation.allTracks || []).map((track: any) => {
+          const duration = typeof track.duration === 'string'
+            ? parseFloat(track.duration)
+            : (track.duration || 0);
+
+          const trackFavoritedAt =
+            track.favoritedAt ??
+            track.favorited_at ??
+            track.favoriteAt ??
+            track.favorite_at ??
+            generation.favoritedAt ??
+            generation.favorited_at ??
+            null;
+
+          const normalizedTrack: LibraryTrack = {
+            id: track.id,
+            title: track.title || generation.title || 'Untitled Track',
+            genre: generationGenre,
+            tags: generationTags,
+            audioUrl: track.audioUrl || '',
+            duration,
+            coverImage: track.coverR2Url || null,
+            coverR2Url: track.coverR2Url || null,
+            lyrics: track.lyrics || generationLyrics || '',
+            isFavorited: track.isFavorited ?? false,
+            isPublished: track.isPublished ?? false,
+            isPinned: track.isPinned ?? false,
+            isDeleted: track.isDeleted ?? false,
+            status: generationStatus,
+            createdAt: track.createdAt || generationCreatedAt,
+            favoritedAt: trackFavoritedAt,
+            allTracks: [
+              {
+                id: track.id,
+                audioUrl: track.audioUrl || '',
+                duration,
+                coverR2Url: track.coverR2Url || null,
+                lyrics: track.lyrics || '',
+                isDeleted: track.isDeleted ?? false,
+                isFavorited: track.isFavorited ?? false,
+              }
+            ]
+          };
+          return normalizedTrack;
+        });
+      });
       
-      // 转换为统一的track格式（API 已经返回 camelCase，直接使用）
-      const formattedTracks: LibraryTrack[] = favorites.map((fav: any) => ({
-        id: fav.id,
-        title: fav.title,
-        genre: fav.genre || '',
-        tags: fav.tags || '',
-        audioUrl: fav.audioUrl,
-        duration: fav.duration || 0,
-        coverImage: fav.coverR2Url || null,
-        lyrics: fav.lyrics || '',
-        isFavorited: true,
-        isPublished: fav.isPublished ?? false,
-        isPinned: fav.isPinned ?? false,
-        createdAt: fav.createdAt,
-        favoritedAt: fav.favoritedAt
-      }));
-      
-      setTracks(formattedTracks);
+      setTracks(flattenedTracks);
     } catch (err) {
       console.error('Error fetching library tracks:', err);
       setError(err instanceof Error ? err.message : 'Unknown error');
@@ -127,19 +182,14 @@ export const useLibraryTracks = (userId: string | undefined) => {
         throw new Error(data.error || 'Failed to toggle favorite');
       }
       
-      // 如果取消收藏，从列表中移除
-      if (!data.isFavorited) {
-        removeTrack(trackId);
-      } else {
-        updateTrack(trackId, { isFavorited: true });
-      }
+      updateTrack(trackId, { isFavorited: data.isFavorited });
       
       return data.isFavorited;
     } catch (err) {
       console.error('Error toggling favorite:', err);
       throw err;
     }
-  }, [removeTrack, updateTrack]);
+  }, [updateTrack]);
 
   /**
    * 初始化：获取tracks
