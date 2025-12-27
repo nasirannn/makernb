@@ -188,9 +188,9 @@ export const LibraryPanel = ({
   const sortedTracks = [...filteredTracks].sort((a, b) => {
     if (sortOrder === null) return 0;
     
-    // 对于收藏歌曲，使用favoritedAt（收藏时间）而不是createdAt（歌曲创建时间）
-    const dateA = new Date(a.favoritedAt || a.createdAt).getTime();
-    const dateB = new Date(b.favoritedAt || b.createdAt).getTime();
+    // 按创建时间排序
+    const dateA = new Date(a.createdAt || 0).getTime();
+    const dateB = new Date(b.createdAt || 0).getTime();
     
     if (sortOrder === 'asc') {
       return dateA - dateB; // 升序：旧的在前面
@@ -218,6 +218,11 @@ export const LibraryPanel = ({
       onTrackSelect(track);
       // 不自动展开歌词面板，用户可以通过点击播放器中的歌曲信息来展开
     }
+  };
+
+  const handleFavoriteRemoveClick = (track: LibraryTrack) => {
+    setTrackToRemoveFavorite(track);
+    setFavoriteDialogOpen(true);
   };
 
   const handleShare = useCallback(async (track: LibraryTrack): Promise<boolean> => {
@@ -887,7 +892,7 @@ export const LibraryPanel = ({
                   ? 'bg-primary text-primary-foreground hover:bg-primary/90'
                   : 'bg-muted/30 text-muted-foreground hover:bg-muted/50 hover:text-foreground'
               }`}
-              title="Favourites"
+              title="Favorites"
             >
               <Star className="w-4 h-4" />
             </button>
@@ -941,69 +946,77 @@ export const LibraryPanel = ({
 
       {/* Desktop Header removed as requested */}
 
-      {/* Desktop Filter and Search */}
+      {/* Desktop Title, Filter and Search */}
       <div className="flex-shrink-0 hidden md:block px-6 pt-6 pb-4 bg-transparent">
-        <div className="flex flex-row items-center justify-between gap-4">
-          {/* Filter Tabs - Studio Style */}
-          <div className="bg-muted/30 rounded-xl p-1 flex-shrink-0">
-            <div className="grid grid-cols-3 gap-1">
-              <button
-                onClick={() => setActiveFilter('all')}
-                className={`py-2 px-4 text-sm font-semibold tracking-tight transition-all duration-200 rounded-xl ${
-                  activeFilter === 'all'
-                    ? 'bg-primary/20 border-transparent text-primary shadow-sm'
-                    : 'text-muted-foreground hover:text-foreground hover:bg-muted/50'
-                }`}
-              >
-                <Star className="h-4 w-4 mr-1.5 inline" />
-                Favourites
-              </button>
-              <button
-                onClick={() => setActiveFilter('published')}
-                className={`py-2 px-4 text-sm font-semibold tracking-tight transition-all duration-200 rounded-xl ${
-                  activeFilter === 'published'
-                    ? 'bg-primary/20 border-transparent text-primary shadow-sm'
-                    : 'text-muted-foreground hover:text-foreground hover:bg-muted/50'
-                }`}
-              >
-                <Send className="h-4 w-4 mr-1.5 inline" />
-                Published
-              </button>
-              <button
-                onClick={() => setActiveFilter('pinned')}
-                className={`py-2 px-4 text-sm font-semibold tracking-tight transition-all duration-200 rounded-xl ${
-                  activeFilter === 'pinned'
-                    ? 'bg-primary/20 border-transparent text-primary shadow-sm'
-                    : 'text-muted-foreground hover:text-foreground hover:bg-muted/50'
-                }`}
-              >
-                <Pin className="h-4 w-4 mr-1.5 inline" />
-                Pinned
-              </button>
+        <div className="flex flex-row flex-wrap items-start justify-between gap-4">
+          <div className="space-y-2 flex-1 min-w-[200px]">
+            <h1 className="text-4xl font-semibold tracking-tight text-foreground">Music Library</h1>
+            <p className="text-base text-muted-foreground">
+              View and manage all the favorited music.
+            </p>
+          </div>
+          <div className="flex items-center gap-4 flex-wrap justify-end flex-1 min-w-[240px]">
+            {/* Search Input */}
+            <div className="relative w-auto">
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                <input
+                  type="text"
+                  placeholder="Search by title and tags..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="pl-10 pr-10 py-2 w-64 bg-muted/30 border border-border/20 rounded-xl text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary/30 transition-all duration-200"
+                />
+                {searchQuery && (
+                  <button
+                    onClick={() => setSearchQuery('')}
+                    className="absolute right-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground hover:text-foreground transition-colors"
+                  >
+                    <X className="h-4 w-4" />
+                  </button>
+                )}
+              </div>
             </div>
           </div>
+        </div>
+      </div>
 
-          {/* Search Input */}
-          <div className="relative w-auto">
-            <div className="relative">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-              <input
-                type="text"
-                placeholder="Search by title and tags..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="pl-10 pr-10 py-2 w-64 bg-muted/30 border border-border/20 rounded-xl text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary/30 transition-all duration-200"
-              />
-              {searchQuery && (
-                <button
-                  onClick={() => setSearchQuery('')}
-                  className="absolute right-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground hover:text-foreground transition-colors"
-                >
-                  <X className="h-4 w-4" />
-                </button>
-              )}
-            </div>
-          </div>
+      {/* Desktop Filter Tabs */}
+      <div className="hidden md:block px-6 pb-4">
+        <div className="bg-muted/30 rounded-xl p-1 inline-flex flex-wrap gap-1">
+          <button
+            onClick={() => setActiveFilter('all')}
+            className={`py-2 px-4 text-sm font-semibold tracking-tight transition-all duration-200 rounded-xl ${
+              activeFilter === 'all'
+                ? 'bg-primary/20 border-transparent text-primary shadow-sm'
+                : 'text-muted-foreground hover:text-foreground hover:bg-muted/50'
+            }`}
+          >
+            <Star className="h-4 w-4 mr-1.5 inline" />
+            All
+          </button>
+          <button
+            onClick={() => setActiveFilter('published')}
+            className={`py-2 px-4 text-sm font-semibold tracking-tight transition-all duration-200 rounded-xl ${
+              activeFilter === 'published'
+                ? 'bg-primary/20 border-transparent text-primary shadow-sm'
+                : 'text-muted-foreground hover:text-foreground hover:bg-muted/50'
+            }`}
+          >
+            <Send className="h-4 w-4 mr-1.5 inline" />
+            Published
+          </button>
+          <button
+            onClick={() => setActiveFilter('pinned')}
+            className={`py-2 px-4 text-sm font-semibold tracking-tight transition-all duration-200 rounded-xl ${
+              activeFilter === 'pinned'
+                ? 'bg-primary/20 border-transparent text-primary shadow-sm'
+                : 'text-muted-foreground hover:text-foreground hover:bg-muted/50'
+            }`}
+          >
+            <Pin className="h-4 w-4 mr-1.5 inline" />
+            Pinned
+          </button>
         </div>
       </div>
 
@@ -1041,7 +1054,7 @@ export const LibraryPanel = ({
                     ? 'No published tracks yet. Publish tracks to make them public.'
                     : activeFilter === 'pinned'
                       ? 'No pinned tracks yet. Pin songs you want to highlight.'
-                      : 'No favourites yet. Add songs to your library to see them here.'
+                      : 'No favorites yet. Add songs to your library to see them here.'
                 }
               </p>
             </div>
@@ -1184,13 +1197,21 @@ export const LibraryPanel = ({
                       canDownloadWAV={canDownloadWAV}
                       canDownloadCover={canDownloadCover}
                       onDownload={(format) => handleDownload(track, format)}
-                      onPublish={() => handlePublishClick(track)}
+                      onFavorite={() => {
+                        if (activeFilter === 'all' && onFavoriteToggle) {
+                          handleFavoriteRemoveClick(track);
+                        } else if (onFavoriteToggle) {
+                          onFavoriteToggle(track);
+                        }
+                      }}
                       onShare={() => handleShare(track)}
+                      onPublish={() => handlePublishClick(track)}
                       onPin={() => handlePinToggle(track)}
                       onEdit={() => handleEditStart(track)}
                       onDelete={() => handleDeleteClick(track)}
                       onPricingModalOpen={openPricingModal}
                       isCopied={copiedTrackId === track.id}
+                      showPublishAction={activeFilter === 'published'}
                     />
                   </div>
                   </div>
@@ -1574,11 +1595,11 @@ export const LibraryPanel = ({
                 }}
               >
                 <div className="flex items-center gap-3">
-                  {selectedTrackForMenu.isPublished ? (
-                    <Send className="h-5 w-5" />
-                  ) : (
-                    <Send className="h-5 w-5" />
-                  )}
+                  <Send
+                    className={`h-5 w-5 ${
+                      selectedTrackForMenu.isPublished ? 'text-green-500' : ''
+                    }`}
+                  />
                   <span className="font-medium">
                     {selectedTrackForMenu.isPublished ? "Unpublish" : "Publish"}
                   </span>

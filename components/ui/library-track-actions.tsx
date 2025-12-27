@@ -30,14 +30,15 @@ interface LibraryTrackActionsProps {
   canDownloadWAV?: boolean;
   canDownloadCover?: boolean;
   onDownload?: (format: 'mp3' | 'wav' | 'cover') => void;
-  onPublish?: () => void;
   onPin?: () => void;
   onEdit?: () => void;
   onShare?: () => void;
+  onPublish?: () => void;
   onFavorite?: () => void;
   onDelete?: () => void;
   onPricingModalOpen?: () => void;
   isCopied?: boolean;
+  showPublishAction?: boolean;
 }
 
 /**
@@ -54,14 +55,15 @@ export const LibraryTrackActions: React.FC<LibraryTrackActionsProps> = ({
   canDownloadWAV = false,
   canDownloadCover = false,
   onDownload,
-  onPublish,
   onShare,
+  onPublish,
   onPin,
   onEdit,
   onFavorite,
   onDelete,
   onPricingModalOpen,
   isCopied = false,
+  showPublishAction = false,
 }) => {
   const hasCoverImage = Boolean(
     track.coverImage ||
@@ -87,28 +89,45 @@ export const LibraryTrackActions: React.FC<LibraryTrackActionsProps> = ({
     );
   }
 
+  const handleFavoriteToggle = (e?: React.MouseEvent) => {
+    e?.stopPropagation();
+    onFavorite?.();
+  };
+
   // Desktop: Show all action buttons
   return (
     <div className="flex items-center gap-2">
-      {/* Publish/Unpublish Button */}
-      {onPublish && (
+      {/* Favorite / Publish Button */}
+      {showPublishAction && onPublish ? (
         <Button
           variant="ghost"
           size="sm"
           className="h-8 w-8 p-0"
-          title={track.isPublished ? "Unpublish" : "Publish"}
+          title={track.isPublished ? 'Unpublish track' : 'Publish track'}
           onClick={(e) => {
             e.stopPropagation();
             onPublish();
           }}
         >
-          {track.isPublished ? (
-            <Send className="h-4 w-4 text-green-600" />
-          ) : (
-            <Send className="h-4 w-4 text-muted-foreground" />
-          )}
+          <Send
+            className={`h-4 w-4 ${
+              track.isPublished ? 'text-green-500' : 'text-muted-foreground'
+            }`}
+          />
         </Button>
-      )}
+      ) : onFavorite ? (
+        <Button
+          variant="ghost"
+          size="sm"
+          className="h-8 w-8 p-0"
+          title={track.isFavorited ? 'Remove from favorites' : 'Add to favorites'}
+          onClick={handleFavoriteToggle}
+        >
+          <Star
+            className={`h-4 w-4 ${track.isFavorited ? 'text-red-500 fill-current' : 'text-muted-foreground'}`}
+          />
+        </Button>
+      ) : null}
 
       {/* Share Button */}
       {onShare && (
@@ -225,6 +244,24 @@ export const LibraryTrackActions: React.FC<LibraryTrackActionsProps> = ({
             </DropdownMenuItem>
           )}
 
+          {/* Publish/Unpublish */}
+          {onPublish && (
+            <DropdownMenuItem
+              onClick={(e) => {
+                e.stopPropagation();
+                onPublish();
+              }}
+              className="cursor-pointer"
+            >
+              <Send
+                className={`mr-2 h-4 w-4 ${
+                  track.isPublished ? 'text-green-500' : 'text-muted-foreground'
+                }`}
+              />
+              {track.isPublished ? 'Unpublish' : 'Publish'}
+            </DropdownMenuItem>
+          )}
+
           {/* Pin/Unpin - Only for admins */}
           {userIsAdmin && onPin && (
             <DropdownMenuItem
@@ -243,7 +280,7 @@ export const LibraryTrackActions: React.FC<LibraryTrackActionsProps> = ({
             </DropdownMenuItem>
           )}
 
-          {/* Delete - Available for all users */}
+      {/* Delete - Available for all users */}
           {onDelete && (
             <DropdownMenuItem
               onClick={(e) => {

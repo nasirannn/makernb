@@ -151,7 +151,7 @@ const LibraryContent = () => {
             coverImage: track.coverImage || undefined,
             lyrics: track.lyrics,
             createdAt: track.createdAt ?? new Date().toISOString(),
-            favoritedAt: track.favoritedAt,
+            favoritedAt: track.favoritedAt ?? undefined,
             status: 'completed',
             allTracks: [{
                 id: track.id,
