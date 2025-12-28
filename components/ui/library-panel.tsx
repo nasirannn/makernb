@@ -127,6 +127,7 @@ export const LibraryPanel = ({
   const [selectedTrackForMenu, setSelectedTrackForMenu] = useState<LibraryTrack | null>(null);
   const [userMenuOpen, setUserMenuOpen] = useState(false);
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc' | null>(null);
+  const [sortColumn, setSortColumn] = useState<'createdAt' | 'duration'>('createdAt');
   
   // tags展开状态管理
   const [expandedTags, setExpandedTags] = useState<Record<string, boolean>>({});
@@ -166,14 +167,18 @@ export const LibraryPanel = ({
     );
   });
 
-  // 处理排序
-  const handleSortClick = () => {
-    if (sortOrder === null) {
-      setSortOrder('desc'); // 默认降序（最新的在前）
-    } else if (sortOrder === 'desc') {
-      setSortOrder('asc'); // 升序（旧的在前）
+  const handleSortClick = (column: 'createdAt' | 'duration') => {
+    setSortColumn(column);
+    if (column === sortColumn) {
+      if (sortOrder === 'desc') {
+        setSortOrder('asc');
+      } else if (sortOrder === 'asc') {
+        setSortOrder(null);
+      } else {
+        setSortOrder('desc');
+      }
     } else {
-      setSortOrder(null); // 取消排序
+      setSortOrder('desc');
     }
   };
 
@@ -181,15 +186,15 @@ export const LibraryPanel = ({
   const sortedTracks = [...filteredTracks].sort((a, b) => {
     if (sortOrder === null) return 0;
     
-    // 按创建时间排序
-    const dateA = new Date(a.createdAt || 0).getTime();
-    const dateB = new Date(b.createdAt || 0).getTime();
-    
-    if (sortOrder === 'asc') {
-      return dateA - dateB; // 升序：旧的在前面
-    } else {
-      return dateB - dateA; // 降序：新的在前面
+    if (sortColumn === 'createdAt') {
+      const dateA = new Date(a.createdAt || 0).getTime();
+      const dateB = new Date(b.createdAt || 0).getTime();
+      return sortOrder === 'asc' ? dateA - dateB : dateB - dateA;
     }
+    
+    const durationA = typeof a.duration === 'string' ? parseFloat(a.duration) : (a.duration || 0);
+    const durationB = typeof b.duration === 'string' ? parseFloat(b.duration) : (b.duration || 0);
+    return sortOrder === 'asc' ? durationA - durationB : durationB - durationA;
   });
 
   // Show all tracks without pagination
@@ -987,23 +992,33 @@ export const LibraryPanel = ({
                 </div>
                 <div 
                   className="col-span-2 flex items-center gap-1 cursor-pointer select-none hover:text-foreground transition-colors"
-                  onClick={handleSortClick}
+                  onClick={() => handleSortClick('createdAt')}
                 >
                   <span>Created Time</span>
                   <div className="relative inline-flex items-center">
-                    {sortOrder === null && (
+                    {sortColumn !== 'createdAt' || sortOrder === null ? (
                       <ArrowUpDown className="h-4 w-4" />
-                    )}
-                    {sortOrder === 'asc' && (
+                    ) : sortOrder === 'asc' ? (
                       <ArrowUp className="h-4 w-4 text-primary" />
-                    )}
-                    {sortOrder === 'desc' && (
+                    ) : (
                       <ArrowDownIcon className="h-4 w-4 text-primary" />
                     )}
                   </div>
                 </div>
-                <div className="col-span-1 flex items-center justify-end">
+                <div 
+                  className="col-span-1 flex items-center justify-end gap-1 cursor-pointer select-none hover:text-foreground transition-colors"
+                  onClick={() => handleSortClick('duration')}
+                >
                   <span>Duration</span>
+                  <div className="relative inline-flex items-center">
+                    {sortColumn !== 'duration' || sortOrder === null ? (
+                      <ArrowUpDown className="h-4 w-4" />
+                    ) : sortOrder === 'asc' ? (
+                      <ArrowUp className="h-4 w-4 text-primary" />
+                    ) : (
+                      <ArrowDownIcon className="h-4 w-4 text-primary" />
+                    )}
+                  </div>
                 </div>
                 <div className="col-span-2 flex items-center justify-center">
                   <span>Actions</span>
