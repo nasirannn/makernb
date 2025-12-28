@@ -189,6 +189,21 @@ export const LibraryTrackActions: React.FC<LibraryTrackActionsProps> = ({
           </Button>
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end" className="w-52">
+          {onEdit && (
+            <DropdownMenuItem
+              onClick={(e) => {
+                e.stopPropagation();
+                onEdit();
+              }}
+              className="cursor-pointer"
+            >
+              <Pencil className="mr-2 h-4 w-4" />
+              Edit Music Info
+            </DropdownMenuItem>
+          )}
+
+          {onEdit && (onShare || onDownload) && <DropdownMenuSeparator />}
+
           {onShare && (
             <DropdownMenuItem
               onClick={(e) => {
@@ -234,22 +249,7 @@ export const LibraryTrackActions: React.FC<LibraryTrackActionsProps> = ({
             </>
           )}
 
-          {(onShare || onDownload) && (onEdit || onDelete) && (
-            <DropdownMenuSeparator />
-          )}
-
-          {onEdit && (
-            <DropdownMenuItem
-              onClick={(e) => {
-                e.stopPropagation();
-                onEdit();
-              }}
-              className="cursor-pointer"
-            >
-              <Pencil className="mr-2 h-4 w-4" />
-              Edit Music Info
-            </DropdownMenuItem>
-          )}
+          {(onShare || onDownload) && onDelete && <DropdownMenuSeparator />}
 
           {onDelete && (
             <DropdownMenuItem

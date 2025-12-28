@@ -104,7 +104,7 @@ export const LibraryPanel = ({
   hasPlayer = false,
   onFavoriteToggle
 }: LibraryPanelProps) => {
-  const { user, signOut } = useAuth();
+  const { user, loading: authLoading, signOut } = useAuth();
   const { credits } = useCredits();
   const { openModal: openPricingModal } = usePricingModal();
   
@@ -135,6 +135,7 @@ export const LibraryPanel = ({
   const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [trackToEdit, setTrackToEdit] = useState<LibraryTrack | null>(null);
   const [copiedTrackId, setCopiedTrackId] = useState<string | null>(null);
+  const isLibraryLoading = authLoading || isLoading;
   
   // 切换tags展开状态
   const toggleTagsExpansion = (trackId: string) => {
@@ -946,7 +947,7 @@ export const LibraryPanel = ({
           paddingBottom: hasPlayer ? 'calc(var(--player-height, 80px) + 1.5rem)' : '5rem'
         }}
       >
-        {isLoading ? (
+        {isLibraryLoading ? (
           <div className="flex items-center justify-center h-full relative">
             <LoadingState message="Loading your music library" size="lg" vertical />
           </div>

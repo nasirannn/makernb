@@ -70,7 +70,7 @@ const StudioContent = () => {
     const [trackToDelete, setTrackToDelete] = useState<any>(null);
     const [generationConfirmOpen, setGenerationConfirmOpen] = useState(false);
     const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
-    const [isLoadingUserTracks, setIsLoadingUserTracks] = useState(false);
+    const [isFetchingUserTracks, setIsFetchingUserTracks] = useState(true);
     const [userMenuOpen, setUserMenuOpen] = useState(false);
     
     // WAV 下载进度弹窗状态
@@ -392,8 +392,12 @@ const StudioContent = () => {
 
     // 获取用户 tracks
     const fetchUserTracks = React.useCallback(async () => {
-        if (!user?.id) return;
-        setIsLoadingUserTracks(true);
+        if (!user?.id) {
+            setUserTracks([]);
+            setIsFetchingUserTracks(false);
+            return;
+        }
+        setIsFetchingUserTracks(true);
         try {
             // 获取当前session的access token
             const { data: { session } } = await supabase.auth.getSession();
@@ -417,7 +421,7 @@ const StudioContent = () => {
         } catch (error) {
             console.error('Error fetching user tracks:', error);
         } finally {
-            setIsLoadingUserTracks(false);
+            setIsFetchingUserTracks(false);
         }
     }, [user?.id]);
 
@@ -438,6 +442,8 @@ const StudioContent = () => {
     useEffect(() => {
         if (user?.id) {
             fetchUserTracks();
+        } else {
+            setIsFetchingUserTracks(false);
         }
     }, [user?.id, fetchUserTracks]);
 
@@ -1556,7 +1562,7 @@ const StudioContent = () => {
                                     onDelete={handleDeleteClick}
                                     onFavoriteToggle={handleFavoriteToggle}
                                     onDownload={handleDownload}
-                                    isLoading={isLoadingUserTracks}
+                                    isLoading={isFetchingUserTracks}
                                     selectedTrack={selectedStudioTrack?.id}
                                     hasPlayer={!!player.currentTrack}
                                     onEditTitle={handleEditTitle}
@@ -1570,7 +1576,7 @@ const StudioContent = () => {
                             <div className="hidden md:block min-h-0 h-full">
                                 <StudioTracksList
                                     userTracks={convertUserTracksToMusicGeneration(userTracks)}
-                                    isLoading={isLoadingUserTracks}
+                                    isLoading={isFetchingUserTracks}
                                     onTrackSelect={handleUserTrackSelect}
                                     onTrackPreview={handleInlineTrackPreview}
                                     onTrackPlay={handleUserTrackPlay}

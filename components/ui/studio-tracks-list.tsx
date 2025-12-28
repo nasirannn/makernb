@@ -1,9 +1,9 @@
 "use client";
 
-import React, { useState, useCallback, useMemo } from 'react';
+import React, { useState, useCallback, useMemo, useEffect } from 'react';
 import { Music, Search, X } from "lucide-react";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
-import { LoadingState } from './loading-dots';
+import { Skeleton } from '@/components/ui/skeleton';
 import { supabase } from "@/lib/supabase";
 import { toast } from 'sonner';
 import { LibraryTrack } from '@/types/track';
@@ -16,7 +16,6 @@ import { ReplaceSectionDialog, ReplaceSectionParams } from './replace-section-di
 import { CLIENT_VOCAL_SEPARATION_CREDITS } from '@/lib/credits-config';
 import { useVocalRemovalManager } from '@/hooks/use-vocal-removal-manager';
 import { TrackItem } from './track-item';
-import { TrackGroup } from './track-group';
 import { formatDurationInMinutes } from '@/lib/format-utils';
 import { useAuth } from '@/contexts/AuthContext';
 import { useCredits } from '@/contexts/CreditsContext';
@@ -68,6 +67,42 @@ interface StudioTracksListProps {
 
 // 稳定的 no-op 函数，用于替代未提供的 extendMusicStartPolling
 const noOpExtendMusicPolling = () => {};
+
+const TrackListSkeleton = () => (
+  <div className="flex flex-col gap-3 px-6 py-6">
+    {[...Array(5)].map((_, index) => (
+      <div
+        key={index}
+        className="rounded-[28px] bg-white/[0.03] p-3"
+      >
+        <div className="flex items-center gap-4">
+          
+          {/* Cover */}
+          <Skeleton className="h-16 w-16 rounded-2xl bg-white/10 flex-shrink-0" />
+
+          {/* Title + info */}
+          <div className="flex-1 min-w-0">
+            <Skeleton className="h-4 w-2/3 bg-white/10 mb-2" />
+            <Skeleton className="h-3 w-1/2 bg-white/5 mb-4" />
+            <div className="flex items-center gap-4">
+              <Skeleton className="h-3 w-32 bg-white/5" />
+            </div>
+          </div>
+
+          {/* Actions */}
+          <div className="flex items-center gap-3 flex-shrink-0">
+            {[...Array(3)].map((_, actionIndex) => (
+              <Skeleton
+                key={actionIndex}
+                className="h-8 w-8 rounded-full bg-white/10"
+              />
+            ))}
+          </div>
+        </div>
+      </div>
+    ))}
+  </div>
+);
 
 export const StudioTracksList: React.FC<StudioTracksListProps> = React.memo(function StudioTracksList({
   userTracks,
@@ -823,17 +858,8 @@ export const StudioTracksList: React.FC<StudioTracksListProps> = React.memo(func
     setPendingVocalRemovalTrackId(null);
   }, [existingVocalRemovalData, pendingVocalRemovalTrackId, vocalRemovalManager]);
 
-  // 渲染 Loading 状态
-  if (isLoading) {
-    return (
-      <div className="flex flex-col items-center justify-center h-full space-y-4">
-        <LoadingState message="Loading your tracks..." size="lg" vertical />
-      </div>
-    );
-  }
-
   // 渲染空状态
-  const showEmptyState = (!userTracks || userTracks.length === 0 || allTracks.length === 0) 
+  const showEmptyState = !isLoading && (!userTracks || userTracks.length === 0 || allTracks.length === 0) 
     && stableGeneratedTracks.length === 0;
 
   if (showEmptyState) {
@@ -894,6 +920,10 @@ export const StudioTracksList: React.FC<StudioTracksListProps> = React.memo(func
           }}
         >
         <div className="relative">
+          {isLoading ? (
+            <TrackListSkeleton />
+          ) : (
+            <>
             {/* All Tracks (包含 generatedTracks 和 userTracks，使用分组显示) */}
           {flatTracks.length > 0 && (
             <div className="space-y-1">
@@ -986,6 +1016,8 @@ export const StudioTracksList: React.FC<StudioTracksListProps> = React.memo(func
                 </button>
               </div>
             </div>
+          )}
+          </>
           )}
         </div>
         </div>

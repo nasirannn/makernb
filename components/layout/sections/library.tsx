@@ -45,18 +45,28 @@ const LibraryContent = () => {
     const [lyricsPanelOpen, setLyricsPanelOpen] = useState(false);
     // Sidebar宽度状态
     const [sidebarWidth, setSidebarWidth] = useState(80); // 默认收起状态的宽度
-    const [isDesktop, setIsDesktop] = useState(false);
+    const sidebarOffsetRef = React.useRef(sidebarWidth);
 
-    // 监听窗口大小变化
     React.useEffect(() => {
-        const checkIsDesktop = () => {
-            setIsDesktop(window.innerWidth >= 768);
+        const updateSidebarOffset = () => {
+            if (typeof document === 'undefined') return;
+            const isDesktopViewport = typeof window !== 'undefined' && window.innerWidth >= 768;
+            const offsetValue = isDesktopViewport ? `${sidebarOffsetRef.current}px` : '0px';
+            document.documentElement.style.setProperty('--sidebar-offset', offsetValue);
         };
 
-        checkIsDesktop();
-        window.addEventListener('resize', checkIsDesktop);
-        return () => window.removeEventListener('resize', checkIsDesktop);
-    }, []);
+        sidebarOffsetRef.current = sidebarWidth;
+        updateSidebarOffset();
+        if (typeof window !== 'undefined') {
+            window.addEventListener('resize', updateSidebarOffset);
+        }
+
+        return () => {
+            if (typeof window !== 'undefined') {
+                window.removeEventListener('resize', updateSidebarOffset);
+            }
+        };
+    }, [sidebarWidth]);
 
     // ==================== 播放器稳定引用 ====================
     const audioPlayerRef = React.useRef(audioPlayer);
@@ -356,7 +366,7 @@ const LibraryContent = () => {
                 <div
                     className="flex-1 h-full flex z-10 relative pb-[var(--mobile-nav-height,64px)] md:pb-0 transition-[margin] duration-500"
                     style={{
-                        marginLeft: isDesktop ? `${sidebarWidth}px` : '0'
+                        marginLeft: 'var(--sidebar-offset, 0px)'
                     }}
                 >
                     <div className={`flex flex-col md:flex-row flex-1 min-h-0 min-w-0 ${showInlinePanel ? 'md:gap-6' : 'md:gap-0'}`}>
