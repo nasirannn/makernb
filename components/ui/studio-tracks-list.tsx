@@ -91,7 +91,7 @@ const TrackListSkeleton = () => (
 
           {/* Actions */}
           <div className="flex items-center gap-3 flex-shrink-0">
-            {[...Array(3)].map((_, actionIndex) => (
+            {[...Array(4)].map((_, actionIndex) => (
               <Skeleton
                 key={actionIndex}
                 className="h-8 w-8 rounded-full bg-white/10"

@@ -113,12 +113,33 @@ export const TrackActionButtons: React.FC<TrackActionButtonsProps> = ({
   };
   
   // 判断是否显示更多菜单（需要至少有一个功能）
-  const shouldShowMoreMenu = onFavoriteToggle || onVocalRemoval || onExtendMusic || onDelete || onEditTitle || onEditMusicInfo;
+  const shouldShowMoreMenu = onVocalRemoval || onExtendMusic || onDelete || onEditTitle || onEditMusicInfo;
 
   // 桌面端按钮
   if (!isMobile) {
     return (
       <div className="hidden md:flex items-center gap-3">
+        {/* 收藏按钮 */}
+        {onFavoriteToggle && (
+          <Button
+            variant="ghost"
+            size="sm"
+            className={`h-6 w-6 p-0 hover:bg-muted/50 transition-colors ${
+              isFavorited 
+                ? 'text-red-500' 
+                : 'text-muted-foreground hover:text-foreground'
+            }`}
+            title={isFavorited ? 'Remove from library' : 'Add to library'}
+            onClick={(e) => {
+              e.stopPropagation();
+              onFavoriteToggle();
+            }}
+            aria-label={isFavorited ? 'Remove from library' : 'Add to library'}
+          >
+            <Star className={`h-3 w-3 ${isFavorited ? 'fill-current' : ''}`} />
+          </Button>
+        )}
+
         {/* 分享按钮 */}
         {onShare && (
           <Button
@@ -249,22 +270,7 @@ export const TrackActionButtons: React.FC<TrackActionButtonsProps> = ({
                 </>
               )}
 
-              {/* 收藏选项 */}
-              {onFavoriteToggle && (
-                <DropdownMenuItem
-                  onClick={(e) => {
-                    e.preventDefault();
-                    e.stopPropagation();
-                    onFavoriteToggle();
-                  }}
-                  className="flex items-center gap-1.5 cursor-pointer px-2.5 py-1.5 text-xs data-[highlighted]:bg-transparent data-[highlighted]:text-primary focus:bg-transparent"
-                >
-              <Star className={`h-3.5 w-3.5 ${isFavorited ? 'text-red-500 fill-current' : ''}`} />
-              <span>{isFavorited ? 'Remove From Library' : 'Add To Library'}</span>
-            </DropdownMenuItem>
-          )}
-
-              {(onFavoriteToggle || onEditMusicInfo || onEditTitle) && (onVocalRemoval || onExtendMusic || onReplaceSection || onDelete) && (
+              {(onEditMusicInfo || onEditTitle) && (onVocalRemoval || onExtendMusic || onReplaceSection || onDelete) && (
                 <DropdownMenuSeparator className="my-1" />
               )}
               
@@ -370,6 +376,25 @@ export const TrackActionButtons: React.FC<TrackActionButtonsProps> = ({
   // 移动端按钮
   return (
     <div className="md:hidden flex items-center gap-1.5 flex-shrink-0">
+      {/* 收藏按钮 */}
+      {onFavoriteToggle && (
+        <button
+          onClick={(e) => {
+            e.stopPropagation();
+            onFavoriteToggle();
+          }}
+          className={`h-7 w-7 flex items-center justify-center transition-colors ${
+            isFavorited
+              ? 'text-red-500'
+              : 'text-muted-foreground hover:text-foreground'
+          }`}
+          aria-label={isFavorited ? 'Remove from library' : 'Add to library'}
+          title={isFavorited ? 'Remove from library' : 'Add to library'}
+        >
+          <Star className={`h-4 w-4 ${isFavorited ? 'fill-current' : ''}`} />
+        </button>
+      )}
+
       {/* 分享按钮 */}
       {onShare && (
         <button
@@ -491,22 +516,7 @@ export const TrackActionButtons: React.FC<TrackActionButtonsProps> = ({
               </>
             )}
 
-            {/* 收藏选项 */}
-            {onFavoriteToggle && (
-              <DropdownMenuItem
-                onClick={(e) => {
-                  e.preventDefault();
-                  e.stopPropagation();
-                  onFavoriteToggle();
-                }}
-                className="flex items-center gap-1.5 cursor-pointer px-2.5 py-1.5 text-xs data-[highlighted]:bg-transparent data-[highlighted]:text-primary focus:bg-transparent"
-              >
-            <Star className={`h-3.5 w-3.5 ${isFavorited ? 'text-red-500 fill-current' : ''}`} />
-            <span>{isFavorited ? 'Remove From Library' : 'Add To Library'}</span>
-          </DropdownMenuItem>
-        )}
-
-            {(onFavoriteToggle || onEditMusicInfo || onEditTitle) && (onVocalRemoval || onExtendMusic || onReplaceSection || onDelete) && (
+            {(onEditMusicInfo || onEditTitle) && (onVocalRemoval || onExtendMusic || onReplaceSection || onDelete) && (
               <DropdownMenuSeparator className="my-1" />
             )}
             

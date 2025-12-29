@@ -157,23 +157,46 @@ export const LibraryTrackActions: React.FC<LibraryTrackActionsProps> = ({
         </Button>
       )}
 
-      {userIsAdmin && onPin && (
-        <Button
-          variant="ghost"
-          size="sm"
-          className="h-8 w-8 p-0"
-          title={track.isPinned ? 'Unpin track' : 'Pin track'}
-          onClick={(e) => {
-            e.stopPropagation();
-            onPin();
-          }}
-        >
-          {track.isPinned ? (
-            <PinOff className="h-4 w-4 text-primary" />
-          ) : (
-            <Pin className="h-4 w-4 text-muted-foreground" />
-          )}
-        </Button>
+      {onDownload && (
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button
+              variant="ghost"
+              size="sm"
+              className="h-8 w-8 p-0"
+              title="Download"
+              onClick={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+              }}
+              aria-label="Download track"
+            >
+              <Download className="h-4 w-4" />
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end" onClick={(e) => e.stopPropagation()} className="p-1.5 min-w-[160px]">
+            <DropdownMenuItem
+              onClick={(e) => handleDownloadClick(e, 'mp3')}
+              className="flex items-center justify-between gap-1.5 cursor-pointer px-2.5 py-1.5 text-xs data-[highlighted]:bg-transparent data-[highlighted]:text-primary focus:bg-transparent"
+            >
+              <span className="font-medium">Download MP3</span>
+            </DropdownMenuItem>
+            <DropdownMenuItem
+              onClick={(e) => handleDownloadClick(e, 'wav')}
+              className="flex items-center justify-between gap-1.5 cursor-pointer px-2.5 py-1.5 text-xs data-[highlighted]:bg-transparent data-[highlighted]:text-primary focus:bg-transparent"
+            >
+              <span className="font-medium">Download WAV</span>
+            </DropdownMenuItem>
+            {hasCoverImage ? (
+              <DropdownMenuItem
+                onClick={(e) => handleDownloadClick(e, 'cover')}
+                className="flex items-center justify-between gap-1.5 cursor-pointer px-2.5 py-1.5 text-xs data-[highlighted]:bg-transparent data-[highlighted]:text-primary focus:bg-transparent"
+              >
+                <span className="font-medium">Download PNG</span>
+              </DropdownMenuItem>
+            ) : null}
+          </DropdownMenuContent>
+        </DropdownMenu>
       )}
 
       <DropdownMenu>
@@ -188,7 +211,7 @@ export const LibraryTrackActions: React.FC<LibraryTrackActionsProps> = ({
             <MoreHorizontal className="h-4 w-4" />
           </Button>
         </DropdownMenuTrigger>
-        <DropdownMenuContent align="end" className="w-52">
+          <DropdownMenuContent align="end" className="w-52">
           {onEdit && (
             <DropdownMenuItem
               onClick={(e) => {
@@ -202,7 +225,7 @@ export const LibraryTrackActions: React.FC<LibraryTrackActionsProps> = ({
             </DropdownMenuItem>
           )}
 
-          {onEdit && (onShare || onDownload) && <DropdownMenuSeparator />}
+          {onEdit && (onShare || userIsAdmin && onPin) && <DropdownMenuSeparator />}
 
           {onShare && (
             <DropdownMenuItem
@@ -221,35 +244,24 @@ export const LibraryTrackActions: React.FC<LibraryTrackActionsProps> = ({
             </DropdownMenuItem>
           )}
 
-          {onDownload && (
-            <>
-              <DropdownMenuItem
-                onClick={(e) => handleDownloadClick(e, 'mp3')}
-                className="cursor-pointer"
-              >
-                <Download className="mr-2 h-4 w-4" />
-                Download MP3
-              </DropdownMenuItem>
-              <DropdownMenuItem
-                onClick={(e) => handleDownloadClick(e, 'wav')}
-                className="cursor-pointer"
-              >
-                <Download className="mr-2 h-4 w-4" />
-                Download WAV
-              </DropdownMenuItem>
-              {hasCoverImage && (
-                <DropdownMenuItem
-                  onClick={(e) => handleDownloadClick(e, 'cover')}
-                  className="cursor-pointer"
-                >
-                  <Download className="mr-2 h-4 w-4" />
-                  Download PNG
-                </DropdownMenuItem>
+          {userIsAdmin && onPin && (
+            <DropdownMenuItem
+              onClick={(e) => {
+                e.stopPropagation();
+                onPin();
+              }}
+              className="cursor-pointer"
+            >
+              {track.isPinned ? (
+                <PinOff className="mr-2 h-4 w-4" />
+              ) : (
+                <Pin className="mr-2 h-4 w-4" />
               )}
-            </>
+              {track.isPinned ? 'Unpin' : 'Pin'}
+            </DropdownMenuItem>
           )}
 
-          {(onShare || onDownload) && onDelete && <DropdownMenuSeparator />}
+          {(onShare || (userIsAdmin && onPin)) && onDelete && <DropdownMenuSeparator />}
 
           {onDelete && (
             <DropdownMenuItem

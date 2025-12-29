@@ -43,7 +43,7 @@ import { useCredits } from '@/contexts/CreditsContext';
 import { useFeaturePermissions } from '@/contexts/FeaturePermissionsContext';
 import { usePricingModal } from '@/contexts/PricingModalContext';
 import { CustomAudioWaveIndicator } from './audio-wave-indicator';
-import { LoadingState } from './loading-dots';
+import { Skeleton } from '@/components/ui/skeleton';
 import { Progress } from './progress';
 import { LibraryTrack } from '@/types/track';
 import { getEventBus, TRACK_EVENTS } from '@/lib/event-bus';
@@ -90,6 +90,58 @@ interface LibraryPanelProps {
   hasPlayer?: boolean; // 新增：是否有播放器显示
   onFavoriteToggle?: (track: LibraryTrack) => void; // 收藏/取消收藏回调
 }
+
+const LibraryListSkeleton = () => (
+  <div className="space-y-3 pb-6">
+    <div className="hidden md:block space-y-1 px-2">
+      {Array.from({ length: 6 }).map((_, index) => (
+        <div
+          key={`library-skeleton-desktop-${index}`}
+          className="grid grid-cols-12 gap-4 px-2 mx-2 py-3 rounded-lg border border-transparent bg-muted/10"
+        >
+          <div className="col-span-1 flex items-center justify-center">
+            <Skeleton className="h-10 w-10 rounded-lg" />
+          </div>
+          <div className="col-span-2 flex items-center">
+            <Skeleton className="h-4 w-32" />
+          </div>
+          <div className="col-span-4 flex items-center">
+            <Skeleton className="h-3 w-full" />
+          </div>
+          <div className="col-span-2 flex items-center">
+            <Skeleton className="h-3 w-28" />
+          </div>
+          <div className="col-span-1 flex items-center justify-end">
+            <Skeleton className="h-3 w-10" />
+          </div>
+          <div className="col-span-2 flex items-center justify-center gap-2">
+            <Skeleton className="h-6 w-6 rounded-full" />
+            <Skeleton className="h-6 w-6 rounded-full" />
+            <Skeleton className="h-6 w-6 rounded-full" />
+          </div>
+        </div>
+      ))}
+    </div>
+    <div className="md:hidden space-y-3 px-6">
+      {Array.from({ length: 5 }).map((_, index) => (
+        <div
+          key={`library-skeleton-mobile-${index}`}
+          className="flex items-center gap-4 rounded-2xl bg-muted/10 p-4"
+        >
+          <Skeleton className="h-14 w-14 rounded-xl flex-shrink-0" />
+          <div className="flex-1 space-y-2">
+            <Skeleton className="h-4 w-3/4" />
+            <Skeleton className="h-3 w-1/2" />
+          </div>
+          <div className="flex items-center gap-2">
+            <Skeleton className="h-6 w-6 rounded-full" />
+            <Skeleton className="h-6 w-6 rounded-full" />
+          </div>
+        </div>
+      ))}
+    </div>
+  </div>
+);
 
 export const LibraryPanel = ({
   tracks = [],
@@ -952,81 +1004,78 @@ export const LibraryPanel = ({
           paddingBottom: hasPlayer ? 'calc(var(--player-height, 80px) + 1.5rem)' : '5rem'
         }}
       >
-        {isLibraryLoading ? (
-          <div className="flex items-center justify-center h-full relative">
-            <LoadingState message="Loading your music library" size="lg" vertical />
-          </div>
-        ) : paginatedTracks.length === 0 ? (
-          <div className="flex items-center justify-center h-full relative">
-            <div className="text-center max-w-md px-6 py-12">
-              <div className="mb-6 flex justify-center">
-                <div className="relative">
-                  <Library className="h-20 w-20 text-muted-foreground/30" strokeWidth={1.5} />
-                  <div className="absolute inset-0 bg-gradient-to-br from-primary/10 to-transparent rounded-full blur-2xl" />
+        <div className="relative">
+          {/* Table Header - 只在桌面端显示 */}
+          <div className="hidden md:block">
+            <div className="grid grid-cols-12 gap-4 px-6 py-3 text-sm font-medium text-muted-foreground">
+              <div className="col-span-1 flex items-center justify-center">
+                <span></span>
+              </div>
+              <div className="col-span-2 flex items-center gap-3">
+                <span>Tracks</span>
+              </div>
+              <div className="col-span-4 flex items-center">
+                <span>Tags</span>
+              </div>
+              <div 
+                className="col-span-2 flex items-center gap-1 cursor-pointer select-none hover:text-foreground transition-colors"
+                onClick={() => handleSortClick('createdAt')}
+              >
+                <span>Created Time</span>
+                <div className="relative inline-flex items-center">
+                  {sortColumn !== 'createdAt' || sortOrder === null ? (
+                    <ArrowUpDown className="h-4 w-4" />
+                  ) : sortOrder === 'asc' ? (
+                    <ArrowUp className="h-4 w-4 text-primary" />
+                  ) : (
+                    <ArrowDownIcon className="h-4 w-4 text-primary" />
+                  )}
                 </div>
               </div>
-              <h3 className="text-xl font-semibold text-foreground mb-3">
-                {searchQuery ? 'No matching tracks' : 'No tracks found'}
-              </h3>
-              <p className="text-muted-foreground mb-6 leading-relaxed">
-                {searchQuery 
-                  ? `No tracks found for "${searchQuery}". Try a different search term.`
-                  : 'No favorited tracks yet. Add songs to your library to manage them here.'
-                }
-              </p>
-            </div>
-          </div>
-        ) : (
-          <div className="relative">
-            {/* Table Header - 只在桌面端显示 */}
-            <div className="hidden md:block">
-              <div className="grid grid-cols-12 gap-4 px-6 py-3 text-sm font-medium text-muted-foreground">
-                <div className="col-span-1 flex items-center justify-center">
-                  <span></span>
-                </div>
-                <div className="col-span-2 flex items-center gap-3">
-                  <span>Tracks</span>
-                </div>
-                <div className="col-span-4 flex items-center">
-                  <span>Tags</span>
-                </div>
-                <div 
-                  className="col-span-2 flex items-center gap-1 cursor-pointer select-none hover:text-foreground transition-colors"
-                  onClick={() => handleSortClick('createdAt')}
-                >
-                  <span>Created Time</span>
-                  <div className="relative inline-flex items-center">
-                    {sortColumn !== 'createdAt' || sortOrder === null ? (
-                      <ArrowUpDown className="h-4 w-4" />
-                    ) : sortOrder === 'asc' ? (
-                      <ArrowUp className="h-4 w-4 text-primary" />
-                    ) : (
-                      <ArrowDownIcon className="h-4 w-4 text-primary" />
-                    )}
-                  </div>
-                </div>
-                <div 
-                  className="col-span-1 flex items-center justify-end gap-1 cursor-pointer select-none hover:text-foreground transition-colors"
-                  onClick={() => handleSortClick('duration')}
-                >
-                  <span>Duration</span>
-                  <div className="relative inline-flex items-center">
-                    {sortColumn !== 'duration' || sortOrder === null ? (
-                      <ArrowUpDown className="h-4 w-4" />
-                    ) : sortOrder === 'asc' ? (
-                      <ArrowUp className="h-4 w-4 text-primary" />
-                    ) : (
-                      <ArrowDownIcon className="h-4 w-4 text-primary" />
-                    )}
-                  </div>
-                </div>
-                <div className="col-span-2 flex items-center justify-center">
-                  <span>Actions</span>
+              <div 
+                className="col-span-1 flex items-center justify-end gap-1 cursor-pointer select-none hover:text-foreground transition-colors"
+                onClick={() => handleSortClick('duration')}
+              >
+                <span>Duration</span>
+                <div className="relative inline-flex items-center">
+                  {sortColumn !== 'duration' || sortOrder === null ? (
+                    <ArrowUpDown className="h-4 w-4" />
+                  ) : sortOrder === 'asc' ? (
+                    <ArrowUp className="h-4 w-4 text-primary" />
+                  ) : (
+                    <ArrowDownIcon className="h-4 w-4 text-primary" />
+                  )}
                 </div>
               </div>
+              <div className="col-span-2 flex items-center justify-center">
+                <span>Actions</span>
+              </div>
             </div>
+          </div>
 
-            {/* Table Body */}
+          {isLibraryLoading ? (
+            <LibraryListSkeleton />
+          ) : paginatedTracks.length === 0 ? (
+            <div className="flex items-center justify-center h-full relative">
+              <div className="text-center max-w-md px-6 py-12">
+                <div className="mb-6 flex justify-center">
+                  <div className="relative">
+                    <Library className="h-20 w-20 text-muted-foreground/30" strokeWidth={1.5} />
+                    <div className="absolute inset-0 bg-gradient-to-br from-primary/10 to-transparent rounded-full blur-2xl" />
+                  </div>
+                </div>
+                <h3 className="text-xl font-semibold text-foreground mb-3">
+                  {searchQuery ? 'No matching tracks' : 'No tracks found'}
+                </h3>
+                <p className="text-muted-foreground mb-6 leading-relaxed">
+                  {searchQuery 
+                    ? `No tracks found for "${searchQuery}". Try a different search term.`
+                    : 'No favorited tracks yet. Add songs to your library to manage them here.'
+                  }
+                </p>
+              </div>
+            </div>
+          ) : (
             <div className="space-y-1">
               {paginatedTracks.map((track, index) => (
                 <div key={track.id}>
@@ -1242,8 +1291,8 @@ export const LibraryPanel = ({
                 </div>
               )}
             </div>
-          </div>
-        )}
+          )}
+        </div>
       </div>
 
       {/* Delete Confirmation Dialog */}
