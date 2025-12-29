@@ -121,7 +121,7 @@ export const UploadAudioDialog = ({
 
   const resetForm = React.useCallback(() => {
     setMode("cover");
-    setCustomMode(true);
+    setCustomMode(false);
     setTitle("");
     setStyle("");
     setLyrics("");

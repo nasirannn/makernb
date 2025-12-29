@@ -406,10 +406,6 @@ export const TrackDetailView: React.FC<TrackDetailViewProps> = ({
   if (!fullPage) {
     return (
       <div className="relative h-full w-full overflow-y-auto">
-        <div className="pointer-events-none fixed inset-0 -z-10">
-          <div className="absolute inset-0 bg-[url('/bg-studio-background.webp')] bg-cover bg-center" />
-          <div className="absolute inset-0 bg-gradient-to-b from-black/35 via-black/55 to-black/80 backdrop-blur-md" />
-        </div>
         <div className="relative z-10 mx-auto flex max-w-5xl flex-col gap-6 px-4 pb-12 pt-6 sm:px-6">
           {detailContent}
         </div>
@@ -420,11 +416,6 @@ export const TrackDetailView: React.FC<TrackDetailViewProps> = ({
 
   return (
     <div className="relative min-h-screen w-full overflow-hidden text-white">
-      <div className="pointer-events-none absolute inset-0 -z-10">
-        <div className="absolute inset-0 bg-[url('/bg-studio-background.webp')] bg-cover bg-center" />
-        <div className="absolute inset-0 bg-gradient-to-b from-black/35 via-black/55 to-black/85 backdrop-blur-md" />
-      </div>
-
       <div className="relative z-10 flex min-h-screen flex-col">
         <main className="flex-1">
           <div className="w-full px-4 pb-20 pt-28 sm:px-8 lg:px-14">

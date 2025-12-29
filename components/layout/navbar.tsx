@@ -243,9 +243,9 @@ export const Navbar = ({ credits = null }: NavbarProps) => {
 
   return (
     <header 
-      className={`w-full flex items-center px-6 lg:px-20 py-3 lg:py-4 absolute top-0 left-0 ${getZIndexClass('NAVBAR')}`}
+      className={`w-full flex items-center px-6 lg:px-20 py-3 lg:py-4 absolute top-0 left-0 bg-[var(--studio-panel-bg)] border-b border-white/5 text-white ${getZIndexClass('NAVBAR')}`}
     >
-      <Link href="/" className="font-bold text-lg flex items-center text-foreground">
+      <Link href="/" className="font-extrabold text-lg flex items-center text-white tracking-tight">
         <Image
           src="/logo.svg"
           alt="MakeRNB Logo"
@@ -276,10 +276,10 @@ export const Navbar = ({ credits = null }: NavbarProps) => {
                     onClick={() => setIsDropdownOpen(!isDropdownOpen)}
                     onMouseEnter={handleDropdownMouseEnter}
                     onMouseLeave={handleDropdownMouseLeave}
-                    className={`text-sm px-5 py-3 rounded-lg transition-all duration-200 flex items-center gap-1 ${
+                    className={`text-base px-5 py-3 rounded-lg transition-colors duration-200 flex items-center gap-1 font-semibold ${
                       isActive
-                        ? 'text-primary bg-primary/10 font-medium'
-                        : 'hover:text-primary hover:bg-primary/10'
+                        ? 'text-primary'
+                        : 'text-white/80 hover:text-primary'
                     }`}
                   >
                     {label}
@@ -289,7 +289,7 @@ export const Navbar = ({ credits = null }: NavbarProps) => {
                   {/* Dropdown Menu */}
                   {isDropdownOpen && (
                     <div 
-                      className="absolute top-full left-0 mt-2 min-w-48 w-max bg-card rounded-xl shadow-2xl p-3 z-[110]"
+                      className="absolute top-full left-0 mt-2 min-w-48 w-max bg-[var(--studio-panel-bg)] border border-white/10 rounded-lg p-2 z-[110]"
                       onMouseEnter={handleDropdownMouseEnter}
                       onMouseLeave={handleDropdownMouseLeave}
                     >
@@ -298,14 +298,11 @@ export const Navbar = ({ credits = null }: NavbarProps) => {
                           key={item.href}
                           href={item.href}
                           onClick={() => setIsDropdownOpen(false)}
-                          className="flex items-center gap-3 px-4 py-3 hover:bg-accent transition-colors group rounded-lg"
+                          className="flex items-center px-3 py-2 hover:bg-white/5 transition-colors group rounded-md"
                         >
-                          <div className="flex-shrink-0 w-8 h-8 bg-primary/20 rounded-lg flex items-center justify-center group-hover:bg-primary/30 transition-colors text-primary">
-                            {item.icon}
-                          </div>
                           <div className="flex-1 min-w-0">
-                            <p className="text-foreground font-medium text-sm">{item.label}</p>
-                            <p className="text-muted-foreground text-xs truncate">{item.description}</p>
+                            <p className="text-white/90 font-medium text-sm">{item.label}</p>
+                            <p className="text-white/50 text-xs truncate">{item.description}</p>
                           </div>
                         </Link>
                       ))}
@@ -320,10 +317,10 @@ export const Navbar = ({ credits = null }: NavbarProps) => {
                 <Link
                   href={href}
                   onClick={href === "/#pricing" ? handlePricingClick : undefined}
-                  className={`text-sm px-5 py-3 rounded-lg transition-all duration-200 ${
+                  className={`text-base px-5 py-3 rounded-lg transition-colors duration-200 font-semibold ${
                     isActive
-                      ? 'text-primary bg-primary/10 font-medium'
-                      : 'hover:text-primary hover:bg-primary/10'
+                      ? 'text-primary'
+                      : 'text-white/80 hover:text-primary'
                   }`}
                 >
                   {label}
@@ -338,7 +335,7 @@ export const Navbar = ({ credits = null }: NavbarProps) => {
       <div className="flex items-center lg:hidden ml-auto">
         <Menu
           onClick={() => setIsOpen(!isOpen)}
-          className="cursor-pointer lg:hidden text-foreground"
+          className="cursor-pointer lg:hidden text-white"
         />
         
         {isOpen && (
@@ -394,9 +391,9 @@ export const Navbar = ({ credits = null }: NavbarProps) => {
                   </div>
                   
                   {/* Credits Display */}
-                  <div className="flex items-center gap-2 px-3 py-1.5 bg-foreground/10 backdrop-blur-sm rounded-lg">
-                    <Sparkles className="h-3.5 w-3.5 text-foreground" />
-                    <span className="text-sm font-medium text-foreground">
+                  <div className="flex items-center gap-2 px-3 py-2 rounded-full border border-white/10 bg-white/5">
+                    <Sparkles className="h-3.5 w-3.5 text-primary" />
+                    <span className="text-base font-semibold text-white/90">
                       {credits === null ? '...' : credits} Credits
                     </span>
                   </div>
@@ -510,10 +507,10 @@ export const Navbar = ({ credits = null }: NavbarProps) => {
         {user ? (
           <>
             {/* Credits Display */}
-            <div className="flex items-center gap-2 px-3 py-2 bg-foreground/10 backdrop-blur-sm rounded-lg">
-              <Sparkles className="h-4 w-4 text-foreground" />
-              <span className="text-sm font-medium text-foreground">
-                {credits === null ? '...' : credits}
+            <div className="flex items-center gap-2 px-3 py-2 rounded-full border border-white/10 bg-white/5">
+              <Sparkles className="h-4 w-4 text-primary" />
+              <span className="text-base font-semibold text-white/90">
+                {credits === null ? '...' : credits} Credits
               </span>
             </div>
             
@@ -539,22 +536,21 @@ export const Navbar = ({ credits = null }: NavbarProps) => {
             {/* User Dropdown Menu */}
             {isUserMenuOpen && (
               <div 
-                className="absolute right-0 top-12 min-w-48 w-max bg-card rounded-xl shadow-2xl p-3 z-[110]"
+                className="absolute right-0 top-12 min-w-48 w-max bg-[var(--studio-panel-bg)] border border-white/10 rounded-lg p-3 z-[110]"
               >
                 {/* User Info */}
                 <div className="px-4 py-3">
                   <div className="flex items-center justify-between gap-2 mb-1">
-                    <p className="text-foreground font-medium text-sm truncate flex-1">
+                    <p className="text-white font-semibold text-sm truncate flex-1">
                       {user.user_metadata?.full_name || user.user_metadata?.name || user.email?.split('@')[0] || 'User'}
                     </p>
                     {tierCode && (
-                      <Badge className="relative inline-block rounded-full border border-zinc-700 bg-zinc-900/20 px-2 py-0.5 text-xs text-zinc-50 animate-border-marquee flex-shrink-0">
-                        <span className="text-foreground/90 font-medium capitalize">{tierCode}</span>
-                        <span className="absolute bottom-0 left-1 right-1 h-[1px] bg-gradient-to-r from-zinc-500/0 via-zinc-300 to-zinc-500/0"></span>
+                      <Badge className="rounded-full border border-white/10 bg-white/5 px-2 py-0.5 text-xs text-white/80 flex-shrink-0">
+                        <span className="font-medium capitalize">{tierCode}</span>
                       </Badge>
                     )}
                   </div>
-                  <p className="text-muted-foreground text-xs truncate">
+                  <p className="text-white/60 text-xs truncate">
                     {user.email}
                   </p>
                 </div>
@@ -569,12 +565,12 @@ export const Navbar = ({ credits = null }: NavbarProps) => {
                       console.error('Sign out error:', error);
                     }
                   }}
-                  className="w-full flex items-center gap-3 px-4 py-3 hover:bg-accent transition-colors group rounded-lg"
+                  className="w-full flex items-center gap-3 px-4 py-3 hover:bg-white/5 transition-colors group rounded-md"
                 >
-                  <div className="flex-shrink-0 w-8 h-8 bg-primary/20 rounded-lg flex items-center justify-center group-hover:bg-primary/30 transition-colors text-primary">
+                  <div className="flex-shrink-0 w-8 h-8 rounded-lg flex items-center justify-center text-primary">
                     <LogOut className="h-4 w-4" />
                   </div>
-                  <span className="text-foreground font-medium text-sm">Sign Out</span>
+                  <span className="text-white/90 font-medium text-sm">Sign Out</span>
                 </button>
               </div>
             )}

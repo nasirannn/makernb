@@ -71,7 +71,7 @@ export const ExploreSection = () => {
   const fetchExploreData = async () => {
     try {
       setLoading(true);
-      const response = await fetch('/api/pinned-tracks?limit=8&offset=0');
+      const response = await fetch('/api/pinned-tracks?limit=9&offset=0');
       const data = await response.json();
       
       if (data.success) {
@@ -187,8 +187,18 @@ export const ExploreSection = () => {
     playTrack(index);
   };
 
+  const formatTags = (tags?: string) => {
+    if (!tags) return '';
+    const normalized = tags
+      .split(/[,，/|]+/)
+      .map((tag) => tag.trim())
+      .filter(Boolean)
+      .join(' • ');
+    return normalized.length > 40 ? `${normalized.slice(0, 40)}...` : normalized;
+  };
+
   return (
-    <section id="explore" className="py-20 bg-gradient-to-b from-background to-muted/20">
+    <section id="explore" className="min-h-screen py-20 bg-white">
       <div className="container">
         {/* Section Header */}
         <div className="text-center mb-16">
@@ -196,11 +206,11 @@ export const ExploreSection = () => {
             Explore
           </h2>
 
-          <h2 className="text-3xl md:text-4xl text-center font-bold mb-4">
+          <h2 className="text-3xl md:text-4xl text-center font-bold mb-4 text-black">
             Listen to The AI-Generated R&B Songs
           </h2>
 
-          <h3 className="md:w-1/2 mx-auto text-lg text-center text-muted-foreground mb-8">
+          <h3 className="md:w-1/2 mx-auto text-base md:text-lg text-center text-black/60 mb-8">
             Experience soulful R&B music crafted by artificial intelligence
           </h3>
         </div>
@@ -208,82 +218,72 @@ export const ExploreSection = () => {
         {/* Music Grid */}
         <div className="max-w-7xl mx-auto">
           {loading ? (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-10 mb-12">
-              {[1, 2, 3, 4].map((i) => (
-                <div key={i} className="group">
-                  {/* 封面骨架 */}
-                  <Skeleton className="aspect-square rounded-xl" />
-
-                  {/* 歌曲信息骨架 - 居中显示 */}
-                  <div className="mt-3 text-center">
-                    <Skeleton className="h-4 mb-2 mx-auto w-1/2" />
-                    <Skeleton className="h-3 w-3/4 mx-auto" />
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-12">
+              {Array.from({ length: 9 }).map((_, i) => (
+                <div key={i} className="flex items-center gap-4 rounded-md bg-[#f7f6f2] shadow-[0_8px_20px_rgba(0,0,0,0.06)]">
+                  <Skeleton className="h-16 w-16 rounded-sm" />
+                  <div className="flex-1 space-y-2">
+                    <Skeleton className="h-4 w-2/3" />
+                    <Skeleton className="h-3 w-1/2" />
                   </div>
                 </div>
               ))}
             </div>
           ) : exploreData && exploreData.music.length > 0 ? (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-10 mb-12">
-              {exploreData.music.map((music, index) => (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-12">
+              {exploreData.music.slice(0, 9).map((music) => (
                 <div
                   key={music.id}
-                  className="group cursor-pointer transition-all duration-300"
+                  className="group flex items-center gap-4 rounded-md bg-[#f7f6f2] transition-colors hover:bg-[#efece5] cursor-pointer shadow-[0_8px_20px_rgba(0,0,0,0.06)]"
                   onClick={() => handlePlayPause(music.primaryTrack.id, music.primaryTrack.audioUrl || '', music)}
                 >
                   {/* Cover Image */}
-                  <div className="relative aspect-square rounded-xl overflow-hidden">
+                  <div className="relative h-16 w-16 shrink-0 overflow-hidden rounded-sm">
                     {music.primaryTrack.coverR2Url ? (
                       <SafeImage
                         src={music.primaryTrack.coverR2Url}
                         alt={music.title}
                         fill
                         className="object-cover"
-                        fallbackContent={<Music className="w-16 h-16 text-white/50" />}
+                        fallbackContent={<Music className="w-8 h-8 text-black/40" />}
                       />
                     ) : (
-                      <div className="w-full h-full bg-gradient-to-br from-purple-600 to-purple-600 flex items-center justify-center">
-                        <Music className="w-16 h-16 text-white/50" />
+                      <div className="w-full h-full bg-gradient-to-br from-black/10 to-black/20 flex items-center justify-center">
+                        <Music className="w-8 h-8 text-black/40" />
                       </div>
                     )}
-
-                    {/* Duration - 右上角 */}
-                    <div className="absolute top-2 right-2 bg-black/70 backdrop-blur-sm rounded-md px-2 py-1">
-                      <span className="text-white text-xs font-medium">
-                        {formatDuration(music.totalDuration)}
-                      </span>
-                    </div>
 
                     {/* Play Button Overlay */}
                     <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-center justify-center">
                       <Button
                         variant="ghost"
                         size="sm"
-                        className="h-12 w-12 p-0 bg-white/20 hover:bg-white/30 backdrop-blur-sm"
+                        className="h-8 w-8 p-0 bg-white/20 hover:bg-white/30 backdrop-blur-sm"
                         onClick={(e) => {
                           e.stopPropagation();
                           handlePlayPause(music.primaryTrack.id, music.primaryTrack.audioUrl || '', music);
                         }}
                       >
                         {currentlyPlaying === music.primaryTrack.id && audioPlayer.isPlaying ? (
-                          <Pause className="h-5 w-5 text-white" />
+                          <Pause className="h-4 w-4 text-white" />
                         ) : (
-                          <Play className="h-5 w-5 text-white" />
+                          <Play className="h-4 w-4 text-white" />
                         )}
                       </Button>
                     </div>
                   </div>
 
-                  {/* Track Info - 居中显示 */}
-                  <div className="mt-3 text-center">
-                    <h3 className="text-white font-bold text-base mb-1 truncate">
+                  {/* Track Info */}
+                  <div className="min-w-0">
+                    <h3 className="text-black font-normal text-base mb-1 truncate">
                       {music.title}
                     </h3>
-                    <p className="text-white/70 text-sm truncate capitalize">
-                      {music.tags}
+                    <p className="text-black/60 text-xs truncate capitalize">
+                      {formatTags(music.tags)}
                     </p>
                   </div>
                 </div>
-            ))}
+              ))}
             </div>
           ) : (
             <div className="text-center py-12">
@@ -296,9 +296,8 @@ export const ExploreSection = () => {
         {/* Explore More Button */}
         <div className="text-center">
           <Link href="/explore">
-            <Button className="text-primary border border-primary hover:bg-primary hover:text-white px-8 py-3 rounded-lg transition-colors bg-transparent">
-              View All Songs
-              <ArrowRight className="w-4 h-4 ml-2" />
+            <Button className="bg-primary text-primary-foreground hover:bg-primary/90 px-8 py-3 rounded-full transition-colors">
+              Explore All Published Tracks
             </Button>
           </Link>
         </div>

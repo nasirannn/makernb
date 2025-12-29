@@ -119,52 +119,6 @@ export const TrackActionButtons: React.FC<TrackActionButtonsProps> = ({
   if (!isMobile) {
     return (
       <div className="hidden md:flex items-center gap-3">
-        {/* 收藏按钮 */}
-        {onFavoriteToggle && (
-          <Button
-            variant="ghost"
-            size="sm"
-            className={`h-6 w-6 p-0 hover:bg-muted/50 transition-colors ${
-              isFavorited 
-                ? 'text-red-500' 
-                : 'text-muted-foreground hover:text-foreground'
-            }`}
-            title={isFavorited ? 'Remove from library' : 'Add to library'}
-            onClick={(e) => {
-              e.stopPropagation();
-              onFavoriteToggle();
-            }}
-            aria-label={isFavorited ? 'Remove from library' : 'Add to library'}
-          >
-            <Star className={`h-3 w-3 ${isFavorited ? 'fill-current' : ''}`} />
-          </Button>
-        )}
-
-        {/* 分享按钮 */}
-        {onShare && (
-          <Button
-            variant="ghost"
-            size="sm"
-            className={`h-6 w-6 p-0 hover:bg-muted/50 transition-colors ${
-              isCopied 
-                ? 'text-green-500' 
-                : 'text-muted-foreground hover:text-foreground'
-            }`}
-            title={isCopied ? 'Link copied' : 'Share track'}
-            onClick={(e) => {
-              e.stopPropagation();
-              onShare();
-            }}
-            aria-label="Share track"
-          >
-            {isCopied ? (
-              <Check className="h-3 w-3" />
-            ) : (
-              <Share2 className="h-3 w-3" />
-            )}
-          </Button>
-        )}
-        
         {/* 下载按钮 */}
         {onDownload && (
           <DropdownMenu>
@@ -232,6 +186,52 @@ export const TrackActionButtons: React.FC<TrackActionButtonsProps> = ({
               )}
             </DropdownMenuContent>
           </DropdownMenu>
+        )}
+
+        {/* 收藏按钮 */}
+        {onFavoriteToggle && (
+          <Button
+            variant="ghost"
+            size="sm"
+            className={`h-6 w-6 p-0 hover:bg-muted/50 transition-colors ${
+              isFavorited 
+                ? 'text-red-500' 
+                : 'text-muted-foreground hover:text-foreground'
+            }`}
+            title={isFavorited ? 'Remove from library' : 'Add to library'}
+            onClick={(e) => {
+              e.stopPropagation();
+              onFavoriteToggle();
+            }}
+            aria-label={isFavorited ? 'Remove from library' : 'Add to library'}
+          >
+            <Star className={`h-3 w-3 ${isFavorited ? 'fill-current' : ''}`} />
+          </Button>
+        )}
+
+        {/* 分享按钮 */}
+        {onShare && (
+          <Button
+            variant="ghost"
+            size="sm"
+            className={`h-6 w-6 p-0 hover:bg-muted/50 transition-colors ${
+              isCopied 
+                ? 'text-green-500' 
+                : 'text-muted-foreground hover:text-foreground'
+            }`}
+            title={isCopied ? 'Link copied' : 'Share track'}
+            onClick={(e) => {
+              e.stopPropagation();
+              onShare();
+            }}
+            aria-label="Share track"
+          >
+            {isCopied ? (
+              <Check className="h-3 w-3" />
+            ) : (
+              <Share2 className="h-3 w-3" />
+            )}
+          </Button>
         )}
         
         {/* 更多按钮 */}
@@ -376,47 +376,6 @@ export const TrackActionButtons: React.FC<TrackActionButtonsProps> = ({
   // 移动端按钮
   return (
     <div className="md:hidden flex items-center gap-1.5 flex-shrink-0">
-      {/* 收藏按钮 */}
-      {onFavoriteToggle && (
-        <button
-          onClick={(e) => {
-            e.stopPropagation();
-            onFavoriteToggle();
-          }}
-          className={`h-7 w-7 flex items-center justify-center transition-colors ${
-            isFavorited
-              ? 'text-red-500'
-              : 'text-muted-foreground hover:text-foreground'
-          }`}
-          aria-label={isFavorited ? 'Remove from library' : 'Add to library'}
-          title={isFavorited ? 'Remove from library' : 'Add to library'}
-        >
-          <Star className={`h-4 w-4 ${isFavorited ? 'fill-current' : ''}`} />
-        </button>
-      )}
-
-      {/* 分享按钮 */}
-      {onShare && (
-        <button
-          onClick={(e) => {
-            e.stopPropagation();
-            onShare();
-          }}
-          className={`h-7 w-7 flex items-center justify-center transition-colors ${
-            isCopied
-              ? 'text-green-500'
-              : 'text-muted-foreground hover:text-foreground'
-          }`}
-          aria-label="Share track"
-        >
-          {isCopied ? (
-            <Check className="h-4 w-4" />
-          ) : (
-            <Share2 className="h-4 w-4" />
-          )}
-        </button>
-      )}
-      
       {/* 下载按钮 */}
       {onDownload && (
         <DropdownMenu>
@@ -481,6 +440,47 @@ export const TrackActionButtons: React.FC<TrackActionButtonsProps> = ({
             )}
           </DropdownMenuContent>
         </DropdownMenu>
+      )}
+
+      {/* 收藏按钮 */}
+      {onFavoriteToggle && (
+        <button
+          onClick={(e) => {
+            e.stopPropagation();
+            onFavoriteToggle();
+          }}
+          className={`h-7 w-7 flex items-center justify-center transition-colors ${
+            isFavorited
+              ? 'text-red-500'
+              : 'text-muted-foreground hover:text-foreground'
+          }`}
+          aria-label={isFavorited ? 'Remove from library' : 'Add to library'}
+          title={isFavorited ? 'Remove from library' : 'Add to library'}
+        >
+          <Star className={`h-4 w-4 ${isFavorited ? 'fill-current' : ''}`} />
+        </button>
+      )}
+
+      {/* 分享按钮 */}
+      {onShare && (
+        <button
+          onClick={(e) => {
+            e.stopPropagation();
+            onShare();
+          }}
+          className={`h-7 w-7 flex items-center justify-center transition-colors ${
+            isCopied
+              ? 'text-green-500'
+              : 'text-muted-foreground hover:text-foreground'
+          }`}
+          aria-label="Share track"
+        >
+          {isCopied ? (
+            <Check className="h-4 w-4" />
+          ) : (
+            <Share2 className="h-4 w-4" />
+          )}
+        </button>
       )}
       
       {/* 更多按钮 */}

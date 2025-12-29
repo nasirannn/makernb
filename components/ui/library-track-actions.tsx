@@ -122,41 +122,6 @@ export const LibraryTrackActions: React.FC<LibraryTrackActionsProps> = ({
   // Desktop: Show action buttons
   return (
     <div className="flex items-center gap-2">
-      {onFavorite && (
-        <Button
-          variant="ghost"
-          size="sm"
-          className="h-8 w-8 p-0"
-          title={track.isFavorited ? 'Remove from favorites' : 'Add to favorites'}
-          onClick={handleFavoriteToggle}
-        >
-          <Star
-            className={`h-4 w-4 ${
-              track.isFavorited ? 'text-red-500 fill-current' : 'text-muted-foreground'
-            }`}
-          />
-        </Button>
-      )}
-
-      {onPublish && (
-        <Button
-          variant="ghost"
-          size="sm"
-          className="h-8 w-8 p-0"
-          title={track.isPublished ? 'Unpublish track' : 'Publish track'}
-          onClick={(e) => {
-            e.stopPropagation();
-            onPublish();
-          }}
-        >
-          <Send
-            className={`h-4 w-4 ${
-              track.isPublished ? 'text-green-500' : 'text-muted-foreground'
-            }`}
-          />
-        </Button>
-      )}
-
       {onDownload && (
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
@@ -197,6 +162,41 @@ export const LibraryTrackActions: React.FC<LibraryTrackActionsProps> = ({
             ) : null}
           </DropdownMenuContent>
         </DropdownMenu>
+      )}
+
+      {onFavorite && (
+        <Button
+          variant="ghost"
+          size="sm"
+          className="h-8 w-8 p-0"
+          title={track.isFavorited ? 'Remove from favorites' : 'Add to favorites'}
+          onClick={handleFavoriteToggle}
+        >
+          <Star
+            className={`h-4 w-4 ${
+              track.isFavorited ? 'text-red-500 fill-current' : 'text-muted-foreground'
+            }`}
+          />
+        </Button>
+      )}
+
+      {onPublish && (
+        <Button
+          variant="ghost"
+          size="sm"
+          className="h-8 w-8 p-0"
+          title={track.isPublished ? 'Unpublish track' : 'Publish track'}
+          onClick={(e) => {
+            e.stopPropagation();
+            onPublish();
+          }}
+        >
+          <Send
+            className={`h-4 w-4 ${
+              track.isPublished ? 'text-green-500' : 'text-muted-foreground'
+            }`}
+          />
+        </Button>
       )}
 
       <DropdownMenu>

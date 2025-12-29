@@ -2,14 +2,14 @@
 
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardDescription, CardHeader } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { useAuth } from "@/contexts/AuthContext";
 import { useCredits } from "@/contexts/CreditsContext";
 import { usePricingModal } from "@/contexts/PricingModalContext";
 import { supabase } from "@/lib/supabase";
-import { Check, X } from "lucide-react";
+import { Check } from "lucide-react";
 import AuthModal from "@/components/ui/auth-modal";
 import { monthlyPlans, yearlyPlans, type PricingPlan } from "@/lib/pricing-config";
 
@@ -75,48 +75,47 @@ export function PricingModal() {
   return (
     <>
       <Dialog open={isOpen} onOpenChange={closeModal}>
-        <DialogContent className="max-w-6xl max-h-[90vh] overflow-y-auto w-[95vw] sm:w-full">
+        <DialogContent className="max-w-6xl max-h-[90vh] overflow-y-auto w-[95vw] sm:w-full bg-[#0b0b10] border border-white/10 text-white">
           <DialogHeader className="pb-3">
             <DialogTitle className="text-center sr-only">Pricing Plans</DialogTitle>
             <div className="space-y-2">
               <div>
-                <h2 className="text-lg text-primary text-center mb-1 tracking-wider">
+                <h2 className="text-xs text-primary text-center mb-2 tracking-[0.4em] uppercase">
                   Pricing Plans
                 </h2>
-                <h2 className="text-2xl md:text-3xl text-center font-bold mb-2">
+                <h2 className="text-2xl md:text-3xl text-center font-bold mb-2 text-white">
                   Choose Your Credits Package
                 </h2>
-                <p className="text-base text-muted-foreground max-w-2xl mx-auto">
+                <p className="text-base text-white/70 max-w-2xl mx-auto">
                   Get more credits to create unlimited R&B tracks. All packages include commercial use rights and high-quality downloads.
                 </p>
               </div>
               
               {/* Billing Period Toggle */}
               <div className="mt-4 flex justify-center">
-                  <div className="bg-muted/30 rounded-lg p-1">
+                  <div className="bg-white/5 rounded-full p-1 border border-white/10">
                     <div className="grid grid-cols-2 gap-1">
                       <button
                         onClick={() => setBillingPeriod('yearly')}
-                        className={`py-2 px-4 text-sm font-medium transition-all duration-200 rounded-md ${
+                        className={`py-2 px-5 text-sm font-semibold transition-all duration-200 rounded-full ${
                           billingPeriod === 'yearly'
-                            ? "bg-primary/20 border-transparent text-primary shadow-sm"
-                            : "text-muted-foreground hover:text-foreground hover:bg-muted/50"
+                            ? "bg-primary text-white shadow-sm"
+                            : "text-white/70 hover:text-white hover:bg-white/5"
                         }`}
                       >
                         <div className="flex items-center gap-2">
                           <span>Yearly</span>
-                          <span className="relative inline-block rounded-full border border-zinc-700 bg-zinc-900/20 px-2 py-0.5 text-xs text-zinc-50 animate-border-marquee">
-                            <span className="text-foreground/90 font-medium">Save 36%</span>
-                            <span className="absolute bottom-0 left-1 right-1 h-[1px] bg-gradient-to-r from-zinc-500/0 via-zinc-300 to-zinc-500/0"></span>
+                          <span className="inline-flex items-center text-xs text-white/80">
+                            Save 36%
                           </span>
                         </div>
                       </button>
                       <button
                         onClick={() => setBillingPeriod('monthly')}
-                        className={`py-2 px-4 text-sm font-medium transition-all duration-200 rounded-md ${
+                        className={`py-2 px-5 text-sm font-semibold transition-all duration-200 rounded-full ${
                           billingPeriod === 'monthly'
-                            ? "bg-primary/20 border-transparent text-primary shadow-sm"
-                            : "text-muted-foreground hover:text-foreground hover:bg-muted/50"
+                            ? "bg-primary text-white shadow-sm"
+                            : "text-white/70 hover:text-white hover:bg-white/5"
                         }`}
                       >
                         Monthly
@@ -128,42 +127,36 @@ export function PricingModal() {
           </DialogHeader>
 
           <div className="flex justify-center">
-            <div className="w-full max-w-4xl grid grid-cols-1 md:grid-cols-2 gap-4 grid-rows-1">
+            <div className="w-full max-w-3xl grid grid-cols-1 md:grid-cols-2 gap-4 grid-rows-1">
               {currentPlans.map((plan) => (
                 <Card 
                   key={plan.id} 
-                  className={`relative transition-all duration-300 hover:shadow-lg h-full flex flex-col ${
-                    plan.popular 
-                      ? 'border-primary shadow-lg' 
-                      : 'hover:border-primary/50'
-                  }`}
+                  className="relative transition-all duration-300 h-full flex flex-col bg-white text-black rounded-[28px] border border-black/10 shadow-[0_20px_60px_rgba(0,0,0,0.2)]"
                 >
-                  <CardHeader className="text-left pb-3">
-                    <div className="flex items-center justify-between mb-1.5">
-                      <CardTitle className="text-2xl font-bold">{plan.name}</CardTitle>
-                      {plan.popular && (
-                        <Badge className="relative inline-block rounded-full border border-zinc-700 bg-zinc-900/20 px-3 py-1 text-xs text-zinc-50 animate-border-marquee">
-                          <span className="text-foreground/90 font-medium">Most Popular</span>
-                          <span className="absolute bottom-0 left-2 right-2 h-[1px] bg-gradient-to-r from-zinc-500/0 via-zinc-300 to-zinc-500/0"></span>
-                        </Badge>
-                      )}
+                  <CardHeader className="text-center pb-3 pt-8">
+                    <div className="flex justify-center mb-4">
+                      <Badge className={`rounded-full px-4 py-1 text-xs font-bold uppercase tracking-[0.2em] ${
+                        plan.popular ? 'bg-primary text-white' : 'bg-black/10 text-black/70'
+                      }`}>
+                        {plan.name}
+                      </Badge>
                     </div>
-                    <CardDescription className="text-sm text-muted-foreground mb-3">
+                    <CardDescription className="text-sm text-black/60 mb-4">
                       {plan.id === 'monthly' ? 'Perfect for Individual Creators' : 'Professional Music Creation Made Simple'}
                     </CardDescription>
                     
-                    <div className="mb-3">
-                      <div className="flex items-baseline gap-2">
-                        <span className="text-4xl font-bold">${plan.price}</span>
-                        <span className="text-base text-muted-foreground">/month</span>
+                    <div className="mb-4">
+                      <div className="text-5xl font-black tracking-tight">
+                        ${plan.price}
                       </div>
+                      <div className="text-base text-black/60">per month</div>
                     </div>
                   </CardHeader>
 
                   <CardContent className="pt-0 flex flex-col flex-grow">
                     <Button 
-                      className="w-full mb-3" 
-                      variant={plan.popular ? "default" : "outline"}
+                      className="w-full mb-4 rounded-full py-6 text-base font-semibold bg-primary text-white hover:bg-primary/90"
+                      variant="default"
                       onClick={() => handlePurchase(plan)}
                       disabled={loading === plan.id}
                     >
@@ -177,8 +170,8 @@ export function PricingModal() {
 
                     <ul className="space-y-2 flex-grow">
                       {plan.features.map((feature, index) => (
-                        <li key={index} className="flex items-center gap-2 text-sm">
-                          <Check className="h-3.5 w-3.5 text-primary flex-shrink-0" />
+                        <li key={index} className="flex items-center gap-2 text-sm text-black/80">
+                          <Check className="h-3.5 w-3.5 text-black flex-shrink-0" />
                           <span>{feature}</span>
                         </li>
                       ))}
@@ -199,4 +192,3 @@ export function PricingModal() {
     </>
   );
 }
-

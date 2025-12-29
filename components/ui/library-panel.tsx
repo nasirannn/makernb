@@ -118,6 +118,7 @@ const LibraryListSkeleton = () => (
             <Skeleton className="h-6 w-6 rounded-full" />
             <Skeleton className="h-6 w-6 rounded-full" />
             <Skeleton className="h-6 w-6 rounded-full" />
+            <Skeleton className="h-6 w-6 rounded-full" />
           </div>
         </div>
       ))}
@@ -134,6 +135,7 @@ const LibraryListSkeleton = () => (
             <Skeleton className="h-3 w-1/2" />
           </div>
           <div className="flex items-center gap-2">
+            <Skeleton className="h-6 w-6 rounded-full" />
             <Skeleton className="h-6 w-6 rounded-full" />
             <Skeleton className="h-6 w-6 rounded-full" />
           </div>

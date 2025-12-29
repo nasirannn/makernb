@@ -1,13 +1,8 @@
 "use client";
 import React from "react";
-import { useTheme } from "next-themes";
-import Image from "next/image";
-import { AnimatedBackground } from "@/components/ui/animated-background";
 import { useRouter } from "next/navigation";
-import { getZIndexClass } from "@/lib/z-index";
 
 export const HeroSection = () => {
-  const { theme } = useTheme();
   const router = useRouter();
 
   const handleStudioClick = () => {
@@ -21,129 +16,50 @@ export const HeroSection = () => {
   };
 
   return (
-    <section className="relative w-full h-screen overflow-hidden">
-
-      {/* Background Image */}
-      <div className="absolute inset-0" style={{ zIndex: -10 }}>
-        <Image
-          src="/only-90s-rnb-background.webp"
-          alt="R&B Background"
-          fill
-          className="object-cover object-center select-none"
-          priority
-          quality={100}
-          sizes="100vw"
-        />
-        {/* Dark overlay for better text readability */}
-        <div className="absolute inset-0 bg-black/40"></div>
-        
-        {/* Animated Background Effects */}
-        <AnimatedBackground>
-          <div></div>
-        </AnimatedBackground>
-        
-        {/* Twinkling Stars */}
-        <div className="absolute inset-0 overflow-hidden pointer-events-none">
-          {/* Star 1 */}
-          <div className="absolute top-16 left-16 w-1 h-1 bg-white rounded-full animate-twinkle opacity-60"></div>
-          {/* Star 2 */}
-          <div className="absolute top-28 right-24 w-1 h-1 bg-white rounded-full animate-twinkle-delay opacity-80"></div>
-          {/* Star 3 */}
-          <div className="absolute top-40 left-1/3 w-0.5 h-0.5 bg-white rounded-full animate-twinkle-slow opacity-70"></div>
-          {/* Star 4 */}
-          <div className="absolute top-56 right-1/4 w-1.5 h-1.5 bg-white rounded-full animate-twinkle opacity-50"></div>
-          {/* Star 5 */}
-          <div className="absolute top-72 left-1/2 w-1 h-1 bg-white rounded-full animate-twinkle-delay opacity-90"></div>
-          {/* Star 6 */}
-          <div className="absolute top-88 right-16 w-0.5 h-0.5 bg-white rounded-full animate-twinkle-slow opacity-60"></div>
-          {/* Star 7 */}
-          <div className="absolute top-1/3 left-12 w-1 h-1 bg-white rounded-full animate-twinkle opacity-80"></div>
-          {/* Star 8 */}
-          <div className="absolute top-1/2 right-1/3 w-1 h-1 bg-white rounded-full animate-twinkle-delay opacity-70"></div>
-          {/* Star 9 */}
-          <div className="absolute top-2/3 left-1/4 w-0.5 h-0.5 bg-white rounded-full animate-twinkle-slow opacity-50"></div>
-          {/* Star 10 */}
-          <div className="absolute top-5/6 right-1/2 w-1 h-1 bg-white rounded-full animate-twinkle opacity-90"></div>
-        </div>
+    <section className="relative w-full min-h-screen overflow-hidden bg-[#f7f6f2]">
+      {/* Soft background layers */}
+      <div className="absolute inset-0 -z-10">
+        <div className="absolute -top-28 left-1/2 h-[520px] w-[520px] -translate-x-1/2 rounded-full bg-gradient-to-br from-amber-200/60 via-rose-100/40 to-transparent blur-3xl" />
+        <div className="absolute -bottom-40 right-[-120px] h-[420px] w-[420px] rounded-full bg-gradient-to-tr from-slate-200/70 to-transparent blur-3xl" />
+        <div className="absolute inset-0 bg-[linear-gradient(180deg,rgba(255,255,255,0.9),rgba(247,246,242,0.9))]" />
       </div>
-      
-      {/* Content */}
-      <div className="relative z-10 container mx-auto h-full flex items-center">
-        <div className="grid place-items-center lg:max-w-screen-xl gap-8 mx-auto w-full">
-          <div className="text-center space-y-8">
-            <span className="relative mb-4 inline-block rounded-full bg-gradient-create px-2 py-2 text-xs text-white border-0 md:mb-0 animate-border-marquee">
-              <span className="font-medium"> AI-Powered Music Generator </span>
-            </span>
 
-            <div className="max-w-screen-lg mx-auto text-center">
-              <h1 className="text-4xl md:text-6xl lg:text-7xl font-bold text-white leading-tight mb-6">
-                Free Online AI{" "}
-                <span 
-                  className="text-transparent px-2 bg-clip-text"
-                  style={{
-                    backgroundImage: 'linear-gradient(to right, rgb(147, 51, 234), rgb(168, 85, 247), rgb(37, 99, 235))'
-                  }}
-                >
-                  R&B
-                </span>{" "}
-                Music Generator
+      {/* Content */}
+      <div className="relative z-10 container mx-auto min-h-screen flex items-center justify-center">
+        <div className="grid place-items-center lg:max-w-screen-xl gap-8 mx-auto w-full">
+          <div className="text-center space-y-6">
+            <div className="max-w-5xl mx-auto">
+              <h1 className="text-4xl md:text-6xl lg:text-[96px] font-black text-black leading-[0.9] tracking-tight uppercase">
+                <span className="block">Free Online</span>
+                <span className="block text-primary">R&amp;B Music</span>
+                <span className="block">Generator</span>
               </h1>
             </div>
 
-            <p className="max-w-screen-md mx-auto text-base md:text-xl text-white/90 leading-relaxed mb-8">
-              Generate professional-quality R&B music with AI. Choose from New Jack Swing, Hip-Hop Soul, Quiet Storm, and Neo-Soul genres with customizable styles and instruments.
+            <p className="max-w-2xl mx-auto text-base md:text-lg text-black/70 leading-relaxed">
+              Generate R&amp;B music with AI. Choose from New Jack Swing, Hip-Hop Soul, Quiet Storm, and Neo-Soul genres with customizable styles and instruments.
             </p>
 
-            {/* User Avatars - Hidden for now */}
-            {/* <div className="flex items-center justify-center mb-6">
-              <div className="flex -space-x-2">
-                <div className="w-10 h-10 rounded-full overflow-hidden">
-                  <Image src="/avatars/avatar1.svg" alt="User 1" width={40} height={40} className="w-full h-full object-cover" />
-                </div>
-                <div className="w-10 h-10 rounded-full overflow-hidden">
-                  <Image src="/avatars/avatar2.svg" alt="User 2" width={40} height={40} className="w-full h-full object-cover" />
-                </div>
-                <div className="w-10 h-10 rounded-full overflow-hidden">
-                  <Image src="/avatars/avatar3.svg" alt="User 3" width={40} height={40} className="w-full h-full object-cover" />
-                </div>
-                <div className="w-10 h-10 rounded-full overflow-hidden">
-                  <Image src="/avatars/avatar4.svg" alt="User 4" width={40} height={40} className="w-full h-full object-cover" />
-                </div>
-                <div className="w-10 h-10 rounded-full overflow-hidden">
-                  <Image src="/avatars/avatar5.svg" alt="User 5" width={40} height={40} className="w-full h-full object-cover" />
-                </div>
-              </div>
-              <div className="ml-3 flex items-center">
-                <div className="w-2 h-2 bg-green-400 rounded-full mr-2"></div>
-                <span className="text-sm text-white/80 font-medium">Join Thousands of Creators</span>
-              </div>
-            </div> */}
-
-            {/* Trust indicators */}
-            <div className="mb-6 text-sm text-white/80">
-              <p>✨ Free daily credits • 🎵 Professional quality • 🚀 No experience needed</p>
-            </div>
-
-            <div className="flex items-center justify-center gap-4">
+            <div className="flex items-center justify-center gap-3">
               <button
                 onClick={handleStudioClick}
-                className="inline-flex items-center gap-2 px-6 py-2 bg-primary text-white font-semibold rounded-lg hover:bg-primary/80 transition-all duration-300 transform hover:shadow-none overflow-hidden shadow-[2px_2px_0_0_rgba(255,255,255,0.8)] hover:translate-x-[3px] hover:translate-y-[3px] hover:shadow-[0px_0px_0_0_rgba(255,255,255,0)] border border-primary/20 text-lg"
+                className="inline-flex items-center gap-2 px-7 py-3 bg-primary text-primary-foreground font-semibold rounded-full hover:bg-primary/90 transition-all duration-300 text-base shadow-[0_12px_30px_rgba(0,0,0,0.2)]"
               >
-                <span>Try It On</span>
-                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19V6l12-3v13M9 19c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zm12-3c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zM9 10l12-3" />
-                </svg>
+                <span>Try for free</span>
               </button>
-              
+
               <button
                 onClick={handleExploreClick}
-                className="inline-flex items-center gap-2 px-6 py-2 bg-transparent text-white font-semibold rounded-lg border-2 border-white/30 hover:bg-white/10 hover:border-white/50 transition-all duration-300 transform hover:shadow-none overflow-hidden text-lg"
+                className="inline-flex items-center gap-2 px-7 py-3 bg-transparent text-black font-semibold rounded-full border border-black/20 hover:border-black/40 hover:bg-black/5 transition-all duration-300 text-base"
               >
-                <span>Explore Songs</span>
-                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.536 8.464a5 5 0 010 7.072m2.828-9.9a9 9 0 010 12.728M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z" />
-                </svg>
+                <span>Explore Tracks</span>
               </button>
+            </div>
+
+            <div className="flex flex-wrap items-center justify-center gap-6 text-sm text-black/60">
+              <span>✨ Free daily credits</span>
+              <span>🎧 Export-ready audio</span>
+              <span>🚀 No experience needed</span>
             </div>
           </div>
         </div>

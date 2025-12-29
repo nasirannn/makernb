@@ -897,7 +897,7 @@ export const StudioTracksList: React.FC<StudioTracksListProps> = React.memo(func
               placeholder="Search by title and tags..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full rounded-2xl border border-white/10 bg-white/[0.04] py-3 pl-11 pr-10 text-sm text-white placeholder:text-white/40 focus:border-white/30 focus:outline-none focus:ring-0"
+              className="w-full rounded-2xl bg-white/[0.04] py-3 pl-11 pr-10 text-sm text-white placeholder:text-white/40 focus:outline-none focus:ring-0"
             />
                 {searchQuery && (
                   <button
