@@ -375,7 +375,7 @@ export const ExtendMusicDialog: React.FC<ExtendMusicDialogProps> = ({
         }
       }}
     >
-      <AlertDialogContent className="max-w-[calc(100vw-2rem)] sm:max-w-[600px] max-h-[90vh] flex flex-col p-0">
+      <AlertDialogContent className="max-w-[calc(100vw-2rem)] sm:max-w-[560px] max-h-[90vh] flex flex-col p-0 border border-border/60 bg-background shadow-xl">
         {/* 关闭按钮 */}
         <button
           onClick={handleClose}
@@ -386,12 +386,12 @@ export const ExtendMusicDialog: React.FC<ExtendMusicDialogProps> = ({
         </button>
 
         {/* 固定头部 */}
-        <AlertDialogHeader className="flex-shrink-0 px-6 pt-6 pb-4">
-          <AlertDialogTitle className="flex items-center gap-2 pr-8">
+        <AlertDialogHeader className="flex-shrink-0 px-6 pt-6 pb-4 border-b border-border/40">
+          <AlertDialogTitle className="flex items-center gap-2 pr-8 text-xl font-semibold tracking-tight">
             <Maximize2 className="h-5 w-5" />
             <span>Extend Music</span>
           </AlertDialogTitle>
-          <AlertDialogDescription>
+          <AlertDialogDescription className="text-sm text-muted-foreground">
             Extend &quot;{trackTitle}&quot; to create a longer version.
           </AlertDialogDescription>
         </AlertDialogHeader>
@@ -402,7 +402,7 @@ export const ExtendMusicDialog: React.FC<ExtendMusicDialogProps> = ({
           {/* 模式选择 */}
           <div className="space-y-2">
             <Label htmlFor="param-mode">Extension Mode</Label>
-            <div className="flex items-center space-x-2 p-3 rounded-lg border bg-muted/20">
+            <div className="flex items-center space-x-2 p-3 rounded-lg border border-border/50 bg-muted/20">
               <Switch
                 id="param-mode"
                 checked={!useDefaultParams}
@@ -431,7 +431,7 @@ export const ExtendMusicDialog: React.FC<ExtendMusicDialogProps> = ({
               value={selectedModel}
               onValueChange={(value) => setSelectedModel(value as ExtendMusicModel)}
             >
-              <SelectTrigger id="model" className="w-full !items-center py-4 min-h-[60px]">
+              <SelectTrigger id="model" className="w-full !items-center py-3 min-h-[52px]">
                 <div className="flex flex-col items-start justify-center flex-1 min-w-0 mr-2 gap-1">
                   <SelectValue placeholder="Select model version" />
                   <p className="text-xs text-muted-foreground w-full text-left">
@@ -736,7 +736,7 @@ export const ExtendMusicDialog: React.FC<ExtendMusicDialogProps> = ({
           )}
 
           {/* 积分信息显示 */}
-          <div className="rounded-lg bg-muted/50 p-3 space-y-2">
+          <div className="rounded-lg bg-muted/30 border border-border/40 p-3 space-y-2">
             <div className="flex items-center justify-between text-sm">
               <div className="flex items-center gap-2">
                 <CreditCard className="h-4 w-4 text-muted-foreground" />
@@ -765,7 +765,7 @@ export const ExtendMusicDialog: React.FC<ExtendMusicDialogProps> = ({
         </div>
 
         {/* 固定底部按钮 */}
-        <AlertDialogFooter className="flex-shrink-0 px-6 pt-4 pb-6">
+        <AlertDialogFooter className="flex-shrink-0 px-6 pt-4 pb-6 border-t border-border/40">
           <AlertDialogAction
             onClick={handleConfirm}
             disabled={!hasEnoughCredits || !isFormValid || isExtending}
@@ -789,4 +789,3 @@ export const ExtendMusicDialog: React.FC<ExtendMusicDialogProps> = ({
     </AlertDialog>
   );
 };
-

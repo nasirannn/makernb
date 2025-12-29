@@ -161,10 +161,10 @@ export const ReplaceSectionDialog: React.FC<ReplaceSectionDialogProps> = ({
 
   return (
     <AlertDialog open={isOpen} onOpenChange={(open) => !open && handleClose()}>
-      <AlertDialogContent className="sm:max-w-[600px] max-h-[85vh] flex flex-col overflow-hidden">
-        <AlertDialogHeader className="flex-shrink-0">
+      <AlertDialogContent className="max-w-[calc(100vw-2rem)] sm:max-w-[560px] max-h-[90vh] flex flex-col overflow-hidden p-0 border border-border/60 bg-background shadow-xl">
+        <AlertDialogHeader className="flex-shrink-0 px-6 pt-6 pb-4 border-b border-border/40">
           <div className="flex items-center justify-between">
-            <AlertDialogTitle className="flex items-center gap-2">
+            <AlertDialogTitle className="flex items-center gap-2 text-xl font-semibold tracking-tight">
               <Scissors className="h-5 w-5" />
               Replace Section
             </AlertDialogTitle>
@@ -176,12 +176,12 @@ export const ReplaceSectionDialog: React.FC<ReplaceSectionDialogProps> = ({
               <span className="sr-only">Close</span>
             </button>
           </div>
-          <AlertDialogDescription>
+          <AlertDialogDescription className="text-sm text-muted-foreground">
             Replace a section of &ldquo;{trackTitle}&rdquo; with new content
           </AlertDialogDescription>
         </AlertDialogHeader>
 
-        <div className="flex-1 overflow-y-auto space-y-6 py-4">
+        <div className="flex-1 overflow-y-auto space-y-6 px-6 py-4">
           {/* 音频播放器和时间选择 */}
           {audioUrl && (
             <div className="space-y-4">
@@ -285,7 +285,7 @@ export const ReplaceSectionDialog: React.FC<ReplaceSectionDialogProps> = ({
           </div>
 
           {/* Credits */}
-          <div className="rounded-lg bg-muted/50 p-3 space-y-2">
+          <div className="rounded-lg bg-muted/30 border border-border/40 p-3 space-y-2">
             <div className="flex items-center justify-between text-sm">
               <div className="flex items-center gap-2">
                 <CreditCard className="h-4 w-4 text-muted-foreground" />
@@ -310,7 +310,7 @@ export const ReplaceSectionDialog: React.FC<ReplaceSectionDialogProps> = ({
           )}
         </div>
 
-        <AlertDialogFooter className="flex-shrink-0 pt-4">
+        <AlertDialogFooter className="flex-shrink-0 px-6 pt-4 pb-6 border-t border-border/40">
           <AlertDialogAction
             onClick={handleConfirm}
             disabled={!isFormValid || insufficientCredits || isReplacing}

@@ -74,7 +74,7 @@ export const ModelSelectionDialog: React.FC<ModelSelectionDialogProps> = ({
 
   return (
     <AlertDialog open={isOpen} onOpenChange={onClose}>
-      <AlertDialogContent className="max-w-[calc(100vw-2rem)] sm:max-w-[600px] max-h-[90vh] flex flex-col p-0">
+      <AlertDialogContent className="max-w-[calc(100vw-2rem)] sm:max-w-[560px] max-h-[90vh] flex flex-col p-0 border border-border/60 bg-background shadow-xl">
         {/* 关闭按钮 */}
         <button
           onClick={onClose}
@@ -85,18 +85,18 @@ export const ModelSelectionDialog: React.FC<ModelSelectionDialogProps> = ({
         </button>
 
         {/* 固定头部 */}
-        <AlertDialogHeader className="flex-shrink-0 px-6 pt-6 pb-4 border-b border-white/5">
-          <AlertDialogTitle className="text-2xl font-bold pr-8">
+        <AlertDialogHeader className="flex-shrink-0 px-6 pt-6 pb-4 border-b border-border/40">
+          <AlertDialogTitle className="text-xl font-semibold pr-8 tracking-tight">
             Select Model Version
           </AlertDialogTitle>
-          <p className="text-sm text-muted-foreground mt-2">
+          <p className="text-sm text-muted-foreground mt-1">
             Select the AI model for music generation
           </p>
         </AlertDialogHeader>
 
         {/* 可滚动的主要内容区域 */}
-        <div className="flex-1 overflow-y-auto px-6 py-6">
-          <div className="space-y-3">
+        <div className="flex-1 overflow-y-auto px-6 py-5">
+          <div className="space-y-2.5">
             {modelOptions.map((option) => {
               const isSelected = tempSelectedModel === option.value;
               // 所有模型都可以选择
@@ -106,21 +106,23 @@ export const ModelSelectionDialog: React.FC<ModelSelectionDialogProps> = ({
                 <button
                   key={option.value}
                   onClick={() => setTempSelectedModel(option.value)}
-                  className={`w-full p-4 rounded-xl border-2 text-left transition-all ${
+                  className={`w-full p-4 rounded-xl border text-left transition-all ${
                     isSelected
-                      ? 'border-primary bg-primary/10'
-                      : 'border-white/10 hover:border-white/20 hover:bg-white/5'
+                      ? 'border-primary/60 bg-primary/5 ring-1 ring-primary/30'
+                      : 'border-border/50 hover:border-border/80 hover:bg-muted/30'
                   }`}
                 >
-                  <h3 className="text-lg font-bold flex items-center gap-2 mb-2">
+                  <div className="flex items-center justify-between gap-3">
+                    <h3 className="text-base font-semibold">
                     {option.label}
-                    {/* 只有在用户无订阅时显示钻石标识 */}
+                    </h3>
+                    {/* 只有在用户无订阅时显示订阅标识 */}
                     {!hasSubscription && option.requiresSubscription && (
-                      <span className="inline-flex items-center px-2 py-0.5 rounded-md bg-gradient-to-r from-orange-500 to-pink-500 text-white text-xs font-medium">
-                        ◆
+                      <span className="inline-flex items-center px-2 py-0.5 rounded-full border border-border/60 text-[11px] font-medium text-muted-foreground">
+                        Pro
                       </span>
                     )}
-                  </h3>
+                  </div>
                   <p className="text-sm text-muted-foreground">{option.description}</p>
                 </button>
               );
@@ -129,7 +131,7 @@ export const ModelSelectionDialog: React.FC<ModelSelectionDialogProps> = ({
         </div>
 
         {/* 固定底部按钮 */}
-        <AlertDialogFooter className="flex-shrink-0 px-6 pt-4 pb-6 border-t border-white/5">
+        <AlertDialogFooter className="flex-shrink-0 px-6 pt-4 pb-6 border-t border-border/40">
           <Button
             onClick={handleConfirm}
             className="w-full px-8 bg-primary text-primary-foreground hover:bg-primary/90"

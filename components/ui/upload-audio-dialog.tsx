@@ -465,7 +465,7 @@ export const UploadAudioDialog = ({
         }
       }}
     >
-      <AlertDialogContent className="max-w-[calc(100vw-2rem)] sm:max-w-[600px] max-h-[90vh] flex flex-col p-0">
+      <AlertDialogContent className="max-w-[calc(100vw-2rem)] sm:max-w-[560px] max-h-[90vh] flex flex-col p-0 border border-border/60 bg-background shadow-xl">
         {/* 关闭按钮 */}
         <button
           onClick={onClose}
@@ -476,12 +476,12 @@ export const UploadAudioDialog = ({
         </button>
 
         {/* 固定头部 */}
-        <AlertDialogHeader className="flex-shrink-0 px-6 pt-6 pb-4">
+        <AlertDialogHeader className="flex-shrink-0 px-6 pt-6 pb-4 border-b border-border/40">
           <div className="flex items-center gap-3 pr-8">
-            <AlertDialogTitle className="text-2xl font-bold">
+            <AlertDialogTitle className="text-xl font-semibold tracking-tight">
               Upload Audio
             </AlertDialogTitle>
-            <span className="px-3 py-1.5 rounded-lg bg-gradient-create text-white text-xs font-semibold">
+            <span className="px-2.5 py-1 rounded-full border border-border/60 text-xs font-medium text-muted-foreground">
               {modelOptions.find(m => m.value === selectedModel)?.label || selectedModel}
             </span>
           </div>
@@ -492,14 +492,14 @@ export const UploadAudioDialog = ({
 
         {/* 可滚动的主要内容区域 */}
         <div className="flex-1 overflow-y-auto px-6">
-          <div className="space-y-6 py-4">
+          <div className="space-y-5 py-4">
           {/* File Upload Area */}
           <div
             className={cn(
-              "relative border-2 border-dashed rounded-lg p-8 transition-all cursor-pointer",
+              "relative border border-dashed rounded-lg p-6 transition-all cursor-pointer",
               isDragging
-                ? "border-primary bg-primary/5"
-                : "border-muted-foreground/25 hover:border-muted-foreground/50 hover:bg-muted/20",
+                ? "border-primary/60 bg-primary/5"
+                : "border-border/50 hover:border-border/80 hover:bg-muted/30",
               fileError && "border-destructive"
             )}
             onClick={() => fileInputRef.current?.click()}
@@ -515,10 +515,10 @@ export const UploadAudioDialog = ({
               onChange={(e) => handleFileSelection(e.target.files?.[0] || null)}
             />
 
-            <div className="text-center space-y-4">
+            <div className="text-center space-y-3">
               {selectedFile ? (
                 <>
-                  <FileAudio2 className="w-12 h-12 mx-auto text-primary" />
+                  <FileAudio2 className="w-10 h-10 mx-auto text-primary" />
                   <div>
                     <p className="font-semibold">{selectedFile.name}</p>
                     <p className="text-sm text-muted-foreground">
@@ -535,7 +535,7 @@ export const UploadAudioDialog = ({
                 </>
               ) : (
                 <>
-                  <UploadCloud className="w-12 h-12 mx-auto text-muted-foreground" />
+                  <UploadCloud className="w-10 h-10 mx-auto text-muted-foreground" />
                   <div>
                     <p className="font-semibold">
                       Drop your audio file here or click to browse
@@ -710,10 +710,10 @@ export const UploadAudioDialog = ({
                 type="button"
                 onClick={() => setMode("cover")}
                 className={cn(
-                  "flex-1 px-4 py-2 rounded-lg text-sm font-medium transition-colors",
+                  "flex-1 px-4 py-2 rounded-lg text-sm font-medium transition-colors border",
                   mode === "cover"
-                    ? "bg-primary text-primary-foreground hover:bg-primary/90"
-                    : "bg-muted/30 text-muted-foreground hover:bg-muted/50 hover:text-foreground"
+                    ? "bg-primary text-primary-foreground border-primary/60 hover:bg-primary/90"
+                    : "bg-muted/20 text-muted-foreground border-border/50 hover:bg-muted/40 hover:text-foreground"
                 )}
               >
                 Cover Music
@@ -722,10 +722,10 @@ export const UploadAudioDialog = ({
                 type="button"
                 onClick={() => setMode("extend")}
                 className={cn(
-                  "flex-1 px-4 py-2 rounded-lg text-sm font-medium transition-colors",
+                  "flex-1 px-4 py-2 rounded-lg text-sm font-medium transition-colors border",
                   mode === "extend"
-                    ? "bg-primary text-primary-foreground hover:bg-primary/90"
-                    : "bg-muted/30 text-muted-foreground hover:bg-muted/50 hover:text-foreground"
+                    ? "bg-primary text-primary-foreground border-primary/60 hover:bg-primary/90"
+                    : "bg-muted/20 text-muted-foreground border-border/50 hover:bg-muted/40 hover:text-foreground"
                 )}
               >
                 Extend Music
@@ -733,7 +733,7 @@ export const UploadAudioDialog = ({
             </div>
           </div>
           {/* Credits Info */}
-          <div className="rounded-lg bg-muted/50 p-3 space-y-2">
+          <div className="rounded-lg bg-muted/30 border border-border/40 p-3 space-y-2">
             <div className="flex items-center justify-between text-sm">
               <div className="flex items-center gap-2">
                 <CreditCard className="h-4 w-4 text-muted-foreground" />
@@ -768,7 +768,7 @@ export const UploadAudioDialog = ({
         </div>
 
         {/* 固定底部按钮 */}
-        <AlertDialogFooter className="flex-shrink-0 px-6 pt-4 pb-6">
+        <AlertDialogFooter className="flex-shrink-0 px-6 pt-4 pb-6 border-t border-border/40">
           <button
             type="button"
             onClick={(e) => {
