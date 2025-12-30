@@ -58,6 +58,7 @@ export const ExploreSection = () => {
     return () => {
       // AudioService会自动处理清理，这里只需要重置本地状态
       setCurrentlyPlaying(null);
+      audioPlayer.clearCurrentTrack();
     };
   }, []);
 

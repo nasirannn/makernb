@@ -176,7 +176,7 @@ export const IntroductionSection = () => {
                     {genre.description}
                   </p>
                   <div>
-                    <div className="relative aspect-[3/4] w-full overflow-hidden rounded-[22px] shadow-[0_10px_30px_rgba(0,0,0,0.2)]">
+                    <div className="relative aspect-[3/4] w-full overflow-hidden rounded-[22px]">
                       <Image
                         src={genre.image}
                         alt={genre.title}

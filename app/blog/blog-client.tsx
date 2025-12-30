@@ -20,7 +20,7 @@ export default function BlogClient({ allPosts }: BlogClientProps) {
           <p className="text-sm font-medium text-white/60 uppercase tracking-wider mb-4">
             MUSIC KNOWLEDGE & HISTORY
           </p>
-          <h1 className="text-5xl md:text-6xl font-bold text-white mb-6 tracking-tight">
+          <h1 className="text-5xl md:text-6xl font-bold text-white mb-4 tracking-tight">
             MakeRNB Music Blog
           </h1>
           <p className="text-lg text-white/80 max-w-2xl mx-auto leading-relaxed">
