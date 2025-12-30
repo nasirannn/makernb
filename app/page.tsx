@@ -10,13 +10,13 @@ import { HomeCanonical } from "./HomeCanonical";
 import type { Metadata } from "next";
 
 export const metadata: Metadata = {
-  title: "MakeRNB | Free Online AI R&B Music Generator",
-  description: "Create professional R&B music instantly with AI. Generate Neo-Soul, Quiet Storm, Contemporary R&B & Hip-Hop Soul tracks. Free credits daily. Sign up to start creating.",
+  title: "MakeRNB | Free Online AI R&B Music Generator | Song Creator",
+  description: "Create R&B music with AI. Generate 90s Old School like New Jack Swing, Neo-Soul, Quiet Storm, Hip-Hop Soul tracks and Contemporary R&B. Free credits daily.",
   openGraph: {
     type: "website",
     url: "https://makernb.com/",
-    title: "MakeRNB | Free Online AI R&B Music Generator",
-    description: "Create professional R&B music instantly with AI. Generate Neo-Soul, Quiet Storm, Contemporary R&B & Hip-Hop Soul tracks. Free credits daily. Sign up to start creating.",
+    title: "MakeRNB | Free Online AI R&B Music Generator | Song Creator",
+    description: "Create R&B music with AI. Generate 90s Old School like New Jack Swing, Neo-Soul, Quiet Storm, Hip-Hop Soul tracks and Contemporary R&B. Free credits daily.",
     images: [
       {
         url: "/hero-image-dark.jpeg",
@@ -29,8 +29,8 @@ export const metadata: Metadata = {
   twitter: {
     card: "summary_large_image",
     site: "https://makernb.com/",
-    title: "MakeRNB | Free Online AI R&B Music Generator",
-    description: "Create professional R&B music instantly with AI. Generate Neo-Soul, Quiet Storm, Contemporary R&B & Hip-Hop Soul tracks. Free credits daily. Sign up to start creating.",
+    title: "MakeRNB | Free Online AI R&B Music Generator | Song Creator",
+    description: "Create R&B music with AI. Generate 90s Old School like New Jack Swing, Neo-Soul, Quiet Storm, Hip-Hop Soul tracks and Contemporary R&B. Free credits daily.",
     images: [
       "/hero-image-dark.jpeg",
     ],
