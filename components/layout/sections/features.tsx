@@ -15,10 +15,10 @@ const featureList: FeaturesProps[] = [
       "Simple Mode for instant hits or Custom Mode for complete creative control",
   },
   {
-    icon: () => <Image src="/icons/Natural-Language-Input.svg" alt="Natural Language Input" width={48} height={48} className="h-12 w-12" />,
-    title: "Natural Language Input",
+    icon: () => <Image src="/icons/Studio-Quality-Output.svg" alt="Extend Music" width={48} height={48} className="h-12 w-12" />,
+    title: "Extend Music",
     description:
-      "Describe your vision in plain English and watch AI transform words into music",
+      "Expand any track with seamless continuations that match your original vibe",
   },
   {
     icon: () => <Image src="/icons/Custom-Lyrics-Support.svg" alt="AI Lyrics Support" width={48} height={48} className="h-12 w-12" />,
@@ -28,9 +28,9 @@ const featureList: FeaturesProps[] = [
   },
   {
     icon: () => <Image src="/icons/Authentic-RnB-Styles.svg" alt="Authentic R&B Styles" width={48} height={48} className="h-12 w-12" />,
-    title: "Authentic R&B Styles",
+    title: "Replace Section",
     description:
-      "From classic slow jams to contemporary R&B vibes and everything between",
+      "Swap specific sections while keeping the rest of the song intact",
   },
   {
     icon: () => <Image src="/icons/Vocal-Remover.svg" alt="Vocal Remover" width={48} height={48} className="h-12 w-12" />,

@@ -202,7 +202,7 @@ export const MusicPlayer: React.FC<MusicPlayerProps> = React.memo(function Music
   }, [hideProgress, isPlaying]);
 
   return (
-    <div ref={rootRef} className="relative bg-background/30 backdrop-blur-md border border-border/20 rounded-xl pl-3 pr-3 md:pr-4 py-2 md:px-4 md:py-1.5 pb-0 md:pb-1.5">
+    <div ref={rootRef} className="relative bg-background/30 backdrop-blur-md rounded-xl pl-3 pr-3 md:pr-4 py-2 md:px-4 md:py-1.5 pb-0 md:pb-1.5">
       <div className="relative flex items-center w-full sm:max-w-6xl sm:mx-auto h-full sm:h-9 pb-2 md:pb-0">
         
         {/* 移动端：左侧播放控制按钮 */}

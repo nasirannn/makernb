@@ -1,8 +1,7 @@
 "use client";
 
 import Image from "next/image";
-import Link from "next/link";
-import { useState, useEffect, useRef } from "react";
+import Link from "next/link"
 
 interface IntroductionProps {
   icon: string;
@@ -15,6 +14,7 @@ interface GenreData {
   title: string;
   description: string;
   image: string;
+  href: string;
 }
 
 const genreData: GenreData[] = [
@@ -23,24 +23,28 @@ const genreData: GenreData[] = [
     title: "New Jack Swing",
     description: "New Jack Swing was the heartbeat of dance floors in the early 90s. Created by producer Teddy Riley, it fused R&B melodies with hip-hop beats, giving R&B a harder, funkier edge. Characteristics: Swing beats, punchy drum machines, funky basslines, choreographed group performances.",
     image: "/New-Jack-Swing.webp",
+    href: "/blog/golden-era-90s-rnb-genres",
   },
   {
     id: "hip-hop-soul",
     title: "Hip-Hop Soul",
     description: "If New Jack Swing was about fun, Hip-Hop Soul was about raw honesty. Coined in the early 90s, this style blended hip-hop's gritty beats with the emotional storytelling of R&B, making it the \"real voice of the streets.\" Characteristics: Urban edge, hip-hop rhythms, deeply personal lyrics.",
     image: "/Hip-Hop-Soul.webp",
+    href: "/blog/golden-era-90s-rnb-genres",
   },
   {
     id: "neo-soul",
     title: "Neo-Soul",
     description: "By the mid-to-late 90s, a new wave arrived: Neo-Soul. Mixing classic soul with modern R&B, jazz, and funk, this genre was poetic, organic, and deeply introspective. It spoke to listeners looking for depth and authenticity. Characteristics: Organic instruments, jazzy harmonies, laid-back grooves, thoughtful lyrics.",
     image: "/Neo-Soul.webp",
+    href: "/blog/golden-era-90s-rnb-genres",
   },
   {
     id: "quiet-storm",
     title: "Quiet Storm",
     description: "Originally a 70s radio format, Quiet Storm R&B took on a new life in the 90s. This was the soundtrack of late nights — silky, romantic, and designed for candlelit moods. Characteristics: Slow tempos, lush arrangements, intimate lyrics.",
     image: "/Quiet-Storm.webp",
+    href: "/blog/golden-era-90s-rnb-genres",
   },
 ];
 
@@ -72,6 +76,12 @@ const timelineEras: IntroductionProps[] = [
 ];
 
 export const IntroductionSection = () => {
+  const cardColors = [
+    "bg-[#aeb6ff]",
+    "bg-[#c5f8f1]",
+    "bg-[#ffc2f2]",
+    "bg-[#c9ddff]",
+  ];
 
 
   return (
@@ -124,7 +134,6 @@ export const IntroductionSection = () => {
                 <div key={title} className="bg-muted/50 dark:bg-card p-4 rounded-lg">
                   <div className="mb-2">
                     <h3 className="text-lg font-semibold">
-                      <span className="mr-2">{index + 1}.</span>
                       {title}
                     </h3>
                   </div>
@@ -140,45 +149,43 @@ export const IntroductionSection = () => {
           </div>
 
           {/* R&B Golden Era Section */}
-          <div className="mt-32">
+          <div className="mt-16">
             <div className="mb-6">
               <div className="mb-4">
                 <Link href="/blog/golden-era-90s-rnb-genres">
-                  <h2 className="text-2xl md:text-3xl font-bold cursor-pointer hover:underline transition-all">
-                    4 Classic R&B Genres Of The Golden Age
+                  <h2 className="text-2xl md:text-3xl font-bold cursor-pointer hover:underline text-left">
+                    <span className="block">Classic R&B Genres Of The Golden Age</span>
                   </h2>
                 </Link>
-                <p className="text-muted-foreground mt-4 line-clamp-1">
-                  The 1990s were the golden era of R&B — a decade that gave us smooth love ballads, dance-floor anthems, and soulful grooves that still inspire artists today. But R&B in the 90s was not just one sound. It was a family of genres, each with its own style, story, and stars.
-                </p>
               </div>
             </div>
 
             {/* Genre Cards Grid */}
-            <div className="grid gap-8">
+            <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4 max-w-5xl mx-auto">
               {genreData.map((genre, index) => (
-                <div key={genre.id} className={`grid lg:grid-cols-2 gap-8 items-center ${index % 2 === 1 ? 'lg:grid-flow-col-dense' : ''}`}>
-                  {/* Content */}
-                  <div className={`${index % 2 === 1 ? 'lg:col-start-2' : ''}`}>
-                    <h3 className="text-2xl font-bold mb-4 text-primary">{genre.title}</h3>
-                    <p className="text-muted-foreground text-base leading-relaxed">
-                      {genre.description}
-                    </p>
-                  </div>
-                  
-                  {/* Image */}
-                  <div className={`${index % 2 === 1 ? 'lg:col-start-1' : ''}`}>
-                    <div className="relative w-full max-w-sm mx-auto aspect-square">
+                <Link
+                  key={genre.id}
+                  href={genre.href}
+                  className={`group relative overflow-hidden rounded-[28px] p-6 shadow-[0_18px_40px_rgba(0,0,0,0.12)] transition-shadow duration-300 hover:shadow-[0_28px_70px_rgba(0,0,0,0.16)] ${cardColors[index % cardColors.length]}`}
+                >
+                  <div className="pointer-events-none absolute inset-0 rounded-[28px] bg-black/35 transition-opacity duration-300 group-hover:opacity-0" />
+                  <h3 className="text-lg font-bold text-black mb-3 text-left leading-tight">
+                    {genre.title}
+                  </h3>
+                  <p className="text-sm font-medium text-black/60 leading-relaxed line-clamp-2 mb-5 text-left">
+                    {genre.description}
+                  </p>
+                  <div>
+                    <div className="relative aspect-[3/4] w-full overflow-hidden rounded-[22px] shadow-[0_10px_30px_rgba(0,0,0,0.2)]">
                       <Image
                         src={genre.image}
                         alt={genre.title}
-                        width={400}
-                        height={400}
-                        className="w-full h-full rounded-lg object-cover"
+                        fill
+                        className="object-cover"
                       />
                     </div>
                   </div>
-                </div>
+                </Link>
               ))}
             </div>
           </div>

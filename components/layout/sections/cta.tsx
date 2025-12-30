@@ -35,11 +35,6 @@ export const CTASection = () => {
               </div>
             </div>
           </div>
-
-          {/* Trust indicators - Commented out */}
-          {/* <div className="mt-8 text-sm text-muted-foreground">
-            <p>✨ Free daily credits • 🎵 Professional quality • 🚀 No experience needed</p>
-          </div> */}
         </div>
       </div>
     </section>

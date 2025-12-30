@@ -5,7 +5,6 @@ import { FooterSection } from "@/components/layout/sections/footer";
 import { FeaturesSection } from "@/components/layout/sections/features";
 import { PricingSection } from "@/components/layout/sections/pricing";
 import { FAQSection } from "@/components/layout/sections/faq";
-import { CTASection } from "@/components/layout/sections/cta";
 import { HomeCanonical } from "./HomeCanonical";
 import type { Metadata } from "next";
 
@@ -49,7 +48,6 @@ export default function Home() {
       <FeaturesSection />
       <PricingSection />
       <FAQSection />
-      <CTASection />
       <FooterSection />
     </>
   );

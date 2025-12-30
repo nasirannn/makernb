@@ -71,7 +71,7 @@ export const ExploreSection = () => {
   const fetchExploreData = async () => {
     try {
       setLoading(true);
-      const response = await fetch('/api/pinned-tracks?limit=9&offset=0');
+      const response = await fetch('/api/pinned-tracks?limit=8&offset=0');
       const data = await response.json();
       
       if (data.success) {
@@ -187,6 +187,10 @@ export const ExploreSection = () => {
     playTrack(index);
   };
 
+  const currentTrackTitle = currentlyPlaying
+    ? playlist.find((music) => music.primaryTrack.id === currentlyPlaying)?.title || 'Unknown Track'
+    : '';
+
   const formatTags = (tags?: string) => {
     if (!tags) return '';
     const normalized = tags
@@ -231,7 +235,7 @@ export const ExploreSection = () => {
             </div>
           ) : exploreData && exploreData.music.length > 0 ? (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-12">
-              {exploreData.music.slice(0, 9).map((music) => (
+              {exploreData.music.slice(0, 8).map((music) => (
                 <div
                   key={music.id}
                   className="group flex items-center gap-4 rounded-md bg-[#f7f6f2] transition-colors hover:bg-[#efece5] cursor-pointer shadow-[0_8px_20px_rgba(0,0,0,0.06)]"
@@ -284,6 +288,15 @@ export const ExploreSection = () => {
                   </div>
                 </div>
               ))}
+              <Link
+                href="/explore"
+                className="flex items-center justify-center rounded-md bg-[#f7f6f2] transition-colors hover:bg-[#efece5] shadow-[0_8px_20px_rgba(0,0,0,0.06)]"
+              >
+                <span className="text-base font-semibold text-black/80">
+                  Explore All Published Tracks
+                </span>
+                <ArrowRight className="ml-2 h-4 w-4 text-black/70" />
+              </Link>
             </div>
           ) : (
             <div className="text-center py-12">
@@ -293,14 +306,36 @@ export const ExploreSection = () => {
           )}
         </div>
 
-        {/* Explore More Button */}
-        <div className="text-center">
-          <Link href="/explore">
-            <Button className="bg-primary text-primary-foreground hover:bg-primary/90 px-8 py-3 rounded-full transition-colors">
-              Explore All Published Tracks
-            </Button>
-          </Link>
-        </div>
+        {currentlyPlaying && (
+          <div className="mt-6 overflow-hidden pb-2">
+            <div
+              className="explore-now-playing inline-flex items-center whitespace-nowrap text-5xl md:text-6xl font-black leading-tight tracking-wide text-black/80"
+              style={{ animationPlayState: audioPlayer.isPlaying ? 'running' : 'paused' }}
+            >
+              <span className="inline-flex items-center gap-4 pr-12">
+                <Music className="h-9 w-9 text-primary" />
+                Now is playing - {currentTrackTitle}
+              </span>
+              <span className="inline-flex items-center gap-4 pr-12" aria-hidden="true">
+                <Music className="h-9 w-9 text-primary" />
+                Now is playing - {currentTrackTitle}
+              </span>
+            </div>
+            <style jsx>{`
+              .explore-now-playing {
+                animation: exploreNowPlayingScroll 16s linear infinite;
+              }
+              @keyframes exploreNowPlayingScroll {
+                0% {
+                  transform: translateX(0%);
+                }
+                100% {
+                  transform: translateX(-50%);
+                }
+              }
+            `}</style>
+          </div>
+        )}
 
       {/* 播放器 - 移动端固定，桌面端固定带底部边距，与内容区域宽度一致 */}
       {playlist.length > 0 && currentlyPlaying && (

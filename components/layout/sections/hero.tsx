@@ -52,11 +52,11 @@ export const HeroSection = () => {
                 onClick={handleExploreClick}
                 className="inline-flex items-center gap-2 px-7 py-3 bg-transparent text-black font-semibold rounded-full border border-black/20 hover:border-black/40 hover:bg-black/5 transition-all duration-300 text-base"
               >
-                <span>Explore Tracks</span>
+                <span>Explore</span>
               </button>
             </div>
 
-            <div className="flex flex-wrap items-center justify-center gap-6 text-sm text-black/60">
+            <div className="flex flex-wrap items-center justify-center gap-6 text-sm font-medium text-black/60">
               <span>✨ Free daily credits</span>
               <span>🎧 Export-ready audio</span>
               <span>🚀 No experience needed</span>
@@ -64,6 +64,47 @@ export const HeroSection = () => {
           </div>
         </div>
       </div>
+      <div className="pointer-events-none absolute inset-0 flex items-center justify-center">
+        <svg
+          className="hero-pulse-line w-[78%] max-w-5xl"
+          viewBox="0 0 1200 160"
+          fill="none"
+          aria-hidden="true"
+        >
+          <path
+            d="M0 80 H180 L210 80 L230 60 L250 80 L275 80 L295 25 L320 135 L345 80 L520 80 L540 70 L560 80 L585 80 L610 30 L635 130 L660 80 L840 80 L860 62 L880 80 L905 80 L930 35 L955 125 L980 80 H1200"
+            stroke="hsl(var(--primary))"
+            strokeWidth="6"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          />
+        </svg>
+      </div>
+      <style jsx>{`
+        .hero-pulse-line path {
+          stroke-dasharray: 1600;
+          stroke-dashoffset: 1600;
+          animation: heroPulseLine 5.2s linear infinite;
+          opacity: 0.5;
+        }
+        @keyframes heroPulseLine {
+          0% {
+            stroke-dashoffset: 1600;
+          }
+          20% {
+            stroke-dashoffset: 1200;
+          }
+          40% {
+            stroke-dashoffset: 720;
+          }
+          60% {
+            stroke-dashoffset: 360;
+          }
+          100% {
+            stroke-dashoffset: 0;
+          }
+        }
+      `}</style>
     </section>
   );
 };

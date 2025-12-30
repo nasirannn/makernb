@@ -301,8 +301,8 @@ export const Navbar = ({ credits = null }: NavbarProps) => {
                           className="flex items-center px-3 py-2 hover:bg-white/5 transition-colors group rounded-md"
                         >
                           <div className="flex-1 min-w-0">
-                            <p className="text-white/90 font-medium text-sm">{item.label}</p>
-                            <p className="text-white/50 text-xs truncate">{item.description}</p>
+                            <p className="text-white/90 font-medium text-sm transition-colors group-hover:text-primary">{item.label}</p>
+                            <p className="text-white/50 text-xs truncate transition-colors group-hover:text-white/70">{item.description}</p>
                           </div>
                         </Link>
                       ))}
@@ -506,14 +506,6 @@ export const Navbar = ({ credits = null }: NavbarProps) => {
       <div className="hidden lg:flex ml-auto items-center gap-4">
         {user ? (
           <>
-            {/* Credits Display */}
-            <div className="flex items-center gap-2 px-3 py-2 rounded-full border border-white/10 bg-white/5">
-              <Sparkles className="h-4 w-4 text-primary" />
-              <span className="text-base font-semibold text-white/90">
-                {credits === null ? '...' : credits} Credits
-              </span>
-            </div>
-            
             <div 
               className="relative user-menu-container"
               onClick={() => setIsUserMenuOpen(!isUserMenuOpen)}
@@ -536,10 +528,10 @@ export const Navbar = ({ credits = null }: NavbarProps) => {
             {/* User Dropdown Menu */}
             {isUserMenuOpen && (
               <div 
-                className="absolute right-0 top-12 min-w-48 w-max bg-[var(--studio-panel-bg)] border border-white/10 rounded-lg p-3 z-[110]"
+                className="absolute right-0 top-12 min-w-56 w-max bg-[#0f1014] border border-white/10 rounded-xl p-2 shadow-[0_20px_60px_rgba(0,0,0,0.6)] z-[110]"
               >
                 {/* User Info */}
-                <div className="px-4 py-3">
+                <div className="px-3 py-2">
                   <div className="flex items-center justify-between gap-2 mb-1">
                     <p className="text-white font-semibold text-sm truncate flex-1">
                       {user.user_metadata?.full_name || user.user_metadata?.name || user.email?.split('@')[0] || 'User'}
@@ -555,6 +547,21 @@ export const Navbar = ({ credits = null }: NavbarProps) => {
                   </p>
                 </div>
 
+                {/* Credits */}
+                <div className="px-3 pb-2">
+                  <div className="flex items-center justify-between gap-3 py-2">
+                    <div className="flex items-center gap-3">
+                      <div className="flex-shrink-0 h-8 w-8 rounded-lg flex items-center justify-center text-[#f5b733]">
+                        <Sparkles className="h-3.5 w-3.5" />
+                      </div>
+                      <span className="text-sm font-medium text-white">Credits</span>
+                    </div>
+                    <span className="min-w-6 rounded-md bg-[#2b2416] px-2 py-0.5 text-center text-[11px] font-semibold text-[#f5b733]">
+                      {credits === null ? '...' : credits}
+                    </span>
+                  </div>
+                </div>
+
                 {/* Sign Out Button */}
                 <button
                   onClick={async () => {
@@ -565,10 +572,10 @@ export const Navbar = ({ credits = null }: NavbarProps) => {
                       console.error('Sign out error:', error);
                     }
                   }}
-                  className="w-full flex items-center gap-3 px-4 py-3 hover:bg-white/5 transition-colors group rounded-md"
+                  className="w-full flex items-center gap-3 px-3 py-2.5 transition-colors group rounded-lg border-t border-white/10"
                 >
-                  <div className="flex-shrink-0 w-8 h-8 rounded-lg flex items-center justify-center text-primary">
-                    <LogOut className="h-4 w-4" />
+                  <div className="flex-shrink-0 h-8 w-8 rounded-lg flex items-center justify-center text-white/80">
+                    <LogOut className="h-3.5 w-3.5" />
                   </div>
                   <span className="text-white/90 font-medium text-sm">Sign Out</span>
                 </button>
