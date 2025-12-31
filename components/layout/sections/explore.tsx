@@ -47,6 +47,11 @@ export const ExploreSection = () => {
   
   // 播放器状态 - 使用统一的AudioService
   const audioPlayer = useAudioPlayer();
+  const audioPlayerRef = useRef(audioPlayer);
+
+  useEffect(() => {
+    audioPlayerRef.current = audioPlayer;
+  }, [audioPlayer]);
   const [playlist, setPlaylist] = useState<MusicGeneration[]>([]);
 
   useEffect(() => {
@@ -58,9 +63,9 @@ export const ExploreSection = () => {
     return () => {
       // AudioService会自动处理清理，这里只需要重置本地状态
       setCurrentlyPlaying(null);
-      audioPlayer.clearCurrentTrack();
+      audioPlayerRef.current.clearCurrentTrack();
     };
-  }, [audioPlayer]);
+  }, []);
 
   // 格式化时长
   const formatDuration = (seconds: number) => {

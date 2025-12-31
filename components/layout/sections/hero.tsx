@@ -1,20 +1,8 @@
 "use client";
 import React from "react";
-import { useRouter } from "next/navigation";
+import Link from "next/link";
 
 export const HeroSection = () => {
-  const router = useRouter();
-
-  const handleStudioClick = () => {
-    // Navigate to studio regardless of login status
-    router.push('/studio');
-  };
-
-  const handleExploreClick = () => {
-    // Navigate to explore page
-    router.push('/explore');
-  };
-
   return (
     <section className="relative w-full min-h-screen overflow-hidden bg-[#f7f6f2]">
       {/* Soft background layers */}
@@ -41,19 +29,19 @@ export const HeroSection = () => {
             </p>
 
             <div className="flex items-center justify-center gap-3">
-              <button
-                onClick={handleStudioClick}
+              <Link
+                href="/studio"
                 className="inline-flex items-center gap-2 px-7 py-3 bg-primary text-primary-foreground font-semibold rounded-full hover:bg-primary/90 transition-all duration-300 text-base shadow-[0_12px_30px_rgba(0,0,0,0.2)]"
               >
                 <span>Try for free</span>
-              </button>
+              </Link>
 
-              <button
-                onClick={handleExploreClick}
+              <Link
+                href="/explore"
                 className="inline-flex items-center gap-2 px-7 py-3 bg-transparent text-black font-semibold rounded-full border border-black/20 hover:border-black/40 hover:bg-black/5 transition-all duration-300 text-base"
               >
                 <span>Explore</span>
-              </button>
+              </Link>
             </div>
 
             <div className="flex flex-wrap items-center justify-center gap-6 text-sm font-medium text-black/60">
