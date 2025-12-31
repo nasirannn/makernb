@@ -98,17 +98,17 @@ const featureList: FeaturesProps[] = [
 
 export const FeaturesSection = () => {
   return (
-    <section id="features" className="py-24 sm:py-32 bg-[#0b0b10]">
+    <section id="features" className="py-24 sm:py-32">
       <div className="container">
         <h2 className="text-lg text-primary text-center mb-2 tracking-wider">
           Features
         </h2>
 
-        <h2 className="text-3xl md:text-4xl text-center font-bold mb-4 text-white">
+        <h2 className="text-3xl md:text-4xl text-center font-bold mb-4">
           Powerful AI Music Creation
         </h2>
 
-        <h3 className="md:w-1/2 mx-auto text-lg text-center text-white/70 mb-10">
+        <h3 className="md:w-1/2 mx-auto text-lg text-center text-muted-foreground mb-10">
           Experience the future of music creation with our advanced AI technology that transforms your ideas into professional R&B songs
         </h3>
 

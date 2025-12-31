@@ -70,29 +70,29 @@ export const PricingSection = () => {
   };
 
   return (
-    <section id="pricing" className="py-12 sm:py-16 bg-[#0b0b10]">
+    <section id="pricing" className="py-12 sm:py-16">
       <div className="container max-w-6xl">
       <div className="text-center mb-12">
-        <h2 className="text-3xl md:text-4xl text-center font-bold mb-4 text-white">
+        <h2 className="text-3xl md:text-4xl text-center font-bold mb-4">
           <span className="block">Choose the Plan</span>
           <span className="block">That Fits You Best</span>
         </h2>
         
         {/* Billing Period Toggle */}
         <div className="mt-8 flex justify-center">
-          <div className="rounded-full border border-white/10 p-1 bg-transparent">
+          <div className="rounded-full border border-border p-1 bg-transparent">
             <div className="grid grid-cols-2 gap-1">
               <button
                 onClick={() => setBillingPeriod('yearly')}
                 className={`py-2 px-5 text-sm font-semibold transition-all duration-200 rounded-full ${
                   billingPeriod === 'yearly'
                     ? "bg-primary text-white"
-                    : "text-white/60 hover:text-white"
+                    : "text-muted-foreground hover:text-foreground"
                 }`}
               >
                 <div className="flex items-center gap-2">
                   <span>Yearly</span>
-                  <span className="inline-flex items-center text-xs text-white/70">
+                  <span className="inline-flex items-center text-xs text-muted-foreground">
                     Save 36%
                   </span>
                 </div>
@@ -102,7 +102,7 @@ export const PricingSection = () => {
                 className={`py-2 px-5 text-sm font-semibold transition-all duration-200 rounded-full ${
                   billingPeriod === 'monthly'
                     ? "bg-primary text-white"
-                    : "text-white/60 hover:text-white"
+                    : "text-muted-foreground hover:text-foreground"
                 }`}
               >
                 Monthly

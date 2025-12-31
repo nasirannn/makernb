@@ -76,14 +76,6 @@ const timelineEras: IntroductionProps[] = [
 ];
 
 export const IntroductionSection = () => {
-  const cardColors = [
-    "bg-[#aeb6ff]",
-    "bg-[#c5f8f1]",
-    "bg-[#ffc2f2]",
-    "bg-[#c9ddff]",
-  ];
-
-
   return (
     <section id="introduction" className="py-20 sm:py-24">
       <div className="container">
@@ -150,33 +142,34 @@ export const IntroductionSection = () => {
 
           {/* R&B Golden Era Section */}
           <div className="mt-16">
-            <div className="mb-6">
+            <div className="mb-6 text-center">
               <div className="mb-4">
                 <Link href="/blog/golden-era-90s-rnb-genres">
-                  <h2 className="text-2xl md:text-3xl font-bold cursor-pointer hover:underline text-left">
+                  <h2 className="text-2xl md:text-3xl font-bold cursor-pointer hover:underline">
                     <span className="block">Classic R&B Genres Of The Golden Age</span>
                   </h2>
                 </Link>
               </div>
             </div>
 
-            {/* Genre Cards Grid */}
-            <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4 max-w-5xl mx-auto">
+            {/* Genre Cards List */}
+            <div className="flex flex-col max-w-5xl mx-auto">
               {genreData.map((genre, index) => (
                 <Link
                   key={genre.id}
                   href={genre.href}
-                  className={`group relative overflow-hidden rounded-[28px] p-6 shadow-[0_18px_40px_rgba(0,0,0,0.12)] transition-shadow duration-300 hover:shadow-[0_28px_70px_rgba(0,0,0,0.16)] ${cardColors[index % cardColors.length]}`}
+                  className="group block rounded-2xl py-6 transition duration-300 hover:bg-muted/30"
                 >
-                  <div className="pointer-events-none absolute inset-0 rounded-[28px] bg-black/35 transition-opacity duration-300 group-hover:opacity-0" />
-                  <h3 className="text-lg font-bold text-black mb-3 text-left leading-tight">
-                    {genre.title}
-                  </h3>
-                  <p className="text-sm font-medium text-black/60 leading-relaxed line-clamp-2 mb-5 text-left">
-                    {genre.description}
-                  </p>
-                  <div>
-                    <div className="relative aspect-[3/4] w-full overflow-hidden rounded-[22px]">
+                  <div className={`relative flex flex-col gap-5 md:flex-row md:items-center ${index % 2 === 1 ? 'md:flex-row-reverse' : ''}`}>
+                    <div className="flex-1 text-left md:pl-4">
+                      <h3 className="text-lg font-semibold text-foreground mb-3 leading-tight">
+                        {genre.title}
+                      </h3>
+                      <p className="text-sm text-muted-foreground leading-relaxed line-clamp-3">
+                        {genre.description}
+                      </p>
+                    </div>
+                    <div className="relative aspect-[4/3] w-full md:w-64 overflow-hidden">
                       <Image
                         src={genre.image}
                         alt={genre.title}

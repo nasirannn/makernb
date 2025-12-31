@@ -117,6 +117,31 @@ const LibraryContent = () => {
         }
     }, [selectedTrackId, tracks, convertToInlineTrackDetails]);
 
+    // 当歌词面板打开时，播放器切歌需要同步面板内容
+    React.useEffect(() => {
+        if (!lyricsPanelOpen) return;
+        const currentTrackId = audioPlayer.currentTrack?.id;
+        if (!currentTrackId || inlineTrackDetails?.id === currentTrackId) return;
+
+        const foundTrack = tracks.find(track => track.id === currentTrackId);
+        if (!foundTrack) return;
+
+        setSelectedLibraryTrack(currentTrackId);
+        setInlineTrackDetails(convertToInlineTrackDetails(foundTrack));
+
+        if (selectedTrackId !== currentTrackId) {
+            router.replace(`/library?track=${currentTrackId}`);
+        }
+    }, [
+        lyricsPanelOpen,
+        audioPlayer.currentTrack?.id,
+        tracks,
+        inlineTrackDetails?.id,
+        convertToInlineTrackDetails,
+        selectedTrackId,
+        router,
+    ]);
+
     // 页面卸载时清理选中状态
     React.useEffect(() => {
         return () => {

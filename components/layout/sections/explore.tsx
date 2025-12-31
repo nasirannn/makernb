@@ -60,7 +60,7 @@ export const ExploreSection = () => {
       setCurrentlyPlaying(null);
       audioPlayer.clearCurrentTrack();
     };
-  }, []);
+  }, [audioPlayer]);
 
   // 格式化时长
   const formatDuration = (seconds: number) => {
