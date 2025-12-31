@@ -22,11 +22,11 @@ interface ModelOption {
 }
 
 const modelOptions: ModelOption[] = [
-  { value: 'V5', label: 'v5', description: 'Superior musical expression, faster generation.', requiresSubscription: true },
-  { value: 'V4_5PLUS', label: 'v4.5+', description: 'Best sound quality, max 8 min, creative rhythms, rich harmonies', requiresSubscription: true },
-  { value: 'V4_5', label: 'v4.5', description: 'High-quality vocals, smarter prompts, faster generation, up to 8 minutes', requiresSubscription: true },
-  { value: 'V4', label: 'v4', description: 'Basic model with improved vocal quality, up to 4 minutes', requiresSubscription: true },
-  { value: 'V3_5', label: 'v3.5', description: 'Better song structure, max 4 min.', requiresSubscription: false },
+  { value: 'V5', label: 'V5', description: 'Superior musical expression, faster generation.', requiresSubscription: true },
+  { value: 'V4_5PLUS', label: 'V4.5+', description: 'Best sound quality, max 8 min, creative rhythms, rich harmonies', requiresSubscription: true },
+  { value: 'V4_5', label: 'V4.5', description: 'High-quality vocals, smarter prompts, faster generation, up to 8 minutes', requiresSubscription: true },
+  { value: 'V4', label: 'V4', description: 'Basic model with improved vocal quality, up to 4 minutes', requiresSubscription: true },
+  { value: 'V3_5', label: 'V3.5', description: 'Better song structure, max 4 min.', requiresSubscription: false },
 ];
 
 interface ModelSelectionDialogProps {

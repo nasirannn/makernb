@@ -168,7 +168,6 @@ export const EditMusicInfoDialog: React.FC<EditMusicInfoDialogProps> = ({
         <AlertDialogHeader className="flex-shrink-0">
           <div className="flex items-center justify-between">
             <AlertDialogTitle className="flex items-center gap-2">
-              <Pencil className="h-5 w-5" />
               Edit Music Info
             </AlertDialogTitle>
             <button
@@ -179,14 +178,11 @@ export const EditMusicInfoDialog: React.FC<EditMusicInfoDialogProps> = ({
               <span className="sr-only">Close</span>
             </button>
           </div>
-          <AlertDialogDescription>
-            Update your track title and cover image.
-          </AlertDialogDescription>
         </AlertDialogHeader>
 
-        <div className="flex-1 overflow-y-auto space-y-6 pt-2 pb-4 px-1">
-          <div className="space-y-4">
-            <div className="space-y-2">
+        <div className="flex-1 overflow-y-auto space-y-3 pt-1 pb-1 px-1">
+          <div className="space-y-3">
+            <div className="space-y-1">
               <label htmlFor="title" className="text-sm text-muted-foreground">
                 Title
               </label>
@@ -207,7 +203,7 @@ export const EditMusicInfoDialog: React.FC<EditMusicInfoDialogProps> = ({
               />
             </div>
 
-            <div className="space-y-2">
+            <div className="space-y-1">
               <label className="text-sm text-muted-foreground">
                 Cover Image
               </label>
@@ -221,14 +217,29 @@ export const EditMusicInfoDialog: React.FC<EditMusicInfoDialogProps> = ({
                 onDragLeave={handleDragLeave}
                 onDrop={handleDrop}
               >
-                {displayImage ? (
-                  <div className="relative w-full aspect-square rounded-lg overflow-hidden bg-muted">
+                <div className="relative w-full aspect-square rounded-lg overflow-hidden bg-muted">
+                  {displayImage ? (
                     <Image
                       src={displayImage}
                       alt="Cover preview"
                       fill
                       className="object-cover"
                     />
+                  ) : (
+                    <div
+                      className="absolute inset-0 flex flex-col items-center justify-center p-8 cursor-pointer"
+                      onClick={() => fileInputRef.current?.click()}
+                    >
+                      <Upload className="h-8 w-8 text-muted-foreground mb-2" />
+                      <p className="text-sm text-center text-foreground font-medium mb-1">
+                        Drag and drop or click to upload your Image
+                      </p>
+                      <p className="text-xs text-center text-muted-foreground">
+                        Supported formats: JPG, JPEG, PNG; Maximum size per file: 10MB.
+                      </p>
+                    </div>
+                  )}
+                  {displayImage && (
                     <button
                       onClick={handleRemoveImage}
                       className="absolute top-2 right-2 p-1.5 rounded-full bg-background/80 hover:bg-background border border-border shadow-sm transition-colors"
@@ -236,21 +247,8 @@ export const EditMusicInfoDialog: React.FC<EditMusicInfoDialogProps> = ({
                     >
                       <X className="h-4 w-4" />
                     </button>
-                  </div>
-                ) : (
-                  <div
-                    className="flex flex-col items-center justify-center p-8 cursor-pointer"
-                    onClick={() => fileInputRef.current?.click()}
-                  >
-                    <Upload className="h-8 w-8 text-muted-foreground mb-2" />
-                    <p className="text-sm text-center text-foreground font-medium mb-1">
-                      Drag and drop or click to upload your Image
-                    </p>
-                    <p className="text-xs text-center text-muted-foreground">
-                      Supported formats: JPG, JPEG, PNG; Maximum size per file: 10MB.
-                    </p>
-                  </div>
-                )}
+                  )}
+                </div>
               </div>
               <input
                 ref={fileInputRef}
@@ -263,18 +261,11 @@ export const EditMusicInfoDialog: React.FC<EditMusicInfoDialogProps> = ({
           </div>
         </div>
 
-        <AlertDialogFooter className="flex-shrink-0 border-t pt-4">
-          <button
-            onClick={handleClose}
-            disabled={isSaving}
-            className="inline-flex items-center justify-center rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 border border-input bg-background hover:bg-accent hover:text-accent-foreground h-10 px-4 py-2"
-          >
-            Cancel
-          </button>
+        <AlertDialogFooter className="flex-shrink-0 pt-2">
           <button
             onClick={handleSave}
             disabled={!title.trim() || isSaving}
-            className="inline-flex items-center justify-center rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 bg-primary text-primary-foreground hover:bg-primary/90 h-10 px-4 py-2"
+            className="inline-flex w-full items-center justify-center rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 bg-primary text-primary-foreground hover:bg-primary/90 h-10 px-4 py-2"
           >
             {isSaving ? (
               <>

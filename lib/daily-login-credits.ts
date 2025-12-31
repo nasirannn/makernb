@@ -198,7 +198,7 @@ export const cleanupExpiredDailyCredits = async (): Promise<number> => {
          AND NOT EXISTS (
            SELECT 1 FROM credit_transactions ct
            WHERE ct.user_id = dl.user_id
-           AND ct.reference_id = dl.transaction_id
+           AND ct.reference_id = dl.transaction_id::text
            AND ct.description = 'Daily login credits expired'
          )`,
         [yesterday]
@@ -279,7 +279,7 @@ export const cleanupExpiredDailyCredits = async (): Promise<number> => {
             const existingExpiredRecord = await queryFn(
               `SELECT id FROM credit_transactions 
                WHERE user_id = $1::uuid 
-               AND reference_id = $2::uuid
+               AND reference_id = $2::text
                AND description = 'Daily login credits expired'
                AND created_at >= $3
                LIMIT 1`,

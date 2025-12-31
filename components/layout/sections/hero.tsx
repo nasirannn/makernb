@@ -1,8 +1,18 @@
 "use client";
 import React from "react";
-import Link from "next/link";
+import { useRouter } from "next/navigation";
 
 export const HeroSection = () => {
+  const router = useRouter();
+
+  const handleStudioClick = () => {
+    router.push("/studio");
+  };
+
+  const handleExploreClick = () => {
+    router.push("/explore");
+  };
+
   return (
     <section className="relative w-full min-h-screen overflow-hidden bg-[#f7f6f2]">
       {/* Soft background layers */}
@@ -29,19 +39,23 @@ export const HeroSection = () => {
             </p>
 
             <div className="flex items-center justify-center gap-3">
-              <Link
-                href="/studio"
+              <button
+                type="button"
+                onClick={handleStudioClick}
+                aria-label="Start creating music in the studio"
                 className="inline-flex items-center gap-2 px-7 py-3 bg-primary text-primary-foreground font-semibold rounded-full hover:bg-primary/90 transition-all duration-300 text-base shadow-[0_12px_30px_rgba(0,0,0,0.2)]"
               >
                 <span>Try for free</span>
-              </Link>
+              </button>
 
-              <Link
-                href="/explore"
+              <button
+                type="button"
+                onClick={handleExploreClick}
+                aria-label="Explore AI-generated tracks"
                 className="inline-flex items-center gap-2 px-7 py-3 bg-transparent text-black font-semibold rounded-full border border-black/20 hover:border-black/40 hover:bg-black/5 transition-all duration-300 text-base"
               >
                 <span>Explore</span>
-              </Link>
+              </button>
             </div>
 
             <div className="flex flex-wrap items-center justify-center gap-6 text-sm font-medium text-black/60">

@@ -153,7 +153,9 @@ const LibraryContent = () => {
 
     // 为MusicPlayer准备tracks数据
     const musicPlayerTracks = React.useMemo(() => {
-        return tracks.map(track => ({
+        return tracks
+            .filter(track => !(track.isDeleted ?? false))
+            .map(track => ({
             id: track.id,
             title: track.title,
             audioUrl: track.audioUrl,
@@ -181,6 +183,7 @@ const LibraryContent = () => {
             isPublished: track.isPublished ?? false,
             isFavorited: track.isFavorited ?? false,
             isPinned: track.isPinned ?? false,
+            isDeleted: track.isDeleted ?? false,
             coverR2Url: (track as any).coverR2Url || track.coverImage || undefined, // 优先使用新字段名
             coverUrl: track.coverImage || undefined,
             coverImage: track.coverImage || undefined,
@@ -194,7 +197,7 @@ const LibraryContent = () => {
                 duration: track.duration,
                 coverR2Url: (track as any).coverR2Url || track.coverImage || undefined, // 映射为 JavaScript 字段名
                 lyrics: track.lyrics || undefined,
-                isDeleted: false, // 映射为 JavaScript 字段名
+                isDeleted: track.isDeleted ?? false, // 映射为 JavaScript 字段名
                 isFavorited: track.isFavorited ?? false
             }]
         }));

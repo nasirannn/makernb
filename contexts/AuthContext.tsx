@@ -116,10 +116,25 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
               creditsUpdatedCallback.current?.();
             }, 500); // 延迟500ms确保数据库更新完成
           }
+          const today = new Date().toISOString().split('T')[0];
+          const checkKey = `dailyCreditsChecked_${user?.id || 'unknown'}_${today}`;
+          if (typeof window !== 'undefined') {
+            localStorage.setItem(checkKey, 'true');
+          }
         } else if (data.alreadyReceived) {
           // User already received today's credits
+          const today = new Date().toISOString().split('T')[0];
+          const checkKey = `dailyCreditsChecked_${user?.id || 'unknown'}_${today}`;
+          if (typeof window !== 'undefined') {
+            localStorage.setItem(checkKey, 'true');
+          }
         } else if (data.message?.includes('Not eligible')) {
           // User not eligible for daily credits (likely admin user)
+          const today = new Date().toISOString().split('T')[0];
+          const checkKey = `dailyCreditsChecked_${user?.id || 'unknown'}_${today}`;
+          if (typeof window !== 'undefined') {
+            localStorage.setItem(checkKey, 'true');
+          }
         }
       } else if (response.status === 401) {
         console.error('Authentication failed for daily credits check - token may be invalid or expired');
@@ -188,10 +203,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             : false;
 
           if (!hasCheckedToday && !creditsCheckInProgress.current) {
-            // 标记今天已经检查过（跨标签页共享）
-            if (typeof window !== 'undefined') {
-              localStorage.setItem(checkKey, 'true');
-            }
             setHasCheckedInitialCredits(true);
             // 增加延迟确保token完全生效（生产环境可能需要更长时间）
             setTimeout(() => {
@@ -243,10 +254,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             : false;
 
           if (!hasCheckedToday && !creditsCheckInProgress.current && !hasCheckedInitialCredits) {
-            // 标记今天已经检查过（跨标签页共享）
-            if (typeof window !== 'undefined') {
-              localStorage.setItem(checkKey, 'true');
-            }
             setHasCheckedInitialCredits(true); // 标记已检查，避免重复
             // 增加延迟确保登录流程完成且token完全生效
             setTimeout(() => {

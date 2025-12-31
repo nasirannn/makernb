@@ -38,7 +38,11 @@ export const TrackCover: React.FC<TrackCoverProps> = ({
   const iconButtonSize = isExtension ? 'h-3 w-3' : 'h-4 w-4';
 
   return (
-    <div className={`relative ${sizeClass} rounded-md overflow-hidden flex-shrink-0 transition-transform duration-300 group/cover border-0`}>
+    <div
+      className={`relative ${sizeClass} rounded-md overflow-hidden flex-shrink-0 transition-transform duration-300 group/cover border border-white/10 ${
+        isGenerating ? 'animate-border-marquee shadow-[0_0_0_1px_rgba(255,255,255,0.25)]' : ''
+      }`}
+    >
       {/* 封面图片 */}
       {isError ? (
         <Image
@@ -59,7 +63,13 @@ export const TrackCover: React.FC<TrackCoverProps> = ({
       ) : (
         <div className="w-full h-full bg-gradient-to-br from-primary/20 to-primary/40 flex items-center justify-center transition-all duration-300 border-0">
           {isGenerating ? (
-            <div className={`animate-spin rounded-full ${iconSize} border-2 border-primary border-t-transparent`}></div>
+            <Image
+              src="/logo.svg"
+              alt="MakeRNB Logo"
+              width={imageSize}
+              height={imageSize}
+              className="w-8 h-8 opacity-90"
+            />
           ) : (
             <Music className={`${iconSize} text-primary`} />
           )}
@@ -100,4 +110,3 @@ export const TrackCover: React.FC<TrackCoverProps> = ({
     </div>
   );
 };
-

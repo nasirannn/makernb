@@ -7,7 +7,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
-import { Music, RotateCcw, ChevronRight, Wand2, Play, CreditCard, UploadCloud, X } from "lucide-react";
+import { Music, RotateCcw, ChevronRight, Wand2, Play, CreditCard, UploadCloud, X, Check } from "lucide-react";
 import musicOptions from '@/data/music-options.json';
 import { useAuth } from '@/contexts/AuthContext';
 import { useCredits } from '@/contexts/CreditsContext';
@@ -20,7 +20,14 @@ import { replaceTextInStyle, updateStatesFromTextarea, getRandomBpm } from '@/li
 import { TEMPO_KEYWORDS, BUTTON_CLASSES, STYLES } from '@/lib/studio-constants';
 import { useAudioPlayer } from '@/hooks/use-audio-player';
 import { UploadAudioDialog } from '@/components/ui/upload-audio-dialog';
-import { ModelSelectionDialog, MusicModel, modelOptions } from '@/components/ui/model-selection-dialog';
+import { MusicModel, modelOptions } from '@/components/ui/model-selection-dialog';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { supabase } from '@/lib/supabase';
 import { PricingSection } from '@/components/layout/sections/pricing';
 
@@ -255,8 +262,16 @@ export const StudioPanel = (props: StudioPanelProps) => {
 
   const [isUploadDialogOpen, setIsUploadDialogOpen] = React.useState(false);
 
-  // Model selection state
-  const [isModelDialogOpen, setIsModelDialogOpen] = React.useState(false);
+  const handleModelSelect = React.useCallback((model: MusicModel) => {
+    const selectedOption = modelOptions.find((option) => option.value === model);
+
+    if (!hasSubscription && selectedOption?.requiresSubscription) {
+      setIsPricingOpen(true);
+      return;
+    }
+
+    updateSelectedModel(model, { userInitiated: true });
+  }, [hasSubscription, updateSelectedModel]);
 
   // Function to update states based on textarea content with debouncing
   const handleUpdateStatesFromTextarea = React.useCallback((text: string) => {
@@ -353,15 +368,51 @@ export const StudioPanel = (props: StudioPanelProps) => {
                   </div>
                 </div>
 
-              {/* Model Selection Badge */}
-              <button
-                onClick={() => setIsModelDialogOpen(true)}
-                className="px-3 py-1.5 rounded-lg bg-gradient-create text-white text-xs md:text-sm font-semibold hover:opacity-90 transition-opacity flex items-center gap-1.5"
-                title="Click to change model version"
-              >
-                <span>{modelOptions.find(opt => opt.value === selectedModel)?.label || 'v4.5'}</span>
-                <ChevronRight className="w-3 h-3" />
-              </button>
+              {/* Model Selection Menu */}
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <button
+                    type="button"
+                    className="px-3 py-1.5 rounded-lg bg-gradient-create text-white text-xs md:text-sm font-semibold hover:opacity-90 transition-opacity flex items-center gap-1.5"
+                    title="Click to change model version"
+                  >
+                    <span>{modelOptions.find(opt => opt.value === selectedModel)?.label || 'v4.5'}</span>
+                    <ChevronRight className="w-3 h-3" />
+                  </button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="w-64 p-1.5">
+                  {modelOptions.map((option, index) => {
+                    const isSelected = option.value === selectedModel;
+                    return (
+                      <React.Fragment key={option.value}>
+                        <DropdownMenuItem
+                          onClick={() => handleModelSelect(option.value)}
+                          className="flex flex-col items-start gap-1 rounded-lg px-3 py-2"
+                        >
+                          <div className="flex w-full items-center justify-between gap-2">
+                            <div className="flex items-center gap-2">
+                              <span className="text-sm font-semibold">{option.label}</span>
+                              {!hasSubscription && option.requiresSubscription && (
+                                <span className="rounded-full border-0 bg-gradient-create px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-white">
+                                  Pro
+                                </span>
+                              )}
+                            </div>
+                            {isSelected && (
+                              <span className="inline-flex h-5 w-5 items-center justify-center rounded-full bg-primary">
+                                <Check className="h-3 w-3 text-primary-foreground" aria-hidden="true" />
+                              </span>
+                            )}
+                          </div>
+                          <span className="text-xs text-muted-foreground">
+                            {option.description}
+                          </span>
+                        </DropdownMenuItem>
+                      </React.Fragment>
+                    );
+                  })}
+                </DropdownMenuContent>
+              </DropdownMenu>
             </div>
           </div>
 
@@ -1244,17 +1295,6 @@ export const StudioPanel = (props: StudioPanelProps) => {
           }
         }}
         selectedModel={selectedModel}
-      />
-
-      <ModelSelectionDialog
-        isOpen={isModelDialogOpen}
-        onClose={() => setIsModelDialogOpen(false)}
-        selectedModel={selectedModel}
-        onSelectModel={(model) => {
-          updateSelectedModel(model, { userInitiated: true });
-        }}
-        hasSubscription={hasSubscription}
-        onShowPricing={() => setIsPricingOpen(true)}
       />
 
       {/* Pricing Dialog */}
