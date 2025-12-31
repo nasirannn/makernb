@@ -1349,6 +1349,34 @@ export const LibraryPanel = ({
       </AlertDialog>
 
       {/* Favorite Remove Confirmation Dialog */}
+      <AlertDialog
+        open={favoriteDialogOpen}
+        onOpenChange={(open) => {
+          setFavoriteDialogOpen(open);
+          if (!open) {
+            setTrackToRemoveFavorite(null);
+          }
+        }}
+      >
+        <AlertDialogContent className="max-w-[calc(100vw-2rem)] sm:max-w-[425px]">
+          <AlertDialogHeader className="space-y-2 sm:space-y-3">
+            <AlertDialogTitle className="text-lg sm:text-xl">Remove from library</AlertDialogTitle>
+            <AlertDialogDescription className="text-sm sm:text-base">
+              Remove &quot;{trackToRemoveFavorite?.title}&quot; from your library? You can add it back later.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter className="flex-col sm:flex-row gap-2 sm:gap-0">
+            <AlertDialogCancel className="w-full sm:w-auto">Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleFavoriteRemoveConfirm}
+              className="w-full sm:w-auto bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              Remove
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
       {/* Edit Music Info Dialog */}
       <EditMusicInfoDialog
         isOpen={editDialogOpen && !!trackToEdit}
