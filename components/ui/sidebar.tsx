@@ -529,8 +529,16 @@ const aiMusicToolsDropdown = [
                       {userMenuOpen && (
                         <div className="absolute bottom-0 left-full ml-3 w-64 rounded-2xl bg-[#05060b] shadow-2xl">
                           <div className="p-4">
-                            <div className="text-sm font-semibold text-white truncate">
-                              {user.user_metadata?.full_name || user.email}
+                            <div className="flex items-center justify-between gap-2">
+                              <div className="text-sm font-semibold text-white truncate flex-1">
+                                {user.user_metadata?.full_name || user.email}
+                              </div>
+                              {tierCode && (
+                                <Badge className="relative inline-block rounded-full border border-zinc-700 bg-zinc-900/20 px-2 py-0.5 text-xs text-zinc-50 animate-border-marquee flex-shrink-0">
+                                  <span className="text-foreground/90 font-medium capitalize">{tierCode}</span>
+                                  <span className="absolute bottom-0 left-1 right-1 h-[1px] bg-gradient-to-r from-zinc-500/0 via-zinc-300 to-zinc-500/0"></span>
+                                </Badge>
+                              )}
                             </div>
                             <div className="text-xs text-white/60 truncate">{user.email}</div>
                           </div>
