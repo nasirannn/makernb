@@ -11,7 +11,7 @@ interface AuthContextType {
   session: Session | null;
   loading: boolean;
   signOut: () => Promise<void>;
-  checkDailyCredits: (sessionToken?: string) => Promise<void>;
+  checkDailyCredits: (sessionToken?: string, userIdOverride?: string) => Promise<void>;
   manualCheckCredits: () => Promise<void>;
   onCreditsUpdated?: (callback: () => void) => void; // 新增回调注册函数
   onPermissionsUpdated?: (callback: () => void) => void; // 权限更新回调注册函数
@@ -24,16 +24,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
-  const [hasCheckedInitialCredits, setHasCheckedInitialCredits] = useState(false);
   const creditsCheckInProgress = useRef(false);
-  const lastCreditsCheckTime = useRef(0);
   const [isUserAdmin, setIsUserAdmin] = useState<boolean | null>(null);
   const adminCheckCache = useRef<Map<string, boolean>>(new Map());
   const creditsUpdatedCallback = useRef<(() => void) | null>(null);
   const permissionsUpdatedCallback = useRef<(() => void) | null>(null);
 
   // 定义checkDailyCredits函数
-  const checkDailyCredits = async (sessionToken?: string) => {
+  const checkDailyCredits = async (sessionToken?: string, userIdOverride?: string) => {
     // 优先使用传入的token，否则尝试获取最新的session
     let token = sessionToken;
     if (!token) {
@@ -44,11 +42,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     if (!token) {
       return;
     }
+    const resolvedUserId = userIdOverride || user?.id;
+    if (!resolvedUserId) {
+      return;
+    }
 
     // 检查是否是管理员用户，如果是则直接跳过
-    if (user?.id) {
+    if (resolvedUserId) {
       // 检查缓存
-      const cachedAdminStatus = adminCheckCache.current.get(user.id);
+      const cachedAdminStatus = adminCheckCache.current.get(resolvedUserId);
       if (cachedAdminStatus === true) {
         return;
       }
@@ -57,10 +59,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       if (cachedAdminStatus === undefined) {
         // 在客户端只能访问 NEXT_PUBLIC_ 开头的环境变量
         const adminId = process.env.NEXT_PUBLIC_ADMIN_ID;
-        const adminStatus = Boolean(adminId && user.id === adminId);
+        const adminStatus = Boolean(adminId && resolvedUserId === adminId);
 
         // 缓存结果
-        adminCheckCache.current.set(user.id, adminStatus);
+        adminCheckCache.current.set(resolvedUserId, adminStatus);
 
         if (adminStatus) {
           return;
@@ -73,23 +75,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       return;
     }
 
-    // 防止短时间内重复调用 - 使用 localStorage 跨标签页共享
-    const now = Date.now();
-    const lastCheckKey = `lastCreditsCheck_${user?.id || 'unknown'}`;
-    const lastCheckTime = typeof window !== 'undefined'
-      ? parseInt(localStorage.getItem(lastCheckKey) || '0')
-      : lastCreditsCheckTime.current;
-
-    if (now - lastCheckTime < 300000) { // 5分钟 = 300000ms
-      return;
-    }
-
     creditsCheckInProgress.current = true;
-    lastCreditsCheckTime.current = now;
-    // 持久化时间戳到 localStorage（跨标签页共享）
-    if (typeof window !== 'undefined') {
-      localStorage.setItem(lastCheckKey, now.toString());
-    }
 
     try {
       const response = await fetch('/api/daily-login-credits', {
@@ -117,21 +103,24 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             }, 500); // 延迟500ms确保数据库更新完成
           }
           const today = new Date().toISOString().split('T')[0];
-          const checkKey = `dailyCreditsChecked_${user?.id || 'unknown'}_${today}`;
+          const checkKey = `dailyCreditsChecked_${resolvedUserId}_${today}`;
           if (typeof window !== 'undefined') {
             localStorage.setItem(checkKey, 'true');
           }
         } else if (data.alreadyReceived) {
           // User already received today's credits
           const today = new Date().toISOString().split('T')[0];
-          const checkKey = `dailyCreditsChecked_${user?.id || 'unknown'}_${today}`;
+          const checkKey = `dailyCreditsChecked_${resolvedUserId}_${today}`;
           if (typeof window !== 'undefined') {
             localStorage.setItem(checkKey, 'true');
+          }
+          if (creditsUpdatedCallback.current) {
+            creditsUpdatedCallback.current?.();
           }
         } else if (data.message?.includes('Not eligible')) {
           // User not eligible for daily credits (likely admin user)
           const today = new Date().toISOString().split('T')[0];
-          const checkKey = `dailyCreditsChecked_${user?.id || 'unknown'}_${today}`;
+          const checkKey = `dailyCreditsChecked_${resolvedUserId}_${today}`;
           if (typeof window !== 'undefined') {
             localStorage.setItem(checkKey, 'true');
           }
@@ -150,7 +139,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           // 用新token重试，但不递归太多次
           creditsCheckInProgress.current = false; // 重置状态允许重试
           setTimeout(() => {
-            checkDailyCredits(newSession.access_token);
+            checkDailyCredits(newSession.access_token, resolvedUserId);
           }, 500);
         } else {
           console.error('No new valid token available for retry');
@@ -171,10 +160,24 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
+  const maybeCheckDailyCredits = (token: string, userId: string) => {
+    const today = new Date().toISOString().split('T')[0]; // YYYY-MM-DD
+    const checkKey = `dailyCreditsChecked_${userId}_${today}`;
+    const hasCheckedToday = typeof window !== 'undefined'
+      ? localStorage.getItem(checkKey) === 'true'
+      : false;
+
+    if (hasCheckedToday || creditsCheckInProgress.current) {
+      return;
+    }
+
+    checkDailyCredits(token, userId);
+  };
+
   // 手动检查积分（用于调试或重试）
   const manualCheckCredits = async () => {
     if (session?.access_token) {
-      await checkDailyCredits(session.access_token);
+      await checkDailyCredits(session.access_token, session.user?.id);
     }
   };
 
@@ -194,21 +197,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         setLoading(false);
 
         // 如果用户已经登录，检查每日登录积分（使用持久化状态避免重复检查）
-        if (session?.access_token && session.user?.id && !hasCheckedInitialCredits) {
-          const today = new Date().toISOString().split('T')[0]; // YYYY-MM-DD
-          const checkKey = `dailyCreditsChecked_${session.user.id}_${today}`;
-          // 使用 localStorage（跨标签页共享）而不是 sessionStorage
-          const hasCheckedToday = typeof window !== 'undefined'
-            ? localStorage.getItem(checkKey) === 'true'
-            : false;
-
-          if (!hasCheckedToday && !creditsCheckInProgress.current) {
-            setHasCheckedInitialCredits(true);
-            // 增加延迟确保token完全生效（生产环境可能需要更长时间）
-            setTimeout(() => {
-              checkDailyCredits(session.access_token);
-            }, 2500);
-          }
+        if (session?.access_token && session.user?.id) {
+          // 增加延迟确保token完全生效（生产环境可能需要更长时间）
+          setTimeout(() => {
+            maybeCheckDailyCredits(session.access_token, session.user.id);
+          }, 2500);
         }
       }
     };
@@ -253,13 +246,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             ? localStorage.getItem(checkKey) === 'true'
             : false;
 
-          if (!hasCheckedToday && !creditsCheckInProgress.current && !hasCheckedInitialCredits) {
-            setHasCheckedInitialCredits(true); // 标记已检查，避免重复
-            // 增加延迟确保登录流程完成且token完全生效
-            setTimeout(() => {
-              checkDailyCredits(session.access_token);
-            }, 3000);
-          }
+          // 增加延迟确保登录流程完成且token完全生效
+          setTimeout(() => {
+            maybeCheckDailyCredits(session.access_token, session.user.id);
+          }, 3000);
         } else if (event === 'TOKEN_REFRESHED' && session?.access_token) {
           // Token刷新时不再自动检查积分，避免窗口焦点变化时的重复调用
         }
@@ -284,6 +274,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       throw error;
     }
   };
+
 
 
 

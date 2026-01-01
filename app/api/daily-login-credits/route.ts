@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { supabaseServer } from '@/lib/supabase-server';
-import { grantDailyLoginCredits, hasReceivedTodayCredits } from '@/lib/daily-login-credits';
+import { cleanupExpiredDailyCreditsForUser, grantDailyLoginCredits, hasReceivedTodayCredits } from '@/lib/daily-login-credits';
 
 export const dynamic = 'force-dynamic';
 
@@ -47,6 +47,12 @@ export async function POST(request: NextRequest) {
         message: 'Admin users are not eligible for daily login credits',
         alreadyReceived: false
       });
+    }
+
+    try {
+      await cleanupExpiredDailyCreditsForUser(user.id);
+    } catch (cleanupError) {
+      console.error('[daily-login-credits] Failed to cleanup expired credits for user:', cleanupError);
     }
 
     // 尝试发放每日登录积分

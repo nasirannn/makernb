@@ -9,35 +9,11 @@ import { query, withTransaction } from './db-query-builder';
 // 2. 过期机制：登录奖励积分第二天凌晨清零，最多清理15积分
 // 3. 订阅积分保护：只清理登录积分，订阅积分永久有效
 //
-// 【清理逻辑】
-// 场景示例：
-// - 场景1：用户A昨天登录获得15积分，没有任何消耗
-//   → 今天凌晨清理15积分（全部清零）
-// - 场景2：用户B昨天登录获得15积分，使用了7积分，剩余8积分
-//   → 今天凌晨清理8积分（清理剩余的登录积分）
-// - 场景3：用户C有50订阅积分，昨天登录获得15积分，使用了10积分，剩余55积分
-//   → 今天凌晨只清理5积分（15-10），保留50订阅积分
-// - 场景4：用户D有50订阅积分，昨天登录获得15积分，使用了20积分（消耗超过15）
-//   → 今天凌晨不清理任何积分（登录积分已全部消耗，不能清理订阅积分）
-//
-// 清理策略：
-// 1. 查找昨天获得登录积分的用户（不管今天是否登录）
-// 2. 获取昨天登录前的余额（loginBeforeBalance）
-// 3. 获取昨天结束时的积分余额（yesterdayRemainingCredits）
-// 4. 计算昨天剩余的登录积分 = yesterdayRemainingCredits - loginBeforeBalance
-// 5. 清理数量 = min(15积分, 剩余的登录积分)，确保不超过当前余额
-// 6. 这样只清理登录积分，订阅积分不会被清理
-//
 // 【实现细节】
-// - 通过 credit_transactions 表追踪积分变动
-// - 通过 daily_logins 表记录每日登录
-// - 使用 'bonus' 标记每日登录积分，使用 'subscription_credit' 标记订阅积分
+// - 使用 credit_transactions 表追踪每日登录积分（reference_id 唯一）
 // - 清理时创建 'expired' 类型的交易记录，便于审计
+// - 避免依赖 daily_logins 表，兼容历史/缺失结构
 //
-// ============================================================================
-
-// ============================================================================
-// 类型定义
 // ============================================================================
 
 export interface DailyLogin {
@@ -51,19 +27,100 @@ export interface DailyLogin {
   updated_at: string;
 }
 
+const getDateKey = (date: Date) => date.toISOString().split('T')[0];
+const getDailyLoginReferenceId = (userId: string, dateKey: string) =>
+  `daily_login_${userId.slice(0, 8)}_${dateKey}`;
+
+let creditTransactionSchema:
+  | { hasBalanceBefore: boolean; hasBalanceAfter: boolean }
+  | null = null;
+
+const detectCreditTransactionSchema = async () => {
+  if (creditTransactionSchema) {
+    return creditTransactionSchema;
+  }
+
+  try {
+    const result = await query(
+      `SELECT column_name
+       FROM information_schema.columns
+       WHERE table_name = 'credit_transactions'
+       AND column_name IN ('balance_before', 'balance_after')`
+    );
+    const columns = new Set<string>(result.rows.map((row: { column_name: string }) => row.column_name));
+    creditTransactionSchema = {
+      hasBalanceBefore: columns.has('balance_before'),
+      hasBalanceAfter: columns.has('balance_after'),
+    };
+  } catch (error) {
+    console.error('[daily-login-credits] Failed to detect credit_transactions columns:', error);
+    creditTransactionSchema = { hasBalanceBefore: false, hasBalanceAfter: false };
+  }
+
+  return creditTransactionSchema;
+};
+
+const insertCreditTransaction = async (
+  queryFn: typeof query,
+  schema: { hasBalanceBefore: boolean; hasBalanceAfter: boolean },
+  params: {
+    userId: string;
+    transactionType: string;
+    amount: number;
+    balanceBefore?: number;
+    balanceAfter?: number;
+    description: string;
+    referenceId: string;
+  }
+) => {
+  const columns = ['user_id', 'transaction_type', 'amount'];
+  const values: Array<string | number | null> = [
+    params.userId,
+    params.transactionType,
+    params.amount,
+  ];
+
+  if (schema.hasBalanceBefore) {
+    columns.push('balance_before');
+    values.push(params.balanceBefore ?? null);
+  }
+
+  if (schema.hasBalanceAfter) {
+    if (typeof params.balanceAfter === 'undefined') {
+      throw new Error('balance_after is required for credit_transactions schema');
+    }
+    columns.push('balance_after');
+    values.push(params.balanceAfter);
+  }
+
+  columns.push('description', 'reference_id');
+  values.push(params.description, params.referenceId);
+
+  const placeholders = values.map((_, index) => `$${index + 1}`).join(', ');
+  const result = await queryFn(
+    `INSERT INTO credit_transactions (${columns.join(', ')})
+     VALUES (${placeholders}) RETURNING id`,
+    values
+  );
+  return result.rows[0].id as string;
+};
+
 // ============================================================================
 // 检查用户今天是否已经获得登录积分
 // ============================================================================
 
 export const hasReceivedTodayCredits = async (userId: string): Promise<boolean> => {
   try {
-    const today = new Date().toISOString().split('T')[0]; // YYYY-MM-DD format
-    
+    const today = getDateKey(new Date());
+    const referenceId = getDailyLoginReferenceId(userId, today);
+
     const result = await query(
-      `SELECT id FROM daily_logins 
-       WHERE user_id = $1::uuid 
-       AND login_date = $2`,
-      [userId, today]
+      `SELECT id FROM credit_transactions
+       WHERE user_id = $1::uuid
+       AND reference_id = $2
+       AND transaction_type = 'bonus'
+       LIMIT 1`,
+      [userId, referenceId]
     );
 
     return result.rows.length > 0;
@@ -74,41 +131,38 @@ export const hasReceivedTodayCredits = async (userId: string): Promise<boolean> 
 };
 
 // ============================================================================
-// 给用户发放每日登录积分（使用唯一约束防止重复）
+// 给用户发放每日登录积分（使用 reference_id 防止重复）
 // ============================================================================
 
-export const grantDailyLoginCredits = async (userId: string): Promise<{ id: string; daily_credits: number; last_login_date: string } | null> => {
+export const grantDailyLoginCredits = async (
+  userId: string
+): Promise<{ id: string; daily_credits: number; last_login_date: string } | null> => {
   try {
-    // 检查是否是管理员
     const adminId = process.env.ADMIN_ID;
     if (adminId && userId === adminId) {
       return null;
     }
 
-    return await withTransaction(async (queryFn) => {
-      const today = new Date().toISOString().split('T')[0]; // YYYY-MM-DD
-      const creditsAmount = 15;
+    const schema = await detectCreditTransactionSchema();
 
-      // 尝试插入每日登录记录（唯一约束会自动防止重复）
-      let loginRecord;
-      try {
-        const loginInsertResult = await queryFn(
-          `INSERT INTO daily_logins (user_id, login_date, login_time, credits_granted)
-           VALUES ($1::uuid, $2, NOW(), $3)
-           RETURNING id, login_date`,
-          [userId, today, creditsAmount]
-        );
-        loginRecord = loginInsertResult.rows[0];
-      } catch (insertError: any) {
-        // 如果是唯一约束冲突，说明今天已经获得过积分了
-        if (insertError.code === '23505') {
-          console.log(`[grantDailyLoginCredits] User ${userId} already received today's credits`);
-          return null;
-        }
-        throw insertError;
+    return await withTransaction(async (queryFn) => {
+      const today = getDateKey(new Date());
+      const creditsAmount = 15;
+      const referenceId = getDailyLoginReferenceId(userId, today);
+
+      const existingCredit = await queryFn(
+        `SELECT id FROM credit_transactions
+         WHERE user_id = $1::uuid
+         AND reference_id = $2
+         AND transaction_type = 'bonus'
+         LIMIT 1`,
+        [userId, referenceId]
+      );
+
+      if (existingCredit.rows.length > 0) {
+        return null;
       }
 
-      // 🔒 锁定用户积分记录，防止并发更新
       const userCreditsResult = await queryFn(
         'SELECT credits, total_earned FROM user_credits WHERE user_id = $1::uuid FOR UPDATE',
         [userId]
@@ -116,10 +170,8 @@ export const grantDailyLoginCredits = async (userId: string): Promise<{ id: stri
 
       let newBalance: number;
       let balanceBefore: number;
-      let transactionId: string;
 
       if (userCreditsResult.rows.length === 0) {
-        // 如果用户积分记录不存在，创建记录并直接给予每日登录积分
         balanceBefore = 0;
         const newUserCreditsResult = await queryFn(
           'INSERT INTO user_credits (user_id, credits, total_earned) VALUES ($1::uuid, $2, $3) RETURNING credits',
@@ -127,9 +179,7 @@ export const grantDailyLoginCredits = async (userId: string): Promise<{ id: stri
         );
         newBalance = newUserCreditsResult.rows[0].credits;
       } else {
-        // 更新用户积分前，先获取登录前的余额
         balanceBefore = userCreditsResult.rows[0].credits;
-        // 更新用户积分
         const updateResult = await queryFn(
           'UPDATE user_credits SET credits = credits + $1, total_earned = total_earned + $1, updated_at = NOW() WHERE user_id = $2::uuid RETURNING credits',
           [creditsAmount, userId]
@@ -137,39 +187,22 @@ export const grantDailyLoginCredits = async (userId: string): Promise<{ id: stri
         newBalance = updateResult.rows[0].credits;
       }
 
-      // 创建积分交易记录（包含 balance_before 以便清理逻辑使用）
-      const loginRewardId = `daily_login_${userId.slice(0, 8)}_${today}`;
-      const transactionResult = await queryFn(
-        `INSERT INTO credit_transactions (
-          user_id, transaction_type, amount, balance_before, balance_after,
-          description, reference_id
-        ) VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING id`,
-        [
-          userId,
-          'bonus',
-          creditsAmount,
-          balanceBefore,
-          newBalance,
-          'Daily login bonus',
-          loginRewardId
-        ]
-      );
-
-      transactionId = transactionResult.rows[0].id;
-
-      // 更新 daily_logins 表的 transaction_id
-      await queryFn(
-        'UPDATE daily_logins SET transaction_id = $1 WHERE id = $2',
-        [transactionId, loginRecord.id]
-      );
+      const transactionId = await insertCreditTransaction(queryFn, schema, {
+        userId,
+        transactionType: 'bonus',
+        amount: creditsAmount,
+        balanceBefore,
+        balanceAfter: newBalance,
+        description: 'Daily login bonus',
+        referenceId,
+      });
 
       return {
-        id: loginRecord.id,
+        id: transactionId,
         daily_credits: creditsAmount,
-        last_login_date: today
+        last_login_date: today,
       };
     });
-
   } catch (error) {
     console.error('[grantDailyLoginCredits] Error:', error);
     throw error;
@@ -177,108 +210,82 @@ export const grantDailyLoginCredits = async (userId: string): Promise<{ id: stri
 };
 
 // ============================================================================
-// 清理过期的每日登录积分（第二天凌晨清理前一天剩余的积分）
+// 清理过期的每日登录积分（批量）
 // ============================================================================
 
 export const cleanupExpiredDailyCredits = async (): Promise<number> => {
   try {
+    const schema = await detectCreditTransactionSchema();
+    if (!schema.hasBalanceAfter) {
+      return 0;
+    }
+
     return await withTransaction(async (queryFn) => {
-      const today = new Date().toISOString().split('T')[0]; // YYYY-MM-DD
-      const yesterday = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString().split('T')[0]; // 昨天的日期
+      const today = getDateKey(new Date());
+      const yesterday = getDateKey(new Date(Date.now() - 24 * 60 * 60 * 1000));
+      const todayStart = new Date(`${today}T00:00:00Z`).toISOString();
+      const yesterdayStart = new Date(`${yesterday}T00:00:00Z`).toISOString();
 
-      console.log(`[CLEANUP] Today: ${today}, Yesterday: ${yesterday}`);
+      const selectColumns = [
+        'ct.id',
+        'ct.user_id',
+        'ct.amount as daily_amount',
+        'ct.balance_after',
+        'uc.credits as current_credits',
+      ];
+      if (schema.hasBalanceBefore) {
+        selectColumns.push('ct.balance_before');
+      }
 
-      // 查找昨天获得每日登录积分的用户（使用新的 daily_logins 表）
       const yesterdayCredits = await queryFn(
-        `SELECT dl.user_id, dl.transaction_id, dl.credits_granted as daily_amount, uc.credits as current_credits
-         FROM daily_logins dl
-         JOIN user_credits uc ON dl.user_id = uc.user_id
-         WHERE dl.login_date = $1
-         AND dl.transaction_id IS NOT NULL
+        `SELECT ${selectColumns.join(', ')}
+         FROM credit_transactions ct
+         JOIN user_credits uc ON ct.user_id = uc.user_id
+         WHERE ct.transaction_type = 'bonus'
+         AND ct.reference_id LIKE $1
          AND NOT EXISTS (
-           SELECT 1 FROM credit_transactions ct
-           WHERE ct.user_id = dl.user_id
-           AND ct.reference_id = dl.transaction_id::text
-           AND ct.description = 'Daily login credits expired'
+           SELECT 1 FROM credit_transactions exp
+           WHERE exp.user_id = ct.user_id
+           AND exp.reference_id = ct.id::text
+           AND exp.description = 'Daily login credits expired'
          )`,
-        [yesterday]
+        [`%_${yesterday}`]
       );
 
-      console.log(`[CLEANUP] Found ${yesterdayCredits.rows.length} users with yesterday's daily credits`);
-
       let cleanedCount = 0;
-      const todayStart = new Date(today + 'T00:00:00Z').toISOString();
 
-      // 处理每个用户
-      for (const userCredit of yesterdayCredits.rows) {
-        const { user_id: userId, transaction_id: transactionId, daily_amount: dailyAmount, current_credits: currentCredits } = userCredit;
+      for (const row of yesterdayCredits.rows) {
+        const userId = row.user_id;
+        const transactionId = row.id;
+        const dailyAmount = row.daily_amount;
+        const currentCredits = row.current_credits;
+        const loginBeforeBalance =
+          schema.hasBalanceBefore ? row.balance_before : (row.balance_after - dailyAmount);
+        const loginAfterBalance = row.balance_after;
 
-        // 查找昨天登录时的交易记录，获取登录前后的余额
-        const loginTransaction = await queryFn(
-          `SELECT balance_before, balance_after, created_at
-           FROM credit_transactions
-           WHERE id = $1::uuid
-           AND user_id = $2::uuid
-           LIMIT 1`,
-          [transactionId, userId]
-        );
-
-        if (loginTransaction.rows.length === 0) {
-          console.log(`[CLEANUP] User ${userId}: Login transaction ${transactionId} not found, skipping`);
-          continue;
-        }
-
-        // balance_before 可能为 null（旧数据），需要处理
-        const loginBeforeBalance = loginTransaction.rows[0].balance_before ?? 
-          (loginTransaction.rows[0].balance_after - dailyAmount); // 如果没有 balance_before，通过计算得出
-        const loginAfterBalance = loginTransaction.rows[0].balance_after;
-
-        // 查找昨天结束时（今天凌晨之前）的最后一笔交易余额
-        // 如果用户昨天登录后没有其他交易，则 yesterdayRemainingCredits = loginAfterBalance
         const lastYesterdayTransaction = await queryFn(
           `SELECT balance_after
            FROM credit_transactions
            WHERE user_id = $1::uuid
-           AND created_at < $2
+           AND created_at >= $2
+           AND created_at < $3
            ORDER BY created_at DESC
            LIMIT 1`,
-          [userId, todayStart]
+          [userId, yesterdayStart, todayStart]
         );
 
-        // 如果没有找到交易记录（理论上不应该发生，因为至少有登录交易），使用登录后的余额
         const yesterdayRemainingCredits = lastYesterdayTransaction.rows.length > 0
           ? lastYesterdayTransaction.rows[0].balance_after
           : loginAfterBalance;
 
-        console.log(`[CLEANUP] User ${userId}: Login before balance = ${loginBeforeBalance}, Yesterday remaining = ${yesterdayRemainingCredits}, Daily amount = ${dailyAmount}, Current = ${currentCredits}`);
-
-        // 如果昨天有剩余积分，需要清理
-        // 策略：只清理昨天新增的登录积分中剩余的部分
-        // 例如：昨天登录获得15积分，消耗7积分，剩余8积分，则清理8积分
-        // 这样可以确保只清理登录积分，不会清理订阅积分
-        // 条件：yesterdayRemainingCredits >= loginBeforeBalance 表示昨天结束时还有未使用的登录积分
-        // 如果 yesterdayRemainingCredits < loginBeforeBalance，说明消耗超过了登录奖励，不应该清理订阅积分
         if (yesterdayRemainingCredits >= loginBeforeBalance && loginBeforeBalance >= 0) {
-          // 计算昨天获得的15积分中，还剩多少没有消耗
-          // 昨天登录后余额 = 登录前余额 + 15
-          // 昨天结束时余额 = 已知
-          // 剩余的登录积分 = 昨天结束时余额 - 登录前余额（但不能超过15积分，也不能小于0）
           const remainingLoginCredits = Math.max(0, Math.min(dailyAmount, yesterdayRemainingCredits - loginBeforeBalance));
-          
-          // 应该清理的积分 = 剩余的登录积分（不能超过当前余额）
-          const creditsToClean = remainingLoginCredits;
-          
-          // 确保不超过当前余额
-          const actualDeduction = Math.min(creditsToClean, currentCredits);
-
-          console.log(`[CLEANUP] User ${userId}: Login before = ${loginBeforeBalance}, Yesterday remaining = ${yesterdayRemainingCredits}, Remaining login credits = ${remainingLoginCredits}, Credits to clean = ${creditsToClean}, Actual deduction = ${actualDeduction}`);
+          const actualDeduction = Math.min(remainingLoginCredits, currentCredits);
 
           if (actualDeduction > 0) {
-            // ✅ 防止重复执行：在插入过期记录之前，再次检查是否已经存在过期记录
-            // 这样可以防止并发执行时重复创建过期记录
             const existingExpiredRecord = await queryFn(
-              `SELECT id FROM credit_transactions 
-               WHERE user_id = $1::uuid 
+              `SELECT id FROM credit_transactions
+               WHERE user_id = $1::uuid
                AND reference_id = $2::text
                AND description = 'Daily login credits expired'
                AND created_at >= $3
@@ -287,13 +294,9 @@ export const cleanupExpiredDailyCredits = async (): Promise<number> => {
             );
 
             if (existingExpiredRecord.rows.length > 0) {
-              console.log(`[CLEANUP] User ${userId} already has expired record for transaction ${transactionId}, skipping`);
-              continue; // 已经处理过，跳过
+              continue;
             }
 
-            console.log(`[CLEANUP] Cleaning ${actualDeduction} credits for user ${userId}`);
-
-            // 扣除过期的每日登录积分
             const updateResult = await queryFn(
               'UPDATE user_credits SET credits = credits - $1, updated_at = NOW() WHERE user_id = $2::uuid RETURNING credits',
               [actualDeduction, userId]
@@ -301,36 +304,145 @@ export const cleanupExpiredDailyCredits = async (): Promise<number> => {
 
             const newBalance = updateResult.rows[0].credits;
 
-            // 创建过期积分交易记录
-            await queryFn(
-              `INSERT INTO credit_transactions (
-                user_id, transaction_type, amount, balance_after,
-                description, reference_id
-              ) VALUES ($1, $2, $3, $4, $5, $6)`,
-              [
-                userId,
-                'expired',
-                -actualDeduction,
-                newBalance,
-                'Daily login credits expired',
-                transactionId
-              ]
-            );
+            await insertCreditTransaction(queryFn, schema, {
+              userId,
+              transactionType: 'expired',
+              amount: -actualDeduction,
+              balanceAfter: newBalance,
+              description: 'Daily login credits expired',
+              referenceId: transactionId,
+            });
 
             cleanedCount++;
-          } else {
-            console.log(`[CLEANUP] User ${userId} has no credits to clean up`);
           }
-        } else {
-          console.log(`[CLEANUP] User ${userId} had no remaining credits yesterday, skipping`);
         }
       }
 
       return cleanedCount;
     });
-
   } catch (error) {
     console.error('[cleanupExpiredDailyCredits] Error:', error);
+    throw error;
+  }
+};
+
+// ============================================================================
+// 清理指定用户的过期每日登录积分
+// ============================================================================
+
+export const cleanupExpiredDailyCreditsForUser = async (userId: string): Promise<number> => {
+  try {
+    const schema = await detectCreditTransactionSchema();
+    if (!schema.hasBalanceAfter) {
+      return 0;
+    }
+
+    return await withTransaction(async (queryFn) => {
+      const today = getDateKey(new Date());
+      const yesterday = getDateKey(new Date(Date.now() - 24 * 60 * 60 * 1000));
+      const todayStart = new Date(`${today}T00:00:00Z`).toISOString();
+      const yesterdayStart = new Date(`${yesterday}T00:00:00Z`).toISOString();
+
+      const selectColumns = [
+        'ct.id',
+        'ct.user_id',
+        'ct.amount as daily_amount',
+        'ct.balance_after',
+        'uc.credits as current_credits',
+      ];
+      if (schema.hasBalanceBefore) {
+        selectColumns.push('ct.balance_before');
+      }
+
+      const yesterdayCredits = await queryFn(
+        `SELECT ${selectColumns.join(', ')}
+         FROM credit_transactions ct
+         JOIN user_credits uc ON ct.user_id = uc.user_id
+         WHERE ct.transaction_type = 'bonus'
+         AND ct.reference_id LIKE $1
+         AND ct.user_id = $2::uuid
+         AND NOT EXISTS (
+           SELECT 1 FROM credit_transactions exp
+           WHERE exp.user_id = ct.user_id
+           AND exp.reference_id = ct.id::text
+           AND exp.description = 'Daily login credits expired'
+         )`,
+        [`%_${yesterday}`, userId]
+      );
+
+      if (yesterdayCredits.rows.length === 0) {
+        return 0;
+      }
+
+      let cleanedCount = 0;
+
+      for (const row of yesterdayCredits.rows) {
+        const transactionId = row.id;
+        const dailyAmount = row.daily_amount;
+        const currentCredits = row.current_credits;
+        const loginBeforeBalance =
+          schema.hasBalanceBefore ? row.balance_before : (row.balance_after - dailyAmount);
+        const loginAfterBalance = row.balance_after;
+
+        const lastYesterdayTransaction = await queryFn(
+          `SELECT balance_after
+           FROM credit_transactions
+           WHERE user_id = $1::uuid
+           AND created_at >= $2
+           AND created_at < $3
+           ORDER BY created_at DESC
+           LIMIT 1`,
+          [userId, yesterdayStart, todayStart]
+        );
+
+        const yesterdayRemainingCredits = lastYesterdayTransaction.rows.length > 0
+          ? lastYesterdayTransaction.rows[0].balance_after
+          : loginAfterBalance;
+
+        if (yesterdayRemainingCredits >= loginBeforeBalance && loginBeforeBalance >= 0) {
+          const remainingLoginCredits = Math.max(0, Math.min(dailyAmount, yesterdayRemainingCredits - loginBeforeBalance));
+          const actualDeduction = Math.min(remainingLoginCredits, currentCredits);
+
+          if (actualDeduction > 0) {
+            const existingExpiredRecord = await queryFn(
+              `SELECT id FROM credit_transactions
+               WHERE user_id = $1::uuid
+               AND reference_id = $2::text
+               AND description = 'Daily login credits expired'
+               AND created_at >= $3
+               LIMIT 1`,
+              [userId, transactionId, todayStart]
+            );
+
+            if (existingExpiredRecord.rows.length > 0) {
+              continue;
+            }
+
+            const updateResult = await queryFn(
+              'UPDATE user_credits SET credits = credits - $1, updated_at = NOW() WHERE user_id = $2::uuid RETURNING credits',
+              [actualDeduction, userId]
+            );
+
+            const newBalance = updateResult.rows[0].credits;
+
+            await insertCreditTransaction(queryFn, schema, {
+              userId,
+              transactionType: 'expired',
+              amount: -actualDeduction,
+              balanceAfter: newBalance,
+              description: 'Daily login credits expired',
+              referenceId: transactionId,
+            });
+
+            cleanedCount++;
+          }
+        }
+      }
+
+      return cleanedCount;
+    });
+  } catch (error) {
+    console.error('[cleanupExpiredDailyCreditsForUser] Error:', error);
     throw error;
   }
 };
@@ -340,17 +452,17 @@ export const cleanupExpiredDailyCredits = async (): Promise<number> => {
 // ============================================================================
 
 export const getUserDailyLoginHistory = async (
-  userId: string, 
-  limit: number = 30
+  userId: string
 ): Promise<{ id: string; daily_credits: number; last_login_date: string; created_at: string }[]> => {
   try {
     const result = await query(
-      `SELECT id, credits_granted as daily_credits, login_date as last_login_date, login_time as created_at 
-       FROM daily_logins 
-       WHERE user_id = $1::uuid 
-       ORDER BY login_date DESC, login_time DESC 
-       LIMIT $2`,
-      [userId, limit]
+      `SELECT id, amount as daily_credits, created_at as last_login_date, created_at
+       FROM credit_transactions
+       WHERE user_id = $1::uuid
+       AND transaction_type = 'bonus'
+       AND description = 'Daily login bonus'
+       ORDER BY created_at DESC`,
+      [userId]
     );
 
     return result.rows;
@@ -364,13 +476,17 @@ export const getUserDailyLoginHistory = async (
 // 获取用户当前的每日积分状态
 // ============================================================================
 
-export const getUserDailyCreditsStatus = async (userId: string): Promise<{ id: string; daily_credits: number; last_login_date: string; created_at: string } | null> => {
+export const getUserDailyCreditsStatus = async (
+  userId: string
+): Promise<{ id: string; daily_credits: number; last_login_date: string; created_at: string } | null> => {
   try {
     const result = await query(
-      `SELECT id, credits_granted as daily_credits, login_date as last_login_date, login_time as created_at 
-       FROM daily_logins 
-       WHERE user_id = $1::uuid 
-       ORDER BY login_date DESC, login_time DESC 
+      `SELECT id, amount as daily_credits, created_at as last_login_date, created_at
+       FROM credit_transactions
+       WHERE user_id = $1::uuid
+       AND transaction_type = 'bonus'
+       AND description = 'Daily login bonus'
+       ORDER BY created_at DESC
        LIMIT 1`,
       [userId]
     );
