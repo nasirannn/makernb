@@ -38,17 +38,6 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // 检查是否是管理员用户，如果是则直接返回
-    const adminId = process.env.ADMIN_ID;
-    if (adminId && user.id === adminId) {
-      console.log('Admin user, skipping daily login credits');
-      return NextResponse.json({
-        success: false,
-        message: 'Admin users are not eligible for daily login credits',
-        alreadyReceived: false
-      });
-    }
-
     try {
       await cleanupExpiredDailyCreditsForUser(user.id);
     } catch (cleanupError) {

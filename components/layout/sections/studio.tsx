@@ -1058,28 +1058,6 @@ const StudioContent = () => {
         }
     }, [updateTrack, selectedStudioTrack]);
 
-    const handlePinToggle = React.useCallback(async (trackId: string, isPinned: boolean) => {
-        try {
-            const response = await fetch('/api/toggle-track-pin', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ trackId, isPinned: !isPinned })
-            });
-
-            if (!response.ok) {
-                throw new Error('Failed to toggle pin status');
-            }
-
-            // 更新本地状态
-            updateTrack(trackId, (t) => ({ ...t, isPinned: !isPinned }));
-
-            toast(isPinned ? 'Track unpinned' : 'Track pinned');
-        } catch (error) {
-            console.error('Error toggling pin:', error);
-            toast.error('Failed to update pin status');
-        }
-    }, [updateTrack]);
-
     const handleDeleteTrack = React.useCallback(async (trackId: string) => {
         try {
             const response = await fetch('/api/delete-track', {

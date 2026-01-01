@@ -182,7 +182,6 @@ const LibraryContent = () => {
             duration: track.duration,
             isPublished: track.isPublished ?? false,
             isFavorited: track.isFavorited ?? false,
-            isPinned: track.isPinned ?? false,
             isDeleted: track.isDeleted ?? false,
             coverR2Url: (track as any).coverR2Url || track.coverImage || undefined, // 优先使用新字段名
             coverUrl: track.coverImage || undefined,
@@ -345,9 +344,6 @@ const LibraryContent = () => {
         } else if (action === 'publish_toggle') {
             const currentIsPublished = track.isPublished ?? false;
             updateTrack(track.id, { isPublished: !currentIsPublished });
-        } else if (action === 'pin') {
-            const currentIsPinned = track.isPinned ?? false;
-            updateTrack(track.id, { isPinned: !currentIsPinned });
         } else if (action === 'delete') {
             updateTrack(track.id, { isDeleted: true });
             // 如果删除的是当前正在查看的歌曲，返回列表

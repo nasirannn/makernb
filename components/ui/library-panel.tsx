@@ -13,8 +13,6 @@ import {
   Library,
   Download,
   MoreHorizontal,
-  Pin,
-  PinOff,
   Trash2,
   Send,
   Share2,
@@ -35,7 +33,6 @@ import {
   Check
 } from 'lucide-react';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
-import { isAdmin } from '@/lib/auth';
 import { supabase } from '@/lib/supabase';
 import { toast } from 'sonner';
 import { useAuth } from '@/contexts/AuthContext';
@@ -201,7 +198,6 @@ export const LibraryPanel = ({
   };
   
   // Check if user is admin
-  const userIsAdmin = userId ? isAdmin(userId) : false;
 
   // Scroll container ref
   const scrollContainerRef = useRef<HTMLDivElement>(null);
@@ -650,51 +646,6 @@ export const LibraryPanel = ({
     }
   };
 
-  const handlePinToggle = async (track: LibraryTrack) => {
-    if (!userId) {
-      toast('Please log in to pin tracks');
-      return;
-    }
-
-    try {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session?.access_token) {
-        toast('Please log in to pin tracks');
-        return;
-      }
-
-      const response = await fetch('/api/toggle-track-pin', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${session.access_token}`
-        },
-        body: JSON.stringify({ trackId: track.id })
-      });
-
-      const data = await response.json();
-
-      if (data.success) {
-        // 通知父组件更新置顶状态
-        if (onTrackAction) {
-          onTrackAction(track, 'pin');
-        }
-        
-        toast(data.message, {
-          icon: <CheckCircle className="h-4 w-4 text-green-500" />
-        });
-      } else {
-        toast(data.error || 'Failed to toggle pin', {
-          icon: <XCircle className="h-4 w-4 text-red-500" />
-        });
-      }
-    } catch (error) {
-      console.error('Error toggling pin:', error);
-      toast('Failed to toggle pin', {
-        icon: <XCircle className="h-4 w-4 text-red-500" />
-      });
-    }
-  };
 
   const handleDeleteClick = (track: LibraryTrack) => {
     setTrackToDelete(track);
@@ -1170,7 +1121,6 @@ export const LibraryPanel = ({
                     <LibraryTrackActions
                       track={track}
                       isMobile={false}
-                      userIsAdmin={userIsAdmin}
                       canDownloadMP3={canDownloadMP3}
                       canDownloadWAV={canDownloadWAV}
                       canDownloadCover={canDownloadCover}
@@ -1182,7 +1132,6 @@ export const LibraryPanel = ({
                       }}
                       onShare={() => handleShare(track)}
                       onPublish={() => handlePublishClick(track)}
-                      onPin={() => handlePinToggle(track)}
                       onEdit={() => handleEditStart(track)}
                       onDelete={() => handleDeleteClick(track)}
                       onPricingModalOpen={openPricingModal}
@@ -1636,26 +1585,6 @@ export const LibraryPanel = ({
                 )}
                 <span className="font-medium">
                   {copiedTrackId === selectedTrackForMenu.id ? 'Link copied' : 'Copy share link'}
-                </span>
-              </button>
-            )}
-
-            {/* Pin/Unpin - Only for admins */}
-            {userIsAdmin && selectedTrackForMenu && (
-              <button
-                onClick={() => {
-                  handlePinToggle(selectedTrackForMenu);
-                  setMobileMenuOpen(false);
-                }}
-                className="w-full flex items-center gap-3 p-3 rounded-lg hover:bg-muted transition-colors"
-              >
-                {selectedTrackForMenu.isPinned ? (
-                  <PinOff className="h-5 w-5" />
-                ) : (
-                  <Pin className="h-5 w-5" />
-                )}
-                <span className="font-medium">
-                  {selectedTrackForMenu.isPinned ? "Unpin" : "Pin"}
                 </span>
               </button>
             )}

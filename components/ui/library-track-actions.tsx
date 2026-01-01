@@ -6,8 +6,6 @@ import {
   Download,
   MoreHorizontal,
   Trash2,
-  Pin,
-  PinOff,
   Pencil,
   Star,
   Send,
@@ -26,12 +24,10 @@ import { LibraryTrack } from '@/types/track';
 interface LibraryTrackActionsProps {
   track: LibraryTrack;
   isMobile?: boolean;
-  userIsAdmin?: boolean;
   canDownloadMP3?: boolean;
   canDownloadWAV?: boolean;
   canDownloadCover?: boolean;
   onDownload?: (format: 'mp3' | 'wav' | 'cover') => void;
-  onPin?: () => void;
   onEdit?: () => void;
   onShare?: () => void;
   onPublish?: () => void;
@@ -44,20 +40,18 @@ interface LibraryTrackActionsProps {
 /**
  * Library Track Actions Component
  * 
- * Handles all action buttons for library tracks (Publish, Download, Pin, Edit, Favorite, Delete)
+ * Handles all action buttons for library tracks (Publish, Download, Edit, Favorite, Delete)
  * Provides both desktop and mobile layouts
  */
 export const LibraryTrackActions: React.FC<LibraryTrackActionsProps> = ({
   track,
   isMobile = false,
-  userIsAdmin = false,
   canDownloadMP3 = false,
   canDownloadWAV = false,
   canDownloadCover = false,
   onDownload,
   onShare,
   onPublish,
-  onPin,
   onEdit,
   onFavorite,
   onDelete,
@@ -225,7 +219,7 @@ export const LibraryTrackActions: React.FC<LibraryTrackActionsProps> = ({
             </DropdownMenuItem>
           )}
 
-          {onEdit && (onShare || userIsAdmin && onPin) && <DropdownMenuSeparator />}
+          {onEdit && onShare && <DropdownMenuSeparator />}
 
           {onShare && (
             <DropdownMenuItem
@@ -244,24 +238,7 @@ export const LibraryTrackActions: React.FC<LibraryTrackActionsProps> = ({
             </DropdownMenuItem>
           )}
 
-          {userIsAdmin && onPin && (
-            <DropdownMenuItem
-              onClick={(e) => {
-                e.stopPropagation();
-                onPin();
-              }}
-              className="cursor-pointer"
-            >
-              {track.isPinned ? (
-                <PinOff className="mr-2 h-4 w-4" />
-              ) : (
-                <Pin className="mr-2 h-4 w-4" />
-              )}
-              {track.isPinned ? 'Unpin' : 'Pin'}
-            </DropdownMenuItem>
-          )}
-
-          {(onShare || (userIsAdmin && onPin)) && onDelete && <DropdownMenuSeparator />}
+          {onShare && onDelete && <DropdownMenuSeparator />}
 
           {onDelete && (
             <DropdownMenuItem

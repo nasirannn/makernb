@@ -138,11 +138,6 @@ export const grantDailyLoginCredits = async (
   userId: string
 ): Promise<{ id: string; daily_credits: number; last_login_date: string } | null> => {
   try {
-    const adminId = process.env.ADMIN_ID;
-    if (adminId && userId === adminId) {
-      return null;
-    }
-
     const schema = await detectCreditTransactionSchema();
 
     return await withTransaction(async (queryFn) => {

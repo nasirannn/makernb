@@ -47,28 +47,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       return;
     }
 
-    // 检查是否是管理员用户，如果是则直接跳过
-    if (resolvedUserId) {
-      // 检查缓存
-      const cachedAdminStatus = adminCheckCache.current.get(resolvedUserId);
-      if (cachedAdminStatus === true) {
-        return;
-      }
-
-      // 如果没有缓存，进行检查
-      if (cachedAdminStatus === undefined) {
-        // 在客户端只能访问 NEXT_PUBLIC_ 开头的环境变量
-        const adminId = process.env.NEXT_PUBLIC_ADMIN_ID;
-        const adminStatus = Boolean(adminId && resolvedUserId === adminId);
-
-        // 缓存结果
-        adminCheckCache.current.set(resolvedUserId, adminStatus);
-
-        if (adminStatus) {
-          return;
-        }
-      }
-    }
+    // 管理员与普通用户一致，继续执行每日登录积分逻辑
 
     // 防止重复调用 - 检查进行中状态
     if (creditsCheckInProgress.current) {
