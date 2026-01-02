@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -17,8 +17,37 @@ export const PricingSection = () => {
   const [loading, setLoading] = useState<string | null>(null);
   const [billingPeriod, setBillingPeriod] = useState<'monthly' | 'yearly'>('yearly');
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
+  const toggleRef = useRef<HTMLDivElement>(null);
+  const yearlyRef = useRef<HTMLButtonElement>(null);
+  const monthlyRef = useRef<HTMLButtonElement>(null);
+  const [sliderStyle, setSliderStyle] = useState({ width: 0, x: 0 });
 
   const currentPlans = billingPeriod === 'monthly' ? monthlyPlans : yearlyPlans;
+
+  const updateSlider = () => {
+    const container = toggleRef.current;
+    const target = billingPeriod === 'yearly' ? yearlyRef.current : monthlyRef.current;
+    if (!container || !target) {
+      return;
+    }
+
+    const containerRect = container.getBoundingClientRect();
+    const targetRect = target.getBoundingClientRect();
+    setSliderStyle({
+      width: targetRect.width,
+      x: targetRect.left - containerRect.left,
+    });
+  };
+
+  useLayoutEffect(() => {
+    updateSlider();
+  }, [billingPeriod]);
+
+  useEffect(() => {
+    const handleResize = () => updateSlider();
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
 
   const handlePurchase = async (plan: PricingPlan) => {
     if (!user) {
@@ -80,29 +109,44 @@ export const PricingSection = () => {
         
         {/* Billing Period Toggle */}
         <div className="mt-8 flex justify-center">
-          <div className="rounded-full border border-border p-1 bg-transparent">
-            <div className="grid grid-cols-2 gap-1">
+          <div ref={toggleRef} className="relative inline-flex rounded-full bg-[#232326] p-1">
+            <div
+              className="absolute top-1 bottom-1 rounded-full bg-white shadow-[0_6px_16px_rgba(0,0,0,0.25)] transition-[transform,width] duration-300 ease-out"
+              style={{
+                width: sliderStyle.width,
+                transform: `translateX(${sliderStyle.x}px)`,
+              }}
+            />
+            <div className="relative z-10 inline-flex items-center gap-1">
               <button
                 onClick={() => setBillingPeriod('yearly')}
-                className={`py-2 px-5 text-sm font-semibold transition-all duration-200 rounded-full ${
+                ref={yearlyRef}
+                className={`px-5 py-2 text-sm font-semibold transition-colors duration-200 rounded-full ${
                   billingPeriod === 'yearly'
-                    ? "bg-primary text-white"
-                    : "text-muted-foreground hover:text-foreground"
+                    ? "text-black"
+                    : "text-white/60 hover:text-white"
                 }`}
               >
                 <div className="flex items-center gap-2">
                   <span>Yearly</span>
-                  <span className="inline-flex items-center text-xs text-muted-foreground">
+                  <span
+                    className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-semibold transition-colors duration-200 ${
+                      billingPeriod === 'yearly'
+                        ? "bg-gradient-create text-white"
+                        : "bg-white/10 text-white/70"
+                    }`}
+                  >
                     Save 36%
                   </span>
                 </div>
               </button>
               <button
                 onClick={() => setBillingPeriod('monthly')}
-                className={`py-2 px-5 text-sm font-semibold transition-all duration-200 rounded-full ${
+                ref={monthlyRef}
+                className={`px-5 py-2 text-sm font-semibold transition-colors duration-200 rounded-full ${
                   billingPeriod === 'monthly'
-                    ? "bg-primary text-white"
-                    : "text-muted-foreground hover:text-foreground"
+                    ? "text-black"
+                    : "text-white/60 hover:text-white"
                 }`}
               >
                 Monthly
@@ -118,25 +162,28 @@ export const PricingSection = () => {
           {currentPlans.map((plan) => (
             <Card 
               key={plan.id} 
-              className="relative transition-all duration-300 h-full flex flex-col bg-white text-black rounded-[28px] border border-black/10 shadow-[0_20px_60px_rgba(0,0,0,0.2)]"
+              className="relative transition-all duration-300 h-full flex flex-col bg-white/[0.04] text-white rounded-[28px] border border-white/10 shadow-[0_20px_60px_rgba(0,0,0,0.35)] backdrop-blur-xl"
             >
               <CardHeader className="text-center pb-4 pt-8">
                 <div className="flex justify-center mb-6">
                   <Badge className={`rounded-full px-4 py-1 text-xs font-bold uppercase tracking-[0.2em] ${
-                    plan.popular ? 'bg-primary text-white' : 'bg-black/10 text-black/70'
+                    plan.popular ? 'bg-primary text-white' : 'bg-white/10 text-white/70'
                   }`}>
                     {plan.name}
                   </Badge>
                 </div>
-                <CardDescription className="text-sm text-black/60 mb-6">
-                  {plan.id === 'monthly' ? 'Perfect for Individual Creators' : 'Professional Music Creation Made Simple'}
+                <CardDescription className="text-sm text-white/60 mb-6">
+                  {billingPeriod === 'monthly'
+                    ? 'Perfect for Individual Creators'
+                    : 'Professional Music Creation Made Simple'}
                 </CardDescription>
                 
                 <div className="mb-6">
                   <div className="text-5xl md:text-6xl font-black tracking-tight">
-                    ${plan.price}
+                    <span className="text-base align-bottom mr-0.5">$</span>
+                    {plan.price}
+                    <span className="text-base text-white/60 ml-1">/mo</span>
                   </div>
-                  <div className="text-base text-black/60">per month</div>
                 </div>
               </CardHeader>
 
@@ -157,8 +204,8 @@ export const PricingSection = () => {
 
                 <ul className="space-y-3 flex-grow">
                   {plan.features.map((feature, index) => (
-                    <li key={index} className="flex items-center gap-3 text-sm text-black/80">
-                      <Check className="h-4 w-4 text-black flex-shrink-0" />
+                    <li key={index} className="flex items-center gap-3 text-sm text-white/80">
+                      <Check className="h-4 w-4 text-green-600 flex-shrink-0" />
                       <span>{feature}</span>
                     </li>
                   ))}

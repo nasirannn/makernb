@@ -208,7 +208,7 @@ export const ExploreSection = () => {
   };
 
   return (
-    <section id="explore" className="min-h-screen py-20 bg-white">
+    <section id="explore" className="py-20">
       <div className="container">
         {/* Section Header */}
         <div className="text-center mb-16">
@@ -216,11 +216,11 @@ export const ExploreSection = () => {
             Explore
           </h2>
 
-          <h2 className="text-3xl md:text-4xl text-center font-bold mb-4 text-black">
+          <h2 className="text-3xl md:text-4xl text-center font-bold mb-4 text-white">
             Listen to The AI-Generated R&B Songs
           </h2>
 
-          <h3 className="md:w-1/2 mx-auto text-base md:text-lg text-center text-black/60 mb-8">
+          <h3 className="md:w-1/2 mx-auto text-base md:text-lg text-center text-muted-foreground mb-8">
             Experience soulful R&B music crafted by artificial intelligence
           </h3>
         </div>
@@ -230,9 +230,11 @@ export const ExploreSection = () => {
           {loading ? (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-12">
               {Array.from({ length: 9 }).map((_, i) => (
-                <div key={i} className="flex items-center gap-4 rounded-md bg-[#f7f6f2] shadow-[0_8px_20px_rgba(0,0,0,0.06)]">
-                  <Skeleton className="h-16 w-16 rounded-sm" />
-                  <div className="flex-1 space-y-2">
+                <div key={i} className="flex items-stretch gap-4 rounded-[20px] bg-white/[0.04] py-3 pl-3 backdrop-blur-xl">
+                  <div className="w-16 aspect-square">
+                    <Skeleton className="h-full w-full rounded-sm" />
+                  </div>
+                  <div className="flex-1 space-y-2 self-center">
                     <Skeleton className="h-4 w-2/3" />
                     <Skeleton className="h-3 w-1/2" />
                   </div>
@@ -244,11 +246,11 @@ export const ExploreSection = () => {
               {exploreData.music.slice(0, 8).map((music) => (
                 <div
                   key={music.id}
-                  className="group flex items-center gap-4 rounded-md bg-[#f7f6f2] transition-colors hover:bg-[#efece5] cursor-pointer shadow-[0_8px_20px_rgba(0,0,0,0.06)]"
+                  className="group flex items-stretch gap-4 rounded-[20px] bg-white/[0.04] py-3 pl-3 transition-all duration-300 hover:-translate-y-1 cursor-pointer backdrop-blur-xl"
                   onClick={() => handlePlayPause(music.primaryTrack.id, music.primaryTrack.audioUrl || '', music)}
                 >
                   {/* Cover Image */}
-                  <div className="relative h-16 w-16 shrink-0 overflow-hidden rounded-sm">
+                  <div className="relative w-16 aspect-square shrink-0 overflow-hidden rounded-sm">
                     {music.primaryTrack.coverR2Url ? (
                       <SafeImage
                         src={music.primaryTrack.coverR2Url}
@@ -284,11 +286,11 @@ export const ExploreSection = () => {
                   </div>
 
                   {/* Track Info */}
-                  <div className="min-w-0">
-                    <h3 className="text-black font-normal text-base mb-1 truncate">
+                  <div className="min-w-0 self-center">
+                    <h3 className="text-white font-normal text-base mb-1 truncate">
                       {music.title}
                     </h3>
-                    <p className="text-black/60 text-xs truncate capitalize">
+                    <p className="text-white/60 text-xs truncate capitalize">
                       {formatTags(music.tags)}
                     </p>
                   </div>
@@ -296,12 +298,12 @@ export const ExploreSection = () => {
               ))}
               <Link
                 href="/explore"
-                className="flex items-center justify-center rounded-md bg-[#f7f6f2] transition-colors hover:bg-[#efece5] shadow-[0_8px_20px_rgba(0,0,0,0.06)]"
+                className="flex items-center justify-center rounded-[20px] bg-white/[0.04] py-4 transition-all duration-300 hover:-translate-y-1 backdrop-blur-xl"
               >
-                <span className="text-base font-semibold text-black/80">
+                <span className="text-base font-semibold text-white/80">
                   Explore All Published Tracks
                 </span>
-                <ArrowRight className="ml-2 h-4 w-4 text-black/70" />
+                <ArrowRight className="ml-2 h-4 w-4 text-white/70" />
               </Link>
             </div>
           ) : (
@@ -315,7 +317,7 @@ export const ExploreSection = () => {
         {currentlyPlaying && (
           <div className="mt-6 overflow-hidden pb-2">
             <div
-              className="explore-now-playing inline-flex items-center whitespace-nowrap text-5xl md:text-6xl font-black leading-tight tracking-wide text-black/80"
+              className="explore-now-playing inline-flex items-center whitespace-nowrap text-5xl md:text-6xl font-black leading-tight tracking-wide text-white/80"
               style={{ animationPlayState: audioPlayer.isPlaying ? 'running' : 'paused' }}
             >
               <span className="inline-flex items-center gap-4 pr-12">
