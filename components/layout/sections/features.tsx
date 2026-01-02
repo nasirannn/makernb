@@ -48,8 +48,20 @@ interface FeaturesProps {
   icon: React.ComponentType<{ className?: string }>;
   title: string;
   description: string;
-  iconColor: string;
+  iconBg: string;
 }
+
+const FeatureIconBadge = ({
+  bgClass,
+  children,
+}: {
+  bgClass: string;
+  children: React.ReactNode;
+}) => (
+  <div className={`flex h-12 w-12 shrink-0 items-center justify-center rounded-md self-start mt-0.5 ${bgClass}`}>
+    {children}
+  </div>
+);
 
 const featureList: FeaturesProps[] = [
   {
@@ -57,42 +69,42 @@ const featureList: FeaturesProps[] = [
     title: "Text/Lyrics to Song",
     description:
       "Describe the vibe in a sentence or paste full lyrics. The model turns your words into a track with matching melody, rhythm, and tone.",
-    iconColor: "text-[#2aa3ff]",
+    iconBg: "bg-[#2aa3ff]",
   },
   {
     icon: EditIcon,
     title: "Edit Song",
     description:
       "Need a new verse or hook? Select a section, change the lyrics or style, and regenerate just that part. Merge it seamlessly into the song.",
-    iconColor: "text-[#d94cff]",
+    iconBg: "bg-[#d94cff]",
   },
   {
     icon: ExtendIcon,
     title: "Extend Song",
     description:
       "Make a track longer without losing its feel. Choose where to start and generate a natural continuation that fits the existing groove.",
-    iconColor: "text-[#f08a00]",
+    iconBg: "bg-[#f08a00]",
   },
   {
     icon: CoverIcon,
     title: "Song Cover",
     description:
       "Reimagine your song in a new style while keeping the lyrics intact. Generate a fresh version with a different musical character.",
-    iconColor: "text-[#10b981]",
+    iconBg: "bg-[#10b981]",
   },
   {
     icon: UploadIcon,
     title: "Upload Audio",
     description:
       "Upload a clip and use it as a creative anchor. Build extensions or covers that reference the original melody and texture.",
-    iconColor: "text-[#4f7cff]",
+    iconBg: "bg-[#4f7cff]",
   },
   {
     icon: VocalIcon,
     title: "Vocal Removal",
     description:
       "Split vocals and instrumentals for cleaner edits, remixes, or exports. Keep full control over each stem.",
-    iconColor: "text-[#ff5aa7]",
+    iconBg: "bg-[#ff5aa7]",
   },
 ];
 
@@ -113,12 +125,15 @@ export const FeaturesSection = () => {
         </h3>
 
         <div className="grid gap-6 md:grid-cols-2 max-w-5xl mx-auto">
-          {featureList.map(({ icon: IconComponent, title, description, iconColor }) => (
-            <Card key={title} className="h-full border border-white/10 bg-[#12131a] text-white rounded-[28px] shadow-[0_20px_60px_rgba(0,0,0,0.35)]">
-              <CardHeader className="flex flex-row items-start gap-4 pb-3">
-                <div className="h-11 w-11 flex items-center justify-center">
-                  <IconComponent className={`h-6 w-6 ${iconColor}`} />
-                </div>
+          {featureList.map(({ icon: IconComponent, title, description, iconBg }) => (
+            <Card
+              key={title}
+              className="h-full border-0 bg-white/[0.04] text-white rounded-[28px] shadow-[0_20px_60px_rgba(0,0,0,0.35)] backdrop-blur-xl transition-transform duration-300 hover:-translate-y-2 hover:shadow-[0_28px_80px_rgba(0,0,0,0.55)]"
+            >
+              <CardHeader className="flex flex-row items-center gap-4 pb-3">
+                <FeatureIconBadge bgClass={iconBg}>
+                  <IconComponent className="h-6 w-6 text-white" />
+                </FeatureIconBadge>
                 <div>
                   <CardTitle className="text-lg font-semibold">{title}</CardTitle>
                   <p className="mt-2 text-sm text-white/60 leading-relaxed">
