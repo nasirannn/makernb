@@ -217,14 +217,13 @@ export const cleanupExpiredDailyCreditsForUser = async (userId: string): Promise
 
     return await withTransaction(async (queryFn) => {
       const today = getDateKey(new Date());
-      const todayStart = new Date(`${today}T00:00:00Z`).toISOString();
 
       const selectColumns = [
         'ct.id',
         'ct.user_id',
         'ct.amount as daily_amount',
         'ct.balance_after',
-        'ct.created_at',
+        'ct.reference_id',
       ];
       if (schema.hasBalanceBefore) {
         selectColumns.push('ct.balance_before');
@@ -234,15 +233,14 @@ export const cleanupExpiredDailyCreditsForUser = async (userId: string): Promise
         `SELECT ${selectColumns.join(', ')}
          FROM credit_transactions ct
          WHERE ct.transaction_type = 'bonus'
-         AND ct.user_id = $2::uuid
-         AND ct.created_at < $1
+         AND ct.user_id = $1::uuid
          AND NOT EXISTS (
            SELECT 1 FROM credit_transactions exp
            WHERE exp.user_id = ct.user_id
            AND exp.reference_id = ct.id::text
            AND exp.description = 'Daily login credits expired'
          )`,
-        [todayStart, userId]
+        [userId]
       );
 
       if (expiredCredits.rows.length === 0) {
@@ -266,7 +264,17 @@ export const cleanupExpiredDailyCreditsForUser = async (userId: string): Promise
         const loginBeforeBalance =
           schema.hasBalanceBefore ? row.balance_before : (row.balance_after - dailyAmount);
         const loginAfterBalance = row.balance_after;
-        const bonusDateKey = getDateKey(new Date(row.created_at));
+
+        const referenceId = row.reference_id as string;
+        const match = referenceId?.match(/(\\d{4}-\\d{2}-\\d{2})$/);
+        if (!match) {
+          continue;
+        }
+        const bonusDateKey = match[1];
+        if (bonusDateKey >= today) {
+          continue;
+        }
+
         const dayStart = new Date(`${bonusDateKey}T00:00:00Z`).toISOString();
         const nextDayStart = new Date(`${bonusDateKey}T00:00:00Z`);
         nextDayStart.setUTCDate(nextDayStart.getUTCDate() + 1);
