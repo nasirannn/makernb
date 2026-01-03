@@ -4,13 +4,14 @@ import React from "react";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
-import { Music, Library, Sparkles, LogOut, BookOpen, LogIn, Mic, FileText, Wand2, RefreshCw, ChevronLeft, ChevronRight } from "lucide-react";
+import { Music, Library, Sparkles, LogOut, BookOpen, LogIn, Mic, FileText, Wand2, RefreshCw, ChevronLeft, ChevronRight, PencilLine } from "lucide-react";
 import { usePathname, useRouter } from "next/navigation";
 import Image from "next/image";
 import Link from "next/link";
 import { useAuth } from '@/contexts/AuthContext';
 import { useCredits } from '@/contexts/CreditsContext';
 import AuthModal from '@/components/ui/auth-modal';
+import { EditNicknameDialog } from "@/components/ui/edit-nickname-dialog";
 import { supabase } from '@/lib/supabase';
 
 import { Tooltip } from '@/components/ui/tooltip';
@@ -53,7 +54,9 @@ export const CommonSidebar = ({
   const [isRefreshingCredits, setIsRefreshingCredits] = React.useState(false);
   const [isExpanded, setIsExpanded] = React.useState(false);
   const [tierCode, setTierCode] = React.useState<'basic' | 'premium' | null>(null);
+  const [isNicknameDialogOpen, setIsNicknameDialogOpen] = React.useState(false);
   const mobileNavRef = React.useRef<HTMLDivElement | null>(null);
+  const displayName = user?.user_metadata?.full_name || user?.user_metadata?.name || user?.email?.split('@')[0] || '';
 
   // 切换sidebar展开/收起状态
   const toggleSidebar = () => {
@@ -499,6 +502,16 @@ const aiMusicToolsDropdown = [
                         <div className="absolute bottom-full left-0 right-0 mb-2 rounded-2xl bg-[#05060b] p-3 shadow-2xl">
                           <button
                             onClick={() => {
+                              setIsNicknameDialogOpen(true);
+                              setUserMenuOpen(false);
+                            }}
+                            className="w-full flex items-center gap-3 rounded-xl px-3 py-2 text-sm text-white/70 hover:bg-white/5 hover:text-white"
+                          >
+                            <PencilLine className="w-4 h-4" />
+                            <span>Edit profile</span>
+                          </button>
+                          <button
+                            onClick={() => {
                               handleSignOut();
                               setUserMenuOpen(false);
                             }}
@@ -543,6 +556,16 @@ const aiMusicToolsDropdown = [
                             <div className="text-xs text-white/60 truncate">{user.email}</div>
                           </div>
                           <div className="p-2">
+                            <button
+                              onClick={() => {
+                                setIsNicknameDialogOpen(true);
+                                setUserMenuOpen(false);
+                              }}
+                              className="w-full flex items-center gap-3 rounded-xl px-3 py-2 text-sm text-white/70 hover:bg-white/5 hover:text-white"
+                            >
+                              <PencilLine className="w-4 h-4" />
+                              <span>Edit profile</span>
+                            </button>
                             <button
                               onClick={() => {
                                 handleSignOut();
@@ -671,6 +694,13 @@ const aiMusicToolsDropdown = [
         </div>
       </div>
 
+      {user && (
+        <EditNicknameDialog
+          open={isNicknameDialogOpen}
+          onOpenChange={setIsNicknameDialogOpen}
+          initialValue={displayName}
+        />
+      )}
 
       {/* Auth Modal */}
       <AuthModal

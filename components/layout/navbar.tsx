@@ -1,5 +1,5 @@
 "use client";
-import { Menu, Sparkles, ChevronDown, Mic, Music, Wand2, FileText } from "lucide-react";
+import { Menu, Sparkles, ChevronDown, Mic, Music, Wand2, FileText, PencilLine } from "lucide-react";
 import React from "react";
 import { Button } from "../ui/button";
 import { Avatar, AvatarImage, AvatarFallback } from "../ui/avatar";
@@ -12,6 +12,7 @@ import AuthModal from "../ui/auth-modal";
 import { LogOut } from "lucide-react";
 import { getZIndexClass } from "@/lib/z-index";
 import { supabase } from "@/lib/supabase";
+import { EditNicknameDialog } from "@/components/ui/edit-nickname-dialog";
 
 interface RouteProps {
   href: string;
@@ -80,12 +81,14 @@ export const Navbar = ({ credits = null }: NavbarProps) => {
   const [isOpen, setIsOpen] = React.useState(false);
   const [isAuthModalOpen, setIsAuthModalOpen] = React.useState(false);
   const [isUserMenuOpen, setIsUserMenuOpen] = React.useState(false);
+  const [isNicknameDialogOpen, setIsNicknameDialogOpen] = React.useState(false);
   const [isDropdownOpen, setIsDropdownOpen] = React.useState(false);
   const [dropdownTimeout, setDropdownTimeout] = React.useState<NodeJS.Timeout | null>(null);
   const [tierCode, setTierCode] = React.useState<'basic' | 'premium' | null>(null);
   const pathname = usePathname();
   const searchParams = useSearchParams();
   const { user, signOut } = useAuth();
+  const displayName = user?.user_metadata?.full_name || user?.user_metadata?.name || user?.email?.split('@')[0] || '';
 
   // 处理 Pricing 链接的跳转和滚动
   const handlePricingClick = (e: React.MouseEvent<HTMLAnchorElement>) => {
@@ -378,9 +381,8 @@ export const Navbar = ({ credits = null }: NavbarProps) => {
                           {user.user_metadata?.full_name || user.user_metadata?.name || user.email?.split('@')[0] || 'User'}
                         </p>
                         {tierCode && (
-                          <Badge className="relative inline-block rounded-full border border-zinc-700 bg-zinc-900/20 px-2 py-0.5 text-xs text-zinc-50 animate-border-marquee flex-shrink-0">
-                            <span className="text-foreground/90 font-medium capitalize">{tierCode}</span>
-                            <span className="absolute bottom-0 left-1 right-1 h-[1px] bg-gradient-to-r from-zinc-500/0 via-zinc-300 to-zinc-500/0"></span>
+                          <Badge className="relative inline-block rounded-full border border-primary/40 bg-primary px-2 py-0.5 text-xs text-white flex-shrink-0">
+                            <span className="font-medium capitalize">{tierCode}</span>
                           </Badge>
                         )}
                       </div>
@@ -400,6 +402,16 @@ export const Navbar = ({ credits = null }: NavbarProps) => {
                   
                   {/* Mobile Menu Items */}
                   <div className="mt-4 space-y-2">
+                    <button
+                      onClick={() => {
+                        setIsOpen(false);
+                        setIsNicknameDialogOpen(true);
+                      }}
+                      className="w-full flex items-center gap-3 px-3 py-2 text-sm text-white/80 hover:bg-white/10 hover:text-white transition-colors rounded-lg"
+                    >
+                      <PencilLine className="w-4 h-4" />
+                      <span>Edit profile</span>
+                    </button>
                     <button
                       onClick={async () => {
                         try {
@@ -424,7 +436,7 @@ export const Navbar = ({ credits = null }: NavbarProps) => {
                       setIsOpen(false);
                     }}
                     size="default" 
-                    className="w-full bg-primary hover:bg-primary/90 text-primary-foreground px-6 py-1.5 rounded-lg font-medium"
+                    className="w-full bg-primary hover:bg-primary/90 text-primary-foreground px-6 py-1.5 rounded-md text-base font-semibold"
                   >
                     Sign In
                   </Button>
@@ -528,16 +540,16 @@ export const Navbar = ({ credits = null }: NavbarProps) => {
             {/* User Dropdown Menu */}
             {isUserMenuOpen && (
               <div 
-                className="absolute right-0 top-12 min-w-56 w-max bg-[#0f1014] border border-white/10 rounded-xl p-2 shadow-[0_20px_60px_rgba(0,0,0,0.6)] z-[110]"
+                className="absolute right-0 top-12 min-w-52 w-max bg-[#0f1014] border border-white/10 rounded-xl p-1.5 shadow-[0_20px_60px_rgba(0,0,0,0.6)] z-[110]"
               >
                 {/* User Info */}
-                <div className="px-3 py-2">
+                <div className="px-2.5 py-1.5">
                   <div className="flex items-center justify-between gap-2 mb-1">
                     <p className="text-white font-semibold text-sm truncate flex-1">
                       {user.user_metadata?.full_name || user.user_metadata?.name || user.email?.split('@')[0] || 'User'}
                     </p>
                     {tierCode && (
-                      <Badge className="rounded-full border border-white/10 bg-white/5 px-2 py-0.5 text-xs text-white/80 flex-shrink-0">
+                      <Badge className="rounded-full border border-primary/40 bg-primary px-2 py-0.5 text-xs text-white flex-shrink-0">
                         <span className="font-medium capitalize">{tierCode}</span>
                       </Badge>
                     )}
@@ -548,8 +560,8 @@ export const Navbar = ({ credits = null }: NavbarProps) => {
                 </div>
 
                 {/* Credits */}
-                <div className="px-3 pb-2">
-                  <div className="flex items-center justify-between gap-3 py-2">
+                <div className="px-2.5 pb-1.5">
+                  <div className="flex items-center justify-between gap-3 py-1.5">
                     <div className="flex items-center gap-3">
                       <div className="flex-shrink-0 h-8 w-8 rounded-lg flex items-center justify-center text-[#f5b733]">
                         <Sparkles className="h-3.5 w-3.5" />
@@ -562,6 +574,19 @@ export const Navbar = ({ credits = null }: NavbarProps) => {
                   </div>
                 </div>
 
+                <button
+                  onClick={() => {
+                    setIsUserMenuOpen(false);
+                    setIsNicknameDialogOpen(true);
+                  }}
+                  className="w-full flex items-center gap-3 px-2.5 py-2 transition-colors group rounded-lg"
+                >
+                  <div className="flex-shrink-0 h-8 w-8 rounded-lg flex items-center justify-center text-white/80">
+                    <PencilLine className="h-3.5 w-3.5" />
+                  </div>
+                  <span className="text-white/90 font-medium text-sm">Edit profile</span>
+                </button>
+
                 {/* Sign Out Button */}
                 <button
                   onClick={async () => {
@@ -572,7 +597,7 @@ export const Navbar = ({ credits = null }: NavbarProps) => {
                       console.error('Sign out error:', error);
                     }
                   }}
-                  className="w-full flex items-center gap-3 px-3 py-2.5 transition-colors group rounded-lg border-t border-white/10"
+                  className="w-full flex items-center gap-3 px-2.5 py-2 transition-colors group rounded-lg border-t border-white/10"
                 >
                   <div className="flex-shrink-0 h-8 w-8 rounded-lg flex items-center justify-center text-white/80">
                     <LogOut className="h-3.5 w-3.5" />
@@ -587,7 +612,7 @@ export const Navbar = ({ credits = null }: NavbarProps) => {
           <Button 
             onClick={() => setIsAuthModalOpen(true)}
             size="default" 
-            className="bg-primary hover:bg-primary/90 text-primary-foreground px-4 py-2 rounded-lg font-medium h-10"
+            className="bg-primary hover:bg-primary/90 text-primary-foreground px-4 py-2 rounded-md text-base font-semibold h-10"
           >
             Sign In
           </Button>
@@ -599,6 +624,14 @@ export const Navbar = ({ credits = null }: NavbarProps) => {
         isOpen={isAuthModalOpen} 
         onClose={() => setIsAuthModalOpen(false)} 
       />
+
+      {user && (
+        <EditNicknameDialog
+          open={isNicknameDialogOpen}
+          onOpenChange={setIsNicknameDialogOpen}
+          initialValue={displayName}
+        />
+      )}
 
     </header>
   );

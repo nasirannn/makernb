@@ -7,7 +7,6 @@ import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { supabase } from '@/lib/supabase';
 import { Loader2, Mail, X, ArrowLeft } from 'lucide-react';
-import Image from 'next/image';
 import { LoadingDots } from '@/components/ui/loading-dots';
 import { Z_INDEX_COMBINATIONS } from '@/lib/z-index';
 import { Turnstile } from '@marsidev/react-turnstile';
@@ -235,25 +234,14 @@ export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
           {/* Close Button - 桌面端显示在右上角 */}
           <button
             onClick={handleClose}
-            className="hidden md:block absolute top-4 right-4 z-10 text-muted-foreground hover:text-foreground transition-colors bg-muted/50 hover:bg-muted rounded-full p-1.5"
+            className="hidden md:block absolute top-4 right-4 z-10 text-muted-foreground hover:text-foreground transition-colors"
           >
             <X className="h-5 w-5" />
           </button>
 
           <CardHeader className="text-center pb-1.5 px-4 pt-1.5 md:pb-4 md:px-6 md:pt-6 flex-shrink-0">
-            {/* Logo */}
-            <div className="flex justify-center mb-1.5 md:mb-4">
-              <Image
-                src="/logo.svg"
-                alt="MakeRNB Logo"
-                width={48}
-                height={48}
-                className="h-8 w-8 md:h-12 md:w-12"
-              />
-            </div>
-            
             <CardTitle className="text-lg md:text-2xl font-bold text-foreground mb-1 md:mb-2">
-              {showCodeInput ? 'Enter Verification Code' : 'Welcome to MakeRNB'}
+              {showCodeInput ? 'Enter Verification Code' : 'Sign in to MakeRNB'}
             </CardTitle>
             
             <CardDescription className="text-sm text-muted-foreground">
@@ -272,7 +260,7 @@ export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
                 <Button
                   onClick={handleGoogleAuth}
                   disabled={isGoogleAuthLoading || loading}
-                  className="w-full h-11 md:h-12 bg-white hover:bg-white/90 text-black font-medium rounded-xl transition-all duration-200 disabled:opacity-50 text-sm md:text-base"
+                  className="w-full h-11 md:h-12 bg-white hover:bg-white/90 text-black font-medium rounded-lg transition-all duration-200 disabled:opacity-50 text-sm md:text-base"
                 >
               {isGoogleAuthLoading ? (
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />
@@ -310,7 +298,7 @@ export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
                     onChange={(e) => setEmail(e.target.value)}
                     onFocus={handleInputFocus}
                     required
-                    className="bg-muted/50 border-0 text-foreground placeholder:text-muted-foreground focus:ring-2 focus:ring-primary h-11 text-base"
+                    className="bg-muted/50 border-0 text-foreground placeholder:text-muted-foreground focus:ring-2 focus:ring-primary h-11 text-base rounded-lg"
                   />
                 </div>
               ) : (
@@ -325,7 +313,7 @@ export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
                     onFocus={handleInputFocus}
                     required
                     maxLength={6}
-                    className="bg-muted/50 border-0 text-foreground placeholder:text-muted-foreground focus:ring-2 focus:ring-primary h-11 text-base text-center text-lg tracking-widest"
+                    className="bg-muted/50 border-0 text-foreground placeholder:text-muted-foreground focus:ring-2 focus:ring-primary h-11 text-base text-center text-lg tracking-widest rounded-lg"
                   />
                 </div>
               )}
@@ -359,7 +347,7 @@ export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
               <Button
                 type="submit"
                 disabled={(loading || isGoogleAuthLoading) || (!showCodeInput && !canSendCode)}
-                className="w-full h-11 md:h-12 bg-primary hover:bg-primary/90 text-primary-foreground font-medium rounded-xl transition-all duration-200 disabled:opacity-50 text-sm md:text-base"
+                className="w-full h-11 md:h-12 bg-primary hover:bg-primary/90 text-primary-foreground font-medium rounded-lg transition-all duration-200 disabled:opacity-50 text-sm md:text-base"
               >
                 {loading && !isGoogleAuthLoading ? (
                   <LoadingDots size="sm" color="white" className="mr-2" />
@@ -397,7 +385,7 @@ export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
 
             {/* Terms and Privacy Policy */}
             <div className="text-center">
-              <p className="text-xs text-muted-foreground">
+              <p className="text-xs text-muted-foreground whitespace-nowrap">
                 By signing in, you agree to our{' '}
                 <a href="/terms" className="text-primary hover:underline" target="_blank" rel="noopener noreferrer">
                   Terms of Service
@@ -414,7 +402,7 @@ export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
               <Button
                 onClick={handleClose}
                 variant="outline"
-                className="w-full h-11 bg-muted/50 hover:bg-muted text-foreground border-0 rounded-xl font-medium text-sm"
+                className="w-full h-11 bg-muted/50 hover:bg-muted text-foreground border-0 rounded-lg font-medium text-sm"
               >
                 Close
               </Button>

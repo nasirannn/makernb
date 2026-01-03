@@ -252,7 +252,7 @@ export const TrackActionButtons: React.FC<TrackActionButtonsProps> = ({
                 <MoreVertical className="h-3 w-3" />
               </Button>
             </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" onClick={(e) => e.stopPropagation()} className="p-1.5 min-w-[140px]">
+            <DropdownMenuContent align="end" onClick={(e) => e.stopPropagation()} className="p-2 w-64">
               {/* Edit Music Info 选项 */}
               {(onEditMusicInfo || onEditTitle) && (
                 <>
@@ -262,7 +262,7 @@ export const TrackActionButtons: React.FC<TrackActionButtonsProps> = ({
                       e.stopPropagation();
                       handleEditMusicInfoClick();
                     }}
-                    className="flex items-center gap-1.5 cursor-pointer px-2.5 py-1.5 text-xs data-[highlighted]:bg-transparent data-[highlighted]:text-primary focus:bg-transparent"
+                    className="flex items-center gap-2 cursor-pointer px-3 py-2 text-xs data-[highlighted]:bg-transparent data-[highlighted]:text-primary focus:bg-transparent"
                   >
                     <Pencil className="h-3.5 w-3.5" />
                     <span>Edit Music Info</span>
@@ -270,14 +270,10 @@ export const TrackActionButtons: React.FC<TrackActionButtonsProps> = ({
                 </>
               )}
 
-              {(onEditMusicInfo || onEditTitle) && (onVocalRemoval || onExtendMusic || onReplaceSection || onDelete) && (
-                <DropdownMenuSeparator className="my-1" />
-              )}
-              
               {/* Premium Features 标题和选项 */}
               {hasAudioUrl && (onVocalRemoval || onExtendMusic || onReplaceSection) && (
                 <>
-                  <div className="px-2.5 py-1 text-[10px] text-muted-foreground uppercase">
+                  <div className="px-3 py-1.5 text-[10px] text-muted-foreground uppercase">
                     Advanced Features
                   </div>
                   {onVocalRemoval && (
@@ -293,7 +289,7 @@ export const TrackActionButtons: React.FC<TrackActionButtonsProps> = ({
                         onVocalRemoval();
                       }}
                       disabled={isInstrumental}
-                      className={`flex items-center justify-between gap-1.5 px-2.5 py-1.5 text-xs data-[highlighted]:bg-transparent data-[highlighted]:text-primary focus:bg-transparent ${
+                      className={`flex items-center justify-between gap-2 px-3 py-2 text-xs data-[highlighted]:bg-transparent data-[highlighted]:text-primary focus:bg-transparent ${
                         isInstrumental ? 'cursor-not-allowed' : 'cursor-pointer'
                       }`}
                     >
@@ -314,7 +310,7 @@ export const TrackActionButtons: React.FC<TrackActionButtonsProps> = ({
                         }
                         onExtendMusic();
                       }}
-                      className="flex items-center gap-1.5 cursor-pointer px-2.5 py-1.5 text-xs data-[highlighted]:bg-transparent data-[highlighted]:text-primary focus:bg-transparent"
+                      className="flex items-center gap-2 cursor-pointer px-3 py-2 text-xs data-[highlighted]:bg-transparent data-[highlighted]:text-primary focus:bg-transparent"
                     >
                       <Maximize2 className="h-3.5 w-3.5" />
                       <span>Extend Music</span>
@@ -331,13 +327,12 @@ export const TrackActionButtons: React.FC<TrackActionButtonsProps> = ({
                         }
                         onReplaceSection();
                       }}
-                      className="flex items-center gap-1.5 cursor-pointer px-2.5 py-1.5 text-xs data-[highlighted]:bg-transparent data-[highlighted]:text-primary focus:bg-transparent"
+                      className="flex items-center gap-2 cursor-pointer px-3 py-2 text-xs data-[highlighted]:bg-transparent data-[highlighted]:text-primary focus:bg-transparent"
                     >
                       <Scissors className="h-3.5 w-3.5" />
                       <span>Replace Section</span>
                     </DropdownMenuItem>
                   )}
-                  {onDelete && <DropdownMenuSeparator className="my-1" />}
                 </>
               )}
               
@@ -349,7 +344,7 @@ export const TrackActionButtons: React.FC<TrackActionButtonsProps> = ({
                     e.stopPropagation();
                     onDelete();
                   }}
-                  className="flex items-center gap-1.5 cursor-pointer px-2.5 py-1.5 text-xs text-destructive data-[highlighted]:bg-transparent data-[highlighted]:text-destructive focus:text-destructive focus:bg-transparent"
+                  className="flex items-center gap-2 cursor-pointer px-3 py-2 text-xs text-destructive data-[highlighted]:bg-transparent data-[highlighted]:text-destructive focus:text-destructive focus:bg-transparent"
                 >
                   <Trash2 className="h-3.5 w-3.5" />
                   <span>Delete</span>

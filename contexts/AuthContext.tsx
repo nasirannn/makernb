@@ -11,6 +11,8 @@ interface AuthContextType {
   session: Session | null;
   loading: boolean;
   signOut: () => Promise<void>;
+  updateProfile: (profile: { full_name?: string; avatar_url?: string }) => Promise<User | null>;
+  updateNickname: (nickname: string) => Promise<User | null>;
   checkDailyCredits: (sessionToken?: string, userIdOverride?: string) => Promise<void>;
   manualCheckCredits: () => Promise<void>;
   onCreditsUpdated?: (callback: () => void) => void; // 新增回调注册函数
@@ -254,6 +256,30 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
+  const updateProfile = async (profile: { full_name?: string; avatar_url?: string }) => {
+    const { data, error } = await supabase.auth.updateUser({
+      data: profile,
+    });
+
+    if (error) {
+      throw error;
+    }
+
+    if (data.user) {
+      setUser(data.user);
+    }
+
+    return data.user ?? null;
+  };
+
+  const updateNickname = async (nickname: string) => {
+    const trimmed = nickname.trim();
+    if (!trimmed) {
+      return null;
+    }
+
+    return updateProfile({ full_name: trimmed });
+  };
 
 
 
@@ -262,6 +288,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     session,
     loading,
     signOut,
+    updateProfile,
+    updateNickname,
     checkDailyCredits,
     manualCheckCredits,
     onCreditsUpdated: (callback: () => void) => {

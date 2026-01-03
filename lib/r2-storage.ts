@@ -328,6 +328,41 @@ export async function uploadCoverImage(
 }
 
 /**
+ * 上传用户头像到R2
+ */
+export async function uploadAvatarImage(
+  buffer: Buffer,
+  userId: string,
+  filename: string,
+  contentType?: string | null
+): Promise<string> {
+  try {
+    const safeFilename = filename.replace(/[^a-zA-Z0-9._-]/g, '_');
+    const key = `avatars/${userId}/${Date.now()}_${safeFilename}`;
+    const format = detectImageFormat(buffer);
+    const detectedContentType = contentType || `image/${format}`;
+
+    const command = new PutObjectCommand({
+      Bucket: BUCKET_NAME,
+      Key: key,
+      Body: buffer,
+      ContentType: detectedContentType,
+      Metadata: {
+        userId,
+        type: 'avatar',
+      },
+      CacheControl: 'public, max-age=31536000, immutable',
+    });
+
+    await getR2Client().send(command);
+    return `${PUBLIC_DOMAIN}/${key}`;
+  } catch (error) {
+    console.error('[R2 Upload] Error uploading avatar image:', error);
+    throw error;
+  }
+}
+
+/**
  * 获取用户文件列表
  */
 export async function getUserFiles(userId: string): Promise<Array<{

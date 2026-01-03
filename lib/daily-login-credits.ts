@@ -266,7 +266,7 @@ export const cleanupExpiredDailyCreditsForUser = async (userId: string): Promise
         const loginAfterBalance = row.balance_after;
 
         const referenceId = row.reference_id as string;
-        const match = referenceId?.match(/(\\d{4}-\\d{2}-\\d{2})$/);
+        const match = referenceId?.match(/(\d{4}-\d{2}-\d{2})$/);
         if (!match) {
           continue;
         }

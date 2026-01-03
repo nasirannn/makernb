@@ -133,23 +133,23 @@ export const LibraryTrackActions: React.FC<LibraryTrackActionsProps> = ({
               <Download className="h-4 w-4" />
             </Button>
           </DropdownMenuTrigger>
-          <DropdownMenuContent align="end" onClick={(e) => e.stopPropagation()} className="p-1.5 min-w-[160px]">
+          <DropdownMenuContent align="end" onClick={(e) => e.stopPropagation()} className="p-2 min-w-[160px]">
             <DropdownMenuItem
               onClick={(e) => handleDownloadClick(e, 'mp3')}
-              className="flex items-center justify-between gap-1.5 cursor-pointer px-2.5 py-1.5 text-xs data-[highlighted]:bg-transparent data-[highlighted]:text-primary focus:bg-transparent"
+              className="flex items-center justify-between gap-2 cursor-pointer px-3 py-2 text-xs data-[highlighted]:bg-transparent data-[highlighted]:text-primary focus:bg-transparent"
             >
               <span className="font-medium">Download MP3</span>
             </DropdownMenuItem>
             <DropdownMenuItem
               onClick={(e) => handleDownloadClick(e, 'wav')}
-              className="flex items-center justify-between gap-1.5 cursor-pointer px-2.5 py-1.5 text-xs data-[highlighted]:bg-transparent data-[highlighted]:text-primary focus:bg-transparent"
+              className="flex items-center justify-between gap-2 cursor-pointer px-3 py-2 text-xs data-[highlighted]:bg-transparent data-[highlighted]:text-primary focus:bg-transparent"
             >
               <span className="font-medium">Download WAV</span>
             </DropdownMenuItem>
             {hasCoverImage ? (
               <DropdownMenuItem
                 onClick={(e) => handleDownloadClick(e, 'cover')}
-                className="flex items-center justify-between gap-1.5 cursor-pointer px-2.5 py-1.5 text-xs data-[highlighted]:bg-transparent data-[highlighted]:text-primary focus:bg-transparent"
+                className="flex items-center justify-between gap-2 cursor-pointer px-3 py-2 text-xs data-[highlighted]:bg-transparent data-[highlighted]:text-primary focus:bg-transparent"
               >
                 <span className="font-medium">Download PNG</span>
               </DropdownMenuItem>
@@ -205,21 +205,19 @@ export const LibraryTrackActions: React.FC<LibraryTrackActionsProps> = ({
             <MoreHorizontal className="h-4 w-4" />
           </Button>
         </DropdownMenuTrigger>
-          <DropdownMenuContent align="end" className="w-52">
+          <DropdownMenuContent align="end" className="w-64 p-2">
           {onEdit && (
             <DropdownMenuItem
               onClick={(e) => {
                 e.stopPropagation();
                 onEdit();
               }}
-              className="cursor-pointer"
+              className="cursor-pointer px-3 py-2"
             >
               <Pencil className="mr-2 h-4 w-4" />
               Edit Music Info
             </DropdownMenuItem>
           )}
-
-          {onEdit && onShare && <DropdownMenuSeparator />}
 
           {onShare && (
             <DropdownMenuItem
@@ -227,7 +225,7 @@ export const LibraryTrackActions: React.FC<LibraryTrackActionsProps> = ({
                 e.stopPropagation();
                 onShare();
               }}
-              className="cursor-pointer"
+              className="cursor-pointer px-3 py-2"
             >
               {isCopied ? (
                 <Check className="mr-2 h-4 w-4 text-green-500" />
@@ -238,15 +236,13 @@ export const LibraryTrackActions: React.FC<LibraryTrackActionsProps> = ({
             </DropdownMenuItem>
           )}
 
-          {onShare && onDelete && <DropdownMenuSeparator />}
-
           {onDelete && (
             <DropdownMenuItem
               onClick={(e) => {
                 e.stopPropagation();
                 onDelete();
               }}
-              className="cursor-pointer text-destructive focus:text-destructive"
+              className="cursor-pointer px-3 py-2 text-destructive focus:text-destructive"
             >
               <Trash2 className="mr-2 h-4 w-4" />
               Delete
