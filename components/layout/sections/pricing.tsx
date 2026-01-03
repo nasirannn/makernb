@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useLayoutEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -24,7 +24,7 @@ export const PricingSection = () => {
 
   const currentPlans = billingPeriod === 'monthly' ? monthlyPlans : yearlyPlans;
 
-  const updateSlider = () => {
+  const updateSlider = useCallback(() => {
     const container = toggleRef.current;
     const target = billingPeriod === 'yearly' ? yearlyRef.current : monthlyRef.current;
     if (!container || !target) {
@@ -37,17 +37,17 @@ export const PricingSection = () => {
       width: targetRect.width,
       x: targetRect.left - containerRect.left,
     });
-  };
+  }, [billingPeriod]);
 
   useLayoutEffect(() => {
     updateSlider();
-  }, [billingPeriod]);
+  }, [updateSlider]);
 
   useEffect(() => {
     const handleResize = () => updateSlider();
     window.addEventListener('resize', handleResize);
     return () => window.removeEventListener('resize', handleResize);
-  }, []);
+  }, [updateSlider]);
 
   const handlePurchase = async (plan: PricingPlan) => {
     if (!user) {
