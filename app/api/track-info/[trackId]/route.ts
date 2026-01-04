@@ -44,6 +44,7 @@ export async function GET(
         mg.prompt,
         mg.is_instrumental,
         mg.status,
+        mg.model,
         mg.user_id,
         mg.created_at as generation_created_at,
         ml.content as lyrics_content
@@ -85,6 +86,7 @@ export async function GET(
       prompt: row.prompt,
       isInstrumental: row.is_instrumental, // 映射数据库字段为 JavaScript 字段名
       status: row.status,
+      model: row.model,
       userId: row.user_id, // 映射数据库字段为 JavaScript 字段名
       generationCreatedAt: row.generation_created_at, // 映射数据库字段为 JavaScript 字段名
       lyrics: row.lyrics_content || '',

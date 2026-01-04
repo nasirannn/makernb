@@ -18,6 +18,7 @@ export interface MusicGeneration {
   is_instrumental: boolean;
   task_id?: string;
   status?: 'generating' | 'text' | 'first' | 'complete' | 'error';
+  model?: string;
   created_at: string;
   updated_at: string;
   type: MusicType;
@@ -32,6 +33,7 @@ export interface CreateMusicGenerationData {
   task_id?: string;
   status?: 'generating' | 'complete' | 'error' | 'text';
   type?: MusicType;
+  model?: string;
 }
 
 export interface MusicGenerationWithTracks {
@@ -42,6 +44,7 @@ export interface MusicGenerationWithTracks {
   prompt?: string;
   is_instrumental: boolean;
   status?: string;
+  model?: string;
   created_at: string;
   updated_at: string;
   lyrics_content?: string;
@@ -68,8 +71,8 @@ export const createMusicGeneration = async (
     const result = await query(
       `INSERT INTO music (
         user_id, title, genre, tags, prompt,
-        is_instrumental, task_id, status, type
-      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+        is_instrumental, task_id, status, type, model
+      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
       RETURNING *`,
       [
         userId,
@@ -80,7 +83,8 @@ export const createMusicGeneration = async (
         data.is_instrumental || false,
         data.task_id || null,
         data.status || 'generating',
-        data.type || 'generated'
+        data.type || 'generated',
+        data.model || 'V3.5'
       ]
     );
 
@@ -188,6 +192,7 @@ const getGenerationsWithDetails = async (generationIds: string[]): Promise<any[]
       mg.prompt,
       mg.is_instrumental,
       mg.status,
+      mg.model,
       mg.created_at as generation_created_at,
       mg.updated_at as generation_updated_at,
       ml.content as lyrics_content,
@@ -229,6 +234,7 @@ const processGenerationRows = (rows: any[]): MusicGenerationWithTracks[] => {
         prompt: row.prompt,
         is_instrumental: row.is_instrumental,
         status: row.status,
+        model: row.model,
         created_at: row.generation_created_at,
         updated_at: row.generation_updated_at,
         lyrics_content: row.lyrics_content,

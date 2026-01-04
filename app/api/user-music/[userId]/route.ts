@@ -96,6 +96,7 @@ function processUserMusicData(rawData: any[]) {
         prompt: row.prompt,
         isInstrumental: row.is_instrumental, // 映射数据库字段为 JavaScript 字段名
         status: row.status,
+        model: row.model,
         createdAt: row.generation_created_at, // 映射数据库字段为 JavaScript 字段名
         updatedAt: row.generation_updated_at, // 映射数据库字段为 JavaScript 字段名
         lyricsContent: row.lyrics_content, // 映射数据库字段为 JavaScript 字段名
@@ -138,6 +139,7 @@ function processUserMusicData(rawData: any[]) {
         originalTrackId: row.original_track_id || generation.originalTrackId, // 优先使用 track 的 original_track_id
         originalTrackTitle: row.original_track_title || generation.originalTrackTitle,
         sourceType: row.source_type, // 映射来源类型字段
+        model: generation.model,
       };
 
       generation.allTracks.push(track);

@@ -214,6 +214,7 @@ export async function POST(request: NextRequest) {
       task_id: taskId,
       status: 'generating',
       type: MODE_CONFIG[mode].type,
+      model: model
     });
 
     // 创建两条占位 track 记录（与普通生成音乐保持一致）

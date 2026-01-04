@@ -334,8 +334,8 @@ export async function POST(request: NextRequest) {
       const musicResult = await query(
         `INSERT INTO music (
           user_id, task_id, title, genre, tags, prompt,
-          is_instrumental, status, type
-        ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+          is_instrumental, status, type, model
+        ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
         RETURNING id`,
         [
           userId,
@@ -346,7 +346,8 @@ export async function POST(request: NextRequest) {
           prompt,
           false,
           'generating',
-          'replace_section'
+          'replace_section',
+          'V3.5'
         ]
       );
 

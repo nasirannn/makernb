@@ -350,6 +350,7 @@ export async function POST(request: NextRequest) {
         isInstrumental: originalTrack.isInstrumental,
         originalMusicId: originalTrack.musicId,
         originalTrackId: originalTrack.trackId,
+        model,
       });
 
       console.log(`[EXTEND-MUSIC-${requestId}] Extend music task created successfully:`, {
@@ -437,4 +438,3 @@ export async function POST(request: NextRequest) {
     );
   }
 }
-

@@ -373,7 +373,7 @@ export const StudioPanel = (props: StudioPanelProps) => {
                 <DropdownMenuTrigger asChild>
                   <button
                     type="button"
-                    className="px-3 py-1.5 rounded-lg bg-gradient-create text-white text-xs md:text-sm font-semibold hover:opacity-90 transition-opacity flex items-center gap-1.5"
+                    className="px-3 py-1.5 rounded-full border border-white/10 bg-white/5 text-xs md:text-sm font-semibold text-white/80 transition-colors hover:bg-white/10 flex items-center gap-1.5"
                     title="Click to change model version"
                   >
                     <span>{modelOptions.find(opt => opt.value === selectedModel)?.label || 'v4.5'}</span>

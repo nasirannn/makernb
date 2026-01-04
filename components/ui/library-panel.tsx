@@ -188,6 +188,16 @@ export const LibraryPanel = ({
   const [trackToEdit, setTrackToEdit] = useState<LibraryTrack | null>(null);
   const [copiedTrackId, setCopiedTrackId] = useState<string | null>(null);
   const isLibraryLoading = authLoading || isLoading;
+
+  const formatModelLabel = (model?: string | null) => {
+    if (!model) return null;
+    if (model === 'V4_5PLUS') return 'V4.5+';
+    if (model === 'V3_5') return 'V3.5';
+    if (model === 'V4_5') return 'V4.5';
+    if (model === 'V4') return 'V4';
+    if (model === 'V5') return 'V5';
+    return model.replace('_', '.');
+  };
   
   // 切换tags展开状态
   const toggleTagsExpansion = (trackId: string) => {
@@ -1037,9 +1047,7 @@ export const LibraryPanel = ({
                     className={`hidden md:grid grid-cols-12 gap-4 px-2 mx-2 transition-all duration-300 group cursor-pointer rounded-lg border ${
                       selectedLibraryTrack === track.id || currentPlayingTrack === track.id
                         ? 'bg-muted/60 border-border/60'
-                        : index % 2 === 0 
-                          ? 'bg-background hover:bg-muted/30 border-transparent'
-                          : 'bg-muted/10 hover:bg-muted/40 border-transparent'
+                        : 'bg-background hover:bg-muted/30 border-transparent'
                     }`}
                     onClick={(e) => {
                       handleTrackAction(track, 'select');
@@ -1086,20 +1094,26 @@ export const LibraryPanel = ({
 
                   {/* Tags Column - 标签信息 - 桌面端 */}
                   <div className="col-span-4 flex items-center py-2">
-                    <span 
-                      className="text-sm text-muted-foreground truncate"
-                      title={track.tags || undefined}
-                    >
+                    <div className="flex items-center gap-2 text-sm text-muted-foreground truncate" title={track.tags || undefined}>
+                      {formatModelLabel(track.model) && (
+                        <span className="inline-flex items-center rounded-full border border-white/10 bg-white/5 px-2 py-0.5 text-[10px] font-medium text-white/70">
+                          {formatModelLabel(track.model)}
+                        </span>
+                      )}
                       {track.tags ? (
-                        track.tags.split(/[,;.]/).filter((tag: string) => tag.trim()).map((tag: string, index: number, array: string[]) => (
-                          <span key={index}>
-                            <span>{tag.trim()}</span>
-                            {index < array.length - 1 && <span className="mx-1">•</span>}
-                          </span>
-                        ))
-                      ) : '-'}
-                      {track.tags && track.tags.length > 70 && '...'}
-                    </span>
+                        <span className="truncate">
+                          {track.tags.split(/[,;.]/).filter((tag: string) => tag.trim()).map((tag: string, index: number, array: string[]) => (
+                            <span key={index}>
+                              <span>{tag.trim()}</span>
+                              {index < array.length - 1 && <span className="mx-1">•</span>}
+                            </span>
+                          ))}
+                          {track.tags.length > 70 && '...'}
+                        </span>
+                      ) : (
+                        <span>-</span>
+                      )}
+                    </div>
                   </div>
 
                   {/* Created Time Column - 桌面端 */}
@@ -1177,6 +1191,14 @@ export const LibraryPanel = ({
                           <>
                             <span className="text-xs text-muted-foreground whitespace-nowrap">
                               {formatDuration(typeof track.duration === 'string' ? parseFloat(track.duration) : (track.duration || 0))}
+                            </span>
+                            <span className="text-xs text-muted-foreground/60">|</span>
+                          </>
+                        )}
+                        {formatModelLabel(track.model) && (
+                          <>
+                            <span className="inline-flex items-center rounded-full border border-white/10 bg-white/5 px-2 py-0.5 text-[10px] font-medium text-white/70">
+                              {formatModelLabel(track.model)}
                             </span>
                             <span className="text-xs text-muted-foreground/60">|</span>
                           </>

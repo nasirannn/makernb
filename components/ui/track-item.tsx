@@ -13,6 +13,7 @@ interface TrackItemProps {
   isPlaying?: boolean;
   isCurrentTrack?: boolean;
   isCopied?: boolean;
+  modelBadgePlacement?: 'title' | 'meta';
   
   // 权限
   canDownloadMP3?: boolean;
@@ -43,6 +44,7 @@ export const TrackItem: React.FC<TrackItemProps> = ({
   isPlaying = false,
   isCurrentTrack = false,
   isCopied = false,
+  modelBadgePlacement = 'meta',
   canDownloadMP3 = false,
   canDownloadWAV = false,
   canDownloadCover = false,
@@ -77,6 +79,7 @@ export const TrackItem: React.FC<TrackItemProps> = ({
     track.musicGeneration?.tags ||
     track.genre ||
     (Array.isArray(track.tagList) ? track.tagList.join(', ') : undefined);
+  const model = track.model || track.musicGeneration?.model;
   
   // 统一样式，不再区分延长版本
   const isExtension = false; // 统一样式
@@ -131,6 +134,8 @@ export const TrackItem: React.FC<TrackItemProps> = ({
               tags={tags}
               duration={track.duration}
               createdAt={track.createdAt || track.musicGeneration?.createdAt}
+              model={model}
+              modelPlacement={modelBadgePlacement}
               isError={isError}
               errorMessage={track.errorMessage || track.originalPrompt}
               isGenerating={isGenerating}

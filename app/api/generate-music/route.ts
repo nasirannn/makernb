@@ -188,7 +188,8 @@ export async function POST(request: NextRequest) {
           genre: genreForDb,
           prompt: customPrompt,
           task_id: result.taskId,
-          status: 'generating'
+          status: 'generating',
+          model: modelVersion
         });
 
         // 步骤3: 创建空的tracks记录并返回初始数据
@@ -324,7 +325,8 @@ export async function POST(request: NextRequest) {
           genre: genreForDb,
           prompt: customPrompt,
           task_id: undefined, // 没有taskId
-          status: 'error'
+          status: 'error',
+          model: modelVersion
         });
 
         // 创建错误记录

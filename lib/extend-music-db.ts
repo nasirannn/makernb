@@ -20,6 +20,7 @@ export async function createExtendMusicTask(params: {
   originalMusicId: string;
   originalTrackId: string; // 保留参数以保持 API 兼容性，但不存储到 music 表
   type?: MusicType;
+  model?: string;
 }): Promise<string> {
   const {
     userId,
@@ -31,6 +32,7 @@ export async function createExtendMusicTask(params: {
     isInstrumental,
     originalMusicId,
     type = 'extended',
+    model = 'V3.5',
     // originalTrackId 不再存储到 music 表，而是在创建 track 时存储到 tracks 表
   } = params;
 
@@ -48,6 +50,7 @@ export async function createExtendMusicTask(params: {
       status,
       original_music_id,
       type,
+      model,
       created_at,
       updated_at
     ) VALUES (
@@ -61,6 +64,7 @@ export async function createExtendMusicTask(params: {
       'generating',
       $8::uuid,
       $9,
+      $10,
       NOW(),
       NOW()
     ) RETURNING id`,
@@ -74,6 +78,7 @@ export async function createExtendMusicTask(params: {
       isInstrumental,
       originalMusicId,
       normalizedType,
+      model,
     ]
   );
 

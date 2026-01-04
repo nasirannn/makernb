@@ -29,6 +29,7 @@ interface MusicGeneration {
   prompt: string;
   isInstrumental: boolean;
   status: string;
+  model?: string;
   createdAt: string;
   updatedAt: string;
   lyricsContent?: string;
@@ -247,6 +248,7 @@ export const StudioTracksList: React.FC<StudioTracksListProps> = React.memo(func
         genre: track.genre || '',
         tags: track.tags || '',
         status: track.isGenerating ? 'generating' : (track.isCompleted ? 'complete' : 'generating'),
+        model: track.model,
       } as MusicGeneration,
       isGenerating: track.isGenerating,
       isPlaceholder: track.isPlaceholder,
@@ -943,7 +945,8 @@ export const StudioTracksList: React.FC<StudioTracksListProps> = React.memo(func
                       isPlaying={globalAudioState.isPlaying}
                       isCurrentTrack={globalAudioState.currentPlayingTrackId === track.id}
                       isCopied={copiedTrackId === track.id}
-                        canDownloadMP3={canDownloadMP3}
+                      modelBadgePlacement="title"
+                      canDownloadMP3={canDownloadMP3}
                       canDownloadWAV={canDownloadWAV}
                       canDownloadCover={canDownloadCover}
                       canVocalRemoval={canVocalRemoval}

@@ -20,6 +20,7 @@ export interface BaseTrack {
   createdAt?: string;
   isFavorited?: boolean;
   musicType?: MusicType;
+  model?: string;
   
   // 扩展相关字段
   isExtension?: boolean; // 是否是扩展歌曲
@@ -110,6 +111,7 @@ export interface TrackInfoResponse {
   prompt: string | null;
   isInstrumental: boolean;
   status: string;
+  model?: string;
   userId: string;
   generationCreatedAt: string;
   lyrics: string;
@@ -150,7 +152,8 @@ export function convertToBaseTrack(track: any): BaseTrack {
     genre: track.genre,
     lyrics: track.lyrics,
     createdAt: track.createdAt || track.created_at,
-    isFavorited: track.isFavorited ?? track.is_favorited ?? false // 兼容旧字段名
+    isFavorited: track.isFavorited ?? track.is_favorited ?? false, // 兼容旧字段名
+    model: track.model || track.musicModel || track.musicGeneration?.model
   };
 }
 

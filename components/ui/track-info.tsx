@@ -9,6 +9,8 @@ interface TrackInfoProps {
   tags?: string;
   duration?: number;
   createdAt?: string;
+  model?: string;
+  modelPlacement?: 'title' | 'meta';
   isError?: boolean;
   errorMessage?: string;
   isGenerating?: boolean;
@@ -24,6 +26,8 @@ export const TrackInfo: React.FC<TrackInfoProps> = ({
   tags,
   duration,
   createdAt,
+  model,
+  modelPlacement = 'meta',
   isError = false,
   errorMessage,
   isGenerating = false,
@@ -49,6 +53,15 @@ export const TrackInfo: React.FC<TrackInfoProps> = ({
   }, [tags]);
   const visibleTags = parsedTags.slice(0, 3);
   const hiddenTagCount = parsedTags.length > 3 ? parsedTags.length - 3 : 0;
+  const modelLabel = React.useMemo(() => {
+    if (!model) return null;
+    if (model === 'V4_5PLUS') return 'V4.5+';
+    if (model === 'V3_5') return 'V3.5';
+    if (model === 'V4_5') return 'V4.5';
+    if (model === 'V4') return 'V4';
+    if (model === 'V5') return 'V5';
+    return model.replace('_', '.');
+  }, [model]);
   
   return (
     <div className={`flex-1 min-w-0 flex flex-col ${justifyClass} ${heightClass}`}>
@@ -60,9 +73,15 @@ export const TrackInfo: React.FC<TrackInfoProps> = ({
             : isSelected
               ? 'text-primary'
               : 'text-foreground'
-        }`}>
+          }`}>
           {isError ? (errorMessage || title || 'Generation failed') : (title || 'Untitled Track')}
         </h3>
+
+        {modelLabel && modelPlacement === 'title' && (
+          <span className="inline-flex items-center rounded-full border border-white/10 bg-white/5 px-2 py-0.5 text-[10px] font-medium text-white/70">
+            {modelLabel}
+          </span>
+        )}
 
         {/* 来源标识徽章 - 紧跟标题后面 */}
         {!isError && originalTrackTitle && sourceType && (
@@ -102,6 +121,15 @@ export const TrackInfo: React.FC<TrackInfoProps> = ({
                   --:--
                 </span>
               )}
+            </>
+          )}
+
+          {modelLabel && modelPlacement === 'meta' && (
+            <>
+              <span className="h-3 w-px bg-muted-foreground/40" aria-hidden="true" />
+              <span className="inline-flex items-center rounded-full border border-white/10 bg-white/5 px-2 py-0.5 text-[10px] font-medium text-white/70">
+                {modelLabel}
+              </span>
             </>
           )}
 

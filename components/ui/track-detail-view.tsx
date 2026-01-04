@@ -53,6 +53,7 @@ export interface TrackInfo {
   isFavorited: boolean;
   userId?: string;
   status?: string;
+  model?: string;
 }
 
 export const TrackDetailView: React.FC<TrackDetailViewProps> = ({
@@ -106,7 +107,8 @@ export const TrackDetailView: React.FC<TrackDetailViewProps> = ({
               isPublished: apiTrack.isPublished || false,
               isFavorited: apiTrack.isFavorited || false,
               userId: apiTrack.userId,
-              status: apiTrack.status
+              status: apiTrack.status,
+              model: apiTrack.model
             });
           } else {
             throw new Error("Invalid response format");
@@ -201,6 +203,21 @@ export const TrackDetailView: React.FC<TrackDetailViewProps> = ({
     return `${minutes}:${remainingSeconds.toString().padStart(2, "0")}`;
   };
 
+  const formatModelLabel = (value?: string) => {
+    if (!value) return null;
+    if (value === "V4_5PLUS") return "V4.5+";
+    if (value === "V3_5") return "V3.5";
+    if (value === "V4_5") return "V4.5";
+    if (value === "V4") return "V4";
+    if (value === "V5") return "V5";
+    return value.replace("_", ".");
+  };
+
+  const modelLabel = useMemo(
+    () => formatModelLabel(trackInfo?.model),
+    [trackInfo?.model]
+  );
+
   const handleShare = () => {
     if (!trackInfo) return;
     const url = `${window.location.origin}/track/${trackInfo.id}`;
@@ -292,6 +309,11 @@ export const TrackDetailView: React.FC<TrackDetailViewProps> = ({
                 <div className="inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/5 px-3 py-1 backdrop-blur">
                   <Clock className="h-4 w-4 text-white" />
                   <span>{formatDuration(trackInfo.duration)}</span>
+                </div>
+              )}
+              {modelLabel && (
+                <div className="inline-flex items-center rounded-full border border-white/15 bg-white/5 px-3 py-1 text-xs font-medium text-white/80 backdrop-blur">
+                  {modelLabel}
                 </div>
               )}
             </div>

@@ -25,6 +25,7 @@ interface MusicGeneration {
   tags: string;
   prompt?: string;
   lyrics?: string;
+  model?: string;
   createdAt: string;
   updatedAt: string;
   primaryTrack: Track;
@@ -331,11 +332,12 @@ export default function ExplorePage() {
             <>
               <div className="relative">
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-6">
-                  {exploreData.music.map((music) => (
-                    <div
-                      key={music.id}
-                      className="bg-black/20 backdrop-blur-sm rounded-xl overflow-hidden hover:bg-black/30 transition-all duration-300 group cursor-pointer"
-                    >
+                  {exploreData.music.map((music) => {
+                    return (
+                      <div
+                        key={music.id}
+                        className="bg-black/20 backdrop-blur-sm rounded-xl overflow-hidden hover:bg-black/30 transition-all duration-300 group cursor-pointer"
+                      >
                       {/* Cover Image */}
                       <div className="relative aspect-square overflow-hidden">
                         <SafeImage
@@ -393,7 +395,8 @@ export default function ExplorePage() {
                         </div>
                       </div>
                     </div>
-                  ))}
+                  );
+                  })}
                 </div>
               </div>
 
