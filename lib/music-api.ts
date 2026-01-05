@@ -4,6 +4,7 @@ import { DEFAULT_NEGATIVE_TAGS, DEFAULT_STYLE_WEIGHT, DEFAULT_WEIRDNESS_CONSTRAI
 // API service configuration
 export interface GenerateMusicRequest {
   mode: 'basic' | 'custom';
+  model?: string;
   // Basic mode fields
   customPrompt?: string;
   instrumentalMode?: boolean;
@@ -173,7 +174,7 @@ class MusicApiService {
       // Basic模式: customMode: false（style 等参数将被忽略）
       apiParams.customMode = false;
       apiParams.instrumental = request.instrumentalMode || false;
-      apiParams.model = getMusicModel('basic'); // Basic Mode使用配置的模型
+      apiParams.model = request.model || getMusicModel('basic'); // 优先使用请求指定模型
 
       // 拼接一个≤100字符的R&B风格短语到prompt
       const styleHint = 'Create in R&B style.'; 
@@ -189,7 +190,7 @@ class MusicApiService {
       // Custom模式: customMode: true
       apiParams.customMode = true;
       apiParams.instrumental = request.instrumentalMode || false;
-      apiParams.model = getMusicModel('custom'); // Custom Mode使用配置的模型
+      apiParams.model = request.model || getMusicModel('custom'); // 优先使用请求指定模型
 
       // Custom Mode: 直接使用用户输入的styleText
       if (request.styleText && request.styleText.trim()) {

@@ -359,11 +359,11 @@ export const ExtendMusicDialog: React.FC<ExtendMusicDialogProps> = ({
 
   // 模型版本选项配置
   const modelOptions: Array<{ value: ExtendMusicModel; label: string; description: string }> = [
-    { value: 'V5', label: 'V5', description: 'Superior musical expression, faster generation.' },
-    { value: 'V4.5+', label: 'V4.5+', description: 'Richer sound, new ways to create, max 8 min.' },
-    { value: 'V4_5', label: 'V4.5', description: 'Smarter prompts, faster generations, max 8 min.' },
-    { value: 'V4', label: 'V4', description: 'Improved vocal quality, max 4 min.' },
-    { value: 'V3_5', label: 'V3.5', description: 'Better song structure, max 4 min.' },
+    { value: 'V5', label: 'V5', description: 'Authentic vocals, superior sound quality, and intuitive control, up to 8 minutes' },
+    { value: 'V4_5PLUS', label: 'V4.5+', description: 'Best sound quality with richer vocals, up to 8 minutes' },
+    { value: 'V4_5', label: 'V4.5', description: 'High-quality vocals with smarter prompts and faster generation, up to 8 minutes' },
+    { value: 'V4', label: 'V4', description: 'Basic model with improved vocal quality, up to 4 minutes' },
+    { value: 'V4_5ALL', label: 'V4.5ALL', description: 'High-quality voice synthesis with faster generation, up to 8 minutes' },
   ];
 
   return (

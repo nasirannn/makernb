@@ -347,7 +347,7 @@ export async function POST(request: NextRequest) {
           false,
           'generating',
           'replace_section',
-          'V3.5'
+          'V4'
         ]
       );
 

@@ -192,7 +192,7 @@ export const LibraryPanel = ({
   const formatModelLabel = (model?: string | null) => {
     if (!model) return null;
     if (model === 'V4_5PLUS') return 'V4.5+';
-    if (model === 'V3_5') return 'V3.5';
+    if (model === 'V4_5ALL') return 'V4.5ALL';
     if (model === 'V4_5') return 'V4.5';
     if (model === 'V4') return 'V4';
     if (model === 'V5') return 'V5';

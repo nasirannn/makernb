@@ -32,7 +32,7 @@ export async function createExtendMusicTask(params: {
     isInstrumental,
     originalMusicId,
     type = 'extended',
-    model = 'V3.5',
+    model = 'V4',
     // originalTrackId 不再存储到 music 表，而是在创建 track 时存储到 tracks 表
   } = params;
 

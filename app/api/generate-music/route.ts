@@ -26,7 +26,7 @@ export async function POST(request: NextRequest) {
     }
 
     const requestData = await request.json();
-    console.log(`[MUSIC-GEN-${requestId}] Request: ${requestData.mode} mode, ${requestData.instrumentalMode ? 'instrumental' : 'with vocals'}, model: ${requestData.model || 'V4_5'}`);
+    console.log(`[MUSIC-GEN-${requestId}] Request: ${requestData.mode} mode, ${requestData.instrumentalMode ? 'instrumental' : 'with vocals'}, model: ${requestData.model || 'V4'}`);
 
     // 从前端获取所有参数
     const {
@@ -37,7 +37,7 @@ export async function POST(request: NextRequest) {
       styleText,
       vocalGender,
       genre,
-      model = 'V4_5' // 默认使用 V4.5
+      model = 'V4' // 默认使用 V4
     } = requestData;
     if (mode === 'basic') {
       // Basic mode validation
@@ -51,8 +51,33 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // 验证模型权限（V3.5 之外的所有模型都需要订阅）
-    if (model !== 'V3_5') {
+    if (model === 'V4_5ALL') {
+      const promptLimit = mode === 'basic' ? 400 : 5000;
+      const styleLimit = 1000;
+      if (customPrompt && customPrompt.length > promptLimit) {
+        return NextResponse.json(
+          {
+            error: 'Prompt too long',
+            message: `Prompt must be ${promptLimit} characters or less for V4_5ALL.`,
+            success: false
+          },
+          { status: 400 }
+        );
+      }
+      if (styleText && styleText.length > styleLimit) {
+        return NextResponse.json(
+          {
+            error: 'Style too long',
+            message: `Style must be ${styleLimit} characters or less for V4_5ALL.`,
+            success: false
+          },
+          { status: 400 }
+        );
+      }
+    }
+
+    // 验证模型权限（V4 之外的所有模型都需要订阅）
+    if (model !== 'V4') {
       try {
         const { hasFeaturePermission } = await import('@/lib/feature-permissions');
         const modelFeatureCode = `model_${model.toLowerCase().replace('+', '_plus').replace('.', '_')}`;
@@ -63,7 +88,7 @@ export async function POST(request: NextRequest) {
           return NextResponse.json(
             {
               error: 'Subscription required',
-              message: `Model ${model} requires a subscription. Please subscribe or use V3.5 model.`,
+              message: `Model ${model} requires a subscription. Please subscribe or use V4 model.`,
               success: false
             },
             { status: 403 }

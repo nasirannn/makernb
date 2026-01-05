@@ -96,15 +96,15 @@ export async function POST(request: NextRequest) {
   // 根据 customMode 限制 lyrics 长度
   const maxLyricsLength = customMode ? 5000 : 500;
   const lyrics = formData.get('lyrics')?.toString().slice(0, maxLyricsLength) || '';
-  const model = formData.get('model')?.toString() || 'V4_5';
+  const model = formData.get('model')?.toString() || 'V4';
   const instrumental = formData.get('instrumental') === 'true';
 
   if (file.size > 40 * 1024 * 1024) {
     return NextResponse.json({ error: 'File size must be under 40MB' }, { status: 400 });
   }
 
-  // 验证模型权限（V3.5 之外的所有模型都需要订阅）
-  if (model !== 'V3_5') {
+  // 验证模型权限（V4 之外的所有模型都需要订阅）
+  if (model !== 'V4') {
     try {
       const { hasFeaturePermission } = await import('@/lib/feature-permissions');
       const modelFeatureCode = `model_${model.toLowerCase().replace('+', '_plus').replace('.', '_')}`;
@@ -115,7 +115,7 @@ export async function POST(request: NextRequest) {
         return NextResponse.json(
           {
             error: 'Subscription required',
-            message: `Model ${model} requires a subscription. Please subscribe or use V3.5 model.`,
+            message: `Model ${model} requires a subscription. Please subscribe or use V4 model.`,
           },
           { status: 403 }
         );

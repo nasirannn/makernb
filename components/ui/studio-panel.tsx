@@ -7,7 +7,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
-import { Music, RotateCcw, ChevronRight, Wand2, Play, CreditCard, UploadCloud, X, Check } from "lucide-react";
+import { Music, RotateCcw, ChevronRight, Wand2, Play, CreditCard, UploadCloud, X, Check, Triangle } from "lucide-react";
 import musicOptions from '@/data/music-options.json';
 import { useAuth } from '@/contexts/AuthContext';
 import { useCredits } from '@/contexts/CreditsContext';
@@ -133,13 +133,16 @@ export const StudioPanel = (props: StudioPanelProps) => {
     onGenerationStart,
     onGenerateLyrics,
     onUploadTaskCreated,
-    selectedModel = 'V4_5',
+    selectedModel = 'V4',
     setSelectedModel,
   } = props;
 
   const { user } = useAuth();
   const { credits, refreshCredits } = useCredits();
   const userSelectedModelRef = React.useRef(false);
+  const basicPromptMaxLength = 400;
+  const customPromptMaxLength = selectedModel === 'V4_5ALL' ? 5000 : 5000;
+  const styleTextMaxLength = selectedModel === 'V4_5ALL' ? 1000 : 1000;
 
   const updateSelectedModel = React.useCallback((
     model: MusicModel,
@@ -177,15 +180,16 @@ export const StudioPanel = (props: StudioPanelProps) => {
 
   // Pricing dialog state
   const [isPricingOpen, setIsPricingOpen] = React.useState(false);
+  const [isModelMenuOpen, setIsModelMenuOpen] = React.useState(false);
 
   // Check subscription status
   React.useEffect(() => {
     const checkSubscription = async () => {
       if (!user?.id) {
         setHasSubscription(false);
-        // 无订阅用户默认使用 V3.5
-        if (selectedModel !== 'V3_5') {
-          updateSelectedModel('V3_5', { forceOverride: true });
+        // 无订阅用户默认使用 V4
+        if (selectedModel !== 'V4') {
+          updateSelectedModel('V4', { forceOverride: true });
         }
         return;
       }
@@ -195,8 +199,8 @@ export const StudioPanel = (props: StudioPanelProps) => {
         const { data: { session } } = await supabase.auth.getSession();
         if (!session?.access_token) {
           setHasSubscription(false);
-          if (selectedModel !== 'V3_5') {
-            updateSelectedModel('V3_5', { forceOverride: true });
+          if (selectedModel !== 'V4') {
+            updateSelectedModel('V4', { forceOverride: true });
           }
           return;
         }
@@ -220,25 +224,25 @@ export const StudioPanel = (props: StudioPanelProps) => {
             currentModel: selectedModel
           });
 
-          // 有订阅用户默认使用 V4_5PLUS
-          if (hasActive && selectedModel === 'V3_5' && !userSelectedModelRef.current) {
-            updateSelectedModel('V4_5PLUS');
+          // 有订阅用户默认使用 V4
+          if (hasActive && selectedModel !== 'V4' && !userSelectedModelRef.current) {
+            updateSelectedModel('V4', { forceOverride: true });
           }
-          // 无订阅用户默认使用 V3.5
-          else if (!hasActive && selectedModel !== 'V3_5') {
-            updateSelectedModel('V3_5', { forceOverride: true });
+          // 无订阅用户默认使用 V4
+          else if (!hasActive && selectedModel !== 'V4') {
+            updateSelectedModel('V4', { forceOverride: true });
           }
         } else {
           setHasSubscription(false);
-          if (selectedModel !== 'V3_5') {
-            updateSelectedModel('V3_5', { forceOverride: true });
+          if (selectedModel !== 'V4') {
+            updateSelectedModel('V4', { forceOverride: true });
           }
         }
       } catch (error) {
         console.error('Error checking subscription:', error);
         setHasSubscription(false);
-        if (selectedModel !== 'V3_5') {
-          updateSelectedModel('V3_5', { forceOverride: true });
+        if (selectedModel !== 'V4') {
+          updateSelectedModel('V4', { forceOverride: true });
         }
       } finally {
         setIsCheckingSubscription(false);
@@ -333,7 +337,7 @@ export const StudioPanel = (props: StudioPanelProps) => {
   };
 
   return (
-    <div className={`transition-all duration-300 ease-in-out bg-[var(--studio-panel-bg)] border border-white/5 rounded-[32px] shadow-[0_20px_60px_rgba(4,6,15,0.45)] ${
+    <div className={`transition-all duration-300 ease-in-out bg-background border border-white/5 shadow-[0_20px_60px_rgba(4,6,15,0.45)] ${
       // 桌面：左侧固定宽度；移动端：当 forceVisibleOnMobile=true 时占满宽度
       panelOpen ? (forceVisibleOnMobile ? 'w-full md:w-[28rem]' : 'w-[28rem]') : 'w-0'
     } ${forceVisibleOnMobile ? 'flex flex-col' : 'h-full flex flex-col overflow-hidden'} ${forceVisibleOnMobile ? 'flex md:flex' : 'hidden md:flex'}`}>
@@ -348,8 +352,8 @@ export const StudioPanel = (props: StudioPanelProps) => {
                     <button
                       onClick={() => setMode("basic")}
                       title="Create random R&B songs with polished production in 90s style. Simple and fast setup."
-                      className={`py-2 px-4 md:px-6 text-xs md:text-sm font-semibold tracking-tight transition-all duration-200 rounded-xl ${mode === "basic"
-                          ? "bg-primary/20 border-transparent text-primary shadow-sm"
+                      className={`py-1.5 px-4 md:px-6 text-xs md:text-sm font-semibold tracking-tight transition-all duration-200 rounded-xl ${mode === "basic"
+                          ? "bg-white border-transparent text-primary shadow-sm"
                           : "text-muted-foreground hover:text-foreground hover:bg-muted/50"
                         }`}
                     >
@@ -358,8 +362,8 @@ export const StudioPanel = (props: StudioPanelProps) => {
                     <button
                       onClick={() => setMode("custom")}
                       title="Fine-tune every aspect of your track with detailed controls for genre, instruments, and style."
-                      className={`py-2 px-4 md:px-6 text-xs md:text-sm font-semibold tracking-tight transition-all duration-200 rounded-xl ${mode === "custom"
-                          ? "bg-primary/20 border-transparent text-primary shadow-sm"
+                      className={`py-1.5 px-4 md:px-6 text-xs md:text-sm font-semibold tracking-tight transition-all duration-200 rounded-xl ${mode === "custom"
+                          ? "bg-white border-transparent text-primary shadow-sm"
                           : "text-muted-foreground hover:text-foreground hover:bg-muted/50"
                         }`}
                     >
@@ -369,18 +373,18 @@ export const StudioPanel = (props: StudioPanelProps) => {
                 </div>
 
               {/* Model Selection Menu */}
-              <DropdownMenu>
+              <DropdownMenu open={isModelMenuOpen} onOpenChange={setIsModelMenuOpen}>
                 <DropdownMenuTrigger asChild>
                   <button
                     type="button"
-                    className="px-3 py-1.5 rounded-full border border-white/10 bg-white/5 text-xs md:text-sm font-semibold text-white/80 transition-colors hover:bg-white/10 flex items-center gap-1.5"
+                    className="px-4 py-1.5 rounded-full border border-white/10 bg-white/5 text-xs md:text-sm font-semibold text-white/80 transition-colors hover:bg-white/10 flex items-center gap-1.5"
                     title="Click to change model version"
                   >
-                    <span>{modelOptions.find(opt => opt.value === selectedModel)?.label || 'v4.5'}</span>
-                    <ChevronRight className="w-3 h-3" />
+                    <span>{modelOptions.find(opt => opt.value === selectedModel)?.label || 'v4'}</span>
+                    <Triangle className={`w-2.5 h-2.5 fill-current transition-transform ${isModelMenuOpen ? 'rotate-180' : ''}`} />
                   </button>
                 </DropdownMenuTrigger>
-                <DropdownMenuContent align="end" className="w-64 p-1.5">
+                <DropdownMenuContent align="end" className="w-80 p-1.5">
                   {modelOptions.map((option, index) => {
                     const isSelected = option.value === selectedModel;
                     return (
@@ -435,11 +439,11 @@ export const StudioPanel = (props: StudioPanelProps) => {
                       placeholder="Describe your song idea (e.g., 'a love song about summer nights')"
                       value={customPrompt}
                       onChange={(e) => setCustomPrompt(e.target.value)}
-                      maxLength={400}
+                      maxLength={basicPromptMaxLength}
                       className="min-h-[180px] md:min-h-[200px] resize-none pr-16 pb-12 border border-border focus-visible:ring-0 focus-visible:ring-offset-0"
                     />
                     <div className="absolute bottom-2 right-2 text-xs text-muted-foreground bg-background/80 px-2 py-1 rounded">
-                      {customPrompt.length}/400
+                      {customPrompt.length}/{basicPromptMaxLength}
                     </div>
                     {/* Instrumental Switch - Bottom Left */}
                     <div className="absolute bottom-2 left-2 flex items-center gap-2">
@@ -487,12 +491,12 @@ export const StudioPanel = (props: StudioPanelProps) => {
                         placeholder="Write your song lyrics here..."
                         value={customPrompt}
                         onChange={(e) => setCustomPrompt(e.target.value)}
-                        maxLength={5000}
+                        maxLength={customPromptMaxLength}
                       className="min-h-[104px] md:min-h-[120px] resize-none pr-16 pb-6 border border-border focus-visible:ring-0 focus-visible:ring-offset-0"
                       />
                       {/* Character count - Inside textarea, bottom right */}
                       <div className="absolute bottom-2 right-2 text-xs text-muted-foreground bg-background/80 px-2 py-1 rounded">
-                        {customPrompt.length}/5000
+                        {customPrompt.length}/{customPromptMaxLength}
                       </div>
                       {/* Generate Lyrics Button - Bottom Left */}
                       <div className="absolute bottom-2 left-2">
@@ -523,7 +527,7 @@ export const StudioPanel = (props: StudioPanelProps) => {
                             onClick={() => setVocalGender(gender.id)}
                             className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
                               vocalGender === gender.id
-                                ? 'bg-primary text-primary-foreground hover:bg-primary/90'
+                                ? 'bg-white text-primary hover:bg-white/90'
                                 : 'bg-muted/30 text-muted-foreground hover:bg-muted/50 hover:text-foreground'
                             }`}
                           >
@@ -603,11 +607,11 @@ export const StudioPanel = (props: StudioPanelProps) => {
                       setStyleText(newValue);
                       handleUpdateStatesFromTextarea(newValue);
                     }}
-                    maxLength={1000}
+                    maxLength={styleTextMaxLength}
                     className="min-h-[180px] md:min-h-[200px] resize-none pr-16 pb-12 border border-border focus-visible:ring-0 focus-visible:ring-offset-0"
                   />
                   <div className="absolute bottom-2 right-3 text-xs text-muted-foreground">
-                    {styleText.length}/1000
+                    {styleText.length}/{styleTextMaxLength}
                   </div>
                             </div>
                   </div>
@@ -1212,7 +1216,7 @@ export const StudioPanel = (props: StudioPanelProps) => {
           </div>
 
           {/* Floating Generate Button - Bottom */}
-          <div className="flex-shrink-0 px-4 md:px-6 pt-4 pb-6">
+          <div className="flex-shrink-0 px-4 md:px-6 pt-3 pb-4">
             {(() => {
               // 只根据prompt输入内容来禁用按钮，积分检查移到点击后
               let isDisabled = isGenerating;
@@ -1235,7 +1239,7 @@ export const StudioPanel = (props: StudioPanelProps) => {
                   <button
                     type="button"
                     onClick={() => setIsUploadDialogOpen(true)}
-                    className="h-14 w-14 rounded-2xl border border-white/10 bg-white/[0.04] text-white flex items-center justify-center hover:bg-white/10 transition-all"
+                    className="h-12 w-12 rounded-2xl bg-white/[0.04] text-white flex items-center justify-center hover:bg-white/10 transition-all"
                     title="Upload Audio"
                   >
                     <UploadCloud className="w-5 h-5" />
@@ -1245,7 +1249,7 @@ export const StudioPanel = (props: StudioPanelProps) => {
                       handleGenerateWithAuth();
                     }}
                     disabled={isDisabled}
-                    className="flex-1 h-14 px-4 text-base font-semibold bg-gradient-create disabled:bg-muted disabled:bg-none border-transparent text-white disabled:text-muted-foreground shadow-lg disabled:shadow-none disabled:cursor-not-allowed transition-all duration-300 hover:-translate-y-1 hover:scale-[1.02] disabled:hover:translate-y-0 disabled:hover:scale-100 rounded-2xl relative overflow-hidden"
+                    className="flex-1 h-12 px-4 text-base font-semibold bg-gradient-create disabled:bg-muted disabled:bg-none border-transparent text-white disabled:text-muted-foreground shadow-lg disabled:shadow-none disabled:cursor-not-allowed transition-all duration-300 hover:-translate-y-1 hover:scale-[1.02] disabled:hover:translate-y-0 disabled:hover:scale-100 rounded-2xl relative overflow-hidden"
                   >
                     {!isDisabled && (
                       <div className="absolute inset-0 -translate-x-full bg-gradient-to-r from-transparent via-white/30 to-transparent animate-shine"></div>

@@ -19,18 +19,8 @@ const FAQList: FAQProps[] = [
   },
   {
     question: "How does the credits system work?",
-    answer: "You automatically receive 15 free credits every day when you log in. Basic Mode costs 7 credits per song, while Custom Mode costs 12 credits for advanced features. This means you can create at least one Custom Mode track or two Basic Mode tracks daily - completely free!",
+    answer: "You automatically receive 15 free credits every day when you log in. Each song generation costs 12 credits. Daily login credits expire at midnight (UTC) if unused, and you get a fresh batch with each new login.",
     value: "item-2",
-  },
-  {
-    question: "Do my daily credits expire?",
-    answer: "Yes, daily login credits expire at midnight (UTC) if unused. This means credits earned today will be available until the end of the day. We encourage you to use your credits daily to maximize your creative output. Don't worry though - you'll receive a fresh batch of 15 credits with each new login!",
-    value: "item-3",
-  },
-  {
-    question: "Can I use my own lyrics in the songs?",
-    answer: "Absolutely! In Custom Mode, you can input your own lyrics to create personalized R&B tracks that tell your unique story. The AI will compose music that perfectly complements your words.",
-    value: "item-4",
   },
   {
     question: "Can I generate AI cover songs or create music based on specific artists?",
@@ -38,19 +28,34 @@ const FAQList: FAQProps[] = [
     value: "item-5",
   },
   {
-    question: "How long does it take to generate a song?",
-    answer: "Our AI works incredibly fast! You can preview your R&B track in about 40 seconds, and the complete high-quality version will be ready for download in approximately 3 minutes.",
-    value: "item-6",
-  },
-  {
-    question: "What audio quality do I get when downloading?",
-    answer: "All generated tracks are professional quality with rich vocals, smooth harmonies, and that signature R&B sound. You can download high-quality audio files ready for streaming, sharing, or further production.",
-    value: "item-7",
-  },
-  {
     question: "Can I use the generated music commercially?",
-    answer: "Yes, you own the rights to the music you create with MakeRNB. You can use your generated tracks for personal projects, commercial releases, or any other purpose without additional licensing fees.",
+    answer: "Yes. If you are on a paid plan, you can use the music you generate in commercial projects such as videos, games, podcasts, websites, apps, and advertisements. You do not need to pay additional royalties for these uses.",
     value: "item-8",
+  },
+  {
+    question: "Do I own the copyright to the generated music?",
+    answer: "No. The music is licensed to you for use, but ownership of the generated audio itself is not transferred. This allows you to use the music commercially, while preventing resale or redistribution of the audio as standalone files.",
+    value: "item-9",
+  },
+  {
+    question: "Can I upload the music to YouTube, TikTok, or Spotify?",
+    answer: "Yes, for use as part of your content. However, you may not register the music with Content ID systems or copyright registries.",
+    value: "item-10",
+  },
+  {
+    question: "Can I sell the music or offer it as stock music?",
+    answer: "No. You may not resell, sublicense, or distribute the generated music as standalone audio tracks.",
+    value: "item-11",
+  },
+  {
+    question: "Is the music guaranteed to be copyright-safe?",
+    answer: "No. AI-generated music may share similarities with existing works. We do not provide guarantees of non-infringement. You are responsible for how the music is used in your projects.",
+    value: "item-12",
+  },
+  {
+    question: "Why are there these limitations?",
+    answer: "These limitations help keep the service affordable, fair for all users, and compliant with third-party technology providers.",
+    value: "item-13",
   },
 ];
 

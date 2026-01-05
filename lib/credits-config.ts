@@ -84,8 +84,8 @@ export const FEATURE_CREDITS_CONFIG: Record<string, FeatureConfig> = {
  */
 export const MUSIC_GENERATION_CONFIG = {
   basic: {
-    model: 'V3_5',
-    credits: 7,
+    model: 'V4',
+    credits: 12,
     enabled: true
   } as ModelConfig,
   custom: {
@@ -105,8 +105,8 @@ export const EXTEND_MUSIC_MODEL_CONFIG: Record<string, ModelConfig> = {
     credits: 12,
     enabled: true
   } as ModelConfig,
-  'V4.5+': {
-    model: 'V4.5+',
+  V4_5PLUS: {
+    model: 'V4_5PLUS',
     credits: 12,
     enabled: true
   } as ModelConfig,
@@ -120,9 +120,9 @@ export const EXTEND_MUSIC_MODEL_CONFIG: Record<string, ModelConfig> = {
     credits: 12,
     enabled: true
   } as ModelConfig,
-  V3_5: {
-    model: 'V3.5',
-    credits: 7,
+  V4_5ALL: {
+    model: 'V4_5ALL',
+    credits: 12,
     enabled: true
   } as ModelConfig,
 } as const;
@@ -185,7 +185,7 @@ export function getMusicModel(mode: MusicMode): string {
   const config = MUSIC_GENERATION_CONFIG[mode];
   if (!config || !config.enabled) {
     console.warn(`Music mode ${mode} is not configured or disabled`);
-    return mode === 'custom' ? 'V4_5' : 'V3_5'; // 默认值
+    return mode === 'custom' ? 'V4_5' : 'V4'; // 默认值
   }
   return config.model;
 }
@@ -199,7 +199,7 @@ export function getMusicCredits(mode: MusicMode): number {
   const config = MUSIC_GENERATION_CONFIG[mode];
   if (!config || !config.enabled) {
     console.warn(`Music mode ${mode} is not configured or disabled`);
-    return mode === 'custom' ? 12 : 7; // 默认值
+    return 12; // 默认值
   }
   return config.credits;
 }
@@ -224,7 +224,7 @@ export type ExtendMusicModel = keyof typeof EXTEND_MUSIC_MODEL_CONFIG;
 
 /**
  * 获取 Extend Music 模型版本的积分消耗
- * @param model 模型版本：'V5' | 'V4.5+' | 'V4_5' | 'V4' | 'V3_5'
+ * @param model 模型版本：'V5' | 'V4_5PLUS' | 'V4_5' | 'V4' | 'V4_5ALL'
  * @returns 积分消耗数量
  */
 export function getExtendMusicCredits(model: ExtendMusicModel): number {
@@ -283,10 +283,10 @@ export const CLIENT_UPLOAD_AUDIO_CREDITS = {
  */
 export const CLIENT_EXTEND_MUSIC_CREDITS = {
   V5: EXTEND_MUSIC_MODEL_CONFIG.V5.credits,
-  'V4.5+': EXTEND_MUSIC_MODEL_CONFIG['V4.5+'].credits,
+  V4_5PLUS: EXTEND_MUSIC_MODEL_CONFIG.V4_5PLUS.credits,
   V4_5: EXTEND_MUSIC_MODEL_CONFIG.V4_5.credits,
   V4: EXTEND_MUSIC_MODEL_CONFIG.V4.credits,
-  V3_5: EXTEND_MUSIC_MODEL_CONFIG.V3_5.credits,
+  V4_5ALL: EXTEND_MUSIC_MODEL_CONFIG.V4_5ALL.credits,
 } as const;
 
 /**

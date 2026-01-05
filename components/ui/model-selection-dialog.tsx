@@ -12,7 +12,7 @@ import { Button } from "@/components/ui/button";
 import { X } from "lucide-react";
 
 // 模型类型定义 - 与后端 API 保持一致
-export type MusicModel = 'V3_5' | 'V4' | 'V4_5' | 'V4_5PLUS' | 'V5';
+export type MusicModel = 'V4_5ALL' | 'V4' | 'V4_5' | 'V4_5PLUS' | 'V5';
 
 interface ModelOption {
   value: MusicModel;
@@ -22,11 +22,11 @@ interface ModelOption {
 }
 
 const modelOptions: ModelOption[] = [
-  { value: 'V5', label: 'V5', description: 'Superior musical expression, faster generation.', requiresSubscription: true },
-  { value: 'V4_5PLUS', label: 'V4.5+', description: 'Best sound quality, max 8 min, creative rhythms, rich harmonies', requiresSubscription: true },
-  { value: 'V4_5', label: 'V4.5', description: 'High-quality vocals, smarter prompts, faster generation, up to 8 minutes', requiresSubscription: true },
-  { value: 'V4', label: 'V4', description: 'Basic model with improved vocal quality, up to 4 minutes', requiresSubscription: true },
-  { value: 'V3_5', label: 'V3.5', description: 'Better song structure, max 4 min.', requiresSubscription: false },
+  { value: 'V5', label: 'V5', description: 'Authentic vocals, superior sound quality, and intuitive control, up to 8 minutes', requiresSubscription: true },
+  { value: 'V4_5ALL', label: 'V4.5ALL', description: 'High-quality voice synthesis with faster generation, up to 8 minutes', requiresSubscription: true },
+  { value: 'V4_5PLUS', label: 'V4.5+', description: 'Best sound quality with richer vocals, up to 8 minutes', requiresSubscription: true },
+  { value: 'V4_5', label: 'V4.5', description: 'High-quality vocals with smarter prompts and faster generation, up to 8 minutes', requiresSubscription: true },
+  { value: 'V4', label: 'V4', description: 'Basic model with improved vocal quality, up to 4 minutes', requiresSubscription: false },
 ];
 
 interface ModelSelectionDialogProps {
@@ -58,8 +58,8 @@ export const ModelSelectionDialog: React.FC<ModelSelectionDialogProps> = ({
   }, [isOpen, selectedModel]);
 
   const handleConfirm = () => {
-    // 如果用户没有订阅且选择了非V3.5模型，显示pricing弹窗
-    if (!hasSubscription && tempSelectedModel !== 'V3_5') {
+    // 如果用户没有订阅且选择了非 V4 模型，显示pricing弹窗
+    if (!hasSubscription && tempSelectedModel !== 'V4') {
       onClose();
       if (onShowPricing) {
         onShowPricing();

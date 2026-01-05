@@ -216,11 +216,6 @@ const aiMusicToolsDropdown = [
           size="sm"
           className={collapsedButtonClasses(active)}
         >
-          <span
-            className={`absolute inset-0 rounded-2xl border border-white/20 transition-opacity ${
-              active ? 'opacity-60' : 'opacity-0 group-hover:opacity-40'
-            }`}
-          />
           <Icon className="h-5 w-5" />
           <span className="sr-only">{item.label}</span>
         </Button>
@@ -305,7 +300,7 @@ const aiMusicToolsDropdown = [
           isExpanded ? 'w-64' : 'w-20'
         }`}
       >
-        <div className="flex h-full flex-col rounded-r-[32px] border border-white/5 bg-[#05060b] shadow-[0_20px_60px_rgba(4,6,15,0.6)]">
+        <div className="flex h-full flex-col border border-white/5 bg-[#05060b] shadow-[0_20px_60px_rgba(4,6,15,0.6)]">
           <div className="flex h-full flex-col">
             {/* Home Button */}
             <div className={`flex items-center min-h-[72px] border-b border-white/5 ${isExpanded ? 'px-5 pt-6 pb-4 justify-between' : 'px-2 py-5 justify-center'}`}>
@@ -325,7 +320,7 @@ const aiMusicToolsDropdown = [
                     onClick={toggleSidebar}
                     variant="ghost"
                     size="sm"
-                    className="w-8 h-8 p-0 flex items-center justify-center rounded-xl border border-white/10 text-white/70 hover:bg-white/10 hover:text-white"
+                    className="w-8 h-8 p-0 flex items-center justify-center rounded-xl text-white/70 hover:bg-white/10 hover:text-white"
                   >
                     <ChevronLeft className="h-4 w-4" />
                   </Button>
@@ -336,7 +331,7 @@ const aiMusicToolsDropdown = [
                     onClick={toggleSidebar}
                     variant="ghost"
                     size="sm"
-                    className="w-12 h-12 flex items-center justify-center rounded-2xl border border-white/10 text-white/70 hover:bg-white/10 hover:text-white"
+                    className="w-12 h-12 flex items-center justify-center rounded-2xl text-white/70 hover:bg-white/10 hover:text-white"
                   >
                     <ChevronRight className="h-5 w-5" />
                   </Button>

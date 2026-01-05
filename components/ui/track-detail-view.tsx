@@ -206,7 +206,7 @@ export const TrackDetailView: React.FC<TrackDetailViewProps> = ({
   const formatModelLabel = (value?: string) => {
     if (!value) return null;
     if (value === "V4_5PLUS") return "V4.5+";
-    if (value === "V3_5") return "V3.5";
+    if (value === "V4_5ALL") return "V4.5ALL";
     if (value === "V4_5") return "V4.5";
     if (value === "V4") return "V4";
     if (value === "V5") return "V5";

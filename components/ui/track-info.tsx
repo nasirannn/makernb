@@ -1,7 +1,6 @@
 "use client";
 
 import React from 'react';
-import { Clock } from 'lucide-react';
 import { formatDuration, formatDateTime } from '@/lib/format-utils';
 
 interface TrackInfoProps {
@@ -56,7 +55,7 @@ export const TrackInfo: React.FC<TrackInfoProps> = ({
   const modelLabel = React.useMemo(() => {
     if (!model) return null;
     if (model === 'V4_5PLUS') return 'V4.5+';
-    if (model === 'V3_5') return 'V3.5';
+    if (model === 'V4_5ALL') return 'V4.5ALL';
     if (model === 'V4_5') return 'V4.5';
     if (model === 'V4') return 'V4';
     if (model === 'V5') return 'V5';
@@ -78,7 +77,7 @@ export const TrackInfo: React.FC<TrackInfoProps> = ({
         </h3>
 
         {modelLabel && modelPlacement === 'title' && (
-          <span className="inline-flex items-center rounded-full border border-white/10 bg-white/5 px-2 py-0.5 text-[10px] font-medium text-white/70">
+          <span className="inline-flex items-center rounded-sm border border-white/10 bg-white/5 px-1 py-0.5 text-[10px] font-medium text-white/70">
             {modelLabel}
           </span>
         )}
@@ -107,7 +106,6 @@ export const TrackInfo: React.FC<TrackInfoProps> = ({
             <>
               {duration && duration > 0 ? (
                 <span className={`${textSizeClass} text-muted-foreground whitespace-nowrap inline-flex items-center gap-1`}>
-                  <Clock className="h-3 w-3" />
                   {formatDuration(duration)}
                 </span>
               ) : isGenerating ? (
@@ -127,7 +125,7 @@ export const TrackInfo: React.FC<TrackInfoProps> = ({
           {modelLabel && modelPlacement === 'meta' && (
             <>
               <span className="h-3 w-px bg-muted-foreground/40" aria-hidden="true" />
-              <span className="inline-flex items-center rounded-full border border-white/10 bg-white/5 px-2 py-0.5 text-[10px] font-medium text-white/70">
+              <span className="inline-flex items-center rounded-sm border border-white/10 bg-white/5 px-1 py-0.5 text-[10px] font-medium text-white/70">
                 {modelLabel}
               </span>
             </>

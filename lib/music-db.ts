@@ -84,7 +84,7 @@ export const createMusicGeneration = async (
         data.task_id || null,
         data.status || 'generating',
         data.type || 'generated',
-        data.model || 'V3.5'
+        data.model || 'V4'
       ]
     );
 

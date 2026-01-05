@@ -141,12 +141,12 @@ export function CreditsProvider({ children }: { children: React.ReactNode }) {
     }
   }, [user?.id, credits, loading, refreshCredits]);
 
-  const consumeCredit = (modelVersion: string = 'V3_5') => {
+  const consumeCredit = (modelVersion: string = 'V4') => {
     // 这个函数现在只用于前端检查，实际扣减在后端进行
     const { CLIENT_MUSIC_CREDITS } = require('@/lib/credits-config');
     let creditCost = CLIENT_MUSIC_CREDITS.basic; // Basic Mode 默认积分
     
-    if (modelVersion.startsWith('V4')) {
+    if (modelVersion !== 'V4') {
       creditCost = CLIENT_MUSIC_CREDITS.custom; // Custom Mode 积分
     }
     
