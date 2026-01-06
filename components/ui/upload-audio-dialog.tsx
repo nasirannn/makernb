@@ -76,7 +76,7 @@ export const UploadAudioDialog = ({
   onTaskCreated,
   onSuccess,
   onAuthRequired,
-  selectedModel = 'V4_5', // 默认使用 V4.5
+  selectedModel = 'V4', // 默认使用 V4
 }: UploadAudioDialogProps) => {
   const { user } = useAuth();
   const { credits } = useCredits();

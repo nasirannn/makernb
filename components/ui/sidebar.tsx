@@ -160,6 +160,7 @@ const aiMusicToolsDropdown = [
   ]), []);
 
   const exploreNavItems: SidebarNavItem[] = React.useMemo(() => ([
+    { label: "Explore", href: "/explore", icon: Sparkles },
     { label: "Blog", href: "/blog", icon: BookOpen }
   ]), []);
 
@@ -303,7 +304,7 @@ const aiMusicToolsDropdown = [
         <div className="flex h-full flex-col border border-white/5 bg-[#05060b] shadow-[0_20px_60px_rgba(4,6,15,0.6)]">
           <div className="flex h-full flex-col">
             {/* Home Button */}
-            <div className={`flex items-center min-h-[72px] border-b border-white/5 ${isExpanded ? 'px-5 pt-6 pb-4 justify-between' : 'px-2 py-5 justify-center'}`}>
+            <div className={`flex items-center min-h-[72px] ${isExpanded ? 'px-5 pt-6 pb-4 justify-between' : 'px-2 py-5 justify-center'}`}>
               {isExpanded ? (
                 <>
                   <Link href="/" className="flex items-center gap-3 hover:opacity-90 transition-opacity">
@@ -522,7 +523,7 @@ const aiMusicToolsDropdown = [
                     <div className="relative user-menu-container z-[40] flex justify-center">
                       <Avatar
                         onClick={() => setUserMenuOpen(!userMenuOpen)}
-                        className="w-10 h-10 cursor-pointer rounded-2xl bg-white/5 hover:bg-white/10"
+                        className="w-10 h-10 cursor-pointer"
                       >
                         <AvatarImage
                           src={user.user_metadata?.avatar_url || user.user_metadata?.picture}

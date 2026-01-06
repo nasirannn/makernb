@@ -187,10 +187,6 @@ export const StudioPanel = (props: StudioPanelProps) => {
     const checkSubscription = async () => {
       if (!user?.id) {
         setHasSubscription(false);
-        // 无订阅用户默认使用 V4
-        if (selectedModel !== 'V4') {
-          updateSelectedModel('V4', { forceOverride: true });
-        }
         return;
       }
 
@@ -199,9 +195,6 @@ export const StudioPanel = (props: StudioPanelProps) => {
         const { data: { session } } = await supabase.auth.getSession();
         if (!session?.access_token) {
           setHasSubscription(false);
-          if (selectedModel !== 'V4') {
-            updateSelectedModel('V4', { forceOverride: true });
-          }
           return;
         }
 
@@ -223,34 +216,19 @@ export const StudioPanel = (props: StudioPanelProps) => {
             hasActive,
             currentModel: selectedModel
           });
-
-          // 有订阅用户默认使用 V4
-          if (hasActive && selectedModel !== 'V4' && !userSelectedModelRef.current) {
-            updateSelectedModel('V4', { forceOverride: true });
-          }
-          // 无订阅用户默认使用 V4
-          else if (!hasActive && selectedModel !== 'V4') {
-            updateSelectedModel('V4', { forceOverride: true });
-          }
         } else {
           setHasSubscription(false);
-          if (selectedModel !== 'V4') {
-            updateSelectedModel('V4', { forceOverride: true });
-          }
         }
       } catch (error) {
         console.error('Error checking subscription:', error);
         setHasSubscription(false);
-        if (selectedModel !== 'V4') {
-          updateSelectedModel('V4', { forceOverride: true });
-        }
       } finally {
         setIsCheckingSubscription(false);
       }
     };
 
     checkSubscription();
-  }, [user?.id, selectedModel, updateSelectedModel]);
+  }, [user?.id, selectedModel]);
 
   // State for managing expanded categories
   const [expandedCategory, setExpandedCategory] = React.useState<string | null>(null);
@@ -381,7 +359,7 @@ export const StudioPanel = (props: StudioPanelProps) => {
                     title="Click to change model version"
                   >
                     <span>{modelOptions.find(opt => opt.value === selectedModel)?.label || 'v4'}</span>
-                    <Triangle className={`w-2.5 h-2.5 fill-current transition-transform ${isModelMenuOpen ? 'rotate-180' : ''}`} />
+                    <Triangle className={`w-2 h-2 fill-current transition-transform ${isModelMenuOpen ? 'rotate-180' : ''}`} />
                   </button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end" className="w-80 p-1.5">
