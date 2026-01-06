@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Play, Pause, ArrowRight, Music, Share2, Clock } from "lucide-react";
 import Link from "next/link";
 import { SafeImage } from '@/components/ui/safe-image';
+import { CustomAudioWaveIndicator } from '@/components/ui/audio-wave-indicator';
 import { MusicPlayer } from "@/components/ui/music-player";
 import { LoadingDots } from "@/components/ui/loading-dots";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -262,7 +263,7 @@ export const ExploreSection = () => {
           {loading ? (
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-10">
               {Array.from({ length: 8 }).map((_, i) => (
-                <div key={i} className="flex items-stretch gap-5 rounded-[20px] py-4 pl-4">
+                <div key={i} className="flex items-stretch gap-5 rounded-[20px] bg-white/[0.04] py-4 pl-4">
                   <div className="w-20 aspect-square">
                     <Skeleton className="h-full w-full rounded-sm" />
                   </div>
@@ -282,7 +283,7 @@ export const ExploreSection = () => {
               {exploreData.music.slice(0, 8).map((music) => (
                 <div
                   key={music.id}
-                  className="group flex items-stretch gap-5 rounded-[20px] py-4 pl-4 transition-all duration-300 hover:-translate-y-1 cursor-pointer"
+                  className="group flex items-stretch gap-5 rounded-[20px] bg-white/[0.04] py-4 pl-4 transition-all duration-300 hover:-translate-y-1 cursor-pointer"
                   onClick={() => handlePlayPause(music.primaryTrack.id, music.primaryTrack.audioUrl || '', music)}
                 >
                   {/* Cover Image */}
@@ -298,6 +299,13 @@ export const ExploreSection = () => {
                     ) : (
                       <div className="w-full h-full bg-gradient-to-br from-black/10 to-black/20 flex items-center justify-center">
                         <Music className="w-8 h-8 text-black/40" />
+                      </div>
+                    )}
+
+                    {/* Audio Wave Indicator - playing state */}
+                    {currentlyPlaying === music.primaryTrack.id && audioPlayer.isPlaying && (
+                      <div className="absolute inset-0 flex items-center justify-center opacity-100 group-hover:opacity-0 transition-opacity pointer-events-none">
+                        <CustomAudioWaveIndicator isPlaying={audioPlayer.isPlaying} size="sm" className="text-white" />
                       </div>
                     )}
 
@@ -323,7 +331,9 @@ export const ExploreSection = () => {
 
                   {/* Track Info */}
                   <div className="min-w-0 self-center">
-                    <h3 className="text-white text-lg font-semibold mb-1 truncate">
+                    <h3 className={`text-lg font-semibold mb-1 truncate ${
+                      currentlyPlaying === music.primaryTrack.id ? 'text-primary' : 'text-white'
+                    }`}>
                       {music.title}
                     </h3>
                     <p className="text-white/60 text-xs truncate capitalize">
@@ -367,7 +377,10 @@ export const ExploreSection = () => {
             <div className="flex justify-center">
               <Link
                 href="/explore"
-                className="inline-flex items-center justify-center rounded-full border border-white/15 px-6 py-3 text-sm font-semibold text-white/80 transition-colors hover:border-white/30 hover:text-white"
+                className="inline-flex items-center justify-center rounded-full border-0 outline-none ring-0 focus:outline-none focus-visible:outline-none focus-visible:ring-0 focus-visible:ring-offset-0 px-7 py-3 text-sm font-semibold text-white transition-all hover:text-white hover:translate-y-[-1px]"
+                style={{
+                  background: 'linear-gradient(90deg, hsl(var(--primary) / 0.18), hsl(var(--primary) / 0.32), hsl(var(--primary) / 0.18))'
+                }}
               >
                 Explore All Published Tracks
                 <ArrowRight className="ml-2 h-4 w-4 text-white/70" />

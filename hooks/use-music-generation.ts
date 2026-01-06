@@ -41,7 +41,7 @@ export const useMusicGeneration = () => {
   const [drumKit, setDrumKit] = useState("");
   const [bassTone, setBassTone] = useState("");
   const [vocalStyle, setVocalStyle] = useState("");
-  const [vocalGender, setVocalGender] = useState("male");
+  const [vocalGender, setVocalGender] = useState("random");
   const [harmonyPalette, setHarmonyPalette] = useState("");
 
   // ==================== 生成状态 ====================
@@ -106,16 +106,23 @@ export const useMusicGeneration = () => {
     return true;
   };
 
-  const buildRequestData = () => ({
-    mode,
-    customPrompt,
-    instrumentalMode,
-    songTitle,
-    styleText,
-    vocalGender,
-    isPublished,
-    model: selectedModel, // 添加模型参数
-  });
+  const buildRequestData = () => {
+    const data: Record<string, unknown> = {
+      mode,
+      customPrompt,
+      instrumentalMode,
+      songTitle,
+      styleText,
+      isPublished,
+      model: selectedModel, // 添加模型参数
+    };
+
+    if (vocalGender !== 'random') {
+      data.vocalGender = vocalGender;
+    }
+
+    return data;
+  };
 
 
   // 转换初始数据库tracks为前端Track格式

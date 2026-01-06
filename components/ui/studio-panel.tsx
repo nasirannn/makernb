@@ -335,7 +335,7 @@ export const StudioPanel = (props: StudioPanelProps) => {
                           : "text-muted-foreground hover:text-foreground hover:bg-muted/50"
                         }`}
                     >
-                      Basic
+                      Prompt
                     </button>
                     <button
                       onClick={() => setMode("custom")}
@@ -345,7 +345,7 @@ export const StudioPanel = (props: StudioPanelProps) => {
                           : "text-muted-foreground hover:text-foreground hover:bg-muted/50"
                         }`}
                     >
-                      Custom
+                      Own Lyrics
                     </button>
                   </div>
                 </div>
@@ -409,7 +409,7 @@ export const StudioPanel = (props: StudioPanelProps) => {
             <section>
               <div className="bg-muted/20 rounded-lg p-3">
                 <h3 className="text-lg font-semibold tracking-tight mb-3 md:mb-4 flex items-center gap-2">
-                  Description
+                  Prompt
                 </h3>
                 <div className="space-y-1">
                   <div className="relative">
@@ -499,6 +499,16 @@ export const StudioPanel = (props: StudioPanelProps) => {
                     <div className="flex items-center justify-between bg-muted/20 rounded-lg p-3">
                       <Label className="text-sm font-medium text-foreground">Vocal Gender</Label>
                       <div className="flex gap-2">
+                        <button
+                          onClick={() => setVocalGender('random')}
+                          className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+                            vocalGender === 'random'
+                              ? 'bg-white text-primary hover:bg-white/90'
+                              : 'bg-muted/30 text-muted-foreground hover:bg-muted/50 hover:text-foreground'
+                          }`}
+                        >
+                          Random
+                        </button>
                         {vocalGenders.map((gender: any) => (
                           <button
                             key={gender.id}

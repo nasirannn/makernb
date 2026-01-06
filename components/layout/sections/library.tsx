@@ -6,6 +6,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 // Custom Hooks
 import { useAuth } from "@/contexts/AuthContext";
 import { useAudioPlayer } from "@/hooks/use-audio-player";
+import { stopAllAudioGlobally } from "@/lib/audio-service";
 import { useLibraryTracks } from "@/hooks/use-library-tracks";
 
 // Components
@@ -73,6 +74,12 @@ const LibraryContent = () => {
     React.useEffect(() => {
         audioPlayerRef.current = audioPlayer;
     }, [audioPlayer]);
+
+    React.useEffect(() => {
+        return () => {
+            stopAllAudioGlobally();
+        };
+    }, []);
 
     const player = React.useMemo(() => ({
         get currentTrack() { return audioPlayerRef.current.currentTrack; },
