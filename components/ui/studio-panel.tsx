@@ -315,7 +315,7 @@ export const StudioPanel = (props: StudioPanelProps) => {
   };
 
   return (
-    <div className={`transition-all duration-300 ease-in-out bg-background border border-white/5 shadow-[0_20px_60px_rgba(4,6,15,0.45)] ${
+    <div className={`transition-all duration-300 ease-in-out border border-white/5 bg-[var(--studio-panel-bg)] ${
       // 桌面：左侧固定宽度；移动端：当 forceVisibleOnMobile=true 时占满宽度
       panelOpen ? (forceVisibleOnMobile ? 'w-full md:w-[28rem]' : 'w-[28rem]') : 'w-0'
     } ${forceVisibleOnMobile ? 'flex flex-col' : 'h-full flex flex-col overflow-hidden'} ${forceVisibleOnMobile ? 'flex md:flex' : 'hidden md:flex'}`}>

@@ -384,7 +384,7 @@ const LibraryContent = () => {
         <>
             <section
                 id="library"
-                className="h-screen flex flex-col bg-background relative overflow-hidden"
+                className="h-screen flex flex-col bg-[var(--studio-panel-bg)] relative overflow-hidden"
             >
                 {/* Main Library Interface */}
                 <div
@@ -393,7 +393,7 @@ const LibraryContent = () => {
                         marginLeft: 'var(--sidebar-offset, 0px)'
                     }}
                 >
-                    <div className={`flex flex-col md:flex-row flex-1 min-h-0 min-w-0 ${showInlinePanel ? 'md:gap-6' : 'md:gap-0'}`}>
+                    <div className={`flex flex-col md:flex-row flex-1 min-h-0 min-w-0 ${showInlinePanel ? 'md:gap-0' : 'md:gap-0'}`}>
                         <div className={`flex-1 min-h-0 min-w-0 ${showInlinePanel ? 'md:pl-6 md:pr-0' : ''}`}>
                             <div className="min-h-0 h-full flex flex-col relative w-full">
                                 {/* Library Panel */}
@@ -416,9 +416,9 @@ const LibraryContent = () => {
                         </div>
 
                         <div
-                            className={`transition-all duration-300 flex-shrink-0 overflow-hidden ${
+                            className={`relative transition-all duration-300 flex-shrink-0 overflow-hidden z-[80] ${
                                 showInlinePanel
-                                    ? 'opacity-100 w-full md:w-80 px-6 md:px-0'
+                                    ? 'opacity-100 w-full md:w-80 px-0 md:px-0 md:py-4'
                                     : 'opacity-0 pointer-events-none w-0 md:w-0 px-0'
                             }`}
                         >
@@ -439,9 +439,13 @@ const LibraryContent = () => {
 
                     {/* Music Player - Fixed on mobile, Absolute on desktop */}
                     {player.currentTrack && (
-                        <div className="fixed md:absolute left-3 right-3 md:right-3 z-[60]" style={{
-                            bottom: 'calc(var(--mobile-nav-height, 0px) + 0.75rem)'
-                        }}>
+                        <div
+                            className="fixed md:absolute left-3 z-[10]"
+                            style={{
+                                right: showInlinePanel ? 'calc(20rem + 1.5rem)' : '0.75rem',
+                                bottom: 'calc(var(--mobile-nav-height, 0px) + 0.75rem)'
+                            }}
+                        >
                             <MusicPlayer {...musicPlayerProps} />
                         </div>
                     )}

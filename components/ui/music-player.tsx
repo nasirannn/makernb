@@ -202,7 +202,7 @@ export const MusicPlayer: React.FC<MusicPlayerProps> = React.memo(function Music
   }, [hideProgress, isPlaying]);
 
   return (
-    <div ref={rootRef} className="relative bg-background/30 backdrop-blur-md rounded-xl pl-3 pr-3 md:pr-4 py-2 md:px-4 md:py-1.5 pb-0 md:pb-1.5">
+    <div ref={rootRef} className="relative bg-background/50 backdrop-blur-lg shadow-xl shadow-black/30 rounded-xl pl-3 pr-3 md:pr-4 py-2 md:px-4 md:py-1.5 pb-0 md:pb-1.5">
       <div className="relative flex items-center w-full sm:max-w-6xl sm:mx-auto h-full sm:h-9 pb-2 md:pb-0">
         
         {/* 移动端：左侧播放控制按钮 */}
@@ -242,15 +242,15 @@ export const MusicPlayer: React.FC<MusicPlayerProps> = React.memo(function Music
 
         {/* 移动端：中间进度条区域 */}
         {isMobile && (
-          <div className="flex items-center space-x-4 flex-1 min-w-0 h-full px-6">
+          <div className="flex items-center space-x-2 flex-1 min-w-0 h-full px-4">
             {/* 当前时间 */}
-            <div className="text-sm text-foreground flex-shrink-0 w-12 text-right">
+            <div className="text-sm text-foreground flex-shrink-0 w-10 text-right">
               {formatTime(currentTime)}
             </div>
             
             {/* 进度条 */}
             <div 
-              className="flex-1 h-1.5 bg-foreground rounded-full overflow-hidden cursor-pointer group relative"
+              className="flex-1 h-1 bg-foreground rounded-full overflow-hidden cursor-pointer group relative"
               onClick={(e) => {
                 if (currentDuration > 0) {
                   const rect = e.currentTarget.getBoundingClientRect();
@@ -268,13 +268,13 @@ export const MusicPlayer: React.FC<MusicPlayerProps> = React.memo(function Music
               />
               {/* 进度条手柄 */}
               <div 
-                className="absolute top-1/2 w-1.5 h-1.5 bg-primary rounded-full shadow-md transform -translate-y-1/2 transition-all duration-300 group-hover:scale-110"
-                style={{ left: `calc(${progressPercentage}% - 3px)` }}
+                className="absolute top-1/2 w-1 h-1 bg-primary rounded-full shadow-md transform -translate-y-1/2 transition-all duration-300 group-hover:scale-110"
+                style={{ left: `calc(${progressPercentage}% - 2px)` }}
               />
             </div>
             
             {/* 总时长 */}
-            <div className="text-sm text-foreground flex-shrink-0 w-12 text-left">
+            <div className="text-sm text-foreground flex-shrink-0 w-10 text-left">
               {formatTime(currentDuration)}
             </div>
           </div>
@@ -337,15 +337,15 @@ export const MusicPlayer: React.FC<MusicPlayerProps> = React.memo(function Music
 
         {/* 桌面端：中间进度条区域 */}
         {!isMobile && (
-          <div className="flex items-center space-x-4 flex-1 min-w-0 h-full px-6">
+          <div className="flex items-center space-x-2 flex-1 min-w-0 h-full px-4">
             {/* 当前时间 */}
-            <div className="text-sm text-foreground flex-shrink-0 w-12 text-right">
+            <div className="text-sm text-foreground flex-shrink-0 w-10 text-right">
               {formatTime(currentTime)}
             </div>
             
             {/* 进度条 */}
             <div 
-              className="flex-1 h-1.5 bg-foreground rounded-full overflow-hidden cursor-pointer group relative"
+              className="flex-1 h-1 bg-foreground rounded-full overflow-hidden cursor-pointer group relative"
               onClick={(e) => {
                 if (currentDuration > 0) {
                   const rect = e.currentTarget.getBoundingClientRect();
@@ -363,13 +363,13 @@ export const MusicPlayer: React.FC<MusicPlayerProps> = React.memo(function Music
               />
               {/* 进度条手柄 */}
               <div 
-                className="absolute top-1/2 w-1.5 h-1.5 bg-primary rounded-full shadow-md transform -translate-y-1/2 transition-all duration-300 group-hover:scale-110"
-                style={{ left: `calc(${progressPercentage}% - 3px)` }}
+                className="absolute top-1/2 w-1 h-1 bg-primary rounded-full shadow-md transform -translate-y-1/2 transition-all duration-300 group-hover:scale-110"
+                style={{ left: `calc(${progressPercentage}% - 2px)` }}
               />
             </div>
             
             {/* 总时长 */}
-            <div className="text-sm text-foreground flex-shrink-0 w-12 text-left">
+            <div className="text-sm text-foreground flex-shrink-0 w-10 text-left">
               {formatTime(currentDuration)}
             </div>
           </div>
@@ -420,15 +420,7 @@ export const MusicPlayer: React.FC<MusicPlayerProps> = React.memo(function Music
               )}
             </button>
 
-            <div className="w-16 sm:w-16">
-              <Slider
-                value={[isMuted ? 0 : volume * 100]}
-                onValueChange={handleVolumeChange}
-                max={100}
-                step={1}
-                className="w-full"
-              />
-            </div>
+            <div className="w-0 overflow-hidden" aria-hidden="true" />
           </div>
         )}
       </div>

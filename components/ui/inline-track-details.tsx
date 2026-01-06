@@ -27,8 +27,6 @@ export const InlineTrackDetailsPanel: React.FC<InlineTrackDetailsPanelProps> = (
   isPlaying = false,
   onClose
 }) => {
-  const [tagsExpanded, setTagsExpanded] = React.useState(false);
-
   const tags = React.useMemo(() => {
     if (!track?.tags) return [];
     return track.tags
@@ -36,103 +34,71 @@ export const InlineTrackDetailsPanel: React.FC<InlineTrackDetailsPanelProps> = (
       .map((tag) => tag.trim())
       .filter(Boolean);
   }, [track?.tags]);
-
-  const visibleTags = React.useMemo(() => {
-    if (tagsExpanded || tags.length <= 1) {
-      return tags;
-    }
-    if (tags.length > 1) {
-      const firstTag = tags[0];
-      const remainingCount = tags.length - 1;
-      return [firstTag, `+${remainingCount} more`];
-    }
-    return tags;
-  }, [tags, tagsExpanded]);
-
-  const handleTagButtonClick = React.useCallback((tag: string) => {
-    if (!tagsExpanded && tag.startsWith('+')) {
-      setTagsExpanded(true);
-    } else if (tagsExpanded && tags.length > 1) {
-      setTagsExpanded(false);
-    }
-  }, [tagsExpanded, tags.length]);
+  const tagText = tags.join(", ");
 
   if (!track) return null;
 
   return (
-    <div className="h-full rounded-2xl border border-white/5 border-l-0 bg-[var(--studio-panel-bg)] shadow-lg backdrop-blur-md overflow-hidden">
-      <div className="h-full overflow-auto px-5 pt-6 pb-[calc(1.5rem+var(--player-height,0px))] space-y-5">
-        <div className="relative flex justify-center">
+    <div className="h-full rounded-2xl border border-white/10 bg-[var(--studio-panel-bg)] shadow-lg backdrop-blur-md overflow-hidden">
+      <div className="h-full flex flex-col">
+        <div className="relative flex-shrink-0">
+          {track.coverImage ? (
+            <div className="relative h-64 w-full overflow-hidden">
+              <Image
+                src={track.coverImage}
+                alt={track.title}
+                fill
+                className="object-cover"
+                sizes="(min-width: 768px) 320px, 100vw"
+                priority
+              />
+            </div>
+          ) : (
+            <div className="relative h-64 w-full overflow-hidden bg-muted/20">
+              <CassetteTape className="w-full h-full" isPlaying={isPlaying} />
+            </div>
+          )}
+
+          <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/30 to-transparent" />
+
           {onClose && (
             <button
               type="button"
               onClick={onClose}
               aria-label="Close lyrics panel"
               title="Close lyrics panel"
-              className="absolute right-0 top-0 p-1 text-white/70 transition hover:text-white"
+              className="absolute right-2 top-1.5 h-7 w-7 rounded-full bg-black/50 text-white/90 flex items-center justify-center transition hover:bg-black/70"
             >
-              <X className="h-3 w-3" />
+              <X className="h-3.5 w-3.5" />
             </button>
           )}
 
-          {track.coverImage ? (
-            <div className="relative w-36 h-36 rounded-full overflow-hidden border border-border/60 shadow-[0_10px_30px_rgba(0,0,0,0.35)] bg-gradient-to-br from-muted/40 to-muted/80">
-              <Image
-                src={track.coverImage}
-                alt={track.title}
-                fill
-                className="object-cover"
-                sizes="(min-width: 768px) 144px, 100vw"
-                priority
-              />
-            </div>
-          ) : (
-            <CassetteTape className="w-36 h-36" isPlaying={isPlaying} />
-          )}
-        </div>
-
-        <div className="space-y-1 text-center">
-          <h3 className="text-xl font-semibold leading-tight line-clamp-3">
-            {track.title}
-          </h3>
-        </div>
-
-        {tags.length > 0 && (
-          <div className="flex flex-wrap gap-2 text-xs text-muted-foreground">
-            {visibleTags.map((tag, idx) => (
-              <button
-                key={`${tag}-${idx}`}
-                type="button"
-                className={`rounded-full border border-border/60 px-3 py-1 bg-muted/40 text-left ${
-                  (!tagsExpanded && idx === 1 && tag.startsWith('+')) ? 'text-muted-foreground/80 hover:bg-muted/50' : ''
-                }`}
-                onClick={() => handleTagButtonClick(tag)}
-              >
-                {tag}
-              </button>
-            ))}
+          <div className="absolute bottom-0 left-0 right-0 px-5 pb-4">
+            <h3 className="text-xl font-semibold leading-tight text-white line-clamp-2">
+              {track.title}
+            </h3>
+            {tagText && (
+              <p className="mt-1 text-sm text-white/70 truncate">
+                {tagText}
+              </p>
+            )}
+            {track.duration && (
+              <div className="mt-2 flex flex-wrap justify-start gap-3 text-xs text-white/70">
+                <span className="inline-flex items-center gap-1">
+                  <Clock className="h-3.5 w-3.5" />
+                  {parseDuration(track.duration)}
+                </span>
+              </div>
+            )}
           </div>
-        )}
-
-        <div className="flex flex-wrap justify-center gap-3 text-xs text-muted-foreground">
-          {track.createdAt && (
-            <span className="inline-flex items-center gap-1">
-              <Calendar className="h-3.5 w-3.5" />
-              {formatDateTime(track.createdAt)}
-            </span>
-          )}
-          {track.duration && (
-            <span className="inline-flex items-center gap-1">
-              <Clock className="h-3.5 w-3.5" />
-              {parseDuration(track.duration)}
-            </span>
-          )}
         </div>
 
-        <div className="text-sm text-foreground/90 whitespace-pre-wrap font-mono leading-relaxed">
-          {track.lyrics?.trim()
-            ? track.lyrics
-            : "Lyrics are not available yet. Try generating lyrics or check back later."}
+        <div className="flex-1 overflow-auto px-5 pt-3 pb-4">
+          <div className="text-sm text-foreground/90 whitespace-pre-wrap font-mono leading-relaxed">
+            {track.lyrics?.trim()
+              ? track.lyrics
+              : "Lyrics are not available yet. Try generating lyrics or check back later."}
+          </div>
         </div>
       </div>
     </div>

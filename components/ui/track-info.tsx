@@ -46,7 +46,7 @@ export const TrackInfo: React.FC<TrackInfoProps> = ({
   const parsedTags = React.useMemo(() => {
     if (!tags) return [];
     return tags
-      .split(/[,;.]/)
+      .split(/[,，;.]/)
       .map((tag) => tag.trim())
       .filter(Boolean);
   }, [tags]);
@@ -77,7 +77,7 @@ export const TrackInfo: React.FC<TrackInfoProps> = ({
         </h3>
 
         {modelLabel && modelPlacement === 'title' && (
-          <span className="inline-flex items-center rounded-sm border border-white/10 bg-white/5 px-1 py-0.5 text-[10px] font-medium text-white/70">
+          <span className="inline-flex items-center rounded-sm bg-primary px-1 py-0.5 text-[10px] font-medium text-primary-foreground">
             {modelLabel}
           </span>
         )}
@@ -125,7 +125,7 @@ export const TrackInfo: React.FC<TrackInfoProps> = ({
           {modelLabel && modelPlacement === 'meta' && (
             <>
               <span className="h-3 w-px bg-muted-foreground/40" aria-hidden="true" />
-              <span className="inline-flex items-center rounded-sm border border-white/10 bg-white/5 px-1 py-0.5 text-[10px] font-medium text-white/70">
+              <span className="inline-flex items-center rounded-sm bg-primary px-1 py-0.5 text-[10px] font-medium text-primary-foreground">
                 {modelLabel}
               </span>
             </>
@@ -138,12 +138,12 @@ export const TrackInfo: React.FC<TrackInfoProps> = ({
                 {visibleTags.map((tag, index) => (
                   <span key={`${tag}-${index}`}>
                   <span>{tag.length > 50 ? `${tag.slice(0, 50)}...` : tag}</span>
-                  {index < visibleTags.length - 1 && <span className="mx-1">•</span>}
+                  {index < visibleTags.length - 1 && <span className="mx-1">,</span>}
                 </span>
               ))}
               {hiddenTagCount > 0 && (
                 <>
-                  {visibleTags.length > 0 && <span className="mx-1">•</span>}
+                  {visibleTags.length > 0 && <span className="mx-1">,</span>}
                   <span className="whitespace-nowrap">+{hiddenTagCount} more</span>
                 </>
               )}

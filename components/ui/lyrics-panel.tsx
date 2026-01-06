@@ -146,7 +146,7 @@ export const LyricsPanel: React.FC<LyricsPanelProps> = ({
               {/* Cover Image - Top */}
                 <div className="mb-3 flex justify-center">
                   {currentCoverUrl ? (
-                    <div className={`relative w-56 aspect-square overflow-hidden rounded-full`}>
+                    <div className="relative w-56 aspect-square overflow-hidden rounded-xl">
                       <Image
                         src={currentCoverUrl}
                         alt={title || 'Track Cover'}
@@ -198,7 +198,7 @@ export const LyricsPanel: React.FC<LyricsPanelProps> = ({
               {/* Cover Image */}
               <div className="flex justify-center mb-4">
                 {currentCoverUrl ? (
-                  <div className={`relative w-56 aspect-square overflow-hidden rounded-full`}>
+                  <div className="relative w-56 aspect-square overflow-hidden rounded-xl">
                     <Image
                       src={currentCoverUrl}
                       alt={title || 'Track Cover'}

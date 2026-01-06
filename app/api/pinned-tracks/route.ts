@@ -16,6 +16,7 @@ export async function GET(request: NextRequest) {
         mt.id,
         mt.audio_url,
         mt.duration,
+        COALESCE(mt.play_count, 0) as play_count,
         mt.created_at,
         mt.updated_at,
         mg.id as music_id,
@@ -43,6 +44,7 @@ export async function GET(request: NextRequest) {
       prompt: row.prompt,
       audioUrl: row.audio_url, // 映射数据库字段为 JavaScript 字段名
       duration: row.duration,
+      playCount: row.play_count,
       coverR2Url: row.cover_r2_url, // 映射数据库字段为 JavaScript 字段名
       createdAt: row.generation_created_at, // 映射数据库字段为 JavaScript 字段名
       updatedAt: row.updated_at, // 映射数据库字段为 JavaScript 字段名

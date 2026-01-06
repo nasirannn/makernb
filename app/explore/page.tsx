@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { Button } from '@/components/ui/button';
-import { Play, Pause, Music } from 'lucide-react';
+import { Play, Pause, Music, Clock, Share2 } from 'lucide-react';
 import { SafeImage } from '@/components/ui/safe-image';
 import { MusicPlayer } from '@/components/ui/music-player';
 import { CustomAudioWaveIndicator } from '@/components/ui/audio-wave-indicator';
@@ -10,12 +10,14 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { FooterSection } from '@/components/layout/sections/footer';
 import { stopAllAudioGlobally } from '@/lib/audio-service';
 import { useAudioPlayer } from '@/hooks/use-audio-player';
+import { toast } from 'sonner';
 
 interface Track {
   id: string;
   audioUrl: string;
   duration: number | string;
   coverR2Url?: string;
+  playCount?: number;
 }
 
 interface MusicGeneration {
@@ -175,19 +177,46 @@ export default function ExplorePage() {
     return `${mins}:${secs.toString().padStart(2, '0')}`;
   };
 
+  const handleShare = async (trackId: string) => {
+    try {
+      if (!trackId) return;
+      const shareUrl = `${window.location.origin}/track/${trackId}`;
+      await navigator.clipboard.writeText(shareUrl);
+      toast("Link copied", { duration: 1500 });
+    } catch (error) {
+      console.error("Error copying share link:", error);
+      toast("Copy failed", { duration: 2000 });
+    }
+  };
+
+  const formatPlayCount = (count?: number) => {
+    if (!count || count < 0) return '0';
+    if (count >= 1000) {
+      const value = count / 1000;
+      const formatted = value >= 10 ? value.toFixed(0) : value.toFixed(1);
+      return `${formatted}k`;
+    }
+    return count.toString();
+  };
+
+  const PlayTriangleIcon = () => (
+    <svg viewBox="0 0 24 24" className="h-3 w-3 fill-current" aria-hidden="true">
+      <path d="M8 5.75v12.5c0 .8.88 1.28 1.55.84l9.5-6.25a1 1 0 0 0 0-1.68l-9.5-6.25A1 1 0 0 0 8 5.75z" />
+    </svg>
+  );
+
   // 歌曲卡片Skeleton组件
   const SongCardSkeleton = () => (
-    <div className="bg-black/20 backdrop-blur-sm rounded-xl overflow-hidden">
+    <div className="rounded-xl overflow-hidden">
       {/* Cover Image Skeleton */}
-      <div className="relative aspect-square">
+      <div className="relative aspect-square overflow-hidden rounded-b-xl">
         <Skeleton className="w-full h-full bg-white/10" />
       </div>
       
       {/* Track Info Skeleton */}
-      <div className="p-4">
-        <Skeleton className="h-4 w-3/4 mb-2 bg-white/10" />
+      <div className="pt-1 pb-4 pr-4 pl-0">
+        <Skeleton className="h-4 w-3/4 mb-1 bg-white/10" />
         <Skeleton className="h-3 w-1/2 mb-2 bg-white/10" />
-        <Skeleton className="h-3 w-1/4 bg-white/10" />
       </div>
     </div>
   );
@@ -282,8 +311,8 @@ export default function ExplorePage() {
             </div>
 
             {/* Skeleton Grid - 显示一行的数量 */}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-6">
-              {Array.from({ length: 4 }).map((_, index) => (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-5 gap-4">
+              {Array.from({ length: 5 }).map((_, index) => (
                 <SongCardSkeleton key={index} />
               ))}
             </div>
@@ -331,15 +360,15 @@ export default function ExplorePage() {
           {exploreData && exploreData.music && exploreData.music.length > 0 ? (
             <>
               <div className="relative">
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-6">
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-5 gap-4">
                   {exploreData.music.map((music) => {
                     return (
                       <div
                         key={music.id}
-                        className="bg-black/20 backdrop-blur-sm rounded-xl overflow-hidden hover:bg-black/30 transition-all duration-300 group cursor-pointer"
+                        className="rounded-xl overflow-hidden transition-all duration-300 group cursor-pointer"
                       >
                       {/* Cover Image */}
-                      <div className="relative aspect-square overflow-hidden">
+                      <div className="relative aspect-square overflow-hidden rounded-b-xl">
                         <SafeImage
                           src={music.primaryTrack.coverR2Url || ''}
                           alt={music.title}
@@ -366,33 +395,61 @@ export default function ExplorePage() {
                         {/* Play Button Overlay - 只在有封面图时显示 */}
                         {music.primaryTrack.coverR2Url && (
                           <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-center justify-center">
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              className="h-12 w-12 p-0 bg-white/20 hover:bg-white/30 backdrop-blur-sm"
-                              onClick={() => handlePlayPause(music.primaryTrack.id, music.primaryTrack.audioUrl, music)}
-                            >
-                              {currentlyPlaying === music.primaryTrack.id && audioPlayer.isPlaying ? (
-                                <Pause className="h-5 w-5 text-white" />
-                              ) : (
-                                <Play className="h-5 w-5 text-white" />
-                              )}
-                            </Button>
+                            <div className="flex items-center gap-3">
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                className="h-12 w-12 p-0 bg-white/20 hover:bg-white/30 backdrop-blur-sm"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleShare(music.primaryTrack.id);
+                                }}
+                                aria-label="Share track"
+                                title="Copy share link"
+                              >
+                                <Share2 className="h-5 w-5 text-white" />
+                              </Button>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                className="h-12 w-12 p-0 bg-white/20 hover:bg-white/30 backdrop-blur-sm"
+                                onClick={() => handlePlayPause(music.primaryTrack.id, music.primaryTrack.audioUrl, music)}
+                              >
+                                {currentlyPlaying === music.primaryTrack.id && audioPlayer.isPlaying ? (
+                                  <Pause className="h-5 w-5 text-white" />
+                                ) : (
+                                  <Play className="h-5 w-5 text-white" />
+                                )}
+                              </Button>
+                            </div>
                           </div>
                         )}
+
+                        {/* Duration Overlay */}
+                        <div className="absolute inset-x-0 bottom-0">
+                          <div className="bg-gradient-to-t from-black/70 via-black/30 to-transparent px-3 py-2">
+                            <div className="text-xs font-semibold text-white/85 flex items-center gap-3">
+                              <span className="inline-flex items-center gap-1">
+                                <PlayTriangleIcon />
+                                {formatPlayCount(music.primaryTrack.playCount)}
+                              </span>
+                              <span className="inline-flex items-center gap-1">
+                                <Clock className="h-3 w-3" />
+                                {formatDuration(music.totalDuration)}
+                              </span>
+                            </div>
+                          </div>
+                        </div>
                       </div>
 
                       {/* Track Info */}
-                      <div className="p-4">
+                      <div className="pt-1 pb-4 pr-4 pl-0 bg-transparent">
                         <h3 className="text-white font-bold text-base mb-1 truncate">
                           {music.title}
                         </h3>
-                        <p className="text-white/70 text-sm mb-2 truncate capitalize whitespace-nowrap overflow-hidden">
+                        <p className="text-white/70 text-xs mb-2 truncate capitalize whitespace-nowrap overflow-hidden">
                           {music.tags}
                         </p>
-                        <div className="flex items-center text-white/50 text-xs">
-                          <span>{formatDuration(music.totalDuration)}</span>
-                        </div>
                       </div>
                     </div>
                   );
@@ -402,8 +459,8 @@ export default function ExplorePage() {
 
               {/* Loading More Skeleton */}
               {loadingMore && (
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-6 mt-6">
-                  {Array.from({ length: 4 }).map((_, index) => (
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-5 gap-4 mt-6">
+                  {Array.from({ length: 5 }).map((_, index) => (
                     <SongCardSkeleton key={`loading-${index}`} />
                   ))}
                 </div>

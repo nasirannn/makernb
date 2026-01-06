@@ -2,13 +2,14 @@
 
 import React, { useState, useRef, useEffect } from 'react';
 import { Button } from "@/components/ui/button";
-import { Play, Pause, ArrowRight, Music } from "lucide-react";
+import { Play, Pause, ArrowRight, Music, Share2, Clock } from "lucide-react";
 import Link from "next/link";
 import { SafeImage } from '@/components/ui/safe-image';
 import { MusicPlayer } from "@/components/ui/music-player";
 import { LoadingDots } from "@/components/ui/loading-dots";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useAudioPlayer } from '@/hooks/use-audio-player';
+import { toast } from "sonner";
 
 interface Track {
   id: string;
@@ -16,6 +17,7 @@ interface Track {
   duration: number;
   coverR2Url?: string;
   artist?: string;
+  playCount?: number;
 }
 
 interface MusicGeneration {
@@ -74,6 +76,34 @@ export const ExploreSection = () => {
     return `${minutes}:${remainingSeconds.toString().padStart(2, '0')}`;
   };
 
+  const formatPlayCount = (count?: number) => {
+    if (!count || count < 0) return '0';
+    if (count >= 1000) {
+      const value = count / 1000;
+      const formatted = value >= 10 ? value.toFixed(0) : value.toFixed(1);
+      return `${formatted}k`;
+    }
+    return count.toString();
+  };
+
+  const PlayTriangleIcon = () => (
+    <svg viewBox="0 0 24 24" className="h-3 w-3 fill-current" aria-hidden="true">
+      <path d="M8 5.75v12.5c0 .8.88 1.28 1.55.84l9.5-6.25a1 1 0 0 0 0-1.68l-9.5-6.25A1 1 0 0 0 8 5.75z" />
+    </svg>
+  );
+
+  const handleShare = async (trackId: string) => {
+    try {
+      if (!trackId) return;
+      const shareUrl = `${window.location.origin}/track/${trackId}`;
+      await navigator.clipboard.writeText(shareUrl);
+      toast("Link copied", { duration: 1500 });
+    } catch (error) {
+      console.error("Error copying share link:", error);
+      toast("Copy failed", { duration: 2000 });
+    }
+  };
+
   const fetchExploreData = async () => {
     try {
       setLoading(true);
@@ -95,13 +125,15 @@ export const ExploreSection = () => {
             id: track.id,
             audioUrl: track.audioUrl || '',
             duration: track.duration,
-            coverR2Url: track.coverR2Url || ''
+            coverR2Url: track.coverR2Url || '',
+            playCount: track.playCount ?? 0
           },
           allTracks: [{
             id: track.id,
             audioUrl: track.audioUrl || '',
             duration: track.duration,
-            coverR2Url: track.coverR2Url || ''
+            coverR2Url: track.coverR2Url || '',
+            playCount: track.playCount ?? 0
           }],
           totalDuration: track.duration,
           trackCount: 1
@@ -203,8 +235,8 @@ export const ExploreSection = () => {
       .split(/[,，/|]+/)
       .map((tag) => tag.trim())
       .filter(Boolean)
-      .join(' • ');
-    return normalized.length > 40 ? `${normalized.slice(0, 40)}...` : normalized;
+      .join(', ');
+    return normalized.length > 60 ? `${normalized.slice(0, 60)}...` : normalized;
   };
 
   return (
@@ -228,29 +260,33 @@ export const ExploreSection = () => {
         {/* Music Grid */}
         <div className="max-w-7xl mx-auto">
           {loading ? (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-12">
-              {Array.from({ length: 9 }).map((_, i) => (
-                <div key={i} className="flex items-stretch gap-4 rounded-[20px] bg-white/[0.04] py-3 pl-3 backdrop-blur-xl">
-                  <div className="w-16 aspect-square">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-10">
+              {Array.from({ length: 8 }).map((_, i) => (
+                <div key={i} className="flex items-stretch gap-5 rounded-[20px] py-4 pl-4">
+                  <div className="w-20 aspect-square">
                     <Skeleton className="h-full w-full rounded-sm" />
                   </div>
                   <div className="flex-1 space-y-2 self-center">
                     <Skeleton className="h-4 w-2/3" />
                     <Skeleton className="h-3 w-1/2" />
+                    <Skeleton className="h-3 w-16" />
+                  </div>
+                  <div className="flex items-center pr-4">
+                    <Skeleton className="h-8 w-8 rounded-full" />
                   </div>
                 </div>
               ))}
             </div>
           ) : exploreData && exploreData.music.length > 0 ? (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-12">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-10">
               {exploreData.music.slice(0, 8).map((music) => (
                 <div
                   key={music.id}
-                  className="group flex items-stretch gap-4 rounded-[20px] bg-white/[0.04] py-3 pl-3 transition-all duration-300 hover:-translate-y-1 cursor-pointer backdrop-blur-xl"
+                  className="group flex items-stretch gap-5 rounded-[20px] py-4 pl-4 transition-all duration-300 hover:-translate-y-1 cursor-pointer"
                   onClick={() => handlePlayPause(music.primaryTrack.id, music.primaryTrack.audioUrl || '', music)}
                 >
                   {/* Cover Image */}
-                  <div className="relative w-16 aspect-square shrink-0 overflow-hidden rounded-sm">
+                  <div className="relative w-20 aspect-square shrink-0 overflow-hidden rounded-sm">
                     {music.primaryTrack.coverR2Url ? (
                       <SafeImage
                         src={music.primaryTrack.coverR2Url}
@@ -287,24 +323,39 @@ export const ExploreSection = () => {
 
                   {/* Track Info */}
                   <div className="min-w-0 self-center">
-                    <h3 className="text-white font-normal text-base mb-1 truncate">
+                    <h3 className="text-white text-lg font-semibold mb-1 truncate">
                       {music.title}
                     </h3>
                     <p className="text-white/60 text-xs truncate capitalize">
                       {formatTags(music.tags)}
                     </p>
+                    <p className="text-white/40 text-xs mt-1 flex items-center gap-2">
+                      <span className="inline-flex items-center gap-1">
+                        <PlayTriangleIcon />
+                        {formatPlayCount(music.primaryTrack.playCount)}
+                      </span>
+                      <span className="inline-flex items-center gap-1">
+                        <Clock className="h-3 w-3" />
+                        {formatDuration(music.totalDuration)}
+                      </span>
+                    </p>
+                  </div>
+                  <div className="ml-auto flex items-center pr-4">
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleShare(music.primaryTrack.id);
+                      }}
+                      className="h-8 w-8 rounded-full text-white/60 transition-colors hover:text-white hover:bg-white/10 flex items-center justify-center"
+                      aria-label="Share track"
+                      title="Copy share link"
+                    >
+                      <Share2 className="h-3.5 w-3.5" />
+                    </button>
                   </div>
                 </div>
               ))}
-              <Link
-                href="/explore"
-                className="flex items-center justify-center rounded-[20px] bg-white/[0.04] py-4 transition-all duration-300 hover:-translate-y-1 backdrop-blur-xl"
-              >
-                <span className="text-base font-semibold text-white/80">
-                  Explore All Published Tracks
-                </span>
-                <ArrowRight className="ml-2 h-4 w-4 text-white/70" />
-              </Link>
             </div>
           ) : (
             <div className="text-center py-12">
@@ -312,38 +363,18 @@ export const ExploreSection = () => {
               <p className="text-muted-foreground text-lg">No music available yet</p>
             </div>
           )}
-        </div>
-
-        {currentlyPlaying && (
-          <div className="mt-6 overflow-hidden pb-2">
-            <div
-              className="explore-now-playing inline-flex items-center whitespace-nowrap text-5xl md:text-6xl font-black leading-tight tracking-wide text-white/80"
-              style={{ animationPlayState: audioPlayer.isPlaying ? 'running' : 'paused' }}
-            >
-              <span className="inline-flex items-center gap-4 pr-12">
-                <Music className="h-9 w-9 text-primary" />
-                Now is playing - {currentTrackTitle}
-              </span>
-              <span className="inline-flex items-center gap-4 pr-12" aria-hidden="true">
-                <Music className="h-9 w-9 text-primary" />
-                Now is playing - {currentTrackTitle}
-              </span>
+          {!loading && exploreData && exploreData.music.length > 0 && (
+            <div className="flex justify-center">
+              <Link
+                href="/explore"
+                className="inline-flex items-center justify-center rounded-full border border-white/15 px-6 py-3 text-sm font-semibold text-white/80 transition-colors hover:border-white/30 hover:text-white"
+              >
+                Explore All Published Tracks
+                <ArrowRight className="ml-2 h-4 w-4 text-white/70" />
+              </Link>
             </div>
-            <style jsx>{`
-              .explore-now-playing {
-                animation: exploreNowPlayingScroll 16s linear infinite;
-              }
-              @keyframes exploreNowPlayingScroll {
-                0% {
-                  transform: translateX(0%);
-                }
-                100% {
-                  transform: translateX(-50%);
-                }
-              }
-            `}</style>
-          </div>
-        )}
+          )}
+        </div>
 
       {/* 播放器 - 移动端固定，桌面端固定带底部边距，与内容区域宽度一致 */}
       {playlist.length > 0 && currentlyPlaying && (

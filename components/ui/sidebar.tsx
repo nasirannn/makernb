@@ -35,7 +35,7 @@ export const CommonSidebar = ({
   hideMobileNav = false,
   onWidthChange,
   collapsedWidth = 80,
-  expandedWidth = 256
+  expandedWidth = 224
 }: CommonSidebarProps) => {
   const pathname = usePathname();
   const router = useRouter();
@@ -298,10 +298,10 @@ const aiMusicToolsDropdown = [
     <>
       <div
         className={`hidden md:flex fixed left-0 top-0 bottom-0 z-[55] h-screen flex-col transition-[width] duration-500 ${
-          isExpanded ? 'w-64' : 'w-20'
+          isExpanded ? 'w-56' : 'w-20'
         }`}
       >
-        <div className="flex h-full flex-col border border-white/5 bg-[#05060b] shadow-[0_20px_60px_rgba(4,6,15,0.6)]">
+        <div className="flex h-full flex-col border border-white/5 bg-[var(--studio-panel-bg)]">
           <div className="flex h-full flex-col">
             {/* Home Button */}
             <div className={`flex items-center min-h-[72px] ${isExpanded ? 'px-5 pt-6 pb-4 justify-between' : 'px-2 py-5 justify-center'}`}>

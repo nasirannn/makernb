@@ -30,6 +30,7 @@ export async function GET(request: NextRequest) {
         mt.id as track_id,
         mt.audio_url,
         mt.duration,
+        COALESCE(mt.play_count, 0) as play_count,
         mt.is_pinned,
         mt.created_at as track_created_at,
         mg.id as generation_id,
@@ -70,13 +71,15 @@ export async function GET(request: NextRequest) {
         id: row.track_id,
         audioUrl: row.audio_url, // 映射数据库字段为 JavaScript 字段名
         duration: row.duration,
-        coverR2Url: row.cover_r2_url // 映射数据库字段为 JavaScript 字段名
+        coverR2Url: row.cover_r2_url, // 映射数据库字段为 JavaScript 字段名
+        playCount: row.play_count
       },
       allTracks: [{
         id: row.track_id,
         audioUrl: row.audio_url, // 映射数据库字段为 JavaScript 字段名
         duration: row.duration,
-        coverR2Url: row.cover_r2_url // 映射数据库字段为 JavaScript 字段名
+        coverR2Url: row.cover_r2_url, // 映射数据库字段为 JavaScript 字段名
+        playCount: row.play_count
       }],
       totalDuration: parseFloat(row.duration) || 0,
       trackCount: 1

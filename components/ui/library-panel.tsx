@@ -1047,7 +1047,7 @@ export const LibraryPanel = ({
                     className={`hidden md:grid grid-cols-12 gap-4 px-2 mx-2 transition-all duration-300 group cursor-pointer rounded-lg border ${
                       selectedLibraryTrack === track.id || currentPlayingTrack === track.id
                         ? 'bg-muted/60 border-border/60'
-                        : 'bg-background hover:bg-muted/30 border-transparent'
+                        : 'bg-transparent hover:bg-muted/30 border-transparent'
                     }`}
                     onClick={(e) => {
                       handleTrackAction(track, 'select');

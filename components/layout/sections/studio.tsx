@@ -1491,7 +1491,7 @@ const StudioContent = () => {
     const studioMainLayout = (
         <section
             id="studio"
-            className="relative h-screen bg-background overflow-hidden"
+            className="relative h-screen bg-[var(--studio-panel-bg)] overflow-hidden"
         >
             <div
                 className="h-full flex flex-col md:flex-row transition-[margin] duration-500"
@@ -1526,7 +1526,7 @@ const StudioContent = () => {
                 >
                     <div className="min-h-0 h-full flex flex-col relative w-full z-10">
                         <div className="md:hidden flex-shrink-0">
-                            <div className="px-6 py-4 bg-background/60 backdrop-blur-sm">
+                            <div className="px-6 py-4">
                                 <div className="flex items-center justify-between">
                                     <div className="flex items-center gap-3">
                                         <Music className="h-8 w-8 text-primary" />
@@ -1543,8 +1543,8 @@ const StudioContent = () => {
                             </div>
                         </div>
 
-                        <div className={`flex flex-col md:flex-row flex-1 min-h-0 min-w-0 pb-6 ${showInlinePanel ? 'md:gap-6' : 'md:gap-0'}`}>
-                            <div className={`flex-1 min-h-0 min-w-0 px-6 ${showInlinePanel ? 'md:pl-6 md:pr-0' : ''}`}>
+                    <div className={`flex flex-col md:flex-row flex-1 min-h-0 min-w-0 ${showInlinePanel ? 'md:gap-0' : 'md:gap-0'}`}>
+                        <div className={`flex-1 min-h-0 min-w-0 px-6 ${showInlinePanel ? 'md:pl-6 md:pr-6' : ''}`}>
                                 <div className="flex-1 min-h-0 md:hidden">
                                     <StudioTracksList
                                         userTracks={convertUserTracksToMusicGeneration(userTracks)}
@@ -1590,13 +1590,13 @@ const StudioContent = () => {
                                 </div>
                             </div>
 
-                            <div
-                                className={`transition-all duration-300 flex-shrink-0 overflow-hidden ${
-                                    showInlinePanel
-                                        ? 'opacity-100 w-full md:w-64 px-6 md:px-0'
-                                        : 'opacity-0 pointer-events-none w-0 md:w-0 px-0'
-                                }`}
-                            >
+                        <div
+                            className={`relative transition-all duration-300 flex-shrink-0 overflow-hidden z-[80] ${
+                                showInlinePanel
+                                    ? 'opacity-100 w-full md:w-80 px-0 md:px-0 md:py-4'
+                                    : 'opacity-0 pointer-events-none w-0 md:w-0 px-0'
+                            }`}
+                        >
                                 {showInlinePanel && (
                                     <div className="h-full">
                                     <InlineTrackDetailsPanel
@@ -1611,9 +1611,13 @@ const StudioContent = () => {
                     </div>
 
                     {player.currentTrack && (
-                        <div className="fixed md:absolute left-3 right-3 md:right-3 z-[60]" style={{
-                            bottom: 'calc(var(--mobile-nav-height, 0px) + 0.75rem)'
-                        }}>
+                        <div
+                            className="fixed md:absolute left-3 z-[10]"
+                            style={{
+                                right: showInlinePanel ? 'calc(20rem + 0.75rem)' : '0.75rem',
+                                bottom: 'calc(var(--mobile-nav-height, 0px) + 0.75rem)'
+                            }}
+                        >
                             <MusicPlayer {...musicPlayerProps} />
                         </div>
                     )}

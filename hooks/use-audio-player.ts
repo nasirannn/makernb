@@ -76,6 +76,19 @@ export const useAudioPlayer = () => {
     
     if (!audio || !bus) return;
 
+    const incrementPlayCount = async (trackId: string) => {
+      try {
+        if (!trackId) return;
+        await fetch('/api/track-play', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ trackId }),
+        });
+      } catch (error) {
+        console.error('Failed to increment play count:', error);
+      }
+    };
+
     // 事件处理器
     const handlePlay = () => {
       // 🎯 只在状态不一致时才更新，避免覆盖乐观更新
@@ -113,6 +126,9 @@ export const useAudioPlayer = () => {
 
     const handleTrackChanged = (data: { trackId: string; audioUrl: string }) => {
       bus.emit(AUDIO_EVENTS.TRACK_CHANGED, data);
+      if (data.trackId) {
+        incrementPlayCount(data.trackId);
+      }
     };
 
     const handleError = (error: Error) => {
@@ -126,7 +142,6 @@ export const useAudioPlayer = () => {
       if (audio) {
         audio.seek(0);
       }
-      
       setAudioState(prev => ({
         ...prev,
         isPlaying: false,
@@ -244,6 +259,11 @@ export const useAudioPlayer = () => {
     if (!audioService.current) return;
     
     try {
+      // 同一首歌且已在播放：不重复触发播放，避免重复计数
+      if (audioState.currentTrack?.id === track.id && audioState.isPlaying) {
+        return;
+      }
+
       // 智能选择音频URL：优先使用本地音频，如果没有则使用stream音频
       const audioUrl = track.audioUrl || '';
       const streamAudioUrl = track.streamAudioUrl || '';
