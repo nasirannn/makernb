@@ -61,7 +61,7 @@ const StudioContent = () => {
         selectedModel,
         setSelectedModel,
     } = musicGeneration;
-    const { user, signOut } = useAuth();
+    const { user, signOut, loading: isAuthLoading } = useAuth();
     const { credits, refreshCredits } = useCredits();
 
     // UI States
@@ -87,7 +87,7 @@ const StudioContent = () => {
     const [panelOpen, setPanelOpen] = useState(true);
     const [lyricsPanelOpen, setLyricsPanelOpen] = useState(true);
     const [sidebarWidth, setSidebarWidth] = useState(80);
-    const [isDesktop, setIsDesktop] = useState(false);
+    const sidebarOffsetRef = React.useRef(sidebarWidth);
 
     // ==================== 播放器状态管理 ====================
     const audioPlayer = useAudioPlayer();
@@ -144,13 +144,25 @@ const StudioContent = () => {
     } = musicGeneration;
 
     React.useEffect(() => {
-        if (typeof window === "undefined") return;
-        const mediaQuery = window.matchMedia("(min-width: 768px)");
-        const handleChange = (event: MediaQueryListEvent) => setIsDesktop(event.matches);
-        setIsDesktop(mediaQuery.matches);
-        mediaQuery.addEventListener("change", handleChange);
-        return () => mediaQuery.removeEventListener("change", handleChange);
-    }, []);
+        const updateSidebarOffset = () => {
+            if (typeof document === 'undefined') return;
+            const isDesktopViewport = typeof window !== 'undefined' && window.innerWidth >= 768;
+            const offsetValue = isDesktopViewport ? `${sidebarOffsetRef.current}px` : '0px';
+            document.documentElement.style.setProperty('--sidebar-offset', offsetValue);
+        };
+
+        sidebarOffsetRef.current = sidebarWidth;
+        updateSidebarOffset();
+        if (typeof window !== 'undefined') {
+            window.addEventListener('resize', updateSidebarOffset);
+        }
+
+        return () => {
+            if (typeof window !== 'undefined') {
+                window.removeEventListener('resize', updateSidebarOffset);
+            }
+        };
+    }, [sidebarWidth]);
 
     // 页面卸载时清理状态
     React.useEffect(() => {
@@ -440,12 +452,13 @@ const StudioContent = () => {
 
     // 初始化时获取用户 tracks 或使用模拟数据
     useEffect(() => {
+        if (isAuthLoading) return;
         if (user?.id) {
             fetchUserTracks();
         } else {
             setIsFetchingUserTracks(false);
         }
-    }, [user?.id, fetchUserTracks]);
+    }, [user?.id, fetchUserTracks, isAuthLoading]);
 
     // 监听状态机变化，当歌曲生成完成时更新播放器duration
     useEffect(() => {
@@ -1478,136 +1491,140 @@ const StudioContent = () => {
     const studioMainLayout = (
         <section
             id="studio"
-            className="relative h-screen flex flex-col md:flex-row bg-background overflow-hidden"
-            style={{ paddingLeft: isDesktop ? sidebarWidth : 0 }}
+            className="relative h-screen bg-background overflow-hidden"
         >
-            <div className="hidden md:block md:order-2 flex-shrink-0">
-                <StudioPanel
-                    {...studioPanelProps}
-                    panelOpen={panelOpen}
-                    setPanelOpen={setPanelOpen}
-                />
-            </div>
-
-            <div className="md:hidden">
-                <MobileStudioHeader
-                    user={user}
-                    credits={credits}
-                    userMenuOpen={userMenuOpen}
-                    setUserMenuOpen={setUserMenuOpen}
-                    setIsAuthModalOpen={setIsAuthModalOpen}
-                    signOut={signOut}
-                />
-            </div>
-
-            <div 
-                className="flex-1 min-w-0 h-full flex z-10 md:order-3 relative pb-[calc(var(--mobile-nav-height,64px)+var(--player-height,48px)+1rem)] md:pb-0"
-                style={{
-                    paddingBottom: player.currentTrack 
-                        ? undefined
-                        : 'calc(var(--mobile-nav-height, 64px))'
-                }}
+            <div
+                className="h-full flex flex-col md:flex-row transition-[margin] duration-500"
+                style={{ marginLeft: 'var(--sidebar-offset, 0px)' }}
             >
-                <div className="min-h-0 h-full flex flex-col relative w-full z-10">
-                    <div className="md:hidden flex-shrink-0">
-                        <div className="px-6 py-4 bg-background/60 backdrop-blur-sm">
-                            <div className="flex items-center justify-between">
-                                <div className="flex items-center gap-3">
-                                    <Music className="h-8 w-8 text-primary" />
-                                    <h1 className="text-2xl font-semibold">Studio</h1>
-                                </div>
-                                <button
-                                    onClick={() => setMobileCreateOpen(true)}
-                                    className="flex items-center justify-center px-4 py-2 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition-colors text-sm font-medium"
-                                    title="Start Creating"
-                                >
-                                    <Wand2 className="w-4 h-4" />
-                                </button>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div className={`flex flex-col md:flex-row flex-1 min-h-0 min-w-0 pb-6 ${showInlinePanel ? 'md:gap-6' : 'md:gap-0'}`}>
-                        <div className={`flex-1 min-h-0 min-w-0 px-6 ${showInlinePanel ? 'md:pl-6 md:pr-0' : ''}`}>
-                            <div className="flex-1 min-h-0 md:hidden">
-                                <StudioTracksList
-                                    userTracks={convertUserTracksToMusicGeneration(userTracks)}
-                                    generatedTracks={generatedTracks}
-                                    onTrackSelect={handleUserTrackSelect}
-                                    onTrackPreview={handleInlineTrackPreview}
-                                    onTrackPlay={handleUserTrackPlay}
-                                    onGeneratedTrackSelect={handleGeneratedTrackSelect}
-                                    onDelete={handleDeleteClick}
-                                    onFavoriteToggle={handleFavoriteToggle}
-                                    onDownload={handleDownload}
-                                    isLoading={isFetchingUserTracks}
-                                    selectedTrack={selectedStudioTrack?.id}
-                                    hasPlayer={!!player.currentTrack}
-                                    onEditTitle={handleEditTitle}
-                                    onEditMusicInfo={handleEditMusicInfo}
-                                    extendMusicStartPolling={extendMusic.startPolling}
-                                    extendMusicGetState={extendMusic.getExtendMusicState}
-                                    extendMusicClearState={extendMusic.clearExtendMusicState}
-                                />
-                            </div>
-
-                            <div className="hidden md:block min-h-0 h-full">
-                                <StudioTracksList
-                                    userTracks={convertUserTracksToMusicGeneration(userTracks)}
-                                    isLoading={isFetchingUserTracks}
-                                    onTrackSelect={handleUserTrackSelect}
-                                    onTrackPreview={handleInlineTrackPreview}
-                                    onTrackPlay={handleUserTrackPlay}
-                                    selectedTrack={selectedStudioTrack?.id}
-                                    generatedTracks={stableGeneratedTracks}
-                                    onGeneratedTrackSelect={handleGeneratedTrackSelect}
-                                    onDownload={handleDownload}
-                                    onFavoriteToggle={handleFavoriteToggle}
-                                    onDelete={handleTrackDelete}
-                                    hasPlayer={!!player.currentTrack}
-                                    onEditTitle={handleEditTitle}
-                                    onEditMusicInfo={handleEditMusicInfo}
-                                    extendMusicStartPolling={extendMusic.startPolling}
-                                    extendMusicGetState={extendMusic.getExtendMusicState}
-                                    extendMusicClearState={extendMusic.clearExtendMusicState}
-                                />
-                            </div>
-                        </div>
-
-                        <div
-                            className={`transition-all duration-300 flex-shrink-0 overflow-hidden ${
-                                showInlinePanel
-                                    ? 'opacity-100 w-full md:w-64 px-6 md:px-0'
-                                    : 'opacity-0 pointer-events-none w-0 md:w-0 px-0'
-                            }`}
-                        >
-                            {showInlinePanel && (
-                                <div className="h-full">
-                                <InlineTrackDetailsPanel
-                                    track={inlineTrackDetails}
-                                    isPlaying={isInlineTrackPlaying}
-                                    onClose={() => setLyricsPanelOpen(false)}
-                                />
-                                </div>
-                            )}
-                        </div>
-                    </div>
+                <div className="hidden md:block md:order-2 flex-shrink-0">
+                    <StudioPanel
+                        {...studioPanelProps}
+                        panelOpen={panelOpen}
+                        setPanelOpen={setPanelOpen}
+                    />
                 </div>
 
-                {player.currentTrack && (
-                    <div className="fixed md:absolute left-3 right-3 md:right-3 z-[60]" style={{
-                        bottom: 'calc(var(--mobile-nav-height, 0px) + 0.75rem)'
-                    }}>
-                        <MusicPlayer {...musicPlayerProps} />
-                    </div>
-                )}
-            </div>
+                <div className="md:hidden">
+                    <MobileStudioHeader
+                        user={user}
+                        credits={credits}
+                        userMenuOpen={userMenuOpen}
+                        setUserMenuOpen={setUserMenuOpen}
+                        setIsAuthModalOpen={setIsAuthModalOpen}
+                        signOut={signOut}
+                    />
+                </div>
 
-            <MobileCreateDrawer
-                isOpen={mobileCreateOpen}
-                onClose={() => setMobileCreateOpen(false)}
-                studioPanelProps={studioPanelProps}
-            />
+                <div 
+                    className="flex-1 min-w-0 h-full flex z-10 md:order-3 relative pb-[calc(var(--mobile-nav-height,64px)+var(--player-height,48px)+1rem)] md:pb-0"
+                    style={{
+                        paddingBottom: player.currentTrack 
+                            ? undefined
+                            : 'calc(var(--mobile-nav-height, 64px))'
+                    }}
+                >
+                    <div className="min-h-0 h-full flex flex-col relative w-full z-10">
+                        <div className="md:hidden flex-shrink-0">
+                            <div className="px-6 py-4 bg-background/60 backdrop-blur-sm">
+                                <div className="flex items-center justify-between">
+                                    <div className="flex items-center gap-3">
+                                        <Music className="h-8 w-8 text-primary" />
+                                        <h1 className="text-2xl font-semibold">Studio</h1>
+                                    </div>
+                                    <button
+                                        onClick={() => setMobileCreateOpen(true)}
+                                        className="flex items-center justify-center px-4 py-2 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition-colors text-sm font-medium"
+                                        title="Start Creating"
+                                    >
+                                        <Wand2 className="w-4 h-4" />
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div className={`flex flex-col md:flex-row flex-1 min-h-0 min-w-0 pb-6 ${showInlinePanel ? 'md:gap-6' : 'md:gap-0'}`}>
+                            <div className={`flex-1 min-h-0 min-w-0 px-6 ${showInlinePanel ? 'md:pl-6 md:pr-0' : ''}`}>
+                                <div className="flex-1 min-h-0 md:hidden">
+                                    <StudioTracksList
+                                        userTracks={convertUserTracksToMusicGeneration(userTracks)}
+                                        generatedTracks={generatedTracks}
+                                        onTrackSelect={handleUserTrackSelect}
+                                        onTrackPreview={handleInlineTrackPreview}
+                                        onTrackPlay={handleUserTrackPlay}
+                                        onGeneratedTrackSelect={handleGeneratedTrackSelect}
+                                        onDelete={handleDeleteClick}
+                                        onFavoriteToggle={handleFavoriteToggle}
+                                        onDownload={handleDownload}
+                                        isLoading={isFetchingUserTracks}
+                                        selectedTrack={selectedStudioTrack?.id}
+                                        hasPlayer={!!player.currentTrack}
+                                        onEditTitle={handleEditTitle}
+                                        onEditMusicInfo={handleEditMusicInfo}
+                                        extendMusicStartPolling={extendMusic.startPolling}
+                                        extendMusicGetState={extendMusic.getExtendMusicState}
+                                        extendMusicClearState={extendMusic.clearExtendMusicState}
+                                    />
+                                </div>
+
+                                <div className="hidden md:block min-h-0 h-full">
+                                    <StudioTracksList
+                                        userTracks={convertUserTracksToMusicGeneration(userTracks)}
+                                        isLoading={isFetchingUserTracks}
+                                        onTrackSelect={handleUserTrackSelect}
+                                        onTrackPreview={handleInlineTrackPreview}
+                                        onTrackPlay={handleUserTrackPlay}
+                                        selectedTrack={selectedStudioTrack?.id}
+                                        generatedTracks={stableGeneratedTracks}
+                                        onGeneratedTrackSelect={handleGeneratedTrackSelect}
+                                        onDownload={handleDownload}
+                                        onFavoriteToggle={handleFavoriteToggle}
+                                        onDelete={handleTrackDelete}
+                                        hasPlayer={!!player.currentTrack}
+                                        onEditTitle={handleEditTitle}
+                                        onEditMusicInfo={handleEditMusicInfo}
+                                        extendMusicStartPolling={extendMusic.startPolling}
+                                        extendMusicGetState={extendMusic.getExtendMusicState}
+                                        extendMusicClearState={extendMusic.clearExtendMusicState}
+                                    />
+                                </div>
+                            </div>
+
+                            <div
+                                className={`transition-all duration-300 flex-shrink-0 overflow-hidden ${
+                                    showInlinePanel
+                                        ? 'opacity-100 w-full md:w-64 px-6 md:px-0'
+                                        : 'opacity-0 pointer-events-none w-0 md:w-0 px-0'
+                                }`}
+                            >
+                                {showInlinePanel && (
+                                    <div className="h-full">
+                                    <InlineTrackDetailsPanel
+                                        track={inlineTrackDetails}
+                                        isPlaying={isInlineTrackPlaying}
+                                        onClose={() => setLyricsPanelOpen(false)}
+                                    />
+                                    </div>
+                                )}
+                            </div>
+                        </div>
+                    </div>
+
+                    {player.currentTrack && (
+                        <div className="fixed md:absolute left-3 right-3 md:right-3 z-[60]" style={{
+                            bottom: 'calc(var(--mobile-nav-height, 0px) + 0.75rem)'
+                        }}>
+                            <MusicPlayer {...musicPlayerProps} />
+                        </div>
+                    )}
+                </div>
+
+                <MobileCreateDrawer
+                    isOpen={mobileCreateOpen}
+                    onClose={() => setMobileCreateOpen(false)}
+                    studioPanelProps={studioPanelProps}
+                />
+            </div>
         </section>
     );
 

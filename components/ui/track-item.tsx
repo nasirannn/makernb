@@ -94,9 +94,9 @@ export const TrackItem: React.FC<TrackItemProps> = ({
           : isClickable
             ? `cursor-pointer ${isSelected
                 ? 'bg-white/10 text-white'
-                : 'bg-white/[0.02] hover:bg-white/5'
+              : 'bg-transparent hover:bg-white/5'
               }`
-            : 'cursor-default bg-white/[0.02]'
+            : 'cursor-default bg-transparent'
       }`}
       onClick={() => {
         if (isClickable && onSelect) {

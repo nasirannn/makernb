@@ -70,13 +70,13 @@ interface StudioTracksListProps {
 const noOpExtendMusicPolling = () => {};
 
 const TrackListSkeleton = () => (
-  <div className="flex flex-col gap-3 px-6 py-6">
+  <div className="flex flex-col gap-0 px-0 py-0">
     {[...Array(5)].map((_, index) => (
       <div
         key={index}
-        className="rounded-[28px] bg-white/[0.03] p-3"
+        className="rounded-[28px] bg-transparent p-0"
       >
-        <div className="flex items-center gap-4">
+        <div className="flex items-center gap-4 px-2 py-2">
           
           {/* Cover */}
           <Skeleton className="h-16 w-16 rounded-2xl bg-white/10 flex-shrink-0" />
@@ -896,7 +896,7 @@ export const StudioTracksList: React.FC<StudioTracksListProps> = React.memo(func
             <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-white/60" />
             <input
               type="text"
-              placeholder="Search by title and tags..."
+              placeholder="Enter title and tags"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               className="w-full rounded-2xl bg-white/[0.04] py-3 pl-11 pr-10 text-sm text-white placeholder:text-white/40 focus:outline-none focus:ring-0"
@@ -928,7 +928,7 @@ export const StudioTracksList: React.FC<StudioTracksListProps> = React.memo(func
             <>
             {/* All Tracks (包含 generatedTracks 和 userTracks，使用分组显示) */}
           {flatTracks.length > 0 && (
-            <div className="space-y-1">
+            <div className="space-y-0">
               {flatTracks.map((track) => {
                 // 判断是否为 generated track（通过检查是否有 isGenerating 或 isPlaceholder 属性）
                 const isGeneratedTrack = track.isGenerating !== undefined || track.isPlaceholder !== undefined;
@@ -937,7 +937,7 @@ export const StudioTracksList: React.FC<StudioTracksListProps> = React.memo(func
                 return (
                   <div
                     key={track.id}
-                    className="rounded-[28px] p-1.5"
+                    className="rounded-[28px] p-0"
                   >
                     <TrackItem
                       track={track}
