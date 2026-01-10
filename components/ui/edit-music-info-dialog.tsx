@@ -2,14 +2,13 @@
 
 import React, { useState, useRef, useCallback, useEffect } from 'react';
 import {
-  AlertDialog,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from "@/components/ui/alert-dialog";
+  Dialog,
+  DialogDescription,
+  DialogContent,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Pencil, Upload, X } from "lucide-react";
 import Image from "next/image";
@@ -161,34 +160,27 @@ export const EditMusicInfoDialog: React.FC<EditMusicInfoDialogProps> = ({
   const displayImage = previewUrl || coverImage;
 
   return (
-    <AlertDialog open={isOpen} onOpenChange={(open) => !open && handleClose()}>
-      <AlertDialogContent
-        className="max-w-[calc(100vw-2rem)] sm:max-w-[520px] flex flex-col overflow-hidden p-0 border border-border/60 bg-background shadow-xl"
+    <Dialog open={isOpen} onOpenChange={(open) => !open && handleClose()}>
+      <DialogContent
+        className="max-w-[calc(100vw-2rem)] sm:max-w-[520px] max-h-[78vh] flex flex-col overflow-hidden p-0 border border-border/60 bg-background shadow-xl"
         onClick={(e) => e.stopPropagation()}
       >
-        <AlertDialogHeader className="flex-shrink-0 px-5 pt-5 pb-3 border-b border-border/40 text-left relative overflow-hidden">
+        <DialogHeader className="flex-shrink-0 px-5 pt-5 pb-3 border-b border-border/40 text-left relative overflow-hidden">
           <div className="pointer-events-none absolute inset-0 bg-gradient-to-r from-primary/10 via-transparent to-primary/10" />
           <div className="flex items-center justify-between pr-8 relative">
             <div>
               <div className="text-[10px] uppercase tracking-[0.28em] text-muted-foreground">
                 Music Info
               </div>
-              <AlertDialogTitle className="flex items-center gap-2 text-xl font-semibold tracking-tight">
+              <DialogTitle className="flex items-center gap-2 text-xl font-semibold tracking-tight">
                 Edit Music Info
-              </AlertDialogTitle>
-              <AlertDialogDescription className="mt-1 text-sm text-muted-foreground">
+              </DialogTitle>
+              <DialogDescription className="mt-1 text-sm text-muted-foreground">
                 Update title or cover image for this track.
-              </AlertDialogDescription>
+              </DialogDescription>
             </div>
           </div>
-          <AlertDialogCancel
-            onClick={handleClose}
-            className="absolute right-4 top-4 rounded-sm opacity-70 ring-offset-background transition-opacity hover:opacity-100 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:pointer-events-none"
-          >
-            <X className="h-4 w-4" />
-            <span className="sr-only">Close</span>
-          </AlertDialogCancel>
-        </AlertDialogHeader>
+        </DialogHeader>
 
         <div className="flex-1 overflow-y-auto space-y-3 pt-3 pb-3 px-5">
           <div className="space-y-3">
@@ -227,7 +219,7 @@ export const EditMusicInfoDialog: React.FC<EditMusicInfoDialogProps> = ({
                 onDragLeave={handleDragLeave}
                 onDrop={handleDrop}
               >
-                <div className="relative w-full aspect-square rounded-lg overflow-hidden bg-muted">
+                <div className="relative w-full max-w-64 aspect-square rounded-lg overflow-hidden bg-muted mx-auto">
                   {displayImage ? (
                     <Image
                       src={displayImage}
@@ -271,7 +263,7 @@ export const EditMusicInfoDialog: React.FC<EditMusicInfoDialogProps> = ({
           </div>
         </div>
 
-        <AlertDialogFooter className="flex-shrink-0 pt-2">
+        <DialogFooter className="flex-shrink-0 pt-2">
           <button
             onClick={handleSave}
             disabled={!title.trim() || isSaving}
@@ -286,8 +278,8 @@ export const EditMusicInfoDialog: React.FC<EditMusicInfoDialogProps> = ({
               'Save'
             )}
           </button>
-        </AlertDialogFooter>
-      </AlertDialogContent>
-    </AlertDialog>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   );
 };

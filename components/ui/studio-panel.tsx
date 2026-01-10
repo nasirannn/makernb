@@ -249,90 +249,161 @@ export const StudioPanel = (props: StudioPanelProps) => {
   // Audio player hook
   const { playPreviewAudio } = useAudioPlayer();
 
-  const [uploadCoverFile, setUploadCoverFile] = React.useState<File | null>(null);
-  const [uploadCoverFileName, setUploadCoverFileName] = React.useState<string | null>(null);
-  const [uploadAudioUrl, setUploadAudioUrl] = React.useState<string | null>(null);
-  const [uploadAudioDuration, setUploadAudioDuration] = React.useState<number | null>(null);
-  const [uploadAudioTotalDuration, setUploadAudioTotalDuration] = React.useState<number | null>(null);
-  const [uploadAudioCurrentTime, setUploadAudioCurrentTime] = React.useState(0);
-  const [isUploadAudioPlaying, setIsUploadAudioPlaying] = React.useState(false);
-  const [isUploadAudioAnalyzing, setIsUploadAudioAnalyzing] = React.useState(false);
+  type UploadPanelMode = "simple" | "custom";
+  type UploadAudioMode = "cover" | "extend";
+  type UploadState = {
+    coverFile: File | null;
+    coverFileName: string | null;
+    audioUrl: string | null;
+    audioDuration: number | null;
+    audioTotalDuration: number | null;
+    audioCurrentTime: number;
+    isPlaying: boolean;
+    isAnalyzing: boolean;
+    audioMode: UploadAudioMode;
+    audioUploadUrl: string | null;
+    extendStartTime: number;
+    readyFile: File | null;
+    readyFileName: string | null;
+    readyDuration: number | null;
+    readyAudioUrl: string | null;
+    progressOpen: boolean;
+    progressStatus: "uploading" | "error" | "ready";
+    progressError: string | null;
+  };
+  const createUploadState = (): UploadState => ({
+    coverFile: null,
+    coverFileName: null,
+    audioUrl: null,
+    audioDuration: null,
+    audioTotalDuration: null,
+    audioCurrentTime: 0,
+    isPlaying: false,
+    isAnalyzing: false,
+    audioMode: "cover",
+    audioUploadUrl: null,
+    extendStartTime: 0,
+    readyFile: null,
+    readyFileName: null,
+    readyDuration: null,
+    readyAudioUrl: null,
+    progressOpen: false,
+    progressStatus: "uploading",
+    progressError: null,
+  });
+  const [uploadStateByMode, setUploadStateByMode] = React.useState<Record<UploadPanelMode, UploadState>>(() => ({
+    simple: createUploadState(),
+    custom: createUploadState(),
+  }));
+  const [pendingAudioMode, setPendingAudioMode] = React.useState<UploadPanelMode>("simple");
   const uploadFileInputRef = React.useRef<HTMLInputElement | null>(null);
   const uploadAudioRef = React.useRef<HTMLAudioElement | null>(null);
-  const [uploadMediaElement, setUploadMediaElement] = React.useState<HTMLAudioElement | null>(null);
   const [isEditAudioOpen, setIsEditAudioOpen] = React.useState(false);
   const [pendingAudioFile, setPendingAudioFile] = React.useState<File | null>(null);
   const [pendingAudioUrl, setPendingAudioUrl] = React.useState<string | null>(null);
-  const [uploadAudioMode, setUploadAudioMode] = React.useState<"cover" | "extend">("cover");
-  const [uploadAudioUploadUrl, setUploadAudioUploadUrl] = React.useState<string | null>(null);
-  const [uploadExtendStartTime, setUploadExtendStartTime] = React.useState(0);
-  const [readyFile, setReadyFile] = React.useState<File | null>(null);
-  const [readyFileName, setReadyFileName] = React.useState<string | null>(null);
-  const [readyDuration, setReadyDuration] = React.useState<number | null>(null);
-  const [readyAudioUrl, setReadyAudioUrl] = React.useState<string | null>(null);
-  const [isUploadProgressOpen, setIsUploadProgressOpen] = React.useState(false);
-  const [uploadProgressStatus, setUploadProgressStatus] = React.useState<"uploading" | "error" | "ready">("uploading");
-  const [uploadProgressError, setUploadProgressError] = React.useState<string | null>(null);
+  const updateUploadState = React.useCallback((targetMode: UploadPanelMode, patch: Partial<UploadState>) => {
+    setUploadStateByMode((prev) => ({
+      ...prev,
+      [targetMode]: {
+        ...prev[targetMode],
+        ...patch,
+      },
+    }));
+  }, []);
+  const updateCurrentUploadState = React.useCallback((patch: Partial<UploadState>) => {
+    setUploadStateByMode((prev) => ({
+      ...prev,
+      [mode]: {
+        ...prev[mode],
+        ...patch,
+      },
+    }));
+  }, [mode]);
+  const currentUploadState = uploadStateByMode[mode];
+  const pendingUploadState = uploadStateByMode[pendingAudioMode];
+  const {
+    coverFile: uploadCoverFile,
+    coverFileName: uploadCoverFileName,
+    audioUrl: uploadAudioUrl,
+    audioDuration: uploadAudioDuration,
+    audioTotalDuration: uploadAudioTotalDuration,
+    audioCurrentTime: uploadAudioCurrentTime,
+    isPlaying: isUploadAudioPlaying,
+    isAnalyzing: isUploadAudioAnalyzing,
+    audioMode: uploadAudioMode,
+    audioUploadUrl: uploadAudioUploadUrl,
+    extendStartTime: uploadExtendStartTime,
+    readyFile,
+    readyFileName,
+    readyDuration,
+    readyAudioUrl,
+    progressOpen: isUploadProgressOpen,
+    progressStatus: uploadProgressStatus,
+    progressError: uploadProgressError,
+  } = currentUploadState;
   const createCredits = uploadCoverFile
     ? CLIENT_UPLOAD_AUDIO_CREDITS[uploadAudioMode]
     : (mode === "custom" ? CLIENT_MUSIC_CREDITS.custom : CLIENT_MUSIC_CREDITS.simple);
 
   const clearUploadCoverFile = React.useCallback(() => {
-    setUploadCoverFile(null);
-    setUploadCoverFileName(null);
-    setUploadAudioDuration(null);
-    setUploadAudioTotalDuration(null);
-    setUploadAudioCurrentTime(0);
-    setIsUploadAudioPlaying(false);
-    setIsUploadAudioAnalyzing(false);
-    setUploadMediaElement(null);
-    setUploadAudioMode("cover");
-    setUploadAudioUploadUrl(null);
-    setUploadExtendStartTime(0);
-    setReadyFile(null);
-    setReadyFileName(null);
-    setReadyDuration(null);
     if (readyAudioUrl) {
       URL.revokeObjectURL(readyAudioUrl);
-      setReadyAudioUrl(null);
     }
-    setIsUploadProgressOpen(false);
-    setUploadProgressStatus("uploading");
-    setUploadProgressError(null);
+    if (uploadAudioUrl) {
+      URL.revokeObjectURL(uploadAudioUrl);
+    }
     if (uploadAudioRef.current) {
       uploadAudioRef.current.pause();
       uploadAudioRef.current.src = '';
       uploadAudioRef.current = null;
     }
-    if (uploadAudioUrl) {
-      URL.revokeObjectURL(uploadAudioUrl);
-      setUploadAudioUrl(null);
-    }
-  }, [readyAudioUrl, uploadAudioUrl]);
+    updateCurrentUploadState({
+      coverFile: null,
+      coverFileName: null,
+      audioDuration: null,
+      audioTotalDuration: null,
+      audioCurrentTime: 0,
+      isPlaying: false,
+      isAnalyzing: false,
+      audioMode: "cover",
+      audioUploadUrl: null,
+      extendStartTime: 0,
+      readyFile: null,
+      readyFileName: null,
+      readyDuration: null,
+      readyAudioUrl: null,
+      progressOpen: false,
+      progressStatus: "uploading",
+      progressError: null,
+      audioUrl: null,
+    });
+  }, [readyAudioUrl, uploadAudioUrl, updateCurrentUploadState]);
 
 
   React.useEffect(() => {
     if (!uploadAudioUrl) {
-      setIsUploadAudioPlaying(false);
-      setUploadAudioCurrentTime(0);
+      updateCurrentUploadState({
+        isPlaying: false,
+        audioCurrentTime: 0,
+      });
     }
-  }, [uploadAudioUrl]);
+  }, [uploadAudioUrl, updateCurrentUploadState]);
 
   React.useEffect(() => {
     if (uploadAudioDuration && uploadExtendStartTime > uploadAudioDuration) {
-      setUploadExtendStartTime(uploadAudioDuration);
+      updateCurrentUploadState({ extendStartTime: uploadAudioDuration });
     }
-  }, [uploadAudioDuration, uploadExtendStartTime]);
+  }, [uploadAudioDuration, uploadExtendStartTime, updateCurrentUploadState]);
 
   const updateExtendStartTime = React.useCallback((value: number) => {
     const maxValue = uploadAudioDuration || 0;
     const clamped = Math.max(0, Math.min(value, maxValue));
-    setUploadExtendStartTime(clamped);
+    updateCurrentUploadState({ extendStartTime: clamped });
     if (uploadAudioRef.current) {
       uploadAudioRef.current.currentTime = clamped;
-      setUploadAudioCurrentTime(clamped);
+      updateCurrentUploadState({ audioCurrentTime: clamped });
     }
-  }, [uploadAudioDuration]);
+  }, [uploadAudioDuration, updateCurrentUploadState]);
 
   const resetPendingAudio = React.useCallback(() => {
     if (pendingAudioUrl) {
@@ -467,18 +538,21 @@ export const StudioPanel = (props: StudioPanelProps) => {
     const nextUrl = URL.createObjectURL(file);
     setPendingAudioFile(file);
     setPendingAudioUrl(nextUrl);
-    setUploadAudioTotalDuration(null);
-    setReadyFile(null);
-    setReadyFileName(null);
-    setReadyDuration(null);
-    setUploadCoverFileName(null);
+    setPendingAudioMode(mode);
+    updateCurrentUploadState({
+      audioTotalDuration: null,
+      readyFile: null,
+      readyFileName: null,
+      readyDuration: null,
+      coverFileName: null,
+      audioUploadUrl: null,
+    });
     if (readyAudioUrl) {
       URL.revokeObjectURL(readyAudioUrl);
-      setReadyAudioUrl(null);
+      updateCurrentUploadState({ readyAudioUrl: null });
     }
-    setUploadAudioUploadUrl(null);
     setIsEditAudioOpen(true);
-  }, [pendingAudioUrl, readyAudioUrl]);
+  }, [pendingAudioUrl, readyAudioUrl, mode, updateCurrentUploadState]);
 
   const handlePromptFileChange = React.useCallback((event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0] || null;
@@ -507,45 +581,46 @@ export const StudioPanel = (props: StudioPanelProps) => {
         uploadAudioRef.current.src = '';
         uploadAudioRef.current = null;
       }
-      setIsUploadAudioPlaying(false);
-      setUploadAudioCurrentTime(0);
+      updateCurrentUploadState({
+        isPlaying: false,
+        audioCurrentTime: 0,
+      });
       return;
     }
 
     const audio = new Audio(uploadAudioUrl);
     audio.preload = 'metadata';
     uploadAudioRef.current = audio;
-    setUploadMediaElement(audio);
 
     const handleLoadedMetadata = () => {
       if (Number.isFinite(audio.duration)) {
-        setUploadAudioDuration(audio.duration);
-        setUploadAudioTotalDuration((prev) => prev ?? audio.duration);
+        updateCurrentUploadState({
+          audioDuration: audio.duration,
+          audioTotalDuration: uploadAudioTotalDuration ?? audio.duration,
+        });
       }
-      setIsUploadAudioAnalyzing(false);
+      updateCurrentUploadState({ isAnalyzing: false });
     };
 
     const handleTimeUpdate = () => {
-      setUploadAudioCurrentTime(audio.currentTime);
+      updateCurrentUploadState({ audioCurrentTime: audio.currentTime });
     };
 
     const handlePlay = () => {
-      setIsUploadAudioPlaying(true);
+      updateCurrentUploadState({ isPlaying: true });
     };
 
     const handlePause = () => {
-      setIsUploadAudioPlaying(false);
+      updateCurrentUploadState({ isPlaying: false });
     };
 
     const handleEnded = () => {
-      setIsUploadAudioPlaying(false);
+      updateCurrentUploadState({ isPlaying: false, audioCurrentTime: 0 });
       audio.currentTime = 0;
-      setUploadAudioCurrentTime(0);
     };
 
     const handleError = () => {
-      setIsUploadAudioAnalyzing(false);
-      setIsUploadAudioPlaying(false);
+      updateCurrentUploadState({ isAnalyzing: false, isPlaying: false });
     };
 
     audio.addEventListener('loadedmetadata', handleLoadedMetadata);
@@ -567,9 +642,8 @@ export const StudioPanel = (props: StudioPanelProps) => {
       if (uploadAudioRef.current === audio) {
         uploadAudioRef.current = null;
       }
-      setUploadMediaElement((current) => (current === audio ? null : current));
     };
-  }, [uploadAudioUrl]);
+  }, [uploadAudioUrl, updateCurrentUploadState, uploadAudioTotalDuration]);
 
   const handleUploadAudioPlayPause = React.useCallback(async () => {
     const audio = uploadAudioRef.current;
@@ -583,9 +657,9 @@ export const StudioPanel = (props: StudioPanelProps) => {
       }
     } catch (error) {
       console.error('Failed to play uploaded audio:', error);
-      setIsUploadAudioPlaying(false);
+      updateCurrentUploadState({ isPlaying: false });
     }
-  }, [isUploadAudioAnalyzing]);
+  }, [isUploadAudioAnalyzing, updateCurrentUploadState]);
 
   const uploadAudioPreview = uploadCoverFile ? (
     <div className="space-y-2">
@@ -645,7 +719,7 @@ export const StudioPanel = (props: StudioPanelProps) => {
                   isPlaying={isUploadAudioPlaying}
                   externalCurrentTime={uploadAudioCurrentTime}
                   onPlayPause={handleUploadAudioPlayPause}
-                  onFinish={() => setIsUploadAudioPlaying(false)}
+                  onFinish={() => updateCurrentUploadState({ isPlaying: false })}
                   showControls={false}
                   separateControls={false}
                   isLoading={!uploadAudioUrl}
@@ -1442,6 +1516,12 @@ export const StudioPanel = (props: StudioPanelProps) => {
               </div>
             </section>
 
+            {uploadCoverFile && (
+              <section>
+                {uploadAudioPreview}
+              </section>
+            )}
+
           </div>
         </>
       ) : (
@@ -1680,13 +1760,19 @@ export const StudioPanel = (props: StudioPanelProps) => {
         maxDuration={maxUploadDurationSeconds}
         modelLabel={modelOptions.find((option) => option.value === selectedModel)?.label || selectedModel}
         onSave={async (file, durationValue, title) => {
-          setReadyFile(file);
-          setReadyFileName(title);
-          setReadyDuration(durationValue);
-          if (readyAudioUrl) {
-            URL.revokeObjectURL(readyAudioUrl);
+          const nextReadyUrl = URL.createObjectURL(file);
+          updateUploadState(pendingAudioMode, {
+            readyFile: file,
+            readyFileName: title,
+            readyDuration: durationValue,
+            readyAudioUrl: nextReadyUrl,
+            progressOpen: true,
+            progressStatus: "uploading",
+            progressError: null,
+          });
+          if (pendingUploadState.readyAudioUrl) {
+            URL.revokeObjectURL(pendingUploadState.readyAudioUrl);
           }
-          setReadyAudioUrl(URL.createObjectURL(file));
           setIsEditAudioOpen(false);
           if (pendingAudioUrl) {
             URL.revokeObjectURL(pendingAudioUrl);
@@ -1694,33 +1780,35 @@ export const StudioPanel = (props: StudioPanelProps) => {
           setPendingAudioFile(null);
           setPendingAudioUrl(null);
 
-          setIsUploadProgressOpen(true);
-          setUploadProgressStatus("uploading");
-          setUploadProgressError(null);
-
           try {
             const downloadUrl = await uploadAudioToServer(file);
-            setUploadAudioUploadUrl(downloadUrl);
-            setUploadProgressStatus("ready");
+            updateUploadState(pendingAudioMode, {
+              audioUploadUrl: downloadUrl,
+              progressStatus: "ready",
+            });
           } catch (error) {
             const message = error instanceof Error ? error.message : "Upload failed. Please try again.";
-            setUploadAudioUploadUrl(null);
-            setUploadProgressStatus("error");
-            setUploadProgressError(message);
+            updateUploadState(pendingAudioMode, {
+              audioUploadUrl: null,
+              progressStatus: "error",
+              progressError: message,
+            });
           }
         }}
       />
       <UploadProgressDialog
         isOpen={isUploadProgressOpen}
         onClose={() => {
-          setIsUploadProgressOpen(false);
-          setUploadProgressStatus("uploading");
-          setUploadProgressError(null);
+          updateCurrentUploadState({
+            progressOpen: false,
+            progressStatus: "uploading",
+            progressError: null,
+            readyFileName: null,
+          });
           if (readyAudioUrl) {
             URL.revokeObjectURL(readyAudioUrl);
-            setReadyAudioUrl(null);
+            updateCurrentUploadState({ readyAudioUrl: null });
           }
-          setReadyFileName(null);
         }}
         fileName={readyFileName || readyFile?.name || "Audio"}
         status={uploadProgressStatus}
@@ -1736,22 +1824,24 @@ export const StudioPanel = (props: StudioPanelProps) => {
             URL.revokeObjectURL(uploadAudioUrl);
           }
           const nextUrl = readyFile ? URL.createObjectURL(readyFile) : null;
-          setUploadAudioMode(nextMode);
-          setUploadCoverFile(readyFile);
-          setUploadCoverFileName(readyFileName || readyFile?.name || null);
-          setUploadAudioUrl(nextUrl);
-          setUploadAudioDuration(readyDuration);
-          setUploadAudioTotalDuration(readyDuration);
-          setUploadAudioCurrentTime(0);
-          setIsUploadAudioPlaying(false);
-          setIsUploadAudioAnalyzing(false);
-          setIsUploadProgressOpen(false);
-          setUploadProgressStatus("uploading");
+          updateCurrentUploadState({
+            audioMode: nextMode,
+            coverFile: readyFile,
+            coverFileName: readyFileName || readyFile?.name || null,
+            audioUrl: nextUrl,
+            audioDuration: readyDuration,
+            audioTotalDuration: readyDuration,
+            audioCurrentTime: 0,
+            isPlaying: false,
+            isAnalyzing: false,
+            progressOpen: false,
+            progressStatus: "uploading",
+            readyFileName: null,
+          });
           if (readyAudioUrl) {
             URL.revokeObjectURL(readyAudioUrl);
-            setReadyAudioUrl(null);
+            updateCurrentUploadState({ readyAudioUrl: null });
           }
-          setReadyFileName(null);
         }}
       />
 

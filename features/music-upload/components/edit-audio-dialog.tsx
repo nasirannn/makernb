@@ -2,13 +2,12 @@
 
 import React from "react";
 import {
-  AlertDialog,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogHeader,
-  AlertDialogDescription,
-  AlertDialogTitle,
-} from "@/components/ui/alert-dialog";
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogDescription,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { WaveformPlayer, WaveformPlayerHandle } from "@/components/ui/waveform-player";
 import { Play, Pause, X } from "lucide-react";
@@ -279,28 +278,24 @@ export const EditAudioDialog = ({
   };
 
   return (
-    <AlertDialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
-      <AlertDialogContent className="max-w-[calc(100vw-2rem)] sm:max-w-[620px] max-h-[82vh] flex flex-col p-0 border border-border/60 bg-background shadow-xl">
-        <AlertDialogHeader className="flex-shrink-0 px-6 pt-5 pb-3 border-b border-border/40 text-left relative overflow-hidden">
+    <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
+      <DialogContent className="max-w-[calc(100vw-2rem)] sm:max-w-[620px] max-h-[82vh] flex flex-col p-0 border border-border/60 bg-background shadow-xl">
+        <DialogHeader className="flex-shrink-0 px-6 pt-5 pb-3 border-b border-border/40 text-left relative overflow-hidden">
           <div className="pointer-events-none absolute inset-0 bg-gradient-to-r from-primary/10 via-transparent to-primary/10" />
           <div className="flex items-center justify-between pr-8">
             <div className="relative">
               <div className="text-[10px] uppercase tracking-[0.28em] text-muted-foreground">
                 Upload Audio
               </div>
-              <AlertDialogTitle className="text-xl font-semibold tracking-tight">
+              <DialogTitle className="text-xl font-semibold tracking-tight">
                 Edit Audio
-              </AlertDialogTitle>
+              </DialogTitle>
             </div>
           </div>
-          <AlertDialogCancel className="absolute right-4 top-4 rounded-sm opacity-70 ring-offset-background transition-opacity hover:opacity-100 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2">
-            <X className="h-4 w-4" />
-            <span className="sr-only">Close</span>
-          </AlertDialogCancel>
-          <AlertDialogDescription>
+          <DialogDescription>
             Select the section you want to keep before uploading.
-          </AlertDialogDescription>
-        </AlertDialogHeader>
+          </DialogDescription>
+        </DialogHeader>
 
         <div className="flex-1 px-6 py-4">
           <div className="flex flex-col items-center gap-4">
@@ -418,7 +413,7 @@ export const EditAudioDialog = ({
             {isSaving ? "Saving..." : "Save"}
           </Button>
         </div>
-      </AlertDialogContent>
-    </AlertDialog>
+      </DialogContent>
+    </Dialog>
   );
 };

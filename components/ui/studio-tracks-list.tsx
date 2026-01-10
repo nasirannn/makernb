@@ -1,8 +1,10 @@
 "use client";
 
 import React, { useState, useCallback, useMemo, useEffect } from 'react';
-import { CheckCircle, Music, Search, X } from "lucide-react";
+import { CheckCircle, Eye, Music, Search, X } from "lucide-react";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
+import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { supabase } from "@/lib/supabase";
 import { toast } from 'sonner';
@@ -1125,32 +1127,23 @@ export const StudioTracksList: React.FC<StudioTracksListProps> = React.memo(func
       </div>
       
       {/* Vocal Separation 确认弹窗 */}
-      <AlertDialog open={showVocalRemovalConfirmDialog} onOpenChange={setShowVocalRemovalConfirmDialog}>
-        <AlertDialogContent className="max-w-[calc(100vw-2rem)] sm:max-w-[480px] p-0 border border-border/60 bg-background shadow-xl">
-          <AlertDialogHeader className="flex-shrink-0 px-6 pt-5 pb-3 border-b border-border/40 text-left relative overflow-hidden">
+      <Dialog open={showVocalRemovalConfirmDialog} onOpenChange={setShowVocalRemovalConfirmDialog}>
+        <DialogContent className="max-w-[calc(100vw-2rem)] sm:max-w-[480px] flex flex-col p-0 border border-border/60 bg-background shadow-xl">
+          <DialogHeader className="flex-shrink-0 px-6 pt-5 pb-3 border-b border-border/40 text-left relative overflow-hidden">
             <div className="pointer-events-none absolute inset-0 bg-gradient-to-r from-primary/10 via-transparent to-primary/10" />
             <div className="flex items-center justify-between">
-              <AlertDialogTitle className="text-xl font-semibold tracking-tight">
+              <DialogTitle className="text-xl font-semibold tracking-tight">
                 {existingVocalRemovalData?.hasExistingResults
                   ? 'Separation Result Exists'
                   : 'Confirm Vocal Separation'}
-              </AlertDialogTitle>
-              <AlertDialogCancel
-                onClick={() => {
-                  setShowVocalRemovalConfirmDialog(false);
-                  setPendingVocalRemovalTrackId(null);
-                }}
-              >
-                <X className="h-4 w-4" />
-                <span className="sr-only">Close</span>
-              </AlertDialogCancel>
+              </DialogTitle>
             </div>
             <div className="text-sm text-muted-foreground">
               Choose whether to continue with vocal separation for this track.
             </div>
-          </AlertDialogHeader>
+          </DialogHeader>
           <div className="px-6 py-4 text-sm text-foreground">
-            <AlertDialogDescription className="text-sm text-muted-foreground">
+            <DialogDescription className="text-sm text-muted-foreground">
               {existingVocalRemovalData && (
                 <span>
                   {existingVocalRemovalData.hasExistingResults ? (
@@ -1164,40 +1157,84 @@ export const StudioTracksList: React.FC<StudioTracksListProps> = React.memo(func
                   )}
                 </span>
               )}
-            </AlertDialogDescription>
+            </DialogDescription>
           </div>
-          <AlertDialogFooter className="flex-col sm:flex-row gap-2 sm:gap-0 px-6 pb-6">
+          <div className="px-6 pb-6">
+            <div className="text-[11px] uppercase tracking-[0.24em] text-muted-foreground">Next Step</div>
+            <div className="text-base font-semibold text-foreground mt-1">Choose how to proceed</div>
             {existingVocalRemovalData?.hasExistingResults ? (
-              <>
-            <AlertDialogCancel 
-              onClick={handleConfirmReSeparation}
-              className="w-full sm:w-auto h-10 rounded-lg bg-muted/70 text-foreground hover:bg-muted"
-            >
-                  Separate
-            </AlertDialogCancel>
-            <AlertDialogAction 
-              onClick={handleViewExistingResults}
-              className="w-full sm:w-auto bg-primary text-primary-foreground hover:bg-primary/90"
-            >
-                  View
-            </AlertDialogAction>
-              </>
-            ) : (
-              <>
-                <AlertDialogCancel className="w-full sm:w-auto h-10 rounded-lg bg-muted/70 text-foreground hover:bg-muted">
-                  Cancel
-                </AlertDialogCancel>
-                <AlertDialogAction 
+              <div className="mt-3 grid w-full grid-cols-1 gap-3 sm:grid-cols-2">
+                <button
                   onClick={handleConfirmReSeparation}
-                  className="w-full sm:w-auto bg-primary text-primary-foreground hover:bg-primary/90"
+                  className="group rounded-2xl border p-3 text-left shadow-sm transition-all border-primary/30 bg-transparent hover:-translate-y-0.5 hover:bg-gradient-to-br hover:from-primary/15 hover:via-primary/5 hover:to-transparent hover:border-primary/60 hover:shadow-[0_12px_28px_rgba(0,0,0,0.22)]"
+                  type="button"
                 >
-                  Confirm
-                </AlertDialogAction>
-              </>
+                  <div className="flex items-center gap-3">
+                    <div className="h-8 w-8 rounded-lg border flex items-center justify-center transition bg-transparent border-primary/20 text-primary group-hover:bg-primary/20 group-hover:border-primary/40">
+                      <X className="h-4 w-4" />
+                    </div>
+                    <div className="text-base font-semibold">Cancel</div>
+                  </div>
+                  <div className="mt-1 text-sm text-muted-foreground">
+                    Keep current results and close this dialog.
+                  </div>
+                </button>
+                <button
+                  onClick={handleViewExistingResults}
+                  className="group rounded-2xl border p-3 text-left shadow-sm transition-all border-primary/30 bg-transparent hover:-translate-y-0.5 hover:bg-gradient-to-br hover:from-primary/15 hover:via-primary/5 hover:to-transparent hover:border-primary/60 hover:shadow-[0_12px_28px_rgba(0,0,0,0.22)]"
+                  type="button"
+                >
+                  <div className="flex items-center gap-3">
+                    <div className="h-8 w-8 rounded-lg border flex items-center justify-center transition bg-transparent border-primary/20 text-primary group-hover:bg-primary/20 group-hover:border-primary/40">
+                      <Eye className="h-4 w-4" />
+                    </div>
+                    <div className="text-base font-semibold">View the result</div>
+                  </div>
+                  <div className="mt-1 text-sm text-primary-foreground/80">
+                    Open the existing separation outputs.
+                  </div>
+                </button>
+              </div>
+            ) : (
+              <div className="mt-3 grid w-full grid-cols-1 gap-3 sm:grid-cols-2">
+                <button
+                  onClick={() => {
+                    setShowVocalRemovalConfirmDialog(false);
+                    setPendingVocalRemovalTrackId(null);
+                  }}
+                  className="group rounded-2xl border border-border/60 bg-muted/40 p-3 text-left text-foreground shadow-sm transition-all hover:-translate-y-0.5 hover:bg-gradient-to-br hover:from-primary/15 hover:via-primary/5 hover:to-transparent hover:border-primary/60 hover:shadow-[0_12px_28px_rgba(0,0,0,0.22)]"
+                  type="button"
+                >
+                  <div className="flex items-center gap-3">
+                    <div className="h-8 w-8 rounded-lg border border-border/60 text-foreground/80 flex items-center justify-center transition group-hover:border-primary/40 group-hover:text-primary">
+                      <X className="h-4 w-4" />
+                    </div>
+                    <div className="text-base font-semibold">Cancel</div>
+                  </div>
+                  <div className="mt-1 text-sm text-muted-foreground">
+                    Close this dialog without starting.
+                  </div>
+                </button>
+                <button
+                  onClick={handleConfirmReSeparation}
+                  className="group rounded-2xl border border-primary/30 bg-primary/90 p-3 text-left text-primary-foreground shadow-sm transition-all hover:-translate-y-0.5 hover:bg-primary hover:border-primary/60 hover:shadow-[0_12px_28px_rgba(0,0,0,0.22)]"
+                  type="button"
+                >
+                  <div className="flex items-center gap-3">
+                    <div className="h-8 w-8 rounded-lg border border-primary/40 text-primary-foreground/90 flex items-center justify-center transition group-hover:border-primary/60 group-hover:text-white">
+                      <CheckCircle className="h-4 w-4" />
+                    </div>
+                    <div className="text-base font-semibold">Confirm</div>
+                  </div>
+                  <div className="mt-1 text-sm text-primary-foreground/80">
+                    Start a new separation with credits.
+                  </div>
+                </button>
+              </div>
             )}
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+          </div>
+        </DialogContent>
+      </Dialog>
 
       {/* Vocal Removal 进度弹窗 */}
       {currentProcessingTrackId && (
