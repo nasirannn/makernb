@@ -1,21 +1,10 @@
 import type { Metadata } from "next";
 
 export const metadata: Metadata = {
-  title: "AI Lyrics Generator Free Online - MakeRNB",
-  description: "Generate creative song lyrics instantly with AI. Create R&B, Soul, Hip-Hop lyrics from your ideas. Perfect for songwriters, musicians, and music creators. Free AI-powered lyric writing tool.",
+  title: "AI Lyrics Generator | MakeRNB",
+  description: "Generate R&B lyrics with AI, customize themes, moods, and hooks, then copy, tweak, or refine your verses to fit your next track in seconds with guided prompts.",
   alternates: {
-    canonical: 'https://makernb.com/lyrics-generator',
-  },
-  openGraph: {
-    title: "AI Lyrics Generator Free Online - MakeRNB",
-    description: "Generate creative song lyrics instantly with AI. Create R&B, Soul, Hip-Hop lyrics from your ideas. Perfect for songwriters, musicians, and music creators. Free AI-powered lyric writing tool.",
-    url: "https://makernb.com/lyrics-generator",
-    type: "website",
-  },
-  twitter: {
-    card: "summary_large_image",
-    title: "AI Lyrics Generator Free Online - MakeRNB",
-    description: "Generate creative song lyrics instantly with AI. Create R&B, Soul, Hip-Hop lyrics from your ideas. Perfect for songwriters, musicians, and music creators. Free AI-powered lyric writing tool.",
+    canonical: "https://makernb.com/lyrics-generator",
   },
 };
 
@@ -24,6 +13,5 @@ export default function LyricsGeneratorLayout({
 }: {
   children: React.ReactNode;
 }) {
-  return <>{children}</>;
+  return children;
 }
-

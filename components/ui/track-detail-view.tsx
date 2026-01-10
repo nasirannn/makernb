@@ -417,7 +417,7 @@ export const TrackDetailView: React.FC<TrackDetailViewProps> = ({
             ))
             : (
               <p className="text-white/60">
-                这首歌还没有歌词，试试生成歌词或稍后再查看。
+                No lyrics yet. Try generating lyrics or check back later.
               </p>
             )}
         </div>

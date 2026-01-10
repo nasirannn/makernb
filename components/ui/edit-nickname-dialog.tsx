@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Copy, RefreshCw, UserRound } from "lucide-react";
+import { CheckCircle, Copy, RefreshCw, UserRound } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 
 interface EditNicknameDialogProps {
@@ -53,7 +53,7 @@ export function EditNicknameDialog({ open, onOpenChange, initialValue = "" }: Ed
     setSaving(true);
     try {
       await updateNickname(trimmedNickname);
-      toast("Nickname updated.");
+      toast("Nickname updated.", { icon: <CheckCircle className="h-4 w-4 text-green-500" /> });
       onOpenChange(false);
     } catch (err) {
       console.error("Failed to update nickname:", err);
@@ -139,11 +139,11 @@ export function EditNicknameDialog({ open, onOpenChange, initialValue = "" }: Ed
     }
   };
 
+  const displayName = user?.user_metadata?.nickname || user?.user_metadata?.full_name || user?.user_metadata?.name || user?.email?.split('@')[0] || '';
   const avatarUrl = user?.user_metadata?.avatar_url || user?.user_metadata?.picture;
   const avatarSrc = avatarOverride || avatarUrl || "";
   const fallbackLetter =
-    user?.user_metadata?.full_name?.charAt(0)?.toUpperCase() ||
-    user?.user_metadata?.name?.charAt(0)?.toUpperCase() ||
+    displayName?.charAt(0)?.toUpperCase() ||
     user?.email?.charAt(0)?.toUpperCase() ||
     "U";
 

@@ -16,6 +16,7 @@ export const metadata = {
 export default function LibraryPage() {
   return (
     <>
+      <h1 className="sr-only">Library</h1>
       <LibrarySection />
     </>
   );

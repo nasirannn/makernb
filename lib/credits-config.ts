@@ -83,7 +83,7 @@ export const FEATURE_CREDITS_CONFIG: Record<string, FeatureConfig> = {
  * 音乐生成模式配置
  */
 export const MUSIC_GENERATION_CONFIG = {
-  basic: {
+  simple: {
     model: 'V4',
     credits: 12,
     enabled: true
@@ -178,7 +178,7 @@ export function getFeatureConfig(feature: FeatureKey): FeatureConfig | null {
 
 /**
  * 获取音乐生成模式的模型版本
- * @param mode 模式：'basic' 或 'custom'
+ * @param mode 模式：'simple' 或 'custom'
  * @returns 模型版本
  */
 export function getMusicModel(mode: MusicMode): string {
@@ -192,7 +192,7 @@ export function getMusicModel(mode: MusicMode): string {
 
 /**
  * 获取音乐生成模式的积分消耗
- * @param mode 模式：'basic' 或 'custom'
+ * @param mode 模式：'simple' 或 'custom'
  * @returns 积分消耗数量
  */
 export function getMusicCredits(mode: MusicMode): number {
@@ -206,7 +206,7 @@ export function getMusicCredits(mode: MusicMode): number {
 
 /**
  * 获取音乐生成模式配置
- * @param mode 模式：'basic' 或 'custom'
+ * @param mode 模式：'simple' 或 'custom'
  * @returns 模式配置
  */
 export function getMusicModeConfig(mode: MusicMode): ModelConfig | null {
@@ -269,7 +269,7 @@ export const CLIENT_VOCAL_SEPARATION_CREDITS = {
 } as const;
 
 export const CLIENT_MUSIC_CREDITS = {
-  basic: MUSIC_GENERATION_CONFIG.basic.credits,
+  simple: MUSIC_GENERATION_CONFIG.simple.credits,
   custom: MUSIC_GENERATION_CONFIG.custom.credits
 } as const;
 
@@ -294,8 +294,8 @@ export const CLIENT_EXTEND_MUSIC_CREDITS = {
  * 这些值可以在客户端组件中直接使用
  */
 export const CLIENT_CREDITS = {
-  /** Basic Mode 积分消耗 */
-  BASIC_MODE_CREDITS: MUSIC_GENERATION_CONFIG.basic.credits,
+  /** Simple Mode 积分消耗 */
+  SIMPLE_MODE_CREDITS: MUSIC_GENERATION_CONFIG.simple.credits,
   /** Custom Mode 积分消耗 */
   CUSTOM_MODE_CREDITS: MUSIC_GENERATION_CONFIG.custom.credits,
   /** 歌词生成积分消耗 */

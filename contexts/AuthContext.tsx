@@ -11,7 +11,7 @@ interface AuthContextType {
   session: Session | null;
   loading: boolean;
   signOut: () => Promise<void>;
-  updateProfile: (profile: { full_name?: string; avatar_url?: string }) => Promise<User | null>;
+  updateProfile: (profile: { full_name?: string; avatar_url?: string; nickname?: string }) => Promise<User | null>;
   updateNickname: (nickname: string) => Promise<User | null>;
   checkDailyCredits: (sessionToken?: string, userIdOverride?: string) => Promise<void>;
   manualCheckCredits: () => Promise<void>;
@@ -256,7 +256,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
-  const updateProfile = async (profile: { full_name?: string; avatar_url?: string }) => {
+  const updateProfile = async (profile: { full_name?: string; avatar_url?: string; nickname?: string }) => {
     const { data, error } = await supabase.auth.updateUser({
       data: profile,
     });
@@ -278,7 +278,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       return null;
     }
 
-    return updateProfile({ full_name: trimmed });
+    return updateProfile({ nickname: trimmed, full_name: trimmed });
   };
 
 

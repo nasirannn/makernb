@@ -94,6 +94,7 @@ function processUserMusicData(rawData: any[]) {
         genre: row.genre,
         tags: row.tags,
         prompt: row.prompt,
+        generationMode: row.generation_mode,
         isInstrumental: row.is_instrumental, // 映射数据库字段为 JavaScript 字段名
         status: row.status,
         model: row.model,
@@ -140,6 +141,7 @@ function processUserMusicData(rawData: any[]) {
         originalTrackTitle: row.original_track_title || generation.originalTrackTitle,
         sourceType: row.source_type, // 映射来源类型字段
         model: generation.model,
+        generationMode: generation.generationMode,
       };
 
       generation.allTracks.push(track);

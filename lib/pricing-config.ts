@@ -32,6 +32,7 @@ export const monthlyPlans: PricingPlan[] = [
       "Create up to 2,500 lyrics with AI",
       "Download MP3 & Cover PNG",
       "Vocal remover & Extend music",
+      "Access to all models (V5, V4.5-all, V4.5+, V4.5, V4)",
       "Email customer support",
       "Access to all R&B styles and genres"
     ],
@@ -49,6 +50,7 @@ export const monthlyPlans: PricingPlan[] = [
       "Create up to 6,250 lyrics with AI",
       "Download MP3, WAV & Cover PNG",
       "Vocal remover & Extend music",
+      "Access to all models (V5, V4.5-all, V4.5+, V4.5, V4)",
       "Email customer support",
       "Access to all R&B styles and genres",
     ],
@@ -71,6 +73,7 @@ export const yearlyPlans: PricingPlan[] = [
       "Create up to 30,000 lyrics with AI",
       "Download MP3 & Cover PNG",
       "Vocal remover & Extend music",
+      "Access to all models (V5, V4.5-all, V4.5+, V4.5, V4)",
       "Email customer support",
       "Access to all R&B styles and genres"
     ],
@@ -88,6 +91,7 @@ export const yearlyPlans: PricingPlan[] = [
       "Create up to 75,000 lyrics with AI",
       "Download MP3, WAV & Cover PNG",
       "Vocal remover & Extend music",
+      "Access to all models (V5, V4.5-all, V4.5+, V4.5, V4)",
       "Email customer support",
       "Access to all R&B styles and genres",
     ],

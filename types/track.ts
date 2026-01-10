@@ -16,7 +16,9 @@ export interface BaseTrack {
   coverR2Url?: string; // R2存储的封面图片URL（兼容旧字段名 cover_r2_url）
   tags?: string;
   genre?: string;
+  prompt?: string;
   lyrics?: string;
+  generationMode?: string;
   createdAt?: string;
   isFavorited?: boolean;
   musicType?: MusicType;

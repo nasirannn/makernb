@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useCallback, useMemo, useEffect } from 'react';
-import { Music, Search, X } from "lucide-react";
+import { CheckCircle, Music, Search, X } from "lucide-react";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { Skeleton } from '@/components/ui/skeleton';
 import { supabase } from "@/lib/supabase";
@@ -10,11 +10,11 @@ import { LibraryTrack } from '@/types/track';
 import { useAudioPlayingState } from "@/hooks/use-audio-playing-state";
 import { useFeaturePermissions } from "@/contexts/FeaturePermissionsContext";
 import { usePricingModal } from "@/contexts/PricingModalContext";
-import { VocalRemovalProgressDialog } from './vocal-removal-progress-dialog';
-import { ExtendMusicDialog, ExtendMusicParams } from './extend-music-dialog';
-import { ReplaceSectionDialog, ReplaceSectionParams } from './replace-section-dialog';
+import { VocalRemovalProgressDialog } from '@/features/vocal-tools/components/vocal-removal-progress-dialog';
+import { ExtendMusicDialog, ExtendMusicParams } from '@/features/music-upload/components/extend-music-dialog';
+import { ReplaceSectionDialog, ReplaceSectionParams } from '@/features/music-upload/components/replace-section-dialog';
 import { CLIENT_VOCAL_SEPARATION_CREDITS } from '@/lib/credits-config';
-import { useVocalRemovalManager } from '@/hooks/use-vocal-removal-manager';
+import { useVocalRemovalManager } from '@/features/vocal-tools/hooks/use-vocal-removal-manager';
 import { TrackItem } from './track-item';
 import { formatDurationInMinutes } from '@/lib/format-utils';
 import { useAuth } from '@/contexts/AuthContext';
@@ -27,6 +27,7 @@ interface MusicGeneration {
   genre: string;
   tags: string;
   prompt: string;
+  generationMode?: string;
   isInstrumental: boolean;
   status: string;
   model?: string;
@@ -195,7 +196,9 @@ export const StudioTracksList: React.FC<StudioTracksListProps> = React.memo(func
     }
     return music.allTracks
       .filter(track => !(track.isDeleted ?? false))
-      .map(track => ({
+      .map(track => {
+        const trackErrorMessage = (track as { errorMessage?: string }).errorMessage;
+        return ({
         ...track,
         isFavorited: track.isFavorited ?? false,
         coverR2Url: track.coverR2Url ?? undefined,
@@ -205,8 +208,11 @@ export const StudioTracksList: React.FC<StudioTracksListProps> = React.memo(func
         musicStatus: music.status,
         musicGeneration: music,
         isError: !track.audioUrl || track.audioUrl.trim() === '',
-        errorMessage: (!track.audioUrl || track.audioUrl.trim() === '') ? 'Audio file missing' : undefined
-      }));
+        errorMessage: (!track.audioUrl || track.audioUrl.trim() === '')
+          ? (music.errorInfo?.errorMessage || trackErrorMessage || 'Audio file missing')
+          : undefined
+      });
+      });
   });
 
   // 搜索过滤
@@ -237,24 +243,26 @@ export const StudioTracksList: React.FC<StudioTracksListProps> = React.memo(func
       tags: track.tags || '',
       genre: track.genre || '',
       lyrics: track.lyrics || '',
+      generationMode: track.generationMode,
       isFavorited: false,
       musicTitle: track.title,
       musicTags: track.tags || '',
       musicGenre: track.genre || '',
-      musicStatus: track.isGenerating ? 'generating' : (track.isCompleted ? 'complete' : 'generating'),
+      musicStatus: track.isError ? 'error' : (track.isGenerating ? 'generating' : (track.isCompleted ? 'complete' : 'generating')),
       musicGeneration: {
         id: track.generationId,
         title: track.title,
         genre: track.genre || '',
         tags: track.tags || '',
-        status: track.isGenerating ? 'generating' : (track.isCompleted ? 'complete' : 'generating'),
+        generationMode: track.generationMode,
+        status: track.isError ? 'error' : (track.isGenerating ? 'generating' : (track.isCompleted ? 'complete' : 'generating')),
         model: track.model,
       } as MusicGeneration,
       isGenerating: track.isGenerating,
       isPlaceholder: track.isPlaceholder,
       isExtension: track.isExtension,
-      isError: false,
-      errorMessage: undefined,
+      isError: track.isError || false,
+      errorMessage: track.errorMessage,
     }));
   }, [generatedTracks]);
 
@@ -312,6 +320,67 @@ export const StudioTracksList: React.FC<StudioTracksListProps> = React.memo(func
 
     return tracksWithSource;
   }, [currentTracks, allTracksCombined]);
+
+  const formatModelLabel = useCallback((model?: string) => {
+    if (!model) return '';
+    if (model === 'V4_5PLUS') return 'V4.5+';
+    if (model === 'V4_5ALL') return 'V4.5ALL';
+    if (model === 'V4_5') return 'V4.5';
+    if (model === 'V4') return 'V4';
+    if (model === 'V5') return 'V5';
+    return model.replace('_', '.');
+  }, []);
+
+  const groupedTracks = React.useMemo(() => {
+    const groups: Array<{ id: string; modeLabel?: string; modelLabel?: string; promptLabel?: string; promptFull?: string; tracks: any[] }> = [];
+    const groupMap = new Map<string, number>();
+
+    flatTracks.forEach((track) => {
+      const groupId = track.generationId || track.musicGeneration?.id || track.id;
+      const modeValue = track.generationMode || track.musicGeneration?.generationMode;
+      const modelValue = track.model || track.musicGeneration?.model;
+      const promptFull = (track.musicGeneration?.prompt || '').toString().trim();
+      const promptValue =
+        promptFull.length > 80 ? `${promptFull.slice(0, 80)}...` : promptFull;
+      const modeLabel = modeValue
+        ? (modeValue.toLowerCase() === 'simple'
+            ? 'Simple'
+            : (modeValue.toLowerCase() === 'custom' ? 'Custom' : modeValue))
+        : undefined;
+
+      if (!groupMap.has(groupId)) {
+        groupMap.set(groupId, groups.length);
+        groups.push({
+          id: groupId,
+          modeLabel,
+          modelLabel: formatModelLabel(modelValue),
+          promptLabel: promptValue || undefined,
+          promptFull: promptFull || undefined,
+          tracks: [track],
+        });
+        return;
+      }
+
+      const index = groupMap.get(groupId);
+      if (index !== undefined) {
+        groups[index].tracks.push(track);
+        if (!groups[index].modeLabel && modeLabel) {
+          groups[index].modeLabel = modeLabel;
+        }
+        if (!groups[index].modelLabel && modelValue) {
+          groups[index].modelLabel = formatModelLabel(modelValue);
+        }
+        if (!groups[index].promptLabel && promptValue) {
+          groups[index].promptLabel = promptValue;
+        }
+        if (!groups[index].promptFull && promptFull) {
+          groups[index].promptFull = promptFull;
+        }
+      }
+    });
+
+    return groups;
+  }, [flatTracks, formatModelLabel]);
 
   // 处理歌曲选择
   const handleTrackSelect = useCallback((track: any) => {
@@ -510,7 +579,7 @@ export const StudioTracksList: React.FC<StudioTracksListProps> = React.memo(func
       }
 
       // 调用扩展音乐 API
-      const response = await fetch('/api/extend-music', {
+      const response = await fetch('/api/music/extend', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -599,7 +668,7 @@ export const StudioTracksList: React.FC<StudioTracksListProps> = React.memo(func
     setPendingReplaceSectionTrackId(trackId);
     setPendingReplaceSectionTrackTitle(track.title || 'Untitled Track');
     setPendingReplaceSectionTrackDuration(track.duration || 120);
-    setPendingReplaceSectionOriginalStyle(track.musicGeneration?.genre || '');
+    setPendingReplaceSectionOriginalStyle(track.musicGeneration?.tags || '');
     setPendingReplaceSectionAudioUrl(track.audioUrl || track.streamAudioUrl || '');
     setShowReplaceSectionDialog(true);
   }, [user, findTrackById]);
@@ -628,7 +697,7 @@ export const StudioTracksList: React.FC<StudioTracksListProps> = React.memo(func
       };
 
       // 调用 Replace Section API
-      const response = await fetch('/api/replace-section', {
+      const response = await fetch('/api/music/replace-section', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -713,7 +782,7 @@ export const StudioTracksList: React.FC<StudioTracksListProps> = React.memo(func
       setCurrentProcessingTrackTitle(trackTitle);
 
       // 检查是否存在分离结果
-      const statusResponse = await fetch(`/api/vocal-removal-status?trackId=${trackId}`, {
+      const statusResponse = await fetch(`/api/vocal/removal-status?trackId=${trackId}`, {
         headers: {
           'Authorization': `Bearer ${session.access_token}`,
         },
@@ -770,7 +839,7 @@ export const StudioTracksList: React.FC<StudioTracksListProps> = React.memo(func
         progress: 0,
       });
 
-      const response = await fetch('/api/vocal-removal', {
+      const response = await fetch('/api/vocal/removal', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -927,54 +996,83 @@ export const StudioTracksList: React.FC<StudioTracksListProps> = React.memo(func
           ) : (
             <>
             {/* All Tracks (包含 generatedTracks 和 userTracks，使用分组显示) */}
-          {flatTracks.length > 0 && (
-            <div className="space-y-0">
-              {flatTracks.map((track) => {
-                // 判断是否为 generated track（通过检查是否有 isGenerating 或 isPlaceholder 属性）
-                const isGeneratedTrack = track.isGenerating !== undefined || track.isPlaceholder !== undefined;
-
-                // 直接渲染 TrackItem，平铺显示
-                return (
-                  <div
-                    key={track.id}
-                    className="rounded-[28px] p-0"
-                  >
-                    <TrackItem
-                      track={track}
-                      isSelected={selectedTrack === track.id}
-                      isPlaying={globalAudioState.isPlaying}
-                      isCurrentTrack={globalAudioState.currentPlayingTrackId === track.id}
-                      isCopied={copiedTrackId === track.id}
-                      modelBadgePlacement="title"
-                      canDownloadMP3={canDownloadMP3}
-                      canDownloadWAV={canDownloadWAV}
-                      canDownloadCover={canDownloadCover}
-                      canVocalRemoval={canVocalRemoval}
-                      canExtendMusic={canExtendMusic}
-                      canReplaceSection={canReplaceSection}
-                      onSelect={() => {
-                        if (isGeneratedTrack && !track.isError && track.audioUrl && onGeneratedTrackSelect) {
-                          onTrackPreview?.(track);
-                          onGeneratedTrackSelect(track.id);
-                        } else {
-                          handleTrackSelect(track);
-                        }
-                      }}
-                      onPlayPause={() => handlePlayPause(track)}
-                      onFavoriteToggle={onFavoriteToggle ? () => handleFavoriteToggle(track) : undefined}
-                      onShare={() => handleShare(track.id)}
-                      onDownload={onDownload ? (format) => handleDownload(track, track.musicGeneration, format) : undefined}
-                      onVocalRemoval={() => handleVocalRemoval(track.id)}
-                      onExtendMusic={() => handleExtendMusic(track.id)}
-                      onReplaceSection={() => handleReplaceSection(track.id)}
-                      onDelete={onDelete ? () => handleDelete(track.id) : undefined}
-                      onPricingModalOpen={openPricingModal}
-                      onEditTitle={onEditTitle}
-                      onEditMusicInfo={onEditMusicInfo}
-                    />
+          {groupedTracks.length > 0 && (
+            <div className="space-y-3">
+              {groupedTracks.map((group) => (
+                <div key={group.id} className="space-y-1">
+                  {(group.modeLabel || group.modelLabel || group.promptLabel) && (
+                    <div className="px-2 pt-1 space-y-1">
+                      {(group.modeLabel || group.modelLabel) && (
+                        <div className="text-base font-semibold text-foreground flex items-center gap-2">
+                          {group.modeLabel && <span>{group.modeLabel}</span>}
+                          {group.modelLabel && (
+                            <span className="inline-flex items-center rounded-sm border border-foreground/40 px-2 py-0 text-[10px] font-semibold uppercase tracking-wide text-foreground/90">
+                              {group.modelLabel}
+                            </span>
+                          )}
+                        </div>
+                      )}
+                      {group.promptLabel && (
+                        <div
+                          className="text-xs text-foreground/80 line-clamp-2 cursor-pointer hover:opacity-80"
+                          title={group.promptFull || group.promptLabel}
+                          onClick={() => {
+                            navigator.clipboard.writeText(group.promptFull || group.promptLabel || '');
+                            toast('Prompt copied', { icon: <CheckCircle className="h-4 w-4 text-green-500" /> });
+                          }}
+                        >
+                          {group.promptLabel}
+                        </div>
+                      )}
+                    </div>
+                  )}
+                  <div className="space-y-0">
+                    {group.tracks.map((track) => {
+                      const isGeneratedTrack = track.isGenerating !== undefined || track.isPlaceholder !== undefined;
+                      return (
+                        <div
+                          key={track.id}
+                          className="rounded-[28px] p-0"
+                        >
+                          <TrackItem
+                            track={track}
+                            isSelected={selectedTrack === track.id}
+                            isPlaying={globalAudioState.isPlaying}
+                            isCurrentTrack={globalAudioState.currentPlayingTrackId === track.id}
+                            isCopied={copiedTrackId === track.id}
+                            modelBadgePlacement="none"
+                            canDownloadMP3={canDownloadMP3}
+                            canDownloadWAV={canDownloadWAV}
+                            canDownloadCover={canDownloadCover}
+                            canVocalRemoval={canVocalRemoval}
+                            canExtendMusic={canExtendMusic}
+                            canReplaceSection={canReplaceSection}
+                            onSelect={() => {
+                              if (isGeneratedTrack && !track.isError && track.audioUrl && onGeneratedTrackSelect) {
+                                onTrackPreview?.(track);
+                                onGeneratedTrackSelect(track.id);
+                              } else {
+                                handleTrackSelect(track);
+                              }
+                            }}
+                            onPlayPause={() => handlePlayPause(track)}
+                            onFavoriteToggle={onFavoriteToggle ? () => handleFavoriteToggle(track) : undefined}
+                            onShare={() => handleShare(track.id)}
+                            onDownload={onDownload ? (format) => handleDownload(track, track.musicGeneration, format) : undefined}
+                            onVocalRemoval={() => handleVocalRemoval(track.id)}
+                            onExtendMusic={() => handleExtendMusic(track.id)}
+                            onReplaceSection={() => handleReplaceSection(track.id)}
+                            onDelete={onDelete ? () => handleDelete(track.id) : undefined}
+                            onPricingModalOpen={openPricingModal}
+                            onEditTitle={onEditTitle}
+                            onEditMusicInfo={onEditMusicInfo}
+                          />
+                        </div>
+                      );
+                    })}
                   </div>
-                );
-              })}
+                </div>
+              ))}
               
               {/* Tracks Summary */}
               {currentTracks.length > 0 && (
@@ -1026,26 +1124,33 @@ export const StudioTracksList: React.FC<StudioTracksListProps> = React.memo(func
         </div>
       </div>
       
-      {/* Vocal Removal 确认弹窗 */}
+      {/* Vocal Separation 确认弹窗 */}
       <AlertDialog open={showVocalRemovalConfirmDialog} onOpenChange={setShowVocalRemovalConfirmDialog}>
-        <AlertDialogContent className="max-w-[calc(100vw-2rem)] sm:max-w-[425px]">
-          <button
-            onClick={() => {
-              setShowVocalRemovalConfirmDialog(false);
-              setPendingVocalRemovalTrackId(null);
-            }}
-            className="absolute right-4 top-4 rounded-sm opacity-70 ring-offset-background transition-opacity hover:opacity-100 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:pointer-events-none"
-          >
-            <X className="h-4 w-4" />
-            <span className="sr-only">Close</span>
-          </button>
-          <AlertDialogHeader>
-            <AlertDialogTitle>
-              {existingVocalRemovalData?.hasExistingResults 
-                ? 'Separation Result Exists' 
-                : 'Confirm Vocal Removal'}
-            </AlertDialogTitle>
-            <AlertDialogDescription>
+        <AlertDialogContent className="max-w-[calc(100vw-2rem)] sm:max-w-[480px] p-0 border border-border/60 bg-background shadow-xl">
+          <AlertDialogHeader className="flex-shrink-0 px-6 pt-5 pb-3 border-b border-border/40 text-left relative overflow-hidden">
+            <div className="pointer-events-none absolute inset-0 bg-gradient-to-r from-primary/10 via-transparent to-primary/10" />
+            <div className="flex items-center justify-between">
+              <AlertDialogTitle className="text-xl font-semibold tracking-tight">
+                {existingVocalRemovalData?.hasExistingResults
+                  ? 'Separation Result Exists'
+                  : 'Confirm Vocal Separation'}
+              </AlertDialogTitle>
+              <AlertDialogCancel
+                onClick={() => {
+                  setShowVocalRemovalConfirmDialog(false);
+                  setPendingVocalRemovalTrackId(null);
+                }}
+              >
+                <X className="h-4 w-4" />
+                <span className="sr-only">Close</span>
+              </AlertDialogCancel>
+            </div>
+            <div className="text-sm text-muted-foreground">
+              Choose whether to continue with vocal separation for this track.
+            </div>
+          </AlertDialogHeader>
+          <div className="px-6 py-4 text-sm text-foreground">
+            <AlertDialogDescription className="text-sm text-muted-foreground">
               {existingVocalRemovalData && (
                 <span>
                   {existingVocalRemovalData.hasExistingResults ? (
@@ -1060,13 +1165,13 @@ export const StudioTracksList: React.FC<StudioTracksListProps> = React.memo(func
                 </span>
               )}
             </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter className="flex-col sm:flex-row gap-2 sm:gap-0">
+          </div>
+          <AlertDialogFooter className="flex-col sm:flex-row gap-2 sm:gap-0 px-6 pb-6">
             {existingVocalRemovalData?.hasExistingResults ? (
               <>
             <AlertDialogCancel 
               onClick={handleConfirmReSeparation}
-              className="w-full sm:w-auto"
+              className="w-full sm:w-auto h-10 rounded-lg bg-muted/70 text-foreground hover:bg-muted"
             >
                   Separate
             </AlertDialogCancel>
@@ -1079,7 +1184,7 @@ export const StudioTracksList: React.FC<StudioTracksListProps> = React.memo(func
               </>
             ) : (
               <>
-                <AlertDialogCancel className="w-full sm:w-auto">
+                <AlertDialogCancel className="w-full sm:w-auto h-10 rounded-lg bg-muted/70 text-foreground hover:bg-muted">
                   Cancel
                 </AlertDialogCancel>
                 <AlertDialogAction 
@@ -1160,28 +1265,28 @@ export const StudioTracksList: React.FC<StudioTracksListProps> = React.memo(func
 
       {/* 删除确认弹窗 */}
       <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
-        <AlertDialogContent className="max-w-[calc(100vw-2rem)] sm:max-w-[425px]">
+        <AlertDialogContent className="max-w-[calc(100vw-2rem)] sm:max-w-[520px]">
           <AlertDialogHeader>
             <AlertDialogTitle className="text-lg sm:text-xl">Delete Track</AlertDialogTitle>
-            <AlertDialogDescription className="text-sm sm:text-base">
-              Are you sure you want to delete &quot;{trackToDelete?.title}&quot;? This action cannot be undone.
+            <AlertDialogDescription className="text-sm sm:text-base whitespace-nowrap">
+              Are you sure you want to delete the current track?
             </AlertDialogDescription>
           </AlertDialogHeader>
-          <AlertDialogFooter className="flex-col sm:flex-row gap-2 sm:gap-0">
+          <AlertDialogFooter className="flex flex-col sm:flex-row gap-2 sm:gap-0">
             <AlertDialogCancel 
               onClick={() => {
                 setDeleteDialogOpen(false);
                 setTrackToDelete(null);
               }}
-              className="w-full sm:w-auto"
+              className="w-full sm:w-auto h-10 rounded-lg bg-muted/70 text-foreground hover:bg-muted"
             >
               Cancel
             </AlertDialogCancel>
             <AlertDialogAction
               onClick={handleDeleteConfirm}
-              className="w-full sm:w-auto bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              className="w-full sm:w-auto sm:min-w-[160px] h-10 rounded-lg bg-primary text-primary-foreground hover:bg-primary/90"
             >
-              Delete
+              Confirm
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

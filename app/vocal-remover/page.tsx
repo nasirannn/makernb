@@ -6,8 +6,8 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
 import { Progress } from '@/components/ui/progress';
-import { VocalSeparationPanel } from '@/components/ui/vocal-separation-panel';
-import { useVocalSeparation, VocalSeparationData } from '@/hooks/use-vocal-separation';
+import { VocalSeparationPanel } from '@/features/vocal-tools/components/vocal-separation-panel';
+import { useVocalSeparation, VocalSeparationData } from '@/features/vocal-tools/hooks/use-vocal-separation';
 import { MusicPlayer } from '@/components/ui/music-player';
 import { WaveformPlayer } from '@/components/ui/waveform-player';
 import { Download, Mic, Music, Volume2, Clock, CheckCircle, XCircle, AlertCircle, Upload, Library, Play, Pause, Search, X } from 'lucide-react';
@@ -502,7 +502,7 @@ export default function VocalSeparationDemo() {
           return;
         }
 
-        const res = await fetch(`/api/vocal-separation-status?predictionId=${predictionId}`, { 
+        const res = await fetch(`/api/vocal/separation-status?predictionId=${predictionId}`, { 
           cache: 'no-store',
           headers: {
             Authorization: `Bearer ${session.access_token}`,

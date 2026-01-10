@@ -56,7 +56,7 @@ export const CommonSidebar = ({
   const [tierCode, setTierCode] = React.useState<'basic' | 'premium' | null>(null);
   const [isNicknameDialogOpen, setIsNicknameDialogOpen] = React.useState(false);
   const mobileNavRef = React.useRef<HTMLDivElement | null>(null);
-  const displayName = user?.user_metadata?.full_name || user?.user_metadata?.name || user?.email?.split('@')[0] || '';
+  const displayName = user?.user_metadata?.nickname || user?.user_metadata?.full_name || user?.user_metadata?.name || user?.email?.split('@')[0] || '';
 
   // 切换sidebar展开/收起状态
   const toggleSidebar = () => {
@@ -470,14 +470,14 @@ const aiMusicToolsDropdown = [
                             alt="User Avatar"
                           />
                           <AvatarFallback className="bg-gradient-to-br from-purple-600 to-purple-700 text-white font-semibold text-base">
-                            {user.user_metadata?.full_name?.charAt(0)?.toUpperCase() ||
+                            {displayName?.charAt(0)?.toUpperCase() ||
                              user.email?.charAt(0).toUpperCase()}
                           </AvatarFallback>
                         </Avatar>
                         <div className="flex-1 text-left min-w-0">
                           <div className="flex items-center justify-between gap-2 mb-1">
                             <div className="text-sm font-semibold text-white truncate flex-1">
-                              {user.user_metadata?.full_name || user.email}
+                              {displayName || user.email}
                             </div>
                             {tierCode && (
                               <Badge
@@ -530,7 +530,7 @@ const aiMusicToolsDropdown = [
                           alt="User Avatar"
                         />
                         <AvatarFallback className="bg-gradient-to-br from-purple-600 to-purple-700 text-white font-semibold">
-                          {user.user_metadata?.full_name?.charAt(0)?.toUpperCase() ||
+                          {displayName?.charAt(0)?.toUpperCase() ||
                            user.email?.charAt(0).toUpperCase()}
                         </AvatarFallback>
                       </Avatar>
@@ -540,7 +540,7 @@ const aiMusicToolsDropdown = [
                           <div className="p-4">
                             <div className="flex items-center justify-between gap-2">
                               <div className="text-sm font-semibold text-white truncate flex-1">
-                                {user.user_metadata?.full_name || user.email}
+                                {displayName || user.email}
                               </div>
                               {tierCode && (
                                 <Badge className="relative inline-block rounded-full border border-zinc-700 bg-zinc-900/20 px-2 py-0.5 text-xs text-zinc-50 animate-border-marquee flex-shrink-0">

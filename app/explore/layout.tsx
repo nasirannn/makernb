@@ -1,22 +1,10 @@
-import type { Metadata } from 'next';
+import type { Metadata } from "next";
 
 export const metadata: Metadata = {
-  title: 'Explore AI-Generated R&B Music | MakeRNB Community',
-  description: 'Discover and listen to thousands of AI-generated R&B tracks from the MakeRNB community. Browse Neo-Soul, Hip-Hop Soul, Quiet Storm & Contemporary R&B music creations.',
+  title: "Explore AI R&B Music | MakeRNB",
+  description: "Discover trending AI-generated R&B tracks, play full songs, and explore genres, vibes, and artist prompts from the MakeRNB community to inspire your next track.",
   alternates: {
-    canonical: 'https://makernb.com/explore',
-  },
-  openGraph: {
-    title: 'Explore AI-Generated R&B Music | MakeRNB Community',
-    description: 'Discover and listen to thousands of AI-generated R&B tracks from the MakeRNB community. Browse Neo-Soul, Hip-Hop Soul, Quiet Storm & Contemporary R&B music creations.',
-    type: 'website',
-    locale: 'en_US',
-    url: 'https://makernb.com/explore',
-  },
-  twitter: {
-    card: 'summary_large_image',
-    title: 'Explore AI-Generated R&B Music | MakeRNB Community',
-    description: 'Discover and listen to thousands of AI-generated R&B tracks from the MakeRNB community. Browse Neo-Soul, Hip-Hop Soul, Quiet Storm & Contemporary R&B music creations.',
+    canonical: "https://makernb.com/explore",
   },
 };
 
@@ -25,5 +13,5 @@ export default function ExploreLayout({
 }: {
   children: React.ReactNode;
 }) {
-  return <>{children}</>;
+  return children;
 }

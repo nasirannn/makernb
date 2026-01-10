@@ -2,6 +2,7 @@ import { query } from './db-query-builder';
 
 export interface GenerationError {
   id: string;
+  user_id: string;
   error_type: 'music_generation' | 'lyrics_generation';
   reference_id: string;
   error_code?: string;
@@ -13,6 +14,7 @@ export interface GenerationError {
 // 创建生成错误记录
 export const createGenerationError = async (
   errorType: 'music_generation' | 'lyrics_generation',
+  userId: string,
   referenceId: string,
   errorMessage: string,
   errorCode?: string
@@ -20,10 +22,10 @@ export const createGenerationError = async (
   try {
     const result = await query(
       `INSERT INTO generation_errors (
-        error_type, reference_id, error_code, error_message
-      ) VALUES ($1, $2, $3, $4) 
+        user_id, error_type, reference_id, error_code, error_message
+      ) VALUES ($1, $2, $3, $4, $5) 
       RETURNING *`,
-      [errorType, referenceId, errorCode, errorMessage]
+      [userId, errorType, referenceId, errorCode, errorMessage]
     );
 
     return result.rows[0] as GenerationError;

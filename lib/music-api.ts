@@ -3,9 +3,9 @@ import { DEFAULT_NEGATIVE_TAGS, DEFAULT_STYLE_WEIGHT, DEFAULT_WEIRDNESS_CONSTRAI
 
 // API service configuration
 export interface GenerateMusicRequest {
-  mode: 'basic' | 'custom';
+  mode: 'simple' | 'custom';
   model?: string;
-  // Basic mode fields
+  // Simple mode fields
   customPrompt?: string;
   instrumentalMode?: boolean;
 
@@ -164,22 +164,39 @@ class MusicApiService {
 
     // 根据文档设置正确的API参数
     const apiParams: any = {
-      callBackUrl: `${process.env.CallBackURL}/api/suno-callback`,
+      callBackUrl: `${process.env.CallBackURL}/api/callbacks/suno/generate`,
     };
 
     // negativeTags - 避免不符合R&B风格的元素
     apiParams.negativeTags = DEFAULT_NEGATIVE_TAGS;
 
-    if (request.mode === 'basic') {
-      // Basic模式: customMode: false（style 等参数将被忽略）
+    const getModelLimits = (modelValue: string) => {
+      switch (modelValue) {
+        case 'V4':
+          return { prompt: 3000, style: 200, title: 80 };
+        case 'V4_5ALL':
+          return { prompt: 5000, style: 1000, title: 80 };
+        case 'V4_5':
+        case 'V4_5PLUS':
+        case 'V5':
+        default:
+          return { prompt: 5000, style: 1000, title: 80 };
+      }
+    };
+
+    const modelValue = request.model || (request.mode === 'simple' ? getMusicModel('simple') : getMusicModel('custom'));
+    const limits = getModelLimits(modelValue);
+    
+    if (request.mode === 'simple') {
+      // Simple模式: customMode: false（style 等参数将被忽略）
       apiParams.customMode = false;
       apiParams.instrumental = request.instrumentalMode || false;
-      apiParams.model = request.model || getMusicModel('basic'); // 优先使用请求指定模型
+      apiParams.model = modelValue; // 优先使用请求指定模型
 
       // 拼接一个≤100字符的R&B风格短语到prompt
       const styleHint = 'Create in R&B style.'; 
 
-      // Basic Mode的prompt：用户输入 + 风格短语
+      // Simple Mode的prompt：用户输入 + 风格短语
       if (request.customPrompt && request.customPrompt.trim()) {
         const base = request.customPrompt.trim().slice(0, 400);
         // 若拼接后超过500，优先保证用户400字符，再截断整体至500以内
@@ -190,23 +207,23 @@ class MusicApiService {
       // Custom模式: customMode: true
       apiParams.customMode = true;
       apiParams.instrumental = request.instrumentalMode || false;
-      apiParams.model = request.model || getMusicModel('custom'); // 优先使用请求指定模型
+      apiParams.model = modelValue; // 优先使用请求指定模型
 
       // Custom Mode: 直接使用用户输入的styleText
       if (request.styleText && request.styleText.trim()) {
-        apiParams.style = request.styleText.trim();
+        apiParams.style = request.styleText.trim().slice(0, limits.style);
       }
 
       // 处理prompt - 根据API文档，在非instrumental模式下，prompt严格作为歌词使用
       if (!request.instrumentalMode && request.customPrompt) {
         // 如果有自定义prompt，直接作为歌词使用
-        apiParams.prompt = request.customPrompt;
+        apiParams.prompt = request.customPrompt.slice(0, limits.prompt);
       }
       // instrumental模式下不需要prompt
 
       // Title
       if (request.songTitle) {
-        apiParams.title = request.songTitle;
+        apiParams.title = request.songTitle.slice(0, limits.title);
       }
 
       // Vocal Gender
@@ -293,7 +310,7 @@ class MusicApiService {
 
     const apiParams = {
       taskId: request.taskId,
-      callBackUrl: request.callBackUrl || `${process.env.CallBackURL}/api/cover-callback`,
+      callBackUrl: request.callBackUrl || `${process.env.CallBackURL}/api/callbacks/cover`,
     };
     
     const response = await this.fetchWithRetry(`${this.baseUrl}/api/v1/suno/cover/generate`, {
@@ -423,7 +440,7 @@ class MusicApiService {
       taskId: request.taskId,
       audioId: request.audioId,
       type: request.type,
-      callBackUrl: request.callBackUrl || `${process.env.CallBackURL}/api/vocal-separation-callback`,
+      callBackUrl: request.callBackUrl || `${process.env.CallBackURL}/api/callbacks/vocal-separation`,
     };
     
     const response = await this.fetchWithRetry(`${this.baseUrl}/api/v1/vocal-removal/generate`, {
@@ -545,7 +562,7 @@ class MusicApiService {
    * Converts MP3 audio to WAV format
    */
   async generateWavConversion(request: WavConversionRequest): Promise<WavConversionApiResponse> {
-    const callBackUrl = request.callBackUrl || `${process.env.CallBackURL}/api/wav-callback`;
+    const callBackUrl = request.callBackUrl || `${process.env.CallBackURL}/api/callbacks/wav`;
     
     const apiParams = {
       taskId: request.taskId,

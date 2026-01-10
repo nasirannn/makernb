@@ -22,11 +22,11 @@ interface ModelOption {
 }
 
 const modelOptions: ModelOption[] = [
-  { value: 'V5', label: 'V5', description: 'Authentic vocals, superior sound quality, and intuitive control, up to 8 minutes', requiresSubscription: true },
-  { value: 'V4_5ALL', label: 'V4.5ALL', description: 'High-quality voice synthesis with faster generation, up to 8 minutes', requiresSubscription: true },
-  { value: 'V4_5PLUS', label: 'V4.5+', description: 'Best sound quality with richer vocals, up to 8 minutes', requiresSubscription: true },
-  { value: 'V4_5', label: 'V4.5', description: 'High-quality vocals with smarter prompts and faster generation, up to 8 minutes', requiresSubscription: true },
+  { value: 'V5', label: 'V5', description: 'Superior musical expression, faster generation.', requiresSubscription: false },
+  { value: 'V4_5PLUS', label: 'V4.5+', description: 'Best sound quality, max 8 min, creative rhythms, rich harmonies', requiresSubscription: false },
+  { value: 'V4_5', label: 'V4.5', description: 'High-quality vocals, smarter prompts, faster generation, up to 8 minutes', requiresSubscription: false },
   { value: 'V4', label: 'V4', description: 'Basic model with improved vocal quality, up to 4 minutes', requiresSubscription: false },
+  { value: 'V4_5ALL', label: 'V4.5 All', description: 'All-around model, max 4 min.', requiresSubscription: false },
 ];
 
 interface ModelSelectionDialogProps {
@@ -58,8 +58,8 @@ export const ModelSelectionDialog: React.FC<ModelSelectionDialogProps> = ({
   }, [isOpen, selectedModel]);
 
   const handleConfirm = () => {
-    // 如果用户没有订阅且选择了非 V4 模型，显示pricing弹窗
-    if (!hasSubscription && tempSelectedModel !== 'V4') {
+    // 如果用户没有订阅且选择了非 V4.5 All 模型，显示pricing弹窗
+    if (!hasSubscription && tempSelectedModel !== 'V4_5ALL') {
       onClose();
       if (onShowPricing) {
         onShowPricing();
@@ -75,15 +75,6 @@ export const ModelSelectionDialog: React.FC<ModelSelectionDialogProps> = ({
   return (
     <AlertDialog open={isOpen} onOpenChange={onClose}>
       <AlertDialogContent className="max-w-[calc(100vw-2rem)] sm:max-w-[560px] max-h-[90vh] flex flex-col p-0 border border-border/60 bg-background shadow-xl">
-        {/* 关闭按钮 */}
-        <button
-          onClick={onClose}
-          className="absolute right-4 top-4 rounded-sm opacity-70 ring-offset-background transition-opacity hover:opacity-100 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 z-10"
-        >
-          <X className="h-4 w-4" />
-          <span className="sr-only">Close</span>
-        </button>
-
         {/* 固定头部 */}
         <AlertDialogHeader className="flex-shrink-0 px-6 pt-6 pb-4 border-b border-border/40">
           <AlertDialogTitle className="text-xl font-semibold pr-8 tracking-tight">

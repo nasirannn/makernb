@@ -102,9 +102,9 @@ export default function TermsOfService() {
 
           <h3 className="text-xl font-medium mb-3">Credit Costs</h3>
           <ul className="list-disc pl-6 mb-4">
-            <li>Basic Mode: 7 credits per song generation</li>
+            <li>Simple Mode: 7 credits per song generation</li>
             <li>Custom Mode: 12 credits per song generation (advanced features and controls)</li>
-            <li>With 15 daily credits, you can create at least one Custom Mode track or two Basic Mode tracks per day</li>
+            <li>With 15 daily credits, you can create at least one Custom Mode track or two Simple Mode tracks per day</li>
           </ul>
 
           <h3 className="text-xl font-medium mb-3">Download Feature</h3>

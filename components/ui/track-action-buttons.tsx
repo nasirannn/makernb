@@ -295,7 +295,7 @@ export const TrackActionButtons: React.FC<TrackActionButtonsProps> = ({
                     >
                       <div className="flex items-center gap-1.5">
                         <Mic className="h-3.5 w-3.5" />
-                        <span>Vocal Remover</span>
+                        <span>Vocal Separation</span>
                       </div>
                     </DropdownMenuItem>
                   )}
@@ -540,7 +540,7 @@ export const TrackActionButtons: React.FC<TrackActionButtonsProps> = ({
                   >
                     <div className="flex items-center gap-1.5">
                       <Mic className="h-3.5 w-3.5" />
-                      <span>Vocal Remover</span>
+                      <span>Vocal Separation</span>
                     </div>
                   </DropdownMenuItem>
                 )}

@@ -23,6 +23,8 @@ export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
   const [message, setMessage] = useState('');
   const [showCodeInput, setShowCodeInput] = useState(false);
   const [verificationCode, setVerificationCode] = useState('');
+  const otpLength = 6;
+  const otpRefs = React.useRef<Array<HTMLInputElement | null>>([]);
   const [captchaToken, setCaptchaToken] = useState<string | undefined>();
   const modalContentRef = React.useRef<HTMLDivElement>(null);
   const scrollPositionRef = React.useRef<number>(0);
@@ -98,6 +100,43 @@ export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
         });
       }
     }, 300);
+  };
+
+  const handleOtpChange = (index: number, value: string) => {
+    const digit = value.replace(/\D/g, '').slice(-1);
+    const next = verificationCode.split('');
+    next[index] = digit;
+    const nextCode = next.join('').slice(0, otpLength);
+    setVerificationCode(nextCode);
+    if (digit && index < otpLength - 1) {
+      otpRefs.current[index + 1]?.focus();
+    }
+  };
+
+  const handleOtpKeyDown = (index: number, event: React.KeyboardEvent<HTMLInputElement>) => {
+    if (event.key === 'Backspace' && !verificationCode[index] && index > 0) {
+      otpRefs.current[index - 1]?.focus();
+    }
+    if (event.key === 'ArrowLeft' && index > 0) {
+      otpRefs.current[index - 1]?.focus();
+    }
+    if (event.key === 'ArrowRight' && index < otpLength - 1) {
+      otpRefs.current[index + 1]?.focus();
+    }
+  };
+
+  const handleOtpPaste = (index: number, event: React.ClipboardEvent<HTMLInputElement>) => {
+    const pasted = event.clipboardData.getData('text').replace(/\D/g, '').slice(0, otpLength);
+    if (!pasted) return;
+    event.preventDefault();
+    const next = verificationCode.split('');
+    for (let i = 0; i < pasted.length && index + i < otpLength; i += 1) {
+      next[index + i] = pasted[i];
+    }
+    const nextCode = next.join('').slice(0, otpLength);
+    setVerificationCode(nextCode);
+    const focusIndex = Math.min(index + pasted.length, otpLength - 1);
+    otpRefs.current[focusIndex]?.focus();
   };
 
   const handleEmailAuth = async (e: React.FormEvent) => {
@@ -304,17 +343,27 @@ export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
               ) : (
                 <div className="space-y-1.5">
                   <Label htmlFor="code" className="text-foreground text-sm">Verification Code</Label>
-                  <Input
-                    id="code"
-                    type="text"
-                    placeholder="Enter 6-digit code"
-                    value={verificationCode}
-                    onChange={(e) => setVerificationCode(e.target.value.replace(/\D/g, '').slice(0, 6))}
-                    onFocus={handleInputFocus}
-                    required
-                    maxLength={6}
-                    className="bg-muted/50 border-0 text-foreground placeholder:text-muted-foreground focus:ring-2 focus:ring-primary h-11 text-base text-center text-lg tracking-widest rounded-lg"
-                  />
+                  <div className="flex w-full items-center justify-between gap-2">
+                    {Array.from({ length: otpLength }).map((_, index) => (
+                      <Input
+                        key={`code-${index}`}
+                        id={index === 0 ? 'code' : undefined}
+                        type="text"
+                        inputMode="numeric"
+                        autoComplete={index === 0 ? 'one-time-code' : 'off'}
+                        value={verificationCode[index] || ''}
+                        onChange={(e) => handleOtpChange(index, e.target.value)}
+                        onKeyDown={(e) => handleOtpKeyDown(index, e)}
+                        onPaste={(e) => handleOtpPaste(index, e)}
+                        onFocus={handleInputFocus}
+                        ref={(el) => {
+                          otpRefs.current[index] = el;
+                        }}
+                        aria-label={`Verification code digit ${index + 1}`}
+                        className="bg-muted/50 border-0 text-foreground focus:ring-2 focus:ring-primary h-11 w-11 text-center text-lg font-semibold rounded-lg"
+                      />
+                    ))}
+                  </div>
                 </div>
               )}
 
@@ -346,7 +395,7 @@ export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
               
               <Button
                 type="submit"
-                disabled={(loading || isGoogleAuthLoading) || (!showCodeInput && !canSendCode)}
+                disabled={(loading || isGoogleAuthLoading) || (!showCodeInput && !canSendCode) || (showCodeInput && verificationCode.length !== otpLength)}
                 className="w-full h-11 md:h-12 bg-primary hover:bg-primary/90 text-primary-foreground font-medium rounded-lg transition-all duration-200 disabled:opacity-50 text-sm md:text-base"
               >
                 {loading && !isGoogleAuthLoading ? (

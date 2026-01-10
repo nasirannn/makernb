@@ -1,21 +1,10 @@
 import type { Metadata } from "next";
 
 export const metadata: Metadata = {
-  title: "AI Vocal Remover Free Online - MakeRNB",
-  description: "Separate vocals from instrumentals instantly with AI-powered vocal remover. Extract acapella, karaoke tracks, and isolated instruments from any song. High-quality audio separation in seconds.",
+  title: "Vocal Remover | MakeRNB",
+  description: "Separate vocals and instrumentals from your tracks with AI. Upload audio or pick from Studio and download stems for remixing, covers, and edits in minutes.",
   alternates: {
-    canonical: 'https://makernb.com/vocal-remover',
-  },
-  openGraph: {
-    title: "AI Vocal Remover Free Online - MakeRNB",
-    description: "Separate vocals from instrumentals instantly with AI-powered vocal remover. Extract acapella, karaoke tracks, and isolated instruments from any song. High-quality audio separation in seconds.",
-    url: "https://makernb.com/vocal-remover",
-    type: "website",
-  },
-  twitter: {
-    card: "summary_large_image",
-    title: "AI Vocal Remover Free Online - MakeRNB",
-    description: "Separate vocals from instrumentals instantly with AI-powered vocal remover. Extract acapella, karaoke tracks, and isolated instruments from any song. High-quality audio separation in seconds.",
+    canonical: "https://makernb.com/vocal-remover",
   },
 };
 
@@ -24,6 +13,5 @@ export default function VocalRemoverLayout({
 }: {
   children: React.ReactNode;
 }) {
-  return <>{children}</>;
+  return children;
 }
-

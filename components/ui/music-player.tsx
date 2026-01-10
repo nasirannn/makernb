@@ -3,7 +3,7 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { Play, Pause, Rewind, FastForward, Volume2, VolumeX, MessageSquare, Mic } from 'lucide-react';
 import { Slider } from '@/components/ui/slider';
-import { VocalSeparationButton } from './vocal-separation-button';
+import { VocalSeparationButton } from '@/features/vocal-tools/components/vocal-separation-button';
 import { supabase } from '@/lib/supabase';
 import { AudioPlayerTrack } from '@/types/track';
 

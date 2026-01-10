@@ -4,7 +4,7 @@
  */
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { getAudioService, AudioService } from '@/lib/audio-service';
-import { getCoverManager, CoverManager } from '@/lib/cover-manager';
+import { getCoverManager, CoverManager } from '@/features/lyrics-cover/lib/cover-manager';
 import { getEventBus, EventBus, AUDIO_EVENTS, COVER_EVENTS, TRACK_EVENTS } from '@/lib/event-bus';
 import { AudioPlayerTrack } from '@/types/track';
 

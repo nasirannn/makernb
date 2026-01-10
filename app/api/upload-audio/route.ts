@@ -58,7 +58,7 @@ function buildKIEPayload(mode: UploadMode, params: UploadPayload) {
       payload.prompt = params.prompt; // 在 custom mode 下，prompt 作为歌词
     }
   } else {
-    // Basic mode: 只需要 prompt（用于自动生成歌词）
+    // Simple mode: 只需要 prompt（用于自动生成歌词）
     payload.prompt = params.prompt;
   }
 
@@ -206,10 +206,14 @@ export async function POST(request: NextRequest) {
 
     const taskId = json.data.taskId as string;
 
+    const promptForDb = customMode ? (style || 'R&B') : lyrics;
+    const tagsForDb = customMode ? (style || 'R&B') : (lyrics || 'R&B');
     const musicRecord = await createMusicGeneration(userId, {
       title,
-      genre: style || 'R&B',
-      prompt: lyrics,
+      genre: 'R&B',
+      tags: tagsForDb,
+      prompt: promptForDb,
+      generation_mode: customMode ? 'custom' : 'simple',
       is_instrumental: instrumental,
       task_id: taskId,
       status: 'generating',
@@ -235,10 +239,12 @@ export async function POST(request: NextRequest) {
       audioUrl: '',
       duration: undefined,
       coverImage: row.cover_image_url || null,
-      // customMode=true: 用style作为tags; customMode=false: 用description(lyrics)作为tags
-      tags: customMode ? (style || 'R&B') : (lyrics || 'R&B'),
-      genre: style || 'R&B',
+      // customMode=true: tags留空，prompt使用style
+      tags: tagsForDb || '',
+      genre: 'R&B',
+      prompt: promptForDb,
       lyrics: '',
+      generationMode: customMode ? 'custom' : 'simple',
       isGenerating: true,
       isCompleted: false,
       streamAudioUrl: '',

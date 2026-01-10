@@ -166,6 +166,7 @@ const LibraryContent = () => {
             id: track.id,
             title: track.title,
             audioUrl: track.audioUrl,
+            streamAudioUrl: track.streamAudioUrl,
             duration: track.duration,
             artist: track.genre || 'Unknown Artist',
             coverImage: track.coverImage || undefined,
@@ -173,6 +174,7 @@ const LibraryContent = () => {
                 id: track.id,
                 audioUrl: track.audioUrl,
                 duration: track.duration,
+                streamAudioUrl: track.streamAudioUrl,
                 coverR2Url: track.coverImage // 映射为 JavaScript 字段名
             }]
         }));
@@ -186,6 +188,7 @@ const LibraryContent = () => {
             tags: track.tags,
             genre: track.genre,
             audioUrl: track.audioUrl,
+            streamAudioUrl: track.streamAudioUrl,
             duration: track.duration,
             isPublished: track.isPublished ?? false,
             isFavorited: track.isFavorited ?? false,
@@ -201,6 +204,7 @@ const LibraryContent = () => {
                 id: track.id,
                 audioUrl: track.audioUrl,
                 duration: track.duration,
+                streamAudioUrl: track.streamAudioUrl,
                 coverR2Url: (track as any).coverR2Url || track.coverImage || undefined, // 映射为 JavaScript 字段名
                 lyrics: track.lyrics || undefined,
                 isDeleted: track.isDeleted ?? false, // 映射为 JavaScript 字段名
@@ -242,6 +246,7 @@ const LibraryContent = () => {
                 id: track.id,
                 title: track.title,
                 audioUrl: track.audioUrl,
+                streamAudioUrl: track.streamAudioUrl,
                 duration: track.duration,
                 genre: track.genre,
                 lyrics: track.lyrics,
@@ -264,6 +269,7 @@ const LibraryContent = () => {
             id: track.id,
             title: track.title,
             audioUrl: track.audioUrl,
+            streamAudioUrl: track.streamAudioUrl,
             duration: track.duration,
             genre: track.genre,
             lyrics: track.lyrics,

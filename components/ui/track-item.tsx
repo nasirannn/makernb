@@ -2,10 +2,12 @@
 
 import React from 'react';
 import { LoadingDots } from './loading-dots';
-import { TrackCover } from './track-cover';
+import { Button } from '@/components/ui/button';
+import { TrackCover } from '@/features/lyrics-cover/components/track-cover';
 import { TrackInfo } from './track-info';
 import { TrackActionButtons } from './track-action-buttons';
 import { LibraryTrack } from '@/types/track';
+import { Trash2 } from 'lucide-react';
 
 interface TrackItemProps {
   track: LibraryTrack & any;
@@ -13,7 +15,7 @@ interface TrackItemProps {
   isPlaying?: boolean;
   isCurrentTrack?: boolean;
   isCopied?: boolean;
-  modelBadgePlacement?: 'title' | 'meta';
+  modelBadgePlacement?: 'title' | 'meta' | 'none';
   
   // 权限
   canDownloadMP3?: boolean;
@@ -71,12 +73,15 @@ export const TrackItem: React.FC<TrackItemProps> = ({
   
   // 确定封面图片来源
   const coverUrl = track.coverR2Url || track.coverImage;
+  const hasPlayableAudio = Boolean(track.audioUrl || track.streamAudioUrl);
   
   // 确定标题和标签
   const title = track.title || track.musicTitle || 'Untitled Track';
   const tags =
     track.tags ||
     track.musicGeneration?.tags ||
+    track.prompt ||
+    track.musicGeneration?.prompt ||
     track.genre ||
     (Array.isArray(track.tagList) ? track.tagList.join(', ') : undefined);
   const model = track.model || track.musicGeneration?.model;
@@ -119,6 +124,7 @@ export const TrackItem: React.FC<TrackItemProps> = ({
         isGenerating={isGenerating}
         isPlaying={isPlaying}
         isCurrentTrack={isCurrentTrack}
+        hasPlayableAudio={hasPlayableAudio}
         onPlayPause={onPlayPause}
         trackId={track.id}
         isExtension={isExtension}
@@ -173,24 +179,25 @@ export const TrackItem: React.FC<TrackItemProps> = ({
                 />
               </div>
             )}
-            
+
             {/* 错误状态的删除按钮 */}
             {isError && onDelete && (
-              <div className="flex items-center justify-end gap-1 flex-shrink-0">
-                <button
+              <div className="flex items-center justify-end flex-shrink-0">
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
                   onClick={(e) => {
                     e.stopPropagation();
                     onDelete();
                   }}
-                  className="h-6 w-6 flex items-center justify-center text-red-400 hover:text-red-600 transition-colors"
-                  aria-label="Delete track"
+                  className="h-6 w-6 p-0 text-muted-foreground hover:text-foreground hover:bg-muted/50"
                 >
-                  <svg className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                  </svg>
-                </button>
+                  <Trash2 className="h-3 w-3" />
+                </Button>
               </div>
             )}
+            
           </div>
         </div>
         
@@ -219,21 +226,6 @@ export const TrackItem: React.FC<TrackItemProps> = ({
           />
         )}
         
-        {/* 错误状态的移动端删除按钮 */}
-        {isError && onDelete && (
-          <button
-            onClick={(e) => {
-              e.stopPropagation();
-              onDelete();
-            }}
-            className="md:hidden flex-shrink-0 h-7 w-7 flex items-center justify-center text-red-400 hover:text-red-600 transition-colors"
-            aria-label="Delete track"
-          >
-            <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-            </svg>
-          </button>
-        )}
       </div>
     </div>
   );

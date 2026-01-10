@@ -19,7 +19,7 @@ export async function GET(request: NextRequest) {
 
     // 查询任务记录
     const genResult = await query(
-      'SELECT id, status, title, genre, tags FROM music WHERE task_id = $1',
+      'SELECT id, status, title, genre, tags, generation_mode FROM music WHERE task_id = $1',
       [taskId]
     );
 
@@ -47,6 +47,8 @@ export async function GET(request: NextRequest) {
         COALESCE(mt.title, mg.title) as title,
         mg.genre as genre,
         mg.tags as tags,
+        mg.prompt as prompt,
+        mg.generation_mode as generation_mode,
         (
           SELECT ml.content FROM lyrics ml
           WHERE ml.music_id = mg.id
@@ -61,7 +63,7 @@ export async function GET(request: NextRequest) {
       [taskId]
     );
     
-    const tracks = tracksResult.rows.map((row: any) => ({
+      const tracks = tracksResult.rows.map((row: any) => ({
       // 基础信息
       id: row.track_id,
       suno_track_id: row.suno_track_id || null, // 添加 suno_track_id 用于匹配
@@ -71,6 +73,8 @@ export async function GET(request: NextRequest) {
       title: row.title || '',
       tags: row.tags || '',
       genre: row.genre || null,
+      prompt: row.prompt || '',
+      generationMode: row.generation_mode || null,
       lyrics: row.lyrics_content || '',
       audioUrl: row.audio_url || row.stream_audio_url || '',
       streamAudioUrl: row.stream_audio_url || '',
@@ -132,4 +136,3 @@ export async function GET(request: NextRequest) {
     );
   }
 }
-

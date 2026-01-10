@@ -1,18 +1,19 @@
 "use client";
 
 import React, { useState, useEffect, Suspense } from "react";
+import { flushSync } from "react-dom";
 import { useRouter } from "next/navigation";
 
 // Custom Hooks
-import { useMusicGeneration } from "@/hooks/use-music-generation";
-import { useLyricsGeneration } from "@/hooks/use-lyrics-generation";
-import { useExtendMusic } from "@/hooks/use-extend-music";
+import { useMusicGeneration } from "@/features/music-generation/hooks/use-music-generation";
+import { useLyricsGeneration } from "@/features/lyrics-cover/hooks/use-lyrics-generation";
+import { useExtendMusic } from "@/features/music-upload/hooks/use-extend-music";
 import { useAuth } from "@/contexts/AuthContext";
 import { useCredits } from "@/contexts/CreditsContext";
 import { useFeaturePermissions } from "@/contexts/FeaturePermissionsContext";
 import { useAudioPlayer } from "@/hooks/use-audio-player";
 import { getAudioService } from "@/lib/audio-service";
-import { useTrackGenerationMonitor } from "@/hooks/use-track-generation-monitor";
+import { useTrackGenerationMonitor } from "@/features/music-generation/hooks/use-track-generation-monitor";
 import { getEventBus, TRACK_EVENTS } from "@/lib/event-bus";
 
 // 导入统一的 Track 类型
@@ -128,7 +129,8 @@ const StudioContent = () => {
         mode, setMode,
         selectedGenre, setSelectedGenre,
         selectedVibe, setSelectedVibe,
-        customPrompt, setCustomPrompt,
+        simplePrompt, setSimplePrompt,
+        customLyrics, setCustomLyrics,
         songTitle, setSongTitle,
         instrumentalMode, setInstrumentalMode,
         isPublished,
@@ -216,7 +218,8 @@ const StudioContent = () => {
         lyrics?: string,
         isFavorited: boolean = false,
         streamAudioUrl?: string,
-        createdAt?: string
+        createdAt?: string,
+        generationMode?: string
     ) => ({
         id,
         generationId,
@@ -229,6 +232,7 @@ const StudioContent = () => {
         tags,
         genre,
         lyrics,
+        generationMode,
         isFavorited: isFavorited, // 使用驼峰命名
         createdAt
     }), []);
@@ -251,7 +255,8 @@ const StudioContent = () => {
                 track.lyrics,
                 track.isFavorited ?? false,
                 track.streamAudioUrl ?? '',
-                track.createdAt || new Date().toISOString()
+                track.createdAt || new Date().toISOString(),
+                track.generationMode
             ));
         });
         
@@ -271,7 +276,8 @@ const StudioContent = () => {
                         track.lyrics ?? music.lyrics ?? '',
                         track.isFavorited ?? false,
                         track.streamAudioUrl ?? '',
-                        track.createdAt ?? music.createdAt ?? new Date().toISOString()
+                        track.createdAt ?? music.createdAt ?? new Date().toISOString(),
+                        music.generationMode
                     ));
                 });
             }
@@ -545,9 +551,238 @@ const StudioContent = () => {
     }, [user?.id, musicGeneration, refreshCredits]);
 
     // Handle generation start - remove library loading
-    const handleGenerationStart = React.useCallback(async () => {
-        await handleGenerate();
-    }, [handleGenerate]);
+    const getModelLimits = React.useCallback((model: string) => {
+        switch (model) {
+            case "V4":
+                return { prompt: 3000, style: 200, title: 80 };
+            case "V4_5ALL":
+                return { prompt: 5000, style: 1000, title: 80 };
+            case "V4_5":
+            case "V4_5PLUS":
+            case "V5":
+            default:
+                return { prompt: 5000, style: 1000, title: 100 };
+        }
+    }, []);
+
+    const handleUploadCover = React.useCallback(async (options?: {
+        uploadFile?: File | null;
+        uploadUrl?: string | null;
+        mode?: "cover" | "extend";
+        continueAt?: number;
+    }) => {
+        if (!user?.id) {
+            setIsAuthModalOpen(true);
+            return false;
+        }
+
+        const trimmedSimplePrompt = simplePrompt.trim();
+        const trimmedCustomLyrics = customLyrics.trim();
+        const trimmedStyle = styleText.trim();
+        const trimmedTitle = songTitle.trim();
+        const isSimpleMode = mode === "simple";
+        const isCustomMode = mode === "custom";
+
+        if (isSimpleMode && !trimmedSimplePrompt) {
+            toast.error("Please enter a prompt.");
+            return false;
+        }
+
+        if (isCustomMode) {
+            if (!trimmedStyle) {
+                toast.error("Please enter a style.");
+                return false;
+            }
+            if (!trimmedTitle) {
+                toast.error("Please enter a title.");
+                return false;
+            }
+            if (!instrumentalMode && !trimmedCustomLyrics) {
+                toast.error("Please enter lyrics.");
+                return false;
+            }
+        }
+
+        const uploadFile = options?.uploadFile ?? null;
+        const uploadUrl = options?.uploadUrl ?? null;
+        const continueAt = options?.continueAt ?? 0;
+        if (!uploadUrl) {
+            toast.error("Upload URL is required. Please upload your audio first.");
+            return false;
+        }
+
+        if (options?.mode === "extend" && isCustomMode && continueAt <= 0) {
+            toast.error("Start time must be greater than 0s.");
+            return false;
+        }
+
+        setSelectedStudioTrack(null);
+
+        const placeholderGenerationId = `pending_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
+        const placeholderTags = isCustomMode ? trimmedStyle : trimmedSimplePrompt;
+        const placeholderPrompt = isCustomMode ? trimmedStyle : trimmedSimplePrompt;
+        const placeholderTitle = trimmedTitle || (uploadFile?.name ? uploadFile.name.replace(/\.[^/.]+$/, "") : "Untitled Track");
+        const generationMode = isCustomMode ? 'custom' : 'simple';
+
+        flushSync(() => {
+            updateTracks((prevTracks) => ([
+                {
+                    id: `${placeholderGenerationId}_placeholder_0`,
+                    generationId: placeholderGenerationId,
+                    sunoTrackId: null,
+                    title: placeholderTitle,
+                    audioUrl: '',
+                    streamAudioUrl: '',
+                    duration: undefined,
+                    coverImage: undefined,
+                    tags: placeholderTags,
+                    genre: '',
+                    prompt: placeholderPrompt,
+                    lyrics: '',
+                    model: selectedModel,
+                    createdAt: new Date().toISOString(),
+                    isGenerating: true,
+                    isCompleted: false,
+                    isPlaceholder: true,
+                    generationMode,
+                },
+                {
+                    id: `${placeholderGenerationId}_placeholder_1`,
+                    generationId: placeholderGenerationId,
+                    sunoTrackId: null,
+                    title: placeholderTitle,
+                    audioUrl: '',
+                    streamAudioUrl: '',
+                    duration: undefined,
+                    coverImage: undefined,
+                    tags: placeholderTags,
+                    genre: '',
+                    prompt: placeholderPrompt,
+                    lyrics: '',
+                    model: selectedModel,
+                    createdAt: new Date().toISOString(),
+                    isGenerating: true,
+                    isCompleted: false,
+                    isPlaceholder: true,
+                    generationMode,
+                },
+                ...prevTracks
+            ]));
+        });
+
+        try {
+            const { data: { session } } = await supabase.auth.getSession();
+
+            if (!session?.access_token) {
+                updateTracks(prevTracks =>
+                    prevTracks.filter(track => !(track.isPlaceholder && track.generationId === placeholderGenerationId))
+                );
+                throw new Error("Authentication expired. Please sign in again.");
+            }
+
+            const formData = new FormData();
+            const limits = getModelLimits(selectedModel);
+            const uploadMode = options?.mode === "extend" ? "extend" : "cover";
+            formData.append("mode", uploadMode);
+            formData.append("uploadUrl", uploadUrl);
+            if (uploadMode === "extend") {
+                formData.append("defaultParamFlag", isCustomMode ? "true" : "false");
+            } else {
+                formData.append("customMode", isCustomMode ? "true" : "false");
+            }
+            formData.append("instrumental", isCustomMode ? (instrumentalMode ? "true" : "false") : "false");
+            formData.append("model", selectedModel);
+            if (uploadMode === "extend" && isCustomMode) {
+                formData.append("continueAt", continueAt.toString());
+            }
+
+            if (isCustomMode) {
+                if (trimmedStyle) {
+                    formData.append("style", trimmedStyle.slice(0, limits.style));
+                }
+                if (trimmedTitle) {
+                    formData.append("title", trimmedTitle.slice(0, limits.title));
+                }
+                if (!instrumentalMode && trimmedCustomLyrics) {
+                    formData.append("prompt", trimmedCustomLyrics.slice(0, limits.prompt));
+                }
+            } else if (trimmedSimplePrompt) {
+                const maxSimplePrompt = 400;
+                formData.append("prompt", trimmedSimplePrompt.slice(0, maxSimplePrompt));
+            }
+
+            const response = await fetch("/api/music/upload", {
+                method: "POST",
+                headers: {
+                    Authorization: `Bearer ${session.access_token}`,
+                },
+                body: formData,
+            });
+
+            const result = await response.json();
+            if (!response.ok || !result?.success) {
+                updateTracks(prevTracks =>
+                    prevTracks.filter(track => !(track.isPlaceholder && track.generationId === placeholderGenerationId))
+                );
+                if (response.status === 402) {
+                    toast.error(result?.error || "Insufficient credits. Please top up credits.");
+                } else {
+                    toast.error(result?.error || "Upload failed. Please try again.");
+                }
+                return false;
+            }
+
+            const taskId = result?.data?.taskId;
+            const initialTracks = result?.data?.initialTracks;
+
+            if (taskId) {
+                updateTracks(prevTracks =>
+                    prevTracks.filter(track => !(track.isPlaceholder && track.generationId === placeholderGenerationId))
+                );
+                musicGeneration.trackExistingTask(taskId, initialTracks);
+                setGenerationConfirmOpen(true);
+            }
+
+            await refreshCredits?.();
+            return true;
+        } catch (error) {
+            console.error("Upload audio error:", error);
+            updateTracks(prevTracks =>
+                prevTracks.filter(track => !(track.isPlaceholder && track.generationId === placeholderGenerationId))
+            );
+            const message =
+                error instanceof Error ? error.message : "Upload failed. Please try again.";
+            toast.error(message);
+            return false;
+        }
+    }, [
+        user?.id,
+        simplePrompt,
+        customLyrics,
+        styleText,
+        songTitle,
+        instrumentalMode,
+        mode,
+        selectedModel,
+        getModelLimits,
+        refreshCredits,
+        updateTracks,
+        musicGeneration,
+        setIsAuthModalOpen,
+        setSelectedStudioTrack,
+    ]);
+
+    const handleGenerationStart = React.useCallback(async (options?: {
+        uploadFile?: File | null;
+        uploadUrl?: string | null;
+        mode?: "cover" | "extend";
+        continueAt?: number;
+    }) => {
+        if (options?.uploadFile || options?.uploadUrl) {
+            return await handleUploadCover(options);
+        }
+        return await handleGenerate();
+    }, [handleGenerate, handleUploadCover]);
 
     // 移除自动关闭逻辑，让用户手动关闭确认弹窗
     const handleGenerateLyrics = React.useCallback(() => {
@@ -1123,7 +1358,7 @@ const StudioContent = () => {
             title: completedTrack.title,
             genre: completedTrack.genre || '',
             tags: completedTrack.tags || '',
-            prompt: '', // 生成时没有 prompt，可以留空
+            prompt: completedTrack.prompt || '', // 使用生成时的 prompt
             status: 'completed',
             createdAt: completedTrack.createdAt || new Date().toISOString(),
             lyricsContent: completedTrack.lyrics || '',
@@ -1297,9 +1532,10 @@ const StudioContent = () => {
     const convertUserTracksToMusicGeneration = (userTracks: any[]): any[] => {
         return userTracks.map(userTrack => ({
             ...userTrack,
-            prompt: userTrack.title, // 使用 title 作为 prompt
+            prompt: userTrack.prompt || '', // 使用 music 表的 prompt
             isInstrumental: false, // 默认值
             updatedAt: userTrack.createdAt, // 使用 createdAt
+            generationMode: userTrack.generationMode,
             totalDuration: userTrack.allTracks.reduce((total: number, track: any) => total + track.duration, 0)
         }));
     };
@@ -1313,8 +1549,10 @@ const StudioContent = () => {
         setSelectedGenre,
         selectedVibe,
         setSelectedVibe,
-        customPrompt,
-        setCustomPrompt,
+        simplePrompt,
+        setSimplePrompt,
+        customLyrics,
+        setCustomLyrics,
         songTitle,
         setSongTitle,
         instrumentalMode,
@@ -1343,17 +1581,16 @@ const StudioContent = () => {
         onGenerateLyrics: handleGenerateLyrics,
         isAuthModalOpen,
         setIsAuthModalOpen,
-        onUploadTaskCreated: trackExistingTask,
         selectedModel,
         setSelectedModel,
     }), [
         mode, setMode, selectedGenre, setSelectedGenre, selectedVibe, setSelectedVibe,
-        customPrompt, setCustomPrompt, songTitle, setSongTitle, instrumentalMode, setInstrumentalMode,
+        simplePrompt, setSimplePrompt, customLyrics, setCustomLyrics, songTitle, setSongTitle, instrumentalMode, setInstrumentalMode,
         isPublished, styleText, setStyleText, bpm, setBpm, grooveType, setGrooveType,
         leadInstrument, setLeadInstrument, drumKit, setDrumKit, bassTone, setBassTone,
         vocalGender, setVocalGender, harmonyPalette, setHarmonyPalette, bpmMode, setBpmMode,
         isGenerating, handleGenerationStart, handleGenerateLyrics,
-        isAuthModalOpen, setIsAuthModalOpen, trackExistingTask, selectedModel, setSelectedModel
+        isAuthModalOpen, setIsAuthModalOpen, selectedModel, setSelectedModel
     ]);
 
     // MusicPlayer 通用 props
@@ -1638,37 +1875,57 @@ const StudioContent = () => {
             {studioMainLayout}
 
             {/* Lyrics Generation Dialog */}
-            <Dialog open={showLyricsDialog} onOpenChange={setShowLyricsDialog}>
-                <DialogContent className="max-w-[calc(100vw-2rem)] sm:max-w-[600px] border-0 p-4 sm:p-6 gap-4 sm:gap-6">
-                    <DialogHeader className="space-y-1.5 sm:space-y-3">
-                        <DialogTitle className="text-lg sm:text-xl">Generate Lyrics</DialogTitle>
+            <Dialog
+                open={showLyricsDialog}
+                onOpenChange={(open) => {
+                    if (!open) {
+                        setLyricsPrompt('');
+                    }
+                    setShowLyricsDialog(open);
+                }}
+            >
+                <DialogContent className="max-w-[calc(100vw-2rem)] sm:max-w-[620px] max-h-[82vh] flex flex-col p-0 border border-border/60 bg-background shadow-xl">
+                    <DialogHeader className="flex-shrink-0 px-6 pt-5 pb-3 border-b border-border/40 text-left relative overflow-hidden">
+                        <div className="pointer-events-none absolute inset-0 bg-gradient-to-r from-primary/10 via-transparent to-primary/10" />
+                        <DialogTitle className="text-xl font-semibold tracking-tight">
+                            Generate Lyrics
+                        </DialogTitle>
+                        <p className="text-sm text-muted-foreground mt-1">
+                            Describe the theme, mood, or story you want for your lyrics.
+                        </p>
                     </DialogHeader>
-                    <div className="space-y-4 sm:space-y-5">
-                        <div className="space-y-2 sm:space-y-3">
+                    <div className="flex-1 px-6 py-4 space-y-4">
+                        <div className="space-y-2">
                             <label className="text-sm font-medium block">Lyrics Prompt</label>
-                            <Textarea
-                                value={lyricsPrompt}
-                                onChange={(e) => setLyricsPrompt(e.target.value)}
-                                placeholder="Describe the theme, mood, or story for your lyrics..."
-                                className="w-full resize-none h-28 sm:h-32 border focus-visible:ring-0 focus-visible:ring-offset-0 text-sm sm:text-base"
-                            />
+                            <div className="relative">
+                                <Textarea
+                                    value={lyricsPrompt}
+                                    onChange={(e) => setLyricsPrompt(e.target.value)}
+                                    placeholder="Describe the theme, mood, or story for your lyrics..."
+                                    maxLength={200}
+                                    className="w-full resize-none h-32 border focus-visible:ring-0 focus-visible:ring-offset-0 text-sm pr-16"
+                                />
+                                <div className="absolute bottom-2 right-2 text-xs text-muted-foreground bg-background/80 px-2 py-1 rounded">
+                                    {lyricsPrompt.length}/200
+                                </div>
+                            </div>
                         </div>
-                        <div className="w-full pt-2">
-                            <Button
-                                onClick={() => handleGenerateLyricsHook(setCustomPrompt, user?.id || '')}
-                                disabled={isGeneratingLyrics || !lyricsPrompt.trim()}
-                                className="w-full h-11 sm:h-10 text-base sm:text-sm"
-                            >
-                                {isGeneratingLyrics ? (
-                                    <div className="flex items-center gap-2">
-                                        <span>Generating</span>
-                                        <LoadingDots size="sm" color="white" />
-                                    </div>
-                                ) : (
-                                    'Generate Lyrics'
-                                )}
-                            </Button>
-                        </div>
+                    </div>
+                    <div className="flex-shrink-0 px-6 pb-6">
+                        <Button
+                            onClick={() => handleGenerateLyricsHook(setCustomLyrics, user?.id || '')}
+                            disabled={isGeneratingLyrics || !lyricsPrompt.trim()}
+                            className="w-full h-11 text-sm font-medium"
+                        >
+                            {isGeneratingLyrics ? (
+                                <div className="flex items-center gap-2">
+                                    <span>Generating</span>
+                                    <LoadingDots size="sm" color="white" />
+                                </div>
+                            ) : (
+                                'Generate Lyrics'
+                            )}
+                        </Button>
                     </div>
                 </DialogContent>
             </Dialog>
@@ -1681,20 +1938,20 @@ const StudioContent = () => {
 
             {/* Delete Confirmation Dialog */}
             <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
-                <AlertDialogContent className="max-w-[calc(100vw-2rem)] sm:max-w-[425px]">
+                <AlertDialogContent className="max-w-[calc(100vw-2rem)] sm:max-w-[520px]">
                     <AlertDialogHeader className="space-y-2 sm:space-y-3">
                         <AlertDialogTitle className="text-lg sm:text-xl">Delete Track</AlertDialogTitle>
-                        <AlertDialogDescription className="text-sm sm:text-base">
-                            Are you sure you want to delete &quot;{trackToDelete?.musicTitle || trackToDelete?.title}&quot;? This action cannot be undone.
+                        <AlertDialogDescription className="text-sm sm:text-base whitespace-nowrap">
+                            Are you sure you want to delete the current track?
                         </AlertDialogDescription>
                     </AlertDialogHeader>
-                    <AlertDialogFooter className="flex-col sm:flex-row gap-2 sm:gap-0">
+                    <AlertDialogFooter className="flex flex-col sm:flex-row items-center justify-center gap-2 sm:gap-3">
                         <AlertDialogCancel className="w-full sm:w-auto">Cancel</AlertDialogCancel>
                         <AlertDialogAction
                             onClick={handleDeleteConfirm}
                             className="w-full sm:w-auto bg-destructive text-destructive-foreground hover:bg-destructive/90"
                         >
-                            Delete
+                            Confirm
                         </AlertDialogAction>
                     </AlertDialogFooter>
                 </AlertDialogContent>

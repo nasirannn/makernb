@@ -12,6 +12,7 @@ export interface LibraryTrack {
   genre: string;
   tags: string;
   audioUrl: string;
+  streamAudioUrl?: string;
   duration: number;
   coverImage: string | null;
   coverR2Url?: string | null;
@@ -26,6 +27,7 @@ export interface LibraryTrack {
   allTracks?: Array<{
     id: string;
     audioUrl: string;
+    streamAudioUrl?: string;
     duration: number;
     coverR2Url?: string | null;
     lyrics?: string;
@@ -101,6 +103,7 @@ export const useLibraryTracks = (userId: string | undefined) => {
             genre: generationGenre,
             tags: generationTags,
             audioUrl: track.audioUrl || '',
+            streamAudioUrl: track.streamAudioUrl || '',
             duration,
             coverImage: track.coverR2Url || null,
             coverR2Url: track.coverR2Url || null,
@@ -116,6 +119,7 @@ export const useLibraryTracks = (userId: string | undefined) => {
               {
                 id: track.id,
                 audioUrl: track.audioUrl || '',
+                streamAudioUrl: track.streamAudioUrl || '',
                 duration,
                 coverR2Url: track.coverR2Url || null,
                 lyrics: track.lyrics || '',

@@ -15,6 +15,7 @@ export interface MusicGeneration {
   genre?: string;
   tags?: string;
   prompt?: string;
+  generation_mode?: string;
   is_instrumental: boolean;
   task_id?: string;
   status?: 'generating' | 'text' | 'first' | 'complete' | 'error';
@@ -29,6 +30,7 @@ export interface CreateMusicGenerationData {
   genre?: string;
   tags?: string;
   prompt?: string;
+  generation_mode?: string;
   is_instrumental?: boolean;
   task_id?: string;
   status?: 'generating' | 'complete' | 'error' | 'text';
@@ -42,6 +44,7 @@ export interface MusicGenerationWithTracks {
   genre?: string;
   tags?: string;
   prompt?: string;
+  generation_mode?: string;
   is_instrumental: boolean;
   status?: string;
   model?: string;
@@ -68,11 +71,36 @@ export const createMusicGeneration = async (
   try {
     validateRequiredParams({ userId }, ['userId']);
 
+    const tooLongFields: string[] = [];
+    const lengthSnapshot: Record<string, number> = {};
+    const checkLength = (field: string, value: string | null | undefined, maxLength: number) => {
+      if (typeof value !== 'string') return;
+      lengthSnapshot[field] = value.length;
+      if (value.length > maxLength) {
+        tooLongFields.push(`${field}(${value.length})`);
+      }
+    };
+
+    checkLength('title', data.title ?? null, 255);
+    checkLength('genre', data.genre ?? null, 255);
+    checkLength('tags', data.tags ?? null, 255);
+    checkLength('task_id', data.task_id ?? null, 255);
+    checkLength('generation_mode', data.generation_mode ?? null, 20);
+    checkLength('status', data.status ?? null, 20);
+    checkLength('type', data.type ?? null, 50);
+    checkLength('model', data.model ?? null, 20);
+
+    if (tooLongFields.length > 0) {
+      const message = `Music insert fields too long: ${tooLongFields.join(', ')}`;
+      console.error(message, { lengthSnapshot });
+      throw new Error(message);
+    }
+
     const result = await query(
       `INSERT INTO music (
-        user_id, title, genre, tags, prompt,
+        user_id, title, genre, tags, prompt, generation_mode,
         is_instrumental, task_id, status, type, model
-      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
+      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
       RETURNING *`,
       [
         userId,
@@ -80,6 +108,7 @@ export const createMusicGeneration = async (
         data.genre || null,
         data.tags || null,
         data.prompt || null,
+        data.generation_mode || null,
         data.is_instrumental || false,
         data.task_id || null,
         data.status || 'generating',

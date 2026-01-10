@@ -87,8 +87,8 @@ export const Navbar = ({ credits = null }: NavbarProps) => {
   const [tierCode, setTierCode] = React.useState<'basic' | 'premium' | null>(null);
   const pathname = usePathname();
   const searchParams = useSearchParams();
-  const { user, signOut } = useAuth();
-  const displayName = user?.user_metadata?.full_name || user?.user_metadata?.name || user?.email?.split('@')[0] || '';
+  const { user, signOut, loading: authLoading } = useAuth();
+  const displayName = user?.user_metadata?.nickname || user?.user_metadata?.full_name || user?.user_metadata?.name || user?.email?.split('@')[0] || '';
 
   // 处理 Pricing 链接的跳转和滚动
   const handlePricingClick = (e: React.MouseEvent<HTMLAnchorElement>) => {
@@ -370,15 +370,14 @@ export const Navbar = ({ credits = null }: NavbarProps) => {
                         alt="User Avatar"
                       />
                       <AvatarFallback className="bg-gradient-to-br from-purple-600 to-purple-600 text-white font-semibold">
-                        {user.user_metadata?.full_name?.charAt(0)?.toUpperCase() ||
-                         user.user_metadata?.name?.charAt(0)?.toUpperCase() ||
+                        {displayName?.charAt(0)?.toUpperCase() ||
                          user.email?.charAt(0).toUpperCase()}
                       </AvatarFallback>
                     </Avatar>
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center justify-between gap-2 mb-1">
                         <p className="text-white font-medium text-sm truncate flex-1">
-                          {user.user_metadata?.full_name || user.user_metadata?.name || user.email?.split('@')[0] || 'User'}
+                          {displayName || 'User'}
                         </p>
                         {tierCode && (
                           <Badge className="relative inline-block rounded-full border border-primary/40 bg-primary px-2 py-0.5 text-xs text-white flex-shrink-0">
@@ -516,7 +515,9 @@ export const Navbar = ({ credits = null }: NavbarProps) => {
 
       {/* <!-- Desktop Right Side --> */}
       <div className="hidden lg:flex ml-auto items-center gap-4">
-        {user ? (
+        {authLoading ? (
+          <div className="h-10 w-24 rounded-md bg-white/10 animate-pulse" />
+        ) : user ? (
           <>
             <div 
               className="relative user-menu-container"
@@ -531,8 +532,7 @@ export const Navbar = ({ credits = null }: NavbarProps) => {
                 alt="User Avatar"
               />
               <AvatarFallback className="bg-gradient-to-br from-purple-600 to-purple-600 text-white font-semibold text-sm">
-                {user.user_metadata?.full_name?.charAt(0)?.toUpperCase() ||
-                 user.user_metadata?.name?.charAt(0)?.toUpperCase() ||
+                {displayName?.charAt(0)?.toUpperCase() ||
                  user.email?.charAt(0).toUpperCase()}
               </AvatarFallback>
             </Avatar>
@@ -546,7 +546,7 @@ export const Navbar = ({ credits = null }: NavbarProps) => {
                 <div className="px-2.5 py-1.5">
                   <div className="flex items-center justify-between gap-2 mb-1">
                     <p className="text-white font-semibold text-sm truncate flex-1">
-                      {user.user_metadata?.full_name || user.user_metadata?.name || user.email?.split('@')[0] || 'User'}
+                      {displayName || 'User'}
                     </p>
                     {tierCode && (
                       <Badge className="rounded-full border border-primary/40 bg-primary px-2 py-0.5 text-xs text-white flex-shrink-0">

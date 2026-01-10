@@ -9,7 +9,7 @@ interface TrackInfoProps {
   duration?: number;
   createdAt?: string;
   model?: string;
-  modelPlacement?: 'title' | 'meta';
+  modelPlacement?: 'title' | 'meta' | 'none';
   isError?: boolean;
   errorMessage?: string;
   isGenerating?: boolean;
@@ -50,8 +50,8 @@ export const TrackInfo: React.FC<TrackInfoProps> = ({
       .map((tag) => tag.trim())
       .filter(Boolean);
   }, [tags]);
-  const visibleTags = parsedTags.slice(0, 3);
-  const hiddenTagCount = parsedTags.length > 3 ? parsedTags.length - 3 : 0;
+  const visibleTags = parsedTags.slice(0, 2);
+  const hiddenTagCount = parsedTags.length > 2 ? parsedTags.length - 2 : 0;
   const modelLabel = React.useMemo(() => {
     if (!model) return null;
     if (model === 'V4_5PLUS') return 'V4.5+';
@@ -61,19 +61,20 @@ export const TrackInfo: React.FC<TrackInfoProps> = ({
     if (model === 'V5') return 'V5';
     return model.replace('_', '.');
   }, [model]);
+  const displayTitle = React.useMemo(() => {
+    if (isError) return 'Generation Failed';
+    const safeTitle = title || 'Untitled Track';
+    return safeTitle;
+  }, [isError, title]);
   
   return (
     <div className={`flex-1 min-w-0 flex flex-col ${justifyClass} ${heightClass}`}>
       {/* 标题行 */}
       <div className="flex items-center gap-1.5">
         <h3 className={`font-semibold ${titleSizeClass} truncate ${
-          isError
-            ? 'text-red-400'
-            : isSelected
-              ? 'text-primary'
-              : 'text-foreground'
+          isSelected ? 'text-primary' : 'text-foreground'
           }`}>
-          {isError ? (errorMessage || title || 'Generation failed') : (title || 'Untitled Track')}
+          {displayTitle}
         </h3>
 
         {modelLabel && modelPlacement === 'title' && (
@@ -105,17 +106,17 @@ export const TrackInfo: React.FC<TrackInfoProps> = ({
           {showDuration && (
             <>
               {duration && duration > 0 ? (
-                <span className={`${textSizeClass} text-muted-foreground whitespace-nowrap inline-flex items-center gap-1`}>
+                <span className={`${textSizeClass} text-muted-foreground/70 whitespace-nowrap inline-flex items-center gap-1`}>
                   {formatDuration(duration)}
                 </span>
               ) : isGenerating ? (
-                <div className="flex items-center gap-0.5 text-muted-foreground">
+                <div className="flex items-center gap-0.5 text-muted-foreground/70">
                   <div className="w-1 h-1 bg-current rounded-full animate-pulse"></div>
                   <div className="w-1 h-1 bg-current rounded-full animate-pulse" style={{ animationDelay: '0.3s' }}></div>
                   <div className="w-1 h-1 bg-current rounded-full animate-pulse" style={{ animationDelay: '0.6s' }}></div>
                 </div>
               ) : (
-                <span className={`${textSizeClass} text-muted-foreground whitespace-nowrap`}>
+                <span className={`${textSizeClass} text-muted-foreground/70 whitespace-nowrap`}>
                   --:--
                 </span>
               )}
@@ -134,7 +135,7 @@ export const TrackInfo: React.FC<TrackInfoProps> = ({
           {visibleTags.length > 0 ? (
             <>
               <span className="h-3 w-px bg-muted-foreground/40" aria-hidden="true" />
-              <div className={`${textSizeClass} text-muted-foreground truncate flex-1`} title={tags}>
+              <div className={`${textSizeClass} text-muted-foreground/70 truncate flex-1`} title={tags}>
                 {visibleTags.map((tag, index) => (
                   <span key={`${tag}-${index}`}>
                   <span>{tag.length > 50 ? `${tag.slice(0, 50)}...` : tag}</span>
@@ -160,14 +161,16 @@ export const TrackInfo: React.FC<TrackInfoProps> = ({
       )}
 
       {/* 错误提示 */}
+      
+      {/* 错误提示 */}
       {isError && (
-        <p className={`${textSizeClass} text-red-400/80 truncate ${timeMarginClass}`}>
-          Click delete to remove this failed track
+        <p className={`${textSizeClass} text-amber-400/90 truncate ${timeMarginClass}`}>
+          {errorMessage || 'Unknown error'}
         </p>
       )}
-      
+
       {/* 创建时间 */}
-      {!isError && createdAt && (
+      {createdAt && (
         <p className={`${textSizeClass} text-muted-foreground/60 truncate ${timeMarginClass}`}>
           {formatDateTime(createdAt)}
         </p>

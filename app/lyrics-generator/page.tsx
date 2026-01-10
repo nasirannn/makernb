@@ -73,7 +73,7 @@ export default function LyricsGeneratorPage() {
 
   const makeApiCall = async (token: string) => {
     try {
-      const response = await fetch('/api/generate-lyrics', {
+      const response = await fetch('/api/lyrics/generate', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -110,7 +110,7 @@ export default function LyricsGeneratorPage() {
 
     const poll = async () => {
       try {
-        const response = await fetch(`/api/lyrics-status/${taskId}`);
+        const response = await fetch(`/api/lyrics/status/${taskId}`);
         const result = await response.json();
 
         if (result.success) {

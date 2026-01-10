@@ -44,7 +44,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { Progress } from './progress';
 import { LibraryTrack } from '@/types/track';
 import { getEventBus, TRACK_EVENTS } from '@/lib/event-bus';
-import { TrackCover } from './track-cover';
+import { TrackCover } from '@/features/lyrics-cover/components/track-cover';
 import { formatDuration, formatDateTime } from '@/lib/format-utils';
 import { LibraryTrackActions } from './library-track-actions';
 import {
@@ -158,6 +158,7 @@ export const LibraryPanel = ({
   const { user, loading: authLoading, signOut } = useAuth();
   const { credits } = useCredits();
   const { openModal: openPricingModal } = usePricingModal();
+  const displayName = user?.user_metadata?.nickname || user?.user_metadata?.full_name || user?.user_metadata?.name || user?.email?.split('@')[0] || '';
   
   // 获取权限检查函数
   const { hasPermission } = useFeaturePermissions();
@@ -837,7 +838,7 @@ export const LibraryPanel = ({
                       alt="User Avatar"
                     />
                     <AvatarFallback className="bg-primary/20 text-primary text-xs font-semibold">
-                      {user.user_metadata?.full_name?.charAt(0) || user.email?.charAt(0) || 'U'}
+                      {displayName?.charAt(0) || user.email?.charAt(0) || 'U'}
                     </AvatarFallback>
                   </Avatar>
                 </Button>
@@ -848,7 +849,7 @@ export const LibraryPanel = ({
                     <div className="flex flex-col gap-1 p-2">
                       <div className="px-3 py-2 border-b border-border/20 mb-2">
                         <div className="text-sm font-medium text-foreground truncate">
-                          {user.user_metadata?.full_name || user.email}
+                          {displayName || user.email}
                         </div>
                         <div className="text-xs text-muted-foreground mt-1 truncate">
                           {user.email}
@@ -893,7 +894,7 @@ export const LibraryPanel = ({
       <div className="flex-shrink-0 md:hidden px-6 py-4 bg-background/60 backdrop-blur-sm">
         <div className="flex items-center gap-3">
           <Library className="h-8 w-8 text-primary" />
-          <h1 className="text-2xl font-semibold">Library</h1>
+          <h2 className="text-2xl font-semibold">Music Library</h2>
         </div>
       </div>
 
@@ -925,7 +926,7 @@ export const LibraryPanel = ({
       <div className="flex-shrink-0 hidden md:block px-6 py-6 bg-transparent">
         <div className="flex flex-row flex-wrap items-center justify-between gap-4">
           <div className="space-y-2 flex-1 min-w-[200px]">
-            <h1 className="text-4xl font-semibold tracking-tight text-primary">Music Library</h1>
+            <h2 className="text-4xl font-semibold tracking-tight text-primary">Music Library</h2>
             <p className="text-base text-muted-foreground">
               View and manage all the favorited music.
             </p>
@@ -1080,6 +1081,7 @@ export const LibraryPanel = ({
                       title={track.title}
                       isPlaying={isPlaying}
                       isCurrentTrack={currentPlayingTrack === track.id}
+                      hasPlayableAudio={Boolean(track.audioUrl)}
                       trackId={track.id}
                     />
                     {/* Song Title */}
@@ -1172,6 +1174,7 @@ export const LibraryPanel = ({
                       title={track.title}
                       isPlaying={isPlaying}
                       isCurrentTrack={currentPlayingTrack === track.id}
+                      hasPlayableAudio={Boolean(track.audioUrl)}
                       onPlayPause={() => handleTrackAction(track, 'play')}
                       trackId={track.id}
                     />
@@ -1273,8 +1276,8 @@ export const LibraryPanel = ({
         <AlertDialogContent className="max-w-[calc(100vw-2rem)] sm:max-w-[425px]">
           <AlertDialogHeader className="space-y-2 sm:space-y-3">
             <AlertDialogTitle className="text-lg sm:text-xl">Delete Track</AlertDialogTitle>
-            <AlertDialogDescription className="text-sm sm:text-base">
-              Are you sure you want to delete &quot;{trackToDelete?.title}&quot;? This action cannot be undone.
+            <AlertDialogDescription className="text-sm sm:text-base whitespace-nowrap">
+              Are you sure you want to delete the current track?
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter className="flex-col sm:flex-row gap-2 sm:gap-0">
@@ -1283,7 +1286,7 @@ export const LibraryPanel = ({
               onClick={handleDeleteConfirm}
               className="w-full sm:w-auto bg-destructive text-destructive-foreground hover:bg-destructive/90"
             >
-              Delete
+              Confirm
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

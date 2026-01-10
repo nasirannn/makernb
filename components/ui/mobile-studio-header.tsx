@@ -31,6 +31,7 @@ export const MobileStudioHeader = React.memo(({
   signOut,
 }: MobileStudioHeaderProps) => {
   const [tierCode, setTierCode] = React.useState<'basic' | 'premium' | null>(null);
+  const displayName = user?.user_metadata?.nickname || user?.user_metadata?.full_name || user?.user_metadata?.name || user?.email?.split('@')[0] || '';
 
   // 获取用户订阅信息
   React.useEffect(() => {
@@ -115,7 +116,7 @@ export const MobileStudioHeader = React.memo(({
                     alt="User Avatar"
                   />
                   <AvatarFallback className="bg-primary/20 text-primary text-xs font-semibold">
-                    {user.user_metadata?.full_name?.charAt(0) || user.email?.charAt(0) || 'U'}
+                    {displayName?.charAt(0) || user.email?.charAt(0) || 'U'}
                   </AvatarFallback>
                 </Avatar>
               </Button>
@@ -127,7 +128,7 @@ export const MobileStudioHeader = React.memo(({
                     <div className="px-3 py-2 border-b border-border/20 mb-2">
                       <div className="flex items-center justify-between gap-2 mb-1">
                         <div className="text-sm font-medium text-foreground truncate flex-1">
-                          {user.user_metadata?.full_name || user.email}
+                          {displayName || user.email}
                         </div>
                         {tierCode && (
                           <Badge className="relative inline-block rounded-full border border-zinc-700 bg-zinc-900/20 px-2 py-0.5 text-xs text-zinc-50 animate-border-marquee flex-shrink-0">
@@ -178,4 +179,3 @@ export const MobileStudioHeader = React.memo(({
 });
 
 MobileStudioHeader.displayName = 'MobileStudioHeader';
-

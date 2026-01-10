@@ -3,6 +3,7 @@
 import React, { useState, useRef, useCallback, useEffect } from 'react';
 import {
   AlertDialog,
+  AlertDialogCancel,
   AlertDialogContent,
   AlertDialogDescription,
   AlertDialogFooter,
@@ -162,25 +163,34 @@ export const EditMusicInfoDialog: React.FC<EditMusicInfoDialogProps> = ({
   return (
     <AlertDialog open={isOpen} onOpenChange={(open) => !open && handleClose()}>
       <AlertDialogContent
-        className="max-w-[calc(100vw-2rem)] sm:max-w-[500px] flex flex-col overflow-hidden"
+        className="max-w-[calc(100vw-2rem)] sm:max-w-[520px] flex flex-col overflow-hidden p-0 border border-border/60 bg-background shadow-xl"
         onClick={(e) => e.stopPropagation()}
       >
-        <AlertDialogHeader className="flex-shrink-0">
-          <div className="flex items-center justify-between">
-            <AlertDialogTitle className="flex items-center gap-2">
-              Edit Music Info
-            </AlertDialogTitle>
-            <button
-              onClick={handleClose}
-              className="rounded-sm opacity-70 ring-offset-background transition-opacity hover:opacity-100 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:pointer-events-none"
-            >
-              <X className="h-4 w-4" />
-              <span className="sr-only">Close</span>
-            </button>
+        <AlertDialogHeader className="flex-shrink-0 px-5 pt-5 pb-3 border-b border-border/40 text-left relative overflow-hidden">
+          <div className="pointer-events-none absolute inset-0 bg-gradient-to-r from-primary/10 via-transparent to-primary/10" />
+          <div className="flex items-center justify-between pr-8 relative">
+            <div>
+              <div className="text-[10px] uppercase tracking-[0.28em] text-muted-foreground">
+                Music Info
+              </div>
+              <AlertDialogTitle className="flex items-center gap-2 text-xl font-semibold tracking-tight">
+                Edit Music Info
+              </AlertDialogTitle>
+              <AlertDialogDescription className="mt-1 text-sm text-muted-foreground">
+                Update title or cover image for this track.
+              </AlertDialogDescription>
+            </div>
           </div>
+          <AlertDialogCancel
+            onClick={handleClose}
+            className="absolute right-4 top-4 rounded-sm opacity-70 ring-offset-background transition-opacity hover:opacity-100 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:pointer-events-none"
+          >
+            <X className="h-4 w-4" />
+            <span className="sr-only">Close</span>
+          </AlertDialogCancel>
         </AlertDialogHeader>
 
-        <div className="flex-1 overflow-y-auto space-y-3 pt-1 pb-1 px-1">
+        <div className="flex-1 overflow-y-auto space-y-3 pt-3 pb-3 px-5">
           <div className="space-y-3">
             <div className="space-y-1">
               <label htmlFor="title" className="text-sm text-muted-foreground">

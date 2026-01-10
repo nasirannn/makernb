@@ -21,6 +21,8 @@ export default function UnifiedOTPLogin({ onSuccess, onClose }: UnifiedOTPLoginP
   const [step, setStep] = useState<'email' | 'otp'>('email');
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState('');
+  const otpLength = 6;
+  const otpRefs = React.useRef<Array<HTMLInputElement | null>>([]);
 
   // 邮箱格式验证
   const isValidEmail = (email: string) => {
@@ -84,6 +86,43 @@ export default function UnifiedOTPLogin({ onSuccess, onClose }: UnifiedOTPLoginP
     setLoading(false);
   };
 
+  const handleOtpChange = (index: number, value: string) => {
+    const digit = value.replace(/\D/g, '').slice(-1);
+    const next = otp.split('');
+    next[index] = digit;
+    const nextOtp = next.join('').slice(0, otpLength);
+    setOtp(nextOtp);
+    if (digit && index < otpLength - 1) {
+      otpRefs.current[index + 1]?.focus();
+    }
+  };
+
+  const handleOtpKeyDown = (index: number, event: React.KeyboardEvent<HTMLInputElement>) => {
+    if (event.key === 'Backspace' && !otp[index] && index > 0) {
+      otpRefs.current[index - 1]?.focus();
+    }
+    if (event.key === 'ArrowLeft' && index > 0) {
+      otpRefs.current[index - 1]?.focus();
+    }
+    if (event.key === 'ArrowRight' && index < otpLength - 1) {
+      otpRefs.current[index + 1]?.focus();
+    }
+  };
+
+  const handleOtpPaste = (index: number, event: React.ClipboardEvent<HTMLInputElement>) => {
+    const pasted = event.clipboardData.getData('text').replace(/\D/g, '').slice(0, otpLength);
+    if (!pasted) return;
+    event.preventDefault();
+    const next = otp.split('');
+    for (let i = 0; i < pasted.length && index + i < otpLength; i += 1) {
+      next[index + i] = pasted[i];
+    }
+    const nextOtp = next.join('').slice(0, otpLength);
+    setOtp(nextOtp);
+    const focusIndex = Math.min(index + pasted.length, otpLength - 1);
+    otpRefs.current[focusIndex]?.focus();
+  };
+
   return (
     <Card className="w-full max-w-md mx-auto">
       <CardHeader className="text-center">
@@ -137,16 +176,26 @@ export default function UnifiedOTPLogin({ onSuccess, onClose }: UnifiedOTPLoginP
           <form onSubmit={verifyOTP} className="space-y-4">
             <div className="space-y-2">
               <Label htmlFor="otp" className="text-foreground">Verification code</Label>
-              <Input
-                id="otp"
-                type="text"
-                placeholder="000000"
-                value={otp}
-                onChange={(e) => setOtp(e.target.value.replace(/\D/g, '').slice(0, 6))}
-                required
-                maxLength={6}
-                className="h-12 text-base text-center text-lg tracking-widest"
-              />
+              <div className="flex w-full items-center justify-between gap-2">
+                {Array.from({ length: otpLength }).map((_, index) => (
+                  <Input
+                    key={`otp-${index}`}
+                    id={index === 0 ? 'otp' : undefined}
+                    type="text"
+                    inputMode="numeric"
+                    autoComplete={index === 0 ? 'one-time-code' : 'off'}
+                    value={otp[index] || ''}
+                    onChange={(e) => handleOtpChange(index, e.target.value)}
+                    onKeyDown={(e) => handleOtpKeyDown(index, e)}
+                    onPaste={(e) => handleOtpPaste(index, e)}
+                    ref={(el) => {
+                      otpRefs.current[index] = el;
+                    }}
+                    aria-label={`Verification code digit ${index + 1}`}
+                    className="h-12 w-12 text-center text-lg font-semibold tracking-widest"
+                  />
+                ))}
+              </div>
               <p className="text-sm text-muted-foreground text-center">
                 Code sent to {email}
               </p>
