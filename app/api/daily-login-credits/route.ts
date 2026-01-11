@@ -127,7 +127,7 @@ export async function GET(request: NextRequest) {
     
     return NextResponse.json({
       hasReceivedToday: hasCredits,
-      isEligible: user.id !== process.env.ADMIN_ID // 管理员不符合条件
+      isEligible: true
     });
 
   } catch (error) {

@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { supabaseServer } from '@/lib/supabase-server';
+import { creemUrl } from '@/lib/creem';
 
 export const dynamic = 'force-dynamic';
 
@@ -68,15 +69,7 @@ export async function POST(request: NextRequest) {
       }
     };
 
-    console.log('Creem API request:', {
-      url: 'https://api.creem.io/v1/checkouts',
-      productId,
-      userId,
-      userEmail,
-      creditsAmount
-    });
-
-    const creemResponse = await fetch('https://test-api.creem.io/v1/checkouts', {
+    const creemResponse = await fetch(creemUrl('/v1/checkouts'), {
       method: 'POST',
       headers: {
         'x-api-key': process.env.CREEM_API_KEY,

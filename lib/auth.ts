@@ -214,25 +214,6 @@ export async function batchVerifyTokens(tokens: string[]): Promise<Map<string, s
   return results;
 }
 
-/**
- * 检查用户是否为管理员
- * @param userId 用户ID
- * @returns 是否为管理员
- */
-export function isAdmin(userId: string): boolean {
-  // 在服务端使用 ADMIN_ID，在客户端使用 NEXT_PUBLIC_ADMIN_ID
-  const adminId = typeof window !== 'undefined'
-    ? process.env.NEXT_PUBLIC_ADMIN_ID
-    : process.env.ADMIN_ID;
-
-  // 如果没有设置 ADMIN_ID，返回 false
-  if (!adminId) {
-    return false;
-  }
-
-  return userId === adminId;
-}
-
 // ============================================================================
 // CACHE STATS (for monitoring)
 // ============================================================================

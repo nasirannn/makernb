@@ -2,15 +2,13 @@
 
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from "@/components/ui/alert-dialog";
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import {
   Select,
   SelectContent,
@@ -18,12 +16,13 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Slider } from "@/components/ui/slider";
-import { X, Music2, CreditCard, ChevronDown, ChevronUp, Play, Pause, HelpCircle, Maximize2 } from "lucide-react";
+import { Music2, CreditCard, ChevronDown, ChevronUp, Play, Pause, HelpCircle, Maximize2 } from "lucide-react";
 import { Tooltip } from "@/components/ui/tooltip";
 import { ExtendMusicModel, getExtendMusicCredits } from '@/lib/credits-config';
 import { formatDuration } from '@/lib/format-utils';
@@ -368,7 +367,7 @@ export const ExtendMusicDialog: React.FC<ExtendMusicDialogProps> = ({
   ];
 
   return (
-    <AlertDialog 
+    <Dialog 
       open={isOpen} 
       onOpenChange={(open) => {
         if (!open) {
@@ -376,31 +375,24 @@ export const ExtendMusicDialog: React.FC<ExtendMusicDialogProps> = ({
         }
       }}
     >
-      <AlertDialogContent className="max-w-[calc(100vw-2rem)] sm:max-w-[560px] max-h-[90vh] flex flex-col p-0 border border-border/60 bg-background shadow-xl">
+      <DialogContent className="max-w-[calc(100vw-2rem)] sm:max-w-[560px] max-h-[90vh] flex flex-col p-0 border border-border/60 bg-background shadow-xl">
         {/* 固定头部 */}
-        <AlertDialogHeader className="flex-shrink-0 px-6 pt-5 pb-4 border-b border-border/40 text-left relative overflow-hidden">
+        <DialogHeader className="flex-shrink-0 px-6 pt-5 pb-4 border-b border-border/40 text-left relative overflow-hidden">
           <div className="pointer-events-none absolute inset-0 bg-gradient-to-r from-primary/10 via-transparent to-primary/10" />
           <div className="flex items-center justify-between pr-8">
             <div className="relative">
               <div className="text-[10px] uppercase tracking-[0.28em] text-muted-foreground">
                 Extend Track
               </div>
-              <AlertDialogTitle className="text-xl font-semibold tracking-tight">
+              <DialogTitle className="text-xl font-semibold tracking-tight">
                 Extend Music
-              </AlertDialogTitle>
+              </DialogTitle>
             </div>
           </div>
-          <AlertDialogCancel
-            onClick={handleClose}
-            className="absolute right-4 top-4 rounded-sm opacity-70 ring-offset-background transition-opacity hover:opacity-100 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
-          >
-            <X className="h-4 w-4" />
-            <span className="sr-only">Close</span>
-          </AlertDialogCancel>
-          <AlertDialogDescription className="text-sm text-muted-foreground">
+          <DialogDescription className="text-sm text-muted-foreground">
             Extend &quot;{trackTitle}&quot; to create a longer version.
-          </AlertDialogDescription>
-        </AlertDialogHeader>
+          </DialogDescription>
+        </DialogHeader>
 
         {/* 可滚动的主要内容区域 */}
         <div className="flex-1 overflow-y-auto px-6">
@@ -767,8 +759,8 @@ export const ExtendMusicDialog: React.FC<ExtendMusicDialogProps> = ({
         </div>
 
         {/* 固定底部按钮 */}
-        <AlertDialogFooter className="flex-shrink-0 px-6 pt-4 pb-6 border-t border-border/40">
-          <AlertDialogAction
+        <DialogFooter className="flex-shrink-0 px-6 pt-4 pb-6 border-t border-border/40">
+          <Button
             onClick={handleConfirm}
             disabled={!hasEnoughCredits || !isFormValid || isExtending}
             className="w-full px-8 bg-primary text-primary-foreground hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed"
@@ -785,9 +777,9 @@ export const ExtendMusicDialog: React.FC<ExtendMusicDialogProps> = ({
             ) : (
               `Extend (-${requiredCredits} credits)`
             )}
-          </AlertDialogAction>
-        </AlertDialogFooter>
-      </AlertDialogContent>
-    </AlertDialog>
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   );
 };

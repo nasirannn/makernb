@@ -208,8 +208,6 @@ export const LibraryPanel = ({
     }));
   };
   
-  // Check if user is admin
-
   // Scroll container ref
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const shareResetTimeout = useRef<number | null>(null);

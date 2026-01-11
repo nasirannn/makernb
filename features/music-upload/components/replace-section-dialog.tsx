@@ -2,19 +2,18 @@
 
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from "@/components/ui/alert-dialog";
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
-import { X, Play, Pause } from "lucide-react";
+import { Play, Pause } from "lucide-react";
 import { WaveformPlayer, WaveformPlayerHandle } from "@/components/ui/waveform-player";
 import { getFeatureCredits } from '@/lib/credits-config';
 
@@ -264,31 +263,24 @@ export const ReplaceSectionDialog: React.FC<ReplaceSectionDialogProps> = ({
   };
 
   return (
-    <AlertDialog open={isOpen} onOpenChange={(open) => !open && handleClose()}>
-      <AlertDialogContent className="max-w-[calc(100vw-2rem)] sm:max-w-[560px] max-h-[90vh] flex flex-col overflow-hidden p-0 border border-border/60 bg-background shadow-xl">
-        <AlertDialogHeader className="flex-shrink-0 px-6 pt-4 pb-3 border-b border-border/40 text-left relative overflow-hidden">
+    <Dialog open={isOpen} onOpenChange={(open) => !open && handleClose()}>
+      <DialogContent className="max-w-[calc(100vw-2rem)] sm:max-w-[560px] max-h-[90vh] flex flex-col overflow-hidden p-0 border border-border/60 bg-background shadow-xl">
+        <DialogHeader className="flex-shrink-0 px-6 pt-4 pb-3 border-b border-border/40 text-left relative overflow-hidden">
           <div className="pointer-events-none absolute inset-0 bg-gradient-to-r from-primary/10 via-transparent to-primary/10" />
           <div className="flex items-center justify-between pr-8">
             <div className="relative">
               <div className="text-[10px] uppercase tracking-[0.28em] text-muted-foreground">
                 Replace Section
               </div>
-              <AlertDialogTitle className="text-xl font-semibold tracking-tight">
+              <DialogTitle className="text-xl font-semibold tracking-tight">
                 Replace Section
-              </AlertDialogTitle>
+              </DialogTitle>
             </div>
           </div>
-          <AlertDialogCancel
-            onClick={handleClose}
-            className="absolute right-4 top-4 rounded-sm opacity-70 ring-offset-background transition-opacity hover:opacity-100 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:pointer-events-none"
-          >
-            <X className="h-4 w-4" />
-            <span className="sr-only">Close</span>
-          </AlertDialogCancel>
-          <AlertDialogDescription className="text-sm text-muted-foreground">
+          <DialogDescription className="text-sm text-muted-foreground">
             Replace a section of &ldquo;{trackTitle}&rdquo; with new content
-          </AlertDialogDescription>
-        </AlertDialogHeader>
+          </DialogDescription>
+        </DialogHeader>
 
         <div className="flex-1 overflow-y-auto space-y-3 px-6 py-2">
           {/* 音频播放器和时间选择 */}
@@ -481,8 +473,8 @@ export const ReplaceSectionDialog: React.FC<ReplaceSectionDialogProps> = ({
           )}
         </div>
 
-        <AlertDialogFooter className="flex-shrink-0 px-6 pt-3 pb-4 border-t border-border/40">
-          <AlertDialogAction
+        <DialogFooter className="flex-shrink-0 px-6 pt-3 pb-4 border-t border-border/40">
+          <Button
             onClick={handleConfirm}
             disabled={!isFormValid || insufficientCredits || isReplacing}
             className="w-full inline-flex items-center justify-center rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 bg-primary text-primary-foreground hover:bg-primary/90 h-10 px-4 py-2"
@@ -495,10 +487,10 @@ export const ReplaceSectionDialog: React.FC<ReplaceSectionDialogProps> = ({
             ) : (
               `Replace Section (-${cost} credits)`
             )}
-          </AlertDialogAction>
-        </AlertDialogFooter>
-      </AlertDialogContent>
-    </AlertDialog>
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   );
 };
 

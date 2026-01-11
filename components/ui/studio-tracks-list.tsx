@@ -334,16 +334,13 @@ export const StudioTracksList: React.FC<StudioTracksListProps> = React.memo(func
   }, []);
 
   const groupedTracks = React.useMemo(() => {
-    const groups: Array<{ id: string; modeLabel?: string; modelLabel?: string; promptLabel?: string; promptFull?: string; tracks: any[] }> = [];
+    const groups: Array<{ id: string; modeLabel?: string; modelLabel?: string; tracks: any[] }> = [];
     const groupMap = new Map<string, number>();
 
     flatTracks.forEach((track) => {
       const groupId = track.generationId || track.musicGeneration?.id || track.id;
       const modeValue = track.generationMode || track.musicGeneration?.generationMode;
       const modelValue = track.model || track.musicGeneration?.model;
-      const promptFull = (track.musicGeneration?.prompt || '').toString().trim();
-      const promptValue =
-        promptFull.length > 80 ? `${promptFull.slice(0, 80)}...` : promptFull;
       const modeLabel = modeValue
         ? (modeValue.toLowerCase() === 'simple'
             ? 'Simple'
@@ -356,8 +353,6 @@ export const StudioTracksList: React.FC<StudioTracksListProps> = React.memo(func
           id: groupId,
           modeLabel,
           modelLabel: formatModelLabel(modelValue),
-          promptLabel: promptValue || undefined,
-          promptFull: promptFull || undefined,
           tracks: [track],
         });
         return;
@@ -371,12 +366,6 @@ export const StudioTracksList: React.FC<StudioTracksListProps> = React.memo(func
         }
         if (!groups[index].modelLabel && modelValue) {
           groups[index].modelLabel = formatModelLabel(modelValue);
-        }
-        if (!groups[index].promptLabel && promptValue) {
-          groups[index].promptLabel = promptValue;
-        }
-        if (!groups[index].promptFull && promptFull) {
-          groups[index].promptFull = promptFull;
         }
       }
     });
@@ -1002,7 +991,7 @@ export const StudioTracksList: React.FC<StudioTracksListProps> = React.memo(func
             <div className="space-y-3">
               {groupedTracks.map((group) => (
                 <div key={group.id} className="space-y-1">
-                  {(group.modeLabel || group.modelLabel || group.promptLabel) && (
+                  {(group.modeLabel || group.modelLabel) && (
                     <div className="px-2 pt-1 space-y-1">
                       {(group.modeLabel || group.modelLabel) && (
                         <div className="text-base font-semibold text-foreground flex items-center gap-2">
@@ -1012,18 +1001,6 @@ export const StudioTracksList: React.FC<StudioTracksListProps> = React.memo(func
                               {group.modelLabel}
                             </span>
                           )}
-                        </div>
-                      )}
-                      {group.promptLabel && (
-                        <div
-                          className="text-xs text-foreground/80 line-clamp-2 cursor-pointer hover:opacity-80"
-                          title={group.promptFull || group.promptLabel}
-                          onClick={() => {
-                            navigator.clipboard.writeText(group.promptFull || group.promptLabel || '');
-                            toast('Prompt copied', { icon: <CheckCircle className="h-4 w-4 text-green-500" /> });
-                          }}
-                        >
-                          {group.promptLabel}
                         </div>
                       )}
                     </div>
@@ -1190,7 +1167,7 @@ export const StudioTracksList: React.FC<StudioTracksListProps> = React.memo(func
                     </div>
                     <div className="text-base font-semibold">View the result</div>
                   </div>
-                  <div className="mt-1 text-sm text-primary-foreground/80">
+                  <div className="mt-1 text-sm text-muted-foreground">
                     Open the existing separation outputs.
                   </div>
                 </button>
@@ -1202,11 +1179,11 @@ export const StudioTracksList: React.FC<StudioTracksListProps> = React.memo(func
                     setShowVocalRemovalConfirmDialog(false);
                     setPendingVocalRemovalTrackId(null);
                   }}
-                  className="group rounded-2xl border border-border/60 bg-muted/40 p-3 text-left text-foreground shadow-sm transition-all hover:-translate-y-0.5 hover:bg-gradient-to-br hover:from-primary/15 hover:via-primary/5 hover:to-transparent hover:border-primary/60 hover:shadow-[0_12px_28px_rgba(0,0,0,0.22)]"
+                  className="group rounded-2xl border p-3 text-left shadow-sm transition-all border-primary/30 bg-transparent hover:-translate-y-0.5 hover:bg-gradient-to-br hover:from-primary/15 hover:via-primary/5 hover:to-transparent hover:border-primary/60 hover:shadow-[0_12px_28px_rgba(0,0,0,0.22)]"
                   type="button"
                 >
                   <div className="flex items-center gap-3">
-                    <div className="h-8 w-8 rounded-lg border border-border/60 text-foreground/80 flex items-center justify-center transition group-hover:border-primary/40 group-hover:text-primary">
+                    <div className="h-8 w-8 rounded-lg border flex items-center justify-center transition bg-transparent border-primary/20 text-primary group-hover:bg-primary/20 group-hover:border-primary/40">
                       <X className="h-4 w-4" />
                     </div>
                     <div className="text-base font-semibold">Cancel</div>
@@ -1217,16 +1194,16 @@ export const StudioTracksList: React.FC<StudioTracksListProps> = React.memo(func
                 </button>
                 <button
                   onClick={handleConfirmReSeparation}
-                  className="group rounded-2xl border border-primary/30 bg-primary/90 p-3 text-left text-primary-foreground shadow-sm transition-all hover:-translate-y-0.5 hover:bg-primary hover:border-primary/60 hover:shadow-[0_12px_28px_rgba(0,0,0,0.22)]"
+                  className="group rounded-2xl border p-3 text-left shadow-sm transition-all border-primary/30 bg-transparent hover:-translate-y-0.5 hover:bg-gradient-to-br hover:from-primary/15 hover:via-primary/5 hover:to-transparent hover:border-primary/60 hover:shadow-[0_12px_28px_rgba(0,0,0,0.22)]"
                   type="button"
                 >
                   <div className="flex items-center gap-3">
-                    <div className="h-8 w-8 rounded-lg border border-primary/40 text-primary-foreground/90 flex items-center justify-center transition group-hover:border-primary/60 group-hover:text-white">
+                    <div className="h-8 w-8 rounded-lg border flex items-center justify-center transition bg-transparent border-primary/20 text-primary group-hover:bg-primary/20 group-hover:border-primary/40">
                       <CheckCircle className="h-4 w-4" />
                     </div>
                     <div className="text-base font-semibold">Confirm</div>
                   </div>
-                  <div className="mt-1 text-sm text-primary-foreground/80">
+                  <div className="mt-1 text-sm text-muted-foreground">
                     Start a new separation with credits.
                   </div>
                 </button>

@@ -156,6 +156,35 @@ export const StudioPanel = (props: StudioPanelProps) => {
   const maxUploadBytes = 40 * 1024 * 1024;
   const maxUploadDurationSeconds = selectedModel === 'V4_5ALL' ? 60 : 8 * 60;
   const isCustomMode = mode === "custom";
+  const modeToggleRef = React.useRef<HTMLDivElement>(null);
+  const simpleModeRef = React.useRef<HTMLButtonElement>(null);
+  const customModeRef = React.useRef<HTMLButtonElement>(null);
+  const [modeSliderStyle, setModeSliderStyle] = React.useState({ width: 0, x: 0 });
+
+  const updateModeSlider = React.useCallback(() => {
+    const container = modeToggleRef.current;
+    const target = mode === "simple" ? simpleModeRef.current : customModeRef.current;
+    if (!container || !target) return;
+
+    const containerRect = container.getBoundingClientRect();
+    const targetRect = target.getBoundingClientRect();
+    setModeSliderStyle({
+      width: targetRect.width,
+      x: targetRect.left - containerRect.left,
+    });
+  }, [mode]);
+
+  React.useLayoutEffect(() => {
+    if (!panelOpen) return;
+    updateModeSlider();
+  }, [panelOpen, updateModeSlider]);
+
+  React.useEffect(() => {
+    if (!panelOpen) return;
+    const handleResize = () => updateModeSlider();
+    window.addEventListener("resize", handleResize);
+    return () => window.removeEventListener("resize", handleResize);
+  }, [panelOpen, updateModeSlider]);
 
   const updateSelectedModel = React.useCallback((
     model: MusicModel,
@@ -1356,30 +1385,41 @@ export const StudioPanel = (props: StudioPanelProps) => {
           <div className="flex-shrink-0 px-4 md:px-6 pt-4 md:pt-6 pb-4 backdrop-blur-sm">
             <div className="flex items-center justify-between gap-2 md:gap-4">
               {/* Mode Selector */}
-              <div className="bg-muted/30 rounded-xl p-1 flex-shrink-0">
-                  <div className="grid grid-cols-2 gap-1">
-                    <button
-                      onClick={() => setMode("simple")}
-                      title="Create random R&B songs with polished production in 90s style. Simple and fast setup."
-                      className={`py-1.5 px-4 md:px-6 text-xs md:text-sm font-semibold tracking-tight transition-all duration-200 rounded-xl ${mode === "simple"
-                          ? "bg-white border-transparent text-primary shadow-sm"
-                          : "text-muted-foreground hover:text-foreground hover:bg-muted/50"
-                        }`}
-                    >
-                      Simple
-                    </button>
-                    <button
-                      onClick={() => setMode("custom")}
-                      title="Fine-tune every aspect of your track with detailed controls for genre, instruments, and style."
-                      className={`py-1.5 px-4 md:px-6 text-xs md:text-sm font-semibold tracking-tight transition-all duration-200 rounded-xl ${mode === "custom"
-                          ? "bg-white border-transparent text-primary shadow-sm"
-                          : "text-muted-foreground hover:text-foreground hover:bg-muted/50"
-                        }`}
-                    >
-                      Custom
-                    </button>
-                  </div>
+              <div ref={modeToggleRef} className="relative bg-muted/30 rounded-xl p-1 flex-shrink-0">
+                <div
+                  className="absolute top-1 bottom-1 rounded-xl bg-white shadow-sm transition-[transform,width] duration-300 ease-out"
+                  style={{
+                    width: modeSliderStyle.width,
+                    transform: `translateX(${modeSliderStyle.x}px)`,
+                  }}
+                />
+                <div className="relative z-10 grid grid-cols-2 gap-1">
+                  <button
+                    ref={simpleModeRef}
+                    onClick={() => setMode("simple")}
+                    title="Create random R&B songs with polished production in 90s style. Simple and fast setup."
+                    className={`py-1.5 px-4 md:px-6 text-xs md:text-sm font-semibold tracking-tight transition-colors duration-200 rounded-xl ${
+                      mode === "simple"
+                        ? "text-primary"
+                        : "text-muted-foreground hover:text-foreground"
+                    }`}
+                  >
+                    Simple
+                  </button>
+                  <button
+                    ref={customModeRef}
+                    onClick={() => setMode("custom")}
+                    title="Fine-tune every aspect of your track with detailed controls for genre, instruments, and style."
+                    className={`py-1.5 px-4 md:px-6 text-xs md:text-sm font-semibold tracking-tight transition-colors duration-200 rounded-xl ${
+                      mode === "custom"
+                        ? "text-primary"
+                        : "text-muted-foreground hover:text-foreground"
+                    }`}
+                  >
+                    Custom
+                  </button>
                 </div>
+              </div>
 
               {/* Model Selection Menu */}
               <DropdownMenu open={isModelMenuOpen} onOpenChange={setIsModelMenuOpen}>
@@ -1484,7 +1524,7 @@ export const StudioPanel = (props: StudioPanelProps) => {
                       <button
                         type="button"
                         onClick={handlePromptAddAudioClick}
-                        className="inline-flex items-center gap-1.5 rounded-full border border-white/10 bg-white/5 px-3 py-1.5 text-xs font-semibold text-white/80 transition-colors hover:bg-white/10"
+                        className="inline-flex items-center gap-1.5 rounded-full bg-white/5 px-3 py-1.5 text-xs font-semibold text-white/80 transition-colors hover:bg-white/10"
                         title="Add audio"
                       >
                         <UploadCloud className="h-3.5 w-3.5" />
@@ -1504,7 +1544,7 @@ export const StudioPanel = (props: StudioPanelProps) => {
                           setBassTone("");
                           setHarmonyPalette("");
                         }}
-                        className="inline-flex items-center gap-1.5 rounded-full border border-white/10 bg-white/5 px-3 py-1.5 text-xs font-semibold text-white/80 transition-colors hover:bg-white/10"
+                        className="inline-flex items-center gap-1.5 rounded-full bg-white/5 px-3 py-1.5 text-xs font-semibold text-white/80 transition-colors hover:bg-white/10"
                         title="Clear"
                       >
                         <Trash2 className="h-3.5 w-3.5" />

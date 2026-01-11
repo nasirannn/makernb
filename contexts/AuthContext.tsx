@@ -27,8 +27,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
   const creditsCheckInProgress = useRef(false);
-  const [isUserAdmin, setIsUserAdmin] = useState<boolean | null>(null);
-  const adminCheckCache = useRef<Map<string, boolean>>(new Map());
   const creditsUpdatedCallback = useRef<(() => void) | null>(null);
   const permissionsUpdatedCallback = useRef<(() => void) | null>(null);
 
@@ -99,7 +97,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             creditsUpdatedCallback.current?.();
           }
         } else if (data.message?.includes('Not eligible')) {
-          // User not eligible for daily credits (likely admin user)
+          // User not eligible for daily credits
           const today = new Date().toISOString().split('T')[0];
           const checkKey = `dailyCreditsChecked_${resolvedUserId}_${today}`;
           if (typeof window !== 'undefined') {
@@ -209,7 +207,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           // Clear any cached data
           setUser(null);
           setSession(null);
-          setIsUserAdmin(null); // 重置管理员状态
 
           // 只在非studio页面时重定向到首页
           const currentPath = window.location.pathname;
@@ -217,8 +214,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             router.push('/');
           }
         } else if (event === 'SIGNED_IN' && session?.access_token && session.user?.id) {
-          // 重置管理员状态，让新用户重新检查
-          setIsUserAdmin(null);
           // 当用户登录时，检查每日登录积分（使用持久化状态避免重复检查）
           const today = new Date().toISOString().split('T')[0]; // YYYY-MM-DD
           const checkKey = `dailyCreditsChecked_${session.user.id}_${today}`;

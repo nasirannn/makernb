@@ -5,6 +5,20 @@ import { createOrUpdateUserSubscription, cancelUserSubscription } from '@/lib/su
 
 export const dynamic = 'force-dynamic';
 
+const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+async function getUserIdByEmail(email: string): Promise<string | null> {
+  const normalizedEmail = email.trim().toLowerCase();
+  if (!normalizedEmail) return null;
+
+  const { query } = await import('@/lib/db-query-builder');
+  const result = await query<{ id: string }>(
+    'SELECT id FROM auth.users WHERE email = $1 LIMIT 1',
+    [normalizedEmail]
+  );
+  return result.rows[0]?.id ?? null;
+}
+
 // Creem webhook handler at /api/webhook per docs
 export async function POST(request: NextRequest) {
   try {
@@ -52,30 +66,42 @@ export async function POST(request: NextRequest) {
         else if (productId === process.env.NEXT_PUBLIC_YEARLY_PREMIUM) creditsAmount = 30000;
       }
 
-      // 从 customer 获取用户信息
+      // 从 metadata 获取用户 ID
       let userId = subscription.metadata?.userId;
       
       console.log('subscription.paid - subscription.metadata:', subscription.metadata);
       console.log('subscription.paid - userId from metadata:', userId);
       console.log('subscription.paid - customer:', customer);
       
-      // 检查 userId 是否是有效的 UUID 格式
-      const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+      // 如果 metadata.userId 不是 UUID，尝试将其当作 email 查找
       if (userId && !uuidRegex.test(userId)) {
-        console.error('Invalid userId format (not UUID):', userId);
-        console.error('This might be a subscription ID instead of user ID');
-        return NextResponse.json({ error: 'Invalid userId format' }, { status: 400 });
+        if (userId.includes('@')) {
+          const resolved = await getUserIdByEmail(userId);
+          if (resolved) {
+            userId = resolved;
+          } else {
+            console.error('userId looked like email but no user found:', userId);
+            return NextResponse.json({ error: 'User not found for email' }, { status: 400 });
+          }
+        } else {
+          console.error('Invalid userId format (not UUID):', userId);
+          console.error('This might be a subscription ID instead of user ID');
+          return NextResponse.json({ error: 'Invalid userId format' }, { status: 400 });
+        }
       }
-      
-      // 如果 metadata 中没有 userId，尝试通过 email 查找
+
+      // 如果 metadata 中没有 userId，尝试通过 customer.email 查找
       if (!userId && customer?.email) {
-        console.log('userId not found in metadata, trying to find user by email:', customer.email);
-        // 这里可以添加通过 email 查找用户的逻辑
-        // 暂时使用 email 作为备用标识
-        userId = customer.email;
+        const resolved = await getUserIdByEmail(customer.email);
+        if (resolved) {
+          userId = resolved;
+        } else {
+          console.error('Missing userId in metadata and no user found for customer email:', customer.email);
+          return NextResponse.json({ error: 'Missing userId in metadata' }, { status: 400 });
+        }
       }
       
-      if (!userId) {
+      if (!userId || !uuidRegex.test(userId)) {
         console.error('Missing userId in subscription.metadata and no customer email:', event);
         return NextResponse.json({ error: 'Missing userId in metadata' }, { status: 400 });
       }
@@ -227,5 +253,4 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'Webhook processing failed' }, { status: 500 });
   }
 }
-
 
