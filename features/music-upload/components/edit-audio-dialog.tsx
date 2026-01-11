@@ -293,15 +293,12 @@ export const EditAudioDialog = ({
             </div>
           </div>
           <DialogDescription>
-            Select the section you want to keep before uploading.
+            {audioFile ? audioFile.name : audioUrl || "Select the section you want to keep before uploading."}
           </DialogDescription>
         </DialogHeader>
 
         <div className="flex-1 px-6 py-4">
           <div className="flex flex-col items-center gap-4">
-            <div className="w-full text-left text-sm font-medium text-muted-foreground">
-              {title || "Untitled"}
-            </div>
 
             <div className="flex w-full items-baseline justify-between gap-4">
               <div className="text-left text-lg font-mono tracking-widest text-foreground">
@@ -312,7 +309,7 @@ export const EditAudioDialog = ({
               </div>
             </div>
 
-            <div className="w-full flex items-center gap-6 items-stretch">
+            <div className="w-full bg-muted/20 backdrop-blur-md rounded-md px-3 h-[68px] flex items-stretch gap-3">
               <button
                 type="button"
                 onClick={() => {
@@ -323,17 +320,17 @@ export const EditAudioDialog = ({
                   }
                   startPlayback();
                 }}
-                className="flex h-[68px] w-[68px] items-center justify-center rounded-full border border-primary/40 bg-transparent text-primary shadow-sm transition-colors hover:bg-white/5"
+                className="flex h-full w-[68px] items-center justify-center rounded-lg text-muted-foreground transition-colors hover:text-foreground disabled:cursor-not-allowed disabled:opacity-50"
                 disabled={!audioUrl}
               >
                 {isPlaying ? (
-                  <Pause className="h-6 w-6 fill-current" />
+                  <Pause className="h-5 w-5 fill-current" />
                 ) : (
-                  <Play className="h-6 w-6 fill-current" />
+                  <Play className="h-5 w-5 fill-current" />
                 )}
               </button>
 
-              <div className="flex-1 h-[68px]">
+              <div className="flex-1 h-full">
                 <WaveformPlayer
                   ref={waveformRef}
                   audioUrl={audioUrl}
@@ -382,13 +379,15 @@ export const EditAudioDialog = ({
                     setIsPlaying(false);
                     setCurrentTime(selectionStartRef.current);
                   }}
-                  waveHeight={60}
+                  waveHeight={68}
                   waveColor={waveColor}
                   progressColor={progressColor}
                   cursorColor={cursorColor}
                   selectorColor={selectorColor}
                   cursorWidth={3}
                   backend="MediaElement"
+                  chrome={false}
+                  className="w-full h-full"
                 />
               </div>
             </div>

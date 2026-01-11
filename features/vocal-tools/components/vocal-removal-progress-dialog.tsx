@@ -10,7 +10,7 @@ import {
 } from "@/components/ui/dialog";
 import { Progress } from "@/components/ui/progress";
 import { Button } from "@/components/ui/button";
-import { CheckCircle2, XCircle, Loader2, Music2, Mic, Music, Download, X } from "lucide-react";
+import { AudioLines, Loader2, Mic, Music, Download, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { WaveformPlayer } from "@/components/ui/waveform-player";
 
@@ -19,11 +19,13 @@ export interface VocalRemovalProgressDialogProps {
   onClose: () => void;
   trackTitle?: string;
   progress: number; // 0-100
-  status: 'processing' | 'completed' | 'error';
+  status: 'checking' | 'ready' | 'processing' | 'completed' | 'error';
   statusText?: string;
   errorMessage?: string;
   vocalUrl?: string;
   instrumentalUrl?: string;
+  onReSeparate?: () => void;
+  onStartSeparation?: () => void;
 }
 
 /**
@@ -40,6 +42,8 @@ export const VocalRemovalProgressDialog: React.FC<VocalRemovalProgressDialogProp
   errorMessage,
   vocalUrl,
   instrumentalUrl,
+  onReSeparate,
+  onStartSeparation,
 }) => {
   // 播放状态管理
   const [isVocalsPlaying, setIsVocalsPlaying] = useState(false);
@@ -47,21 +51,17 @@ export const VocalRemovalProgressDialog: React.FC<VocalRemovalProgressDialogProp
   const [hasVocalsError, setHasVocalsError] = useState(false);
   const [hasInstrumentalError, setHasInstrumentalError] = useState(false);
 
-  // 根据状态决定是否可以关闭
-  const canClose = status === 'completed' || status === 'error';
-
-  // 获取状态图标
-  const getStatusIcon = () => {
-    switch (status) {
-      case 'completed':
-        return <CheckCircle2 className="h-5 w-5 text-green-500" />;
-      case 'error':
-        return <XCircle className="h-5 w-5 text-red-500" />;
-      case 'processing':
-        return <Loader2 className="h-5 w-5 text-primary animate-spin" />;
-      default:
-        return <Music2 className="h-5 w-5 text-primary" />;
+  // 根据状态决定是否可以关闭（processing 时避免误关）
+  const canClose = status !== 'processing';
+  const canTriggerAction = status !== 'checking' && status !== 'processing';
+  const hasActionHandler = status === 'completed' ? !!onReSeparate : !!onStartSeparation;
+  const actionDisabled = !canTriggerAction || !hasActionHandler;
+  const handleAction = () => {
+    if (status === 'completed') {
+      onReSeparate?.();
+      return;
     }
+    onStartSeparation?.();
   };
 
   // 获取状态文本
@@ -69,6 +69,10 @@ export const VocalRemovalProgressDialog: React.FC<VocalRemovalProgressDialogProp
     if (statusText) return statusText;
 
     switch (status) {
+      case 'checking':
+        return 'Checking existing results...';
+      case 'ready':
+        return 'No existing separation results found.';
       case 'processing':
         return 'Removing vocals from track...';
       case 'completed':
@@ -126,8 +130,7 @@ export const VocalRemovalProgressDialog: React.FC<VocalRemovalProgressDialogProp
       }
     }}>
       <DialogContent className={cn(
-        "max-w-[calc(100vw-2rem)] sm:max-w-[720px] max-h-[84vh] flex flex-col p-0 border border-border/60 bg-background shadow-xl",
-        status === 'completed' && (vocalUrl || instrumentalUrl) && "sm:max-w-[760px]"
+        "max-w-[calc(100vw-2rem)] sm:max-w-[760px] max-h-[84vh] flex flex-col p-0 border border-border/60 bg-background shadow-xl"
       )} onInteractOutside={(e) => {
         if (!canClose) {
           e.preventDefault();
@@ -141,8 +144,7 @@ export const VocalRemovalProgressDialog: React.FC<VocalRemovalProgressDialogProp
                 Vocal Separation
               </div>
               <DialogTitle className="mt-1 flex items-center gap-2 text-xl font-semibold tracking-tight">
-                {getStatusIcon()}
-                <span>Separation Results</span>
+                <span>Vocal Separation</span>
               </DialogTitle>
               <DialogDescription className="mt-1">
                 {trackTitle}
@@ -151,9 +153,33 @@ export const VocalRemovalProgressDialog: React.FC<VocalRemovalProgressDialogProp
           </div>
         </DialogHeader>
 
-        <div className="flex-1 px-6 py-4 space-y-4 overflow-y-auto">
-          {/* 处理中或错误时显示进度条 */}
-          {status !== 'completed' && (
+        <div className="flex-1 px-5 py-3 space-y-3 overflow-y-auto">
+          {/* No existing result placeholder */}
+          {status === 'ready' && (
+            <div className="flex flex-col items-center justify-center py-8 text-center">
+              <div className="mb-4">
+                <AudioLines className="h-12 w-12 text-muted-foreground" />
+              </div>
+              <p className="text-base font-medium text-foreground">No separation results yet</p>
+              <p className="mt-1 text-sm text-muted-foreground">
+                Start vocal separation to generate vocal and instrumental tracks.
+              </p>
+            </div>
+          )}
+
+          {/* Checking placeholder (no progress bar) */}
+          {status === 'checking' && (
+            <div className="flex flex-col items-center justify-center py-8 text-center">
+              <div className="mb-4">
+                <Loader2 className="h-12 w-12 text-primary animate-spin" />
+              </div>
+              <p className="text-base font-medium text-foreground">Vocal Separation</p>
+              <p className="mt-1 text-sm text-muted-foreground">Checking existing results...</p>
+            </div>
+          )}
+
+          {/* processing/error 时显示进度条 */}
+          {status !== 'completed' && status !== 'ready' && status !== 'checking' && (
             <>
               {/* 进度条 */}
               <div className="space-y-2">
@@ -184,15 +210,14 @@ export const VocalRemovalProgressDialog: React.FC<VocalRemovalProgressDialogProp
             <div className="space-y-3">
               {/* Vocal Track */}
               {vocalUrl && (
-                <div className="space-y-3 rounded-xl border border-white/10 bg-muted/20 p-3">
+                <div className="space-y-2.5 rounded-xl p-3">
                   <div className="flex items-center justify-between gap-3">
                     <div className="flex items-center gap-2">
-                      <span className="inline-flex h-9 w-9 items-center justify-center rounded-lg bg-primary/10 text-primary">
+                      <span className="inline-flex h-9 w-9 items-center justify-center rounded-lg text-primary">
                         <Mic className="h-4 w-4" />
                       </span>
                       <div className="min-w-0">
                         <p className="text-sm font-medium text-foreground">Vocal</p>
-                        <p className="text-xs text-muted-foreground">Ready</p>
                       </div>
                     </div>
                     <Button
@@ -215,7 +240,9 @@ export const VocalRemovalProgressDialog: React.FC<VocalRemovalProgressDialogProp
                     isLoading={!vocalUrl || vocalUrl.trim() === ''}
                     onLoadError={setHasVocalsError}
                     backend="MediaElement"
-                    className="mt-1"
+                    playButtonVariant="icon"
+                    waveHeight={56}
+                    className="pl-2"
                   />
                   {hasVocalsError && (
                     <p className="text-xs text-red-500">Failed to load vocal track.</p>
@@ -225,15 +252,14 @@ export const VocalRemovalProgressDialog: React.FC<VocalRemovalProgressDialogProp
 
               {/* Instrumental Track */}
               {instrumentalUrl && (
-                <div className="space-y-3 rounded-xl border border-white/10 bg-muted/20 p-3">
+                <div className="space-y-2.5 rounded-xl p-3">
                   <div className="flex items-center justify-between gap-3">
                     <div className="flex items-center gap-2">
-                      <span className="inline-flex h-9 w-9 items-center justify-center rounded-lg bg-primary/10 text-primary">
+                      <span className="inline-flex h-9 w-9 items-center justify-center rounded-lg text-primary">
                         <Music className="h-4 w-4" />
                       </span>
                       <div className="min-w-0">
                         <p className="text-sm font-medium text-foreground">Instrumental</p>
-                        <p className="text-xs text-muted-foreground">Ready</p>
                       </div>
                     </div>
                     <Button
@@ -256,7 +282,9 @@ export const VocalRemovalProgressDialog: React.FC<VocalRemovalProgressDialogProp
                     isLoading={!instrumentalUrl || instrumentalUrl.trim() === ''}
                     onLoadError={setHasInstrumentalError}
                     backend="MediaElement"
-                    className="mt-1"
+                    playButtonVariant="icon"
+                    waveHeight={56}
+                    className="pl-2"
                   />
                   {hasInstrumentalError && (
                     <p className="text-xs text-red-500">Failed to load instrumental track.</p>
@@ -275,16 +303,11 @@ export const VocalRemovalProgressDialog: React.FC<VocalRemovalProgressDialogProp
         </div>
 
         {/* 底部操作区 */}
-        {canClose && (
-          <div className="flex-shrink-0 px-6 pb-4 pt-2 border-t border-border/40 flex justify-end">
-            <Button
-              onClick={onClose}
-              size="sm"
-            >
-              {status === 'completed' ? 'Done' : 'Close'}
-            </Button>
-          </div>
-        )}
+        <div className="flex-shrink-0 px-6 pb-4 pt-2 border-t border-border/40">
+          <Button onClick={handleAction} className="w-full" disabled={actionDisabled || !canClose}>
+            Saparate
+          </Button>
+        </div>
       </DialogContent>
     </Dialog>
   );

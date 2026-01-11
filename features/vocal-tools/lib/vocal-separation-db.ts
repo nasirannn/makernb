@@ -105,6 +105,34 @@ export const getVocalSeparationByPredictionId = async (predictionId: string): Pr
 };
 
 /**
+ * Gets latest vocal separation by original audio URL (cache lookup)
+ */
+export const getLatestVocalSeparationByOriginalAudioUrl = async (
+  userId: string,
+  originalAudioUrl: string
+): Promise<VocalSeparation | null> => {
+  try {
+    validateRequiredParams({ userId, originalAudioUrl }, ['userId', 'originalAudioUrl']);
+
+    const result = await query(
+      `SELECT *
+       FROM vocal_separations
+       WHERE user_id = $1::uuid
+         AND original_audio_url = $2
+         AND (is_deleted IS NULL OR is_deleted = FALSE)
+       ORDER BY updated_at DESC NULLS LAST, created_at DESC
+       LIMIT 1`,
+      [userId, originalAudioUrl]
+    );
+
+    return result.rows[0] || null;
+  } catch (error) {
+    console.error('Error getting vocal separation by original_audio_url:', error);
+    throw error;
+  }
+};
+
+/**
  * Updates vocal separation record by task_id
  */
 export const updateVocalSeparationByPredictionId = async (

@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { query } from '@/lib/db-query-builder';
 import { getUserIdFromRequest } from '@/lib/auth';
-import { createVocalRemoval } from '@/features/vocal-tools/lib/vocal-removal-db';
+import { createVocalRemoval, getVocalRemovalsByTrackId } from '@/features/vocal-tools/lib/vocal-removal-db';
 import MusicApiService from '@/lib/music-api';
 import { getFeatureCredits } from '@/lib/credits-config';
 import { getUserCredits } from '@/lib/user-db';
@@ -27,13 +27,64 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json();
-    const { trackId } = body;
+    const { trackId, force } = body as { trackId?: string; force?: boolean };
 
     if (!trackId) {
       return NextResponse.json(
         { error: 'trackId is required' },
         { status: 400 }
       );
+    }
+
+    // Cache hit: return latest completed (or processing) result for this track.
+    if (!force) {
+      const existing = await getVocalRemovalsByTrackId(trackId, userId);
+      const reusableCompleted = existing.find(r => {
+        const vocalUrl = r.r2_vocal_url || r.vocal_url;
+        const instrumentalUrl = r.r2_instrumental_url || r.instrumental_url;
+        return r.status === 'completed' && !!vocalUrl && !!instrumentalUrl;
+      });
+
+      if (reusableCompleted) {
+        const vocalUrl = reusableCompleted.r2_vocal_url || reusableCompleted.vocal_url;
+        const instrumentalUrl = reusableCompleted.r2_instrumental_url || reusableCompleted.instrumental_url;
+        return NextResponse.json(
+          {
+            success: true,
+            cacheHit: true,
+            data: {
+              removalId: reusableCompleted.id,
+              taskId: reusableCompleted.task_id,
+              status: reusableCompleted.status,
+              trackId: reusableCompleted.track_id,
+              vocalUrl,
+              instrumentalUrl,
+              createdAt: reusableCompleted.created_at,
+              updatedAt: reusableCompleted.updated_at,
+            },
+          },
+          { status: 200 }
+        );
+      }
+
+      const reusableProcessing = existing.find(r => r.status === 'processing');
+      if (reusableProcessing) {
+        return NextResponse.json(
+          {
+            success: true,
+            cacheHit: true,
+            data: {
+              removalId: reusableProcessing.id,
+              taskId: reusableProcessing.task_id,
+              status: reusableProcessing.status,
+              trackId: reusableProcessing.track_id,
+              createdAt: reusableProcessing.created_at,
+              updatedAt: reusableProcessing.updated_at,
+            },
+          },
+          { status: 200 }
+        );
+      }
     }
 
     // 固定使用 separate_vocal 类型

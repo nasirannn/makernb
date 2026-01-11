@@ -293,7 +293,7 @@ export const useVocalSeparation = () => {
         formData.append('audioUrl', request.audioUrl);
       }
 
-      const response = await fetch('/api/vocal-separation', {
+      const response = await fetch('/api/vocal/separation', {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${session.access_token}`,
@@ -312,24 +312,54 @@ export const useVocalSeparation = () => {
       const result = await response.json();
 
       if (result.success) {
-        // Refresh credits display
-        if (refreshCredits) {
+        // Refresh credits display (only when actually starting a new job)
+        if (refreshCredits && !result.cacheHit) {
           refreshCredits().catch(console.error);
         }
 
-        if (result.data?.predictionId) {
-          // Update the processing separation with real predictionId
-          setSeparations(prev => prev.map(sep => 
-            sep.id === processingSeparation.id 
-              ? { ...sep, predictionId: result.data.predictionId, id: result.data.separationId || sep.id }
-              : sep
-          ));
-
-          // Start polling for status updates
-          startPollingStatus(result.data.predictionId);
-        } else {
+        const data = result.data;
+        if (!data?.predictionId) {
           throw new Error('No prediction ID received from server');
         }
+
+        // Cache hit: completed result can be rendered immediately without polling.
+        if (result.cacheHit && data.status === 'completed' && data.vocalUrl && data.instrumentalUrl) {
+          setSeparations(prev =>
+            prev.map(sep =>
+              sep.id === processingSeparation.id
+                ? {
+                    ...sep,
+                    id: data.id || data.separationId || sep.id,
+                    predictionId: data.predictionId,
+                    status: 'completed',
+                    originalFilename: data.originalFilename || sep.originalFilename,
+                    vocalUrl: data.vocalUrl,
+                    instrumentalUrl: data.instrumentalUrl,
+                    createdAt: data.createdAt || sep.createdAt,
+                    updatedAt: data.updatedAt || sep.updatedAt,
+                  }
+                : sep
+            )
+          );
+
+          cleanupResources();
+          setIsProcessing(false);
+          setProcessingTimer(0);
+          toast.success('Loaded existing separation result');
+          return;
+        }
+
+        // Update the processing separation with real predictionId
+        setSeparations(prev =>
+          prev.map(sep =>
+            sep.id === processingSeparation.id
+              ? { ...sep, predictionId: data.predictionId, id: data.separationId || data.id || sep.id }
+              : sep
+          )
+        );
+
+        // Start polling for status updates
+        startPollingStatus(data.predictionId);
       } else {
         throw new Error(result.error || 'Vocal separation failed');
       }
@@ -468,24 +498,54 @@ export const useVocalSeparation = () => {
       const result = await response.json();
 
       if (result.success) {
-        // Refresh credits display
-        if (refreshCredits) {
+        // Refresh credits display (only when actually starting a new job)
+        if (refreshCredits && !result.cacheHit) {
           refreshCredits().catch(console.error);
         }
 
-        if (result.data?.taskId) {
-          // Update the processing separation with real taskId
-          setSeparations(prev => prev.map(sep => 
-            sep.id === processingSeparation.id 
-              ? { ...sep, predictionId: result.data.taskId, id: result.data.removalId || sep.id }
-              : sep
-          ));
-
-          // Start polling for status updates
-          startPollingKieStatus(result.data.taskId);
-        } else {
+        const data = result.data;
+        if (!data?.taskId) {
           throw new Error('No task ID received from server');
         }
+
+        // Cache hit: completed result can be rendered immediately without polling.
+        if (result.cacheHit && data.status === 'completed' && data.vocalUrl && data.instrumentalUrl) {
+          setSeparations(prev =>
+            prev.map(sep =>
+              sep.id === processingSeparation.id
+                ? {
+                    ...sep,
+                    id: data.removalId || sep.id,
+                    predictionId: data.taskId,
+                    status: 'completed',
+                    vocalUrl: data.vocalUrl,
+                    instrumentalUrl: data.instrumentalUrl,
+                    createdAt: data.createdAt || sep.createdAt,
+                    updatedAt: data.updatedAt || sep.updatedAt,
+                    source: 'kie',
+                  }
+                : sep
+            )
+          );
+
+          cleanupResources();
+          setIsProcessing(false);
+          setProcessingTimer(0);
+          toast.success('Loaded existing separation result');
+          return;
+        }
+
+        // Update the processing separation with real taskId
+        setSeparations(prev =>
+          prev.map(sep =>
+            sep.id === processingSeparation.id
+              ? { ...sep, predictionId: data.taskId, id: data.removalId || sep.id }
+              : sep
+          )
+        );
+
+        // Start polling for status updates
+        startPollingKieStatus(data.taskId);
       } else {
         throw new Error(result.error || 'Vocal removal failed');
       }

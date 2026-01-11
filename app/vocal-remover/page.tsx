@@ -72,6 +72,15 @@ export default function VocalSeparationDemo() {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [showAuthModal, setShowAuthModal] = useState(false);
   const [showConfirmDialog, setShowConfirmDialog] = useState(false);
+  const [pendingStart, setPendingStart] = useState<{
+    force: boolean;
+    requestKey: string;
+    file: File | null;
+    audioUrl: string;
+  } | null>(null);
+  const [resultKey, setResultKey] = useState<string | null>(null);
+  const [isCacheHit, setIsCacheHit] = useState(false);
+  const [cacheUpdatedAt, setCacheUpdatedAt] = useState<string | null>(null);
   
   // Tab 状态
   const [activeTab, setActiveTab] = useState<'upload' | 'studio'>('upload');
@@ -82,6 +91,7 @@ export default function VocalSeparationDemo() {
   const [isLoadingStudioTracks, setIsLoadingStudioTracks] = useState(false);
   const [studioTracksSearchQuery, setStudioTracksSearchQuery] = useState('');
   const hasLoadedStudioTracks = useRef(false); // 跟踪是否已加载过数据
+  const lastRequestKeyRef = useRef<string | null>(null);
 
   // 获取 Studio tracks
   const fetchStudioTracks = useCallback(async () => {
@@ -388,31 +398,43 @@ export default function VocalSeparationDemo() {
       }
     }
 
-    // 检查是否有现有的分离结果，如果有则显示确认弹窗
-    if (audioUrl || separationResults?.vocals || separationResults?.accompaniment) {
+    const requestKey = selectedFile
+      ? `file:${selectedFile.name}:${selectedFile.size}:${selectedFile.lastModified}`
+      : `url:${userInputUrl.trim()}`;
+
+    const hasPlayerTracks = !!(audioUrl || separationResults?.vocals || separationResults?.accompaniment);
+    if (hasPlayerTracks && resultKey && resultKey !== requestKey) {
+      setPendingStart({ force: false, requestKey, file: selectedFile, audioUrl: userInputUrl });
       setShowConfirmDialog(true);
       return;
     }
 
-    // 如果没有现有结果，直接开始分离
-    await startSeparation();
+    await startSeparation({ force: false, requestKey, file: selectedFile, audioUrl: userInputUrl });
   };
 
   const handleConfirmDialog = () => {
     setShowConfirmDialog(false);
-    startSeparation();
+    const next = pendingStart;
+    setPendingStart(null);
+    if (next) {
+      startSeparation(next);
+    }
   };
 
   const handleCancelDialog = () => {
     setShowConfirmDialog(false);
+    setPendingStart(null);
   };
 
-  const startSeparation = async () => {
+  const startSeparation = async (options: { force: boolean; requestKey: string; file: File | null; audioUrl: string }) => {
     setIsGenerating(true);
     setError(null);
     setSeparationComplete(false);
     setSeparationResults(null);
     setSeparationProgress(0);
+    setIsCacheHit(false);
+    setCacheUpdatedAt(null);
+    lastRequestKeyRef.current = options.requestKey;
 
     // 重置播放状态
     setIsOriginalPlaying(false);
@@ -433,14 +455,17 @@ export default function VocalSeparationDemo() {
       }
 
       const formData = new FormData();
-      if (selectedFile) {
-        formData.append('file', selectedFile);
+      if (options.file) {
+        formData.append('file', options.file);
       }
-      if (userInputUrl) {
-        formData.append('audioUrl', userInputUrl);
+      if (options.audioUrl) {
+        formData.append('audioUrl', options.audioUrl);
+      }
+      if (options.force) {
+        formData.append('force', 'true');
       }
 
-      const response = await fetch('/api/vocal-separation', {
+      const response = await fetch('/api/vocal/separation', {
         method: 'POST',
         body: formData,
         headers: {
@@ -454,12 +479,26 @@ export default function VocalSeparationDemo() {
         throw new Error(result.error || 'Separation failed');
       }
 
-      // 不在API响应时设置URL，统一通过轮询从数据库获取
-      // 这样可以确保显示的是数据库中的数据
+      // Cache hit: completed result can be rendered immediately without polling.
+      if (result?.success && result?.cacheHit && result?.data?.status === 'completed') {
+        const data = result.data;
+        setAudioUrl(data.originalAudioUrl || '');
+        setSeparationResults({
+          vocals: data.vocalUrl || '',
+          accompaniment: data.instrumentalUrl || '',
+        });
+        setSeparationProgress(100);
+        setSeparationComplete(true);
+        setIsGenerating(false);
+        setIsCacheHit(true);
+        setCacheUpdatedAt(data.updatedAt || data.createdAt || null);
+        setResultKey(options.requestKey);
+        return;
+      }
 
       // Poll status until completion
       if (result.data?.predictionId) {
-        startPollingStatus(result.data.predictionId);
+        startPollingStatus(result.data.predictionId, options.requestKey);
       }
     } catch (error) {
       console.error('Separation error:', error);
@@ -468,7 +507,7 @@ export default function VocalSeparationDemo() {
     }
   };
 
-  const startPollingStatus = (predictionId: string) => {
+  const startPollingStatus = (predictionId: string, requestKey: string) => {
     const startTime = Date.now();
     const MAX_POLL_TIME = 300; // 最大轮询时间：5分钟（300秒）
     let cancelled = false;
@@ -555,6 +594,7 @@ export default function VocalSeparationDemo() {
           setSeparationProgress(100);
           setSeparationComplete(true);
           setIsGenerating(false);
+          setResultKey(requestKey);
           return;
         }
 
@@ -973,6 +1013,29 @@ export default function VocalSeparationDemo() {
               <h3 className="text-xl font-semibold text-foreground mb-6 text-left">
                 {selectedFile ? selectedFile.name : audioUrl ? 'Audio URL' : 'Separation Results'}
               </h3>
+
+              {separationComplete && resultKey?.startsWith('url:') && (
+                <div className={`mb-6 p-4 rounded-lg border ${isCacheHit ? 'bg-blue-50 border-blue-200' : 'bg-muted/30 border-border'}`}>
+                  <div className="flex flex-col sm:flex-row gap-3 sm:items-center sm:justify-between">
+                    <p className={`text-sm ${isCacheHit ? 'text-blue-700' : 'text-muted-foreground'}`}>
+                      {isCacheHit
+                        ? `Showing existing separation result${cacheUpdatedAt ? ` • Updated ${formatDateTime(cacheUpdatedAt)}` : ''}`
+                        : 'Want a fresh result with the latest model?'}
+                    </p>
+                    <Button
+                      variant="secondary"
+                      size="sm"
+                      disabled={isGenerating}
+                      onClick={() => {
+                        const url = resultKey.slice('url:'.length);
+                        startSeparation({ force: true, requestKey: resultKey, file: null, audioUrl: url });
+                      }}
+                    >
+                      Re-separate
+                    </Button>
+                  </div>
+                </div>
+              )}
 
               {error && (
                 <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg">

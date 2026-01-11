@@ -2,7 +2,7 @@ import { useState, useCallback } from 'react';
 import { supabase } from '@/lib/supabase';
 
 export interface VocalRemovalState {
-  status?: 'processing' | 'completed' | 'error';
+  status?: 'checking' | 'ready' | 'processing' | 'completed' | 'error';
   taskId?: string;
   progress?: number;
   errorMessage?: string;
@@ -189,4 +189,3 @@ export const useVocalRemovalManager = () => {
     startPolling,
   };
 };
-

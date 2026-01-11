@@ -35,6 +35,12 @@ interface WaveformPlayerProps {
   selectorOverlay?: boolean;
   /** 波形区域是否显示边框 */
   showWaveBorder?: boolean;
+  /** 播放按钮样式 */
+  playButtonVariant?: 'icon' | 'round';
+  /** 圆形播放按钮尺寸（仅 playButtonVariant='round' 生效） */
+  playButtonSize?: 'sm' | 'md' | 'lg';
+  /** 是否显示容器背景/圆角等外观（默认 true） */
+  chrome?: boolean;
   /** 是否显示结束手柄 */
   showSelectorEndHandle?: boolean;
   /** 选择器高亮颜色 */
@@ -91,6 +97,9 @@ export const WaveformPlayer = React.forwardRef<WaveformPlayerHandle, WaveformPla
   showSelector = false,
   selectorOverlay = false,
   showWaveBorder = false,
+  playButtonVariant = 'icon',
+  playButtonSize = 'md',
+  chrome = true,
   showSelectorEndHandle = true,
   selectorColor,
   selectorStart = 0,
@@ -526,20 +535,34 @@ export const WaveformPlayer = React.forwardRef<WaveformPlayerHandle, WaveformPla
     return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
   };
 
+  const roundPlayButtonSizeClassName =
+    playButtonSize === 'lg'
+      ? 'h-[68px] w-[68px]'
+      : playButtonSize === 'sm'
+        ? 'h-8 w-8'
+        : 'h-10 w-10';
+
+  const playIconClassName =
+    playButtonVariant === 'round' && playButtonSize === 'sm' ? 'w-5 h-5 fill-current' : 'w-6 h-6 fill-current';
+
   return (
-    <div className={`bg-muted/20 backdrop-blur-md rounded-md ${className}`}>
+    <div className={chrome ? `bg-muted/20 backdrop-blur-md rounded-md ${className}` : className}>
       {/* 分离的控制按钮 + 时间显示 */}
       {showControls && separateControls && (
         <div className="flex items-center gap-3 mb-3">
           <button
             onClick={onPlayPause}
             disabled={!audioUrl || isLoading || loadError !== null}
-            className="text-muted-foreground hover:text-foreground transition-colors flex-shrink-0 disabled:opacity-50 disabled:cursor-not-allowed"
+            className={
+              playButtonVariant === 'round'
+                ? `flex ${roundPlayButtonSizeClassName} items-center justify-center rounded-full bg-muted/40 text-muted-foreground transition-colors hover:bg-muted/60 hover:text-foreground flex-shrink-0 disabled:opacity-50 disabled:cursor-not-allowed`
+                : 'text-muted-foreground hover:text-foreground transition-colors flex-shrink-0 disabled:opacity-50 disabled:cursor-not-allowed'
+            }
           >
             {isPlaying ? (
-              <Pause className="w-6 h-6 fill-current" />
+              <Pause className={playIconClassName} />
             ) : (
-              <Play className="w-6 h-6 fill-current" />
+              <Play className={playIconClassName} />
             )}
           </button>
 
@@ -556,12 +579,16 @@ export const WaveformPlayer = React.forwardRef<WaveformPlayerHandle, WaveformPla
           <button
             onClick={onPlayPause}
             disabled={!audioUrl || isLoading || loadError !== null}
-            className="text-muted-foreground hover:text-foreground transition-colors flex-shrink-0 disabled:opacity-50 disabled:cursor-not-allowed"
+            className={
+              playButtonVariant === 'round'
+                ? `flex ${roundPlayButtonSizeClassName} items-center justify-center rounded-full bg-muted/40 text-muted-foreground transition-colors hover:bg-muted/60 hover:text-foreground flex-shrink-0 disabled:opacity-50 disabled:cursor-not-allowed`
+                : 'text-muted-foreground hover:text-foreground transition-colors flex-shrink-0 disabled:opacity-50 disabled:cursor-not-allowed'
+            }
           >
             {isPlaying ? (
-              <Pause className="w-6 h-6 fill-current" />
+              <Pause className={playIconClassName} />
             ) : (
-              <Play className="w-6 h-6 fill-current" />
+              <Play className={playIconClassName} />
             )}
           </button>
         )}
@@ -592,7 +619,7 @@ export const WaveformPlayer = React.forwardRef<WaveformPlayerHandle, WaveformPla
                   <div
                     ref={waveformRef}
                     className={`w-full ${showWaveBorder ? 'rounded-lg border border-primary/40' : ''}`}
-                    style={{ minHeight: `${waveHeight}px` }}
+                    style={{ minHeight: `${waveHeight}px`, height: `${waveHeight}px` }}
                   />
                   {isWaveformLoading && (
                     <div className="absolute inset-0 flex items-center justify-center bg-background/30 backdrop-blur-sm">
