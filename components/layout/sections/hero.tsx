@@ -40,7 +40,7 @@ export const HeroSection = () => {
             <button
               type="button"
               onClick={() => router.push("/studio")}
-              aria-label="Open Studio"
+              aria-label="Try for free"
               className="inline-flex items-center justify-center gap-2 px-7 py-3 bg-primary text-primary-foreground font-semibold rounded-full hover:bg-primary/90 transition-transform duration-200 hover:-translate-y-0.5 active:translate-y-0 text-base shadow-[0_16px_44px_rgba(0,0,0,0.18)]"
             >
               <span>Try for free</span>

@@ -17,6 +17,7 @@ import { supabase } from '@/lib/supabase';
 import { Tooltip } from '@/components/ui/tooltip';
 import { ThemeModeToggle } from "@/components/ui/theme-mode-toggle";
 import { SubscriptionBadge } from "@/components/ui/subscription-badge";
+import { cn } from "@/lib/utils";
 
 interface CommonSidebarProps {
   // 移除 isGenerating 参数，因为不再需要显示生成状态
@@ -172,18 +173,20 @@ const aiMusicToolsDropdown = [
   ]), []);
 
   const expandedButtonClasses = (active: boolean) =>
-    `group w-full h-12 flex items-center justify-start gap-3 rounded-2xl px-4 transition-all duration-300 ${
+    cn(
+      "group w-full h-12 flex items-center justify-start gap-3 rounded-2xl px-4 transition-colors duration-200",
       active
-        ? 'bg-black/5 text-foreground shadow-[0px_12px_30px_rgba(0,0,0,0.08)]'
-        : 'text-foreground/60 hover:text-foreground hover:bg-black/5'
-    }`;
+        ? "bg-foreground/10 text-foreground ring-1 ring-primary/20 shadow-[0px_12px_30px_rgba(0,0,0,0.08)]"
+        : "text-foreground/60 hover:text-foreground hover:bg-foreground/5"
+    );
 
   const collapsedButtonClasses = (active: boolean) =>
-    `group relative w-12 h-12 flex items-center justify-center rounded-2xl border border-transparent transition-all duration-300 ${
+    cn(
+      "group relative w-12 h-12 flex items-center justify-center rounded-2xl border border-transparent transition-colors duration-200",
       active
-        ? 'bg-black/5 text-foreground shadow-[0px_12px_30px_rgba(0,0,0,0.08)]'
-        : 'text-foreground/60 hover:text-foreground hover:bg-black/5'
-    }`;
+        ? "bg-foreground/10 text-foreground ring-1 ring-primary/20 shadow-[0px_12px_30px_rgba(0,0,0,0.08)]"
+        : "text-foreground/60 hover:text-foreground hover:bg-foreground/5"
+    );
 
   const renderNavButton = (item: SidebarNavItem) => {
     const Icon = item.icon;
@@ -198,7 +201,12 @@ const aiMusicToolsDropdown = [
           size="sm"
           className={expandedButtonClasses(active)}
         >
-          <Icon className="h-5 w-5 flex-shrink-0" />
+          <Icon
+            className={cn(
+              "h-5 w-5 flex-shrink-0 transition-colors",
+              active ? "text-primary" : "text-foreground/60 group-hover:text-foreground"
+            )}
+          />
           <div className="flex-1 text-left">
             <span className="text-sm font-medium">{item.label}</span>
           </div>
@@ -219,7 +227,12 @@ const aiMusicToolsDropdown = [
           size="sm"
           className={collapsedButtonClasses(active)}
         >
-          <Icon className="h-5 w-5" />
+          <Icon
+            className={cn(
+              "h-5 w-5 transition-colors",
+              active ? "text-primary" : "text-foreground/60 group-hover:text-foreground"
+            )}
+          />
           <span className="sr-only">{item.label}</span>
         </Button>
       </Tooltip>

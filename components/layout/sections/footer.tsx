@@ -24,7 +24,7 @@ export const FooterSection = () => {
                 href="/studio"
                 className="inline-flex items-center rounded-full bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground hover:bg-primary/90 transition-colors"
               >
-                Open Studio
+                Try for free
               </Link>
               <Link
                 href="/explore"

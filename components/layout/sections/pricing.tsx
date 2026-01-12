@@ -2,18 +2,17 @@
 
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
 import { useAuth } from "@/contexts/AuthContext";
 import { useCredits } from "@/contexts/CreditsContext";
 import { supabase } from "@/lib/supabase";
+import { cn } from "@/lib/utils";
 import { Check } from "lucide-react";
 import AuthModal from "@/components/ui/auth-modal";
 import { monthlyPlans, yearlyPlans, type PricingPlan } from "@/lib/pricing-config";
 
 export const PricingSection = () => {
   const { user } = useAuth();
-  const { credits } = useCredits();
+  useCredits();
   const [loading, setLoading] = useState<string | null>(null);
   const [billingPeriod, setBillingPeriod] = useState<'monthly' | 'yearly'>('yearly');
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
@@ -99,128 +98,146 @@ export const PricingSection = () => {
   };
 
   return (
-    <section id="pricing" className="py-12 sm:py-16">
+    <section id="pricing" className="py-24 sm:py-32">
       <div className="container max-w-6xl">
-      <div className="text-center mb-12">
-        <h2 className="text-3xl md:text-4xl text-center font-bold mb-4">
-          <span className="block">Choose the Plan</span>
-          <span className="block">That Fits You Best</span>
-        </h2>
-        
-        {/* Billing Period Toggle */}
-        <div className="mt-8 flex justify-center">
-          <div ref={toggleRef} className="app-card-muted app-hairline relative inline-flex rounded-full p-1">
-            <div
-              className="absolute top-1 bottom-1 rounded-full bg-primary shadow-[0_10px_26px_rgba(0,0,0,0.18)] transition-[transform,width] duration-300 ease-out"
-              style={{
-                width: sliderStyle.width,
-                transform: `translateX(${sliderStyle.x}px)`,
-              }}
-            />
-            <div className="relative z-10 inline-flex items-center gap-1">
-              <button
-                onClick={() => setBillingPeriod('yearly')}
-                ref={yearlyRef}
-                className={`px-5 py-2 text-sm font-semibold transition-colors duration-200 rounded-full ${
-                  billingPeriod === 'yearly'
-                    ? "text-primary-foreground"
-                    : "text-foreground/60 hover:text-foreground"
-                }`}
-              >
-                <div className="flex items-center gap-2">
-                  <span>Yearly</span>
-                  <span
-                    className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-semibold transition-colors duration-200 ${
-                      billingPeriod === 'yearly'
-                        ? "bg-black/15 text-primary-foreground"
-                        : "bg-black/5 text-foreground/70"
-                    }`}
-                  >
-                    Save 36%
-                  </span>
-                </div>
-              </button>
-              <button
-                onClick={() => setBillingPeriod('monthly')}
-                ref={monthlyRef}
-                className={`px-5 py-2 text-sm font-semibold transition-colors duration-200 rounded-full ${
-                  billingPeriod === 'monthly'
-                    ? "text-primary-foreground"
-                    : "text-foreground/60 hover:text-foreground"
-                }`}
-              >
-                Monthly
-              </button>
+        <div className="text-center">
+          <div className="text-lg text-primary tracking-wider">Pricing</div>
+          <h2 className="mt-2 text-3xl md:text-4xl font-bold tracking-tight">
+            Choose the Plan That Fits You Best
+          </h2>
+          <p className="mt-4 mx-auto max-w-2xl text-base md:text-lg text-muted-foreground">
+            Upgrade for more credits, faster iteration, and higher-quality exports. Cancel anytime.
+          </p>
+
+          <div className="mt-8 flex justify-center">
+            <div ref={toggleRef} className="app-card-muted app-hairline relative inline-flex rounded-full p-1">
+              <div
+                className="absolute top-1 bottom-1 rounded-full bg-primary shadow-[0_10px_26px_rgba(0,0,0,0.18)] transition-[transform,width] duration-300 ease-out"
+                style={{
+                  width: sliderStyle.width,
+                  transform: `translateX(${sliderStyle.x}px)`,
+                }}
+              />
+              <div className="relative z-10 inline-flex items-center gap-1">
+                <button
+                  onClick={() => setBillingPeriod("yearly")}
+                  ref={yearlyRef}
+                  className={cn(
+                    "px-5 py-2 text-sm font-semibold transition-colors duration-200 rounded-full",
+                    billingPeriod === "yearly" ? "text-primary-foreground" : "text-foreground/60 hover:text-foreground"
+                  )}
+                >
+                  <div className="flex items-center gap-2">
+                    <span>Yearly</span>
+                    <span
+                      className={cn(
+                        "inline-flex items-center rounded-full px-2 py-0.5 text-xs font-semibold transition-colors duration-200",
+                        billingPeriod === "yearly"
+                          ? "bg-black/15 text-primary-foreground"
+                          : "bg-black/5 text-foreground/70 dark:bg-white/10 dark:text-foreground/75"
+                      )}
+                    >
+                      Save 36%
+                    </span>
+                  </div>
+                </button>
+                <button
+                  onClick={() => setBillingPeriod("monthly")}
+                  ref={monthlyRef}
+                  className={cn(
+                    "px-5 py-2 text-sm font-semibold transition-colors duration-200 rounded-full",
+                    billingPeriod === "monthly" ? "text-primary-foreground" : "text-foreground/60 hover:text-foreground"
+                  )}
+                >
+                  Monthly
+                </button>
+              </div>
             </div>
           </div>
         </div>
-        
-      </div>
 
-      <div className="flex justify-center">
-        <div className="w-full max-w-3xl grid grid-cols-1 md:grid-cols-2 gap-6 grid-rows-1">
+        <div className="mt-12 grid gap-6 md:grid-cols-2">
           {currentPlans.map((plan) => (
-            <Card 
-              key={plan.id} 
-              className="app-card relative transition-all duration-300 h-full flex flex-col rounded-[28px]"
+            <div
+              key={plan.id}
+              className={cn(
+                "relative overflow-hidden rounded-3xl p-6 md:p-7",
+                plan.popular ? "app-card" : "app-card-muted",
+                "transition-transform duration-200 hover:-translate-y-1"
+              )}
             >
-              <CardHeader className="text-center pb-4 pt-8">
-                <div className="flex justify-center mb-6">
-                  <Badge className={`rounded-full px-4 py-1 text-xs font-bold uppercase tracking-[0.2em] ${
-                    plan.popular ? 'bg-primary text-primary-foreground' : 'bg-black/5 text-foreground/70 border border-black/10'
-                  }`}>
-                    {plan.name}
-                  </Badge>
-                </div>
-                <CardDescription className="text-sm text-muted-foreground mb-6">
-                  {billingPeriod === 'monthly'
-                    ? 'Perfect for Individual Creators'
-                    : 'Professional Music Creation Made Simple'}
-                </CardDescription>
-                
-                <div className="mb-6">
-                  <div className="text-5xl md:text-6xl font-black tracking-tight">
-                    <span className="text-base align-bottom mr-0.5">$</span>
-                    {plan.price}
-                    <span className="text-base text-muted-foreground ml-1">/mo</span>
+              {plan.popular && (
+                <div
+                  aria-hidden="true"
+                  className="pointer-events-none absolute inset-0 opacity-70 bg-[radial-gradient(820px_420px_at_20%_10%,hsl(var(--primary)/0.22),transparent_60%)]"
+                />
+              )}
+
+              <div className="relative flex flex-col h-full">
+                <div className="flex items-start justify-between gap-4">
+                  <div className="min-w-0">
+                    <div className="flex items-center gap-2">
+                      <div className="text-xl font-semibold tracking-tight">{plan.name}</div>
+                      {plan.popular && (
+                        <span className="inline-flex items-center rounded-full bg-primary px-2.5 py-1 text-[11px] font-semibold text-primary-foreground">
+                          Most popular
+                        </span>
+                      )}
+                    </div>
+                    <div className="mt-2 text-sm text-muted-foreground">
+                      {billingPeriod === "monthly" ? "For solo creators" : "Best value for teams & power users"}
+                    </div>
+                  </div>
+                  <div className="text-right">
+                    <div className="text-4xl font-black tracking-tight tabular-nums">
+                      <span className="text-sm align-top mr-0.5">$</span>
+                      {plan.price}
+                      <span className="text-sm text-muted-foreground ml-1">/mo</span>
+                    </div>
+                    <div className="mt-1 text-xs text-muted-foreground">
+                      {billingPeriod === "yearly" ? "Billed yearly" : "Billed monthly"}
+                    </div>
                   </div>
                 </div>
-              </CardHeader>
 
-              <CardContent className="pt-0 flex flex-col flex-grow">
-                <Button 
-                  className="w-full mb-6 rounded-full py-6 text-base font-semibold"
+                <div className="mt-5">
+                  <div className="inline-flex items-center rounded-full bg-foreground/5 px-3 py-1.5 text-xs font-semibold text-foreground/70 dark:bg-white/10 dark:text-foreground/80">
+                    {billingPeriod === "yearly"
+                      ? `${plan.credits.toLocaleString()} credits / year`
+                      : `${plan.credits.toLocaleString()} credits / month`}
+                  </div>
+                </div>
+
+                <Button
+                  className={cn(
+                    "mt-6 w-full rounded-full py-6 text-base font-semibold",
+                    plan.popular
+                      ? "bg-primary text-primary-foreground hover:bg-primary/90"
+                      : "bg-foreground text-background hover:bg-foreground/90 dark:bg-white dark:text-black dark:hover:bg-white/90"
+                  )}
                   variant="default"
                   onClick={() => handlePurchase(plan)}
                   disabled={loading === plan.id}
                 >
-                  {loading === plan.id ? (
-                    "Redirecting to payment..."
-                  ) : (
-                    "Subscribe"
-                  )}
+                  {loading === plan.id ? "Redirecting to payment..." : "Subscribe"}
                 </Button>
-                
 
-                <ul className="space-y-3 flex-grow">
+                <ul className="mt-6 space-y-3">
                   {plan.features.map((feature, index) => (
-                    <li key={index} className="flex items-center gap-3 text-sm text-foreground/80">
-                      <Check className="h-4 w-4 text-green-600 flex-shrink-0" />
-                      <span>{feature}</span>
-                    </li>
-                  ))}
-                </ul>
-              </CardContent>
-            </Card>
+	                    <li key={index} className="flex items-start gap-3 text-sm text-foreground/80">
+	                      <span className="mt-0.5 inline-flex h-5 w-5 items-center justify-center rounded-full bg-foreground/5 text-foreground dark:bg-white/10">
+	                        <Check className="h-3.5 w-3.5 text-emerald-500" />
+	                      </span>
+	                      <span className="leading-relaxed">{feature}</span>
+	                    </li>
+	                  ))}
+	                </ul>
+              </div>
+            </div>
           ))}
         </div>
-      </div>
 
-      {/* 登录弹窗 */}
-      <AuthModal 
-        isOpen={isAuthModalOpen} 
-        onClose={() => setIsAuthModalOpen(false)} 
-      />
+        <AuthModal isOpen={isAuthModalOpen} onClose={() => setIsAuthModalOpen(false)} />
       </div>
     </section>
   );

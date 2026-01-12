@@ -1,4 +1,4 @@
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { cn } from "@/lib/utils";
 
 const PenIcon = ({ className }: { className?: string }) => (
   <svg viewBox="0 0 24 24" fill="none" className={className} aria-hidden="true">
@@ -48,20 +48,48 @@ interface FeaturesProps {
   icon: React.ComponentType<{ className?: string }>;
   title: string;
   description: string;
-  iconBg: string;
+  accent: "violet" | "cyan" | "amber" | "emerald" | "blue" | "pink";
+  featured?: boolean;
 }
 
-const FeatureIconBadge = ({
-  bgClass,
+const accentStyles: Record<
+  FeaturesProps["accent"],
+  {
+    icon: string;
+    wash: string;
+  }
+> = {
+  violet: { icon: "text-violet-600 dark:text-violet-300", wash: "from-violet-500/22 to-fuchsia-500/10" },
+  cyan: { icon: "text-cyan-600 dark:text-cyan-300", wash: "from-cyan-500/22 to-sky-500/10" },
+  amber: { icon: "text-amber-600 dark:text-amber-300", wash: "from-amber-500/22 to-orange-500/10" },
+  emerald: { icon: "text-emerald-600 dark:text-emerald-300", wash: "from-emerald-500/22 to-teal-500/10" },
+  blue: { icon: "text-blue-600 dark:text-blue-300", wash: "from-blue-500/22 to-indigo-500/10" },
+  pink: { icon: "text-pink-600 dark:text-pink-300", wash: "from-pink-500/22 to-rose-500/10" },
+};
+
+function FeatureIconBadge({
+  accent,
   children,
 }: {
-  bgClass: string;
+  accent: FeaturesProps["accent"];
   children: React.ReactNode;
-}) => (
-  <div className={`flex h-12 w-12 shrink-0 items-center justify-center rounded-md self-start mt-0.5 ${bgClass}`}>
-    {children}
-  </div>
-);
+}) {
+  const styles = accentStyles[accent];
+  return (
+    <div className="relative h-11 w-11 shrink-0">
+      <div
+        aria-hidden="true"
+        className={cn(
+          "absolute inset-0 rounded-xl opacity-70 blur-[10px]",
+          `bg-gradient-to-br ${styles.wash}`
+        )}
+      />
+      <div className="relative flex h-11 w-11 items-center justify-center rounded-xl bg-foreground/5 dark:bg-white/10">
+        {children}
+      </div>
+    </div>
+  );
+}
 
 const featureList: FeaturesProps[] = [
   {
@@ -69,81 +97,154 @@ const featureList: FeaturesProps[] = [
     title: "Text/Lyrics to Song",
     description:
       "Describe the vibe in a sentence or paste full lyrics. The model turns your words into a track with matching melody, rhythm, and tone.",
-    iconBg: "bg-[#2aa3ff]",
+    accent: "violet",
+    featured: true,
   },
   {
     icon: EditIcon,
     title: "Edit Song",
     description:
       "Need a new verse or hook? Select a section, change the lyrics or style, and regenerate just that part. Merge it seamlessly into the song.",
-    iconBg: "bg-[#d94cff]",
+    accent: "pink",
   },
   {
     icon: ExtendIcon,
     title: "Extend Song",
     description:
       "Make a track longer without losing its feel. Choose where to start and generate a natural continuation that fits the existing groove.",
-    iconBg: "bg-[#f08a00]",
+    accent: "amber",
   },
   {
     icon: CoverIcon,
     title: "Song Cover",
     description:
       "Reimagine your song in a new style while keeping the lyrics intact. Generate a fresh version with a different musical character.",
-    iconBg: "bg-[#10b981]",
+    accent: "emerald",
   },
   {
     icon: UploadIcon,
     title: "Upload Audio",
     description:
       "Upload a clip and use it as a creative anchor. Build extensions or covers that reference the original melody and texture.",
-    iconBg: "bg-[#4f7cff]",
+    accent: "blue",
   },
   {
     icon: VocalIcon,
     title: "Vocal Removal",
     description:
       "Split vocals and instrumentals for cleaner edits, remixes, or exports. Keep full control over each stem.",
-    iconBg: "bg-[#ff5aa7]",
+    accent: "cyan",
   },
 ];
 
 export const FeaturesSection = () => {
+  const featured = featureList.find((f) => f.featured) ?? featureList[0];
+  const rest = featureList.filter((f) => f !== featured);
+
   return (
     <section id="features" className="py-24 sm:py-32">
       <div className="container">
-        <h2 className="text-lg text-primary text-center mb-2 tracking-wider">
-          Features
-        </h2>
+        <div className="mx-auto max-w-6xl">
+          <div className="text-center mb-12">
+            <h2 className="text-lg text-primary text-center mb-2 tracking-wider">Features</h2>
+            <h2 className="text-3xl md:text-4xl text-center font-bold mb-4">Powerful AI Music Creation</h2>
+            <h3 className="md:w-1/2 mx-auto text-lg text-center text-muted-foreground">
+              Turn an idea into a finished R&amp;B track — then iterate fast with surgical edits.
+            </h3>
+          </div>
 
-        <h2 className="text-3xl md:text-4xl text-center font-bold mb-4">
-          Powerful AI Music Creation
-        </h2>
+          <div className="grid gap-5 md:grid-cols-12">
+            {/* Featured */}
+            <div className="md:col-span-7 h-full">
+              <div className="app-card relative h-full overflow-hidden rounded-3xl p-6 md:p-8">
+                <div
+                  aria-hidden="true"
+                  className={cn(
+                    "pointer-events-none absolute inset-0 opacity-80",
+                    "bg-[radial-gradient(820px_420px_at_15%_10%,hsl(var(--primary)/0.20),transparent_60%)]"
+                  )}
+                />
+                <div className="relative flex items-start gap-4">
+                  <FeatureIconBadge accent={featured.accent}>
+                    <featured.icon className={cn("h-6 w-6", accentStyles[featured.accent].icon)} />
+                  </FeatureIconBadge>
+                  <div className="min-w-0">
+                    <div className="text-xs font-semibold tracking-[0.28em] text-muted-foreground uppercase">
+                      Core workflow
+                    </div>
+                    <div className="mt-2 text-2xl font-semibold tracking-tight text-foreground">
+                      {featured.title}
+                    </div>
+                    <p className="mt-3 text-sm md:text-base text-muted-foreground leading-relaxed">
+                      {featured.description}
+                    </p>
 
-        <h3 className="md:w-1/2 mx-auto text-lg text-center text-muted-foreground mb-10">
-          Experience the future of music creation with our advanced AI technology that transforms your ideas into professional R&B songs
-        </h3>
-
-        <div className="grid gap-6 md:grid-cols-2 max-w-5xl mx-auto">
-          {featureList.map(({ icon: IconComponent, title, description, iconBg }) => (
-            <Card
-              key={title}
-              className="app-card h-full rounded-[28px] transition-transform duration-300 hover:-translate-y-1 hover:shadow-[0_28px_70px_rgba(0,0,0,0.10)]"
-            >
-              <CardHeader className="flex flex-row items-center gap-4 pb-3">
-                <FeatureIconBadge bgClass={iconBg}>
-                  <IconComponent className="h-6 w-6 text-white" />
-                </FeatureIconBadge>
-                <div>
-                  <CardTitle className="text-lg font-semibold">{title}</CardTitle>
-                  <p className="mt-2 text-sm text-muted-foreground leading-relaxed">
-                    {description}
-                  </p>
+                    <div className="mt-5 flex flex-wrap gap-2">
+                      {["Prompt → Music", "Lyrics-aware", "Instant preview", "Export clean audio"].map((chip) => (
+                        <span
+                          key={chip}
+                          className="inline-flex items-center rounded-full bg-foreground/5 px-3 py-1.5 text-xs font-semibold text-foreground/70 dark:bg-white/10 dark:text-foreground/80"
+                        >
+                          {chip}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
                 </div>
-              </CardHeader>
-              <CardContent className="pt-0" />
-            </Card>
-          ))}
+              </div>
+            </div>
+
+            {/* Bento grid */}
+            <div className="md:col-span-5">
+              <div className="grid gap-5">
+                {rest.slice(0, 2).map((f) => (
+                  <div key={f.title} className="app-card-muted relative overflow-hidden rounded-3xl p-6 transition-colors hover:bg-foreground/10 dark:hover:bg-white/15">
+                    <div
+                      aria-hidden="true"
+                      className={cn(
+                        "pointer-events-none absolute inset-0 opacity-60",
+                        "bg-[radial-gradient(820px_420px_at_15%_10%,hsl(var(--primary)/0.20),transparent_60%)]"
+                      )}
+                    />
+                    <div className="relative flex items-start gap-4">
+                      <FeatureIconBadge accent={f.accent}>
+                        <f.icon className={cn("h-6 w-6", accentStyles[f.accent].icon)} />
+                      </FeatureIconBadge>
+                      <div className="min-w-0">
+                        <div className="text-lg font-semibold tracking-tight text-foreground">{f.title}</div>
+                        <p className="mt-2 text-sm text-muted-foreground leading-relaxed">{f.description}</p>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            <div className="md:col-span-12">
+              <div className="grid gap-5 md:grid-cols-3">
+                {rest.slice(2).map((f) => (
+                  <div key={f.title} className="app-card-muted relative overflow-hidden rounded-3xl p-6 transition-colors hover:bg-foreground/10 dark:hover:bg-white/15">
+                    <div
+                      aria-hidden="true"
+                      className={cn(
+                        "pointer-events-none absolute inset-0 opacity-60",
+                        "bg-[radial-gradient(820px_420px_at_15%_10%,hsl(var(--primary)/0.20),transparent_60%)]"
+                      )}
+                    />
+                    <div className="relative flex items-start gap-4">
+                      <FeatureIconBadge accent={f.accent}>
+                        <f.icon className={cn("h-6 w-6", accentStyles[f.accent].icon)} />
+                      </FeatureIconBadge>
+                      <div className="min-w-0">
+                        <div className="text-lg font-semibold tracking-tight text-foreground">{f.title}</div>
+                        <p className="mt-2 text-sm text-muted-foreground leading-relaxed">{f.description}</p>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
         </div>
       </div>
     </section>

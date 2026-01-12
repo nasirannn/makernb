@@ -511,8 +511,8 @@ export default function ExplorePage() {
               }
             `
           }} />
-          <div className="player-container-explore-page">
-            <MusicPlayer
+	          <div className="player-container-explore-page">
+	            <MusicPlayer
               tracks={playlist.map(music => ({
                 id: music.primaryTrack.id,
                 title: music.title,
@@ -537,13 +537,13 @@ export default function ExplorePage() {
               onPrevious={handlePrevious}
               onNext={handleNext}
               onSeek={handleSeek}
-              onVolumeChange={handleVolumeChange}
-              onMuteToggle={handleMuteToggle}
-              onTrackChange={handleTrackChange}
-            />
-          </div>
-        </>
-      )}
-    </div>
-  );
+	              onVolumeChange={handleVolumeChange}
+	              onMuteToggle={handleMuteToggle}
+	              onTrackChange={handleTrackChange}
+	            />
+	          </div>
+	        </>
+	      )}
+	    </div>
+	  );
 }

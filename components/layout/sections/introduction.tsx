@@ -105,26 +105,6 @@ export const IntroductionSection = () => {
                   Rhythm and Blues (R&amp;B) blends soulful vocals with rhythm-driven grooves. Emerging in the 1940s and evolving through soul, funk, and disco, it became one of the most influential genres shaping modern popular music.
                 </p>
 
-                <div className="mt-6 grid grid-cols-4 gap-3">
-                  {timelineEras.map(({ icon, title }) => (
-                    <div
-                      key={title}
-                      className="flex flex-col items-center justify-center gap-2 rounded-2xl bg-foreground/5 p-3"
-                    >
-                      <Image
-                        src={icon}
-                        alt={`${title} era icon`}
-                        width={44}
-                        height={44}
-                        className="h-11 w-11"
-                      />
-                      <span className="text-[11px] font-semibold tracking-tight text-foreground/75 text-center line-clamp-1">
-                        {title}
-                      </span>
-                    </div>
-                  ))}
-                </div>
-
                 <div className="mt-6 flex items-center justify-between gap-3">
                   <Link
                     href="/blog/a-journey-through-the-eras-of-rnb"
@@ -132,36 +112,35 @@ export const IntroductionSection = () => {
                   >
                     Read full article
                   </Link>
-                  <div className="text-xs text-muted-foreground">
-                    4 eras <span className="mx-1 opacity-60">•</span> 80+ years
-                  </div>
                 </div>
               </div>
             </div>
 
             {/* Right: vertical timeline */}
             <div className="w-full">
-              <div className="relative pl-10">
+              <div className="relative">
                 <div
-                  className="pointer-events-none absolute left-4 top-2 bottom-2 w-px bg-foreground/10"
+                  className="pointer-events-none absolute left-7 top-2 bottom-2 w-px bg-foreground/10"
                   aria-hidden="true"
                 />
                 <div className="space-y-4">
                   {timelineEras.map(({ icon, title, description }) => (
-                    <div key={title} className="relative">
-                      <div className="absolute left-4 top-6 -translate-x-1/2">
-                        <div className="h-9 w-9 rounded-full bg-foreground/5 flex items-center justify-center shadow-[0_10px_26px_rgba(0,0,0,0.10)]">
-                          <Image src={icon} alt="" width={22} height={22} />
-                        </div>
+                    <div key={title} className="grid grid-cols-[56px,1fr] gap-4 items-start">
+                      <div className="flex justify-center pt-2">
+                        <Image
+                          src={icon}
+                          alt={`${title} icon`}
+                          width={44}
+                          height={44}
+                          className="h-11 w-11 drop-shadow-[0_12px_26px_rgba(0,0,0,0.22)]"
+                        />
                       </div>
 
                       <div className="app-card rounded-[24px] p-5 sm:p-6">
-                        <div className="flex items-start justify-between gap-3">
-                          <h4 className="text-lg font-semibold tracking-tight text-foreground">
-                            {title}
-                          </h4>
-                        </div>
-                        <p className="mt-2 text-sm sm:text-[15px] text-muted-foreground leading-relaxed line-clamp-3">
+                        <h4 className="text-lg font-semibold tracking-tight text-foreground">
+                          {title}
+                        </h4>
+                        <p className="mt-2 text-sm sm:text-[15px] text-muted-foreground leading-relaxed line-clamp-2">
                           {description}
                         </p>
                       </div>

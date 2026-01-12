@@ -1859,11 +1859,11 @@ const StudioContent = () => {
                                 ['--studio-player-right' as any]: showInlinePanel ? 'calc(20rem + 1rem)' : '0px',
                             }}
                         >
-                            <div className="md:pb-4">
-                                <MusicPlayer {...musicPlayerProps} variant="studio" />
-                            </div>
-                        </div>
-                    )}
+	                            <div className="md:pb-4">
+	                                <MusicPlayer {...musicPlayerProps} />
+	                            </div>
+	                        </div>
+	                    )}
 
 	            </div>
 
