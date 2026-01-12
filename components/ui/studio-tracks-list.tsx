@@ -22,6 +22,7 @@ import { formatDurationInMinutes } from '@/lib/format-utils';
 import { useAuth } from '@/contexts/AuthContext';
 import { useCredits } from '@/contexts/CreditsContext';
 import { getEventBus, TRACK_EVENTS } from "@/lib/event-bus";
+import type { MusicModel } from "@/components/ui/model-selection-dialog";
 
 interface MusicGeneration {
   id: string;
@@ -67,6 +68,7 @@ interface StudioTracksListProps {
   ) => void;
   extendMusicGetState?: (taskId: string) => any;
   extendMusicClearState?: (taskId: string) => void;
+  selectedModel?: MusicModel;
 }
 
 // 稳定的 no-op 函数，用于替代未提供的 extendMusicStartPolling
@@ -126,6 +128,7 @@ export const StudioTracksList: React.FC<StudioTracksListProps> = React.memo(func
   extendMusicStartPolling,
   extendMusicGetState,
   extendMusicClearState,
+  selectedModel,
 }) {
   
   const { user } = useAuth();
@@ -1153,6 +1156,7 @@ export const StudioTracksList: React.FC<StudioTracksListProps> = React.memo(func
         audioUrl={pendingExtendMusicAudioUrl}
         userCredits={credits ?? undefined}
         getExtendMusicState={extendMusicGetState}
+        selectedModel={selectedModel}
       />
 
       {/* Replace Section 对话框 */}

@@ -1801,6 +1801,7 @@ const StudioContent = () => {
                                         extendMusicStartPolling={extendMusic.startPolling}
                                         extendMusicGetState={extendMusic.getExtendMusicState}
                                         extendMusicClearState={extendMusic.clearExtendMusicState}
+                                        selectedModel={selectedModel}
                                     />
                                 </div>
 
@@ -1823,6 +1824,7 @@ const StudioContent = () => {
                                         extendMusicStartPolling={extendMusic.startPolling}
                                         extendMusicGetState={extendMusic.getExtendMusicState}
                                         extendMusicClearState={extendMusic.clearExtendMusicState}
+                                        selectedModel={selectedModel}
                                     />
                                 </div>
                             </div>

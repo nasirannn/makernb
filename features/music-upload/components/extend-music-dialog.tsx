@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect, useRef, useCallback } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from "react";
 import {
   Dialog,
   DialogContent,
@@ -9,35 +9,25 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
-import { Switch } from "@/components/ui/switch";
 import { Slider } from "@/components/ui/slider";
-import { Music2, CreditCard, ChevronDown, ChevronUp, Play, Pause, HelpCircle, Maximize2 } from "lucide-react";
+import { ChevronDown, ChevronUp, Play, Pause, HelpCircle, Pencil } from "lucide-react";
 import { Tooltip } from "@/components/ui/tooltip";
-import { ExtendMusicModel, getExtendMusicCredits } from '@/lib/credits-config';
-import { formatDuration } from '@/lib/format-utils';
+import { ExtendMusicModel, getExtendMusicCredits } from "@/lib/credits-config";
+import { formatDuration } from "@/lib/format-utils";
+import { WaveformPlayer } from "@/components/ui/waveform-player";
 
-// Extend Music API 参数接口
 export interface ExtendMusicParams {
   model: ExtendMusicModel;
   defaultParamFlag: boolean;
-  // 自定义模式必填参数
   prompt?: string;
   style?: string;
   title?: string;
   continueAt?: number;
-  // 可选高级参数
-  vocalGender?: 'm' | 'f';
+  vocalGender?: "m" | "f";
   styleWeight?: number;
   weirdnessConstraint?: number;
   audioWeight?: number;
@@ -45,169 +35,187 @@ export interface ExtendMusicParams {
 }
 
 export interface ExtendMusicDialogProps {
-  /** 是否打开对话框 */
   isOpen: boolean;
-  /** 关闭对话框回调 */
   onClose: () => void;
-  /** 确认扩展音乐回调，传入完整参数，返回 taskId 时表示成功并应关闭弹窗 */
   onConfirm: (params: ExtendMusicParams) => Promise<{ taskId: string } | void> | void;
-  /** 曲目标题 */
   trackTitle?: string;
-  /** 曲目时长（秒） */
   trackDuration?: number;
-  /** 原始曲目的风格 */
   originalStyle?: string;
-  /** 音频文件 URL */
   audioUrl?: string;
-  /** 用户当前积分 */
   userCredits?: number;
-  /** 获取延长歌曲状态（用于监听完成状态） */
   getExtendMusicState?: (taskId: string) => any;
+  selectedModel?: ExtendMusicModel;
 }
 
-/**
- * Extend Music 对话框组件
- * 支持两种模式：使用原始参数或自定义参数
- */
 export const ExtendMusicDialog: React.FC<ExtendMusicDialogProps> = ({
   isOpen,
   onClose,
   onConfirm,
-  trackTitle = 'Track',
+  trackTitle = "Track",
   trackDuration = 120,
-  originalStyle = '',
+  originalStyle = "",
   audioUrl,
   userCredits,
   getExtendMusicState,
+  selectedModel = "V4",
 }) => {
-  // ==================== 基础状态 ====================
-  const [selectedModel, setSelectedModel] = useState<ExtendMusicModel>('V4');
-  const [useDefaultParams, setUseDefaultParams] = useState(true); // true = 原始参数模式
-  const [isExtending, setIsExtending] = useState(false); // 延长音乐进行中
-  const [currentTaskId, setCurrentTaskId] = useState<string | null>(null); // 当前任务ID
-  
-  // ==================== 自定义模式参数 ====================
-  const [prompt, setPrompt] = useState('');
-  const [style, setStyle] = useState('');
-  const [title, setTitle] = useState('');
+  const [isExtending, setIsExtending] = useState(false);
+  const [currentTaskId, setCurrentTaskId] = useState<string | null>(null);
+
+  const formatContinueAt = useCallback((seconds: number) => {
+    const total = Math.max(0, Math.floor(seconds));
+    const minutes = Math.floor(total / 60);
+    const secs = total % 60;
+    return `${String(minutes).padStart(2, "0")}:${String(secs).padStart(2, "0")}`;
+  }, []);
+
+  const [prompt, setPrompt] = useState("");
+  const [style, setStyle] = useState("");
+  const [title, setTitle] = useState("");
   const [continueAt, setContinueAt] = useState(0);
-  
-  // ==================== 音频播放器状态 ====================
+
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const [isPlaying, setIsPlaying] = useState(false);
   const [currentTime, setCurrentTime] = useState(0);
   const [audioDuration, setAudioDuration] = useState(trackDuration);
-  
-  // ==================== 高级选项 ====================
+
+  const getEffectiveDurationSeconds = useCallback(() => {
+    const duration = Number.isFinite(audioDuration) && audioDuration > 0 ? audioDuration : trackDuration;
+    return Math.max(0, Math.floor(duration));
+  }, [audioDuration, trackDuration]);
+
+  const clampContinueAt = useCallback(
+    (seconds: number) => {
+      const durationSeconds = getEffectiveDurationSeconds();
+      if (durationSeconds <= 1) return 0;
+      return Math.max(0, Math.min(Math.floor(seconds), durationSeconds - 1));
+    },
+    [getEffectiveDurationSeconds]
+  );
+
+  const clampContinueAtStrict = useCallback(
+    (seconds: number) => {
+      const durationSeconds = getEffectiveDurationSeconds();
+      if (durationSeconds <= 1) return 0;
+      return Math.max(1, Math.min(Math.floor(seconds), durationSeconds - 1));
+    },
+    [getEffectiveDurationSeconds]
+  );
+
   const [showAdvanced, setShowAdvanced] = useState(false);
-  const [vocalGender, setVocalGender] = useState<'m' | 'f' | 'auto'>('auto');
+  const [vocalGender, setVocalGender] = useState<"m" | "f" | "auto">("auto");
   const [styleWeight, setStyleWeight] = useState(0.65);
   const [weirdnessConstraint, setWeirdnessConstraint] = useState(0.65);
   const [audioWeight, setAudioWeight] = useState(0.65);
-  const [personaId, setPersonaId] = useState('');
+  const [personaId, setPersonaId] = useState("");
+  const [isEditingContinueAt, setIsEditingContinueAt] = useState(false);
+  const [continueAtInput, setContinueAtInput] = useState("");
+  const continueAtInputRef = useRef<HTMLInputElement | null>(null);
 
-  // ==================== 音频播放器逻辑 ====================
-  // 初始化音频元素
   useEffect(() => {
-    if (!audioUrl || typeof window === 'undefined' || !isOpen) {
-      // 如果对话框关闭或没有音频 URL，清理音频
+    if (!audioUrl || typeof window === "undefined" || !isOpen) {
       if (audioRef.current) {
         audioRef.current.pause();
-        audioRef.current.src = '';
+        audioRef.current.src = "";
         audioRef.current = null;
       }
       setIsPlaying(false);
       setCurrentTime(0);
       return;
     }
-    
+
     const audio = new Audio(audioUrl);
     audioRef.current = audio;
-    
-    // 重置播放状态
     setIsPlaying(false);
     setCurrentTime(0);
 
-    // 监听时间更新
     const handleTimeUpdate = () => {
-      if (audioRef.current) {
-        setCurrentTime(audioRef.current.currentTime);
-      }
+      if (audioRef.current) setCurrentTime(audioRef.current.currentTime);
     };
-
-    // 监听时长更新
     const handleLoadedMetadata = () => {
-      if (audioRef.current) {
-        const duration = audioRef.current.duration || trackDuration;
-        setAudioDuration(duration);
-      }
+      if (audioRef.current) setAudioDuration(audioRef.current.duration || trackDuration);
     };
-
-    // 监听播放结束
     const handleEnded = () => {
       setIsPlaying(false);
       setCurrentTime(0);
     };
-
-    // 监听暂停事件 - 更新 continueAt
     const handlePause = () => {
       if (audioRef.current) {
-        const pausedTime = Math.floor(audioRef.current.currentTime);
-        setContinueAt(pausedTime);
+        const paused = Math.floor(audioRef.current.currentTime);
+        setContinueAt(paused);
         setIsPlaying(false);
       }
     };
-    
-    // 监听播放事件
-    const handlePlay = () => {
-      setIsPlaying(true);
-    };
+    const handlePlay = () => setIsPlaying(true);
 
-    audio.addEventListener('timeupdate', handleTimeUpdate);
-    audio.addEventListener('loadedmetadata', handleLoadedMetadata);
-    audio.addEventListener('ended', handleEnded);
-    audio.addEventListener('pause', handlePause);
-    audio.addEventListener('play', handlePlay);
+    audio.addEventListener("timeupdate", handleTimeUpdate);
+    audio.addEventListener("loadedmetadata", handleLoadedMetadata);
+    audio.addEventListener("ended", handleEnded);
+    audio.addEventListener("pause", handlePause);
+    audio.addEventListener("play", handlePlay);
 
     return () => {
-      audio.removeEventListener('timeupdate', handleTimeUpdate);
-      audio.removeEventListener('loadedmetadata', handleLoadedMetadata);
-      audio.removeEventListener('ended', handleEnded);
-      audio.removeEventListener('pause', handlePause);
-      audio.removeEventListener('play', handlePlay);
+      audio.removeEventListener("timeupdate", handleTimeUpdate);
+      audio.removeEventListener("loadedmetadata", handleLoadedMetadata);
+      audio.removeEventListener("ended", handleEnded);
+      audio.removeEventListener("pause", handlePause);
+      audio.removeEventListener("play", handlePlay);
       audio.pause();
-      audio.src = '';
+      audio.src = "";
     };
   }, [audioUrl, trackDuration, isOpen]);
 
-  // 播放/暂停控制
   const handlePlayPause = async () => {
     if (!audioRef.current) return;
-    
     if (isPlaying) {
       audioRef.current.pause();
-      // pause 事件会自动触发 handlePause，更新 continueAt 和 isPlaying
     } else {
       try {
         await audioRef.current.play();
-        // play 事件会自动触发 handlePlay，更新 isPlaying
       } catch (error) {
-        console.error('Failed to play audio:', error);
+        console.error("Failed to play audio:", error);
         setIsPlaying(false);
       }
     }
   };
 
-  // 跳转到指定时间
   const handleSeek = (time: number) => {
     if (!audioRef.current) return;
-    const seekTime = Math.max(0, Math.min(time, audioDuration));
-    audioRef.current.currentTime = seekTime;
-    setCurrentTime(seekTime);
-    setContinueAt(Math.floor(seekTime));
+    const clamped = clampContinueAt(time);
+    audioRef.current.currentTime = clamped;
+    setCurrentTime(clamped);
+    setContinueAt(clamped);
   };
 
-  // 清理：对话框关闭时停止播放
+  const commitContinueAtInput = useCallback(() => {
+    const raw = continueAtInput.trim();
+    if (!raw) {
+      setIsEditingContinueAt(false);
+      return;
+    }
+
+    let seconds: number | null = null;
+    if (raw.includes(":")) {
+      const [m, s] = raw.split(":");
+      const minutes = Number(m);
+      const secs = Number(s);
+      if (Number.isFinite(minutes) && Number.isFinite(secs)) {
+        seconds = Math.floor(minutes * 60 + secs);
+      }
+    } else {
+      const parsed = Number(raw);
+      if (Number.isFinite(parsed)) seconds = Math.floor(parsed);
+    }
+
+    if (seconds === null || Number.isNaN(seconds)) {
+      setIsEditingContinueAt(false);
+      return;
+    }
+
+    handleSeek(clampContinueAtStrict(seconds));
+    setIsEditingContinueAt(false);
+  }, [clampContinueAtStrict, continueAtInput, handleSeek]);
+
   useEffect(() => {
     if (!isOpen && audioRef.current) {
       audioRef.current.pause();
@@ -215,93 +223,64 @@ export const ExtendMusicDialog: React.FC<ExtendMusicDialogProps> = ({
     }
   }, [isOpen]);
 
-  // ==================== 计算和验证 ====================
   const requiredCredits = getExtendMusicCredits(selectedModel);
   const hasEnoughCredits = userCredits === undefined || userCredits >= requiredCredits;
-  
-  // 自定义模式下的表单验证
-  const isFormValid = useDefaultParams || (
+
+  const durationSeconds = getEffectiveDurationSeconds();
+  const isFormValid =
     prompt.trim().length > 0 &&
     style.trim().length > 0 &&
     title.trim().length > 0 &&
     continueAt > 0 &&
-    continueAt < trackDuration
-  );
+    continueAt < durationSeconds;
 
-  // 延长完成后关闭弹窗并重置状态
   const handleCloseAfterComplete = useCallback(() => {
     setIsExtending(false);
     setCurrentTaskId(null);
-    
-    // 重置所有状态
-    setSelectedModel('V4');
-    setUseDefaultParams(true);
-    setPrompt('');
-    setStyle('');
-    setTitle('');
+    setPrompt("");
+    setStyle("");
+    setTitle("");
     setContinueAt(0);
+    setIsEditingContinueAt(false);
+    setContinueAtInput("");
     setShowAdvanced(false);
-    setVocalGender('auto');
+    setVocalGender("auto");
     setStyleWeight(0.65);
     setWeirdnessConstraint(0.65);
     setAudioWeight(0.65);
-    setPersonaId('');
-    
-    // 调用外部关闭回调
+    setPersonaId("");
     onClose();
   }, [onClose]);
 
-  // ==================== 监听延长歌曲状态 ====================
   useEffect(() => {
     if (!isExtending || !currentTaskId || !getExtendMusicState) return;
-
-    const checkStatus = () => {
+    const interval = setInterval(() => {
       const state = getExtendMusicState(currentTaskId);
-      // 检查状态是否为 'completed'（注意是 completed 而不是 complete）
-      if (state && state.status === 'completed') {
-        // 延长歌曲已完成，关闭弹窗
-        handleCloseAfterComplete();
-      } else if (state && state.status === 'error') {
-        // 如果出错，也关闭弹窗
+      if (state && (state.status === "completed" || state.status === "error")) {
         handleCloseAfterComplete();
       }
-    };
-
-    // 每2秒检查一次状态
-    const interval = setInterval(checkStatus, 2000);
-    
+    }, 2000);
     return () => clearInterval(interval);
   }, [isExtending, currentTaskId, getExtendMusicState, handleCloseAfterComplete]);
 
-  // ==================== 事件处理 ====================
   const handleConfirm = async () => {
     if (!hasEnoughCredits || !isFormValid || isExtending) return;
-
     try {
       const params: ExtendMusicParams = {
         model: selectedModel,
-        defaultParamFlag: useDefaultParams,
+        defaultParamFlag: true,
+        prompt,
+        style,
+        title,
+        continueAt,
       };
+      if (vocalGender && vocalGender !== "auto") params.vocalGender = vocalGender;
+      if (styleWeight !== 0.65) params.styleWeight = styleWeight;
+      if (weirdnessConstraint !== 0.65) params.weirdnessConstraint = weirdnessConstraint;
+      if (audioWeight !== 0.65) params.audioWeight = audioWeight;
+      if (personaId.trim()) params.personaId = personaId;
 
-      // 如果是自定义模式，添加必填参数
-      if (!useDefaultParams) {
-        params.prompt = prompt;
-        params.style = style;
-        params.title = title;
-        params.continueAt = continueAt;
-
-        // 添加高级选项（如果有值）
-        if (vocalGender && vocalGender !== 'auto') params.vocalGender = vocalGender;
-        if (styleWeight !== 0.65) params.styleWeight = styleWeight;
-        if (weirdnessConstraint !== 0.65) params.weirdnessConstraint = weirdnessConstraint;
-        if (audioWeight !== 0.65) params.audioWeight = audioWeight;
-        if (personaId.trim()) params.personaId = personaId;
-      }
-
-      // 设置 loading 状态
       setIsExtending(true);
-
-      // 停止音频播放
       if (audioRef.current) {
         audioRef.current.pause();
         audioRef.current.currentTime = 0;
@@ -309,84 +288,58 @@ export const ExtendMusicDialog: React.FC<ExtendMusicDialogProps> = ({
       setIsPlaying(false);
       setCurrentTime(0);
 
-      // 调用 onConfirm，等待返回 taskId
       const result = await onConfirm(params);
-      
-      if (result && typeof result === 'object' && 'taskId' in result) {
-        // 保存 taskId，开始监听状态
+      if (result && typeof result === "object" && "taskId" in result) {
         setCurrentTaskId(result.taskId);
-        // 不立即关闭弹窗，等待回调完成
       } else {
-        // 如果没有返回 taskId，说明可能出错了，关闭弹窗
         handleCloseAfterComplete();
       }
     } catch (error) {
-      console.error('Failed to extend music:', error);
-      // 出错时重置状态并关闭弹窗
+      console.error("Failed to extend music:", error);
       setIsExtending(false);
       setCurrentTaskId(null);
       handleCloseAfterComplete();
     }
   };
 
-
   const handleClose = () => {
-    // 停止音频播放
     if (audioRef.current) {
       audioRef.current.pause();
       audioRef.current.currentTime = 0;
     }
     setIsPlaying(false);
     setCurrentTime(0);
-    
-    // 重置所有状态
-    setSelectedModel('V4');
-    setUseDefaultParams(true);
-    setPrompt('');
-    setStyle('');
-    setTitle('');
+    setPrompt("");
+    setStyle("");
+    setTitle("");
     setContinueAt(0);
+    setIsEditingContinueAt(false);
+    setContinueAtInput("");
     setShowAdvanced(false);
-    setVocalGender('auto');
+    setVocalGender("auto");
     setStyleWeight(0.65);
     setWeirdnessConstraint(0.65);
     setAudioWeight(0.65);
-    setPersonaId('');
+    setPersonaId("");
     setIsExtending(false);
     setCurrentTaskId(null);
     onClose();
   };
 
-  // 模型版本选项配置
-  const modelOptions: Array<{ value: ExtendMusicModel; label: string; description: string }> = [
-    { value: 'V5', label: 'V5', description: 'Authentic vocals, superior sound quality, and intuitive control, up to 8 minutes' },
-    { value: 'V4_5PLUS', label: 'V4.5+', description: 'Best sound quality with richer vocals, up to 8 minutes' },
-    { value: 'V4_5', label: 'V4.5', description: 'High-quality vocals with smarter prompts and faster generation, up to 8 minutes' },
-    { value: 'V4', label: 'V4', description: 'Basic model with improved vocal quality, up to 4 minutes' },
-    { value: 'V4_5ALL', label: 'V4.5ALL', description: 'High-quality voice synthesis with faster generation, up to 8 minutes' },
-  ];
-
   return (
-    <Dialog 
-      open={isOpen} 
+    <Dialog
+      open={isOpen}
       onOpenChange={(open) => {
-        if (!open) {
-          handleClose();
-        }
+        if (!open) handleClose();
       }}
     >
       <DialogContent className="max-w-[calc(100vw-2rem)] sm:max-w-[560px] max-h-[90vh] flex flex-col p-0 border border-border/60 bg-background shadow-xl">
-        {/* 固定头部 */}
         <DialogHeader className="flex-shrink-0 px-6 pt-5 pb-4 border-b border-border/40 text-left relative overflow-hidden">
           <div className="pointer-events-none absolute inset-0 bg-gradient-to-r from-primary/10 via-transparent to-primary/10" />
           <div className="flex items-center justify-between pr-8">
             <div className="relative">
-              <div className="text-[10px] uppercase tracking-[0.28em] text-muted-foreground">
-                Extend Track
-              </div>
-              <DialogTitle className="text-xl font-semibold tracking-tight">
-                Extend Music
-              </DialogTitle>
+              <div className="text-[10px] uppercase tracking-[0.28em] text-muted-foreground">Extend Track</div>
+              <DialogTitle className="text-xl font-semibold tracking-tight">Extend Music</DialogTitle>
             </div>
           </div>
           <DialogDescription className="text-sm text-muted-foreground">
@@ -394,120 +347,107 @@ export const ExtendMusicDialog: React.FC<ExtendMusicDialogProps> = ({
           </DialogDescription>
         </DialogHeader>
 
-        {/* 可滚动的主要内容区域 */}
         <div className="flex-1 overflow-y-auto px-6">
           <div className="space-y-5 py-4">
-          <div className="rounded-xl border border-border/40 bg-muted/20 px-4 py-3">
-            <div className="flex items-center justify-between gap-3">
-              <div className="flex items-center gap-3">
-                <div className="flex h-9 w-9 items-center justify-center rounded-full bg-primary/10 text-primary">
-                  <Music2 className="h-4 w-4" />
-                </div>
-                <div>
-                  <div className="text-sm font-semibold text-foreground">{trackTitle}</div>
-                  <div className="text-xs text-muted-foreground">Original duration</div>
-                </div>
-              </div>
-              <div className="text-sm font-mono text-muted-foreground">
-                {formatDuration(Math.floor(trackDuration))}
-              </div>
-            </div>
-          </div>
-          {/* 模式选择 */}
-          <div className="space-y-2">
-            <Label htmlFor="param-mode">Extension Mode</Label>
-            <div className="flex items-center space-x-2 p-3 rounded-lg border border-border/50 bg-muted/20">
-              <Switch
-                id="param-mode"
-                checked={!useDefaultParams}
-                onCheckedChange={(checked) => setUseDefaultParams(!checked)}
-              />
-              <Label htmlFor="param-mode" className="cursor-pointer flex-1">
-                <div className="flex flex-col gap-1">
-                  <span className="font-medium">
-                    {useDefaultParams ? 'Use Original Parameters' : 'Custom Parameters'}
-                  </span>
-                  <span className="text-xs text-muted-foreground">
-                    {useDefaultParams 
-                      ? 'Continue with the same style and settings from the original track'
-                      : 'Customize the extension with new parameters'
-                    }
-                  </span>
-                </div>
-              </Label>
-            </div>
-          </div>
-
-          {/* 模型版本选择 */}
-          <div className="space-y-3 my-6">
-            <Label htmlFor="model">Model Version</Label>
-            <Select
-              value={selectedModel}
-              onValueChange={(value) => setSelectedModel(value as ExtendMusicModel)}
-            >
-              <SelectTrigger id="model" className="w-full !items-center py-3 min-h-[52px]">
-                <div className="flex flex-col items-start justify-center flex-1 min-w-0 mr-2 gap-1">
-                  <SelectValue placeholder="Select model version" />
-                  <p className="text-xs text-muted-foreground w-full text-left">
-                    {modelOptions.find(opt => opt.value === selectedModel)?.description || 'Select a model version'}
-                  </p>
-                </div>
-              </SelectTrigger>
-              <SelectContent>
-                {modelOptions.map((option) => (
-                  <SelectItem key={option.value} value={option.value}>
-                    {option.label}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-
-          {/* 自定义参数表单 */}
-          {!useDefaultParams && (
-            <div className="space-y-4 mt-6">
-              {/* Continue At - 音频播放器 */}
-              <div className="space-y-2">
-                <Label>
-                  Continue From <span className="text-destructive">*</span>
-                </Label>
+            <div className="space-y-4">
+              <div className="space-y-3">
                 {audioUrl ? (
-                  <div className="space-y-3 p-4 border rounded-lg bg-muted/20">
-                    {/* 播放控制 */}
-                    <div className="flex items-center gap-3">
-                      <button
-                        type="button"
-                        onClick={handlePlayPause}
-                        className="flex items-center justify-center w-10 h-10 rounded-full bg-primary text-primary-foreground hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-                      >
-                        {isPlaying ? (
-                          <Pause className="w-5 h-5 fill-current" />
-                        ) : (
-                          <Play className="w-5 h-5 fill-current" />
-                        )}
-                      </button>
-                      
-                      {/* 时间显示 */}
-                      <div className="flex-1 flex items-center gap-2">
-                        <span className="text-sm font-mono text-muted-foreground min-w-[50px]">
-                          {formatDuration(Math.floor(currentTime))}
-                        </span>
-                        
-                        {/* 进度条 */}
-                        <div className="flex-1 relative">
-                          <Slider
-                            value={[currentTime]}
-                            min={0}
-                            max={audioDuration}
-                            step={0.1}
-                            onValueChange={([value]) => handleSeek(value)}
-                            className="w-full"
-                          />
+                  <div className="space-y-3">
+                    <div className="relative overflow-hidden rounded-2xl bg-background p-3 shadow-sm">
+                      <div className="pointer-events-none absolute inset-0 bg-gradient-to-br from-primary/10 via-transparent to-primary/5" />
+                      <div className="relative flex flex-col gap-3">
+                        <div className="flex items-center gap-3">
+                          <button
+                            type="button"
+                            onClick={handlePlayPause}
+                            className="flex items-center justify-center h-10 w-10 rounded-full bg-primary/10 border border-primary/30 text-primary transition hover:text-primary/80 hover:bg-primary/15 p-0 disabled:opacity-50 disabled:cursor-not-allowed"
+                          >
+                            {isPlaying ? <Pause className="w-4 h-4 fill-current" /> : <Play className="w-4 h-4 fill-current" />}
+                          </button>
+                          <div className="min-w-0 flex flex-col justify-center gap-1">
+                            <p className="text-sm font-semibold truncate text-foreground leading-none">{trackTitle}</p>
+                            <p className="text-xs text-muted-foreground leading-none">
+                              {formatContinueAt(currentTime)} / {formatContinueAt(audioDuration)}
+                            </p>
+                          </div>
                         </div>
-                        
-                        <span className="text-sm font-mono text-muted-foreground min-w-[50px]">
-                          {formatDuration(Math.floor(audioDuration))}
-                        </span>
+                        <div className="space-y-2">
+                          <WaveformPlayer
+                            audioUrl={audioUrl}
+                            mediaElement={audioRef.current || undefined}
+                            isPlaying={isPlaying}
+                            onPlayPause={handlePlayPause}
+                            onTimeUpdate={(time) => setCurrentTime(time)}
+                            onPlayStateChange={(playing) => setIsPlaying(playing)}
+                            onReadyDuration={(dur) => setAudioDuration(dur)}
+                            showControls={false}
+                            separateControls={false}
+                            isLoading={!audioUrl}
+                            syncWithIsPlaying={false}
+                            backend="MediaElement"
+                            waveHeight={54}
+                            waveColor="rgba(255, 255, 255, 0.7)"
+                            progressColor="rgba(255, 255, 255, 0.95)"
+                            cursorColor="rgba(255, 255, 255, 0.95)"
+                            cursorWidth={2}
+                            className="rounded-lg bg-gradient-to-br from-primary/10 via-white/5 to-transparent"
+                            showSelector
+                            selectorOverlay
+                            showSelectorEndHandle={false}
+                            showSelectorLabels={false}
+                            selectorStart={continueAt}
+                            selectorEnd={audioDuration || 0}
+                            externalCurrentTime={currentTime}
+                            onSelectorStartChange={(time) => {
+                              const clamped = Math.max(0, Math.min(time, audioDuration || time));
+                              handleSeek(clamped);
+                            }}
+                          />
+                          <div className="flex items-center justify-between text-xs text-muted-foreground font-mono">
+                            <div className="flex items-center gap-2 min-w-0">
+                              <span className="truncate">Continue at</span>
+                              {isEditingContinueAt ? (
+                                <Input
+                                  ref={continueAtInputRef}
+                                  type="text"
+                                  inputMode="numeric"
+                                  value={continueAtInput}
+                                  onChange={(e) => setContinueAtInput(e.target.value)}
+                                  onBlur={commitContinueAtInput}
+                                  onKeyDown={(e) => {
+                                    if (e.key === "Enter") {
+                                      e.preventDefault();
+                                      commitContinueAtInput();
+                                    } else if (e.key === "Escape") {
+                                      e.preventDefault();
+                                      setIsEditingContinueAt(false);
+                                    }
+                                  }}
+                                  className="h-6 w-[88px] px-2 py-0 text-right text-xs font-mono tabular-nums bg-muted/20 border-border/50 focus-visible:ring-0 focus-visible:ring-offset-0 focus-visible:border-border/50"
+                                />
+                              ) : (
+                                <span className="inline-flex items-center gap-1 tabular-nums leading-none">
+                                  <span className="leading-none">{formatContinueAt(continueAt)}</span>
+                                  <button
+                                    type="button"
+                                    onClick={() => {
+                                      setContinueAtInput(formatContinueAt(continueAt));
+                                      setIsEditingContinueAt(true);
+                                      requestAnimationFrame(() => {
+                                        continueAtInputRef.current?.focus();
+                                        continueAtInputRef.current?.select();
+                                      });
+                                    }}
+                                    className="inline-flex items-center justify-center rounded-md border border-border/50 bg-muted/20 p-1 text-muted-foreground hover:bg-muted/30 hover:text-foreground transition-colors"
+                                    aria-label="Edit continue at"
+                                  >
+                                    <Pencil className="h-3.5 w-3.5" />
+                                  </button>
+                                </span>
+                              )}
+                            </div>
+                          </div>
+                        </div>
                       </div>
                     </div>
                   </div>
@@ -525,14 +465,12 @@ export const ExtendMusicDialog: React.FC<ExtendMusicDialogProps> = ({
                   </div>
                 )}
                 <p className="text-xs text-muted-foreground">
-                  {audioUrl 
-                    ? 'Play the audio and pause at the desired point to set the start time for extension'
-                    : 'Audio URL not available. Please enter the start time manually (0 - ' + trackDuration + 's)'
-                  }
+                  {audioUrl
+                    ? "Play or drag on the waveform to choose where the extension starts."
+                    : "Audio URL not available. Please enter the start time manually (0 - " + trackDuration + "s)."}
                 </p>
               </div>
 
-              {/* Title */}
               <div className="space-y-2">
                 <Label htmlFor="title">
                   Title <span className="text-destructive">*</span>
@@ -553,7 +491,6 @@ export const ExtendMusicDialog: React.FC<ExtendMusicDialogProps> = ({
                 </div>
               </div>
 
-              {/* Style */}
               <div className="space-y-2">
                 <Label htmlFor="style">
                   Style <span className="text-destructive">*</span>
@@ -572,12 +509,9 @@ export const ExtendMusicDialog: React.FC<ExtendMusicDialogProps> = ({
                     {style.length}/200
                   </span>
                 </div>
-                <p className="text-xs text-muted-foreground">
-                  Keep style consistent with original audio for best results
-                </p>
+                <p className="text-xs text-muted-foreground">Keep style consistent with original audio for best results</p>
               </div>
 
-              {/* Prompt */}
               <div className="space-y-2">
                 <Label htmlFor="prompt">
                   Extension Description <span className="text-destructive">*</span>
@@ -598,7 +532,6 @@ export const ExtendMusicDialog: React.FC<ExtendMusicDialogProps> = ({
                 </div>
               </div>
 
-              {/* 高级选项 */}
               <div className="space-y-3">
                 <button
                   type="button"
@@ -611,39 +544,38 @@ export const ExtendMusicDialog: React.FC<ExtendMusicDialogProps> = ({
 
                 {showAdvanced && (
                   <div className="space-y-4 pl-4 border-l-2 border-primary/20">
-                    {/* Vocal Gender */}
                     <div className="space-y-2">
                       <Label>Vocal Gender (Optional)</Label>
                       <div className="flex gap-2">
                         <button
                           type="button"
-                          onClick={() => setVocalGender('auto')}
+                          onClick={() => setVocalGender("auto")}
                           className={`flex-1 px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
-                            vocalGender === 'auto'
-                              ? 'bg-primary text-primary-foreground hover:bg-primary/90'
-                              : 'bg-muted/30 text-muted-foreground hover:bg-muted/50 hover:text-foreground'
+                            vocalGender === "auto"
+                              ? "bg-primary text-primary-foreground hover:bg-primary/90"
+                              : "bg-muted/30 text-muted-foreground hover:bg-muted/50 hover:text-foreground"
                           } disabled:opacity-50 disabled:cursor-not-allowed`}
                         >
                           Auto
                         </button>
                         <button
                           type="button"
-                          onClick={() => setVocalGender('m')}
+                          onClick={() => setVocalGender("m")}
                           className={`flex-1 px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
-                            vocalGender === 'm'
-                              ? 'bg-primary text-primary-foreground hover:bg-primary/90'
-                              : 'bg-muted/30 text-muted-foreground hover:bg-muted/50 hover:text-foreground'
+                            vocalGender === "m"
+                              ? "bg-primary text-primary-foreground hover:bg-primary/90"
+                              : "bg-muted/30 text-muted-foreground hover:bg-muted/50 hover:text-foreground"
                           } disabled:opacity-50 disabled:cursor-not-allowed`}
                         >
                           Male
                         </button>
                         <button
                           type="button"
-                          onClick={() => setVocalGender('f')}
+                          onClick={() => setVocalGender("f")}
                           className={`flex-1 px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
-                            vocalGender === 'f'
-                              ? 'bg-primary text-primary-foreground hover:bg-primary/90'
-                              : 'bg-muted/30 text-muted-foreground hover:bg-muted/50 hover:text-foreground'
+                            vocalGender === "f"
+                              ? "bg-primary text-primary-foreground hover:bg-primary/90"
+                              : "bg-muted/30 text-muted-foreground hover:bg-muted/50 hover:text-foreground"
                           } disabled:opacity-50 disabled:cursor-not-allowed`}
                         >
                           Female
@@ -651,20 +583,15 @@ export const ExtendMusicDialog: React.FC<ExtendMusicDialogProps> = ({
                       </div>
                     </div>
 
-                    {/* Style Weight */}
                     <div className="space-y-2">
                       <div className="flex items-center justify-between">
                         <div className="flex items-center gap-2">
-                          <Label htmlFor="styleWeight">
-                            Style Weight
-                          </Label>
+                          <Label htmlFor="styleWeight">Style Weight</Label>
                           <Tooltip content="How closely to follow the style (0 = loose, 1 = strict)" position="right">
                             <HelpCircle className="h-3.5 w-3.5 text-muted-foreground cursor-help" />
                           </Tooltip>
                         </div>
-                        <span className="text-sm text-muted-foreground font-mono">
-                          {styleWeight.toFixed(2)}
-                        </span>
+                        <span className="text-sm text-muted-foreground font-mono">{styleWeight.toFixed(2)}</span>
                       </div>
                       <Slider
                         id="styleWeight"
@@ -677,20 +604,15 @@ export const ExtendMusicDialog: React.FC<ExtendMusicDialogProps> = ({
                       />
                     </div>
 
-                    {/* Weirdness Constraint */}
                     <div className="space-y-2">
                       <div className="flex items-center justify-between">
                         <div className="flex items-center gap-2">
-                          <Label htmlFor="weirdnessConstraint">
-                            Creativity
-                          </Label>
+                          <Label htmlFor="weirdnessConstraint">Creativity</Label>
                           <Tooltip content="Level of experimental/creative deviation (0 = safe, 1 = experimental)" position="right">
                             <HelpCircle className="h-3.5 w-3.5 text-muted-foreground cursor-help" />
                           </Tooltip>
                         </div>
-                        <span className="text-sm text-muted-foreground font-mono">
-                          {weirdnessConstraint.toFixed(2)}
-                        </span>
+                        <span className="text-sm text-muted-foreground font-mono">{weirdnessConstraint.toFixed(2)}</span>
                       </div>
                       <Slider
                         id="weirdnessConstraint"
@@ -703,20 +625,15 @@ export const ExtendMusicDialog: React.FC<ExtendMusicDialogProps> = ({
                       />
                     </div>
 
-                    {/* Audio Weight */}
                     <div className="space-y-2">
                       <div className="flex items-center justify-between">
                         <div className="flex items-center gap-2">
-                          <Label htmlFor="audioWeight">
-                            Audio Weight
-                          </Label>
+                          <Label htmlFor="audioWeight">Audio Weight</Label>
                           <Tooltip content="Similarity to original (0 = creative, 1 = original)" position="right">
                             <HelpCircle className="h-3.5 w-3.5 text-muted-foreground cursor-help" />
                           </Tooltip>
                         </div>
-                        <span className="text-sm text-muted-foreground font-mono">
-                          {audioWeight.toFixed(2)}
-                        </span>
+                        <span className="text-sm text-muted-foreground font-mono">{audioWeight.toFixed(2)}</span>
                       </div>
                       <Slider
                         id="audioWeight"
@@ -728,37 +645,19 @@ export const ExtendMusicDialog: React.FC<ExtendMusicDialogProps> = ({
                         className="w-full"
                       />
                     </div>
-
-                    {/* Persona ID - Hidden */}
-                    {/* <div className="space-y-2">
-                      <Label htmlFor="personaId">Persona ID (Optional)</Label>
-                      <Input
-                        id="personaId"
-                        type="text"
-                        value={personaId}
-                        onChange={(e) => setPersonaId(e.target.value)}
-                        placeholder="persona_123"
-                      />
-                      <p className="text-xs text-muted-foreground">
-                        Apply a specific persona style to the generation
-                      </p>
-                    </div> */}
                   </div>
                 )}
               </div>
             </div>
-          )}
 
-          {/* 积分不足警告 */}
-          {!hasEnoughCredits && (
-            <div className="rounded-lg bg-destructive/10 p-3 text-sm text-destructive">
-              Insufficient credits. You need {requiredCredits - (userCredits || 0)} more credits to extend this track.
-            </div>
-          )}
+            {!hasEnoughCredits && (
+              <div className="rounded-lg bg-destructive/10 p-3 text-sm text-destructive">
+                Insufficient credits. You need {requiredCredits - (userCredits || 0)} more credits to extend this track.
+              </div>
+            )}
           </div>
         </div>
 
-        {/* 固定底部按钮 */}
         <DialogFooter className="flex-shrink-0 px-6 pt-4 pb-6 border-t border-border/40">
           <Button
             onClick={handleConfirm}
@@ -770,8 +669,8 @@ export const ExtendMusicDialog: React.FC<ExtendMusicDialogProps> = ({
                 <span>Extending</span>
                 <div className="flex items-center gap-1">
                   <div className="w-1 h-1 bg-white rounded-full animate-pulse"></div>
-                  <div className="w-1 h-1 bg-white rounded-full animate-pulse" style={{ animationDelay: '0.3s' }}></div>
-                  <div className="w-1 h-1 bg-white rounded-full animate-pulse" style={{ animationDelay: '0.6s' }}></div>
+                  <div className="w-1 h-1 bg-white rounded-full animate-pulse" style={{ animationDelay: "0.3s" }}></div>
+                  <div className="w-1 h-1 bg-white rounded-full animate-pulse" style={{ animationDelay: "0.6s" }}></div>
                 </div>
               </div>
             ) : (
