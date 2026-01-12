@@ -79,7 +79,7 @@ export const MobileStudioHeader = React.memo(({
   }, [user]);
 
   return (
-    <div className="flex-shrink-0 px-6 py-4 bg-background/60 backdrop-blur-sm">
+    <div className="app-card-muted app-hairline flex-shrink-0 px-6 py-4 border-0 border-b border-black/10">
       <div className="flex items-center justify-between gap-3">
         <Link href="/" className="font-bold text-lg flex items-center">
           <Image

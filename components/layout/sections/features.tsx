@@ -128,7 +128,7 @@ export const FeaturesSection = () => {
           {featureList.map(({ icon: IconComponent, title, description, iconBg }) => (
             <Card
               key={title}
-              className="h-full border-0 bg-white/[0.04] text-white rounded-[28px] shadow-[0_20px_60px_rgba(0,0,0,0.35)] backdrop-blur-xl transition-transform duration-300 hover:-translate-y-2 hover:shadow-[0_28px_80px_rgba(0,0,0,0.55)]"
+              className="app-card h-full rounded-[28px] transition-transform duration-300 hover:-translate-y-1 hover:shadow-[0_28px_70px_rgba(0,0,0,0.10)]"
             >
               <CardHeader className="flex flex-row items-center gap-4 pb-3">
                 <FeatureIconBadge bgClass={iconBg}>
@@ -136,7 +136,7 @@ export const FeaturesSection = () => {
                 </FeatureIconBadge>
                 <div>
                   <CardTitle className="text-lg font-semibold">{title}</CardTitle>
-                  <p className="mt-2 text-sm text-white/60 leading-relaxed">
+                  <p className="mt-2 text-sm text-muted-foreground leading-relaxed">
                     {description}
                   </p>
                 </div>

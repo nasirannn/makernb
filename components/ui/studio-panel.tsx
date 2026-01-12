@@ -1226,7 +1226,7 @@ export const StudioPanel = (props: StudioPanelProps) => {
 
   const styleSection = (
     <section>
-      <div className="bg-background rounded-lg p-3">
+      <div className="studio-panel-card rounded-2xl p-3">
         <div className="flex items-center justify-between mb-3 md:mb-4">
           <h3 className="text-lg font-semibold tracking-tight flex items-center gap-2">
             Music Style
@@ -1375,7 +1375,7 @@ export const StudioPanel = (props: StudioPanelProps) => {
   );
 
   return (
-    <div className={`transition-all duration-300 ease-in-out border border-white/5 bg-[var(--studio-panel-bg)] ${
+    <div className={`app-card rounded-[28px] transition-all duration-300 ease-in-out ${
       // 桌面：左侧固定宽度；移动端：当 forceVisibleOnMobile=true 时占满宽度
       panelOpen ? (forceVisibleOnMobile ? 'w-full md:w-[28rem]' : 'w-[28rem]') : 'w-0'
     } ${forceVisibleOnMobile ? 'flex flex-col' : 'h-full flex flex-col overflow-hidden'} ${forceVisibleOnMobile ? 'flex md:flex' : 'hidden md:flex'}`}>
@@ -1385,23 +1385,23 @@ export const StudioPanel = (props: StudioPanelProps) => {
           <div className="flex-shrink-0 px-4 md:px-6 pt-4 md:pt-6 pb-4 backdrop-blur-sm">
             <div className="flex items-center justify-between gap-2 md:gap-4">
               {/* Mode Selector */}
-              <div ref={modeToggleRef} className="relative bg-muted/30 rounded-xl p-1 flex-shrink-0">
+              <div ref={modeToggleRef} className="app-card-muted relative inline-flex rounded-full p-1 flex-shrink-0">
                 <div
-                  className="absolute top-1 bottom-1 rounded-xl bg-white shadow-sm transition-[transform,width] duration-300 ease-out"
+                  className="absolute top-1 bottom-1 rounded-full bg-primary shadow-[0_10px_26px_rgba(0,0,0,0.18)] transition-[transform,width] duration-300 ease-out"
                   style={{
                     width: modeSliderStyle.width,
                     transform: `translateX(${modeSliderStyle.x}px)`,
                   }}
                 />
-                <div className="relative z-10 grid grid-cols-2 gap-1">
+                <div className="relative z-10 inline-flex items-center gap-1">
                   <button
                     ref={simpleModeRef}
                     onClick={() => setMode("simple")}
                     title="Create random R&B songs with polished production in 90s style. Simple and fast setup."
-                    className={`py-1.5 px-4 md:px-6 text-xs md:text-sm font-semibold tracking-tight transition-colors duration-200 rounded-xl ${
+                    className={`px-4 py-2 text-xs md:text-sm font-semibold transition-colors duration-200 rounded-full ${
                       mode === "simple"
-                        ? "text-primary"
-                        : "text-muted-foreground hover:text-foreground"
+                        ? "text-primary-foreground"
+                        : "text-foreground/60 hover:text-foreground"
                     }`}
                   >
                     Simple
@@ -1410,10 +1410,10 @@ export const StudioPanel = (props: StudioPanelProps) => {
                     ref={customModeRef}
                     onClick={() => setMode("custom")}
                     title="Fine-tune every aspect of your track with detailed controls for genre, instruments, and style."
-                    className={`py-1.5 px-4 md:px-6 text-xs md:text-sm font-semibold tracking-tight transition-colors duration-200 rounded-xl ${
+                    className={`px-4 py-2 text-xs md:text-sm font-semibold transition-colors duration-200 rounded-full ${
                       mode === "custom"
-                        ? "text-primary"
-                        : "text-muted-foreground hover:text-foreground"
+                        ? "text-primary-foreground"
+                        : "text-foreground/60 hover:text-foreground"
                     }`}
                   >
                     Custom
@@ -1426,14 +1426,14 @@ export const StudioPanel = (props: StudioPanelProps) => {
                 <DropdownMenuTrigger asChild>
                   <button
                     type="button"
-                    className="px-4 py-1.5 rounded-full border border-white/10 bg-white/5 text-xs md:text-sm font-semibold text-white/80 transition-colors hover:bg-white/10 flex items-center gap-1.5"
+                    className="app-card-muted px-4 py-1.5 rounded-full text-xs md:text-sm font-semibold text-foreground/80 transition-colors hover:bg-black/5 flex items-center gap-1.5"
                     title="Click to change model version"
                   >
                     <span>{modelOptions.find(opt => opt.value === selectedModel)?.label || 'v4'}</span>
                     <Triangle className={`w-2 h-2 fill-current transition-transform ${isModelMenuOpen ? 'rotate-180' : ''}`} />
                   </button>
                 </DropdownMenuTrigger>
-                <DropdownMenuContent align="end" className="w-80 p-1.5">
+                <DropdownMenuContent align="end" className="w-80 p-1.5 rounded-2xl app-card">
                   {modelOptions.map((option, index) => {
                     const isSelected = option.value === selectedModel;
                     const creditsPerTrack = CLIENT_EXTEND_MUSIC_CREDITS[option.value];
@@ -1441,7 +1441,7 @@ export const StudioPanel = (props: StudioPanelProps) => {
                       <React.Fragment key={option.value}>
                         <DropdownMenuItem
                           onClick={() => handleModelSelect(option.value)}
-                          className="flex flex-col items-start gap-1 rounded-lg px-3.5 py-2.5 transition-colors hover:bg-white/10 focus:bg-white/10 data-[highlighted]:bg-white/10"
+                          className="flex flex-col items-start gap-1 rounded-xl px-3.5 py-2.5 transition-colors hover:bg-black/5 focus:bg-black/5 data-[highlighted]:bg-black/5"
                         >
                           <div className="flex w-full items-center justify-between gap-2">
                             <div className="flex items-center gap-2">
@@ -1481,10 +1481,10 @@ export const StudioPanel = (props: StudioPanelProps) => {
       {mode === "simple" ? (
         <>
           {/* Simple Mode Content - 流式布局 */}
-                <div className="space-y-5 md:space-y-6">
+                <div className="space-y-5 md:space-y-6 pt-2 md:pt-3">
             {/* Custom Prompt Section */}
             <section>
-              <div className="bg-background rounded-lg p-3">
+              <div className="studio-panel-card rounded-2xl p-3">
                 <div className="mb-3 md:mb-4 flex items-center justify-between gap-3">
                   <h3 className="text-lg font-semibold tracking-tight flex items-center gap-2">
                     Prompt
@@ -1524,7 +1524,7 @@ export const StudioPanel = (props: StudioPanelProps) => {
                       <button
                         type="button"
                         onClick={handlePromptAddAudioClick}
-                        className="inline-flex items-center gap-1.5 rounded-full bg-white/5 px-3 py-1.5 text-xs font-semibold text-white/80 transition-colors hover:bg-white/10"
+                        className="inline-flex items-center gap-1.5 rounded-full bg-foreground/5 px-3 py-1.5 text-xs font-semibold text-foreground/70 transition-colors hover:bg-foreground/10 hover:text-foreground"
                         title="Add audio"
                       >
                         <UploadCloud className="h-3.5 w-3.5" />
@@ -1544,7 +1544,7 @@ export const StudioPanel = (props: StudioPanelProps) => {
                           setBassTone("");
                           setHarmonyPalette("");
                         }}
-                        className="inline-flex items-center gap-1.5 rounded-full bg-white/5 px-3 py-1.5 text-xs font-semibold text-white/80 transition-colors hover:bg-white/10"
+                        className="inline-flex items-center gap-1.5 rounded-full bg-foreground/5 px-3 py-1.5 text-xs font-semibold text-foreground/70 transition-colors hover:bg-foreground/10 hover:text-foreground"
                         title="Clear"
                       >
                         <Trash2 className="h-3.5 w-3.5" />
@@ -1567,28 +1567,31 @@ export const StudioPanel = (props: StudioPanelProps) => {
       ) : (
         <>
           {/* Custom Mode Content - 流式布局 */}
-          <div className="space-y-4 md:space-y-5">
-            <section>
-              {uploadCoverFile ? (
-                uploadAudioPreview
-              ) : (
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className="h-10 w-full justify-center rounded-lg bg-background text-muted-foreground hover:bg-muted/30 hover:text-foreground"
-                  title="Add audio"
-                  onClick={handlePromptAddAudioClick}
-                >
-                  <UploadCloud className="h-4 w-4" />
-                  <span className="text-xs font-medium">Add Audio</span>
-                </Button>
-              )}
-            </section>
+          <div className="pt-2 md:pt-3">
+            <div className="mb-4 md:mb-5">
+              <section>
+                {uploadCoverFile ? (
+                  uploadAudioPreview
+                ) : (
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="studio-panel-card h-12 w-full justify-center rounded-2xl text-foreground/75 hover:text-foreground hover:bg-primary/10 transition-colors"
+                    title="Add audio"
+                    onClick={handlePromptAddAudioClick}
+                  >
+                    <UploadCloud className="h-4 w-4" />
+                    <span className="text-sm font-semibold tracking-tight">Add Audio</span>
+                  </Button>
+                )}
+              </section>
+            </div>
 
+            <div className="space-y-5 md:space-y-6">
             {/* Lyrics Section */}
             {!instrumentalMode ? (
             <section>
-                <div className="bg-background rounded-lg p-3">
+                <div className="studio-panel-card rounded-2xl p-3">
                   <div className="flex items-center justify-between mb-3 md:mb-4">
                     <h3 className="text-lg font-semibold tracking-tight flex items-center gap-2">
                       Lyrics
@@ -1644,7 +1647,7 @@ export const StudioPanel = (props: StudioPanelProps) => {
                 {/* Vocal Gender Section - Only show when not in instrumental mode */}
                 {!instrumentalMode && (
                   <div className="mt-4">
-                    <div className="flex items-center justify-between bg-background rounded-lg p-3">
+                    <div className="flex items-center justify-between studio-panel-card rounded-2xl p-3">
                       <Label className="text-sm font-medium text-foreground">Vocal Gender</Label>
                       <div className="flex gap-2">
                         <button
@@ -1678,7 +1681,7 @@ export const StudioPanel = (props: StudioPanelProps) => {
             ) : (
               /* Instrumental Mode Status Display */
               <section>
-                <div className="bg-background rounded-lg p-3">
+                <div className="studio-panel-card rounded-2xl p-3">
                   <div className="flex items-center justify-between mb-3 md:mb-4">
                     <h3 className="text-lg font-semibold tracking-tight flex items-center gap-2">
                       Lyrics
@@ -1707,7 +1710,7 @@ export const StudioPanel = (props: StudioPanelProps) => {
 
             {/* Song Title Section */}
             <section>
-              <div className="bg-background rounded-lg p-3">
+              <div className="studio-panel-card rounded-2xl p-3">
                 <h3 className="text-lg font-semibold tracking-tight mb-3 md:mb-4 flex items-center gap-2">
                   Title
                 </h3>
@@ -1727,6 +1730,7 @@ export const StudioPanel = (props: StudioPanelProps) => {
                 </div>
               </div>
             </section>
+          </div>
           </div>
         </>
       )}

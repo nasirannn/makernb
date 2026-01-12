@@ -15,6 +15,8 @@ import { EditNicknameDialog } from "@/components/ui/edit-nickname-dialog";
 import { supabase } from '@/lib/supabase';
 
 import { Tooltip } from '@/components/ui/tooltip';
+import { ThemeModeToggle } from "@/components/ui/theme-mode-toggle";
+import { SubscriptionBadge } from "@/components/ui/subscription-badge";
 
 interface CommonSidebarProps {
   // 移除 isGenerating 参数，因为不再需要显示生成状态
@@ -172,15 +174,15 @@ const aiMusicToolsDropdown = [
   const expandedButtonClasses = (active: boolean) =>
     `group w-full h-12 flex items-center justify-start gap-3 rounded-2xl px-4 transition-all duration-300 ${
       active
-        ? 'bg-white/10 text-white shadow-[0px_12px_30px_rgba(4,8,20,0.4)]'
-        : 'text-white/60 hover:text-white hover:bg-white/5'
+        ? 'bg-black/5 text-foreground shadow-[0px_12px_30px_rgba(0,0,0,0.08)]'
+        : 'text-foreground/60 hover:text-foreground hover:bg-black/5'
     }`;
 
   const collapsedButtonClasses = (active: boolean) =>
     `group relative w-12 h-12 flex items-center justify-center rounded-2xl border border-transparent transition-all duration-300 ${
       active
-        ? 'bg-white/10 text-white shadow-[0px_12px_30px_rgba(4,8,20,0.4)]'
-        : 'text-white/60 hover:text-white hover:bg-white/5'
+        ? 'bg-black/5 text-foreground shadow-[0px_12px_30px_rgba(0,0,0,0.08)]'
+        : 'text-foreground/60 hover:text-foreground hover:bg-black/5'
     }`;
 
   const renderNavButton = (item: SidebarNavItem) => {
@@ -201,7 +203,7 @@ const aiMusicToolsDropdown = [
             <span className="text-sm font-medium">{item.label}</span>
           </div>
           {item.badge && (
-            <Badge variant="outline" className="text-[10px] uppercase tracking-wide border-white/20 text-white/80">
+            <Badge variant="outline" className="text-[10px] uppercase tracking-wide border-black/15 text-foreground/70">
               {item.badge}
             </Badge>
           )}
@@ -301,7 +303,7 @@ const aiMusicToolsDropdown = [
           isExpanded ? 'w-56' : 'w-20'
         }`}
       >
-        <div className="flex h-full flex-col border border-white/5 bg-[var(--studio-panel-bg)]">
+        <div className="flex h-full flex-col bg-background/70 backdrop-blur-md shadow-[1px_0_0_rgba(0,0,0,0.06)] dark:shadow-[1px_0_0_rgba(255,255,255,0.08)]">
           <div className="flex h-full flex-col">
             {/* Home Button */}
             <div className={`flex items-center min-h-[72px] ${isExpanded ? 'px-5 pt-6 pb-4 justify-between' : 'px-2 py-5 justify-center'}`}>
@@ -315,13 +317,13 @@ const aiMusicToolsDropdown = [
                       height={32}
                       className="h-8 w-8"
                     />
-                    <span className="font-semibold text-lg text-white">MakeRNB</span>
+                    <span className="sidebar-brand">MakeRNB</span>
                   </Link>
                   <Button
                     onClick={toggleSidebar}
                     variant="ghost"
                     size="sm"
-                    className="w-8 h-8 p-0 flex items-center justify-center rounded-xl text-white/70 hover:bg-white/10 hover:text-white"
+                    className="w-8 h-8 p-0 flex items-center justify-center rounded-xl text-foreground/60 hover:bg-black/5 hover:text-foreground"
                   >
                     <ChevronLeft className="h-4 w-4" />
                   </Button>
@@ -332,7 +334,7 @@ const aiMusicToolsDropdown = [
                     onClick={toggleSidebar}
                     variant="ghost"
                     size="sm"
-                    className="w-12 h-12 flex items-center justify-center rounded-2xl text-white/70 hover:bg-white/10 hover:text-white"
+                    className="w-12 h-12 flex items-center justify-center rounded-2xl text-foreground/60 hover:bg-black/5 hover:text-foreground"
                   >
                     <ChevronRight className="h-5 w-5" />
                   </Button>
@@ -341,27 +343,27 @@ const aiMusicToolsDropdown = [
             </div>
 
             <div className={`flex-1 overflow-y-auto overflow-x-visible ${isExpanded ? 'px-4 pt-4' : 'px-2 pt-4'} pb-6 space-y-4`}>
-              <div className={`rounded-[28px] bg-white/[0.03] ${isExpanded ? 'p-3' : 'p-2 flex flex-col items-center gap-3'}`}>
+              <div className={`rounded-[28px] bg-black/[0.03] ${isExpanded ? 'p-3' : 'p-2 flex flex-col items-center gap-3'}`}>
                 {isExpanded && (
-                  <p className="px-2 pb-2 text-[10px] uppercase tracking-[0.35em] text-white/50">Workspace</p>
+                  <p className="px-2 pb-2 text-[10px] uppercase tracking-[0.35em] text-foreground/50">Workspace</p>
                 )}
                 <div className={`flex flex-col ${isExpanded ? 'gap-2' : 'gap-3 items-center'}`}>
                   {workspaceNavItems.map(renderNavButton)}
                 </div>
               </div>
 
-              <div className={`rounded-[28px] bg-white/[0.03] ${isExpanded ? 'p-3' : 'p-2 flex flex-col items-center gap-3'}`}>
+              <div className={`rounded-[28px] bg-black/[0.03] ${isExpanded ? 'p-3' : 'p-2 flex flex-col items-center gap-3'}`}>
                 {isExpanded && (
-                  <p className="px-2 pb-2 text-[10px] uppercase tracking-[0.35em] text-white/50">AI MUSIC Tools</p>
+                  <p className="px-2 pb-2 text-[10px] uppercase tracking-[0.35em] text-foreground/50">AI MUSIC Tools</p>
                 )}
                 <div className={`flex flex-col ${isExpanded ? 'gap-2' : 'gap-3 items-center'}`}>
                   {aiToolNavItems.map(renderNavButton)}
                 </div>
               </div>
 
-              <div className={`rounded-[28px] bg-white/[0.03] ${isExpanded ? 'p-3' : 'p-2 flex flex-col items-center gap-3'}`}>
+              <div className={`rounded-[28px] bg-black/[0.03] ${isExpanded ? 'p-3' : 'p-2 flex flex-col items-center gap-3'}`}>
                 {isExpanded && (
-                  <p className="px-2 pb-2 text-[10px] uppercase tracking-[0.35em] text-white/50">Explore</p>
+                  <p className="px-2 pb-2 text-[10px] uppercase tracking-[0.35em] text-foreground/50">Explore</p>
                 )}
                 <div className={`flex flex-col ${isExpanded ? 'gap-2' : 'gap-3 items-center'}`}>
                   {exploreNavItems.map(renderNavButton)}
@@ -369,7 +371,27 @@ const aiMusicToolsDropdown = [
               </div>
             </div>
 
-            <div className={`border-t border-white/5 ${isExpanded ? 'px-4 pt-4 pb-6' : 'px-2 pt-4 pb-6'} flex flex-col gap-3`}>
+            <div className={`border-t border-black/10 ${isExpanded ? 'px-4 pt-4 pb-6' : 'px-2 pt-4 pb-6'} flex flex-col gap-3`}>
+              {isExpanded ? (
+                <div className="w-full rounded-2xl bg-black/[0.03] px-4 py-3 flex items-center justify-between">
+                  <div className="flex flex-col gap-1">
+                    <span className="text-[11px] font-medium uppercase tracking-[0.4em] text-foreground/55">
+                      Theme
+                    </span>
+                    <span className="text-sm font-semibold leading-none text-foreground/90">
+                      Light / Dark
+                    </span>
+                  </div>
+                  <ThemeModeToggle size="md" className="rounded-2xl" />
+                </div>
+              ) : (
+                <Tooltip content="Light / Dark mode" position="right">
+                  <div className="flex justify-center">
+                    <ThemeModeToggle size="md" className="rounded-2xl h-12 w-12 bg-black/[0.03]" />
+                  </div>
+                </Tooltip>
+              )}
+
               {user && (
                 <>
                   {isExpanded ? (
@@ -389,13 +411,13 @@ const aiMusicToolsDropdown = [
                         handleRefreshCredits();
                       }
                     }}
-                    className={`w-full rounded-2xl bg-white/[0.04] px-4 py-4 text-left transition-all duration-300 border border-transparent focus:outline-none focus-visible:ring-2 focus-visible:ring-white/40 focus-visible:ring-offset-0 ${
-                      isRefreshingCredits ? 'opacity-70 cursor-wait' : 'hover:bg-white/10 cursor-pointer'
+                    className={`w-full rounded-2xl bg-black/[0.03] px-4 py-4 text-left transition-all duration-300 border border-transparent focus:outline-none focus-visible:ring-2 focus-visible:ring-black/15 focus-visible:ring-offset-0 ${
+                      isRefreshingCredits ? 'opacity-70 cursor-wait' : 'hover:bg-black/5 cursor-pointer'
                     }`}
                   >
-                    <div className="flex items-center justify-between text-white">
+                    <div className="flex items-center justify-between text-foreground">
                       <div className="flex flex-col gap-1">
-                        <span className="text-[11px] font-medium uppercase tracking-[0.4em] text-white/60">
+                        <span className="text-[11px] font-medium uppercase tracking-[0.4em] text-foreground/55">
                           Credits
                         </span>
                         <span className="text-lg font-semibold leading-none">
@@ -411,7 +433,7 @@ const aiMusicToolsDropdown = [
                           handleRefreshCredits();
                         }}
                         disabled={isRefreshingCredits}
-                        className="h-8 w-8 rounded-xl border border-white/10 bg-white/5 text-white hover:bg-white/15"
+                        className="h-8 w-8 rounded-xl border border-black/10 bg-black/5 text-foreground hover:bg-black/10"
                         aria-label="Refresh credits"
                       >
                         {isRefreshingCredits ? (
@@ -439,14 +461,14 @@ const aiMusicToolsDropdown = [
                           handleRefreshCredits();
                         }
                       }}
-                      className={`w-full rounded-2xl px-2 py-3 text-white transition-all duration-300 focus:outline-none focus-visible:ring-2 focus-visible:ring-white/40 focus-visible:ring-offset-0 ${
+                      className={`w-full rounded-2xl px-2 py-3 text-foreground transition-all duration-300 focus:outline-none focus-visible:ring-2 focus-visible:ring-black/15 focus-visible:ring-offset-0 ${
                         isRefreshingCredits ? 'opacity-70 cursor-wait' : 'cursor-pointer'
                       } flex flex-col items-center text-center`}
                     >
                       <span className="block text-sm font-semibold leading-tight">
                         {credits !== null ? credits.toLocaleString() : '...'}
                       </span>
-                      <span className="mt-0.5 block text-[9px] font-medium uppercase tracking-[0.35em] text-white/60">
+                      <span className="mt-0.5 block text-[9px] font-medium uppercase tracking-[0.35em] text-foreground/55">
                         Credits
                       </span>
                     </div>
@@ -462,7 +484,7 @@ const aiMusicToolsDropdown = [
                         onClick={() => setUserMenuOpen(!userMenuOpen)}
                         variant="ghost"
                         size="sm"
-                        className="w-full h-16 rounded-2xl bg-white/[0.04] flex items-center gap-3 px-4"
+                        className="w-full h-16 rounded-2xl bg-black/[0.03] hover:bg-black/5 flex items-center gap-3 px-4"
                       >
                         <Avatar className="w-10 h-10 flex-shrink-0">
                           <AvatarImage
@@ -476,32 +498,27 @@ const aiMusicToolsDropdown = [
                         </Avatar>
                         <div className="flex-1 text-left min-w-0">
                           <div className="flex items-center justify-between gap-2 mb-1">
-                            <div className="text-sm font-semibold text-white truncate flex-1">
+                            <div className="text-sm font-semibold text-foreground truncate flex-1">
                               {displayName || user.email}
                             </div>
                             {tierCode && (
-                              <Badge
-                                variant="outline"
-                                className="rounded-full border border-white/20 bg-white/10 px-2 py-0.5 text-[10px] uppercase tracking-wide text-white"
-                              >
-                                {tierCode}
-                              </Badge>
+                              <SubscriptionBadge tier={tierCode} />
                             )}
                           </div>
-                          <div className="text-xs text-white/60 truncate">
+                          <div className="text-xs text-muted-foreground truncate">
                             {user.email}
                           </div>
                         </div>
                       </Button>
 
                       {userMenuOpen && (
-                        <div className="absolute bottom-full left-0 right-0 mb-2 rounded-2xl bg-[#05060b] p-3 shadow-2xl">
+                        <div className="absolute bottom-full left-0 right-0 mb-2 rounded-2xl bg-background border border-black/10 p-3 shadow-[0_18px_55px_rgba(0,0,0,0.12)]">
                           <button
                             onClick={() => {
                               setIsNicknameDialogOpen(true);
                               setUserMenuOpen(false);
                             }}
-                            className="w-full flex items-center gap-3 rounded-xl px-3 py-2 text-sm text-white/70 hover:bg-white/5 hover:text-white"
+                            className="w-full flex items-center gap-3 rounded-xl px-3 py-2 text-sm text-foreground/70 hover:bg-black/5 hover:text-foreground"
                           >
                             <PencilLine className="w-4 h-4" />
                             <span>Edit profile</span>
@@ -511,7 +528,7 @@ const aiMusicToolsDropdown = [
                               handleSignOut();
                               setUserMenuOpen(false);
                             }}
-                            className="w-full flex items-center gap-3 rounded-xl px-3 py-2 text-sm text-white/70 hover:bg-white/5 hover:text-white"
+                            className="w-full flex items-center gap-3 rounded-xl px-3 py-2 text-sm text-foreground/70 hover:bg-black/5 hover:text-foreground"
                           >
                             <LogOut className="w-4 h-4" />
                             <span>Sign Out</span>
@@ -536,20 +553,17 @@ const aiMusicToolsDropdown = [
                       </Avatar>
 
                       {userMenuOpen && (
-                        <div className="absolute bottom-0 left-full ml-3 w-64 rounded-2xl bg-[#05060b] shadow-2xl">
+                        <div className="absolute bottom-0 left-full ml-3 w-56 rounded-2xl bg-background border border-black/10 shadow-[0_18px_55px_rgba(0,0,0,0.12)]">
                           <div className="p-4">
                             <div className="flex items-center justify-between gap-2">
-                              <div className="text-sm font-semibold text-white truncate flex-1">
+                              <div className="text-sm font-semibold text-foreground truncate flex-1">
                                 {displayName || user.email}
                               </div>
                               {tierCode && (
-                                <Badge className="relative inline-block rounded-full border border-zinc-700 bg-zinc-900/20 px-2 py-0.5 text-xs text-zinc-50 animate-border-marquee flex-shrink-0">
-                                  <span className="text-foreground/90 font-medium capitalize">{tierCode}</span>
-                                  <span className="absolute bottom-0 left-1 right-1 h-[1px] bg-gradient-to-r from-zinc-500/0 via-zinc-300 to-zinc-500/0"></span>
-                                </Badge>
+                                <SubscriptionBadge tier={tierCode} />
                               )}
                             </div>
-                            <div className="text-xs text-white/60 truncate">{user.email}</div>
+                            <div className="text-xs text-muted-foreground truncate">{user.email}</div>
                           </div>
                           <div className="p-2">
                             <button
@@ -557,7 +571,7 @@ const aiMusicToolsDropdown = [
                                 setIsNicknameDialogOpen(true);
                                 setUserMenuOpen(false);
                               }}
-                              className="w-full flex items-center gap-3 rounded-xl px-3 py-2 text-sm text-white/70 hover:bg-white/5 hover:text-white"
+                              className="w-full flex items-center gap-3 rounded-xl px-3 py-2 text-sm text-foreground/70 hover:bg-black/5 hover:text-foreground"
                             >
                               <PencilLine className="w-4 h-4" />
                               <span>Edit profile</span>
@@ -567,7 +581,7 @@ const aiMusicToolsDropdown = [
                                 handleSignOut();
                                 setUserMenuOpen(false);
                               }}
-                              className="w-full flex items-center gap-3 rounded-xl px-3 py-2 text-sm text-white/70 hover:bg-white/5 hover:text-white"
+                              className="w-full flex items-center gap-3 rounded-xl px-3 py-2 text-sm text-foreground/70 hover:bg-black/5 hover:text-foreground"
                             >
                               <LogOut className="w-4 h-4" />
                               <span>Sign Out</span>
@@ -585,7 +599,7 @@ const aiMusicToolsDropdown = [
                       onClick={() => setIsAuthModalOpen(true)}
                       variant="ghost"
                       size="sm"
-                      className="w-full h-12 rounded-2xl bg-white/[0.04] text-white/80 hover:bg-white/10"
+                      className="w-full h-12 rounded-2xl bg-black/[0.03] text-foreground/80 hover:bg-black/5"
                     >
                       <LogIn className="h-5 w-5" />
                       <span className="text-sm font-medium">Sign In</span>

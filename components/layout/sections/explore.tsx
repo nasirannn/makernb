@@ -249,7 +249,7 @@ export const ExploreSection = () => {
             Explore
           </h2>
 
-          <h2 className="text-3xl md:text-4xl text-center font-bold mb-4 text-white">
+          <h2 className="text-3xl md:text-4xl text-center font-bold mb-4">
             Listen to The AI-Generated R&B Songs
           </h2>
 
@@ -263,7 +263,7 @@ export const ExploreSection = () => {
           {loading ? (
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-10">
               {Array.from({ length: 8 }).map((_, i) => (
-                <div key={i} className="flex items-stretch gap-5 rounded-[20px] bg-white/[0.04] py-4 pl-4">
+                <div key={i} className="app-card flex items-stretch gap-5 rounded-[20px] py-4 pl-4">
                   <div className="w-20 aspect-square">
                     <Skeleton className="h-full w-full rounded-sm" />
                   </div>
@@ -283,7 +283,7 @@ export const ExploreSection = () => {
               {exploreData.music.slice(0, 8).map((music) => (
                 <div
                   key={music.id}
-                  className="group flex items-stretch gap-5 rounded-[20px] bg-white/[0.04] py-4 pl-4 transition-all duration-300 hover:-translate-y-1 cursor-pointer"
+                  className="app-card group flex items-stretch gap-5 rounded-[20px] py-4 pl-4 transition-all duration-300 hover:-translate-y-1 cursor-pointer"
                   onClick={() => handlePlayPause(music.primaryTrack.id, music.primaryTrack.audioUrl || '', music)}
                 >
                   {/* Cover Image */}
@@ -305,7 +305,7 @@ export const ExploreSection = () => {
                     {/* Audio Wave Indicator - playing state */}
                     {currentlyPlaying === music.primaryTrack.id && audioPlayer.isPlaying && (
                       <div className="absolute inset-0 flex items-center justify-center opacity-100 group-hover:opacity-0 transition-opacity pointer-events-none">
-                        <CustomAudioWaveIndicator isPlaying={audioPlayer.isPlaying} size="sm" className="text-white" />
+                        <CustomAudioWaveIndicator isPlaying={audioPlayer.isPlaying} size="sm" className="text-primary" />
                       </div>
                     )}
 
@@ -314,16 +314,16 @@ export const ExploreSection = () => {
                       <Button
                         variant="ghost"
                         size="sm"
-                        className="h-8 w-8 p-0 bg-white/20 hover:bg-white/30 backdrop-blur-sm"
+                        className="h-8 w-8 p-0 bg-white/80 hover:bg-white border border-black/10 backdrop-blur-sm"
                         onClick={(e) => {
                           e.stopPropagation();
                           handlePlayPause(music.primaryTrack.id, music.primaryTrack.audioUrl || '', music);
                         }}
                       >
                         {currentlyPlaying === music.primaryTrack.id && audioPlayer.isPlaying ? (
-                          <Pause className="h-4 w-4 text-white" />
+                          <Pause className="h-4 w-4 text-foreground" />
                         ) : (
-                          <Play className="h-4 w-4 text-white" />
+                          <Play className="h-4 w-4 text-foreground" />
                         )}
                       </Button>
                     </div>
@@ -332,14 +332,14 @@ export const ExploreSection = () => {
                   {/* Track Info */}
                   <div className="min-w-0 self-center">
                     <h3 className={`text-lg font-semibold mb-1 truncate ${
-                      currentlyPlaying === music.primaryTrack.id ? 'text-primary' : 'text-white'
+                      currentlyPlaying === music.primaryTrack.id ? 'text-primary' : 'text-foreground'
                     }`}>
                       {music.title}
                     </h3>
-                    <p className="text-white/60 text-xs truncate capitalize">
+                    <p className="text-muted-foreground text-xs truncate capitalize">
                       {formatTags(music.tags)}
                     </p>
-                    <p className="text-white/40 text-xs mt-1 flex items-center gap-2">
+                    <p className="text-muted-foreground/80 text-xs mt-1 flex items-center gap-2">
                       <span className="inline-flex items-center gap-1">
                         <PlayTriangleIcon />
                         {formatPlayCount(music.primaryTrack.playCount)}
@@ -357,7 +357,7 @@ export const ExploreSection = () => {
                         e.stopPropagation();
                         handleShare(music.primaryTrack.id);
                       }}
-                      className="h-8 w-8 rounded-full text-white/60 transition-colors hover:text-white hover:bg-white/10 flex items-center justify-center"
+                      className="h-8 w-8 rounded-full text-foreground/55 transition-colors hover:text-foreground hover:bg-black/5 flex items-center justify-center"
                       aria-label="Share track"
                       title="Copy share link"
                     >
@@ -377,13 +377,13 @@ export const ExploreSection = () => {
             <div className="flex justify-center">
               <Link
                 href="/explore"
-                className="inline-flex items-center justify-center rounded-full border-0 outline-none ring-0 focus:outline-none focus-visible:outline-none focus-visible:ring-0 focus-visible:ring-offset-0 px-7 py-3 text-sm font-semibold text-white transition-all hover:text-white hover:translate-y-[-1px]"
+                className="inline-flex items-center justify-center rounded-full border border-black/10 outline-none ring-0 focus:outline-none focus-visible:outline-none focus-visible:ring-0 focus-visible:ring-offset-0 px-7 py-3 text-sm font-semibold text-foreground transition-all hover:bg-black/5 hover:translate-y-[-1px]"
                 style={{
                   background: 'linear-gradient(90deg, hsl(var(--primary) / 0.18), hsl(var(--primary) / 0.32), hsl(var(--primary) / 0.18))'
                 }}
               >
                 Explore All Published Tracks
-                <ArrowRight className="ml-2 h-4 w-4 text-white/70" />
+                <ArrowRight className="ml-2 h-4 w-4 text-foreground/60" />
               </Link>
             </div>
           )}

@@ -100,10 +100,10 @@ export default function ResetPasswordPage() {
 
   if (checkingToken) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-background p-4">
-        <Card className="w-full max-w-md bg-white/10 backdrop-blur-lg border-white/20">
+      <div className="app-shell min-h-screen flex items-center justify-center p-4">
+        <Card className="app-card app-hairline w-full max-w-md">
           <CardContent className="flex items-center justify-center py-12">
-            <LoadingDots size="lg" color="white" />
+            <LoadingDots size="lg" color="muted" />
           </CardContent>
         </Card>
       </div>
@@ -112,8 +112,8 @@ export default function ResetPasswordPage() {
 
   if (!isValidToken) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-background p-4">
-        <Card className="w-full max-w-md bg-white/10 backdrop-blur-lg border-white/20">
+      <div className="app-shell min-h-screen flex items-center justify-center p-4">
+        <Card className="app-card app-hairline w-full max-w-md">
           <CardHeader className="text-center">
             <div className="flex justify-center mb-4">
               <Image
@@ -124,8 +124,8 @@ export default function ResetPasswordPage() {
                 className="h-12 w-12"
               />
             </div>
-            <CardTitle className="text-2xl font-bold text-white">Invalid Link</CardTitle>
-            <CardDescription className="text-white/70">
+            <CardTitle className="text-2xl font-bold">Invalid Link</CardTitle>
+            <CardDescription>
               {message}
             </CardDescription>
           </CardHeader>
@@ -144,24 +144,24 @@ export default function ResetPasswordPage() {
 
   if (isSuccess) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-background p-4">
-        <Card className="w-full max-w-md bg-white/10 backdrop-blur-lg border-white/20">
+      <div className="app-shell min-h-screen flex items-center justify-center p-4">
+        <Card className="app-card app-hairline w-full max-w-md">
           <CardHeader className="text-center">
             <div className="flex justify-center mb-4">
               <div className="w-16 h-16 rounded-full bg-green-500/20 flex items-center justify-center">
                 <Check className="w-8 h-8 text-green-400" />
               </div>
             </div>
-            <CardTitle className="text-2xl font-bold text-white">Success!</CardTitle>
-            <CardDescription className="text-white/70">
+            <CardTitle className="text-2xl font-bold">Success!</CardTitle>
+            <CardDescription>
               Your password has been updated successfully
             </CardDescription>
           </CardHeader>
           <CardContent className="text-center">
-            <p className="text-white/60 text-sm mb-4">
+            <p className="text-muted-foreground text-sm mb-4">
               Redirecting you to the home page...
             </p>
-            <LoadingDots size="sm" color="white" />
+            <LoadingDots size="sm" color="muted" />
           </CardContent>
         </Card>
       </div>
@@ -169,8 +169,8 @@ export default function ResetPasswordPage() {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-background p-4">
-      <Card className="w-full max-w-md bg-white/10 backdrop-blur-lg border-white/20 shadow-2xl">
+    <div className="app-shell min-h-screen flex items-center justify-center p-4">
+      <Card className="app-card app-hairline w-full max-w-md">
         <CardHeader className="text-center">
           <div className="flex justify-center mb-4">
             <Image
@@ -181,10 +181,10 @@ export default function ResetPasswordPage() {
               className="h-12 w-12"
             />
           </div>
-          <CardTitle className="text-2xl font-bold text-white">
+          <CardTitle className="text-2xl font-bold">
             Set New Password
           </CardTitle>
-          <CardDescription className="text-white/70">
+          <CardDescription>
             Enter your new password below
           </CardDescription>
         </CardHeader>
@@ -192,9 +192,9 @@ export default function ResetPasswordPage() {
         <CardContent>
           <form onSubmit={handleResetPassword} className="space-y-4">
             <div className="space-y-2">
-              <Label htmlFor="password" className="text-white">New Password</Label>
+              <Label htmlFor="password">New Password</Label>
               <div className="relative">
-                <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-white/50" />
+                <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                 <Input
                   id="password"
                   type="password"
@@ -203,16 +203,16 @@ export default function ResetPasswordPage() {
                   onChange={(e) => setPassword(e.target.value)}
                   required
                   minLength={6}
-                  className="bg-white/10 border-white/20 text-white placeholder:text-white/50 focus:border-blue-500/50 pl-10"
+                  className="pl-10"
                 />
               </div>
-              <p className="text-xs text-white/50">Must be at least 6 characters</p>
+              <p className="text-xs text-muted-foreground">Must be at least 6 characters</p>
             </div>
             
             <div className="space-y-2">
-              <Label htmlFor="confirmPassword" className="text-white">Confirm Password</Label>
+              <Label htmlFor="confirmPassword">Confirm Password</Label>
               <div className="relative">
-                <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-white/50" />
+                <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                 <Input
                   id="confirmPassword"
                   type="password"
@@ -221,7 +221,7 @@ export default function ResetPasswordPage() {
                   onChange={(e) => setConfirmPassword(e.target.value)}
                   required
                   minLength={6}
-                  className="bg-white/10 border-white/20 text-white placeholder:text-white/50 focus:border-blue-500/50 pl-10"
+                  className="pl-10"
                 />
               </div>
             </div>
@@ -232,7 +232,7 @@ export default function ResetPasswordPage() {
               className="w-full h-12 bg-primary hover:bg-primary/90 text-primary-foreground font-medium rounded-xl transition-all duration-200 disabled:opacity-50"
             >
               {loading ? (
-                <LoadingDots size="sm" color="white" className="mr-2" />
+                <LoadingDots size="sm" color="muted" className="mr-2" />
               ) : (
                 <Lock className="mr-2 h-4 w-4" />
               )}
@@ -254,7 +254,7 @@ export default function ResetPasswordPage() {
           <div className="mt-6 text-center">
             <button
               onClick={() => router.push('/')}
-              className="text-sm text-white/70 hover:text-white transition-colors"
+              className="text-sm text-muted-foreground hover:text-foreground transition-colors"
             >
               ← Back to home
             </button>

@@ -51,7 +51,7 @@ export const NavbarWrapper = () => {
             </Link>
             <Link
               href="/studio"
-              className="inline-flex items-center rounded-full bg-[var(--studio-panel-bg)] px-5 py-2 text-sm font-semibold text-white hover:bg-[var(--studio-panel-bg)]/90 transition-colors"
+              className="inline-flex items-center rounded-full bg-background px-5 py-2 text-sm font-semibold text-foreground border border-black/10 hover:bg-black/5 transition-colors"
             >
               Try For Free
             </Link>

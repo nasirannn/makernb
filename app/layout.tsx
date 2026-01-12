@@ -10,14 +10,7 @@ import { FeaturePermissionsProvider } from "@/contexts/FeaturePermissionsContext
 import { PricingModalProvider } from "@/contexts/PricingModalContext";
 import { PricingModal } from "@/components/ui/pricing-modal";
 import { Toaster } from "@/components/ui/sonner";
-import { Inter } from 'next/font/google';
 import { Suspense } from "react";
-
-const inter = Inter({ 
-  subsets: ['latin'],
-  display: 'swap',
-  variable: '--font-inter',
-});
 
 export const viewport: Viewport = {
   width: 'device-width',
@@ -50,8 +43,8 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" suppressHydrationWarning className="dark">
-      <body className={cn("min-h-screen bg-background font-sans", inter.variable)}>
+    <html lang="en" suppressHydrationWarning>
+      <body className={cn("min-h-screen bg-background font-sans")}>
         {/* Google Analytics */}
         <Script
           src="https://www.googletagmanager.com/gtag/js?id=G-VFWQ5T4YWG"

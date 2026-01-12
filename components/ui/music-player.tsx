@@ -6,6 +6,97 @@ import { Slider } from '@/components/ui/slider';
 import { VocalSeparationButton } from '@/features/vocal-tools/components/vocal-separation-button';
 import { supabase } from '@/lib/supabase';
 import { AudioPlayerTrack } from '@/types/track';
+import { cn } from '@/lib/utils';
+
+function PlayerIconButton({
+  onClick,
+  disabled,
+  title,
+  className,
+  children,
+}: {
+  onClick?: () => void;
+  disabled?: boolean;
+  title?: string;
+  className?: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      disabled={disabled}
+      title={title}
+      aria-label={title}
+      className={cn(
+        "inline-flex h-9 w-9 items-center justify-center rounded-full text-muted-foreground transition-colors",
+        "hover:text-foreground hover:bg-foreground/5",
+        "disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-transparent",
+        "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/30 focus-visible:ring-offset-2 focus-visible:ring-offset-background",
+        className
+      )}
+    >
+      {children}
+    </button>
+  );
+}
+
+function PlayerProgressRail({
+  currentDuration,
+  currentTime,
+  progressPercentage,
+  onSeek,
+  className,
+}: {
+  currentDuration: number;
+  currentTime: number;
+  progressPercentage: number;
+  onSeek: (time: number) => void;
+  className?: string;
+}) {
+  return (
+    <div
+      className={cn(
+        "group relative h-1.5 w-full cursor-pointer overflow-hidden rounded-full bg-foreground/10",
+        className
+      )}
+      role="slider"
+      aria-label="Seek"
+      aria-valuemin={0}
+      aria-valuemax={Math.max(0, Math.floor(currentDuration))}
+      aria-valuenow={Math.min(Math.max(0, Math.floor(currentTime)), Math.max(0, Math.floor(currentDuration)))}
+      tabIndex={0}
+      onClick={(e) => {
+        if (currentDuration > 0) {
+          const rect = e.currentTarget.getBoundingClientRect();
+          const clickX = e.clientX - rect.left;
+          const percentage = (clickX / rect.width) * 100;
+          const newTime = (percentage / 100) * currentDuration;
+          onSeek(newTime);
+        }
+      }}
+      onKeyDown={(e) => {
+        if (!currentDuration) return;
+        if (e.key === "ArrowLeft") onSeek(Math.max(0, currentTime - 5));
+        if (e.key === "ArrowRight") onSeek(Math.min(currentDuration, currentTime + 5));
+        if (e.key === "Home") onSeek(0);
+        if (e.key === "End") onSeek(currentDuration);
+      }}
+    >
+      <div
+        className="absolute inset-y-0 left-0 bg-primary"
+        style={{ width: `${progressPercentage}%` }}
+      />
+      <div
+        className={cn(
+          "absolute top-1/2 h-2 w-2 -translate-y-1/2 rounded-full bg-primary shadow-sm ring-2 ring-background",
+          "opacity-0 transition-opacity duration-200 group-hover:opacity-100"
+        )}
+        style={{ left: `calc(${progressPercentage}% - 4px)` }}
+      />
+    </div>
+  );
+}
 
 interface MusicPlayerProps {
   // 播放列表
@@ -48,6 +139,8 @@ interface MusicPlayerProps {
     duration?: number;
     genre?: string;
   };
+
+  variant?: 'default' | 'studio';
   
   // 音频引用 - 由父组件管理
   audioRef?: React.RefObject<HTMLAudioElement>;
@@ -80,6 +173,7 @@ export const MusicPlayer: React.FC<MusicPlayerProps> = React.memo(function Music
   onTrackInfoClick,
   playTrackById,
   currentPlayingTrack,
+  variant = 'default',
   audioRef,
 }) {
   const currentTrack = tracks[currentTrackIndex];
@@ -201,8 +295,136 @@ export const MusicPlayer: React.FC<MusicPlayerProps> = React.memo(function Music
     }
   }, [hideProgress, isPlaying]);
 
+  const trackTitle =
+    currentTrack?.title ||
+    currentPlayingTrack?.title ||
+    'Untitled';
+
+  if (variant === 'studio') {
+    return (
+      <div
+        ref={rootRef}
+        className={cn(
+          "app-card relative rounded-3xl px-3 py-2 md:px-4 md:py-2",
+          "shadow-[0_18px_60px_rgba(0,0,0,0.16)] backdrop-blur-xl"
+        )}
+      >
+        <div className="grid grid-cols-[auto,1fr,auto] items-center gap-3">
+          {/* Left: transport */}
+          <div className="flex items-center gap-1">
+            <PlayerIconButton
+              onClick={onPrevious}
+              disabled={currentTrackIndex === 0}
+              title="Previous"
+              className="h-8 w-8"
+            >
+              <Rewind className="h-4 w-4 fill-current" />
+            </PlayerIconButton>
+
+            <button
+              type="button"
+              onClick={onPlayPause}
+              aria-label={isPlaying ? "Pause" : "Play"}
+              className={cn(
+                "inline-flex h-10 w-10 items-center justify-center rounded-full",
+                "bg-primary text-primary-foreground shadow-[0_12px_34px_rgba(0,0,0,0.22)]",
+                "transition-transform hover:scale-[1.03] active:scale-[0.98]",
+                "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+              )}
+            >
+              {isPlaying ? (
+                <Pause className="h-5 w-5 fill-current" />
+              ) : (
+                <Play className="h-5 w-5 fill-current translate-x-[1px]" />
+              )}
+            </button>
+
+            <PlayerIconButton
+              onClick={onNext}
+              disabled={currentTrackIndex === tracks.length - 1}
+              title="Next"
+              className="h-8 w-8"
+            >
+              <FastForward className="h-4 w-4 fill-current" />
+            </PlayerIconButton>
+          </div>
+
+          {/* Middle: meta + progress */}
+          <div className="min-w-0">
+            <button
+              type="button"
+              onClick={onTrackInfoClick}
+              disabled={!onTrackInfoClick}
+              className={cn(
+                "w-full text-left",
+                onTrackInfoClick ? "cursor-pointer" : "cursor-default"
+              )}
+              title={trackTitle}
+            >
+              <div className="flex items-baseline justify-between gap-3">
+                <div className="min-w-0">
+                  <div className="truncate text-sm font-semibold tracking-tight text-foreground">
+                    {trackTitle}
+                  </div>
+                </div>
+                <div className="flex items-center gap-2 text-xs text-muted-foreground tabular-nums">
+                  <span>{formatTime(currentTime)}</span>
+                  <span className="opacity-50">/</span>
+                  <span>{formatTime(currentDuration)}</span>
+                </div>
+              </div>
+            </button>
+
+            <div className="mt-2">
+              <PlayerProgressRail
+                currentDuration={currentDuration}
+                currentTime={currentTime}
+                progressPercentage={progressPercentage}
+                onSeek={onSeek}
+              />
+            </div>
+          </div>
+
+          {/* Right: actions */}
+          <div className="flex items-center gap-1">
+            {enableVocalSeparation && currentTrack?.audioId && currentTrack?.taskId && currentTrack?.audioUrl && (
+              <VocalSeparationButton
+                trackId={currentTrack.id}
+                audioId={currentTrack.audioId}
+                taskId={currentTrack.taskId}
+                trackTitle={currentTrack.title}
+                audioUrl={currentTrack.audioUrl}
+                duration={duration || 0}
+                variant="ghost"
+                size="sm"
+              />
+            )}
+
+            {onTrackInfoClick && (
+              <PlayerIconButton
+                onClick={onTrackInfoClick}
+                title={hideProgress ? "Hide lyrics" : "Show lyrics"}
+                className={cn(hideProgress ? "text-primary hover:text-primary" : undefined)}
+              >
+                <MessageSquare className="h-4 w-4 fill-current" />
+              </PlayerIconButton>
+            )}
+
+            <PlayerIconButton onClick={onMuteToggle} title={isMuted || volume === 0 ? "Unmute" : "Mute"}>
+              {isMuted || volume === 0 ? (
+                <VolumeX className="h-4 w-4" />
+              ) : (
+                <Volume2 className="h-4 w-4" />
+              )}
+            </PlayerIconButton>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
-    <div ref={rootRef} className="relative bg-background/50 backdrop-blur-lg shadow-xl shadow-black/30 rounded-xl pl-3 pr-3 md:pr-4 py-2 md:px-4 md:py-1.5 pb-0 md:pb-1.5">
+    <div ref={rootRef} className="app-card relative rounded-2xl pl-3 pr-3 md:pr-4 py-2 md:px-4 md:py-1.5 pb-0 md:pb-1.5">
       <div className="relative flex items-center w-full sm:max-w-6xl sm:mx-auto h-full sm:h-9 pb-2 md:pb-0">
         
         {/* 移动端：左侧播放控制按钮 */}

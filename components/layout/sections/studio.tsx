@@ -1728,10 +1728,10 @@ const StudioContent = () => {
     const studioMainLayout = (
         <section
             id="studio"
-            className="relative h-screen bg-[var(--studio-panel-bg)] overflow-hidden"
+            className="relative h-screen overflow-hidden"
         >
             <div
-                className="h-full flex flex-col md:flex-row transition-[margin] duration-500"
+                className="relative h-full flex flex-col md:flex-row md:gap-4 md:p-4 transition-[margin] duration-500"
                 style={{ marginLeft: 'var(--sidebar-offset, 0px)' }}
             >
                 <div className="hidden md:block md:order-2 flex-shrink-0">
@@ -1780,8 +1780,8 @@ const StudioContent = () => {
                             </div>
                         </div>
 
-                    <div className={`flex flex-col md:flex-row flex-1 min-h-0 min-w-0 ${showInlinePanel ? 'md:gap-0' : 'md:gap-0'}`}>
-                        <div className={`flex-1 min-h-0 min-w-0 px-6 ${showInlinePanel ? 'md:pl-6 md:pr-6' : ''}`}>
+                    <div className={`flex flex-col md:flex-row flex-1 min-h-0 min-w-0 ${showInlinePanel ? 'md:gap-4' : 'md:gap-0'}`}>
+                        <div className={`flex-1 min-h-0 min-w-0 px-4 md:px-0 ${showInlinePanel ? 'md:pl-0 md:pr-0' : ''}`}>
                                 <div className="flex-1 min-h-0 md:hidden">
                                     <StudioTracksList
                                         userTracks={convertUserTracksToMusicGeneration(userTracks)}
@@ -1832,7 +1832,7 @@ const StudioContent = () => {
                         <div
                             className={`relative transition-all duration-300 flex-shrink-0 overflow-hidden z-[80] ${
                                 showInlinePanel
-                                    ? 'opacity-100 w-full md:w-80 px-0 md:px-0 md:py-4'
+                                    ? 'opacity-100 w-full md:w-80 px-0 md:px-0'
                                     : 'opacity-0 pointer-events-none w-0 md:w-0 px-0'
                             }`}
                         >
@@ -1842,25 +1842,30 @@ const StudioContent = () => {
                                         track={inlineTrackDetails}
                                         isPlaying={isInlineTrackPlaying}
                                         onClose={() => setLyricsPanelOpen(false)}
+                                        variant="studio"
                                     />
                                     </div>
                                 )}
                             </div>
-                        </div>
-                    </div>
+	                    </div>
+	                </div>
 
                     {player.currentTrack && (
                         <div
-                            className="fixed md:absolute left-3 z-[10]"
+                            className="fixed md:absolute left-3 right-3 md:left-0 md:right-[var(--studio-player-right)] bottom-[calc(var(--mobile-nav-height,0px)+0.75rem)] md:bottom-0 z-[90] pointer-events-auto"
                             style={{
-                                right: showInlinePanel ? 'calc(20rem + 0.75rem)' : '0.75rem',
-                                bottom: 'calc(var(--mobile-nav-height, 0px) + 0.75rem)'
+                                // Keep the player inside the main content column (tracks + optional lyrics panel)
+                                // so it aligns to the track list card and never covers the StudioPanel create button.
+                                ['--studio-player-right' as any]: showInlinePanel ? 'calc(20rem + 1rem)' : '0px',
                             }}
                         >
-                            <MusicPlayer {...musicPlayerProps} />
+                            <div className="md:pb-4">
+                                <MusicPlayer {...musicPlayerProps} variant="studio" />
+                            </div>
                         </div>
                     )}
-                </div>
+
+	            </div>
 
                 <MobileCreateDrawer
                     isOpen={mobileCreateOpen}
@@ -1868,6 +1873,8 @@ const StudioContent = () => {
                     studioPanelProps={studioPanelProps}
                 />
             </div>
+
+            {/* Removed pulse-line (ECG) animation for Studio page */}
         </section>
     );
 

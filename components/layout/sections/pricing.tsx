@@ -109,9 +109,9 @@ export const PricingSection = () => {
         
         {/* Billing Period Toggle */}
         <div className="mt-8 flex justify-center">
-          <div ref={toggleRef} className="relative inline-flex rounded-full bg-[#232326] p-1">
+          <div ref={toggleRef} className="app-card-muted app-hairline relative inline-flex rounded-full p-1">
             <div
-              className="absolute top-1 bottom-1 rounded-full bg-white shadow-[0_6px_16px_rgba(0,0,0,0.25)] transition-[transform,width] duration-300 ease-out"
+              className="absolute top-1 bottom-1 rounded-full bg-primary shadow-[0_10px_26px_rgba(0,0,0,0.18)] transition-[transform,width] duration-300 ease-out"
               style={{
                 width: sliderStyle.width,
                 transform: `translateX(${sliderStyle.x}px)`,
@@ -123,8 +123,8 @@ export const PricingSection = () => {
                 ref={yearlyRef}
                 className={`px-5 py-2 text-sm font-semibold transition-colors duration-200 rounded-full ${
                   billingPeriod === 'yearly'
-                    ? "text-black"
-                    : "text-white/60 hover:text-white"
+                    ? "text-primary-foreground"
+                    : "text-foreground/60 hover:text-foreground"
                 }`}
               >
                 <div className="flex items-center gap-2">
@@ -132,8 +132,8 @@ export const PricingSection = () => {
                   <span
                     className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-semibold transition-colors duration-200 ${
                       billingPeriod === 'yearly'
-                        ? "bg-gradient-create text-white"
-                        : "bg-white/10 text-white/70"
+                        ? "bg-black/15 text-primary-foreground"
+                        : "bg-black/5 text-foreground/70"
                     }`}
                   >
                     Save 36%
@@ -145,8 +145,8 @@ export const PricingSection = () => {
                 ref={monthlyRef}
                 className={`px-5 py-2 text-sm font-semibold transition-colors duration-200 rounded-full ${
                   billingPeriod === 'monthly'
-                    ? "text-black"
-                    : "text-white/60 hover:text-white"
+                    ? "text-primary-foreground"
+                    : "text-foreground/60 hover:text-foreground"
                 }`}
               >
                 Monthly
@@ -162,17 +162,17 @@ export const PricingSection = () => {
           {currentPlans.map((plan) => (
             <Card 
               key={plan.id} 
-              className="relative transition-all duration-300 h-full flex flex-col bg-white/[0.04] text-white rounded-[28px] border border-white/10 shadow-[0_20px_60px_rgba(0,0,0,0.35)] backdrop-blur-xl"
+              className="app-card relative transition-all duration-300 h-full flex flex-col rounded-[28px]"
             >
               <CardHeader className="text-center pb-4 pt-8">
                 <div className="flex justify-center mb-6">
                   <Badge className={`rounded-full px-4 py-1 text-xs font-bold uppercase tracking-[0.2em] ${
-                    plan.popular ? 'bg-primary text-white' : 'bg-white/10 text-white/70'
+                    plan.popular ? 'bg-primary text-primary-foreground' : 'bg-black/5 text-foreground/70 border border-black/10'
                   }`}>
                     {plan.name}
                   </Badge>
                 </div>
-                <CardDescription className="text-sm text-white/60 mb-6">
+                <CardDescription className="text-sm text-muted-foreground mb-6">
                   {billingPeriod === 'monthly'
                     ? 'Perfect for Individual Creators'
                     : 'Professional Music Creation Made Simple'}
@@ -182,14 +182,14 @@ export const PricingSection = () => {
                   <div className="text-5xl md:text-6xl font-black tracking-tight">
                     <span className="text-base align-bottom mr-0.5">$</span>
                     {plan.price}
-                    <span className="text-base text-white/60 ml-1">/mo</span>
+                    <span className="text-base text-muted-foreground ml-1">/mo</span>
                   </div>
                 </div>
               </CardHeader>
 
               <CardContent className="pt-0 flex flex-col flex-grow">
                 <Button 
-                  className="w-full mb-6 rounded-full py-6 text-base font-semibold bg-primary text-white hover:bg-primary/90"
+                  className="w-full mb-6 rounded-full py-6 text-base font-semibold"
                   variant="default"
                   onClick={() => handlePurchase(plan)}
                   disabled={loading === plan.id}
@@ -204,7 +204,7 @@ export const PricingSection = () => {
 
                 <ul className="space-y-3 flex-grow">
                   {plan.features.map((feature, index) => (
-                    <li key={index} className="flex items-center gap-3 text-sm text-white/80">
+                    <li key={index} className="flex items-center gap-3 text-sm text-foreground/80">
                       <Check className="h-4 w-4 text-green-600 flex-shrink-0" />
                       <span>{feature}</span>
                     </li>

@@ -20,12 +20,14 @@ interface InlineTrackDetailsPanelProps {
   track?: InlineTrackDetails | null;
   isPlaying?: boolean;
   onClose?: () => void;
+  variant?: 'default' | 'studio';
 }
 
 export const InlineTrackDetailsPanel: React.FC<InlineTrackDetailsPanelProps> = ({
   track,
   isPlaying = false,
-  onClose
+  onClose,
+  variant = 'default',
 }) => {
   const tags = React.useMemo(() => {
     if (!track?.tags) return [];
@@ -39,7 +41,13 @@ export const InlineTrackDetailsPanel: React.FC<InlineTrackDetailsPanelProps> = (
   if (!track) return null;
 
   return (
-    <div className="h-full rounded-2xl border border-white/10 bg-[var(--studio-panel-bg)] shadow-lg backdrop-blur-md overflow-hidden">
+    <div
+      className={
+        variant === 'studio'
+          ? 'app-card app-hairline h-full rounded-2xl overflow-hidden'
+          : 'app-card app-hairline h-full rounded-2xl overflow-hidden'
+      }
+    >
       <div className="h-full flex flex-col">
         <div className="relative flex-shrink-0">
           {track.coverImage ? (

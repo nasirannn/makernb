@@ -16,6 +16,7 @@ interface TrackItemProps {
   isCurrentTrack?: boolean;
   isCopied?: boolean;
   modelBadgePlacement?: 'title' | 'meta' | 'none';
+  variant?: 'default' | 'studio';
   
   // 权限
   canDownloadMP3?: boolean;
@@ -47,6 +48,7 @@ export const TrackItem: React.FC<TrackItemProps> = ({
   isCurrentTrack = false,
   isCopied = false,
   modelBadgePlacement = 'meta',
+  variant = 'default',
   canDownloadMP3 = false,
   canDownloadWAV = false,
   canDownloadCover = false,
@@ -88,20 +90,29 @@ export const TrackItem: React.FC<TrackItemProps> = ({
   
   // 统一样式，不再区分延长版本
   const isExtension = false; // 统一样式
-  const paddingClass = 'px-2 py-2';
+  const paddingClass = variant === 'studio' ? 'px-3 py-3' : 'px-2 py-2';
   const gapClass = 'gap-4';
+
+  const containerClassName =
+    variant === 'studio'
+      ? `relative flex items-center ${gapClass} ${paddingClass} w-full transition-all duration-150 group rounded-2xl`
+      : `relative flex items-center ${gapClass} ${paddingClass} w-full transition-all duration-200 group rounded-2xl border`;
   
   return (
     <div
-      className={`relative flex items-center ${gapClass} ${paddingClass} w-full transition-all duration-300 group rounded-2xl border border-transparent ${
+      className={`${containerClassName} ${
         isError
-          ? 'cursor-default bg-transparent'
+          ? 'cursor-default border-transparent bg-transparent'
           : isClickable
             ? `cursor-pointer ${isSelected
-                ? 'bg-white/10 text-white'
-              : 'bg-transparent hover:bg-white/5'
+                ? (variant === 'studio'
+                  ? 'bg-primary/10 shadow-[0_16px_44px_rgba(0,0,0,0.10)]'
+                  : 'border-primary/35 bg-white/75 shadow-[0_12px_34px_rgba(0,0,0,0.08)]')
+              : (variant === 'studio'
+                ? 'bg-transparent hover:bg-black/5 dark:hover:bg-white/5'
+                : 'border-black/10 bg-white/40 hover:bg-white/70 hover:border-black/15')
               }`
-            : 'cursor-default bg-transparent'
+            : 'cursor-default border-transparent bg-transparent'
       }`}
       onClick={() => {
         if (isClickable && onSelect) {
@@ -132,7 +143,7 @@ export const TrackItem: React.FC<TrackItemProps> = ({
       
       {/* Track Info */}
       <div className={`flex-1 min-w-0 flex items-center ${gapClass}`}>
-        <div className={`flex-1 min-w-0 flex items-center h-16`}>
+        <div className={`flex-1 min-w-0 flex items-center min-h-16`}>
           <div className="flex items-center justify-between gap-2 w-full">
             {/* 歌曲信息 */}
             <TrackInfo

@@ -6,96 +6,81 @@ import Image from "next/image";
 
 export const FooterSection = () => {
   return (
-    <footer id="footer" className="container py-6 sm:py-12 md:py-16">
-      <div className="p-6 sm:p-10 bg-card rounded-2xl">
-        <div className="flex flex-col items-center justify-between gap-10 text-center lg:flex-row lg:text-left">
-          <div className="flex w-full max-w-96 shrink flex-col items-center justify-between gap-6 lg:items-start">
-            <Link href="/" className="flex font-bold items-center mb-4">
-              <Image
-                src="/logo.svg"
-                alt="MakeRNB Logo"
-                width={32}
-                height={32}
-                className="mr-3"
-              />
-              <h3 className="text-xl">MakeRNB</h3>
+    <footer id="footer" className="relative">
+      <div className="pointer-events-none absolute inset-0 -z-10 bg-[linear-gradient(180deg,transparent,rgba(0,0,0,0.02))] dark:bg-[linear-gradient(180deg,transparent,rgba(255,255,255,0.03))]" />
+
+      <div className="container py-10 sm:py-14">
+        <div className="grid gap-10 lg:grid-cols-[1.35fr_1fr] lg:items-start">
+          <div className="space-y-4">
+            <Link href="/" className="inline-flex items-center gap-3">
+              <Image src="/logo.svg" alt="MakeRNB Logo" width={32} height={32} />
+              <span className="text-lg font-extrabold tracking-tight">MakeRNB</span>
             </Link>
-            <p className="text-sm text-muted-foreground leading-relaxed max-w-md">
-              Create authentic R&B music with AI. From soulful ballads to contemporary grooves, generate professional tracks that capture the essence of rhythm and blues.
+            <p className="max-w-xl text-sm text-muted-foreground leading-relaxed">
+              Create authentic R&B music with AI — from soulful ballads to contemporary grooves. Generate export‑ready tracks in minutes.
             </p>
+            <div className="flex flex-wrap items-center gap-2">
+              <Link
+                href="/studio"
+                className="inline-flex items-center rounded-full bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground hover:bg-primary/90 transition-colors"
+              >
+                Open Studio
+              </Link>
+              <Link
+                href="/explore"
+                className="inline-flex items-center rounded-full bg-background/40 px-4 py-2 text-sm font-semibold text-foreground shadow-[0_0_0_1px_rgba(0,0,0,0.08)] dark:shadow-[0_0_0_1px_rgba(255,255,255,0.10)] hover:bg-foreground/5 transition-colors"
+              >
+                Explore
+              </Link>
+            </div>
           </div>
 
-          <div className="grid grid-cols-2 gap-6 lg:gap-20">
-            {/* About */}
-            <div className="flex flex-col gap-3 sm:gap-4 items-start text-left">
-              <h3 className="font-bold text-lg">About</h3>
-              <div>
-                <Link 
-                  href="/#features" 
-                  className="opacity-60 hover:opacity-100"
-                >
-                  Features
-                </Link>
-              </div>
-
-              <div>
-                <Link href="/#tutorial" className="opacity-60 hover:opacity-100">
-                  How It Works
-                </Link>
+          <div className="grid grid-cols-2 gap-8">
+            <div className="space-y-3">
+              <p className="text-[11px] font-semibold uppercase tracking-[0.28em] text-muted-foreground">Product</p>
+              <div className="flex flex-col gap-2 text-sm">
+                <Link href="/#features" className="text-foreground/80 hover:text-foreground transition-colors">Features</Link>
+                <Link href="/#pricing" className="text-foreground/80 hover:text-foreground transition-colors">Pricing</Link>
+                <Link href="/blog" className="text-foreground/80 hover:text-foreground transition-colors">Blog</Link>
               </div>
             </div>
 
-            {/* Help */}
-            <div className="flex flex-col gap-3 sm:gap-4 items-start text-left">
-              <h3 className="font-bold text-lg">Help</h3>
-              <div>
-                <a 
-                  href="mailto:contact@makernb.com?subject=Contact from MakeRNB Website&body=Hello MakeRNB Team,%0D%0A%0D%0AI would like to get in touch with you regarding:%0D%0A%0D%0A%0D%0A%0D%0ABest regards," 
-                  className="opacity-60 hover:opacity-100 transition-opacity"
+            <div className="space-y-3">
+              <p className="text-[11px] font-semibold uppercase tracking-[0.28em] text-muted-foreground">Support</p>
+              <div className="flex flex-col gap-2 text-sm">
+                <a
+                  href="mailto:contact@makernb.com?subject=Contact from MakeRNB Website&body=Hello MakeRNB Team,%0D%0A%0D%0AI would like to get in touch with you regarding:%0D%0A%0D%0A%0D%0A%0D%0ABest regards,"
+                  className="text-foreground/80 hover:text-foreground transition-colors"
                 >
-                  Contact Us
+                  Contact
                 </a>
+                <Link href="/privacy" className="text-foreground/80 hover:text-foreground transition-colors">Privacy</Link>
+                <Link href="/terms" className="text-foreground/80 hover:text-foreground transition-colors">Terms</Link>
+                <Link href="/refund" className="text-foreground/80 hover:text-foreground transition-colors">Refunds</Link>
               </div>
             </div>
           </div>
         </div>
 
-        <Separator className="my-6" />
-        <section className="flex flex-col sm:flex-row justify-between items-center gap-4">
-          <p className="text-sm text-muted-foreground">
+        <Separator className="my-8" />
+
+        <div className="flex flex-col gap-6 sm:flex-row sm:items-center sm:justify-between">
+          <p className="text-xs text-muted-foreground">
             &copy; 2025 MakeRNB. All rights reserved.
           </p>
-          <div className="flex gap-6 flex-wrap justify-center">
-            <Link href="/privacy" className="text-sm opacity-60 hover:opacity-100 transition-opacity">
-              Privacy Policy
-            </Link>
-            <Link href="/terms" className="text-sm opacity-60 hover:opacity-100 transition-opacity">
-              Terms of Service
-            </Link>
-            <Link href="/license" className="text-sm opacity-60 hover:opacity-100 transition-opacity">
-              Commercial License
-            </Link>
-            <Link href="/refund" className="text-sm opacity-60 hover:opacity-100 transition-opacity">
-              Refund Policy
-            </Link>
-          </div>
-        </section>
 
-        <Separator className="my-6" />
-        
-        {/* Product Hunt Badge */}
-        <div className="flex justify-center">
-          <a 
-            href="https://www.producthunt.com/products/makernb?embed=true&utm_source=badge-featured&utm_medium=badge&utm_source=badge-makernb" 
-            target="_blank" 
+          <a
+            href="https://www.producthunt.com/products/makernb?embed=true&utm_source=badge-featured&utm_medium=badge&utm_source=badge-makernb"
+            target="_blank"
             rel="noopener noreferrer"
+            className="app-card-muted inline-flex items-center justify-center rounded-2xl px-3 py-2"
           >
-            <Image 
-              src="https://api.producthunt.com/widgets/embed-image/v1/featured.svg?post_id=1026584&theme=dark&t=1760448580929" 
-              alt="MakeRNB - Create authentic R&B tracks with AI, instantly | Product Hunt" 
-              width={250} 
+            <Image
+              src="https://api.producthunt.com/widgets/embed-image/v1/featured.svg?post_id=1026584&theme=dark&t=1760448580929"
+              alt="MakeRNB - Create authentic R&B tracks with AI, instantly | Product Hunt"
+              width={250}
               height={54}
-              className="w-[250px] h-[54px]"
+              className="w-[220px] h-[48px]"
             />
           </a>
         </div>

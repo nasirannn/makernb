@@ -37,7 +37,7 @@ export const TrackInfo: React.FC<TrackInfoProps> = ({
   sourceType,
 }) => {
   // 统一所有track的样式，不再区分extension
-  const heightClass = 'h-16';
+  const heightClass = 'min-h-16';
   const titleSizeClass = 'text-sm';
   const textSizeClass = 'text-xs';
   const justifyClass = 'justify-center';
@@ -106,7 +106,7 @@ export const TrackInfo: React.FC<TrackInfoProps> = ({
           {showDuration && (
             <>
               {duration && duration > 0 ? (
-                <span className={`${textSizeClass} text-muted-foreground/70 whitespace-nowrap inline-flex items-center gap-1`}>
+                <span className={`${textSizeClass} text-muted-foreground whitespace-nowrap inline-flex items-center gap-1`}>
                   {formatDuration(duration)}
                 </span>
               ) : isGenerating ? (
@@ -125,7 +125,7 @@ export const TrackInfo: React.FC<TrackInfoProps> = ({
 
           {modelLabel && modelPlacement === 'meta' && (
             <>
-              <span className="h-3 w-px bg-muted-foreground/40" aria-hidden="true" />
+              <span className="text-muted-foreground/60" aria-hidden="true">·</span>
               <span className="inline-flex items-center rounded-sm bg-primary px-1 py-0.5 text-[10px] font-medium text-primary-foreground">
                 {modelLabel}
               </span>
@@ -134,8 +134,8 @@ export const TrackInfo: React.FC<TrackInfoProps> = ({
 
           {visibleTags.length > 0 ? (
             <>
-              <span className="h-3 w-px bg-muted-foreground/40" aria-hidden="true" />
-              <div className={`${textSizeClass} text-muted-foreground/70 truncate flex-1`} title={tags}>
+              <span className="text-muted-foreground/60" aria-hidden="true">·</span>
+              <div className={`${textSizeClass} text-muted-foreground truncate flex-1`} title={tags}>
                 {visibleTags.map((tag, index) => (
                   <span key={`${tag}-${index}`}>
                   <span>{tag.length > 50 ? `${tag.slice(0, 50)}...` : tag}</span>

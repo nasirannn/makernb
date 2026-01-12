@@ -13,6 +13,8 @@ import { LogOut } from "lucide-react";
 import { getZIndexClass } from "@/lib/z-index";
 import { supabase } from "@/lib/supabase";
 import { EditNicknameDialog } from "@/components/ui/edit-nickname-dialog";
+import { ThemeModeToggle } from "@/components/ui/theme-mode-toggle";
+import { SubscriptionBadge } from "@/components/ui/subscription-badge";
 
 interface RouteProps {
   href: string;
@@ -87,6 +89,7 @@ export const Navbar = ({ credits = null }: NavbarProps) => {
   const [tierCode, setTierCode] = React.useState<'basic' | 'premium' | null>(null);
   const pathname = usePathname();
   const searchParams = useSearchParams();
+  const isHome = pathname === "/";
   const { user, signOut, loading: authLoading } = useAuth();
   const displayName = user?.user_metadata?.nickname || user?.user_metadata?.full_name || user?.user_metadata?.name || user?.email?.split('@')[0] || '';
 
@@ -246,17 +249,20 @@ export const Navbar = ({ credits = null }: NavbarProps) => {
 
   return (
     <header 
-      className={`w-full flex items-center px-6 lg:px-20 py-3 lg:py-4 absolute top-0 left-0 bg-[var(--studio-panel-bg)] border-b border-white/5 text-white ${getZIndexClass('NAVBAR')}`}
+      className={`w-full flex items-center px-6 lg:px-20 py-3 lg:py-4 absolute top-0 left-0 backdrop-blur-md text-foreground shadow-[0_1px_0_rgba(0,0,0,0.06)] dark:shadow-[0_1px_0_rgba(255,255,255,0.08)] ${getZIndexClass('NAVBAR')} ${
+        // Home should match the same page background tone as other sections (not a gray overlay).
+        isHome ? "bg-[#f7f6f2] dark:bg-[#05060b]" : "bg-background/70"
+      }`}
     >
-      <Link href="/" className="font-extrabold text-lg flex items-center text-white tracking-tight">
+      <Link href="/" className="flex items-center gap-3">
         <Image
           src="/logo.svg"
           alt="MakeRNB Logo"
           width={36}
           height={36}
-          className="mr-3"
+          className="h-9 w-9"
         />
-        MakeRNB
+        <span className="sidebar-brand">MakeRNB</span>
       </Link>
       
       {/* <!-- Desktop Navigation --> */}
@@ -279,10 +285,10 @@ export const Navbar = ({ credits = null }: NavbarProps) => {
                     onClick={() => setIsDropdownOpen(!isDropdownOpen)}
                     onMouseEnter={handleDropdownMouseEnter}
                     onMouseLeave={handleDropdownMouseLeave}
-                    className={`text-base px-5 py-3 rounded-lg transition-colors duration-200 flex items-center gap-1 font-semibold ${
+                  className={`text-base px-5 py-3 rounded-lg transition-colors duration-200 flex items-center gap-1 font-semibold ${
                       isActive
                         ? 'text-primary'
-                        : 'text-white/80 hover:text-primary'
+                        : 'text-foreground/70 hover:text-foreground'
                     }`}
                   >
                     {label}
@@ -292,7 +298,7 @@ export const Navbar = ({ credits = null }: NavbarProps) => {
                   {/* Dropdown Menu */}
                   {isDropdownOpen && (
                     <div 
-                      className="absolute top-full left-0 mt-2 min-w-48 w-max bg-[var(--studio-panel-bg)] border border-white/10 rounded-lg p-2 z-[110]"
+                      className="absolute top-full left-0 mt-2 min-w-48 w-max bg-background rounded-2xl p-2 z-[110] shadow-[0_18px_55px_rgba(0,0,0,0.10)]"
                       onMouseEnter={handleDropdownMouseEnter}
                       onMouseLeave={handleDropdownMouseLeave}
                     >
@@ -301,11 +307,11 @@ export const Navbar = ({ credits = null }: NavbarProps) => {
                           key={item.href}
                           href={item.href}
                           onClick={() => setIsDropdownOpen(false)}
-                          className="flex items-center px-3 py-2 hover:bg-white/5 transition-colors group rounded-md"
+                          className="flex items-center px-3 py-2 hover:bg-black/5 transition-colors group rounded-xl"
                         >
                           <div className="flex-1 min-w-0">
-                            <p className="text-white/90 font-medium text-sm transition-colors group-hover:text-primary">{item.label}</p>
-                            <p className="text-white/50 text-xs truncate transition-colors group-hover:text-white/70">{item.description}</p>
+                            <p className="text-foreground font-medium text-sm transition-colors group-hover:text-primary">{item.label}</p>
+                            <p className="text-muted-foreground text-xs truncate transition-colors">{item.description}</p>
                           </div>
                         </Link>
                       ))}
@@ -323,7 +329,7 @@ export const Navbar = ({ credits = null }: NavbarProps) => {
                   className={`text-base px-5 py-3 rounded-lg transition-colors duration-200 font-semibold ${
                     isActive
                       ? 'text-primary'
-                      : 'text-white/80 hover:text-primary'
+                      : 'text-foreground/70 hover:text-foreground'
                   }`}
                 >
                   {label}
@@ -338,13 +344,13 @@ export const Navbar = ({ credits = null }: NavbarProps) => {
       <div className="flex items-center lg:hidden ml-auto">
         <Menu
           onClick={() => setIsOpen(!isOpen)}
-          className="cursor-pointer lg:hidden text-white"
+          className="cursor-pointer lg:hidden text-foreground"
         />
         
         {isOpen && (
           <div className="fixed inset-0 lg:hidden z-[100]">
             <div className="fixed inset-0 bg-black/50" onClick={() => setIsOpen(false)} />
-            <div className="fixed right-0 top-0 h-full w-80 bg-card border-l border-border p-6">
+            <div className="fixed right-0 top-0 h-full w-80 bg-card shadow-[-1px_0_0_rgba(0,0,0,0.08)] p-6">
               <div className="flex items-center justify-between mb-6">
                 <Link href="/" className="flex items-center" onClick={() => setIsOpen(false)}>
                   <Image
@@ -361,7 +367,7 @@ export const Navbar = ({ credits = null }: NavbarProps) => {
               
               {/* Mobile User Section */}
               {user ? (
-                <div className="mb-6 pb-6 border-b border-border/20">
+                <div className="mb-6 pb-6 shadow-[0_1px_0_rgba(0,0,0,0.06)] dark:shadow-[0_1px_0_rgba(255,255,255,0.08)]">
                   {/* User Info */}
                   <div className="flex items-center gap-3 mb-4">
                     <Avatar className="w-10 h-10 border border-purple-600/30">
@@ -376,25 +382,23 @@ export const Navbar = ({ credits = null }: NavbarProps) => {
                     </Avatar>
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center justify-between gap-2 mb-1">
-                        <p className="text-white font-medium text-sm truncate flex-1">
+                        <p className="text-foreground font-medium text-sm truncate flex-1">
                           {displayName || 'User'}
                         </p>
-                        {tierCode && (
-                          <Badge className="relative inline-block rounded-full border border-primary/40 bg-primary px-2 py-0.5 text-xs text-white flex-shrink-0">
-                            <span className="font-medium capitalize">{tierCode}</span>
-                          </Badge>
-                        )}
+	                        {tierCode && (
+	                          <SubscriptionBadge tier={tierCode} />
+	                        )}
                       </div>
-                      <p className="text-white/70 text-xs truncate">
+                      <p className="text-muted-foreground text-xs truncate">
                         {user.email}
                       </p>
                     </div>
                   </div>
                   
                   {/* Credits Display */}
-                  <div className="flex items-center gap-2 px-3 py-2 rounded-full border border-white/10 bg-white/5">
+                  <div className="flex items-center gap-2 px-3 py-2 rounded-full bg-black/5">
                     <Sparkles className="h-3.5 w-3.5 text-primary" />
-                    <span className="text-base font-semibold text-white/90">
+                    <span className="text-base font-semibold text-foreground">
                       {credits === null ? '...' : credits} Credits
                     </span>
                   </div>
@@ -406,7 +410,7 @@ export const Navbar = ({ credits = null }: NavbarProps) => {
                         setIsOpen(false);
                         setIsNicknameDialogOpen(true);
                       }}
-                      className="w-full flex items-center gap-3 px-3 py-2 text-sm text-white/80 hover:bg-white/10 hover:text-white transition-colors rounded-lg"
+                      className="w-full flex items-center gap-3 px-3 py-2 text-sm text-foreground/80 hover:bg-black/5 hover:text-foreground transition-colors rounded-lg"
                     >
                       <PencilLine className="w-4 h-4" />
                       <span>Edit profile</span>
@@ -420,7 +424,7 @@ export const Navbar = ({ credits = null }: NavbarProps) => {
                           console.error('Sign out error:', error);
                         }
                       }}
-                      className="w-full flex items-center gap-3 px-3 py-2 text-sm text-white/80 hover:bg-white/10 hover:text-white transition-colors rounded-lg"
+                      className="w-full flex items-center gap-3 px-3 py-2 text-sm text-foreground/80 hover:bg-black/5 hover:text-foreground transition-colors rounded-lg"
                     >
                       <LogOut className="w-4 h-4" />
                       <span>Sign Out</span>
@@ -428,7 +432,7 @@ export const Navbar = ({ credits = null }: NavbarProps) => {
                   </div>
                 </div>
               ) : (
-                <div className="mb-6 pb-6 border-b border-border/20">
+                <div className="mb-6 pb-6 shadow-[0_1px_0_rgba(0,0,0,0.06)] dark:shadow-[0_1px_0_rgba(255,255,255,0.08)]">
                   <Button 
                     onClick={() => {
                       setIsAuthModalOpen(true);
@@ -443,6 +447,12 @@ export const Navbar = ({ credits = null }: NavbarProps) => {
               )}
               
               <div className="flex flex-col gap-2">
+                <div className="px-3 pt-2 pb-3">
+                  <div className="text-[10px] font-semibold uppercase tracking-[0.28em] text-muted-foreground mb-2">
+                    Theme
+                  </div>
+                  <ThemeModeToggle size="md" />
+                </div>
                 {routeList.map(({ href, label, hasDropdown, dropdownItems }) => {
                   const isActive = pathname === href ||
                                  (href === "/blog" && pathname.startsWith("/blog")) ||
@@ -455,7 +465,7 @@ export const Navbar = ({ credits = null }: NavbarProps) => {
                     return (
                       <div key={href} className="space-y-1">
                         <div className={`text-sm px-3 py-2 rounded-lg font-medium ${
-                          isActive ? 'bg-primary/10 text-primary' : 'text-white/80'
+                          isActive ? 'bg-primary/10 text-primary' : 'text-foreground/70'
                         }`}>
                           {label}
                         </div>
@@ -466,13 +476,13 @@ export const Navbar = ({ credits = null }: NavbarProps) => {
                               onClick={() => setIsOpen(false)}
                               asChild
                               variant="ghost"
-                              className="justify-start text-sm h-auto py-2 px-3 text-white/70 hover:text-white hover:bg-white/10"
+                              className="justify-start text-sm h-auto py-2 px-3 text-foreground/70 hover:text-foreground hover:bg-black/5"
                             >
                               <Link href={item.href} className="flex items-center gap-2">
                                 {item.icon}
                                 <div>
                                   <div className="font-medium">{item.label}</div>
-                                  <div className="text-xs text-white/50">{item.description}</div>
+                                  <div className="text-xs text-muted-foreground">{item.description}</div>
                                 </div>
                               </Link>
                             </Button>
@@ -515,8 +525,9 @@ export const Navbar = ({ credits = null }: NavbarProps) => {
 
       {/* <!-- Desktop Right Side --> */}
       <div className="hidden lg:flex ml-auto items-center gap-4">
+        <ThemeModeToggle />
         {authLoading ? (
-          <div className="h-10 w-24 rounded-md bg-white/10 animate-pulse" />
+          <div className="h-10 w-24 rounded-md bg-black/10 animate-pulse" />
         ) : user ? (
           <>
             <div 
@@ -540,21 +551,19 @@ export const Navbar = ({ credits = null }: NavbarProps) => {
             {/* User Dropdown Menu */}
             {isUserMenuOpen && (
               <div 
-                className="absolute right-0 top-12 min-w-52 w-max bg-[#0f1014] border border-white/10 rounded-xl p-1.5 shadow-[0_20px_60px_rgba(0,0,0,0.6)] z-[110]"
+                className="absolute right-0 top-12 min-w-52 w-max app-card rounded-2xl p-1.5 shadow-[0_20px_60px_rgba(0,0,0,0.12)] z-[110]"
               >
                 {/* User Info */}
                 <div className="px-2.5 py-1.5">
                   <div className="flex items-center justify-between gap-2 mb-1">
-                    <p className="text-white font-semibold text-sm truncate flex-1">
+                    <p className="text-foreground font-semibold text-sm truncate flex-1">
                       {displayName || 'User'}
                     </p>
-                    {tierCode && (
-                      <Badge className="rounded-full border border-primary/40 bg-primary px-2 py-0.5 text-xs text-white flex-shrink-0">
-                        <span className="font-medium capitalize">{tierCode}</span>
-                      </Badge>
-                    )}
+	                    {tierCode && (
+	                      <SubscriptionBadge tier={tierCode} />
+	                    )}
                   </div>
-                  <p className="text-white/60 text-xs truncate">
+                  <p className="text-muted-foreground text-xs truncate">
                     {user.email}
                   </p>
                 </div>
@@ -563,12 +572,12 @@ export const Navbar = ({ credits = null }: NavbarProps) => {
                 <div className="px-2.5 pb-1.5">
                   <div className="flex items-center justify-between gap-3 py-1.5">
                     <div className="flex items-center gap-3">
-                      <div className="flex-shrink-0 h-8 w-8 rounded-lg flex items-center justify-center text-[#f5b733]">
+                      <div className="flex-shrink-0 h-8 w-8 rounded-lg flex items-center justify-center text-primary">
                         <Sparkles className="h-3.5 w-3.5" />
                       </div>
-                      <span className="text-sm font-medium text-white">Credits</span>
+                      <span className="text-sm font-medium text-foreground">Credits</span>
                     </div>
-                    <span className="min-w-6 rounded-md bg-[#2b2416] px-2 py-0.5 text-center text-[11px] font-semibold text-[#f5b733]">
+                    <span className="min-w-6 rounded-md bg-black/5 px-2 py-0.5 text-center text-[11px] font-semibold text-foreground">
                       {credits === null ? '...' : credits}
                     </span>
                   </div>
@@ -581,10 +590,10 @@ export const Navbar = ({ credits = null }: NavbarProps) => {
                   }}
                   className="w-full flex items-center gap-3 px-2.5 py-2 transition-colors group rounded-lg"
                 >
-                  <div className="flex-shrink-0 h-8 w-8 rounded-lg flex items-center justify-center text-white/80">
+                  <div className="flex-shrink-0 h-8 w-8 rounded-lg flex items-center justify-center text-foreground/70">
                     <PencilLine className="h-3.5 w-3.5" />
                   </div>
-                  <span className="text-white/90 font-medium text-sm">Edit profile</span>
+                  <span className="text-foreground font-medium text-sm">Edit profile</span>
                 </button>
 
                 {/* Sign Out Button */}
@@ -597,12 +606,12 @@ export const Navbar = ({ credits = null }: NavbarProps) => {
                       console.error('Sign out error:', error);
                     }
                   }}
-                  className="w-full flex items-center gap-3 px-2.5 py-2 transition-colors group rounded-lg border-t border-white/10"
+                  className="w-full flex items-center gap-3 px-2.5 py-2 transition-colors group rounded-lg"
                 >
-                  <div className="flex-shrink-0 h-8 w-8 rounded-lg flex items-center justify-center text-white/80">
+                  <div className="flex-shrink-0 h-8 w-8 rounded-lg flex items-center justify-center text-foreground/70">
                     <LogOut className="h-3.5 w-3.5" />
                   </div>
-                  <span className="text-white/90 font-medium text-sm">Sign Out</span>
+                  <span className="text-foreground font-medium text-sm">Sign Out</span>
                 </button>
               </div>
             )}
