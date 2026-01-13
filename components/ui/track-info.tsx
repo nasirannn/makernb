@@ -78,7 +78,7 @@ export const TrackInfo: React.FC<TrackInfoProps> = ({
         </h3>
 
         {modelLabel && modelPlacement === 'title' && (
-          <span className="inline-flex items-center rounded-sm bg-primary px-1 py-0.5 text-[10px] font-medium text-primary-foreground">
+          <span className="inline-flex items-center rounded-sm bg-accent px-1 py-0.5 text-[10px] font-medium text-accent-foreground">
             {modelLabel}
           </span>
         )}
@@ -126,7 +126,7 @@ export const TrackInfo: React.FC<TrackInfoProps> = ({
           {modelLabel && modelPlacement === 'meta' && (
             <>
               <span className="text-muted-foreground/60" aria-hidden="true">·</span>
-              <span className="inline-flex items-center rounded-sm bg-primary px-1 py-0.5 text-[10px] font-medium text-primary-foreground">
+              <span className="inline-flex items-center rounded-sm bg-accent px-1 py-0.5 text-[10px] font-medium text-accent-foreground">
                 {modelLabel}
               </span>
             </>

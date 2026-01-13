@@ -136,20 +136,20 @@ export const LibraryTrackActions: React.FC<LibraryTrackActionsProps> = ({
           <DropdownMenuContent align="end" onClick={(e) => e.stopPropagation()} className="p-2 min-w-[160px]">
             <DropdownMenuItem
               onClick={(e) => handleDownloadClick(e, 'mp3')}
-              className="flex items-center justify-between gap-2 cursor-pointer px-3 py-2 text-xs data-[highlighted]:bg-transparent data-[highlighted]:text-primary focus:bg-transparent"
+              className="flex items-center justify-between gap-2 cursor-pointer px-3 py-2 text-xs"
             >
               <span className="font-medium">Download MP3</span>
             </DropdownMenuItem>
             <DropdownMenuItem
               onClick={(e) => handleDownloadClick(e, 'wav')}
-              className="flex items-center justify-between gap-2 cursor-pointer px-3 py-2 text-xs data-[highlighted]:bg-transparent data-[highlighted]:text-primary focus:bg-transparent"
+              className="flex items-center justify-between gap-2 cursor-pointer px-3 py-2 text-xs"
             >
               <span className="font-medium">Download WAV</span>
             </DropdownMenuItem>
             {hasCoverImage ? (
               <DropdownMenuItem
                 onClick={(e) => handleDownloadClick(e, 'cover')}
-                className="flex items-center justify-between gap-2 cursor-pointer px-3 py-2 text-xs data-[highlighted]:bg-transparent data-[highlighted]:text-primary focus:bg-transparent"
+                className="flex items-center justify-between gap-2 cursor-pointer px-3 py-2 text-xs"
               >
                 <span className="font-medium">Download PNG</span>
               </DropdownMenuItem>
@@ -242,7 +242,7 @@ export const LibraryTrackActions: React.FC<LibraryTrackActionsProps> = ({
                 e.stopPropagation();
                 onDelete();
               }}
-              className="cursor-pointer px-3 py-2 text-destructive focus:text-destructive"
+              className="cursor-pointer px-3 py-2 text-destructive data-[highlighted]:bg-destructive/10 data-[highlighted]:text-destructive focus:bg-destructive/10 focus:text-destructive"
             >
               <Trash2 className="mr-2 h-4 w-4" />
               Delete

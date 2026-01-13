@@ -1830,10 +1830,10 @@ const StudioContent = () => {
                             </div>
 
                         <div
-                            className={`relative transition-all duration-300 flex-shrink-0 overflow-hidden z-[80] ${
+                            className={`relative transition-all duration-300 flex-shrink-0 z-[80] ${
                                 showInlinePanel
-                                    ? 'opacity-100 w-full md:w-80 px-0 md:px-0'
-                                    : 'opacity-0 pointer-events-none w-0 md:w-0 px-0'
+                                    ? 'opacity-100 w-full md:w-80 px-0 md:px-0 overflow-visible'
+                                    : 'opacity-0 pointer-events-none w-0 md:w-0 px-0 overflow-hidden'
                             }`}
                         >
                                 {showInlinePanel && (

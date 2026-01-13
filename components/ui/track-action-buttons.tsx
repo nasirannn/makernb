@@ -18,7 +18,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
-import { Star, Share2, Check, Download, MoreVertical, Mic, Trash2, Pencil, Maximize2, Scissors } from "lucide-react";
+import { FileAudio, Image as ImageIcon, Music2, Star, Share2, Check, Download, MoreVertical, Mic, Trash2, Pencil, Maximize2, Scissors } from "lucide-react";
 import { LibraryTrack } from '@/types/track';
 import { EditMusicInfoDialog } from './edit-music-info-dialog';
 
@@ -148,9 +148,12 @@ export const TrackActionButtons: React.FC<TrackActionButtonsProps> = ({
                   }
                   onDownload('mp3');
                 }}
-                className="flex items-center justify-between gap-1.5 cursor-pointer px-2.5 py-1.5 text-xs data-[highlighted]:bg-transparent data-[highlighted]:text-primary focus:bg-transparent"
+                className="flex items-center justify-between gap-1.5 cursor-pointer px-2.5 py-1.5 text-xs"
               >
-                <span className="font-medium">MP3 (Song)</span>
+                <span className="flex items-center gap-2 font-medium">
+                  <Music2 className="h-3.5 w-3.5" />
+                  MP3 (Song)
+                </span>
               </DropdownMenuItem>
               {canDownloadWAV !== undefined && (
                 <DropdownMenuItem
@@ -163,9 +166,12 @@ export const TrackActionButtons: React.FC<TrackActionButtonsProps> = ({
                     }
                     onDownload('wav');
                   }}
-                  className="flex items-center justify-between gap-1.5 cursor-pointer px-2.5 py-1.5 text-xs data-[highlighted]:bg-transparent data-[highlighted]:text-primary focus:bg-transparent"
+                  className="flex items-center justify-between gap-1.5 cursor-pointer px-2.5 py-1.5 text-xs"
                 >
-                  <span className="font-medium">WAV (High Quality Song)</span>
+                  <span className="flex items-center gap-2 font-medium">
+                    <FileAudio className="h-3.5 w-3.5" />
+                    WAV (High Quality Song)
+                  </span>
                 </DropdownMenuItem>
               )}
               {hasCoverImage && (
@@ -179,9 +185,12 @@ export const TrackActionButtons: React.FC<TrackActionButtonsProps> = ({
                     }
                     onDownload('cover');
                   }}
-                  className="flex items-center justify-between gap-1.5 cursor-pointer px-2.5 py-1.5 text-xs data-[highlighted]:bg-transparent data-[highlighted]:text-primary focus:bg-transparent"
+                  className="flex items-center justify-between gap-1.5 cursor-pointer px-2.5 py-1.5 text-xs"
                 >
-                  <span className="font-medium">PNG (Cover Art)</span>
+                  <span className="flex items-center gap-2 font-medium">
+                    <ImageIcon className="h-3.5 w-3.5" />
+                    PNG (Cover Art)
+                  </span>
                 </DropdownMenuItem>
               )}
             </DropdownMenuContent>
@@ -262,7 +271,7 @@ export const TrackActionButtons: React.FC<TrackActionButtonsProps> = ({
                       e.stopPropagation();
                       handleEditMusicInfoClick();
                     }}
-                    className="flex items-center gap-2 cursor-pointer px-3 py-2 text-xs data-[highlighted]:bg-transparent data-[highlighted]:text-primary focus:bg-transparent"
+                    className="flex items-center gap-2 cursor-pointer px-3 py-2 text-xs"
                   >
                     <Pencil className="h-3.5 w-3.5" />
                     <span>Edit Music Info</span>
@@ -287,14 +296,14 @@ export const TrackActionButtons: React.FC<TrackActionButtonsProps> = ({
                           return;
                         }
                         onVocalRemoval();
-                      }}
-                      disabled={isInstrumental}
-                      className={`flex items-center justify-between gap-2 px-3 py-2 text-xs data-[highlighted]:bg-transparent data-[highlighted]:text-primary focus:bg-transparent ${
-                        isInstrumental ? 'cursor-not-allowed' : 'cursor-pointer'
-                      }`}
-                    >
-                      <div className="flex items-center gap-1.5">
-                        <Mic className="h-3.5 w-3.5" />
+                    }}
+                    disabled={isInstrumental}
+                    className={`flex items-center justify-between gap-2 px-3 py-2 text-xs ${
+                      isInstrumental ? 'cursor-not-allowed' : 'cursor-pointer'
+                    }`}
+                  >
+                    <div className="flex items-center gap-1.5">
+                      <Mic className="h-3.5 w-3.5" />
                         <span>Vocal Separation</span>
                       </div>
                     </DropdownMenuItem>
@@ -310,7 +319,7 @@ export const TrackActionButtons: React.FC<TrackActionButtonsProps> = ({
                         }
                         onExtendMusic();
                       }}
-                      className="flex items-center gap-2 cursor-pointer px-3 py-2 text-xs data-[highlighted]:bg-transparent data-[highlighted]:text-primary focus:bg-transparent"
+                      className="flex items-center gap-2 cursor-pointer px-3 py-2 text-xs"
                     >
                       <Maximize2 className="h-3.5 w-3.5" />
                       <span>Extend Music</span>
@@ -327,7 +336,7 @@ export const TrackActionButtons: React.FC<TrackActionButtonsProps> = ({
                         }
                         onReplaceSection();
                       }}
-                      className="flex items-center gap-2 cursor-pointer px-3 py-2 text-xs data-[highlighted]:bg-transparent data-[highlighted]:text-primary focus:bg-transparent"
+                      className="flex items-center gap-2 cursor-pointer px-3 py-2 text-xs"
                     >
                       <Scissors className="h-3.5 w-3.5" />
                       <span>Replace Section</span>
@@ -344,7 +353,7 @@ export const TrackActionButtons: React.FC<TrackActionButtonsProps> = ({
                     e.stopPropagation();
                     onDelete();
                   }}
-                  className="flex items-center gap-2 cursor-pointer px-3 py-2 text-xs text-destructive data-[highlighted]:bg-transparent data-[highlighted]:text-destructive focus:text-destructive focus:bg-transparent"
+                  className="flex items-center gap-2 cursor-pointer px-3 py-2 text-xs text-destructive data-[highlighted]:bg-destructive/10 data-[highlighted]:text-destructive focus:bg-destructive/10 focus:text-destructive"
                 >
                   <Trash2 className="h-3.5 w-3.5" />
                   <span>Delete</span>
@@ -397,9 +406,12 @@ export const TrackActionButtons: React.FC<TrackActionButtonsProps> = ({
                 }
                 onDownload('mp3');
               }}
-              className="flex items-center justify-between gap-1.5 cursor-pointer px-2.5 py-1.5 text-xs data-[highlighted]:bg-transparent data-[highlighted]:text-primary focus:bg-transparent"
+              className="flex items-center justify-between gap-1.5 cursor-pointer px-2.5 py-1.5 text-xs"
             >
-              <span className="font-medium">MP3 (Song)</span>
+              <span className="flex items-center gap-2 font-medium">
+                <Music2 className="h-3.5 w-3.5" />
+                MP3 (Song)
+              </span>
             </DropdownMenuItem>
             {canDownloadWAV !== undefined && (
               <DropdownMenuItem
@@ -412,9 +424,12 @@ export const TrackActionButtons: React.FC<TrackActionButtonsProps> = ({
                   }
                   onDownload('wav');
                 }}
-                className="flex items-center justify-between gap-1.5 cursor-pointer px-2.5 py-1.5 text-xs data-[highlighted]:bg-transparent data-[highlighted]:text-primary focus:bg-transparent"
+                className="flex items-center justify-between gap-1.5 cursor-pointer px-2.5 py-1.5 text-xs"
               >
-                <span className="font-medium">WAV (High Quality Song)</span>
+                <span className="flex items-center gap-2 font-medium">
+                  <FileAudio className="h-3.5 w-3.5" />
+                  WAV (High Quality Song)
+                </span>
               </DropdownMenuItem>
             )}
             {hasCoverImage && (
@@ -428,9 +443,12 @@ export const TrackActionButtons: React.FC<TrackActionButtonsProps> = ({
                   }
                   onDownload('cover');
                 }}
-                className="flex items-center justify-between gap-1.5 cursor-pointer px-2.5 py-1.5 text-xs data-[highlighted]:bg-transparent data-[highlighted]:text-primary focus:bg-transparent"
+                className="flex items-center justify-between gap-1.5 cursor-pointer px-2.5 py-1.5 text-xs"
               >
-                <span className="font-medium">PNG (Cover Art)</span>
+                <span className="flex items-center gap-2 font-medium">
+                  <ImageIcon className="h-3.5 w-3.5" />
+                  PNG (Cover Art)
+                </span>
               </DropdownMenuItem>
             )}
           </DropdownMenuContent>
@@ -503,7 +521,7 @@ export const TrackActionButtons: React.FC<TrackActionButtonsProps> = ({
                     e.stopPropagation();
                     handleEditMusicInfoClick();
                   }}
-                  className="flex items-center gap-1.5 cursor-pointer px-2.5 py-1.5 text-xs data-[highlighted]:bg-transparent data-[highlighted]:text-primary focus:bg-transparent"
+                  className="flex items-center gap-1.5 cursor-pointer px-2.5 py-1.5 text-xs"
                 >
                   <Pencil className="h-3.5 w-3.5" />
                   <span>Edit Music Info</span>
@@ -534,7 +552,7 @@ export const TrackActionButtons: React.FC<TrackActionButtonsProps> = ({
                       onVocalRemoval();
                     }}
                     disabled={isInstrumental}
-                    className={`flex items-center justify-between gap-1.5 px-2.5 py-1.5 text-xs data-[highlighted]:bg-transparent data-[highlighted]:text-primary focus:bg-transparent ${
+                    className={`flex items-center justify-between gap-1.5 px-2.5 py-1.5 text-xs ${
                       isInstrumental ? 'cursor-not-allowed' : 'cursor-pointer'
                     }`}
                   >
@@ -552,10 +570,10 @@ export const TrackActionButtons: React.FC<TrackActionButtonsProps> = ({
                       if (!canExtendMusic) {
                         onPricingModalOpen?.();
                         return;
-                      }
-                      onExtendMusic();
-                    }}
-                    className="flex items-center gap-1.5 cursor-pointer px-2.5 py-1.5 text-xs data-[highlighted]:bg-transparent data-[highlighted]:text-primary focus:bg-transparent"
+                        }
+                        onExtendMusic();
+                      }}
+                    className="flex items-center gap-1.5 cursor-pointer px-2.5 py-1.5 text-xs"
                   >
                     <Maximize2 className="h-3.5 w-3.5" />
                     <span>Extend Music</span>
@@ -573,7 +591,7 @@ export const TrackActionButtons: React.FC<TrackActionButtonsProps> = ({
                   e.stopPropagation();
                   onDelete();
                 }}
-                className="flex items-center gap-1.5 cursor-pointer px-2.5 py-1.5 text-xs text-destructive focus:text-destructive"
+                className="flex items-center gap-1.5 cursor-pointer px-2.5 py-1.5 text-xs text-destructive data-[highlighted]:bg-destructive/10 data-[highlighted]:text-destructive focus:bg-destructive/10 focus:text-destructive"
               >
                 <Trash2 className="h-3.5 w-3.5" />
                 <span>Delete</span>

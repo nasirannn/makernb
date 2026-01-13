@@ -29,7 +29,7 @@ export const PricingSection = () => {
 		    { label: "AI Vocal Remover", enabled: true },
 	    { label: "Create up to 15 lyrics with AI / day", enabled: true },
 		    { label: "Access to all models (V5, V4.5-all, V4.5+, V4.5, V4)", enabled: true },
-		    { label: "Download MP3 & Cover PNG", enabled: false },
+		    { label: "Download MP3, WAV & Cover PNG", enabled: false },
 	    { label: "Vocal separation, Extend music & Replace section", enabled: false },
 		    { label: "Email customer support", enabled: false },
 		  ] as const;

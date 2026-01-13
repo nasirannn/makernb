@@ -1385,7 +1385,10 @@ export const StudioPanel = (props: StudioPanelProps) => {
           <div className="flex-shrink-0 px-4 md:px-6 pt-4 md:pt-6 pb-4 backdrop-blur-sm">
             <div className="flex items-center justify-between gap-2 md:gap-4">
               {/* Mode Selector */}
-              <div ref={modeToggleRef} className="app-card-muted relative inline-flex rounded-full p-1 flex-shrink-0">
+              <div
+                ref={modeToggleRef}
+                className="app-card-muted app-hairline relative inline-flex rounded-full p-1 flex-shrink-0 bg-foreground/6 dark:bg-white/10"
+              >
                 <div
                   className="absolute top-1 bottom-1 rounded-full bg-primary shadow-[0_10px_26px_rgba(0,0,0,0.18)] transition-[transform,width] duration-300 ease-out"
                   style={{
@@ -1426,11 +1429,13 @@ export const StudioPanel = (props: StudioPanelProps) => {
                 <DropdownMenuTrigger asChild>
                   <button
                     type="button"
-                    className="app-card-muted px-4 py-1.5 rounded-full text-xs md:text-sm font-semibold text-foreground/80 transition-colors hover:bg-accent hover:text-accent-foreground flex items-center gap-1.5 [&_svg]:text-foreground/70 hover:[&_svg]:text-accent-foreground"
+                    className="group app-card-muted app-hairline bg-foreground/6 dark:bg-white/10 px-4 py-1.5 rounded-full text-xs md:text-sm font-semibold text-foreground/80 transition-colors hover:bg-accent hover:text-accent-foreground flex items-center gap-1.5"
                     title="Click to change model version"
                   >
                     <span>{modelOptions.find(opt => opt.value === selectedModel)?.label || 'v4'}</span>
-                    <Triangle className={`w-2 h-2 fill-current transition-transform ${isModelMenuOpen ? 'rotate-180' : ''}`} />
+                    <Triangle
+                      className={`w-2 h-2 fill-current text-foreground/70 transition-colors transition-transform group-hover:text-accent-foreground ${isModelMenuOpen ? 'rotate-180' : ''}`}
+                    />
                   </button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end" className="w-80 p-1.5 rounded-2xl app-card">
@@ -1441,11 +1446,13 @@ export const StudioPanel = (props: StudioPanelProps) => {
                       <React.Fragment key={option.value}>
                         <DropdownMenuItem
                           onClick={() => handleModelSelect(option.value)}
-                          className="flex flex-col items-start gap-1 rounded-xl px-3.5 py-2.5 transition-colors hover:bg-accent hover:text-accent-foreground focus:bg-accent focus:text-accent-foreground data-[highlighted]:bg-accent data-[highlighted]:text-accent-foreground [&_[data-desc]]:text-muted-foreground hover:[&_[data-desc]]:text-accent-foreground/85 focus:[&_[data-desc]]:text-accent-foreground/85 data-[highlighted]:[&_[data-desc]]:text-accent-foreground/85"
+                          className="group flex flex-col items-start gap-1 rounded-xl px-3.5 py-2.5 transition-colors hover:bg-accent focus:bg-accent data-[highlighted]:bg-accent"
                         >
                           <div className="flex w-full items-center justify-between gap-2">
                             <div className="flex items-center gap-2">
-                              <span className="text-sm font-semibold">{option.label}</span>
+                              <span className="text-sm font-semibold text-foreground group-hover:text-accent-foreground group-focus:text-accent-foreground">
+                                {option.label}
+                              </span>
                             </div>
                             {isSelected && (
                               <span className="inline-flex h-4 w-4 items-center justify-center rounded-full bg-primary">
@@ -1453,10 +1460,10 @@ export const StudioPanel = (props: StudioPanelProps) => {
                               </span>
                             )}
                           </div>
-                          <span className="text-[11px]" data-desc>
+                          <span className="text-[11px] text-muted-foreground group-hover:text-accent-foreground/85 group-focus:text-accent-foreground/85">
                             {creditsPerTrack} credits per track
                           </span>
-                          <span className="text-xs" data-desc>
+                          <span className="text-xs text-muted-foreground group-hover:text-accent-foreground/85 group-focus:text-accent-foreground/85">
                             {option.description}
                           </span>
                         </DropdownMenuItem>
@@ -1775,16 +1782,7 @@ export const StudioPanel = (props: StudioPanelProps) => {
                           </div>
                         </div>
                       ) : (
-                        <div className="flex items-center justify-center gap-2">
-                          <Image
-                            src="/icons/create-button.svg"
-                            alt="Create"
-                            width={20}
-                            height={20}
-                            className="w-5 h-5"
-                          />
-                          <span>Create</span>
-                        </div>
+                        <span>Create</span>
                       )}
                     </div>
                   </button>

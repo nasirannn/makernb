@@ -177,16 +177,16 @@ const aiMusicToolsDropdown = [
     cn(
       "group w-full h-12 flex items-center justify-start gap-3 rounded-2xl px-4 transition-colors duration-200",
       active
-        ? "bg-foreground/10 text-foreground shadow-[0px_12px_30px_rgba(0,0,0,0.08)]"
-        : "text-foreground/60 hover:text-foreground hover:bg-foreground/5"
+        ? "bg-foreground/10 text-foreground shadow-[0px_12px_30px_rgba(0,0,0,0.08)] hover:bg-accent hover:text-accent-foreground"
+        : "text-foreground/60 hover:bg-accent hover:text-accent-foreground"
     );
 
   const collapsedButtonClasses = (active: boolean) =>
     cn(
       "group relative w-12 h-12 flex items-center justify-center rounded-2xl border border-transparent transition-colors duration-200",
       active
-        ? "bg-foreground/10 text-foreground shadow-[0px_12px_30px_rgba(0,0,0,0.08)]"
-        : "text-foreground/60 hover:text-foreground hover:bg-foreground/5"
+        ? "bg-foreground/10 text-foreground shadow-[0px_12px_30px_rgba(0,0,0,0.08)] hover:bg-accent hover:text-accent-foreground"
+        : "text-foreground/60 hover:bg-accent hover:text-accent-foreground"
     );
 
   const renderNavButton = (item: SidebarNavItem) => {
@@ -205,7 +205,9 @@ const aiMusicToolsDropdown = [
           <Icon
             className={cn(
               "h-5 w-5 flex-shrink-0 transition-colors",
-              active ? "text-primary" : "text-foreground/60 group-hover:text-foreground"
+              active
+                ? "text-primary group-hover:text-accent-foreground"
+                : "text-foreground/60 group-hover:text-accent-foreground"
             )}
           />
           <div className="flex-1 text-left">
@@ -336,7 +338,7 @@ const aiMusicToolsDropdown = [
                     onClick={toggleSidebar}
                     variant="ghost"
                     size="sm"
-                    className="w-8 h-8 p-0 flex items-center justify-center rounded-xl text-foreground/60 hover:bg-accent hover:text-accent-foreground"
+                    className="w-8 h-8 p-0 flex items-center justify-center rounded-xl text-foreground/60 hover:bg-black/5 hover:text-foreground"
                   >
                     <ChevronLeft className="h-4 w-4" />
                   </Button>
@@ -347,7 +349,7 @@ const aiMusicToolsDropdown = [
                     onClick={toggleSidebar}
                     variant="ghost"
                     size="sm"
-                    className="w-12 h-12 flex items-center justify-center rounded-2xl text-foreground/60 hover:bg-accent hover:text-accent-foreground"
+                    className="w-12 h-12 flex items-center justify-center rounded-2xl text-foreground/60 hover:bg-black/5 hover:text-foreground"
                   >
                     <ChevronRight className="h-5 w-5" />
                   </Button>
@@ -367,21 +369,16 @@ const aiMusicToolsDropdown = [
 
             <div className={`border-t border-black/10 ${isExpanded ? 'px-4 pt-4 pb-6' : 'px-2 pt-4 pb-6'} flex flex-col gap-3`}>
               {isExpanded ? (
-                <div className="w-full rounded-2xl bg-black/[0.03] px-4 py-3 flex items-center justify-between">
-                  <div className="flex flex-col gap-1">
-                    <span className="text-[11px] font-medium uppercase tracking-[0.4em] text-foreground/55">
-                      Theme
-                    </span>
-                    <span className="text-sm font-semibold leading-none text-foreground/90">
-                      Light / Dark
-                    </span>
-                  </div>
-                  <ThemeModeToggle size="md" className="rounded-2xl" />
+                <div className="w-full h-12 rounded-2xl bg-black/[0.03] px-4 flex items-center justify-between">
+                  <span className="text-sm font-semibold text-foreground/90">
+                    Theme
+                  </span>
+                  <ThemeModeToggle size="sm" className="rounded-2xl" />
                 </div>
               ) : (
                 <Tooltip content="Light / Dark mode" position="right">
                   <div className="flex justify-center">
-                    <ThemeModeToggle size="md" className="rounded-2xl h-12 w-12 bg-black/[0.03]" />
+                    <ThemeModeToggle size="md" className="rounded-2xl" />
                   </div>
                 </Tooltip>
               )}
@@ -406,7 +403,7 @@ const aiMusicToolsDropdown = [
                       }
                     }}
                     className={`w-full rounded-2xl bg-black/[0.03] px-4 py-4 text-left transition-all duration-300 border border-transparent focus:outline-none focus-visible:ring-2 focus-visible:ring-black/15 focus-visible:ring-offset-0 ${
-                      isRefreshingCredits ? 'opacity-70 cursor-wait' : 'hover:bg-accent hover:text-accent-foreground cursor-pointer'
+                      isRefreshingCredits ? 'opacity-70 cursor-wait' : 'hover:bg-black/5 cursor-pointer'
                     }`}
                   >
                     <div className="flex items-center justify-between text-foreground">
@@ -427,7 +424,7 @@ const aiMusicToolsDropdown = [
                           handleRefreshCredits();
                         }}
                         disabled={isRefreshingCredits}
-                        className="h-8 w-8 rounded-xl border border-black/10 bg-black/5 text-foreground hover:bg-black/10"
+                        className="h-9 w-9 rounded-full app-card-muted text-foreground/70 hover:text-foreground hover:bg-foreground/5 transition-colors"
                         aria-label="Refresh credits"
                       >
                         {isRefreshingCredits ? (
@@ -439,32 +436,44 @@ const aiMusicToolsDropdown = [
                     </div>
                   </div>
                   ) : (
-                    <div
-                      role="button"
-                      tabIndex={0}
-                      aria-disabled={isRefreshingCredits}
-                      onClick={() => {
-                        if (!isRefreshingCredits) {
-                          handleRefreshCredits();
-                        }
-                      }}
-                      onKeyDown={(event) => {
-                        if (isRefreshingCredits) return;
-                        if (event.key === 'Enter' || event.key === ' ') {
-                          event.preventDefault();
-                          handleRefreshCredits();
-                        }
-                      }}
-                      className={`w-full rounded-2xl px-2 py-3 text-foreground transition-all duration-300 focus:outline-none focus-visible:ring-2 focus-visible:ring-black/15 focus-visible:ring-offset-0 ${
-                        isRefreshingCredits ? 'opacity-70 cursor-wait' : 'cursor-pointer'
-                      } flex flex-col items-center text-center`}
-                    >
-                      <span className="block text-sm font-semibold leading-tight">
-                        {credits !== null ? credits.toLocaleString() : '...'}
-                      </span>
-                      <span className="mt-0.5 block text-[9px] font-medium uppercase tracking-[0.35em] text-foreground/55">
-                        Credits
-                      </span>
+                    <div className="relative group w-full">
+                      <div
+                        role="button"
+                        tabIndex={0}
+                        aria-disabled={isRefreshingCredits}
+                        onClick={() => {
+                          if (!isRefreshingCredits) {
+                            handleRefreshCredits();
+                          }
+                        }}
+                        onKeyDown={(event) => {
+                          if (isRefreshingCredits) return;
+                          if (event.key === 'Enter' || event.key === ' ') {
+                            event.preventDefault();
+                            handleRefreshCredits();
+                          }
+                        }}
+                        className={`w-full rounded-2xl px-2 py-3 text-foreground transition-all duration-300 focus:outline-none focus-visible:ring-2 focus-visible:ring-black/15 focus-visible:ring-offset-0 ${
+                          isRefreshingCredits ? 'opacity-70 cursor-wait' : 'cursor-pointer'
+                        } flex flex-col items-center text-center`}
+                      >
+                        <div className="relative w-full">
+                          <div className="transition-opacity duration-150 group-hover:opacity-0 group-focus-within:opacity-0 flex items-center justify-center">
+                            <span className="inline-flex items-center justify-center rounded-full bg-black/[0.03] px-2.5 py-1 text-sm font-semibold leading-none text-foreground tabular-nums">
+                              {credits !== null ? credits.toLocaleString() : '...'}
+                            </span>
+                          </div>
+
+                          <div className="absolute inset-0 flex items-center justify-center opacity-0 transition-opacity duration-150 group-hover:opacity-100 group-focus-within:opacity-100">
+                            <div
+                              aria-hidden="true"
+                              className="h-9 w-9 rounded-full app-card-muted text-foreground/70 hover:text-foreground hover:bg-foreground/5 transition-colors flex items-center justify-center"
+                            >
+                              <RefreshCw className={cn("h-4 w-4", isRefreshingCredits ? "animate-spin" : "")} />
+                            </div>
+                          </div>
+                        </div>
+                      </div>
                     </div>
                   )}
                 </>
@@ -478,7 +487,7 @@ const aiMusicToolsDropdown = [
                         onClick={() => setUserMenuOpen(!userMenuOpen)}
                         variant="ghost"
                         size="sm"
-                        className="w-full h-16 rounded-2xl bg-black/[0.03] hover:bg-accent hover:text-accent-foreground flex items-center gap-3 px-4"
+                        className="w-full h-16 rounded-2xl bg-black/[0.03] hover:bg-black/5 flex items-center gap-3 px-4"
                       >
                         <Avatar className="w-10 h-10 flex-shrink-0">
                           <AvatarImage
@@ -512,7 +521,7 @@ const aiMusicToolsDropdown = [
                               setIsNicknameDialogOpen(true);
                               setUserMenuOpen(false);
                             }}
-                            className="w-full flex items-center gap-3 rounded-xl px-3 py-2 text-sm text-foreground/70 hover:bg-accent hover:text-accent-foreground"
+                            className="w-full flex items-center gap-3 rounded-xl px-3 py-2 text-sm text-foreground/70 hover:bg-black/5 hover:text-foreground"
                           >
                             <PencilLine className="w-4 h-4" />
                             <span>Edit profile</span>
@@ -522,7 +531,7 @@ const aiMusicToolsDropdown = [
                               handleSignOut();
                               setUserMenuOpen(false);
                             }}
-                            className="w-full flex items-center gap-3 rounded-xl px-3 py-2 text-sm text-foreground/70 hover:bg-accent hover:text-accent-foreground"
+                            className="w-full flex items-center gap-3 rounded-xl px-3 py-2 text-sm text-foreground/70 hover:bg-black/5 hover:text-foreground"
                           >
                             <LogOut className="w-4 h-4" />
                             <span>Sign Out</span>
@@ -565,7 +574,7 @@ const aiMusicToolsDropdown = [
                                 setIsNicknameDialogOpen(true);
                                 setUserMenuOpen(false);
                               }}
-                              className="w-full flex items-center gap-3 rounded-xl px-3 py-2 text-sm text-foreground/70 hover:bg-accent hover:text-accent-foreground"
+                              className="w-full flex items-center gap-3 rounded-xl px-3 py-2 text-sm text-foreground/70 hover:bg-black/5 hover:text-foreground"
                             >
                               <PencilLine className="w-4 h-4" />
                               <span>Edit profile</span>
@@ -575,7 +584,7 @@ const aiMusicToolsDropdown = [
                                 handleSignOut();
                                 setUserMenuOpen(false);
                               }}
-                              className="w-full flex items-center gap-3 rounded-xl px-3 py-2 text-sm text-foreground/70 hover:bg-accent hover:text-accent-foreground"
+                              className="w-full flex items-center gap-3 rounded-xl px-3 py-2 text-sm text-foreground/70 hover:bg-black/5 hover:text-foreground"
                             >
                               <LogOut className="w-4 h-4" />
                               <span>Sign Out</span>
@@ -593,7 +602,7 @@ const aiMusicToolsDropdown = [
                       onClick={() => setIsAuthModalOpen(true)}
                       variant="ghost"
                       size="sm"
-                      className="w-full h-12 rounded-2xl bg-black/[0.03] text-foreground/80 hover:bg-accent hover:text-accent-foreground"
+                      className="w-full h-12 rounded-2xl bg-black/[0.03] text-foreground/80 hover:bg-black/5 hover:text-foreground"
                     >
                       <LogIn className="h-5 w-5" />
                       <span className="text-sm font-medium">Sign In</span>
@@ -671,14 +680,14 @@ const aiMusicToolsDropdown = [
                         router.push(item.href);
                       }, 50);
                     }}
-                    className="flex items-center gap-3 px-3 py-2 hover:bg-accent transition-colors group rounded-md cursor-pointer"
+                    className="flex items-center gap-3 px-3 py-2 hover:bg-accent hover:text-accent-foreground transition-colors group rounded-md cursor-pointer"
                   >
-                    <div className="flex-shrink-0 w-8 h-8 bg-primary/20 rounded-lg flex items-center justify-center group-hover:bg-primary/30 transition-colors text-primary">
+                    <div className="flex-shrink-0 w-8 h-8 bg-primary/20 rounded-lg flex items-center justify-center transition-colors text-primary group-hover:bg-accent-foreground/15 group-hover:text-accent-foreground">
                       {item.icon}
                     </div>
                     <div className="flex-1 min-w-0">
-                      <p className="text-foreground font-medium text-sm">{item.label}</p>
-                      <p className="text-muted-foreground text-xs truncate">{item.description}</p>
+                      <p className="text-foreground font-medium text-sm group-hover:text-accent-foreground">{item.label}</p>
+                      <p className="text-muted-foreground text-xs truncate group-hover:text-accent-foreground/85">{item.description}</p>
                     </div>
                   </Link>
                 ))}

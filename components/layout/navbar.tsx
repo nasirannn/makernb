@@ -414,7 +414,7 @@ export const Navbar = ({ credits = null }: NavbarProps) => {
                         setIsOpen(false);
                         setIsNicknameDialogOpen(true);
                       }}
-                      className="w-full flex items-center gap-3 px-3 py-2 text-sm text-foreground/80 hover:bg-accent hover:text-accent-foreground transition-colors rounded-lg"
+                      className="w-full flex items-center gap-3 px-3 py-2 text-sm text-foreground/80 hover:bg-black/5 hover:text-foreground transition-colors rounded-lg"
                     >
                       <PencilLine className="w-4 h-4" />
                       <span>Edit profile</span>
@@ -428,7 +428,7 @@ export const Navbar = ({ credits = null }: NavbarProps) => {
                           console.error('Sign out error:', error);
                         }
                       }}
-                      className="w-full flex items-center gap-3 px-3 py-2 text-sm text-foreground/80 hover:bg-accent hover:text-accent-foreground transition-colors rounded-lg"
+                      className="w-full flex items-center gap-3 px-3 py-2 text-sm text-foreground/80 hover:bg-black/5 hover:text-foreground transition-colors rounded-lg"
                     >
                       <LogOut className="w-4 h-4" />
                       <span>Sign Out</span>

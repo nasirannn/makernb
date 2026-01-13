@@ -1,6 +1,7 @@
 "use client";
 
 import * as React from "react";
+import Image from "next/image";
 import { useRouter } from "next/navigation";
 
 export const HeroSection = () => {
@@ -62,16 +63,24 @@ export const HeroSection = () => {
 
           <div className="mt-7 flex flex-wrap justify-center gap-2">
             {[
-              "New Jack Swing",
-              "Neo‑Soul",
-              "Quiet Storm",
-              "Hip-Hop Soul",
-              "Contemporary R&B"
-            ].map((label) => (
+              { label: "New Jack Swing", icon: "New Jack Swing Icon.webp" },
+              { label: "Neo‑Soul", icon: "Neo-Soul Icon.webp" },
+              { label: "Quiet Storm", icon: "Quiet Storm Icon.webp" },
+              { label: "Hip-Hop Soul", icon: "Hip-Hop Soul Icon.webp" },
+              { label: "Contemporary R&B", icon: "Contemporary R&B Icon.webp" },
+            ].map(({ label, icon }) => (
               <span
                 key={label}
-                className="inline-flex items-center rounded-full bg-foreground/5 px-3 py-1.5 text-xs font-semibold text-foreground/75"
+                className="inline-flex items-center gap-2 rounded-full bg-foreground/5 px-3 py-1.5 text-xs font-semibold text-foreground/75"
               >
+                <Image
+                  src={`/hero/${encodeURIComponent(icon)}`}
+                  alt=""
+                  width={14}
+                  height={14}
+                  className="h-3.5 w-3.5 opacity-90"
+                  aria-hidden="true"
+                />
                 {label}
               </span>
             ))}
