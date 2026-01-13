@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useEffect, useMemo, useState } from "react";
+import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import {
   Calendar,
@@ -14,9 +15,7 @@ import {
 } from "lucide-react";
 import Image from "next/image";
 import { LoadingDots } from "./loading-dots";
-import { CassetteTape } from "./cassette-tape";
 import { toast } from "sonner";
-import { useAudioPlayingState } from "@/hooks/use-audio-playing-state";
 import { getEventBus, COVER_EVENTS, TRACK_EVENTS } from "@/lib/event-bus";
 import {
   DropdownMenu,
@@ -30,11 +29,13 @@ import { useAuth } from "@/contexts/AuthContext";
 import AuthModal from "@/components/ui/auth-modal";
 import { usePricingModal } from "@/contexts/PricingModalContext";
 import { useFeaturePermissions } from "@/contexts/FeaturePermissionsContext";
+import { useAudioPlayer } from "@/hooks/use-audio-player";
+import { MusicPlayer } from "@/components/ui/music-player";
 
 interface TrackDetailViewProps {
   trackData?: TrackInfo;
   trackId?: string;
-  onBack: () => void;
+  onBack?: () => void;
   onPlayTrack?: (trackInfo: TrackInfo) => void;
   onDownload?: (trackInfo: TrackInfo, format: "mp3" | "wav") => void;
   fullPage?: boolean;
@@ -59,11 +60,12 @@ export interface TrackInfo {
 export const TrackDetailView: React.FC<TrackDetailViewProps> = ({
   trackData,
   trackId,
-  onBack: _onBack,
+  onBack,
   onPlayTrack,
   onDownload,
   fullPage = false
 }) => {
+  const router = useRouter();
   const [trackInfo, setTrackInfo] = useState<TrackInfo | null>(trackData || null);
   const [isLoading, setIsLoading] = useState(!trackData);
   const [error, setError] = useState<string | null>(null);
@@ -71,10 +73,34 @@ export const TrackDetailView: React.FC<TrackDetailViewProps> = ({
   const [downloadMenuOpen, setDownloadMenuOpen] = useState(false);
   const [authModalOpen, setAuthModalOpen] = useState(false);
 
-  const audioState = useAudioPlayingState({ trackId: trackInfo?.id });
+  const {
+    currentTrack,
+    isPlaying,
+    currentTime,
+    duration,
+    volume,
+    isMuted,
+    playTrack,
+    togglePlayPause,
+    seek,
+    setVolume,
+    toggleMute,
+  } = useAudioPlayer();
   const { user } = useAuth();
   const { openModal: openPricingModal } = usePricingModal();
   const { hasPermission } = useFeaturePermissions();
+
+  const handleBack = React.useCallback(() => {
+    if (onBack) {
+      onBack();
+      return;
+    }
+    if (window.history.length > 1) {
+      router.back();
+      return;
+    }
+    router.push("/studio");
+  }, [onBack, router]);
 
   useEffect(() => {
     if (trackData) {
@@ -176,12 +202,12 @@ export const TrackDetailView: React.FC<TrackDetailViewProps> = ({
     return trackInfo?.tags ? trackInfo.tags.split(/[,，]/).map((tag: string) => tag.trim()).filter(Boolean) : [];
   }, [trackInfo?.tags]);
 
-  const isPlayable = Boolean(trackInfo?.audioUrl && onPlayTrack);
-  const isDownloadable = Boolean(trackInfo?.audioUrl && onDownload);
   const canDownloadTrack = hasPermission("download_mp3_track") || hasPermission("download_wav_track");
 
   const ensureDownloadAccess = React.useCallback(() => {
-    if (!isDownloadable) return false;
+    if (!trackInfo?.audioUrl) {
+      return false;
+    }
     if (!user) {
       setAuthModalOpen(true);
       return false;
@@ -191,7 +217,127 @@ export const TrackDetailView: React.FC<TrackDetailViewProps> = ({
       return false;
     }
     return true;
-  }, [isDownloadable, user, canDownloadTrack, openPricingModal]);
+  }, [trackInfo?.audioUrl, user, canDownloadTrack, openPricingModal]);
+
+  const internalPlayTrack = React.useCallback((nextTrack: TrackInfo) => {
+    if (!nextTrack?.audioUrl) {
+      return;
+    }
+
+    if (currentTrack?.id === nextTrack.id) {
+      togglePlayPause();
+      return;
+    }
+
+    playTrack({
+      id: nextTrack.id,
+      title: nextTrack.title,
+      audioUrl: nextTrack.audioUrl,
+      streamAudioUrl: nextTrack.audioUrl,
+      duration: parseFloat(nextTrack.duration) || 0,
+      coverImage: nextTrack.coverImage || undefined,
+      tags: nextTrack.tags,
+      genre: nextTrack.tags,
+      lyrics: nextTrack.lyrics,
+      isFavorited: nextTrack.isFavorited,
+    });
+  }, [currentTrack?.id, playTrack, togglePlayPause]);
+
+  const effectiveOnPlayTrack = onPlayTrack ?? internalPlayTrack;
+  const isPlayableResolved = Boolean(trackInfo?.audioUrl && effectiveOnPlayTrack);
+  const isCurrentTrack = Boolean(trackInfo?.id && currentTrack?.id === trackInfo.id);
+  const isPlayingCurrent = isPlaying && isCurrentTrack;
+
+  const internalDownload = React.useCallback(async (track: TrackInfo, format: "mp3" | "wav") => {
+    if (!track?.id) {
+      toast.error("Missing track information");
+      return;
+    }
+
+    const downloadingToast = toast.loading("Preparing download...");
+    try {
+      const response = await fetch(`/api/download-track?trackId=${track.id}&format=${format}`);
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.error || errorData.message || "Download failed");
+      }
+
+      const contentType = response.headers.get("content-type");
+      if (contentType?.includes("application/json")) {
+        const data = await response.json();
+        if (data.fallback && data.audioUrl) {
+          const fallbackResponse = await fetch(data.audioUrl);
+          if (!fallbackResponse.ok) {
+            throw new Error(`Failed to fetch audio: ${fallbackResponse.status}`);
+          }
+          const blob = await fallbackResponse.blob();
+          const blobUrl = window.URL.createObjectURL(blob);
+          const link = document.createElement("a");
+          link.href = blobUrl;
+          link.download = `${track.title || "track"}.${format}`;
+          document.body.appendChild(link);
+          link.click();
+          document.body.removeChild(link);
+          window.URL.revokeObjectURL(blobUrl);
+        } else {
+          throw new Error(data.error || "Download failed");
+        }
+      } else {
+        const blob = await response.blob();
+        const blobUrl = window.URL.createObjectURL(blob);
+        const link = document.createElement("a");
+        link.href = blobUrl;
+        link.download = `${track.title || "track"}.${format}`;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        window.URL.revokeObjectURL(blobUrl);
+      }
+
+      toast.success("Download started", { id: downloadingToast });
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Unable to download file", { id: downloadingToast });
+    }
+  }, []);
+
+  const effectiveOnDownload = onDownload ?? internalDownload;
+  const isDownloadableResolved = Boolean(trackInfo?.audioUrl && effectiveOnDownload);
+
+  const playerTracks = React.useMemo(
+    () => (currentTrack ? [currentTrack] : []),
+    [currentTrack]
+  );
+
+  const musicPlayerProps = React.useMemo(() => ({
+    tracks: playerTracks,
+    currentTrackIndex: 0,
+    isPlaying,
+    currentTime,
+    duration,
+    volume,
+    isMuted,
+    onPlayPause: togglePlayPause,
+    onPrevious: () => {},
+    onNext: () => {},
+    onSeek: (time: number) => seek(time),
+    onVolumeChange: (vol: number) => setVolume(vol),
+    onMuteToggle: () => toggleMute(),
+    hideProgress: false,
+    onTrackChange: () => {},
+    currentPlayingTrack: currentTrack || undefined,
+  }), [
+    playerTracks,
+    isPlaying,
+    currentTime,
+    duration,
+    volume,
+    isMuted,
+    togglePlayPause,
+    seek,
+    setVolume,
+    toggleMute,
+    currentTrack,
+  ]);
 
   const formatDuration = (duration: string | number) => {
     const seconds = typeof duration === "string" ? parseFloat(duration) : duration;
@@ -243,7 +389,7 @@ export const TrackDetailView: React.FC<TrackDetailViewProps> = ({
     return (
       <div className="flex h-full w-full flex-col items-center justify-center bg-background p-6 text-center space-y-4">
         <p className="text-muted-foreground">{error || "Track not found"}</p>
-        <Button onClick={_onBack} variant="outline" className="gap-2">
+        <Button onClick={handleBack} variant="outline" className="gap-2">
           <ChevronLeft className="h-4 w-4" />
           Back to List
         </Button>
@@ -252,45 +398,114 @@ export const TrackDetailView: React.FC<TrackDetailViewProps> = ({
   }
 
   const detailContent = (
-    <div className="mx-auto flex w-full max-w-[1040px] flex-col gap-10 text-white">
-      <div className="w-full rounded-[32px] border border-white/10 bg-[radial-gradient(circle_at_top,_rgba(156,56,255,0.18),transparent_60%)] bg-gradient-to-br from-[rgba(33,18,55,0.95)] via-[rgba(12,16,34,0.95)] to-[rgba(5,7,18,0.93)] text-white shadow-[0_25px_80px_rgba(0,0,0,0.6)] backdrop-blur-2xl">
-        <div className="flex flex-col items-center gap-10 p-6 sm:p-10 lg:flex-row lg:items-stretch">
-          <div className="relative flex w-full justify-center lg:w-auto">
-            <div className="absolute inset-y-8 h-72 w-72 -translate-y-6 rounded-full bg-[#a855f7]/30 blur-3xl" />
-            <div className="relative flex h-64 w-64 items-center justify-center rounded-full border border-white/15 bg-black/40 shadow-[0_20px_60px_rgba(0,0,0,0.55)] overflow-hidden">
-              {trackInfo.coverImage ? (
-                <Image
-                  src={trackInfo.coverImage}
-                  alt={trackInfo.title}
-                  fill
-                  sizes="(min-width: 1024px) 16rem, 80vw"
-                  className="rounded-full object-cover"
-                  priority
-                />
-              ) : (
-                <div className="flex h-full w-full items-center justify-center bg-black/60">
-                  <CassetteTape
-                    className="h-[210px] w-[210px]"
-                    isPlaying={audioState.isPlaying && audioState.isCurrentTrack}
-                  />
+    <div className="mx-auto flex w-full max-w-[1040px] flex-col gap-5 md:gap-7 text-foreground">
+      <header className="flex items-center justify-between gap-3">
+        <Button
+          onClick={handleBack}
+          variant="ghost"
+          className="app-card-muted app-hairline rounded-full px-4 text-foreground/75 hover:text-accent-foreground"
+        >
+          <ChevronLeft className="h-4 w-4" />
+          Back
+        </Button>
+
+        <div className="flex items-center gap-2">
+          <Button
+            onClick={handleShare}
+            variant="ghost"
+            className="app-card-muted app-hairline rounded-full px-4 text-foreground/75 hover:text-accent-foreground"
+          >
+            {copied ? <Check className="h-4 w-4" /> : <Share2 className="h-4 w-4" />}
+            <span>{copied ? "Copied" : "Share"}</span>
+          </Button>
+        </div>
+      </header>
+
+      <section className="app-card relative overflow-hidden rounded-[28px]">
+        <div className="pointer-events-none absolute inset-0 opacity-70 [mask-image:radial-gradient(70%_70%_at_18%_12%,black,transparent)]">
+          <div className="absolute -left-24 -top-24 h-72 w-72 rounded-full bg-[rgba(166,84,255,0.22)] blur-3xl" />
+          <div className="absolute -right-28 -top-28 h-80 w-80 rounded-full bg-[rgba(96,204,241,0.16)] blur-3xl" />
+        </div>
+
+        <div className="relative grid gap-5 p-5 sm:p-6 md:grid-cols-[320px_1fr] md:gap-6 md:p-7">
+          <button
+            type="button"
+            onClick={() => trackInfo && effectiveOnPlayTrack?.(trackInfo)}
+            disabled={!isPlayableResolved}
+            className="group relative aspect-square w-full overflow-hidden rounded-2xl bg-foreground/5 dark:bg-white/10 disabled:cursor-not-allowed"
+            aria-label={isPlayingCurrent ? "Pause" : "Play"}
+          >
+            {trackInfo.coverImage ? (
+              <Image
+                src={trackInfo.coverImage}
+                alt={trackInfo.title}
+                fill
+                sizes="(min-width: 1024px) 320px, 100vw"
+                className="object-cover"
+                priority
+              />
+            ) : (
+              <div className="flex h-full w-full items-center justify-center">
+                <div className="flex h-full w-full items-center justify-center">
+                  <div className="app-card-muted app-hairline flex h-16 w-16 items-center justify-center rounded-2xl text-foreground/80">
+                    <Play className="h-7 w-7" />
+                  </div>
                 </div>
+              </div>
+            )}
+            <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-black/5 to-transparent opacity-90" />
+            <div className="absolute inset-0 flex items-center justify-center opacity-0 transition-opacity group-hover:opacity-100 disabled:group-hover:opacity-0">
+              <div className="app-card-muted app-hairline flex h-12 w-12 items-center justify-center rounded-full text-foreground/80">
+                {isPlayingCurrent ? (
+                  <Pause className="h-5 w-5" />
+                ) : (
+                  <Play className="h-5 w-5" />
+                )}
+              </div>
+            </div>
+            <div className="absolute bottom-3 left-3 flex items-center gap-2">
+              {modelLabel && (
+                <span className="app-card-muted app-hairline rounded-full px-3 py-1 text-[11px] font-semibold tracking-tight text-foreground/75">
+                  {modelLabel}
+                </span>
+              )}
+              {trackInfo.duration && (
+                <span className="app-card-muted app-hairline rounded-full px-3 py-1 text-[11px] font-semibold tabular-nums tracking-tight text-foreground/75">
+                  {formatDuration(trackInfo.duration)}
+                </span>
               )}
             </div>
-          </div>
+          </button>
 
-          <div className="flex w-full flex-col gap-6 text-left text-white/90 lg:w-[640px]">
-            <div className="space-y-3">
-              <h1 className="text-4xl font-semibold leading-tight tracking-tight drop-shadow-[0_6px_25px_rgba(0,0,0,0.55)] sm:text-5xl">
+          <div className="min-w-0 space-y-4 md:space-y-5">
+            <div className="space-y-2">
+              <h1 className="text-2xl font-semibold tracking-tight sm:text-3xl md:text-4xl">
                 {trackInfo.title}
               </h1>
+
+              <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
+                {trackInfo.createdAt && (
+                  <span className="inline-flex items-center gap-2">
+                    <Calendar className="h-4 w-4" />
+                    {formatDateTime(trackInfo.createdAt)}
+                  </span>
+                )}
+                {trackInfo.createdAt && (
+                  <span className="text-muted-foreground/50">•</span>
+                )}
+                <span className="inline-flex items-center gap-2">
+                  <Clock className="h-4 w-4" />
+                  {formatDuration(trackInfo.duration)}
+                </span>
+              </div>
             </div>
 
             {tagsArray.length > 0 && (
-              <div className="flex flex-wrap gap-2 text-sm">
-                {tagsArray.map((tag, index) => (
+              <div className="flex flex-wrap gap-2">
+                {tagsArray.slice(0, 10).map((tag, index) => (
                   <span
                     key={`${tag}-${index}`}
-                    className="rounded-full border border-white/15 bg-white/10 px-3 py-1 font-medium text-white/90 shadow-[0_4px_12px_rgba(0,0,0,0.25)]"
+                    className="app-card-muted rounded-full px-3 py-1 text-xs font-medium tracking-tight text-foreground/75"
                   >
                     {tag}
                   </span>
@@ -298,77 +513,55 @@ export const TrackDetailView: React.FC<TrackDetailViewProps> = ({
               </div>
             )}
 
-            <div className="flex flex-wrap gap-3 text-sm text-white/85">
-              {trackInfo.createdAt && (
-                <div className="inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/5 px-3 py-1 backdrop-blur">
-                  <Calendar className="h-4 w-4 text-white" />
-                  <span>{formatDateTime(trackInfo.createdAt)}</span>
-                </div>
-              )}
-              {trackInfo.duration && (
-                <div className="inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/5 px-3 py-1 backdrop-blur">
-                  <Clock className="h-4 w-4 text-white" />
-                  <span>{formatDuration(trackInfo.duration)}</span>
-                </div>
-              )}
-              {modelLabel && (
-                <div className="inline-flex items-center rounded-full border border-white/15 bg-white/5 px-3 py-1 text-xs font-medium text-white/80 backdrop-blur">
-                  {modelLabel}
-                </div>
-              )}
-            </div>
-
-            <div className="flex flex-wrap gap-3 pt-2">
+            <div className="flex flex-wrap gap-2 pt-1">
               <Button
-                disabled={!isPlayable}
-                onClick={() => trackInfo && onPlayTrack?.(trackInfo)}
-                className="flex h-12 items-center gap-2 rounded-full border-0 bg-gradient-to-r from-[#ff4d77] via-[#f04ad8] to-[#705ae8] px-6 text-base font-semibold text-white shadow-[0_12px_35px_rgba(122,0,255,0.45)] transition hover:scale-[1.01] disabled:opacity-50"
+                disabled={!isPlayableResolved}
+                onClick={() => trackInfo && effectiveOnPlayTrack?.(trackInfo)}
+                className="h-11 rounded-full px-5"
               >
-                {audioState.isPlaying && audioState.isCurrentTrack ? (
-                  <Pause className="h-5 w-5" />
+                {isPlayingCurrent ? (
+                  <Pause className="h-4 w-4" />
                 ) : (
-                  <Play className="h-5 w-5" />
+                  <Play className="h-4 w-4" />
                 )}
-                <span>{audioState.isPlaying && audioState.isCurrentTrack ? "Pause" : "Play"}</span>
+                <span>{isPlayingCurrent ? "Pause" : "Play"}</span>
               </Button>
 
-            {onDownload && (
-              <DropdownMenu
-                open={downloadMenuOpen}
-                onOpenChange={(nextOpen) => {
-                  if (!nextOpen) {
-                    setDownloadMenuOpen(false);
-                    return;
-                  }
-                  if (ensureDownloadAccess()) {
-                    setDownloadMenuOpen(true);
-                  }
-                }}
-              >
-                <DropdownMenuTrigger asChild>
-                  <Button
-                    disabled={!isDownloadable}
-                    className="flex h-12 items-center gap-2 rounded-full border border-white/20 bg-white/10 px-6 text-base font-semibold text-white hover:bg-white/20 disabled:opacity-50"
-                    onClick={(event) => {
-                      if (!ensureDownloadAccess()) {
-                        event.preventDefault();
-                        event.stopPropagation();
-                      }
-                    }}
-                  >
-                    <Download className="h-5 w-5" />
-                    Download
-                  </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent
-                    align="start"
-                    className="w-36 border border-white/10 bg-[#070b1c]/95 text-white backdrop-blur"
-                  >
+              {effectiveOnDownload && (
+                <DropdownMenu
+                  open={downloadMenuOpen}
+                  onOpenChange={(nextOpen) => {
+                    if (!nextOpen) {
+                      setDownloadMenuOpen(false);
+                      return;
+                    }
+                    if (ensureDownloadAccess()) {
+                      setDownloadMenuOpen(true);
+                    }
+                  }}
+                >
+                  <DropdownMenuTrigger asChild>
+                    <Button
+                      disabled={!isDownloadableResolved}
+                      variant="ghost"
+                      className="h-11 rounded-full px-5 app-card-muted app-hairline text-foreground/75 hover:text-accent-foreground"
+                      onClick={(event) => {
+                        if (!ensureDownloadAccess()) {
+                          event.preventDefault();
+                          event.stopPropagation();
+                        }
+                      }}
+                    >
+                      <Download className="h-4 w-4" />
+                      Download
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="start" className="w-40 p-1.5 rounded-2xl app-card">
                     <DropdownMenuItem
-                      className="cursor-pointer focus:bg-white/10"
+                      className="cursor-pointer text-sm"
                       onClick={() => {
                         if (trackInfo) {
-                          onDownload(trackInfo, "mp3");
+                          effectiveOnDownload(trackInfo, "mp3");
                         }
                         setDownloadMenuOpen(false);
                       }}
@@ -376,52 +569,45 @@ export const TrackDetailView: React.FC<TrackDetailViewProps> = ({
                       MP3
                     </DropdownMenuItem>
                     <DropdownMenuItem
-                      className="cursor-pointer focus:bg-white/10"
+                      className="cursor-pointer text-sm"
                       onClick={() => {
                         if (trackInfo) {
-                          onDownload(trackInfo, "wav");
+                          effectiveOnDownload(trackInfo, "wav");
                         }
                         setDownloadMenuOpen(false);
                       }}
                     >
                       WAV
                     </DropdownMenuItem>
-                </DropdownMenuContent>
-              </DropdownMenu>
-            )}
-
-              <Button
-                onClick={handleShare}
-                className="flex h-12 items-center gap-2 rounded-full border border-white/20 bg-white/10 px-6 text-base font-semibold text-white hover:bg-white/20"
-              >
-                {copied ? <Check className="h-5 w-5" /> : <Share2 className="h-5 w-5" />}
-                <span>{copied ? "Copied" : "Share"}</span>
-              </Button>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              )}
             </div>
           </div>
         </div>
-      </div>
+      </section>
 
-      <div className="w-full rounded-[32px] border border-white/10 bg-gradient-to-br from-[rgba(19,19,36,0.95)] to-[rgba(7,8,18,0.95)] p-6 sm:p-10 text-white shadow-[0_25px_80px_rgba(0,0,0,0.55)] backdrop-blur-2xl">
-        <div className="flex items-center justify-between pb-4">
-          <p className="text-sm font-semibold uppercase tracking-[0.4em] text-white/70">
+      <section className="app-card rounded-[28px] p-5 sm:p-6 md:p-7">
+        <div className="flex items-center justify-between gap-3 pb-3">
+          <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.2em] text-muted-foreground">
             Lyrics
-          </p>
+          </div>
         </div>
-        <div className="space-y-4 text-base leading-relaxed text-white/80">
+
+        <div className="space-y-3 text-[15px] leading-7 text-foreground/80">
           {trackInfo.lyrics?.trim()
             ? trackInfo.lyrics.split(/\n{2,}/).map((block, idx) => (
-              <p key={`${block}-${idx}`} className="whitespace-pre-line">
-                {block}
-              </p>
-            ))
+                <p key={`${block}-${idx}`} className="whitespace-pre-line">
+                  {block}
+                </p>
+              ))
             : (
-              <p className="text-white/60">
-                No lyrics yet. Try generating lyrics or check back later.
+              <p className="text-muted-foreground">
+                No lyrics yet.
               </p>
             )}
         </div>
-      </div>
+      </section>
     </div>
   );
 
@@ -437,10 +623,10 @@ export const TrackDetailView: React.FC<TrackDetailViewProps> = ({
   }
 
   return (
-    <div className="relative min-h-screen w-full overflow-hidden text-white">
+    <div className="relative min-h-screen w-full overflow-hidden text-foreground">
       <div className="relative z-10 flex min-h-screen flex-col">
         <main className="flex-1">
-          <div className="w-full px-4 pb-20 pt-28 sm:px-8 lg:px-14">
+          <div className="w-full px-4 pb-24 pt-24 sm:px-8 lg:px-14">
             {detailContent}
           </div>
         </main>
@@ -449,6 +635,14 @@ export const TrackDetailView: React.FC<TrackDetailViewProps> = ({
         </footer>
       </div>
       <AuthModal isOpen={authModalOpen} onClose={() => setAuthModalOpen(false)} />
+      {playerTracks.length > 0 && (
+        <div
+          className="fixed left-3 right-3 md:right-3 z-[60]"
+          style={{ bottom: 'calc(var(--mobile-nav-height, 0px) + 0.75rem)' }}
+        >
+          <MusicPlayer {...musicPlayerProps} />
+        </div>
+      )}
     </div>
   );
 };

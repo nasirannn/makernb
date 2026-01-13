@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { TrackDetailPageClient } from "@/components/ui/track-detail-page-client";
+import { TrackDetailView } from "@/components/ui/track-detail-view";
 
 interface TrackDetailPageProps {
   params: {
@@ -19,5 +19,5 @@ export async function generateMetadata({ params }: TrackDetailPageProps): Promis
 }
 
 export default function TrackDetailPage({ params }: TrackDetailPageProps) {
-  return <TrackDetailPageClient trackId={params.trackId} />;
+  return <TrackDetailView trackId={params.trackId} fullPage />;
 }
