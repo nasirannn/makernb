@@ -87,19 +87,22 @@ export const createOrUpdateUserSubscription = async (
     nextCreditGrantDate.setDate(nextCreditGrantDate.getDate() + 1); // 订阅期结束后第二天发放
 
     // 根据 plan_id 确定 tier_code，然后查询对应的 tier_id
-    // monthly_basic / yearly_basic → basic
-    // monthly_premium / yearly_premium → premium
-    const tierCode = plan.id.includes('premium') ? 'premium' : 'basic';
+    // monthly_basic / yearly_basic → starter
+    // monthly_premium / yearly_premium → hobby
+    const tierCode = plan.id.includes("premium") ? "hobby" : "starter";
     
     return await withTransaction(async (queryFn) => {
       // 查询 tier_id
-      const tierResult = await queryFn(
-        'SELECT id FROM subscription_tiers WHERE code = $1',
-        [tierCode]
-      );
+      let tierResult = await queryFn('SELECT id FROM subscription_tiers WHERE code = $1', [tierCode]);
+
+      // Backward compatibility: old DB codes (basic/premium)
+      if (tierResult.rows.length === 0) {
+        const legacyTierCode = plan.id.includes("premium") ? "premium" : "basic";
+        tierResult = await queryFn('SELECT id FROM subscription_tiers WHERE code = $1', [legacyTierCode]);
+      }
       
       if (tierResult.rows.length === 0) {
-        throw new Error(`Subscription tier '${tierCode}' not found`);
+        throw new Error(`Subscription tier not found for plan '${plan.id}'`);
       }
       
       const tierId = tierResult.rows[0].id;

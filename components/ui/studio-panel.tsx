@@ -248,7 +248,7 @@ export const StudioPanel = (props: StudioPanelProps) => {
 
         if (response.ok) {
           const data = await response.json();
-          // API 返回 tierCode: 'basic' | 'premium' | null
+          // API 返回 tierCode: 'starter' | 'hobby' | null
           const hasActive = data.tierCode !== null;
           setHasSubscription(hasActive);
         } else {

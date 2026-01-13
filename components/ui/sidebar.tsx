@@ -18,6 +18,7 @@ import { Tooltip } from '@/components/ui/tooltip';
 import { ThemeModeToggle } from "@/components/ui/theme-mode-toggle";
 import { SubscriptionBadge } from "@/components/ui/subscription-badge";
 import { cn } from "@/lib/utils";
+import { normalizeTierCode, type SubscriptionTier } from "@/lib/subscription-tier";
 
 interface CommonSidebarProps {
   // 移除 isGenerating 参数，因为不再需要显示生成状态
@@ -56,7 +57,7 @@ export const CommonSidebar = ({
   const [dropdownTimeout, setDropdownTimeout] = React.useState<NodeJS.Timeout | null>(null);
   const [isRefreshingCredits, setIsRefreshingCredits] = React.useState(false);
   const [isExpanded, setIsExpanded] = React.useState(false);
-  const [tierCode, setTierCode] = React.useState<'basic' | 'premium' | null>(null);
+  const [tierCode, setTierCode] = React.useState<SubscriptionTier | null>(null);
   const [isNicknameDialogOpen, setIsNicknameDialogOpen] = React.useState(false);
   const mobileNavRef = React.useRef<HTMLDivElement | null>(null);
   const displayName = user?.user_metadata?.nickname || user?.user_metadata?.full_name || user?.user_metadata?.name || user?.email?.split('@')[0] || '';
@@ -274,8 +275,7 @@ const aiMusicToolsDropdown = [
 
         if (response.ok) {
           const data = await response.json();
-          // 只有当 tierCode 不为 null 时才设置（有活跃订阅）
-          setTierCode(data.tierCode || null);
+          setTierCode(normalizeTierCode(data.tierCode));
         } else {
           setTierCode(null);
         }

@@ -1,4 +1,5 @@
 import { query } from './db-query-builder';
+import { normalizeTierCode, type SubscriptionTier } from "./subscription-tier";
 
 // ============================================================================
 // TIER CODE MAPPING (Deprecated - kept for backward compatibility)
@@ -6,20 +7,20 @@ import { query } from './db-query-builder';
 
 /**
  * 将订阅 plan_id 映射到 tier_code
- * monthly_basic / yearly_basic → basic
- * monthly_premium / yearly_premium → premium
- * 无订阅 → basic (默认)
+ * monthly_basic / yearly_basic → starter
+ * monthly_premium / yearly_premium → hobby
+ * 无订阅 → null
  * 
  * @deprecated 使用 getUserTierCode() 直接通过 tier_id 查询，此函数仅用于向后兼容
  */
-export const getTierCodeFromPlanId = (planId: string | null): 'basic' | 'premium' => {
-  if (!planId) return 'basic';
+export const getTierCodeFromPlanId = (planId: string | null): SubscriptionTier | null => {
+  if (!planId) return null;
   
   if (planId.includes('premium')) {
-    return 'premium';
+    return 'hobby';
   }
   
-  return 'basic';
+  return 'starter';
 };
 
 /**
@@ -56,11 +57,11 @@ export const getUserTierId = async (userId: string): Promise<string | null> => {
 /**
  * 获取用户的订阅层级代码
  * 通过 user_subscriptions.tier_id 直接关联 subscription_tiers 表
- * 如果没有活跃订阅，默认返回 'basic'
+ * 如果没有活跃订阅，返回 null
  * 
  * @deprecated 如果只需要检查权限，优先使用 getUserTierId() + 直接查询 tier_features
  */
-export const getUserTierCode = async (userId: string): Promise<'basic' | 'premium'> => {
+export const getUserTierCode = async (userId: string): Promise<SubscriptionTier | null> => {
   try {
     // 直接通过 tier_id 关联查询，避免字符串映射
     const result = await query(
@@ -75,15 +76,13 @@ export const getUserTierCode = async (userId: string): Promise<'basic' | 'premiu
     );
 
     if (result.rows.length > 0) {
-      return result.rows[0].tier_code as 'basic' | 'premium';
+      return normalizeTierCode(result.rows[0].tier_code);
     }
 
-    // 默认返回 basic（没有活跃订阅时）
-    return 'basic';
+    return null;
   } catch (error) {
     console.error('[FEATURE-PERMISSIONS] Error getting user tier code:', error);
-    // 出错时返回 basic，确保用户可以访问基本功能
-    return 'basic';
+    return null;
   }
 };
 
@@ -243,4 +242,3 @@ export const getUserAvailableFeatures = async (userId: string): Promise<string[]
     return [];
   }
 };
-

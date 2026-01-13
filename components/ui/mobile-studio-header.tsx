@@ -5,9 +5,10 @@ import Image from "next/image";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
-import { Badge } from "@/components/ui/badge";
 import { Sparkles, LogOut, LogIn } from "lucide-react";
 import { supabase } from '@/lib/supabase';
+import { normalizeTierCode, type SubscriptionTier } from "@/lib/subscription-tier";
+import { SubscriptionBadge } from "@/components/ui/subscription-badge";
 
 interface MobileStudioHeaderProps {
   user: any;
@@ -30,7 +31,7 @@ export const MobileStudioHeader = React.memo(({
   setIsAuthModalOpen,
   signOut,
 }: MobileStudioHeaderProps) => {
-  const [tierCode, setTierCode] = React.useState<'basic' | 'premium' | null>(null);
+  const [tierCode, setTierCode] = React.useState<SubscriptionTier | null>(null);
   const displayName = user?.user_metadata?.nickname || user?.user_metadata?.full_name || user?.user_metadata?.name || user?.email?.split('@')[0] || '';
 
   // 获取用户订阅信息
@@ -59,8 +60,7 @@ export const MobileStudioHeader = React.memo(({
 
         if (response.ok) {
           const data = await response.json();
-          // 只有当 tierCode 不为 null 时才设置（有活跃订阅）
-          setTierCode(data.tierCode || null);
+          setTierCode(normalizeTierCode(data.tierCode));
         } else {
           setTierCode(null);
         }
@@ -131,10 +131,7 @@ export const MobileStudioHeader = React.memo(({
                           {displayName || user.email}
                         </div>
                         {tierCode && (
-                          <Badge className="relative inline-block rounded-full border border-zinc-700 bg-zinc-900/20 px-2 py-0.5 text-xs text-zinc-50 animate-border-marquee flex-shrink-0">
-                            <span className="text-foreground/90 font-medium capitalize">{tierCode}</span>
-                            <span className="absolute bottom-0 left-1 right-1 h-[1px] bg-gradient-to-r from-zinc-500/0 via-zinc-300 to-zinc-500/0"></span>
-                          </Badge>
+                          <SubscriptionBadge tier={tierCode} className="flex-shrink-0" />
                         )}
                       </div>
                       <div className="text-xs text-muted-foreground mt-1 truncate">

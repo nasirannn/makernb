@@ -2,21 +2,22 @@
 
 import * as React from "react";
 import { cn } from "@/lib/utils";
+import type { SubscriptionTier } from "@/lib/subscription-tier";
 
-export type SubscriptionTier = "basic" | "premium";
+export type { SubscriptionTier } from "@/lib/subscription-tier";
 
 const tierConfig: Record<
   SubscriptionTier,
   { label: string; className: string; dotClassName: string }
 > = {
-  basic: {
-    label: "Basic",
+  starter: {
+    label: "Starter",
     className:
       "bg-foreground/6 text-foreground/70 dark:bg-white/10 dark:text-foreground/80",
     dotClassName: "bg-foreground/30 dark:bg-white/35",
   },
-  premium: {
-    label: "Premium",
+  hobby: {
+    label: "Hobby",
     className:
       "bg-primary/12 text-primary dark:bg-primary/22 dark:text-primary-foreground",
     dotClassName: "bg-primary dark:bg-primary-foreground",
@@ -48,4 +49,3 @@ export function SubscriptionBadge({
     </span>
   );
 }
-

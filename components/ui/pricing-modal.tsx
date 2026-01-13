@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
+import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { useAuth } from "@/contexts/AuthContext";
@@ -8,7 +9,7 @@ import { useCredits } from "@/contexts/CreditsContext";
 import { usePricingModal } from "@/contexts/PricingModalContext";
 import { supabase } from "@/lib/supabase";
 import { cn } from "@/lib/utils";
-import { Check } from "lucide-react";
+import { Check, X } from "lucide-react";
 import AuthModal from "@/components/ui/auth-modal";
 import { monthlyPlans, yearlyPlans, type PricingPlan } from "@/lib/pricing-config";
 
@@ -24,7 +25,26 @@ export function PricingModal() {
   const monthlyRef = useRef<HTMLButtonElement>(null);
   const [sliderStyle, setSliderStyle] = useState({ width: 0, x: 0 });
 
-  const currentPlans = billingPeriod === 'monthly' ? monthlyPlans : yearlyPlans;
+	  const currentPlans = billingPeriod === 'monthly' ? monthlyPlans : yearlyPlans;
+	  const freeFeatures = [
+	    { label: "AI Music Generator", enabled: true },
+	    { label: "AI Lyrics Generator", enabled: true },
+	    { label: "AI Vocal Remover", enabled: true },
+	    { label: "Create up to 15 lyrics with AI / day", enabled: true },
+	    { label: "Access to all models (V5, V4.5-all, V4.5+, V4.5, V4)", enabled: true },
+	    { label: "Download MP3 & Cover PNG", enabled: false },
+	    { label: "Vocal separation, Extend music & Replace section", enabled: false },
+	    { label: "Email customer support", enabled: false },
+	  ] as const;
+  const freeApproxSongs = Math.max(1, Math.round(15 / 7));
+
+  const formatUsdAmount = (amount: number) => {
+    const rounded = Math.round(amount * 100) / 100;
+    return rounded.toLocaleString(undefined, {
+      minimumFractionDigits: 0,
+      maximumFractionDigits: 2,
+    });
+  };
 
   const updateSlider = useCallback(() => {
     const container = toggleRef.current;
@@ -174,15 +194,67 @@ export function PricingModal() {
           </DialogHeader>
 
           <div className="relative max-h-[calc(90vh-180px)] overflow-y-auto px-6 pb-6">
-            <div className="grid gap-6 md:grid-cols-2">
-              {currentPlans.map((plan) => (
-                <div
-                  key={plan.id}
-                  className={cn(
-                    "relative overflow-hidden rounded-3xl p-6 md:p-7",
-                    plan.popular ? "app-card" : "app-card-muted"
-                  )}
-                >
+            <div className="grid gap-6 md:grid-cols-3">
+              <div className="relative overflow-hidden rounded-3xl p-6 md:p-7 app-card-muted">
+                <div className="relative flex h-full flex-col">
+                  <div className="min-w-0">
+                    <div className="text-xl font-semibold tracking-tight">Free</div>
+                    <div className="mt-4 text-6xl md:text-7xl font-black tracking-tight text-foreground">
+                      Free
+                    </div>
+                    <div className="mt-2 text-sm text-muted-foreground/70">
+                      Start creating with daily credits. No subscription needed.
+                    </div>
+                  </div>
+
+                  <div className="mt-6">
+                    <div className="inline-flex items-center rounded-full bg-foreground/5 px-3 py-1.5 text-xs font-semibold text-foreground/70 dark:bg-white/10 dark:text-foreground/80">
+                      {`15 credits/day (approx. ${freeApproxSongs} songs)`}
+                    </div>
+                  </div>
+
+                  <Button
+                    asChild
+                    className="mt-4 w-full rounded-full py-6 text-base font-semibold bg-foreground text-background hover:bg-foreground/90 dark:bg-white dark:text-black dark:hover:bg-white/90"
+                  >
+                    <Link href="/studio" onClick={closeModal}>
+                      {user ? "Continue Free" : "Start Free"}
+                    </Link>
+                  </Button>
+
+                  <ul className="mt-6 space-y-5">
+                    {freeFeatures.map((feature) => (
+                      <li
+                        key={feature.label}
+                        className={cn(
+                          "flex items-start gap-3 text-base md:text-lg",
+                          feature.enabled ? "text-foreground/90" : "text-muted-foreground/75"
+                        )}
+                      >
+                        {feature.enabled ? (
+                          <Check className="mt-1 h-5 w-5 flex-shrink-0 text-foreground/80" />
+                        ) : (
+                          <X className="mt-1 h-5 w-5 flex-shrink-0 text-muted-foreground/60" />
+                        )}
+                        <span className="leading-relaxed">{feature.label}</span>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              </div>
+
+              {currentPlans.map((plan) => {
+                const isHobby = plan.name === "Hobby";
+
+                return (
+                  <div
+                    key={plan.id}
+                    className={cn(
+                      "relative overflow-hidden rounded-3xl p-6 md:p-7",
+                      plan.popular ? "app-card" : "app-card-muted",
+                      "transition-transform duration-200 hover:-translate-y-1"
+                    )}
+                  >
                   {plan.popular && (
                     <div
                       aria-hidden="true"
@@ -191,37 +263,39 @@ export function PricingModal() {
                   )}
 
                   <div className="relative flex flex-col h-full">
-                    <div className="flex items-start justify-between gap-4">
-                      <div className="min-w-0">
-                        <div className="flex items-center gap-2">
-                          <div className="text-xl font-semibold tracking-tight">{plan.name}</div>
-                          {plan.popular && (
-                            <span className="inline-flex items-center rounded-full bg-primary px-2.5 py-1 text-[11px] font-semibold text-primary-foreground">
-                              Most popular
-                            </span>
-                          )}
+                    <div className="min-w-0">
+                      <div className="flex items-center gap-2">
+                        <div className="text-xl font-semibold tracking-tight">{plan.name}</div>
+                        {plan.popular && (
+                          <span className="inline-flex items-center rounded-full bg-primary px-2.5 py-1 text-[11px] font-semibold text-primary-foreground">
+                            Popular
+                          </span>
+                        )}
+                      </div>
+
+                      <div className="mt-4 flex items-end gap-3">
+                        <div className="text-6xl md:text-7xl font-black tracking-tight tabular-nums text-foreground">
+                          <span className="text-2xl md:text-3xl align-top mr-1">$</span>
+                          {formatUsdAmount(plan.price)}
                         </div>
-                        <div className="mt-2 text-sm text-muted-foreground">
-                          {billingPeriod === "monthly" ? "For solo creators" : "Best value for teams & power users"}
+                        <div className="pb-2 text-lg font-medium tracking-tight text-muted-foreground/70">
+                          month
                         </div>
                       </div>
-                      <div className="text-right">
-                        <div className="text-4xl font-black tracking-tight tabular-nums">
-                          <span className="text-sm align-top mr-0.5">$</span>
-                          {plan.price}
-                          <span className="text-sm text-muted-foreground ml-1">/mo</span>
-                        </div>
-                        <div className="mt-1 text-xs text-muted-foreground">
-                          {billingPeriod === "yearly" ? "Billed yearly" : "Billed monthly"}
-                        </div>
+
+                      <div className="mt-2 text-sm text-muted-foreground/70">
+                        {billingPeriod === "yearly"
+                          ? `$${formatUsdAmount(plan.price * 12)} billed yearly. Cancel anytime.`
+                          : "Billed monthly. Cancel anytime."}
                       </div>
                     </div>
 
                     <div className="mt-5">
                       <div className="inline-flex items-center rounded-full bg-foreground/5 px-3 py-1.5 text-xs font-semibold text-foreground/70 dark:bg-white/10 dark:text-foreground/80">
-                        {billingPeriod === "yearly"
-                          ? `${plan.credits.toLocaleString()} credits / year`
-                          : `${plan.credits.toLocaleString()} credits / month`}
+                        {plan.features[0] ??
+                          (billingPeriod === "yearly"
+                            ? `${plan.credits.toLocaleString()} credits/year`
+                            : `${plan.credits.toLocaleString()} credits/month`)}
                       </div>
                     </div>
 
@@ -239,19 +313,36 @@ export function PricingModal() {
                       {loading === plan.id ? "Redirecting to payment..." : "Subscribe"}
                     </Button>
 
-                    <ul className="mt-6 space-y-3">
-	                      {plan.features.map((feature, index) => (
-	                        <li key={index} className="flex items-start gap-3 text-sm text-foreground/80">
-	                          <span className="mt-0.5 inline-flex h-5 w-5 items-center justify-center rounded-full bg-foreground/5 text-foreground dark:bg-white/10">
-	                            <Check className="h-3.5 w-3.5 text-emerald-500" />
-	                          </span>
-	                          <span className="leading-relaxed">{feature}</span>
-	                        </li>
-	                      ))}
-	                    </ul>
+                    <ul className="mt-6 space-y-5">
+                      {plan.features.slice(1).map((feature, index) => (
+                        <li
+                          key={index}
+                          className="flex items-start gap-3 text-base md:text-lg text-foreground/90"
+                        >
+                          <Check
+                            className={cn(
+                              "mt-1 h-5 w-5 flex-shrink-0",
+                              isHobby ? "text-emerald-500" : "text-foreground/80"
+                            )}
+                          />
+                          {feature === "Commercial License Included" ? (
+                            <Link
+                              href="/license"
+                              onClick={closeModal}
+                              className="leading-relaxed underline underline-offset-4 decoration-foreground/20 transition-colors hover:decoration-foreground/50"
+                            >
+                              {feature}
+                            </Link>
+                          ) : (
+                            <span className="leading-relaxed">{feature}</span>
+                          )}
+                        </li>
+                      ))}
+                    </ul>
                   </div>
-                </div>
-              ))}
+                  </div>
+                );
+              })}
             </div>
           </div>
           </div>

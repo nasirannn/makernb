@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getUserIdFromRequest } from '@/lib/auth';
 import { getUserTierId } from '@/lib/feature-permissions';
 import { query } from '@/lib/db-query-builder';
+import { normalizeTierCode } from '@/lib/subscription-tier';
 
 // 强制动态渲染
 export const dynamic = 'force-dynamic';
@@ -43,8 +44,9 @@ export async function GET(request: NextRequest) {
     );
 
     if (result.rows.length > 0) {
+      const tierCode = normalizeTierCode(result.rows[0].tier_code);
       return NextResponse.json({
-        tierCode: result.rows[0].tier_code as 'basic' | 'premium',
+        tierCode,
         userId
       });
     }
@@ -67,4 +69,3 @@ export async function GET(request: NextRequest) {
     );
   }
 }
-

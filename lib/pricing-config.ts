@@ -23,36 +23,42 @@ export interface PricingPlan {
 export const monthlyPlans: PricingPlan[] = [
   {
     id: "monthly-basic",
-    name: "Basic",
+    name: "Starter",
     credits: 1000,
     price: 12.9,
     icon: 'star',
     features: [
       "1,000 credits/month (approx. 143 songs)",
-      "Create up to 2,500 lyrics with AI",
+      "AI Music Generator",
+      "AI Lyrics Generator",
+      "AI Vocal Remover",
+      "Create up to 1,000 lyrics with AI",
       "Download MP3 & Cover PNG",
-      "Vocal remover & Extend music",
+      "Commercial License Included",
+      "Vocal separation, Extend music & Replace section",
       "Access to all models (V5, V4.5-all, V4.5+, V4.5, V4)",
-      "Email customer support",
-      "Access to all R&B styles and genres"
+      "Email customer support"
     ],
     productId: process.env.NEXT_PUBLIC_MONTHLY_BASIC!
   },
   {
     id: "monthly-premium",
-    name: "Premium",
+    name: "Hobby",
     credits: 2500,
     price: 25.9,
     popular: true,
     icon: 'crown',
     features: [
       "2,500 credits/month (approx. 357 songs)",
-      "Create up to 6,250 lyrics with AI",
+      "AI Music Generator",
+      "AI Lyrics Generator",
+      "AI Vocal Remover",
+      "Create up to 2,500 lyrics with AI",
       "Download MP3, WAV & Cover PNG",
-      "Vocal remover & Extend music",
+      "Commercial License Included",
+      "Vocal separation, Extend music & Replace section",
       "Access to all models (V5, V4.5-all, V4.5+, V4.5, V4)",
       "Email customer support",
-      "Access to all R&B styles and genres",
     ],
     productId: process.env.NEXT_PUBLIC_MONTHLY_PREMIUM!
   }
@@ -64,36 +70,42 @@ export const monthlyPlans: PricingPlan[] = [
 export const yearlyPlans: PricingPlan[] = [
   {
     id: "yearly-basic",
-    name: "Basic",
+    name: "Starter",
     credits: 12000,
     price: 8.3,
     icon: 'star',
     features: [
       "12,000 credits/year (approx. 1,714 songs)",
-      "Create up to 30,000 lyrics with AI",
+      "AI Music Generator",
+      "AI Lyrics Generator",
+      "AI Vocal Remover",
+      "Create up to 12,000 lyrics with AI",
       "Download MP3 & Cover PNG",
-      "Vocal remover & Extend music",
+      "Commercial License Included",
+      "Vocal separation, Extend music & Replace section",
       "Access to all models (V5, V4.5-all, V4.5+, V4.5, V4)",
-      "Email customer support",
-      "Access to all R&B styles and genres"
+      "Email customer support"
     ],
     productId: process.env.NEXT_PUBLIC_YEARLY_BASIC!
   },
   {
     id: "yearly-premium",
-    name: "Premium",
+    name: "Hobby",
     credits: 30000,
     price: 16.6,
     popular: true,
     icon: 'crown',
     features: [
       "30,000 credits/year (approx. 4,286 songs)",
-      "Create up to 75,000 lyrics with AI",
+      "AI Music Generator",
+      "AI Lyrics Generator",
+      "AI Vocal Remover",
+      "Create up to 30,000 lyrics with AI",
       "Download MP3, WAV & Cover PNG",
-      "Vocal remover & Extend music",
+      "Commercial License Included",
+      "Vocal separation, Extend music & Replace section",
       "Access to all models (V5, V4.5-all, V4.5+, V4.5, V4)",
       "Email customer support",
-      "Access to all R&B styles and genres",
     ],
     productId: process.env.NEXT_PUBLIC_YEARLY_PREMIUM!
   }

@@ -15,6 +15,7 @@ import { supabase } from "@/lib/supabase";
 import { EditNicknameDialog } from "@/components/ui/edit-nickname-dialog";
 import { ThemeModeToggle } from "@/components/ui/theme-mode-toggle";
 import { SubscriptionBadge } from "@/components/ui/subscription-badge";
+import { normalizeTierCode, type SubscriptionTier } from "@/lib/subscription-tier";
 
 interface RouteProps {
   href: string;
@@ -86,7 +87,7 @@ export const Navbar = ({ credits = null }: NavbarProps) => {
   const [isNicknameDialogOpen, setIsNicknameDialogOpen] = React.useState(false);
   const [isDropdownOpen, setIsDropdownOpen] = React.useState(false);
   const [dropdownTimeout, setDropdownTimeout] = React.useState<NodeJS.Timeout | null>(null);
-  const [tierCode, setTierCode] = React.useState<'basic' | 'premium' | null>(null);
+  const [tierCode, setTierCode] = React.useState<SubscriptionTier | null>(null);
   const pathname = usePathname();
   const searchParams = useSearchParams();
   const isHome = pathname === "/";
@@ -228,8 +229,7 @@ export const Navbar = ({ credits = null }: NavbarProps) => {
 
         if (response.ok) {
           const data = await response.json();
-          // 只有当 tierCode 不为 null 时才设置（有活跃订阅）
-          setTierCode(data.tierCode || null);
+          setTierCode(normalizeTierCode(data.tierCode));
         } else {
           setTierCode(null);
         }

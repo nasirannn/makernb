@@ -1,15 +1,17 @@
 "use client";
 
 import React, { useState } from 'react';
+import { createPortal } from "react-dom";
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { supabase } from '@/lib/supabase';
-import { Loader2, Mail, X, ArrowLeft } from 'lucide-react';
+import { Loader2, X, ArrowLeft } from 'lucide-react';
 import { LoadingDots } from '@/components/ui/loading-dots';
 import { Z_INDEX_COMBINATIONS } from '@/lib/z-index';
 import { Turnstile } from '@marsidev/react-turnstile';
+import Image from "next/image";
+import { cn } from "@/lib/utils";
 
 interface AuthModalProps {
   isOpen: boolean;
@@ -28,6 +30,11 @@ export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
   const [captchaToken, setCaptchaToken] = useState<string | undefined>();
   const modalContentRef = React.useRef<HTMLDivElement>(null);
   const scrollPositionRef = React.useRef<number>(0);
+  const [mounted, setMounted] = React.useState(false);
+
+  React.useEffect(() => {
+    setMounted(true);
+  }, []);
 
   // 邮箱格式验证
   const isValidEmail = (email: string) => {
@@ -217,12 +224,16 @@ export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
     onClose();
   };
 
-  if (!isOpen) return null;
+  if (!mounted || !isOpen) return null;
 
   // 计算移动端
   const isMobile = typeof window !== 'undefined' && window.innerWidth < 768;
+  const turnstileTheme =
+    typeof document !== "undefined" && document.documentElement.classList.contains("dark")
+      ? "dark"
+      : "light";
 
-  return (
+  return createPortal(
     <>
       {/* Backdrop - 始终覆盖整个屏幕 */}
       <div 
@@ -245,9 +256,9 @@ export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
       
       {/* Modal Container - 移动端固定底部，桌面端居中 */}
       <div 
-        className={`fixed ${Z_INDEX_COMBINATIONS.AUTH_MODAL.content} left-0 right-0 top-0 bottom-0 flex items-center justify-center animate-in slide-in-from-bottom md:zoom-in-95 md:slide-in-from-bottom-4 duration-200`}
+        className={`fixed ${Z_INDEX_COMBINATIONS.AUTH_MODAL.content} inset-0 flex justify-center p-4 md:p-6`}
         style={{
-          alignItems: isMobile ? 'flex-end' : 'center',
+          alignItems: 'center',
           pointerEvents: 'none'
         }}
         onTouchMove={(e) => {
@@ -256,210 +267,245 @@ export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
       >
         <div 
           ref={modalContentRef}
-          className="w-full max-w-md mx-0 md:mx-4 flex flex-col"
+          className="w-full max-w-md mx-0 md:mx-4 flex flex-col min-h-0 overflow-hidden"
           style={{
-            maxHeight: isMobile ? '90vh' : '85vh',
+            maxHeight: isMobile ? 'calc(100dvh - 1.25rem)' : 'calc(100dvh - 2rem)',
             overscrollBehavior: 'contain',
             WebkitOverflowScrolling: 'touch',
             pointerEvents: 'auto'
           }}
         >
-          <Card className="relative bg-card border-0 shadow-2xl rounded-t-3xl md:rounded-xl rounded-b-none md:rounded-b-xl flex flex-col overflow-hidden">
-          {/* Mobile Drag Handle */}
-          <div className="flex md:hidden justify-center pt-2.5 pb-1.5 flex-shrink-0">
-            <div className="w-12 h-1 bg-muted-foreground/30 rounded-full"></div>
-          </div>
-          
-          {/* Close Button - 桌面端显示在右上角 */}
-          <button
-            onClick={handleClose}
-            className="hidden md:block absolute top-4 right-4 z-10 text-muted-foreground hover:text-foreground transition-colors"
-          >
-            <X className="h-5 w-5" />
-          </button>
+          <div className="relative overflow-hidden rounded-t-[28px] md:rounded-[28px] bg-gradient-to-br from-primary/35 via-foreground/10 to-primary/15 p-[1px] shadow-[0_30px_120px_rgba(0,0,0,0.55)] max-h-full">
+            <div className="app-card relative flex flex-col overflow-hidden rounded-t-[27px] md:rounded-[27px] max-h-full min-h-0">
+              <div
+                aria-hidden="true"
+                className="pointer-events-none absolute inset-0 opacity-75 bg-[radial-gradient(820px_520px_at_16%_8%,hsl(var(--primary)/0.22),transparent_62%)]"
+              />
+              <div
+                aria-hidden="true"
+                className="pointer-events-none absolute inset-0 opacity-30 bg-[radial-gradient(720px_520px_at_84%_18%,rgba(0,198,255,0.16),transparent_60%)] dark:opacity-25"
+              />
 
-          <CardHeader className="text-center pb-1.5 px-4 pt-1.5 md:pb-4 md:px-6 md:pt-6 flex-shrink-0">
-            <CardTitle className="text-lg md:text-2xl font-bold text-foreground mb-1 md:mb-2">
-              {showCodeInput ? 'Enter Verification Code' : 'Sign in to MakeRNB'}
-            </CardTitle>
-            
-            <CardDescription className="text-sm text-muted-foreground">
-              Create amazing R&B tracks with the power of AI
-            </CardDescription>
-          </CardHeader>
-          
-          <CardContent className="space-y-2.5 md:space-y-5 px-4 pb-3 md:px-6 md:pb-6 overflow-y-auto flex-1"
-            style={{
-              overscrollBehavior: 'contain',
-              WebkitOverflowScrolling: 'touch',
-              scrollPaddingTop: '20px'
-            }}
-          >
-            {/* Google Sign In */}
+              {/* Mobile Drag Handle */}
+              <div className="relative flex md:hidden justify-center pt-3 pb-2 flex-shrink-0">
+                <div className="w-12 h-1 bg-foreground/20 rounded-full" />
+              </div>
+
+              {/* Close Button - 桌面端显示在右上角 */}
+              <button
+                onClick={handleClose}
+                className="hidden md:inline-flex absolute top-4 right-4 z-10 h-9 w-9 items-center justify-center rounded-full app-card-muted text-foreground/70 hover:text-foreground hover:bg-foreground/10 transition-colors"
+                aria-label="Close"
+              >
+                <X className="h-4 w-4" />
+              </button>
+
+              <div className="relative px-5 pt-2 pb-4 md:px-7 md:pt-7 md:pb-5">
+                <div className="flex items-center justify-center gap-2.5">
+                  <Image src="/logo.svg" alt="MakeRNB" width={28} height={28} className="opacity-90" />
+                  <div className="text-sm font-semibold tracking-tight text-foreground/85">
+                    MakeRNB
+                  </div>
+                </div>
+
+                <div className="mt-4 text-center">
+                  <div className="text-[22px] md:text-[26px] font-black tracking-tight text-foreground">
+                    {showCodeInput ? "Enter the code" : "Sign in"}
+                  </div>
+                  <div className="mt-1 text-sm text-muted-foreground/80">
+                    {showCodeInput
+                      ? `We sent a 6-digit code to ${email}`
+                      : "Generate, extend, and export clean audio in seconds."}
+                  </div>
+                </div>
+              </div>
+
+              <div
+                className="relative space-y-4 px-5 pb-5 md:px-7 md:pb-7 overflow-y-auto flex-1 min-h-0"
+                style={{
+                  overscrollBehavior: 'contain',
+                  WebkitOverflowScrolling: 'touch',
+                  scrollPaddingTop: '20px'
+                }}
+              >
                 <Button
                   onClick={handleGoogleAuth}
                   disabled={isGoogleAuthLoading || loading}
-                  className="w-full h-11 md:h-12 bg-white hover:bg-white/90 text-black font-medium rounded-lg transition-all duration-200 disabled:opacity-50 text-sm md:text-base"
+                  className={cn(
+                    "w-full h-11 md:h-12 rounded-2xl text-sm md:text-base font-semibold",
+                    "bg-white text-black hover:bg-white/90 disabled:opacity-50",
+                    "shadow-[0_16px_45px_rgba(0,0,0,0.10)]"
+                  )}
                 >
-              {isGoogleAuthLoading ? (
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-              ) : (
-                <svg className="mr-2 h-4 w-4" viewBox="0 0 24 24">
-                  <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
-                  <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
-                  <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/>
-                  <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/>
-                </svg>
-              )}
-              Continue with Google
-            </Button>
+                  {isGoogleAuthLoading ? (
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  ) : (
+                    <svg className="mr-2 h-4 w-4" viewBox="0 0 24 24" aria-hidden="true">
+                      <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
+                      <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
+                      <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/>
+                      <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/>
+                    </svg>
+                  )}
+                  Continue with Google
+                </Button>
 
-            {/* Divider */}
-            <div className="relative py-1">
-              <div className="absolute inset-0 flex items-center">
-                <span className="w-full border-t border-border" />
-              </div>
-              <div className="relative flex justify-center text-xs uppercase">
-                <span className="bg-card px-3 py-0.5 text-muted-foreground rounded-full">Or continue with</span>
-              </div>
-            </div>
-
-            {/* Email Form */}
-            <form onSubmit={showCodeInput ? handleVerifyCode : handleEmailAuth} className="space-y-2.5 md:space-y-4">
-              {!showCodeInput ? (
-                <div className="space-y-1.5">
-                  <Label htmlFor="email" className="text-foreground text-sm">Email</Label>
-                  <Input
-                    id="email"
-                    type="email"
-                    placeholder="Enter your email"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    onFocus={handleInputFocus}
-                    required
-                    className="bg-muted/50 border-0 text-foreground placeholder:text-muted-foreground focus:ring-2 focus:ring-primary h-11 text-base rounded-lg"
-                  />
-                </div>
-              ) : (
-                <div className="space-y-1.5">
-                  <Label htmlFor="code" className="text-foreground text-sm">Verification Code</Label>
-                  <div className="flex w-full items-center justify-between gap-2">
-                    {Array.from({ length: otpLength }).map((_, index) => (
-                      <Input
-                        key={`code-${index}`}
-                        id={index === 0 ? 'code' : undefined}
-                        type="text"
-                        inputMode="numeric"
-                        autoComplete={index === 0 ? 'one-time-code' : 'off'}
-                        value={verificationCode[index] || ''}
-                        onChange={(e) => handleOtpChange(index, e.target.value)}
-                        onKeyDown={(e) => handleOtpKeyDown(index, e)}
-                        onPaste={(e) => handleOtpPaste(index, e)}
-                        onFocus={handleInputFocus}
-                        ref={(el) => {
-                          otpRefs.current[index] = el;
-                        }}
-                        aria-label={`Verification code digit ${index + 1}`}
-                        className="bg-muted/50 border-0 text-foreground focus:ring-2 focus:ring-primary h-11 w-11 text-center text-lg font-semibold rounded-lg"
-                      />
-                    ))}
+                <div className="relative py-1.5">
+                  <div className="absolute inset-0 flex items-center">
+                    <span className="w-full h-px bg-foreground/10 dark:bg-white/10" />
+                  </div>
+                  <div className="relative flex justify-center">
+                    <span className="app-card-muted rounded-full px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.18em] text-foreground/55">
+                      Or email
+                    </span>
                   </div>
                 </div>
-              )}
 
-              {/* 验证码发送提示 */}
-              {showCodeInput && (
+                <form
+                  onSubmit={showCodeInput ? handleVerifyCode : handleEmailAuth}
+                  className="space-y-4"
+                >
+                  {!showCodeInput ? (
+                    <div className="space-y-2">
+                      <Label htmlFor="email" className="text-[11px] font-semibold uppercase tracking-[0.18em] text-foreground/70">
+                        Email
+                      </Label>
+                      <Input
+                        id="email"
+                        type="email"
+                        placeholder="you@domain.com"
+                        value={email}
+                        onChange={(e) => setEmail(e.target.value)}
+                        onFocus={handleInputFocus}
+                        required
+                        className={cn(
+                          "h-11 md:h-12 rounded-2xl text-base",
+                          "bg-foreground/5 dark:bg-white/10 border-0",
+                          "placeholder:text-foreground/35",
+                          "focus-visible:ring-2 focus-visible:ring-primary/35 focus-visible:ring-offset-0"
+                        )}
+                      />
+                    </div>
+                  ) : (
+                    <div className="space-y-2">
+                      <Label htmlFor="code" className="text-[11px] font-semibold uppercase tracking-[0.18em] text-foreground/70">
+                        Verification code
+                      </Label>
+                      <div className="flex w-full items-center justify-between gap-2">
+                        {Array.from({ length: otpLength }).map((_, index) => (
+                          <Input
+                            key={`code-${index}`}
+                            id={index === 0 ? 'code' : undefined}
+                            type="text"
+                            inputMode="numeric"
+                            autoComplete={index === 0 ? 'one-time-code' : 'off'}
+                            value={verificationCode[index] || ''}
+                            onChange={(e) => handleOtpChange(index, e.target.value)}
+                            onKeyDown={(e) => handleOtpKeyDown(index, e)}
+                            onPaste={(e) => handleOtpPaste(index, e)}
+                            onFocus={handleInputFocus}
+                            ref={(el) => {
+                              otpRefs.current[index] = el;
+                            }}
+                            aria-label={`Verification code digit ${index + 1}`}
+                            className={cn(
+                              "h-11 w-11 md:h-12 md:w-12 rounded-2xl text-center text-lg font-black tabular-nums",
+                              "bg-foreground/5 dark:bg-white/10 border-0",
+                              "focus-visible:ring-2 focus-visible:ring-primary/35 focus-visible:ring-offset-0"
+                            )}
+                          />
+                        ))}
+                      </div>
+
+                      <div className="flex items-center justify-center pt-1">
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setShowCodeInput(false);
+                            setVerificationCode('');
+                            setMessage('');
+                          }}
+                          className="inline-flex items-center gap-1.5 text-xs font-semibold text-foreground/60 hover:text-foreground transition-colors"
+                        >
+                          <ArrowLeft className="h-3.5 w-3.5" />
+                          Change email
+                        </button>
+                      </div>
+                    </div>
+                  )}
+
+                  {!showCodeInput && process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY && (
+                    <div className="app-card-muted rounded-2xl p-3">
+                      <div className="w-full flex justify-center">
+                        <Turnstile
+                          siteKey={process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY}
+                          onSuccess={(token) => {
+                            setCaptchaToken(token);
+                          }}
+                          options={{
+                            size: 'flexible',
+                            theme: turnstileTheme,
+                            language: 'en'
+                          }}
+                        />
+                      </div>
+                    </div>
+                  )}
+
+                  <Button
+                    type="submit"
+                    disabled={
+                      (loading || isGoogleAuthLoading) ||
+                      (!showCodeInput && !canSendCode) ||
+                      (showCodeInput && verificationCode.length !== otpLength)
+                    }
+                    className={cn(
+                      "w-full h-11 md:h-12 rounded-2xl text-sm md:text-base font-semibold",
+                      "bg-primary text-primary-foreground hover:bg-primary/90",
+                      "shadow-[0_18px_55px_hsl(var(--primary)/0.22)]",
+                      "disabled:opacity-50"
+                    )}
+                  >
+                    {loading && !isGoogleAuthLoading ? (
+                      <LoadingDots size="sm" color="white" className="mr-2" />
+                    ) : null}
+                    {showCodeInput ? 'Verify code' : 'Send code'}
+                  </Button>
+                </form>
+
+                {message && !message.includes('Check your email') && !message.includes('verification code') && (
+                  <div className="app-card-muted text-sm text-center px-4 py-3 rounded-2xl text-red-200/90">
+                    {message}
+                  </div>
+                )}
+
                 <div className="text-center">
-                  <p className="text-sm text-muted-foreground">
-                    Code sent to {email}
+                  <p className="text-[11px] leading-relaxed text-muted-foreground/80">
+                    By signing in, you agree to our{" "}
+                    <a href="/terms" className="text-primary hover:underline" target="_blank" rel="noopener noreferrer">
+                      Terms
+                    </a>{" "}
+                    and{" "}
+                    <a href="/privacy" className="text-primary hover:underline" target="_blank" rel="noopener noreferrer">
+                      Privacy Policy
+                    </a>.
                   </p>
                 </div>
-              )}
 
-              {/* Turnstile 验证组件 - 只在邮箱输入步骤显示 */}
-              {!showCodeInput && process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY && (
-                <div className="w-full flex justify-center">
-                  <Turnstile
-                    siteKey={process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY}
-                    onSuccess={(token) => {
-                      setCaptchaToken(token);
-                    }}
-                    options={{
-                      size: 'flexible',
-                      theme: 'light',
-                      language: 'en'
-                    }}
-                  />
-                </div>
-              )}
-              
-              <Button
-                type="submit"
-                disabled={(loading || isGoogleAuthLoading) || (!showCodeInput && !canSendCode) || (showCodeInput && verificationCode.length !== otpLength)}
-                className="w-full h-11 md:h-12 bg-primary hover:bg-primary/90 text-primary-foreground font-medium rounded-lg transition-all duration-200 disabled:opacity-50 text-sm md:text-base"
-              >
-                {loading && !isGoogleAuthLoading ? (
-                  <LoadingDots size="sm" color="white" className="mr-2" />
-                ) : null}
-                {showCodeInput
-                  ? 'Verify Code'
-                  : 'Send Verification Code'
-                }
-              </Button>
-              
-              {/* Back button for code input */}
-              {showCodeInput && (
-                <div className="text-center">
-                  <span
-                    onClick={() => {
-                      setShowCodeInput(false);
-                      setVerificationCode('');
-                      setMessage('');
-                    }}
-                    className="text-sm text-muted-foreground hover:text-primary transition-colors cursor-pointer inline-flex items-center"
+                <div className="md:hidden pt-1.5 flex-shrink-0">
+                  <Button
+                    onClick={handleClose}
+                    variant="ghost"
+                    className="w-full h-11 rounded-2xl text-foreground/70 hover:text-foreground hover:bg-foreground/5"
                   >
-                    <ArrowLeft className="mr-1 h-3 w-3" />
-                    Back to Email
-                  </span>
+                    Not now
+                  </Button>
                 </div>
-              )}
-            </form>
-
-            {/* Message - 只显示错误消息 */}
-            {message && !message.includes('Check your email') && !message.includes('verification code') && (
-              <div className="text-sm text-center p-3 rounded-lg bg-red-500/20 text-red-300 border border-red-500/30">
-                {message}
               </div>
-            )}
-
-            {/* Terms and Privacy Policy */}
-            <div className="text-center">
-              <p className="text-xs text-muted-foreground whitespace-nowrap">
-                By signing in, you agree to our{' '}
-                <a href="/terms" className="text-primary hover:underline" target="_blank" rel="noopener noreferrer">
-                  Terms of Service
-                </a>
-                {' '}and{' '}
-                <a href="/privacy" className="text-primary hover:underline" target="_blank" rel="noopener noreferrer">
-                  Privacy Policy
-                </a>
-              </p>
             </div>
-
-            {/* Mobile Close Button - 移动端显示在底部 */}
-            <div className="md:hidden pt-1.5 flex-shrink-0">
-              <Button
-                onClick={handleClose}
-                variant="outline"
-                className="w-full h-11 bg-muted/50 hover:bg-muted text-foreground border-0 rounded-lg font-medium text-sm"
-              >
-                Close
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
+          </div>
         </div>
       </div>
     </>
-  );
+  , document.body);
 }
