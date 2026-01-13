@@ -208,7 +208,7 @@ export const PricingSection = () => {
                   <li
                     key={feature.label}
                     className={cn(
-                      "flex items-start gap-3 text-base md:text-lg",
+                      "flex items-start gap-3 text-sm",
                       feature.enabled ? "text-foreground/90" : "text-muted-foreground/75"
                     )}
                   >
@@ -298,7 +298,7 @@ export const PricingSection = () => {
                   {plan.features.slice(1).map((feature, index) => (
                     <li
                       key={index}
-                      className="flex items-start gap-3 text-base md:text-lg text-foreground/90"
+                      className="flex items-start gap-3 text-sm text-foreground/90"
                     >
                       <Check
                         className={cn(

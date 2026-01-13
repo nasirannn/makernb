@@ -177,7 +177,7 @@ const aiMusicToolsDropdown = [
     cn(
       "group w-full h-12 flex items-center justify-start gap-3 rounded-2xl px-4 transition-colors duration-200",
       active
-        ? "bg-foreground/10 text-foreground ring-1 ring-primary/20 shadow-[0px_12px_30px_rgba(0,0,0,0.08)]"
+        ? "bg-foreground/10 text-foreground shadow-[0px_12px_30px_rgba(0,0,0,0.08)]"
         : "text-foreground/60 hover:text-foreground hover:bg-foreground/5"
     );
 
@@ -185,7 +185,7 @@ const aiMusicToolsDropdown = [
     cn(
       "group relative w-12 h-12 flex items-center justify-center rounded-2xl border border-transparent transition-colors duration-200",
       active
-        ? "bg-foreground/10 text-foreground ring-1 ring-primary/20 shadow-[0px_12px_30px_rgba(0,0,0,0.08)]"
+        ? "bg-foreground/10 text-foreground shadow-[0px_12px_30px_rgba(0,0,0,0.08)]"
         : "text-foreground/60 hover:text-foreground hover:bg-foreground/5"
     );
 
@@ -336,7 +336,7 @@ const aiMusicToolsDropdown = [
                     onClick={toggleSidebar}
                     variant="ghost"
                     size="sm"
-                    className="w-8 h-8 p-0 flex items-center justify-center rounded-xl text-foreground/60 hover:bg-black/5 hover:text-foreground"
+                    className="w-8 h-8 p-0 flex items-center justify-center rounded-xl text-foreground/60 hover:bg-accent hover:text-accent-foreground"
                   >
                     <ChevronLeft className="h-4 w-4" />
                   </Button>
@@ -347,7 +347,7 @@ const aiMusicToolsDropdown = [
                     onClick={toggleSidebar}
                     variant="ghost"
                     size="sm"
-                    className="w-12 h-12 flex items-center justify-center rounded-2xl text-foreground/60 hover:bg-black/5 hover:text-foreground"
+                    className="w-12 h-12 flex items-center justify-center rounded-2xl text-foreground/60 hover:bg-accent hover:text-accent-foreground"
                   >
                     <ChevronRight className="h-5 w-5" />
                   </Button>
@@ -355,30 +355,11 @@ const aiMusicToolsDropdown = [
               )}
             </div>
 
-            <div className={`flex-1 overflow-y-auto overflow-x-visible ${isExpanded ? 'px-4 pt-4' : 'px-2 pt-4'} pb-6 space-y-4`}>
-              <div className={`rounded-[28px] bg-black/[0.03] ${isExpanded ? 'p-3' : 'p-2 flex flex-col items-center gap-3'}`}>
-                {isExpanded && (
-                  <p className="px-2 pb-2 text-[10px] uppercase tracking-[0.35em] text-foreground/50">Workspace</p>
-                )}
+            <div className={`flex-1 overflow-y-auto overflow-x-visible ${isExpanded ? 'px-4 pt-4' : 'px-2 pt-4'} pb-6`}>
+              <div className={`rounded-[28px] bg-black/[0.03] ${isExpanded ? 'p-3' : 'p-2'} ${isExpanded ? '' : 'flex flex-col items-center'}`}>
                 <div className={`flex flex-col ${isExpanded ? 'gap-2' : 'gap-3 items-center'}`}>
                   {workspaceNavItems.map(renderNavButton)}
-                </div>
-              </div>
-
-              <div className={`rounded-[28px] bg-black/[0.03] ${isExpanded ? 'p-3' : 'p-2 flex flex-col items-center gap-3'}`}>
-                {isExpanded && (
-                  <p className="px-2 pb-2 text-[10px] uppercase tracking-[0.35em] text-foreground/50">AI MUSIC Tools</p>
-                )}
-                <div className={`flex flex-col ${isExpanded ? 'gap-2' : 'gap-3 items-center'}`}>
                   {aiToolNavItems.map(renderNavButton)}
-                </div>
-              </div>
-
-              <div className={`rounded-[28px] bg-black/[0.03] ${isExpanded ? 'p-3' : 'p-2 flex flex-col items-center gap-3'}`}>
-                {isExpanded && (
-                  <p className="px-2 pb-2 text-[10px] uppercase tracking-[0.35em] text-foreground/50">Explore</p>
-                )}
-                <div className={`flex flex-col ${isExpanded ? 'gap-2' : 'gap-3 items-center'}`}>
                   {exploreNavItems.map(renderNavButton)}
                 </div>
               </div>
@@ -425,7 +406,7 @@ const aiMusicToolsDropdown = [
                       }
                     }}
                     className={`w-full rounded-2xl bg-black/[0.03] px-4 py-4 text-left transition-all duration-300 border border-transparent focus:outline-none focus-visible:ring-2 focus-visible:ring-black/15 focus-visible:ring-offset-0 ${
-                      isRefreshingCredits ? 'opacity-70 cursor-wait' : 'hover:bg-black/5 cursor-pointer'
+                      isRefreshingCredits ? 'opacity-70 cursor-wait' : 'hover:bg-accent hover:text-accent-foreground cursor-pointer'
                     }`}
                   >
                     <div className="flex items-center justify-between text-foreground">
@@ -497,7 +478,7 @@ const aiMusicToolsDropdown = [
                         onClick={() => setUserMenuOpen(!userMenuOpen)}
                         variant="ghost"
                         size="sm"
-                        className="w-full h-16 rounded-2xl bg-black/[0.03] hover:bg-black/5 flex items-center gap-3 px-4"
+                        className="w-full h-16 rounded-2xl bg-black/[0.03] hover:bg-accent hover:text-accent-foreground flex items-center gap-3 px-4"
                       >
                         <Avatar className="w-10 h-10 flex-shrink-0">
                           <AvatarImage
@@ -531,7 +512,7 @@ const aiMusicToolsDropdown = [
                               setIsNicknameDialogOpen(true);
                               setUserMenuOpen(false);
                             }}
-                            className="w-full flex items-center gap-3 rounded-xl px-3 py-2 text-sm text-foreground/70 hover:bg-black/5 hover:text-foreground"
+                            className="w-full flex items-center gap-3 rounded-xl px-3 py-2 text-sm text-foreground/70 hover:bg-accent hover:text-accent-foreground"
                           >
                             <PencilLine className="w-4 h-4" />
                             <span>Edit profile</span>
@@ -541,7 +522,7 @@ const aiMusicToolsDropdown = [
                               handleSignOut();
                               setUserMenuOpen(false);
                             }}
-                            className="w-full flex items-center gap-3 rounded-xl px-3 py-2 text-sm text-foreground/70 hover:bg-black/5 hover:text-foreground"
+                            className="w-full flex items-center gap-3 rounded-xl px-3 py-2 text-sm text-foreground/70 hover:bg-accent hover:text-accent-foreground"
                           >
                             <LogOut className="w-4 h-4" />
                             <span>Sign Out</span>
@@ -584,7 +565,7 @@ const aiMusicToolsDropdown = [
                                 setIsNicknameDialogOpen(true);
                                 setUserMenuOpen(false);
                               }}
-                              className="w-full flex items-center gap-3 rounded-xl px-3 py-2 text-sm text-foreground/70 hover:bg-black/5 hover:text-foreground"
+                              className="w-full flex items-center gap-3 rounded-xl px-3 py-2 text-sm text-foreground/70 hover:bg-accent hover:text-accent-foreground"
                             >
                               <PencilLine className="w-4 h-4" />
                               <span>Edit profile</span>
@@ -594,7 +575,7 @@ const aiMusicToolsDropdown = [
                                 handleSignOut();
                                 setUserMenuOpen(false);
                               }}
-                              className="w-full flex items-center gap-3 rounded-xl px-3 py-2 text-sm text-foreground/70 hover:bg-black/5 hover:text-foreground"
+                              className="w-full flex items-center gap-3 rounded-xl px-3 py-2 text-sm text-foreground/70 hover:bg-accent hover:text-accent-foreground"
                             >
                               <LogOut className="w-4 h-4" />
                               <span>Sign Out</span>
@@ -612,7 +593,7 @@ const aiMusicToolsDropdown = [
                       onClick={() => setIsAuthModalOpen(true)}
                       variant="ghost"
                       size="sm"
-                      className="w-full h-12 rounded-2xl bg-black/[0.03] text-foreground/80 hover:bg-black/5"
+                      className="w-full h-12 rounded-2xl bg-black/[0.03] text-foreground/80 hover:bg-accent hover:text-accent-foreground"
                     >
                       <LogIn className="h-5 w-5" />
                       <span className="text-sm font-medium">Sign In</span>

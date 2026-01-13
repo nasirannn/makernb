@@ -435,20 +435,18 @@ export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
                   )}
 
                   {!showCodeInput && process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY && (
-                    <div className="app-card-muted rounded-2xl p-3">
-                      <div className="w-full flex justify-center">
-                        <Turnstile
-                          siteKey={process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY}
-                          onSuccess={(token) => {
-                            setCaptchaToken(token);
-                          }}
-                          options={{
-                            size: 'flexible',
-                            theme: turnstileTheme,
-                            language: 'en'
-                          }}
-                        />
-                      </div>
+                    <div className="w-full flex justify-center">
+                      <Turnstile
+                        siteKey={process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY}
+                        onSuccess={(token) => {
+                          setCaptchaToken(token);
+                        }}
+                        options={{
+                          size: 'flexible',
+                          theme: turnstileTheme,
+                          language: 'en'
+                        }}
+                      />
                     </div>
                   )}
 

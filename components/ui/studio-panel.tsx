@@ -1426,7 +1426,7 @@ export const StudioPanel = (props: StudioPanelProps) => {
                 <DropdownMenuTrigger asChild>
                   <button
                     type="button"
-                    className="app-card-muted px-4 py-1.5 rounded-full text-xs md:text-sm font-semibold text-foreground/80 transition-colors hover:bg-black/5 flex items-center gap-1.5"
+                    className="app-card-muted px-4 py-1.5 rounded-full text-xs md:text-sm font-semibold text-foreground/80 transition-colors hover:bg-accent hover:text-accent-foreground flex items-center gap-1.5 [&_svg]:text-foreground/70 hover:[&_svg]:text-accent-foreground"
                     title="Click to change model version"
                   >
                     <span>{modelOptions.find(opt => opt.value === selectedModel)?.label || 'v4'}</span>
@@ -1441,7 +1441,7 @@ export const StudioPanel = (props: StudioPanelProps) => {
                       <React.Fragment key={option.value}>
                         <DropdownMenuItem
                           onClick={() => handleModelSelect(option.value)}
-                          className="flex flex-col items-start gap-1 rounded-xl px-3.5 py-2.5 transition-colors hover:bg-black/5 focus:bg-black/5 data-[highlighted]:bg-black/5"
+                          className="flex flex-col items-start gap-1 rounded-xl px-3.5 py-2.5 transition-colors hover:bg-accent hover:text-accent-foreground focus:bg-accent focus:text-accent-foreground data-[highlighted]:bg-accent data-[highlighted]:text-accent-foreground [&_[data-desc]]:text-muted-foreground hover:[&_[data-desc]]:text-accent-foreground/85 focus:[&_[data-desc]]:text-accent-foreground/85 data-[highlighted]:[&_[data-desc]]:text-accent-foreground/85"
                         >
                           <div className="flex w-full items-center justify-between gap-2">
                             <div className="flex items-center gap-2">
@@ -1453,10 +1453,10 @@ export const StudioPanel = (props: StudioPanelProps) => {
                               </span>
                             )}
                           </div>
-                          <span className="text-[11px] text-muted-foreground">
+                          <span className="text-[11px]" data-desc>
                             {creditsPerTrack} credits per track
                           </span>
-                          <span className="text-xs text-muted-foreground">
+                          <span className="text-xs" data-desc>
                             {option.description}
                           </span>
                         </DropdownMenuItem>

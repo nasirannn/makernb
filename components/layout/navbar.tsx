@@ -307,11 +307,15 @@ export const Navbar = ({ credits = null }: NavbarProps) => {
                           key={item.href}
                           href={item.href}
                           onClick={() => setIsDropdownOpen(false)}
-                          className="flex items-center px-3 py-2 hover:bg-black/5 transition-colors group rounded-xl"
+                          className="flex items-center px-3 py-2 hover:bg-accent hover:text-accent-foreground transition-colors group rounded-xl"
                         >
                           <div className="flex-1 min-w-0">
-                            <p className="text-foreground font-medium text-sm transition-colors group-hover:text-primary">{item.label}</p>
-                            <p className="text-muted-foreground text-xs truncate transition-colors">{item.description}</p>
+                            <p className="text-foreground font-medium text-sm transition-colors group-hover:text-accent-foreground">
+                              {item.label}
+                            </p>
+                            <p className="text-muted-foreground text-xs truncate transition-colors group-hover:text-accent-foreground/85">
+                              {item.description}
+                            </p>
                           </div>
                         </Link>
                       ))}
@@ -410,7 +414,7 @@ export const Navbar = ({ credits = null }: NavbarProps) => {
                         setIsOpen(false);
                         setIsNicknameDialogOpen(true);
                       }}
-                      className="w-full flex items-center gap-3 px-3 py-2 text-sm text-foreground/80 hover:bg-black/5 hover:text-foreground transition-colors rounded-lg"
+                      className="w-full flex items-center gap-3 px-3 py-2 text-sm text-foreground/80 hover:bg-accent hover:text-accent-foreground transition-colors rounded-lg"
                     >
                       <PencilLine className="w-4 h-4" />
                       <span>Edit profile</span>
@@ -424,7 +428,7 @@ export const Navbar = ({ credits = null }: NavbarProps) => {
                           console.error('Sign out error:', error);
                         }
                       }}
-                      className="w-full flex items-center gap-3 px-3 py-2 text-sm text-foreground/80 hover:bg-black/5 hover:text-foreground transition-colors rounded-lg"
+                      className="w-full flex items-center gap-3 px-3 py-2 text-sm text-foreground/80 hover:bg-accent hover:text-accent-foreground transition-colors rounded-lg"
                     >
                       <LogOut className="w-4 h-4" />
                       <span>Sign Out</span>
@@ -476,7 +480,7 @@ export const Navbar = ({ credits = null }: NavbarProps) => {
                               onClick={() => setIsOpen(false)}
                               asChild
                               variant="ghost"
-                              className="justify-start text-sm h-auto py-2 px-3 text-foreground/70 hover:text-foreground hover:bg-black/5"
+	                              className="justify-start text-sm h-auto py-2 px-3 text-foreground/70 hover:text-accent-foreground hover:bg-accent"
                             >
                               <Link href={item.href} className="flex items-center gap-2">
                                 {item.icon}
