@@ -1,9 +1,8 @@
 "use client";
-import { Menu, Sparkles, ChevronDown, Mic, Music, Wand2, FileText, PencilLine } from "lucide-react";
+import { Menu, Sparkles, ChevronDown, Mic, FileText, PencilLine } from "lucide-react";
 import React from "react";
 import { Button } from "../ui/button";
 import { Avatar, AvatarImage, AvatarFallback } from "../ui/avatar";
-import { Badge } from "../ui/badge";
 import Link from "next/link";
 import Image from "next/image";
 import { usePathname, useSearchParams } from "next/navigation";
@@ -555,8 +554,8 @@ export const Navbar = ({ credits = null }: NavbarProps) => {
             {/* User Dropdown Menu */}
             {isUserMenuOpen && (
               <div 
-                className="absolute right-0 top-12 min-w-52 w-max app-card rounded-2xl p-1.5 shadow-[0_20px_60px_rgba(0,0,0,0.12)] z-[110]"
-              >
+    className="absolute right-0 top-12 min-w-52 w-max bg-background border border-black/10 rounded-2xl p-1.5 shadow-[0_18px_55px_rgba(0,0,0,0.12)] z-[110]"
+  >
                 {/* User Info */}
                 <div className="px-2.5 py-1.5">
                   <div className="flex items-center justify-between gap-2 mb-1">
@@ -587,13 +586,13 @@ export const Navbar = ({ credits = null }: NavbarProps) => {
                   </div>
                 </div>
 
-                <button
-                  onClick={() => {
-                    setIsUserMenuOpen(false);
-                    setIsNicknameDialogOpen(true);
-                  }}
-                  className="w-full flex items-center gap-3 px-2.5 py-2 transition-colors group rounded-lg"
-                >
+                    <button
+                      onClick={() => {
+                        setIsUserMenuOpen(false);
+                        setIsNicknameDialogOpen(true);
+                      }}
+                      className="w-full flex items-center gap-3 rounded-xl px-3 py-2 text-sm text-foreground/70 hover:bg-black/5 hover:text-foreground transition-colors"
+                    >
                   <div className="flex-shrink-0 h-8 w-8 rounded-lg flex items-center justify-center text-foreground/70">
                     <PencilLine className="h-3.5 w-3.5" />
                   </div>
@@ -601,17 +600,17 @@ export const Navbar = ({ credits = null }: NavbarProps) => {
                 </button>
 
                 {/* Sign Out Button */}
-                <button
-                  onClick={async () => {
-                    try {
-                      await signOut();
-                      setIsUserMenuOpen(false);
-                    } catch (error) {
-                      console.error('Sign out error:', error);
-                    }
-                  }}
-                  className="w-full flex items-center gap-3 px-2.5 py-2 transition-colors group rounded-lg"
-                >
+                    <button
+                      onClick={async () => {
+                        try {
+                          await signOut();
+                          setIsUserMenuOpen(false);
+                        } catch (error) {
+                          console.error('Sign out error:', error);
+                        }
+                      }}
+                      className="w-full flex items-center gap-3 rounded-xl px-3 py-2 text-sm text-foreground/70 hover:bg-black/5 hover:text-foreground transition-colors"
+                    >
                   <div className="flex-shrink-0 h-8 w-8 rounded-lg flex items-center justify-center text-foreground/70">
                     <LogOut className="h-3.5 w-3.5" />
                   </div>

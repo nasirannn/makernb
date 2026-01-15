@@ -10,7 +10,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
-import { Pencil, Upload, X } from "lucide-react";
+import { Upload, X } from "lucide-react";
 import Image from "next/image";
 
 interface EditMusicInfoDialogProps {
@@ -228,7 +228,7 @@ export const EditMusicInfoDialog: React.FC<EditMusicInfoDialogProps> = ({
                   {displayImage && (
                     <button
                       onClick={handleRemoveImage}
-                      className="absolute top-2 right-2 p-1.5 rounded-full bg-background/80 hover:bg-background border border-border shadow-sm transition-colors"
+                      className="absolute top-2 right-2 p-1.5 rounded-full bg-background/80 hover:bg-background border border-border shadow-sm"
                       type="button"
                     >
                       <X className="h-4 w-4" />

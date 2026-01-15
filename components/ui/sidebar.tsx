@@ -86,23 +86,6 @@ const aiMusicToolsDropdown = [
     icon: <FileText className="h-4 w-4" />
   }
 ];
-
-  // 处理下拉菜单的悬停逻辑
-  const handleDropdownMouseEnter = () => {
-    if (dropdownTimeout) {
-      clearTimeout(dropdownTimeout);
-      setDropdownTimeout(null);
-    }
-    setIsDropdownOpen(true);
-  };
-
-  const handleDropdownMouseLeave = () => {
-    const timeout = setTimeout(() => {
-      setIsDropdownOpen(false);
-    }, 150); // 150ms延迟
-    setDropdownTimeout(timeout);
-  };
-
   // 处理积分刷新
   const handleRefreshCredits = async () => {
     if (isRefreshingCredits) return;
