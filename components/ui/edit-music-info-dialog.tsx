@@ -79,19 +79,6 @@ export const EditMusicInfoDialog: React.FC<EditMusicInfoDialogProps> = ({
       handleFileSelect(file);
     }
   };
-
-  const handleDragOver = (e: React.DragEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
-    setIsDragging(true);
-  };
-
-  const handleDragLeave = (e: React.DragEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
-    setIsDragging(false);
-  };
-
   const handleDrop = (e: React.DragEvent) => {
     e.preventDefault();
     e.stopPropagation();
@@ -162,10 +149,10 @@ export const EditMusicInfoDialog: React.FC<EditMusicInfoDialogProps> = ({
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && handleClose()}>
       <DialogContent
-        className="max-w-[calc(100vw-2rem)] sm:max-w-[520px] max-h-[78vh] flex flex-col overflow-hidden p-0 border border-border/60 bg-background shadow-xl"
+        className="max-w-[calc(100vw-2rem)] sm:max-w-[520px] max-h-[78vh] flex flex-col overflow-hidden p-0 bg-background shadow-xl"
         onClick={(e) => e.stopPropagation()}
       >
-        <DialogHeader className="flex-shrink-0 px-5 pt-5 pb-3 border-b border-border/40 text-left relative overflow-hidden">
+        <DialogHeader className="flex-shrink-0 px-5 pt-5 pb-3 text-left relative overflow-hidden">
           <div className="pointer-events-none absolute inset-0 bg-gradient-to-r from-primary/10 via-transparent to-primary/10" />
           <div className="flex items-center justify-between pr-8 relative">
             <div>
@@ -210,13 +197,10 @@ export const EditMusicInfoDialog: React.FC<EditMusicInfoDialogProps> = ({
                 Cover Image
               </label>
               <div
-                className={`relative border-2 border-dashed rounded-lg transition-colors ${
-                  isDragging
+                className={`relative border-2 border-dashed rounded-lg transition-colors ${isDragging
                     ? 'border-primary bg-primary/5'
                     : 'border-border hover:border-primary/50'
-                }`}
-                onDragOver={handleDragOver}
-                onDragLeave={handleDragLeave}
+                  }`}
                 onDrop={handleDrop}
               >
                 <div className="relative w-full max-w-64 aspect-square rounded-lg overflow-hidden bg-muted mx-auto">
@@ -263,21 +247,23 @@ export const EditMusicInfoDialog: React.FC<EditMusicInfoDialogProps> = ({
           </div>
         </div>
 
-        <DialogFooter className="flex-shrink-0 pt-2">
-          <button
-            onClick={handleSave}
-            disabled={!title.trim() || isSaving}
-            className="inline-flex w-full items-center justify-center rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 bg-primary text-primary-foreground hover:bg-primary/90 h-10 px-4 py-2"
-          >
-            {isSaving ? (
-              <>
-                <div className="mr-2 h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent" />
-                Saving...
-              </>
-            ) : (
-              'Save'
-            )}
-          </button>
+        <DialogFooter className="flex-shrink-0 pb-4">
+          <div className="w-full px-5"> {/* 与表单区域相同的左右 padding */}
+            <button
+              onClick={handleSave}
+              disabled={!title.trim() || isSaving}
+              className="inline-flex w-full items-center justify-center rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 bg-primary text-primary-foreground hover:bg-primary/90 h-10 px-4 py-2"
+            >
+              {isSaving ? (
+                <>
+                  <div className="mr-2 h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent" />
+                  Saving...
+                </>
+              ) : (
+                'Save'
+              )}
+            </button>
+          </div>
         </DialogFooter>
       </DialogContent>
     </Dialog>

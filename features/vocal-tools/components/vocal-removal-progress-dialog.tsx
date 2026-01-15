@@ -130,13 +130,13 @@ export const VocalRemovalProgressDialog: React.FC<VocalRemovalProgressDialogProp
       }
     }}>
       <DialogContent className={cn(
-        "max-w-[calc(100vw-2rem)] sm:max-w-[760px] max-h-[84vh] flex flex-col p-0 border border-border/60 bg-background shadow-xl"
+        "max-w-[calc(100vw-2rem)] sm:max-w-[760px] max-h-[84vh] flex flex-col p-0 bg-background shadow-xl"
       )} onInteractOutside={(e) => {
         if (!canClose) {
           e.preventDefault();
         }
       }}>
-        <DialogHeader className="flex-shrink-0 px-6 pt-5 pb-3 border-b border-border/40 text-left relative overflow-hidden">
+        <DialogHeader className="flex-shrink-0 px-6 pt-5 pb-3 text-left relative overflow-hidden">
           <div className="pointer-events-none absolute inset-0 bg-gradient-to-r from-primary/10 via-transparent to-primary/10" />
           <div className="flex items-center justify-between relative z-[1]">
             <div>
@@ -147,7 +147,7 @@ export const VocalRemovalProgressDialog: React.FC<VocalRemovalProgressDialogProp
                 <span>Vocal Separation</span>
               </DialogTitle>
               <DialogDescription className="mt-1">
-                {trackTitle}
+                Saparate track into vocal and instrumental.
               </DialogDescription>
             </div>
           </div>
@@ -303,7 +303,7 @@ export const VocalRemovalProgressDialog: React.FC<VocalRemovalProgressDialogProp
         </div>
 
         {/* 底部操作区 */}
-        <div className="flex-shrink-0 px-6 pb-4 pt-2 border-t border-border/40">
+        <div className="flex-shrink-0 px-6 pb-4 pt-2">
           <Button onClick={handleAction} className="w-full" disabled={actionDisabled || !canClose}>
             Saparate
           </Button>

@@ -17,7 +17,6 @@ import { Slider } from "@/components/ui/slider";
 import { ChevronDown, ChevronUp, Play, Pause, HelpCircle, Pencil } from "lucide-react";
 import { Tooltip } from "@/components/ui/tooltip";
 import { ExtendMusicModel, getExtendMusicCredits } from "@/lib/credits-config";
-import { formatDuration } from "@/lib/format-utils";
 import { WaveformPlayer } from "@/components/ui/waveform-player";
 
 export interface ExtendMusicParams {
@@ -53,7 +52,6 @@ export const ExtendMusicDialog: React.FC<ExtendMusicDialogProps> = ({
   onConfirm,
   trackTitle = "Track",
   trackDuration = 120,
-  originalStyle = "",
   audioUrl,
   userCredits,
   getExtendMusicState,
@@ -333,8 +331,8 @@ export const ExtendMusicDialog: React.FC<ExtendMusicDialogProps> = ({
         if (!open) handleClose();
       }}
     >
-      <DialogContent className="max-w-[calc(100vw-2rem)] sm:max-w-[560px] max-h-[90vh] flex flex-col p-0 border border-border/60 bg-background shadow-xl">
-        <DialogHeader className="flex-shrink-0 px-6 pt-5 pb-4 border-b border-border/40 text-left relative overflow-hidden">
+      <DialogContent className="max-w-[calc(100vw-2rem)] sm:max-w-[560px] max-h-[90vh] flex flex-col p-0 bg-background shadow-xl">
+        <DialogHeader className="flex-shrink-0 px-6 pt-5 pb-4 text-left relative overflow-hidden">
           <div className="pointer-events-none absolute inset-0 bg-gradient-to-r from-primary/10 via-transparent to-primary/10" />
           <div className="flex items-center justify-between pr-8">
             <div className="relative">
@@ -658,7 +656,7 @@ export const ExtendMusicDialog: React.FC<ExtendMusicDialogProps> = ({
           </div>
         </div>
 
-        <DialogFooter className="flex-shrink-0 px-6 pt-4 pb-6 border-t border-border/40">
+        <DialogFooter className="flex-shrink-0 px-6 pt-4 pb-6">
           <Button
             onClick={handleConfirm}
             disabled={!hasEnoughCredits || !isFormValid || isExtending}

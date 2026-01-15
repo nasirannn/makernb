@@ -264,8 +264,8 @@ export const ReplaceSectionDialog: React.FC<ReplaceSectionDialogProps> = ({
 
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && handleClose()}>
-      <DialogContent className="max-w-[calc(100vw-2rem)] sm:max-w-[560px] max-h-[90vh] flex flex-col overflow-hidden p-0 border border-border/60 bg-background shadow-xl">
-        <DialogHeader className="flex-shrink-0 px-6 pt-4 pb-3 border-b border-border/40 text-left relative overflow-hidden">
+      <DialogContent className="max-w-[calc(100vw-2rem)] sm:max-w-[560px] max-h-[90vh] flex flex-col overflow-hidden p-0 bg-background shadow-xl">
+        <DialogHeader className="flex-shrink-0 px-6 pt-4 pb-3 text-left relative overflow-hidden">
           <div className="pointer-events-none absolute inset-0 bg-gradient-to-r from-primary/10 via-transparent to-primary/10" />
           <div className="flex items-center justify-between pr-8">
             <div className="relative">
@@ -364,7 +364,7 @@ export const ReplaceSectionDialog: React.FC<ReplaceSectionDialogProps> = ({
               </div>
 
               {/* 时间范围手动输入 */}
-              <div className="flex items-center justify-between gap-3 rounded-md border border-border/40 bg-muted/20 px-3 py-1.5 text-xs text-muted-foreground">
+              <div className="flex items-center justify-between gap-3 rounded-md bg-muted/20 px-3 py-1.5 text-xs text-muted-foreground">
                 <span className="whitespace-nowrap">Range</span>
                 <div className="flex items-center gap-2">
                   <Input
@@ -473,7 +473,7 @@ export const ReplaceSectionDialog: React.FC<ReplaceSectionDialogProps> = ({
           )}
         </div>
 
-        <DialogFooter className="flex-shrink-0 px-6 pt-3 pb-4 border-t border-border/40">
+        <DialogFooter className="flex-shrink-0 px-6 pt-3 pb-4">
           <Button
             onClick={handleConfirm}
             disabled={!isFormValid || insufficientCredits || isReplacing}
