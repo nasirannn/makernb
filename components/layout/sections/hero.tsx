@@ -88,7 +88,7 @@ export const HeroSection = () => {
         </div>
       </div>
 
-      <div className="pointer-events-none absolute inset-x-0 bottom-8 hidden md:flex items-center justify-center">
+      <div className="pointer-events-none absolute inset-x-0 bottom-0 hidden md:flex items-center justify-center">
         <svg
           className="hero-pulse-line w-[78%] max-w-5xl"
           viewBox="0 0 1200 160"
