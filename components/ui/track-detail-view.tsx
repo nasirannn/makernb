@@ -393,17 +393,6 @@ export const TrackDetailView: React.FC<TrackDetailViewProps> = ({
           <ChevronLeft className="h-4 w-4" />
           Back
         </Button>
-
-        <div className="flex items-center gap-2">
-          <Button
-            onClick={handleShare}
-            variant="ghost"
-            className="app-card-muted app-hairline rounded-full px-4 text-foreground/75 hover:text-accent-foreground"
-          >
-            {copied ? <Check className="h-4 w-4" /> : <Share2 className="h-4 w-4" />}
-            <span>{copied ? "Copied" : "Share"}</span>
-          </Button>
-        </div>
       </header>
 
       <section className="app-card relative overflow-hidden rounded-[28px]">
@@ -478,7 +467,7 @@ export const TrackDetailView: React.FC<TrackDetailViewProps> = ({
                 {tagsArray.slice(0, 10).map((tag, index) => (
                   <span
                     key={`${tag}-${index}`}
-                    className="app-card-muted rounded-full px-3 py-1 text-xs font-medium tracking-tight text-foreground/75"
+                    className="app-card-muted rounded-full px-3 py-1 text-sm font-medium tracking-tight text-foreground/75"
                   >
                     {tag}
                   </span>
@@ -525,7 +514,7 @@ export const TrackDetailView: React.FC<TrackDetailViewProps> = ({
                         }
                       }}
                     >
-                      <Download className="h-4 w-4" />
+                    <Download className="h-4 w-4" />
                       Download
                     </Button>
                   </DropdownMenuTrigger>
@@ -555,6 +544,14 @@ export const TrackDetailView: React.FC<TrackDetailViewProps> = ({
                   </DropdownMenuContent>
                 </DropdownMenu>
               )}
+              <Button
+                onClick={handleShare}
+                variant="ghost"
+                className="app-card-muted app-hairline rounded-full px-4 text-foreground/75 hover:text-accent-foreground"
+              >
+                {copied ? <Check className="h-4 w-4" /> : <Share2 className="h-4 w-4" />}
+                <span>{copied ? "Copied" : "Share"}</span>
+              </Button>
             </div>
           </div>
         </div>
