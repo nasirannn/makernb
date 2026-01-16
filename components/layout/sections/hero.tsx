@@ -26,13 +26,9 @@ export const HeroSection = () => {
               Free Online <span className="hero-ink">AI R&amp;B</span> Music Generator
             </span>
             <span className="block mt-2 text-foreground/85 text-[1.05rem] sm:text-xl lg:text-2xl font-extrabold tracking-tight">
-              MakeRNB Song Creator
+              Create R&amp;B songs in different musical styles
             </span>
           </h1>
-
-          <p className="mt-5 max-w-2xl mx-auto text-base md:text-lg text-muted-foreground leading-relaxed">
-            Create R&amp;B songs in different musical styles
-          </p>
 
           <div className="mt-7 flex flex-col sm:flex-row sm:items-center sm:justify-center gap-3">
             <button
