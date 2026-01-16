@@ -18,7 +18,7 @@ export const HeroSection = () => {
       <div className="relative z-10 container mx-auto min-h-screen flex items-center pt-20 pb-16 md:pt-28">
         <div className="w-full max-w-4xl mx-auto text-center">
           <div className="inline-flex items-center gap-2 rounded-full bg-foreground/5 px-4 py-2 text-[11px] font-semibold uppercase tracking-[0.32em] text-foreground/70">
-            <span>Especially For The R&B Music Lovers</span>
+            <span>Especially For The Old-School R&B Lovers</span>
           </div>
 
           <h1 className="mt-6 text-[2.6rem] leading-[0.98] tracking-tight font-black text-foreground sm:text-5xl lg:text-[4.6rem]">
@@ -26,7 +26,7 @@ export const HeroSection = () => {
               Free Online <span className="hero-ink">AI R&amp;B</span> Music Generator
             </span>
             <span className="block mt-2 text-foreground/85 text-[1.05rem] sm:text-xl lg:text-2xl font-extrabold tracking-tight">
-              Create R&amp;B songs in different musical styles
+              Create R&amp;B songs in different old-school musical styles
             </span>
           </h1>
 
