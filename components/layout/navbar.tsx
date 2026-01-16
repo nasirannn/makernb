@@ -26,26 +26,18 @@ interface RouteProps {
 interface DropdownItemProps {
   href: string;
   label: string;
-  description: string;
   icon: React.ReactNode;
-}
-
-interface FeatureProps {
-  title: string;
-  description: string;
 }
 
 const aiMusicToolsDropdown: DropdownItemProps[] = [
   {
     href: "/vocal-remover",
-    label: "Vocal Separation",
-    description: "Separate vocals from music",
+    label: "Vocal Remover",
     icon: <Mic className="h-4 w-4" />
   },
   {
     href: "/lyrics-generator",
     label: "Lyrics Generator",
-    description: "Generate creative lyrics with AI",
     icon: <FileText className="h-4 w-4" />
   }
 ];
@@ -312,9 +304,6 @@ export const Navbar = ({ credits = null }: NavbarProps) => {
                             <p className="text-foreground font-medium text-sm transition-colors group-hover:text-accent-foreground">
                               {item.label}
                             </p>
-                            <p className="text-muted-foreground text-xs truncate transition-colors group-hover:text-accent-foreground/85">
-                              {item.description}
-                            </p>
                           </div>
                         </Link>
                       ))}
@@ -485,7 +474,6 @@ export const Navbar = ({ credits = null }: NavbarProps) => {
                                 {item.icon}
                                 <div>
                                   <div className="font-medium">{item.label}</div>
-                                  <div className="text-xs text-muted-foreground">{item.description}</div>
                                 </div>
                               </Link>
                             </Button>

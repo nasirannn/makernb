@@ -31,10 +31,7 @@ export const HeroSection = () => {
           </h1>
 
           <p className="mt-5 max-w-2xl mx-auto text-base md:text-lg text-muted-foreground leading-relaxed">
-            Create an AI-generated R&amp;B song in seconds — then{" "}
-            <span className="text-foreground/85 font-semibold">extend</span>,{" "}
-            <span className="text-foreground/85 font-semibold">replace sections</span>, and{" "}
-            <span className="text-foreground/85 font-semibold">download MP3/WAV</span>.
+            Create R&amp;B songs in different musical styles
           </p>
 
           <div className="mt-7 flex flex-col sm:flex-row sm:items-center sm:justify-center gap-3">
@@ -58,7 +55,7 @@ export const HeroSection = () => {
           </div>
 
           <div className="mt-3 text-xs text-muted-foreground">
-            Free daily credits <span className="mx-1 opacity-60">•</span> No experience needed
+            Free daily credits <span className="mx-1 opacity-60">•</span> No experience needed <span className="mx-1 opacity-60">•</span> 100% Royalty-Free
           </div>
 
           <div className="mt-7 flex flex-wrap justify-center gap-2">
