@@ -1043,9 +1043,9 @@ export const LibraryPanel = ({
                 <div key={track.id}>
                   {/* Desktop Track Item - 桌面端 */}
                   <div
-                    className={`hidden md:grid grid-cols-12 gap-4 px-2 mx-2 transition-all duration-300 group cursor-pointer rounded-lg border ${
+                    className={`hidden md:grid grid-cols-12 gap-4 px-2 mx-2 transition-all duration-300 group cursor-pointer rounded-lg ${
                       selectedLibraryTrack === track.id || currentPlayingTrack === track.id
-                        ? 'bg-muted/60 border-border/60'
+                        ? 'bg-muted/80'
                         : 'bg-transparent hover:bg-muted/30 border-transparent'
                     }`}
                     onClick={(e) => {
@@ -1158,7 +1158,7 @@ export const LibraryPanel = ({
                   <div
                     className={`md:hidden flex items-center gap-4 py-2 mx-3 transition-all duration-300 group cursor-pointer rounded-lg border ${
                       selectedLibraryTrack === track.id || currentPlayingTrack === track.id
-                        ? 'bg-muted/60 border-border/60'
+                        ? 'bg-muted/80'
                         : 'hover:bg-muted/20 border-transparent'
                     }`}
                     onClick={(e) => {
