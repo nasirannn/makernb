@@ -6,7 +6,6 @@ import { Button } from "@/components/ui/button";
 import {
   Calendar,
   Check,
-  ChevronLeft,
   Clock,
   Download,
   Pause,
@@ -60,7 +59,6 @@ export interface TrackInfo {
 export const TrackDetailView: React.FC<TrackDetailViewProps> = ({
   trackData,
   trackId,
-  onBack,
   onPlayTrack,
   onDownload,
   fullPage = false
@@ -90,17 +88,7 @@ export const TrackDetailView: React.FC<TrackDetailViewProps> = ({
   const { openModal: openPricingModal } = usePricingModal();
   const { hasPermission } = useFeaturePermissions();
 
-  const handleBack = React.useCallback(() => {
-    if (onBack) {
-      onBack();
-      return;
-    }
-    if (window.history.length > 1) {
-      router.back();
-      return;
-    }
-    router.push("/studio");
-  }, [onBack, router]);
+  // Removed handleBack function entirely
 
   useEffect(() => {
     if (trackData) {
@@ -374,27 +362,13 @@ export const TrackDetailView: React.FC<TrackDetailViewProps> = ({
     return (
       <div className="flex h-full w-full flex-col items-center justify-center bg-background p-6 text-center space-y-4">
         <p className="text-muted-foreground">{error || "Track not found"}</p>
-        <Button onClick={handleBack} variant="outline" className="gap-2">
-          <ChevronLeft className="h-4 w-4" />
-          Back to List
-        </Button>
+        {/* Removed the back button here */}
       </div>
     );
   }
 
   const detailContent = (
     <div className="mx-auto flex w-full max-w-[1040px] flex-col gap-5 md:gap-7 text-foreground">
-      <header className="flex items-center justify-between gap-3">
-        <Button
-          onClick={handleBack}
-          variant="ghost"
-          className="app-card-muted app-hairline rounded-full px-4 text-foreground/75 hover:text-accent-foreground"
-        >
-          <ChevronLeft className="h-4 w-4" />
-          Back
-        </Button>
-      </header>
-
       <section className="app-card relative overflow-hidden rounded-[28px]">
         <div className="pointer-events-none absolute inset-0 opacity-70 [mask-image:radial-gradient(70%_70%_at_18%_12%,black,transparent)]">
           <div className="absolute -left-24 -top-24 h-72 w-72 rounded-full bg-[rgba(166,84,255,0.22)] blur-3xl" />
