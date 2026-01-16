@@ -892,7 +892,7 @@ export const LibraryPanel = ({
       <div className="flex-shrink-0 md:hidden px-6 py-4 bg-background/60 backdrop-blur-sm">
         <div className="flex items-center gap-3">
           <Library className="h-8 w-8 text-primary" />
-          <h2 className="text-2xl font-semibold">Music Library</h2>
+          <h2 className="text-2xl font-semibold text-foreground">Music Library</h2>
         </div>
       </div>
 
@@ -924,7 +924,7 @@ export const LibraryPanel = ({
       <div className="flex-shrink-0 hidden md:block px-6 py-6 bg-transparent">
         <div className="flex flex-row flex-wrap items-center justify-between gap-4">
           <div className="space-y-2 flex-1 min-w-[200px]">
-            <h2 className="text-4xl font-semibold tracking-tight text-primary">Music Library</h2>
+            <h2 className="text-4xl font-semibold tracking-tight text-foreground">Music Library</h2>
             <p className="text-base text-muted-foreground">
               View and manage all the favorited music.
             </p>

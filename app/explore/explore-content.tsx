@@ -270,14 +270,14 @@ export default function ExplorePage() {
           <div className="max-w-7xl mx-auto">
             {/* Header */}
             <div className="text-center mb-8">
-              <p className="text-sm font-medium text-white/60 uppercase tracking-wider mb-4">
+              <p className="text-sm font-medium text-muted-foreground uppercase tracking-wider mb-4">
                 MUSIC & CREATIVITY RESOURCES
               </p>
               <h1 className="text-5xl md:text-6xl font-bold text-foreground mb-4 tracking-tight">
                 Listen to The AI-Generated R&B Songs
               </h1>
-              <p className="text-white/70 text-lg max-w-2xl mx-auto mb-8">
-                Explore soulful tracks crafted by artificial intelligence
+              <p className="text-muted-foreground text-lg max-w-2xl mx-auto mb-8">
+                Experience soulful R&B music crafted by artificial intelligence
               </p>
             </div>
 
@@ -323,7 +323,7 @@ export default function ExplorePage() {
               Listen to The AI-Generated R&B Songs
             </h1>
             <p className="text-white/70 text-lg max-w-2xl mx-auto mb-8">
-              Explore soulful tracks crafted by artificial intelligence
+              Experience soulful R&B music crafted by artificial intelligence
             </p>
           </div>
 
@@ -384,13 +384,13 @@ export default function ExplorePage() {
 
                       {/* Track Info */}
                       <div className="p-4">
-                        <h3 className="text-white font-bold text-base mb-1 truncate">
+                        <h3 className="text-foreground font-bold text-base mb-1 truncate">
                           {music.title}
                         </h3>
-                        <p className="text-white/70 text-sm mb-2 truncate capitalize whitespace-nowrap overflow-hidden">
+                        <p className="text-muted-foreground text-sm mb-2 truncate capitalize whitespace-nowrap overflow-hidden">
                           {music.tags}
                         </p>
-                        <div className="flex items-center text-white/50 text-xs">
+                        <div className="flex items-center text-muted-foreground text-xs">
                           <span>{formatDuration(music.totalDuration)}</span>
                         </div>
                       </div>
@@ -420,8 +420,8 @@ export default function ExplorePage() {
             </>
           ) : (
             <div className="text-center py-12">
-              <Music className="w-16 h-16 text-white/30 mx-auto mb-4" />
-              <p className="text-white/70 text-lg">No public music available yet</p>
+              <Music className="w-16 h-16 text-muted-foreground/30 mx-auto mb-4" />
+              <p className="text-muted-foreground text-lg">No public music available yet</p>
             </div>
           )}
         </div>

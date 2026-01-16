@@ -384,9 +384,6 @@ export const ExtendMusicDialog: React.FC<ExtendMusicDialogProps> = ({
                             syncWithIsPlaying={false}
                             backend="MediaElement"
                             waveHeight={54}
-                            waveColor="rgba(255, 255, 255, 0.7)"
-                            progressColor="rgba(255, 255, 255, 0.95)"
-                            cursorColor="rgba(255, 255, 255, 0.95)"
                             cursorWidth={2}
                             className="rounded-lg bg-gradient-to-br from-primary/10 via-white/5 to-transparent"
                             showSelector
@@ -421,7 +418,7 @@ export const ExtendMusicDialog: React.FC<ExtendMusicDialogProps> = ({
                                       setIsEditingContinueAt(false);
                                     }
                                   }}
-                                  className="h-6 w-[88px] px-2 py-0 text-right text-xs font-mono tabular-nums bg-muted/20 border-border/50 focus-visible:ring-0 focus-visible:ring-offset-0 focus-visible:border-border/50"
+                                  className="h-6 w-[88px] px-2 py-0 text-right text-xs font-mono tabular-nums bg-muted/20 focus-visible:ring-0 focus-visible:ring-offset-0"
                                 />
                               ) : (
                                 <span className="inline-flex items-center gap-1 tabular-nums leading-none">
@@ -436,7 +433,7 @@ export const ExtendMusicDialog: React.FC<ExtendMusicDialogProps> = ({
                                         continueAtInputRef.current?.select();
                                       });
                                     }}
-                                    className="inline-flex items-center justify-center rounded-md border border-border/50 bg-muted/20 p-1 text-muted-foreground hover:bg-muted/30 hover:text-foreground transition-colors"
+                                    className="inline-flex items-center justify-center rounded-md bg-muted/20 p-1 text-muted-foreground hover:bg-muted/30 hover:text-foreground transition-colors"
                                     aria-label="Edit continue at"
                                   >
                                     <Pencil className="h-3.5 w-3.5" />

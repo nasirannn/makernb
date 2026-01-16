@@ -228,7 +228,7 @@ export const EditMusicInfoDialog: React.FC<EditMusicInfoDialogProps> = ({
                   {displayImage && (
                     <button
                       onClick={handleRemoveImage}
-                      className="absolute top-2 right-2 p-1.5 rounded-full bg-background/80 hover:bg-background border border-border shadow-sm"
+                      className="absolute top-2 right-2 p-1.5 rounded-full bg-background/80 hover:bg-background border border-border shadow-sm focus:outline-none focus-visible:outline-none focus-visible:ring-0 focus-visible:ring-offset-0"
                       type="button"
                     >
                       <X className="h-4 w-4" />

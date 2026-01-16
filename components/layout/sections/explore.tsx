@@ -2,7 +2,7 @@
 
 import React, { useEffect, useRef, useState } from "react";
 import Link from "next/link";
-import { ArrowRight, Music, Share2 } from "lucide-react";
+import { Music, Share2 } from "lucide-react";
 import { toast } from "sonner";
 import { CheckCircle } from "lucide-react";
 import { SafeImage } from "@/components/ui/safe-image";

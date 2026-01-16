@@ -1,16 +1,13 @@
 'use client';
 
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
 import { Progress } from '@/components/ui/progress';
-import { VocalSeparationPanel } from '@/features/vocal-tools/components/vocal-separation-panel';
 import { useVocalSeparation, VocalSeparationData } from '@/features/vocal-tools/hooks/use-vocal-separation';
-import { MusicPlayer } from '@/components/ui/music-player';
 import { WaveformPlayer } from '@/components/ui/waveform-player';
-import { Download, Mic, Music, Volume2, Clock, CheckCircle, XCircle, AlertCircle, Upload, Library, Play, Pause, Search, X } from 'lucide-react';
+import { Download, Mic, Music, Volume2, CheckCircle, XCircle, AlertCircle, Upload, Library, Search, X } from 'lucide-react';
 import Image from 'next/image';
 import { FooterSection } from '@/components/layout/sections/footer';
 import { supabase } from '@/lib/supabase';
@@ -367,7 +364,7 @@ export default function VocalSeparationDemo() {
       
       // 检查 track 是否可以用于分离
       if (selectedStudioTrack.canSeparate === false) {
-        setError('This track cannot be used for vocal separation. It requires a valid audio ID.');
+        setError('This track cannot be used for vocal remover. It requires a valid audio ID.');
         return;
       }
       
@@ -376,7 +373,7 @@ export default function VocalSeparationDemo() {
         setError(null);
         await startVocalSeparationFromStudio(selectedStudioTrack.id);
       } catch (error) {
-        setError(error instanceof Error ? error.message : 'Failed to start vocal separation');
+        setError(error instanceof Error ? error.message : 'Failed to start vocal remover');
       } finally {
         setIsGenerating(false);
       }
@@ -476,7 +473,7 @@ export default function VocalSeparationDemo() {
       const result = await response.json();
 
       if (!response.ok) {
-        throw new Error(result.error || 'Separation failed');
+        throw new Error(result.error || 'Remove failed');
       }
 
       // Cache hit: completed result can be rendered immediately without polling.
@@ -501,8 +498,8 @@ export default function VocalSeparationDemo() {
         startPollingStatus(result.data.predictionId, options.requestKey);
       }
     } catch (error) {
-      console.error('Separation error:', error);
-      setError(error instanceof Error ? error.message : 'Separation failed');
+      console.error('Remove error:', error);
+      setError(error instanceof Error ? error.message : 'Remove failed');
       setIsGenerating(false);
     }
   };
@@ -669,14 +666,14 @@ export default function VocalSeparationDemo() {
         <div className="max-w-4xl mx-auto">
         {/* Header */}
         <div className="text-center mb-8">
-          <p className="text-sm font-semibold text-white/60 uppercase tracking-wider mb-4">
-            AI VOCAL SEPARATION TOOL
+          <p className="text-sm font-semibold text-foreground/70 dark:text-white/60 uppercase tracking-wider mb-4">
+            AI VOCAL REMOVER TOOL
           </p>
           <h1 className="text-5xl md:text-6xl font-bold text-foreground mb-4 tracking-tight">
-            AI Vocal Separation Free Online
+            AI Vocal Remover Free Online
           </h1>
-          <p className="text-white/70 text-lg max-w-2xl mx-auto mb-8">
-            Enjoy fast and seamless audio separation with our AI-powered vocal separation.
+          <p className="text-foreground/70 dark:text-white/70 text-lg max-w-2xl mx-auto mb-8">
+            Enjoy fast and seamless audio remover with our AI-powered vocal remover.
           </p>
         </div>
 
@@ -859,7 +856,7 @@ export default function VocalSeparationDemo() {
                                     if (canSeparate) {
                                       setSelectedStudioTrack(track);
                                     } else {
-                                      setError('This track cannot be used for vocal separation. It requires a valid audio ID.');
+                                      setError('This track cannot be used for vocal remover. It requires a valid audio ID.');
                                     }
                                   }}
                                 >
@@ -1019,7 +1016,7 @@ export default function VocalSeparationDemo() {
                   <div className="flex flex-col sm:flex-row gap-3 sm:items-center sm:justify-between">
                     <p className={`text-sm ${isCacheHit ? 'text-blue-700' : 'text-muted-foreground'}`}>
                       {isCacheHit
-                        ? `Showing existing separation result${cacheUpdatedAt ? ` • Updated ${formatDateTime(cacheUpdatedAt)}` : ''}`
+                        ? `Showing existing remove result${cacheUpdatedAt ? ` • Updated ${formatDateTime(cacheUpdatedAt)}` : ''}`
                         : 'Want a fresh result with the latest model?'}
                     </p>
                     <Button
@@ -1144,10 +1141,10 @@ export default function VocalSeparationDemo() {
             {/* Left Side - Text Content */}
             <div className="flex-1 lg:w-3/5 space-y-6 text-center lg:text-left">
               <h2 className="text-4xl lg:text-5xl font-bold text-foreground leading-tight">
-                About MakeRNB&apos;s Vocal Separation
+                About MakeRNB&apos;s Vocal Remover
               </h2>
               <p className="text-lg text-muted-foreground leading-relaxed">
-                Our AI-powered vocal separation technology analyzes audio tracks to extract vocals and instrumentals separately. Whether you&apos;re creating karaoke versions, producing remixes, or isolating vocal tracks for sampling, our tool delivers quality results in minutes. Perfect for musicians, content creators, and music enthusiasts who want to unlock creative possibilities from their favorite songs.
+                Our AI-powered vocal remover technology analyzes audio tracks to extract vocals and instrumentals separately. Whether you&apos;re creating karaoke versions, producing remixes, or isolating vocal tracks for sampling, our tool delivers quality results in minutes. Perfect for musicians, content creators, and music enthusiasts who want to unlock creative possibilities from their favorite songs.
               </p>
             </div>
             
@@ -1156,7 +1153,7 @@ export default function VocalSeparationDemo() {
               <div className="flex items-center justify-center">
                 <Image 
                   src="/icons/Vocal-Remover.svg" 
-                  alt="Vocal Separation" 
+                  alt="Vocal Remover" 
                   width={256}
                   height={256}
                   className="h-64 w-64 object-contain"
@@ -1177,11 +1174,11 @@ export default function VocalSeparationDemo() {
             </h2>
 
             <h2 className="text-3xl md:text-4xl text-center font-bold mb-4">
-              Key Features of MakeRNB Vocal Separation
+              Key Features of MakeRNB Vocal Remover
             </h2>
 
             <h3 className="md:w-1/2 mx-auto text-lg text-center text-muted-foreground mb-8">
-              Discover the capabilities that make our vocal separation tool stand out
+              Discover the capabilities that make our vocal remover tool stand out
             </h3>
           </div>
 
@@ -1209,7 +1206,7 @@ export default function VocalSeparationDemo() {
                 Studio-Quality Output
               </h3>
               <p className="text-muted-foreground leading-relaxed">
-                Audio separation with lossless quality preservation. Create karaoke tracks, acapella versions, and remixes with clarity and precision.
+                Audio remove with lossless quality preservation. Create karaoke tracks, acapella versions, and remixes with clarity and precision.
               </p>
             </div>
 
@@ -1283,7 +1280,7 @@ export default function VocalSeparationDemo() {
                   
                   {/* Title */}
                   <h3 className="text-xl font-semibold text-foreground">
-                    Start Separation
+                    Start Remove
                   </h3>
                 </div>
                 
@@ -1333,7 +1330,7 @@ export default function VocalSeparationDemo() {
           </h2>
           
           <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
-            Get answers to common questions about our AI-powered vocal separation tool
+            Get answers to common questions about our AI-powered vocal remover tool
           </p>
         </div>
 
@@ -1397,7 +1394,7 @@ export default function VocalSeparationDemo() {
               Can I preview results before downloading?
             </AccordionTrigger>
             <AccordionContent className="text-base text-muted-foreground pb-4 leading-relaxed">
-              Absolutely! You can preview both the isolated vocals and instrumental tracks directly in your browser before downloading. This allows you to verify the quality and ensure you&apos;re happy with the separation before saving the files to your device.
+              Absolutely! You can preview both the isolated vocals and instrumental tracks directly in your browser before downloading. This allows you to verify the quality and ensure you&apos;re happy with the remove before saving the files to your device.
             </AccordionContent>
           </AccordionItem>
 
@@ -1428,7 +1425,7 @@ export default function VocalSeparationDemo() {
             <AlertDialogHeader className="space-y-2 sm:space-y-3">
               <AlertDialogTitle className="text-lg sm:text-xl">Clear Current Tracks</AlertDialogTitle>
               <AlertDialogDescription className="text-sm sm:text-base">
-                There are existing audio tracks in the player. Starting a new separation will clear all current tracks. Please download them to your local device if needed. Do you want to continue?
+                There are existing audio tracks in the player. Starting a new remove will clear all current tracks. Please download them to your local device if needed. Do you want to continue?
               </AlertDialogDescription>
             </AlertDialogHeader>
             <AlertDialogFooter className="flex-col sm:flex-row gap-2 sm:gap-0">

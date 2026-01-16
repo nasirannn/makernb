@@ -19,6 +19,7 @@ import { ThemeModeToggle } from "@/components/ui/theme-mode-toggle";
 import { SubscriptionBadge } from "@/components/ui/subscription-badge";
 import { cn } from "@/lib/utils";
 import { normalizeTierCode, type SubscriptionTier } from "@/lib/subscription-tier";
+import { getZIndexClass } from "@/lib/z-index";
 
 interface CommonSidebarProps {
   // 移除 isGenerating 参数，因为不再需要显示生成状态
@@ -297,7 +298,7 @@ const aiMusicToolsDropdown = [
   return (
     <>
       <div
-        className={`hidden md:flex fixed left-0 top-0 bottom-0 z-[55] h-screen flex-col transition-[width] duration-500 ${
+        className={`hidden md:flex fixed left-0 top-0 bottom-0 ${getZIndexClass('SIDEBAR')} h-screen flex-col transition-[width] duration-500 ${
           isExpanded ? 'w-56' : 'w-20'
         }`}
       >

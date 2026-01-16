@@ -352,9 +352,6 @@ export const ReplaceSectionDialog: React.FC<ReplaceSectionDialogProps> = ({
                         setCurrentTime(selectionStartRef.current);
                       }}
                       waveHeight={60}
-                      waveColor="rgba(255, 255, 255, 0.35)"
-                      progressColor="rgb(255, 255, 255)"
-                      cursorColor="rgb(255, 255, 255)"
                       cursorWidth={3}
                       audioDuration={audioDuration}
                       backend="MediaElement"
