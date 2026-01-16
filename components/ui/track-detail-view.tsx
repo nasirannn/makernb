@@ -349,21 +349,6 @@ export const TrackDetailView: React.FC<TrackDetailViewProps> = ({
     return `${minutes}:${remainingSeconds.toString().padStart(2, "0")}`;
   };
 
-  const formatModelLabel = (value?: string) => {
-    if (!value) return null;
-    if (value === "V4_5PLUS") return "V4.5+";
-    if (value === "V4_5ALL") return "V4.5ALL";
-    if (value === "V4_5") return "V4.5";
-    if (value === "V4") return "V4";
-    if (value === "V5") return "V5";
-    return value.replace("_", ".");
-  };
-
-  const modelLabel = useMemo(
-    () => formatModelLabel(trackInfo?.model),
-    [trackInfo?.model]
-  );
-
   const handleShare = () => {
     if (!trackInfo) return;
     const url = `${window.location.origin}/track/${trackInfo.id}`;
@@ -463,18 +448,6 @@ export const TrackDetailView: React.FC<TrackDetailViewProps> = ({
                 )}
               </div>
             </div>
-            <div className="absolute bottom-3 left-3 flex items-center gap-2">
-              {modelLabel && (
-                <span className="app-card-muted app-hairline rounded-full px-3 py-1 text-[11px] font-semibold tracking-tight text-foreground/75">
-                  {modelLabel}
-                </span>
-              )}
-              {trackInfo.duration && (
-                <span className="app-card-muted app-hairline rounded-full px-3 py-1 text-[11px] font-semibold tabular-nums tracking-tight text-foreground/75">
-                  {formatDuration(trackInfo.duration)}
-                </span>
-              )}
-            </div>
           </button>
 
           <div className="min-w-0 space-y-4 md:space-y-5">
@@ -499,7 +472,7 @@ export const TrackDetailView: React.FC<TrackDetailViewProps> = ({
                 </span>
               </div>
             </div>
-
+            
             {tagsArray.length > 0 && (
               <div className="flex flex-wrap gap-2">
                 {tagsArray.slice(0, 10).map((tag, index) => (
