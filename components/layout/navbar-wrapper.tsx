@@ -46,7 +46,7 @@ export const NavbarWrapper = () => {
         <div className={`fixed top-3 left-1/2 -translate-x-1/2 w-[calc(100%-24px)] max-w-4xl ${getZIndexClass('NAVBAR')} bg-primary border border-white/10 rounded-xl shadow-[0_12px_40px_rgba(0,0,0,0.4)]`}>
           <div className="flex items-center justify-between px-6 py-3">
             <Link href="/" className="flex items-center gap-3 text-primary-foreground font-extrabold tracking-tight">
-              <Image src="/logo.svg" alt="MakeRNB Logo" width={28} height={28} />
+              <Image src="logo.svg" alt="MakeRNB Logo" width={28} height={28} />
               <span>Create tracks with MakeRNB</span>
             </Link>
             <Link
