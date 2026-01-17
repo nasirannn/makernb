@@ -342,7 +342,7 @@ const aiMusicToolsDropdown = [
             </div>
 
             <div className={`flex-1 overflow-y-auto overflow-x-visible ${isExpanded ? 'px-4 pt-4' : 'px-2 pt-4'} pb-6`}>
-              <div className={`rounded-[28px] bg-black/[0.03] ${isExpanded ? 'p-3' : 'p-2'} ${isExpanded ? '' : 'flex flex-col items-center'}`}>
+              <div className={`rounded-[28px] ${isExpanded ? 'p-3' : 'p-2'} ${isExpanded ? '' : 'flex flex-col items-center'}`}>
                 <div className={`flex flex-col ${isExpanded ? 'gap-2' : 'gap-3 items-center'}`}>
                   {workspaceNavItems.map(renderNavButton)}
                   {aiToolNavItems.map(renderNavButton)}
@@ -351,7 +351,7 @@ const aiMusicToolsDropdown = [
               </div>
             </div>
 
-            <div className={`border-t border-black/10 ${isExpanded ? 'px-4 pt-4 pb-6' : 'px-2 pt-4 pb-6'} flex flex-col gap-3`}>
+            <div className={`border-t border-dashed border-black/10 ${isExpanded ? 'px-4 pt-4 pb-6' : 'px-2 pt-4 pb-6'} flex flex-col gap-3`}>
               {isExpanded ? (
                 <div className="w-full h-12 rounded-2xl bg-black/[0.03] px-4 flex items-center justify-between">
                   <span className="text-sm font-semibold text-foreground/90">
@@ -392,11 +392,11 @@ const aiMusicToolsDropdown = [
                   >
                     <div className="flex items-center justify-between text-foreground">
                       <div className="flex flex-col gap-1">
-                        <span className="text-[11px] font-medium uppercase tracking-[0.4em] text-foreground/55">
-                          Credits
-                        </span>
-                        <span className="text-lg font-semibold leading-none">
+                        <span className="text-md font-semibold leading-none">
                           {credits !== null ? credits.toLocaleString() : '...'}
+                        </span>
+                        <span className="text-xs font-medium text-foreground/55">
+                          Credits
                         </span>
                       </div>
                       <Button
