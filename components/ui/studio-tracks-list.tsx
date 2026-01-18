@@ -381,13 +381,10 @@ export const StudioTracksList: React.FC<StudioTracksListProps> = React.memo(func
   // 处理播放/暂停
   const handlePlayPause = useCallback((track: any) => {
     if (track.isPlaceholder) return;
-    if (onTrackPreview) {
-      onTrackPreview(track);
-    }
     if (onTrackPlay) {
       onTrackPlay(track, track.musicGeneration);
     }
-  }, [onTrackPlay, onTrackPreview]);
+  }, [onTrackPlay]);
   
   // 处理分享
   const handleShare = useCallback((trackId: string) => {

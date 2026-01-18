@@ -105,8 +105,8 @@ export const TrackItem: React.FC<TrackItemProps> = ({
           ? 'cursor-default border-transparent bg-transparent'
           : isClickable
             ? `cursor-pointer ${isSelected
-                ? (variant === 'studio'
-                  ? 'bg-primary/10 shadow-[0_16px_44px_rgba(0,0,0,0.10)]'
+              ? (variant === 'studio'
+                  ? 'bg-muted/80 shadow-[0_16px_44px_rgba(0,0,0,0.10)]'
                   : 'border-primary/35 bg-white/75 shadow-[0_12px_34px_rgba(0,0,0,0.08)]')
               : (variant === 'studio'
                 ? 'bg-transparent hover:bg-black/5 dark:hover:bg-white/5'

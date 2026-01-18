@@ -351,9 +351,9 @@ const aiMusicToolsDropdown = [
               </div>
             </div>
 
-            <div className={`border-t border-dashed border-black/10 ${isExpanded ? 'px-4 pt-4 pb-6' : 'px-2 pt-4 pb-6'} flex flex-col gap-3`}>
+            <div className={`border-t border-dashed border-black/5 dark:border-white/5 ${isExpanded ? 'px-4 pt-4 pb-6' : 'px-2 pt-4 pb-6'} flex flex-col gap-3`}>
               {isExpanded ? (
-                <div className="w-full h-12 rounded-2xl bg-black/[0.03] px-4 flex items-center justify-between">
+                <div className="w-full h-12 rounded-2xl bg-muted/40 px-4 flex items-center justify-between">
                   <span className="text-sm font-semibold text-foreground/90">
                     Theme
                   </span>
@@ -386,8 +386,8 @@ const aiMusicToolsDropdown = [
                         handleRefreshCredits();
                       }
                     }}
-                    className={`w-full rounded-2xl bg-black/[0.03] px-4 py-4 text-left transition-all duration-300 border border-transparent focus:outline-none focus-visible:ring-2 focus-visible:ring-black/15 focus-visible:ring-offset-0 ${
-                      isRefreshingCredits ? 'opacity-70 cursor-wait' : 'hover:bg-black/5 cursor-pointer'
+                    className={`w-full rounded-2xl bg-muted/40 px-4 py-4 text-left transition-all duration-300 border border-transparent focus:outline-none focus-visible:ring-2 focus-visible:ring-ring/40 focus-visible:ring-offset-0 ${
+                      isRefreshingCredits ? 'opacity-70 cursor-wait' : 'hover:bg-muted/60 cursor-pointer'
                     }`}
                   >
                     <div className="flex items-center justify-between text-foreground">
@@ -437,13 +437,13 @@ const aiMusicToolsDropdown = [
                             handleRefreshCredits();
                           }
                         }}
-                        className={`w-full rounded-2xl px-2 py-3 text-foreground transition-all duration-300 focus:outline-none focus-visible:ring-2 focus-visible:ring-black/15 focus-visible:ring-offset-0 ${
+                        className={`w-full rounded-2xl px-2 py-3 text-foreground transition-all duration-300 focus:outline-none focus-visible:ring-2 focus-visible:ring-ring/40 focus-visible:ring-offset-0 ${
                           isRefreshingCredits ? 'opacity-70 cursor-wait' : 'cursor-pointer'
                         } flex flex-col items-center text-center`}
                       >
                         <div className="relative w-full">
                           <div className="transition-opacity duration-150 group-hover:opacity-0 group-focus-within:opacity-0 flex items-center justify-center">
-                            <span className="inline-flex items-center justify-center rounded-full bg-black/[0.03] px-2.5 py-1 text-sm font-semibold leading-none text-foreground tabular-nums">
+                            <span className="inline-flex items-center justify-center rounded-full bg-muted/40 px-2.5 py-1 text-sm font-semibold leading-none text-foreground tabular-nums">
                               {credits !== null ? credits.toLocaleString() : '...'}
                             </span>
                           </div>
@@ -471,7 +471,7 @@ const aiMusicToolsDropdown = [
                         onClick={() => setUserMenuOpen(!userMenuOpen)}
                         variant="ghost"
                         size="sm"
-                        className="w-full h-16 rounded-2xl bg-black/[0.03] hover:bg-black/5 flex items-center gap-3 px-4"
+                        className="w-full h-16 rounded-2xl bg-muted/40 hover:bg-muted/60 flex items-center gap-3 px-4"
                       >
                         <Avatar className="w-10 h-10 flex-shrink-0">
                           <AvatarImage
@@ -499,13 +499,13 @@ const aiMusicToolsDropdown = [
                       </Button>
 
                       {userMenuOpen && (
-                        <div className="absolute bottom-full left-0 right-0 mb-2 rounded-2xl bg-background border border-black/10 p-3 shadow-[0_18px_55px_rgba(0,0,0,0.12)]">
+                        <div className="absolute bottom-full left-0 right-0 mb-2 rounded-2xl bg-background p-3 shadow-[0_18px_55px_rgba(0,0,0,0.12)]">
                           <button
                             onClick={() => {
                               setIsNicknameDialogOpen(true);
                               setUserMenuOpen(false);
                             }}
-                            className="w-full flex items-center gap-3 rounded-xl px-3 py-2 text-sm text-foreground/70 hover:bg-black/5 hover:text-foreground"
+                            className="w-full flex items-center gap-3 rounded-xl px-3 py-2 text-sm text-foreground/70 hover:bg-muted/40 hover:text-foreground"
                           >
                             <PencilLine className="w-4 h-4" />
                             <span>Edit profile</span>
@@ -515,7 +515,7 @@ const aiMusicToolsDropdown = [
                               handleSignOut();
                               setUserMenuOpen(false);
                             }}
-                            className="w-full flex items-center gap-3 rounded-xl px-3 py-2 text-sm text-foreground/70 hover:bg-black/5 hover:text-foreground"
+                            className="w-full flex items-center gap-3 rounded-xl px-3 py-2 text-sm text-foreground/70 hover:bg-muted/40 hover:text-foreground"
                           >
                             <LogOut className="w-4 h-4" />
                             <span>Sign Out</span>
@@ -540,7 +540,7 @@ const aiMusicToolsDropdown = [
                       </Avatar>
 
                       {userMenuOpen && (
-                        <div className="absolute bottom-0 left-full ml-3 w-56 rounded-2xl bg-background border border-black/10 shadow-[0_18px_55px_rgba(0,0,0,0.12)]">
+                        <div className="absolute bottom-0 left-full ml-3 w-56 rounded-2xl bg-background shadow-[0_18px_55px_rgba(0,0,0,0.12)]">
                           <div className="p-4">
                             <div className="flex items-center justify-between gap-2">
                               <div className="text-sm font-semibold text-foreground truncate flex-1">
@@ -558,7 +558,7 @@ const aiMusicToolsDropdown = [
                                 setIsNicknameDialogOpen(true);
                                 setUserMenuOpen(false);
                               }}
-                              className="w-full flex items-center gap-3 rounded-xl px-3 py-2 text-sm text-foreground/70 hover:bg-black/5 hover:text-foreground"
+                              className="w-full flex items-center gap-3 rounded-xl px-3 py-2 text-sm text-foreground/70 hover:bg-muted/40 hover:text-foreground"
                             >
                               <PencilLine className="w-4 h-4" />
                               <span>Edit profile</span>
@@ -568,7 +568,7 @@ const aiMusicToolsDropdown = [
                                 handleSignOut();
                                 setUserMenuOpen(false);
                               }}
-                              className="w-full flex items-center gap-3 rounded-xl px-3 py-2 text-sm text-foreground/70 hover:bg-black/5 hover:text-foreground"
+                              className="w-full flex items-center gap-3 rounded-xl px-3 py-2 text-sm text-foreground/70 hover:bg-muted/40 hover:text-foreground"
                             >
                               <LogOut className="w-4 h-4" />
                               <span>Sign Out</span>
@@ -586,7 +586,7 @@ const aiMusicToolsDropdown = [
                       onClick={() => setIsAuthModalOpen(true)}
                       variant="ghost"
                       size="sm"
-                      className="w-full h-12 rounded-2xl bg-black/[0.03] text-foreground/80 hover:bg-black/5 hover:text-foreground"
+                      className="w-full h-12 rounded-2xl bg-muted/40 text-foreground/80 hover:bg-muted/60 hover:text-foreground"
                     >
                       <LogIn className="h-5 w-5" />
                       <span className="text-sm font-medium">Sign In</span>

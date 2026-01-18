@@ -1503,30 +1503,37 @@ const StudioContent = () => {
 
     // 用户歌曲选择（点击即播放并展示详情）
     const handleUserTrackSelect = React.useCallback((trackId: string) => {
+        const shouldAutoPlay = !(player.currentTrack?.id === trackId && player.isPlaying);
         const { track: found, music } = findTrackAndMusic(trackId);
         if (found && music) {
-            handleTrackSelect(found, music, { autoPlay: true });
+            handleTrackSelect(found, music, { autoPlay: shouldAutoPlay });
             return;
         }
 
         const fallbackTrack = allTracks.find(track => track.id === trackId);
         if (fallbackTrack) {
-            handleTrackSelect(fallbackTrack, fallbackTrack, { autoPlay: true });
+            handleTrackSelect(fallbackTrack, fallbackTrack, { autoPlay: shouldAutoPlay });
         }
-    }, [findTrackAndMusic, handleTrackSelect, allTracks]);
+    }, [findTrackAndMusic, handleTrackSelect, allTracks, player.currentTrack?.id, player.isPlaying]);
 
     // 用户歌曲播放（点击播放按钮时直接播放）
     const handleUserTrackPlay = React.useCallback((track: any, music: any) => {
-        handleTrackSelect(track, music, { autoPlay: true });
-    }, [handleTrackSelect]);
+        if (!track) return;
+        if (player.currentTrack?.id === track.id) {
+            togglePlayPause();
+            return;
+        }
+        playTrackById(track.id);
+    }, [player, togglePlayPause, playTrackById]);
     
     // 生成的歌曲选择（点击即播放并展示详情）
     const handleGeneratedTrackSelect = React.useCallback((trackId: string) => {
         const track = generatedTracks.find(t => t.id === trackId);
         if (track) {
-            handleTrackSelect(track, track, { autoPlay: true });
+            const shouldAutoPlay = !(player.currentTrack?.id === trackId && player.isPlaying);
+            handleTrackSelect(track, track, { autoPlay: shouldAutoPlay });
         }
-    }, [generatedTracks, handleTrackSelect]);
+    }, [generatedTracks, handleTrackSelect, player.currentTrack?.id, player.isPlaying]);
 
     // 转换 UserTrack 到 MusicGeneration 格式
     const convertUserTracksToMusicGeneration = (userTracks: any[]): any[] => {

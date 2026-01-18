@@ -888,50 +888,23 @@ export const LibraryPanel = ({
         </div>
       </div>
 
-      {/* Mobile Title - 移动端标题和筛选器在同一行 */}
-      <div className="flex-shrink-0 md:hidden px-6 py-4 bg-background/60 backdrop-blur-sm">
-        <div className="flex items-center gap-3">
-          <Library className="h-8 w-8 text-primary" />
-          <h2 className="text-2xl font-semibold text-foreground">Music Library</h2>
-        </div>
-      </div>
-
-      {/* Mobile Search Row - 移动端搜索框 */}
-      <div className="flex-shrink-0 md:hidden px-6 pb-4 bg-background/60 backdrop-blur-sm">
-        <div className="relative w-full">
-          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-          <input
-            type="text"
-            placeholder="Search tracks..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            className="pl-10 pr-10 py-2 w-full bg-muted/30 border border-border/20 rounded-xl text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary/30 transition-all duration-200"
-          />
-          {searchQuery && (
-            <button
-              onClick={() => setSearchQuery('')}
-              className="absolute right-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground hover:text-foreground transition-colors"
-            >
-              <X className="h-4 w-4" />
-            </button>
-          )}
-        </div>
-      </div>
-
-      {/* Desktop Header removed as requested */}
-
-      {/* Desktop Title, Filter and Search */}
-      <div className="flex-shrink-0 hidden md:block px-6 py-6 bg-transparent">
-        <div className="flex flex-row flex-wrap items-center justify-between gap-4">
-          <div className="space-y-2 flex-1 min-w-[200px]">
-            <h2 className="text-4xl font-semibold tracking-tight text-foreground">Music Library</h2>
-            <p className="text-base text-muted-foreground">
+      {/* Header */}
+      <div className="flex-shrink-0 px-6 py-4 md:py-6 bg-background/60 backdrop-blur-sm md:bg-transparent md:backdrop-blur-none">
+        <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+          <div className="flex flex-col gap-2 flex-1 min-w-[200px]">
+            <div className="flex items-center gap-3">
+              <Library className="h-8 w-8 text-primary md:hidden" />
+              <h1 className="text-2xl font-semibold tracking-tight text-foreground md:text-4xl">
+                Music Library
+              </h1>
+            </div>
+            <p className="hidden md:block text-base text-muted-foreground">
               View and manage all the favorited music.
             </p>
           </div>
-          <div className="flex items-center gap-4 flex-wrap justify-end flex-1 min-w-[240px] self-center">
+          <div className="flex items-center gap-4 flex-wrap md:justify-end flex-1 min-w-[240px] self-center">
             {/* Search Input */}
-            <div className="relative w-auto">
+            <div className="relative w-full md:w-auto">
               <div className="relative">
                 <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                 <input
@@ -939,7 +912,7 @@ export const LibraryPanel = ({
                   placeholder="Enter title and tags"
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  className="pl-10 pr-10 py-2 w-64 bg-muted/30 border border-border/20 rounded-xl text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary/30 transition-all duration-200"
+                  className="pl-10 pr-10 py-2 w-full md:w-64 bg-muted/30 border border-border/20 rounded-xl text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary/30 transition-all duration-200"
                 />
                 {searchQuery && (
                   <button

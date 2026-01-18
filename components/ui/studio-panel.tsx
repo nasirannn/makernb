@@ -1446,11 +1446,11 @@ export const StudioPanel = (props: StudioPanelProps) => {
                       <React.Fragment key={option.value}>
                         <DropdownMenuItem
                           onClick={() => handleModelSelect(option.value)}
-                          className="group flex flex-col items-start gap-1 rounded-xl px-3.5 py-2.5 transition-colors hover:bg-accent focus:bg-accent data-[highlighted]:bg-accent"
+                          className="group flex flex-col items-start gap-1 rounded-xl px-3.5 py-2.5 transition-colors hover:bg-black/5 focus:bg-black/5 data-[highlighted]:bg-black/5 dark:hover:bg-white/5 dark:focus:bg-white/5 dark:data-[highlighted]:bg-white/5"
                         >
                           <div className="flex w-full items-center justify-between gap-2">
                             <div className="flex items-center gap-2">
-                              <span className="text-sm font-semibold text-foreground group-hover:text-accent-foreground group-focus:text-accent-foreground">
+                              <span className="text-sm font-semibold text-foreground">
                                 {option.label}
                               </span>
                             </div>
@@ -1460,10 +1460,10 @@ export const StudioPanel = (props: StudioPanelProps) => {
                               </span>
                             )}
                           </div>
-                          <span className="text-[11px] text-muted-foreground group-hover:text-accent-foreground/85 group-focus:text-accent-foreground/85">
+                          <span className="text-[11px] text-muted-foreground">
                             {creditsPerTrack} credits per track
                           </span>
-                          <span className="text-xs text-muted-foreground group-hover:text-accent-foreground/85 group-focus:text-accent-foreground/85">
+                          <span className="text-xs text-muted-foreground">
                             {option.description}
                           </span>
                         </DropdownMenuItem>
@@ -1583,7 +1583,7 @@ export const StudioPanel = (props: StudioPanelProps) => {
                   <Button
                     variant="ghost"
                     size="sm"
-                    className="studio-panel-card h-12 w-full justify-center rounded-2xl text-foreground/75 hover:text-foreground hover:bg-primary/10 transition-colors"
+                    className="studio-panel-card h-12 w-full justify-center rounded-2xl text-foreground/75 hover:text-foreground hover:bg-foreground/10 transition-colors"
                     title="Add audio"
                     onClick={handlePromptAddAudioClick}
                   >
