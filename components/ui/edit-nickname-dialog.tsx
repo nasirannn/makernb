@@ -149,10 +149,11 @@ export function EditNicknameDialog({ open, onOpenChange, initialValue = "" }: Ed
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-[calc(100vw-2rem)] sm:max-w-[560px] p-0 border-0 bg-transparent shadow-none overflow-hidden">
-        <div className="app-card relative overflow-hidden rounded-[28px]">
-          <div className="px-6 pt-6 pb-4">
-            <DialogHeader className="space-y-1.5 text-left">
+      <DialogContent className="max-w-[calc(100vw-2rem)] sm:max-w-[560px] max-h-[78vh] flex flex-col overflow-hidden p-0 bg-background shadow-xl rounded-[28px]">
+        <div className="relative overflow-hidden rounded-[28px]">
+          <div className="relative overflow-hidden px-6 pt-6 pb-6">
+            <div className="pointer-events-none absolute inset-0 bg-gradient-to-r from-primary/10 via-transparent to-primary/10" />
+            <DialogHeader className="relative space-y-1.5 text-left">
               <DialogTitle className="text-xl font-semibold tracking-tight">Edit profile</DialogTitle>
               <DialogDescription className="text-sm text-muted-foreground">
                 Update your display name and profile photo.
@@ -160,8 +161,8 @@ export function EditNicknameDialog({ open, onOpenChange, initialValue = "" }: Ed
             </DialogHeader>
           </div>
 
-          <div className="px-6 pb-6 grid gap-4 sm:grid-cols-[168px_1fr]">
-            <div className="app-card-muted rounded-3xl p-4">
+          <div className="p-6 grid gap-4 sm:grid-cols-[168px_1fr]">
+            <div className="rounded-3xl bg-muted/40 p-4">
               <div className="flex flex-col items-center gap-3 text-center">
                 <Avatar className="h-20 w-20 shadow-sm">
                   <AvatarImage src={avatarSrc} alt="User avatar" />
@@ -176,7 +177,7 @@ export function EditNicknameDialog({ open, onOpenChange, initialValue = "" }: Ed
                   size="sm"
                   onClick={handleChangePhoto}
                   disabled={avatarUploading}
-                  className="w-full justify-center app-card-muted app-hairline text-foreground/80 hover:text-accent-foreground"
+                  className="w-full justify-center bg-muted/60 text-foreground/80 hover:bg-accent hover:text-accent-foreground"
                 >
                   {avatarUploading ? (
                     <>
@@ -230,7 +231,7 @@ export function EditNicknameDialog({ open, onOpenChange, initialValue = "" }: Ed
               </div>
             </div>
 
-            <div className="app-card-muted rounded-3xl p-4">
+            <div className="rounded-3xl bg-muted/40 p-4">
               <div className="space-y-2">
                 <div className="text-xs font-semibold tracking-tight text-foreground/80">Display name</div>
                 <div className="relative">
@@ -240,7 +241,7 @@ export function EditNicknameDialog({ open, onOpenChange, initialValue = "" }: Ed
                     onChange={(event) => setNickname(event.target.value)}
                     placeholder={displayName ? displayName : "Enter your nickname"}
                     maxLength={32}
-                    className="w-full pl-10 border-transparent bg-foreground/5 dark:bg-white/10 focus-visible:ring-0 focus-visible:ring-offset-0"
+                    className="w-full pl-10"
                   />
                 </div>
                 <div className="flex items-start justify-between gap-3">
@@ -259,7 +260,7 @@ export function EditNicknameDialog({ open, onOpenChange, initialValue = "" }: Ed
             </div>
           </div>
 
-          <div className="px-6 pb-6">
+          <div className="p-6 pt-0">
             <DialogFooter className="flex-col-reverse sm:flex-row sm:justify-between gap-2 sm:gap-3">
               <Button
                 type="button"

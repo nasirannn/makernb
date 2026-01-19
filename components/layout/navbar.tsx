@@ -297,15 +297,15 @@ export const Navbar = ({ credits = null }: NavbarProps) => {
                             key={item.href}
                             href={item.href}
                             onClick={() => setIsDropdownOpen(false)}
-                            className={`group flex items-center px-3 py-2 my-1 transition-colors rounded-lg ${
+                            className={`group flex items-center px-3 py-2 my-1 transition-colors rounded-lg hover:bg-accent hover:text-accent-foreground ${
                               isDropdownItemActive
-                                ? 'bg-primary/10 text-primary'
-                                : 'hover:bg-black/5 hover:text-foreground'
+                                ? 'bg-foreground/10 text-foreground shadow-[0px_12px_30px_rgba(0,0,0,0.08)]'
+                                : 'text-foreground/60'
                             }`}
                           >
                             <div className="flex-1 min-w-0">
-                              <p className={`text-sm font-medium transition-colors ${
-                                isDropdownItemActive ? 'text-primary' : 'text-foreground'
+                              <p className={`text-sm font-medium transition-colors group-hover:text-accent-foreground ${
+                                isDropdownItemActive ? 'text-foreground' : 'text-foreground/60'
                               }`}>
                                 {item.label}
                               </p>
@@ -476,10 +476,10 @@ export const Navbar = ({ credits = null }: NavbarProps) => {
                                 onClick={() => setIsOpen(false)}
                                 asChild
                                 variant="ghost"
-                              className={`justify-start text-sm h-auto py-2 px-3 my-1 ${
+                              className={`justify-start text-sm h-auto py-2 px-3 my-1 hover:bg-accent hover:text-accent-foreground ${
                                 isDropdownItemActive
-                                  ? 'bg-primary/10 text-primary font-medium'
-                                  : 'text-foreground/70 hover:text-accent-foreground hover:bg-accent'
+                                  ? 'bg-foreground/10 text-foreground shadow-[0px_12px_30px_rgba(0,0,0,0.08)] font-medium'
+                                  : 'text-foreground/60'
                               }`}
                               >
                                 <Link href={item.href} className="flex items-center gap-2">
