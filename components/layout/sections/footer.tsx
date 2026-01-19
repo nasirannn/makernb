@@ -98,18 +98,18 @@ export const FooterSection = () => {
               title="Powered by Startup Fast"
               className="inline-flex items-center justify-center rounded-2xl px-2 py-2"
             >
-              <img
+              <Image
                 src="https://startupfa.st/images/badges/powered-by-light.svg"
                 alt="Powered by Startup Fast"
-                width="150"
-                height="44"
+                width={150}
+                height={44}
                 className="block dark:hidden"
               />
-              <img
+              <Image
                 src="https://startupfa.st/images/badges/powered-by-dark.svg"
                 alt="Powered by Startup Fast"
-                width="150"
-                height="44"
+                width={150}
+                height={44}
                 className="hidden dark:block"
               />
             </a>
@@ -119,10 +119,12 @@ export const FooterSection = () => {
               rel="noopener noreferrer"
               className="inline-flex items-center justify-center rounded-2xl px-2 py-2"
             >
-              <img
+              <Image
                 src="https://fazier.com/api/v1//public/badges/launch_badges.svg?badge_type=launched&theme=light"
-                width="120"
+                width={120}
+                height={32}
                 alt="Fazier badge"
+                className="block"
               />
             </a>
             <a
@@ -131,18 +133,18 @@ export const FooterSection = () => {
               rel="noopener noreferrer"
               className="inline-flex items-center justify-center rounded-2xl px-2 py-2"
             >
-              <img
+              <Image
                 src="https://open-launch.com/api/badge/a65b5aca-78a6-4d8b-960e-5de6ee455816/featured-light.svg"
                 alt="Featured on Open-Launch"
-                width="200"
-                height="50"
+                width={200}
+                height={50}
                 className="block dark:hidden"
               />
-              <img
+              <Image
                 src="https://open-launch.com/api/badge/a65b5aca-78a6-4d8b-960e-5de6ee455816/featured-dark.svg"
                 alt="Featured on Open-Launch"
-                width="200"
-                height="50"
+                width={200}
+                height={50}
                 className="hidden dark:block"
               />
             </a>

@@ -62,6 +62,18 @@ const nextConfig = {
       },
       {
         protocol: "https",
+        hostname: "startupfa.st",
+      },
+      {
+        protocol: "https",
+        hostname: "fazier.com",
+      },
+      {
+        protocol: "https",
+        hostname: "open-launch.com",
+      },
+      {
+        protocol: "https",
         hostname: "makernb-assets.nasirann.com",
       },
       {

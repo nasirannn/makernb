@@ -1,13 +1,12 @@
 'use client';
 
-import React, { useState, useEffect, useRef, useCallback } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
 import { Progress } from '@/components/ui/progress';
-import { useVocalSeparation, VocalSeparationData } from '@/features/vocal-tools/hooks/use-vocal-separation';
 import { WaveformPlayer } from '@/components/ui/waveform-player';
-import { Download, Mic, Music, Volume2, CheckCircle, XCircle, AlertCircle, Upload, Library, Search, X } from 'lucide-react';
+import { Download, Mic, Music, Volume2, Upload } from 'lucide-react';
 import Image from 'next/image';
 import { FooterSection } from '@/components/layout/sections/footer';
 import { supabase } from '@/lib/supabase';
@@ -22,32 +21,11 @@ import {
 } from "@/components/ui/accordion";
 import { formatDateTime } from "@/lib/format-utils";
 
-function VocalSeparationCreditsDisplay({ source }: { source: 'local' | 'studio' }) {
-  return <span className="text-primary font-medium">{CLIENT_VOCAL_SEPARATION_CREDITS[source]}</span>;
+function VocalSeparationCreditsDisplay() {
+  return <span className="text-primary font-medium">{CLIENT_VOCAL_SEPARATION_CREDITS.local}</span>;
 }
 
-// 格式化时长
-const formatDuration = (seconds: number) => {
-  if (isNaN(seconds) || seconds <= 0) {
-    return '';
-  }
-  const minutes = Math.floor(seconds / 60);
-  const remainingSeconds = Math.floor(seconds % 60);
-  return `${minutes}:${remainingSeconds.toString().padStart(2, '0')}`;
-};
-
 export default function VocalSeparationDemo() {
-  const { separations, startVocalSeparation, startVocalSeparationFromStudio } = useVocalSeparation();
-  const [selectedSeparation, setSelectedSeparation] = useState<VocalSeparationData | null>(null);
-  const [isPlaying, setIsPlaying] = useState(false);
-  const [currentTime, setCurrentTime] = useState(0);
-  const [volume, setVolume] = useState(0.8);
-  const [isMuted, setIsMuted] = useState(false);
-  const [playingAudio, setPlayingAudio] = useState<string | null>(null);
-  const [currentAudioElement, setCurrentAudioElement] = useState<HTMLAudioElement | null>(null);
-  const [audioProgress, setAudioProgress] = useState(0);
-  const [audioDuration, setAudioDuration] = useState(0);
-  const [playingAudioType, setPlayingAudioType] = useState<'original' | 'vocals' | 'accompaniment' | null>(null);
   const [isOriginalPlaying, setIsOriginalPlaying] = useState(false);
   const [isVocalsPlaying, setIsVocalsPlaying] = useState(false);
   const [isAccompanimentPlaying, setIsAccompanimentPlaying] = useState(false);
@@ -79,61 +57,6 @@ export default function VocalSeparationDemo() {
   const [isCacheHit, setIsCacheHit] = useState(false);
   const [cacheUpdatedAt, setCacheUpdatedAt] = useState<string | null>(null);
   
-  // Tab 状态
-  const [activeTab, setActiveTab] = useState<'upload' | 'studio'>('upload');
-  
-  // Studio tracks 状态
-  const [studioTracks, setStudioTracks] = useState<any[]>([]);
-  const [selectedStudioTrack, setSelectedStudioTrack] = useState<any | null>(null);
-  const [isLoadingStudioTracks, setIsLoadingStudioTracks] = useState(false);
-  const [studioTracksSearchQuery, setStudioTracksSearchQuery] = useState('');
-  const hasLoadedStudioTracks = useRef(false); // 跟踪是否已加载过数据
-  const lastRequestKeyRef = useRef<string | null>(null);
-
-  // 获取 Studio tracks
-  const fetchStudioTracks = useCallback(async () => {
-    setIsLoadingStudioTracks(true);
-    try {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session?.access_token) {
-        console.log('No session token available');
-        setIsLoadingStudioTracks(false);
-        return;
-      }
-
-      const response = await fetch('/api/studio-tracks-for-separation?limit=50', {
-        headers: {
-          'Authorization': `Bearer ${session.access_token}`,
-        },
-      });
-
-      if (!response.ok) {
-        const errorText = await response.text();
-        console.error('Failed to fetch studio tracks:', response.status, errorText);
-        setStudioTracks([]);
-        setIsLoadingStudioTracks(false);
-        return;
-      }
-
-      const result = await response.json();
-      console.log('Studio tracks API response:', result);
-      
-      if (result.success && result.data) {
-        setStudioTracks(result.data || []);
-        hasLoadedStudioTracks.current = true; // 标记已加载
-      } else {
-        console.warn('API returned unsuccessful or missing data:', result);
-        setStudioTracks([]);
-        hasLoadedStudioTracks.current = true; // 即使失败也标记为已加载，避免重复请求
-      }
-    } catch (error) {
-      console.error('Error fetching studio tracks:', error);
-      setStudioTracks([]);
-    } finally {
-      setIsLoadingStudioTracks(false);
-    }
-  }, []);
-
   useEffect(() => {
     // Only sync login status for upload permission control; no historical data requests
     const syncAuth = async () => {
@@ -141,11 +64,6 @@ export default function VocalSeparationDemo() {
         const { data: { session } } = await supabase.auth.getSession();
         const loggedIn = !!session?.access_token;
         setIsLoggedIn(loggedIn);
-        
-        // 如果已登录且未加载过数据，则加载
-        if (loggedIn && !hasLoadedStudioTracks.current) {
-          fetchStudioTracks();
-        }
       } catch (error) {
         console.error('Error checking user session:', error);
         setIsLoggedIn(false);
@@ -156,136 +74,52 @@ export default function VocalSeparationDemo() {
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
       setIsLoggedIn(!!session);
-      // 登录后自动获取 Studio tracks（只在首次加载时加载，避免重复）
-      if (session?.access_token && !hasLoadedStudioTracks.current) {
-        fetchStudioTracks();
-      } else if (!session?.access_token) {
-        // 登出后重置状态
-        hasLoadedStudioTracks.current = false;
-        setStudioTracks([]);
-        setSelectedStudioTrack(null);
-      }
     });
 
     return () => {
       subscription.unsubscribe();
     };
-  }, [fetchStudioTracks]);
-
-  // 不再监听 tab 切换，只在首次加载或登录时加载数据
-  // 移除这个 useEffect，避免每次切换 tab 都重新加载
-
-  const handlePlayPause = () => {
-    setIsPlaying(!isPlaying);
-  };
+  }, []);
 
   const handleWaveformPlayPause = (audioType: 'original' | 'vocals' | 'accompaniment') => {
     if (audioType === 'original') {
       if (isOriginalPlaying) {
         // Pause original
         setIsOriginalPlaying(false);
-        setPlayingAudioType(null);
       } else {
         // Stop others and play original
         setIsVocalsPlaying(false);
         setIsAccompanimentPlaying(false);
         setIsOriginalPlaying(true);
-        setPlayingAudioType('original');
       }
     } else if (audioType === 'vocals') {
       if (isVocalsPlaying) {
         // Pause vocals
         setIsVocalsPlaying(false);
-        setPlayingAudioType(null);
       } else {
         // Stop others and play vocals
         setIsOriginalPlaying(false);
         setIsAccompanimentPlaying(false);
         setIsVocalsPlaying(true);
-        setPlayingAudioType('vocals');
       }
     } else if (audioType === 'accompaniment') {
       if (isAccompanimentPlaying) {
         // Pause accompaniment
         setIsAccompanimentPlaying(false);
-        setPlayingAudioType(null);
       } else {
         // Stop others and play accompaniment
         setIsOriginalPlaying(false);
         setIsVocalsPlaying(false);
         setIsAccompanimentPlaying(true);
-        setPlayingAudioType('accompaniment');
       }
     }
   };
 
   const handleWaveformFinish = () => {
     // When audio finishes, stop all players
-    setPlayingAudioType(null);
     setIsOriginalPlaying(false);
     setIsVocalsPlaying(false);
     setIsAccompanimentPlaying(false);
-  };
-
-  const handlePlayAudio = (url: string) => {
-    // Stop current audio if playing
-    if (currentAudioElement) {
-      currentAudioElement.pause();
-      currentAudioElement.currentTime = 0;
-    }
-
-    if (playingAudio === url) {
-      // If clicking the same audio, stop playing
-      setPlayingAudio(null);
-      setIsPlaying(false);
-      setCurrentAudioElement(null);
-      setAudioProgress(0);
-      setAudioDuration(0);
-    } else {
-      // Play new audio directly in browser
-      setPlayingAudio(url);
-      setIsPlaying(true);
-      
-      // Create and play audio element
-      const audio = new Audio(url);
-      
-      // Set up event listeners
-      audio.addEventListener('loadedmetadata', () => {
-        setAudioDuration(audio.duration);
-      });
-      
-      audio.addEventListener('timeupdate', () => {
-        setAudioProgress(audio.currentTime);
-      });
-      
-      audio.addEventListener('ended', () => {
-        setPlayingAudio(null);
-        setIsPlaying(false);
-        setCurrentAudioElement(null);
-        setAudioProgress(0);
-        setAudioDuration(0);
-      });
-      
-      audio.addEventListener('error', (error) => {
-        console.error('Audio play failed:', error);
-        setPlayingAudio(null);
-        setIsPlaying(false);
-        setCurrentAudioElement(null);
-      });
-      
-      setCurrentAudioElement(audio);
-      audio.play().catch(error => {
-        console.error('Audio play failed:', error);
-      });
-    }
-  };
-
-  const handleVolumeChange = (newVolume: number) => {
-    setVolume(newVolume);
-  };
-
-  const handleMuteToggle = () => {
-    setIsMuted(!isMuted);
   };
 
   const handleFileSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -355,31 +189,6 @@ export default function VocalSeparationDemo() {
   };
 
   const handleStartSeparating = async () => {
-    // 检查是否选择了 Studio track
-    if (activeTab === 'studio') {
-      if (!selectedStudioTrack) {
-        setError('Please select a track from Studio');
-        return;
-      }
-      
-      // 检查 track 是否可以用于分离
-      if (selectedStudioTrack.canSeparate === false) {
-        setError('This track cannot be used for vocal remover. It requires a valid audio ID.');
-        return;
-      }
-      
-      try {
-        setIsGenerating(true);
-        setError(null);
-        await startVocalSeparationFromStudio(selectedStudioTrack.id);
-      } catch (error) {
-        setError(error instanceof Error ? error.message : 'Failed to start vocal remover');
-      } finally {
-        setIsGenerating(false);
-      }
-      return;
-    }
-
     // 原有的上传文件/URL 逻辑
     if (!selectedFile && !userInputUrl) {
       setError('Please select a file or enter an audio URL');
@@ -431,13 +240,10 @@ export default function VocalSeparationDemo() {
     setSeparationProgress(0);
     setIsCacheHit(false);
     setCacheUpdatedAt(null);
-    lastRequestKeyRef.current = options.requestKey;
-
     // 重置播放状态
     setIsOriginalPlaying(false);
     setIsVocalsPlaying(false);
     setIsAccompanimentPlaying(false);
-    setPlayingAudioType(null);
 
     // 清空audioUrl，无论是URL还是文件上传，都等待从数据库轮询获取
     // Origin播放器会显示loading状态
@@ -634,31 +440,40 @@ export default function VocalSeparationDemo() {
     };
   };
 
-  const getStatusIcon = (status: string) => {
-    switch (status) {
-      case 'completed':
-        return <CheckCircle className="h-4 w-4 text-green-500" />;
-      case 'error':
-        return <XCircle className="h-4 w-4 text-red-500" />;
-      case 'processing':
-        return <AlertCircle className="h-4 w-4 text-blue-500 animate-pulse" />;
-      default:
-        return <AlertCircle className="h-4 w-4 text-yellow-500" />;
-    }
-  };
-
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case 'completed':
-        return 'bg-green-100 text-green-800';
-      case 'error':
-        return 'bg-red-100 text-red-800';
-      case 'processing':
-        return 'bg-blue-100 text-blue-800';
-      default:
-        return 'bg-yellow-100 text-yellow-800';
-    }
-  };
+  const renderActionBlock = () => (
+    <div className="pt-4 space-y-3">
+      <Button
+        size="lg"
+        className="w-full h-12 bg-gradient-create text-white text-base font-semibold hover:opacity-90 transition-opacity rounded-2xl"
+        onClick={handleStartSeparating}
+        disabled={(!selectedFile && !userInputUrl) || isGenerating || !!urlValidationError}
+      >
+        {isGenerating ? (
+          <div className="flex items-center gap-2">
+            Separating ({Math.round(separationProgress)}%)
+            <div className="flex items-center gap-1.5">
+              <div className="w-2 h-2 bg-white rounded-full animate-bounce" style={{ animationDelay: '0ms' }}></div>
+              <div className="w-2 h-2 bg-white rounded-full animate-bounce" style={{ animationDelay: '150ms' }}></div>
+              <div className="w-2 h-2 bg-white rounded-full animate-bounce" style={{ animationDelay: '300ms' }}></div>
+            </div>
+          </div>
+        ) : (
+          "Start Removing"
+        )}
+      </Button>
+      {isGenerating && (
+        <div className="w-full space-y-2 mt-2">
+          <Progress value={separationProgress} className="h-2" />
+          <p className="text-xs text-center text-muted-foreground">
+            Processing: {Math.round(separationProgress)}%
+          </p>
+        </div>
+      )}
+      <div className="text-center text-sm text-muted-foreground">
+        <p>Estimated time: 1~3 minutes • Cost <VocalSeparationCreditsDisplay /> <span className="text-primary font-medium">credits</span></p>
+      </div>
+    </div>
+  );
 
   return (
     <div className="min-h-screen bg-background">
@@ -680,326 +495,76 @@ export default function VocalSeparationDemo() {
 
           {/* Main Content */}
           <div className="space-y-8">
-            {/* Tab Switcher */}
-            <div className="bg-muted/30 rounded-xl p-1 flex-shrink-0">
-              <div className="grid grid-cols-2 gap-1">
-                <button
-                  onClick={() => setActiveTab('upload')}
-                  className={`py-2 px-4 md:px-6 text-xs md:text-sm font-semibold tracking-tight transition-all duration-200 rounded-xl ${
-                    activeTab === 'upload'
-                      ? 'bg-primary/20 border-transparent text-primary shadow-sm'
-                      : 'text-muted-foreground hover:text-foreground hover:bg-muted/50'
-                  }`}
-                >
-                  <Upload className="h-4 w-4 inline mr-2" />
-                  Upload File / URL
-                </button>
-                <button
-                  onClick={() => {
-                    if (!isLoggedIn) {
-                      setShowAuthModal(true);
-                      return;
-                    }
-                    setActiveTab('studio');
-                  }}
-                  className={`py-2 px-4 md:px-6 text-xs md:text-sm font-semibold tracking-tight transition-all duration-200 rounded-xl ${
-                    activeTab === 'studio'
-                      ? 'bg-primary/20 border-transparent text-primary shadow-sm'
-                      : 'text-muted-foreground hover:text-foreground hover:bg-muted/50'
-                  }`}
-                >
-                  <Library className="h-4 w-4 inline mr-2" />
-                  From Studio
-                </button>
-              </div>
-            </div>
-
-            {/* Upload Tab Content */}
-            {activeTab === 'upload' && (
-              <div className="bg-muted/20 rounded-lg p-3">
-                {/* Track URL Input with Button */}
-                <div className="w-full space-y-2">
-                  <label className="text-sm font-medium text-foreground text-left block">Audio URL</label>
-                  <div className="relative">
-                    <input
-                      type="url"
-                        placeholder="Paste your audio file URL here..."
-                        className="w-full px-4 py-3 pr-14 bg-muted rounded-lg text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary transition-colors"
-                        value={userInputUrl}
-                        onChange={handleUrlInputChange}
-                    />
-                    {urlValidationError && (
-                      <p className="text-red-500 text-xs mt-1">{urlValidationError}</p>
-                    )}
-                  </div>
-                </div>
-
-              {/* Upload Area */}
-                <div className="w-full space-y-2 mt-4">
-                  <label className="text-sm font-medium text-foreground text-left block">Upload Local File</label>
-                  <Card 
-                    className={`border-2 border-dashed transition-colors cursor-pointer ${
-                      isLoggedIn 
-                        ? 'border-primary/50 hover:border-primary/70' 
-                        : 'border-muted-foreground/50 hover:border-muted-foreground/70'
-                    }`}
-                    onClick={handleUploadAreaClick}
-                  >
-                    <CardContent className="p-8">
-                      <div className="text-center space-y-4">
-                        <div className={`w-16 h-16 rounded-lg flex items-center justify-center mx-auto ${
-                          isLoggedIn ? 'bg-primary/20' : 'bg-muted-foreground/20'
-                        }`}>
-                          <Upload className={`h-8 w-8 ${isLoggedIn ? 'text-primary' : 'text-muted-foreground'}`} />
-                        </div>
-                        <div className="space-y-2">
-                          {selectedFile ? (
-                            <div className="space-y-2">
-                              <p className="text-sm text-foreground font-medium">
-                                {selectedFile.name}
-                              </p>
-                              <p className="text-xs text-muted-foreground">
-                                {(selectedFile.size / (1024 * 1024)).toFixed(2)} MB
-                              </p>
-                            </div>
-                          ) : (
-                            <>
-                              <p className="text-sm text-muted-foreground">
-                                Drag and drop your file or click to browse
-                              </p>
-                              <p className="text-xs text-muted-foreground">
-                                Supports WAV, MP3, FLAC, OGG, OPUS, SPHERE, MP4, M4V, AVI, MOV, AAC, M4A, BIN
-                              </p>
-                            </>
-                          )}
-                        </div>
-                      </div>
-                    </CardContent>
-                  </Card>
+            <div className="studio-panel-card rounded-2xl p-4">
+              {/* Track URL Input with Button */}
+              <div className="w-full space-y-2">
+                <label className="text-sm font-medium text-foreground text-left block">Audio URL</label>
+                <div className="relative">
                   <input
-                    id="file-upload"
-                    type="file"
-                    accept="audio/*,video/*"
-                    onChange={handleFileSelect}
-                    className="hidden"
-                    disabled={!isLoggedIn}
+                    type="url"
+                    placeholder="Paste your audio file URL here..."
+                    className="w-full px-4 py-3 pr-14 rounded-lg border border-transparent bg-muted text-foreground placeholder:text-muted-foreground transition-colors focus:outline-none focus:ring-2 focus:ring-primary/70 dark:border-white/10 dark:bg-white/5 dark:placeholder:text-white/40"
+                    value={userInputUrl}
+                    onChange={handleUrlInputChange}
                   />
-                </div>
-              </div>
-            )}
-
-            {/* Studio Tab Content */}
-            {activeTab === 'studio' && (
-              <div className="bg-muted/20 rounded-lg p-3">
-                <div className="w-full space-y-4">
-                  {!isLoggedIn ? (
-                    <Card className="p-8 text-center">
-                      <CardContent>
-                        <p className="text-muted-foreground mb-4">Please log in to select tracks from Studio</p>
-                        <Button onClick={() => setShowAuthModal(true)}>Log In</Button>
-                      </CardContent>
-                    </Card>
-                  ) : (
-                    <>
-                      {/* Search Studio Tracks */}
-                      <div className="relative">
-                        <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                        <input
-                          type="text"
-                          placeholder="Search your tracks..."
-                          className="w-full pl-10 pr-10 py-2 bg-muted rounded-lg text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary"
-                          value={studioTracksSearchQuery}
-                          onChange={(e) => setStudioTracksSearchQuery(e.target.value)}
-                        />
-                        {studioTracksSearchQuery && (
-                          <button
-                            onClick={() => setStudioTracksSearchQuery('')}
-                            className="absolute right-3 top-1/2 transform -translate-y-1/2"
-                          >
-                            <X className="h-4 w-4 text-muted-foreground" />
-                          </button>
-                        )}
-                      </div>
-
-                      {/* Studio Tracks List */}
-                      <div className="max-h-96 overflow-y-auto space-y-2">
-                        {isLoadingStudioTracks ? (
-                          <div className="text-center py-8 text-muted-foreground">Loading tracks...</div>
-                        ) : studioTracks.filter(track => 
-                            studioTracksSearchQuery === '' || 
-                            track.title.toLowerCase().includes(studioTracksSearchQuery.toLowerCase()) ||
-                            track.tags.toLowerCase().includes(studioTracksSearchQuery.toLowerCase())
-                          ).length === 0 ? (
-                          <div className="text-center py-8 text-muted-foreground">No tracks found</div>
-                        ) : (
-                          studioTracks
-                            .filter(track => 
-                              studioTracksSearchQuery === '' || 
-                              track.title.toLowerCase().includes(studioTracksSearchQuery.toLowerCase()) ||
-                              track.tags?.toLowerCase().includes(studioTracksSearchQuery.toLowerCase())
-                            )
-                            .map((track) => {
-                              const canSeparate = track.canSeparate !== false; // 默认为 true（向后兼容）
-                              return (
-                                <div
-                                  key={track.id}
-                                  className={`flex items-center gap-4 px-2 py-2 mx-3 transition-all duration-300 group rounded-lg border ${
-                                    track.isError || !canSeparate
-                                      ? 'opacity-60 cursor-not-allowed'
-                                      : `cursor-pointer ${
-                                          selectedStudioTrack?.id === track.id
-                                            ? 'bg-muted/60 border-border/60'
-                                            : 'hover:bg-muted/20 border-transparent'
-                                        }`
-                                  }`}
-                                  onClick={() => {
-                                    if (canSeparate) {
-                                      setSelectedStudioTrack(track);
-                                    } else {
-                                      setError('This track cannot be used for vocal remover. It requires a valid audio ID.');
-                                    }
-                                  }}
-                                >
-                                  {/* 封面 */}
-                                  <div className="relative w-16 h-16 rounded-md overflow-hidden flex-shrink-0">
-                                    {track.coverImage ? (
-                                      <Image
-                                        src={track.coverImage}
-                                        alt={track.title}
-                                        width={64}
-                                        height={64}
-                                        className="w-full h-full object-cover"
-                                      />
-                                    ) : (
-                                      <div className="w-full h-full bg-gradient-to-br from-primary/20 to-primary/40 flex items-center justify-center">
-                                        <Music className="h-6 w-6 text-primary" />
-                                      </div>
-                                    )}
-                                  </div>
-
-                                  {/* Track Info */}
-                                  <div className="flex-1 min-w-0 flex items-center gap-4">
-                                    <div className="flex-1 min-w-0 flex items-center h-16">
-                                      <div className="flex items-center justify-between gap-2 w-full">
-                                        {/* 歌曲信息列 */}
-                                        <div className="flex-1 min-w-0 flex flex-col justify-center h-16">
-                                          <div className="flex items-center gap-2">
-                                            <h3 className={`font-semibold text-sm truncate ${
-                                              selectedStudioTrack?.id === track.id
-                                                ? 'text-primary'
-                                                : 'text-foreground'
-                                            }`}>
-                                              {track.title}
-                                            </h3>
-                                            {!canSeparate && (
-                                              <span className="text-xs text-muted-foreground px-2 py-0.5 bg-muted rounded">
-                                                Unavailable
-                                              </span>
-                                            )}
-                                          </div>
-                                          {/* 标签信息 */}
-                                          {track.tags && (
-                                            <div className="flex items-center gap-2 mt-0.5">
-                                              {/* 时长显示在 tags 前面，用竖线分隔 */}
-                                              {track.duration > 0 && (
-                                                <>
-                                                  <span className="text-xs text-muted-foreground whitespace-nowrap">
-                                                    {formatDuration(track.duration)}
-                                                  </span>
-                                                  <span className="text-xs text-muted-foreground/60">|</span>
-                                                </>
-                                              )}
-                                              <p 
-                                                className="text-xs text-muted-foreground truncate flex-1"
-                                                title={track.tags}
-                                              >
-                                                {track.tags.split(/[,;.]/).filter((tag: string) => tag.trim()).map((tag: string, index: number, array: string[]) => (
-                                                  <span key={index}>
-                                                    <span>{tag.trim()}</span>
-                                                    {index < array.length - 1 && <span className="mx-1">•</span>}
-                                                  </span>
-                                                ))}
-                                                {track.tags.length > 100 && '...'}
-                                              </p>
-                                            </div>
-                                          )}
-                                          {/* 只有时长没有标签时 */}
-                                          {!track.tags && track.duration > 0 && (
-                                            <span className="text-xs text-muted-foreground mt-0.5">
-                                              {formatDuration(track.duration)}
-                                            </span>
-                                          )}
-                                          {/* 创建时间 - 参考 studio-tracks-list 的格式 */}
-                                          {track.createdAt && (
-                                            <p className="text-xs text-muted-foreground/60 truncate mt-1">
-                                              {formatDateTime(track.createdAt)}
-                                            </p>
-                                          )}
-                                        </div>
-                                        
-                                        {/* 操作按钮列 - 只显示选中对勾 */}
-                                        <div className="flex items-center justify-end gap-1 flex-shrink-0">
-                                          {selectedStudioTrack?.id === track.id && (
-                                            <CheckCircle className="h-5 w-5 text-primary" />
-                                          )}
-                                        </div>
-                                      </div>
-                                    </div>
-                                  </div>
-                                </div>
-                              );
-                            })
-                        )}
-                      </div>
-
-                      {selectedStudioTrack && (
-                        <div className="p-4 bg-muted/50 rounded-lg flex items-center justify-between">
-                          <p className="text-sm font-medium text-foreground">Selected Track:</p>
-                          <p className="text-sm font-medium text-foreground">{selectedStudioTrack.title}</p>
-                        </div>
-                      )}
-                    </>
+                  {urlValidationError && (
+                    <p className="text-red-500 text-xs mt-1">{urlValidationError}</p>
                   )}
                 </div>
               </div>
-            )}
 
-          {/* Action Button */}
-          <div className="w-full space-y-3">
-            <Button 
-              size="lg" 
-              className="w-full bg-primary hover:bg-primary/90 text-primary-foreground px-8 py-3"
-              onClick={handleStartSeparating}
-              disabled={
-                (activeTab === 'upload' && (!selectedFile && !userInputUrl)) ||
-                (activeTab === 'studio' && !selectedStudioTrack) ||
-                isGenerating || 
-                !!urlValidationError
-              }
-            >
-              {isGenerating ? (
-                <div className="flex items-center gap-2">
-                  Separating ({Math.round(separationProgress)}%)
-                  <div className="flex items-center gap-1.5">
-                    <div className="w-2 h-2 bg-white rounded-full animate-bounce" style={{ animationDelay: '0ms' }}></div>
-                    <div className="w-2 h-2 bg-white rounded-full animate-bounce" style={{ animationDelay: '150ms' }}></div>
-                    <div className="w-2 h-2 bg-white rounded-full animate-bounce" style={{ animationDelay: '300ms' }}></div>
-                  </div>
-                </div>
-              ) : (
-                "Start Separating"
-              )}
-            </Button>
-            {isGenerating && (
-              <div className="w-full space-y-2 mt-2">
-                <Progress value={separationProgress} className="h-2" />
-                <p className="text-xs text-center text-muted-foreground">
-                  Processing: {Math.round(separationProgress)}%
-                </p>
+              {/* Upload Area */}
+              <div className="w-full space-y-2 mt-4">
+                <label className="text-sm font-medium text-foreground text-left block">Upload Local File</label>
+                <Card
+                  className={`border-2 border-dashed transition-colors cursor-pointer ${
+                    isLoggedIn
+                      ? 'border-primary/50 hover:border-primary/70'
+                      : 'border-muted-foreground/50 hover:border-muted-foreground/70'
+                  }`}
+                  onClick={handleUploadAreaClick}
+                >
+                  <CardContent className="p-8">
+                    <div className="text-center space-y-4">
+                      <div className={`w-16 h-16 rounded-lg flex items-center justify-center mx-auto ${
+                        isLoggedIn ? 'bg-primary/20' : 'bg-muted-foreground/20'
+                      }`}>
+                        <Upload className={`h-8 w-8 ${isLoggedIn ? 'text-primary' : 'text-muted-foreground'}`} />
+                      </div>
+                      <div className="space-y-2">
+                        {selectedFile ? (
+                          <div className="space-y-2">
+                            <p className="text-sm text-foreground font-medium">
+                              {selectedFile.name}
+                            </p>
+                            <p className="text-xs text-muted-foreground">
+                              {(selectedFile.size / (1024 * 1024)).toFixed(2)} MB
+                            </p>
+                          </div>
+                        ) : (
+                          <>
+                            <p className="text-sm text-muted-foreground">
+                              Drag and drop your file or click to browse
+                            </p>
+                            <p className="text-xs text-muted-foreground">
+                              Supports WAV, MP3, FLAC, OGG, OPUS, SPHERE, MP4, M4V, AVI, MOV, AAC, M4A, BIN
+                            </p>
+                          </>
+                        )}
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+                <input
+                  id="file-upload"
+                  type="file"
+                  accept="audio/*,video/*"
+                  onChange={handleFileSelect}
+                  className="hidden"
+                  disabled={!isLoggedIn}
+                />
               </div>
-            )}
-            <div className="text-center text-sm text-muted-foreground">
-              <p>Estimated time: 1~3 minutes • This action will cost <VocalSeparationCreditsDisplay source={activeTab === 'upload' ? 'local' : 'studio'} /> <span className="text-primary font-medium">credits</span></p>
+              {renderActionBlock()}
             </div>
           </div>
 
@@ -1132,7 +697,6 @@ export default function VocalSeparationDemo() {
           )}
         </div>
         </div>
-      </div>
 
       {/* What is MakeRNB's Vocal Separation Section */}
       <section className="py-16 px-4 bg-background">
@@ -1286,7 +850,7 @@ export default function VocalSeparationDemo() {
                 
                 {/* Description */}
                 <p className="text-muted-foreground leading-relaxed">
-                  Click &quot;Start Separating&quot; and let our advanced AI technology isolate vocals and instrumental tracks automatically.
+                  Click &quot;Start Removing&quot; and let our advanced AI technology isolate vocals and instrumental tracks automatically.
                 </p>
               </div>
 

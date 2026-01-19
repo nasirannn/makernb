@@ -290,20 +290,29 @@ export const Navbar = ({ credits = null }: NavbarProps) => {
                       onMouseEnter={handleDropdownMouseEnter}
                       onMouseLeave={handleDropdownMouseLeave}
                     >
-                      {dropdownItems.map((item) => (
-                        <Link
-                          key={item.href}
-                          href={item.href}
-                          onClick={() => setIsDropdownOpen(false)}
-                          className="flex items-center px-3 py-2 hover:bg-black/5 hover:text-foreground transition-colors rounded-lg"
-                        >
-                          <div className="flex-1 min-w-0">
-                            <p className="text-foreground font-medium text-sm transition-colors group-hover:text-accent-foreground">
-                              {item.label}
-                            </p>
-                          </div>
-                        </Link>
-                      ))}
+                      {dropdownItems.map((item) => {
+                        const isDropdownItemActive = pathname.startsWith(item.href);
+                        return (
+                          <Link
+                            key={item.href}
+                            href={item.href}
+                            onClick={() => setIsDropdownOpen(false)}
+                            className={`group flex items-center px-3 py-2 my-1 transition-colors rounded-lg ${
+                              isDropdownItemActive
+                                ? 'bg-primary/10 text-primary'
+                                : 'hover:bg-black/5 hover:text-foreground'
+                            }`}
+                          >
+                            <div className="flex-1 min-w-0">
+                              <p className={`text-sm font-medium transition-colors ${
+                                isDropdownItemActive ? 'text-primary' : 'text-foreground'
+                              }`}>
+                                {item.label}
+                              </p>
+                            </div>
+                          </Link>
+                        );
+                      })}
                     </div>
                   )}
                 </li>
@@ -459,21 +468,28 @@ export const Navbar = ({ credits = null }: NavbarProps) => {
                           {label}
                         </div>
                         <div className="ml-4 space-y-1">
-                          {dropdownItems.map((item) => (
-                            <Button
-                              key={item.href}
-                              onClick={() => setIsOpen(false)}
-                              asChild
-                              variant="ghost"
-	                              className="justify-start text-sm h-auto py-2 px-3 text-foreground/70 hover:text-accent-foreground hover:bg-accent"
-                            >
-                              <Link href={item.href} className="flex items-center gap-2">
-                                <div>
-                                  <div className="font-medium">{item.label}</div>
-                                </div>
-                              </Link>
-                            </Button>
-                          ))}
+                          {dropdownItems.map((item) => {
+                            const isDropdownItemActive = pathname.startsWith(item.href);
+                            return (
+                              <Button
+                                key={item.href}
+                                onClick={() => setIsOpen(false)}
+                                asChild
+                                variant="ghost"
+                              className={`justify-start text-sm h-auto py-2 px-3 my-1 ${
+                                isDropdownItemActive
+                                  ? 'bg-primary/10 text-primary font-medium'
+                                  : 'text-foreground/70 hover:text-accent-foreground hover:bg-accent'
+                              }`}
+                              >
+                                <Link href={item.href} className="flex items-center gap-2">
+                                  <div>
+                                    <div className="font-medium">{item.label}</div>
+                                  </div>
+                                </Link>
+                              </Button>
+                            );
+                          })}
                         </div>
                       </div>
                     );

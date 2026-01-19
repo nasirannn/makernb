@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
-import { Sparkles, RefreshCw, AlertCircle, Music, Wand2, Copy, Download, Check } from 'lucide-react';
+import { Sparkles, RefreshCw, AlertCircle, Music, Wand2, Copy, Download, Check, ChevronRight } from 'lucide-react';
 import AuthModal from '@/components/ui/auth-modal';
 import { FooterSection } from '@/components/layout/sections/footer';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
@@ -12,6 +12,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import presetsData from '@/data/lyrics-presets.json';
 import Image from 'next/image';
 import { supabase } from '@/lib/supabase';
+import { BUTTON_CLASSES, STYLES } from '@/lib/studio-constants';
 
 export default function LyricsGeneratorPage() {
   const { user } = useAuth();
@@ -27,6 +28,7 @@ export default function LyricsGeneratorPage() {
   const [selectedTheme, setSelectedTheme] = useState<string>('');
   const [selectedMood, setSelectedMood] = useState<string>('');
   const [selectedStyle, setSelectedStyle] = useState<string>('');
+  const [expandedPreset, setExpandedPreset] = useState<'theme' | 'mood' | 'style' | null>(null);
 
   const handleGenerateLyrics = async () => {
     if (!isLoggedIn) {
@@ -215,9 +217,9 @@ export default function LyricsGeneratorPage() {
 
           {/* Main Section */}
           <div className="space-y-8">
-            <section className="rounded-[32px] bg-background/60 backdrop-blur-sm border border-border/30 p-4 sm:p-6 md:p-8 space-y-6">
+            <section className="rounded-[32px] bg-background/60 backdrop-blur-sm p-4 sm:p-6 md:p-8 space-y-6">
                 {/* Prompt Input Section */}
-                <div className="bg-muted/20 rounded-2xl p-4 sm:p-6">
+                <div className="studio-panel-card rounded-2xl p-4 sm:p-6">
                   <div className="flex flex-wrap items-center justify-between gap-3 mb-4">
                     <h3 className="text-lg font-semibold tracking-tight flex items-center gap-2">
                       <Wand2 className="h-5 w-5 text-primary" />
@@ -241,137 +243,148 @@ export default function LyricsGeneratorPage() {
                       placeholder="Type your themes, moods, and styles... e.g., Love and Romance, Romantic and Intimate, R&B"
                       value={prompt}
                       onChange={(e) => setPrompt(e.target.value)}
-                      className="min-h-[140px] resize-none pr-16 pb-12 border border-border bg-background/70 focus-visible:ring-1 focus-visible:ring-primary focus-visible:ring-offset-0 rounded-xl"
+                      className="min-h-[160px] resize-none pr-16 pb-12 border-0 bg-transparent focus-visible:ring-0 focus-visible:ring-offset-0"
                       disabled={isGenerating}
                     />
-                    <div className="absolute bottom-3 right-3 text-xs text-muted-foreground bg-background/80 px-2 py-1 rounded">
-                      {prompt.length}/200
-                    </div>
                   </div>
-                </div>
-
-                {/* Preset Options */}
-                <div className="space-y-4">
-                  {/* Themes */}
-                  <div className="rounded-2xl border border-border/30 bg-background/40 p-4">
-                    <h4 className="text-sm font-semibold text-foreground mb-3">Popular Themes</h4>
-                    <div className="flex flex-wrap gap-2">
-                      {presetsData.themes.map((theme) => (
+                  <div className="mt-3 space-y-3">
+                    <div className="flex flex-wrap items-center justify-between gap-2">
+                      <div className="flex flex-wrap items-center gap-2">
                         <button
-                          key={theme}
-                          onClick={() => handlePresetClick('theme', theme)}
-                          className={`px-3 py-1.5 text-xs font-medium rounded-lg transition-all duration-200 ${
-                            selectedTheme === theme
-                              ? 'bg-primary text-primary-foreground shadow-lg shadow-primary/20'
-                              : 'bg-muted/40 text-foreground hover:bg-muted/60 border border-white/5'
+                          type="button"
+                          onClick={() => setExpandedPreset(expandedPreset === 'theme' ? null : 'theme')}
+                          className={`${BUTTON_CLASSES.category} ${
+                            expandedPreset === 'theme' ? STYLES.expanded : STYLES.collapsed
                           }`}
-                          disabled={isGenerating}
+                          aria-expanded={expandedPreset === 'theme'}
                         >
-                          {theme}
+                          Popular Themes
+                          <ChevronRight className={`h-3 w-3 transition-transform ${expandedPreset === 'theme' ? 'rotate-90' : ''}`} />
                         </button>
-                      ))}
+                        <button
+                          type="button"
+                          onClick={() => setExpandedPreset(expandedPreset === 'mood' ? null : 'mood')}
+                          className={`${BUTTON_CLASSES.category} ${
+                            expandedPreset === 'mood' ? STYLES.expanded : STYLES.collapsed
+                          }`}
+                          aria-expanded={expandedPreset === 'mood'}
+                        >
+                          Moods
+                          <ChevronRight className={`h-3 w-3 transition-transform ${expandedPreset === 'mood' ? 'rotate-90' : ''}`} />
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setExpandedPreset(expandedPreset === 'style' ? null : 'style')}
+                          className={`${BUTTON_CLASSES.category} ${
+                            expandedPreset === 'style' ? STYLES.expanded : STYLES.collapsed
+                          }`}
+                          aria-expanded={expandedPreset === 'style'}
+                        >
+                          Musical Styles
+                          <ChevronRight className={`h-3 w-3 transition-transform ${expandedPreset === 'style' ? 'rotate-90' : ''}`} />
+                        </button>
+                      </div>
+                      <div className="text-xs text-muted-foreground">
+                        {prompt.length}/200
+                      </div>
                     </div>
+
+                    {expandedPreset === 'theme' && (
+                      <div className="flex flex-wrap gap-2">
+                        {presetsData.themes.map((theme) => (
+                          <button
+                            key={theme}
+                            onClick={() => handlePresetClick('theme', theme)}
+                            className={`inline-flex items-center px-3 py-1.5 rounded-full border border-white/10 text-xs font-semibold transition-all duration-200 ${
+                              selectedTheme === theme
+                                ? 'bg-primary text-primary-foreground'
+                                : 'text-muted-foreground hover:text-foreground hover:bg-muted/50'
+                            }`}
+                            disabled={isGenerating}
+                          >
+                            {theme}
+                          </button>
+                        ))}
+                      </div>
+                    )}
+
+                    {expandedPreset === 'mood' && (
+                      <div className="flex flex-wrap gap-2">
+                        {presetsData.moods.map((mood) => (
+                          <button
+                            key={mood}
+                            onClick={() => handlePresetClick('mood', mood)}
+                            className={`inline-flex items-center px-3 py-1.5 rounded-full border border-white/10 text-xs font-semibold transition-all duration-200 ${
+                              selectedMood === mood
+                                ? 'bg-primary text-primary-foreground'
+                                : 'text-muted-foreground hover:text-foreground hover:bg-muted/50'
+                            }`}
+                            disabled={isGenerating}
+                          >
+                            {mood}
+                          </button>
+                        ))}
+                      </div>
+                    )}
+
+                    {expandedPreset === 'style' && (
+                      <div className="flex flex-wrap gap-2">
+                        {presetsData.styles.map((style) => (
+                          <button
+                            key={style}
+                            onClick={() => handlePresetClick('style', style)}
+                            className={`inline-flex items-center px-3 py-1.5 rounded-full border border-white/10 text-xs font-semibold transition-all duration-200 ${
+                              selectedStyle === style
+                                ? 'bg-primary text-primary-foreground'
+                                : 'text-muted-foreground hover:text-foreground hover:bg-muted/50'
+                            }`}
+                            disabled={isGenerating}
+                          >
+                            {style}
+                          </button>
+                        ))}
+                      </div>
+                    )}
                   </div>
 
-                  {/* Moods */}
-                  <div className="rounded-2xl border border-border/30 bg-background/40 p-4">
-                    <h4 className="text-sm font-semibold text-foreground mb-3">Moods</h4>
-                    <div className="flex flex-wrap gap-2">
-                      {presetsData.moods.map((mood) => (
-                        <button
-                          key={mood}
-                          onClick={() => handlePresetClick('mood', mood)}
-                          className={`px-3 py-1.5 text-xs font-medium rounded-lg transition-all duration-200 ${
-                            selectedMood === mood
-                              ? 'bg-primary text-primary-foreground shadow-lg shadow-primary/20'
-                              : 'bg-muted/40 text-foreground hover:bg-muted/60 border border-white/5'
-                          }`}
-                          disabled={isGenerating}
-                        >
-                          {mood}
-                        </button>
-                      ))}
-                    </div>
-                  </div>
+                  <div className="pt-4 space-y-3">
+                    <Button
+                      onClick={handleGenerateLyrics}
+                      disabled={!prompt.trim() || isGenerating}
+                      className="w-full h-12 bg-gradient-create text-white text-base font-semibold hover:opacity-90 transition-opacity rounded-2xl"
+                      size="lg"
+                    >
+                      {isGenerating ? (
+                        <div className="flex items-center gap-2">
+                          <div className="flex items-center gap-1.5">
+                            <div className="w-2 h-2 bg-white rounded-full animate-bounce" style={{ animationDelay: '0ms' }}></div>
+                            <div className="w-2 h-2 bg-white rounded-full animate-bounce" style={{ animationDelay: '150ms' }}></div>
+                            <div className="w-2 h-2 bg-white rounded-full animate-bounce" style={{ animationDelay: '300ms' }}></div>
+                          </div>
+                          Generating Lyrics...
+                        </div>
+                      ) : (
+                        <div className="flex items-center gap-2">
+                          Generate Lyrics
+                        </div>
+                      )}
+                    </Button>
 
-                  {/* Styles */}
-                  <div className="rounded-2xl border border-border/30 bg-background/40 p-4">
-                    <h4 className="text-sm font-semibold text-foreground mb-3">Musical Styles</h4>
-                    <div className="flex flex-wrap gap-2">
-                      {presetsData.styles.map((style) => (
-                        <button
-                          key={style}
-                          onClick={() => handlePresetClick('style', style)}
-                          className={`px-3 py-1.5 text-xs font-medium rounded-lg transition-all duration-200 ${
-                            selectedStyle === style
-                              ? 'bg-primary text-primary-foreground shadow-lg shadow-primary/20'
-                              : 'bg-muted/40 text-foreground hover:bg-muted/60 border border-white/5'
-                          }`}
-                          disabled={isGenerating}
-                        >
-                          {style}
-                        </button>
-                      ))}
-                    </div>
+                    <p className="text-sm text-muted-foreground text-center">
+                      Estimated time: 30-60 seconds • Cost <span className="text-primary font-medium">{CLIENT_FEATURE_CREDITS.generate_lyrics.credits}</span> <span className="text-primary font-medium">credits</span>
+                    </p>
+
+                    {error && (
+                      <div className="rounded-2xl border border-destructive/30 bg-destructive/10 p-4">
+                        <div className="flex items-center gap-2 text-destructive">
+                          <AlertCircle className="h-5 w-5 flex-shrink-0" />
+                          <p className="text-sm">{error}</p>
+                        </div>
+                      </div>
+                    )}
                   </div>
                 </div>
               </section>
-
-            {/* Action Panel */}
-            <section className="rounded-[32px] border border-border/30 bg-muted/20 backdrop-blur-sm p-6 sm:p-8 flex flex-col gap-5">
-              <div>
-                <p className="text-xs font-semibold text-primary uppercase tracking-widest mb-2">
-                  Start creating
-                </p>
-                <h3 className="text-2xl font-bold text-foreground tracking-tight mb-2">
-                  Generate polished lyrics in one click
-                </h3>
-                <p className="text-sm text-muted-foreground leading-relaxed">
-                  Describe your story, mood, or genre. Our AI writer delivers structured lyrics ready for any project.
-                </p>
-              </div>
-
-              <Button
-                onClick={handleGenerateLyrics}
-                disabled={!prompt.trim() || isGenerating}
-                className="w-full h-12 bg-gradient-create text-white text-base font-semibold hover:opacity-90 transition-opacity rounded-2xl"
-                size="lg"
-              >
-                {isGenerating ? (
-                  <div className="flex items-center gap-2">
-                    <div className="flex items-center gap-1.5">
-                      <div className="w-2 h-2 bg-white rounded-full animate-bounce" style={{ animationDelay: '0ms' }}></div>
-                      <div className="w-2 h-2 bg-white rounded-full animate-bounce" style={{ animationDelay: '150ms' }}></div>
-                      <div className="w-2 h-2 bg-white rounded-full animate-bounce" style={{ animationDelay: '300ms' }}></div>
-                    </div>
-                    Generating Lyrics...
-                  </div>
-                ) : (
-                  <div className="flex items-center gap-2">
-                    <Sparkles className="h-5 w-5" />
-                    Generate Lyrics
-                  </div>
-                )}
-              </Button>
-
-              <div className="rounded-2xl border border-border/20 bg-background/40 p-4">
-                <p className="text-sm font-semibold text-foreground mb-1">
-                  Generation details
-                </p>
-                <p className="text-xs text-muted-foreground">
-                  Estimated time: 30-60 seconds • Cost: {CLIENT_FEATURE_CREDITS.generate_lyrics.credits} credits
-                </p>
-              </div>
-
-              {error && (
-                <div className="rounded-2xl border border-destructive/30 bg-destructive/10 p-4">
-                  <div className="flex items-center gap-2 text-destructive">
-                    <AlertCircle className="h-5 w-5 flex-shrink-0" />
-                    <p className="text-sm">{error}</p>
-                  </div>
-                </div>
-              )}
-            </section>
           </div>
 
           {/* Generated Lyrics Section */}

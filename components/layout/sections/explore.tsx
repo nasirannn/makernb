@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useRef, useState } from "react";
+import React, { useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { Music, Share2 } from "lucide-react";
 import { toast } from "sonner";
@@ -42,22 +42,103 @@ interface ExploreData {
 }
 
 export const ExploreSection = () => {
+  const sectionRef = useRef<HTMLElement | null>(null);
   const [exploreData, setExploreData] = useState<ExploreData | null>(null);
   const [loading, setLoading] = useState(true);
   const [currentlyPlaying, setCurrentlyPlaying] = useState<string | null>(null);
+  const [shouldLoad, setShouldLoad] = useState(false);
+  const [hasRequested, setHasRequested] = useState(false);
 
   const audioPlayer = useAudioPlayer();
   const audioPlayerRef = useRef(audioPlayer);
   const [playlist, setPlaylist] = useState<MusicGeneration[]>([]);
+
+  const fetchExploreData = useCallback(async () => {
+    try {
+      setLoading(true);
+      const response = await fetch("/api/pinned-tracks?limit=8&offset=0");
+      const data = await response.json();
+
+      if (data.success) {
+        const musicGenerations: MusicGeneration[] = data.data.tracks.map((track: any) => ({
+          id: track.id,
+          title: track.title,
+          genre: track.genre,
+          tags: track.tags,
+          prompt: track.prompt,
+          lyrics: null,
+          createdAt: track.createdAt,
+          updatedAt: track.updatedAt,
+          primaryTrack: {
+            id: track.id,
+            audioUrl: track.audioUrl || "",
+            duration: track.duration,
+            coverR2Url: track.coverR2Url || "",
+            playCount: track.playCount ?? 0,
+            artist: track.artist,
+          },
+          allTracks: [
+            {
+              id: track.id,
+              audioUrl: track.audioUrl || "",
+              duration: track.duration,
+              coverR2Url: track.coverR2Url || "",
+              playCount: track.playCount ?? 0,
+              artist: track.artist,
+            },
+          ],
+          totalDuration: track.duration,
+          trackCount: 1,
+        }));
+
+        setExploreData({
+          music: musicGenerations,
+          count: data.data.count,
+          limit: data.data.limit,
+          offset: data.data.offset,
+        });
+        setPlaylist(musicGenerations);
+      }
+    } catch (err) {
+      console.error("Error fetching pinned tracks:", err);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
 
   useEffect(() => {
     audioPlayerRef.current = audioPlayer;
   }, [audioPlayer]);
 
   useEffect(() => {
-    fetchExploreData();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+    if (shouldLoad) return;
+    const element = sectionRef.current;
+    if (!element) return;
+
+    if (typeof IntersectionObserver === "undefined") {
+      setShouldLoad(true);
+      return;
+    }
+
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (entry.isIntersecting) {
+          setShouldLoad(true);
+          observer.disconnect();
+        }
+      },
+      { rootMargin: "200px 0px" }
+    );
+
+    observer.observe(element);
+    return () => observer.disconnect();
+  }, [shouldLoad]);
+
+  useEffect(() => {
+    if (!shouldLoad || hasRequested) return;
+    setHasRequested(true);
+    void fetchExploreData();
+  }, [shouldLoad, hasRequested, fetchExploreData]);
 
   useEffect(() => {
     return () => {
@@ -110,59 +191,6 @@ export const ExploreSection = () => {
     } catch (error) {
       console.error("Error copying share link:", error);
       toast("Copy failed", { duration: 2000 });
-    }
-  };
-
-  const fetchExploreData = async () => {
-    try {
-      setLoading(true);
-      const response = await fetch("/api/pinned-tracks?limit=8&offset=0");
-      const data = await response.json();
-
-      if (data.success) {
-        const musicGenerations: MusicGeneration[] = data.data.tracks.map((track: any) => ({
-          id: track.id,
-          title: track.title,
-          genre: track.genre,
-          tags: track.tags,
-          prompt: track.prompt,
-          lyrics: null,
-          createdAt: track.createdAt,
-          updatedAt: track.updatedAt,
-          primaryTrack: {
-            id: track.id,
-            audioUrl: track.audioUrl || "",
-            duration: track.duration,
-            coverR2Url: track.coverR2Url || "",
-            playCount: track.playCount ?? 0,
-            artist: track.artist,
-          },
-          allTracks: [
-            {
-              id: track.id,
-              audioUrl: track.audioUrl || "",
-              duration: track.duration,
-              coverR2Url: track.coverR2Url || "",
-              playCount: track.playCount ?? 0,
-              artist: track.artist,
-            },
-          ],
-          totalDuration: track.duration,
-          trackCount: 1,
-        }));
-
-        setExploreData({
-          music: musicGenerations,
-          count: data.data.count,
-          limit: data.data.limit,
-          offset: data.data.offset,
-        });
-        setPlaylist(musicGenerations);
-      }
-    } catch (err) {
-      console.error("Error fetching pinned tracks:", err);
-    } finally {
-      setLoading(false);
     }
   };
 
@@ -290,7 +318,7 @@ export const ExploreSection = () => {
   );
 
   return (
-    <section id="explore" className="py-20">
+    <section id="explore" className="py-20" ref={sectionRef}>
       <div className="container">
         <div className="text-center mb-16">
           <h2 className="text-lg text-primary text-center mb-2 tracking-wider">Explore</h2>
@@ -303,7 +331,7 @@ export const ExploreSection = () => {
         </div>
 
         <div className="max-w-7xl mx-auto">
-          {loading ? (
+          {shouldLoad && loading ? (
             <div className="-mx-4 mb-10 overflow-x-auto px-4 pb-2 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
               <div className="flex w-max gap-12 snap-x snap-mandatory">
                 {Array.from({ length: 4 }).map((_, colIndex) => (
@@ -318,7 +346,7 @@ export const ExploreSection = () => {
                 ))}
               </div>
             </div>
-          ) : exploreData && exploreData.music.length > 0 ? (
+          ) : shouldLoad && exploreData && exploreData.music.length > 0 ? (
             <div className="-mx-4 mb-10 overflow-x-auto px-4 pb-2 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
               <div className="flex w-max gap-12 snap-x snap-mandatory">
                 {chunk(exploreData.music, 2).map((column, colIndex) => (
@@ -409,14 +437,14 @@ export const ExploreSection = () => {
                 ))}
               </div>
             </div>
-          ) : (
+          ) : shouldLoad ? (
             <div className="text-center py-12">
               <Music className="w-16 h-16 text-muted-foreground/30 mx-auto mb-4" />
               <p className="text-muted-foreground text-lg">No music available yet</p>
             </div>
-          )}
+          ) : null}
 
-	          {!loading && exploreData && exploreData.music.length > 0 && (
+	          {shouldLoad && !loading && exploreData && exploreData.music.length > 0 && (
 	            <div className="flex justify-center">
 	              <Link
 	                href="/explore"
