@@ -77,11 +77,18 @@ export const FooterSection = () => {
               className="inline-flex items-center justify-center rounded-2xl px-3 py-2"
             >
               <Image
+                src="https://api.producthunt.com/widgets/embed-image/v1/featured.svg?post_id=1026584&theme=light&t=1768827078984"
+                alt="MakeRNB - Create authentic R&B tracks with AI, instantly | Product Hunt"
+                width={250}
+                height={54}
+                className="block w-[220px] h-[48px] dark:hidden"
+              />
+              <Image
                 src="https://api.producthunt.com/widgets/embed-image/v1/featured.svg?post_id=1026584&theme=dark&t=1760448580929"
                 alt="MakeRNB - Create authentic R&B tracks with AI, instantly | Product Hunt"
                 width={250}
                 height={54}
-                className="w-[220px] h-[48px]"
+                className="hidden w-[220px] h-[48px] dark:block"
               />
             </a>
             <a
@@ -116,6 +123,27 @@ export const FooterSection = () => {
                 src="https://fazier.com/api/v1//public/badges/launch_badges.svg?badge_type=launched&theme=light"
                 width="120"
                 alt="Fazier badge"
+              />
+            </a>
+            <a
+              href="https://open-launch.com/projects/makernb"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center justify-center rounded-2xl px-2 py-2"
+            >
+              <img
+                src="https://open-launch.com/api/badge/a65b5aca-78a6-4d8b-960e-5de6ee455816/featured-light.svg"
+                alt="Featured on Open-Launch"
+                width="200"
+                height="50"
+                className="block dark:hidden"
+              />
+              <img
+                src="https://open-launch.com/api/badge/a65b5aca-78a6-4d8b-960e-5de6ee455816/featured-dark.svg"
+                alt="Featured on Open-Launch"
+                width="200"
+                height="50"
+                className="hidden dark:block"
               />
             </a>
           </div>
