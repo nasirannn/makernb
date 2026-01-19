@@ -209,7 +209,7 @@ export function PricingModal() {
 
                   <div className="mt-6">
                     <div className="inline-flex items-center rounded-full bg-foreground/5 px-3 py-1.5 text-xs font-semibold text-foreground/70 dark:bg-white/10 dark:text-foreground/80">
-                      {`15 credits/day (approx. ${freeApproxSongs} songs)`}
+                      {`15 credits/day`}
                     </div>
                   </div>
 
