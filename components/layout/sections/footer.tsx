@@ -69,20 +69,44 @@ export const FooterSection = () => {
             &copy; 2025 MakeRNB. All rights reserved.
           </p>
 
-          <a
-            href="https://www.producthunt.com/products/makernb?embed=true&utm_source=badge-featured&utm_medium=badge&utm_source=badge-makernb"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="inline-flex items-center justify-center rounded-2xl px-3 py-2"
-          >
-            <Image
-              src="https://api.producthunt.com/widgets/embed-image/v1/featured.svg?post_id=1026584&theme=dark&t=1760448580929"
-              alt="MakeRNB - Create authentic R&B tracks with AI, instantly | Product Hunt"
-              width={250}
-              height={54}
-              className="w-[220px] h-[48px]"
-            />
-          </a>
+          <div className="flex flex-wrap items-center gap-4">
+            <a
+              href="https://www.producthunt.com/products/makernb?embed=true&utm_source=badge-featured&utm_medium=badge&utm_source=badge-makernb"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center justify-center rounded-2xl px-3 py-2"
+            >
+              <Image
+                src="https://api.producthunt.com/widgets/embed-image/v1/featured.svg?post_id=1026584&theme=dark&t=1760448580929"
+                alt="MakeRNB - Create authentic R&B tracks with AI, instantly | Product Hunt"
+                width={250}
+                height={54}
+                className="w-[220px] h-[48px]"
+              />
+            </a>
+            <a
+              href="https://startupfa.st"
+              target="_blank"
+              rel="noopener noreferrer"
+              title="Powered by Startup Fast"
+              className="inline-flex items-center justify-center rounded-2xl px-2 py-2"
+            >
+              <img
+                src="https://startupfa.st/images/badges/powered-by-light.svg"
+                alt="Powered by Startup Fast"
+                width="150"
+                height="44"
+                className="block dark:hidden"
+              />
+              <img
+                src="https://startupfa.st/images/badges/powered-by-dark.svg"
+                alt="Powered by Startup Fast"
+                width="150"
+                height="44"
+                className="hidden dark:block"
+              />
+            </a>
+          </div>
         </div>
       </div>
     </footer>
