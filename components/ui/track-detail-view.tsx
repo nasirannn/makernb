@@ -187,7 +187,9 @@ export const TrackDetailView: React.FC<TrackDetailViewProps> = ({
   }, [trackInfo?.id]);
 
   const tagsArray = useMemo(() => {
-    return trackInfo?.tags ? trackInfo.tags.split(/[,，]/).map((tag: string) => tag.trim()).filter(Boolean) : [];
+    return trackInfo?.tags
+      ? trackInfo.tags.split(/[,，;；]/).map((tag: string) => tag.trim()).filter(Boolean)
+      : [];
   }, [trackInfo?.tags]);
 
   const canDownloadTrack = hasPermission("download_mp3_track") || hasPermission("download_wav_track");
@@ -441,7 +443,7 @@ export const TrackDetailView: React.FC<TrackDetailViewProps> = ({
                 {tagsArray.slice(0, 10).map((tag, index) => (
                   <span
                     key={`${tag}-${index}`}
-                    className="app-card-muted rounded-full px-3 py-1 text-sm font-medium tracking-tight text-foreground/75"
+                    className="rounded-full px-3 py-1 text-sm font-medium tracking-tight text-foreground/80 bg-foreground/10 dark:bg-white/10"
                   >
                     {tag}
                   </span>
