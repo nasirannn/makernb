@@ -10,15 +10,14 @@ import Image from "next/image";
 import Link from "next/link";
 import { useAuth } from '@/contexts/AuthContext';
 import { useCredits } from '@/contexts/CreditsContext';
+import { useSubscription } from "@/contexts/SubscriptionContext";
 import AuthModal from '@/components/ui/auth-modal';
 import { EditNicknameDialog } from "@/components/ui/edit-nickname-dialog";
-import { supabase } from '@/lib/supabase';
 
 import { Tooltip } from '@/components/ui/tooltip';
 import { ThemeModeToggle } from "@/components/ui/theme-mode-toggle";
 import { SubscriptionBadge } from "@/components/ui/subscription-badge";
 import { cn } from "@/lib/utils";
-import { normalizeTierCode, type SubscriptionTier } from "@/lib/subscription-tier";
 import { getZIndexClass } from "@/lib/z-index";
 
 interface CommonSidebarProps {
@@ -46,6 +45,7 @@ export const CommonSidebar = ({
   const router = useRouter();
   const { user, signOut } = useAuth();
   const { credits, refreshCredits } = useCredits();
+  const { tierCode } = useSubscription();
 
   // 判断是否选中某个路径
   const isActive = (path: string) => {
@@ -58,7 +58,6 @@ export const CommonSidebar = ({
   const [dropdownTimeout, setDropdownTimeout] = React.useState<NodeJS.Timeout | null>(null);
   const [isRefreshingCredits, setIsRefreshingCredits] = React.useState(false);
   const [isExpanded, setIsExpanded] = React.useState(false);
-  const [tierCode, setTierCode] = React.useState<SubscriptionTier | null>(null);
   const [isNicknameDialogOpen, setIsNicknameDialogOpen] = React.useState(false);
   const mobileNavRef = React.useRef<HTMLDivElement | null>(null);
   const displayName = user?.user_metadata?.nickname || user?.user_metadata?.full_name || user?.user_metadata?.name || user?.email?.split('@')[0] || '';
@@ -234,50 +233,6 @@ const aiMusicToolsDropdown = [
       console.error('Error signing out:', error);
     }
   };
-
-  // 获取用户订阅信息
-  React.useEffect(() => {
-    const fetchUserSubscription = async () => {
-      if (!user) {
-        setTierCode(null);
-        return;
-      }
-
-      try {
-        const { data: { session }, error: sessionError } = await supabase.auth.getSession();
-
-        if (sessionError || !session?.access_token) {
-          setTierCode(null);
-          return;
-        }
-
-        const response = await fetch('/api/user-subscription', {
-          method: 'GET',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${session.access_token}`,
-          },
-        });
-
-        if (response.ok) {
-          const data = await response.json();
-          setTierCode(normalizeTierCode(data.tierCode));
-        } else {
-          setTierCode(null);
-        }
-      } catch (error) {
-        console.error('Failed to fetch user subscription:', error);
-        setTierCode(null);
-      }
-    };
-
-    // 延迟获取，确保session已准备好
-    const timer = setTimeout(() => {
-      fetchUserSubscription();
-    }, 1000);
-
-    return () => clearTimeout(timer);
-  }, [user]);
 
   // 动态测量移动端底部导航高度，设置 CSS 变量 --mobile-nav-height
   React.useEffect(() => {

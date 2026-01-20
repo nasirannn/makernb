@@ -230,7 +230,9 @@ export const MusicPlayer: React.FC<MusicPlayerProps> = React.memo(function Music
       ref={rootRef}
       className={cn(
         "app-card relative rounded-3xl px-3 py-2 md:px-4 md:py-2",
-        "shadow-[0_18px_60px_rgba(0,0,0,0.16)] backdrop-blur-xl"
+        "bg-white/90 dark:bg-[rgba(20,22,32,0.92)]",
+        "shadow-[0_18px_60px_rgba(0,0,0,0.16)] dark:shadow-[0_24px_70px_rgba(0,0,0,0.55)]",
+        "dark:ring-1 dark:ring-white/10 backdrop-blur-xl"
       )}
     >
       <div className="grid grid-cols-[auto,1fr,auto] items-center gap-3">

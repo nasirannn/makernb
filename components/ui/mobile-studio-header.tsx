@@ -6,8 +6,7 @@ import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { Sparkles, LogOut, LogIn } from "lucide-react";
-import { supabase } from '@/lib/supabase';
-import { normalizeTierCode, type SubscriptionTier } from "@/lib/subscription-tier";
+import { useSubscription } from "@/contexts/SubscriptionContext";
 import { SubscriptionBadge } from "@/components/ui/subscription-badge";
 
 interface MobileStudioHeaderProps {
@@ -31,52 +30,8 @@ export const MobileStudioHeader = React.memo(({
   setIsAuthModalOpen,
   signOut,
 }: MobileStudioHeaderProps) => {
-  const [tierCode, setTierCode] = React.useState<SubscriptionTier | null>(null);
+  const { tierCode } = useSubscription();
   const displayName = user?.user_metadata?.nickname || user?.user_metadata?.full_name || user?.user_metadata?.name || user?.email?.split('@')[0] || '';
-
-  // 获取用户订阅信息
-  React.useEffect(() => {
-    const fetchUserSubscription = async () => {
-      if (!user) {
-        setTierCode(null);
-        return;
-      }
-
-      try {
-        const { data: { session }, error: sessionError } = await supabase.auth.getSession();
-
-        if (sessionError || !session?.access_token) {
-          setTierCode(null);
-          return;
-        }
-
-        const response = await fetch('/api/user-subscription', {
-          method: 'GET',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${session.access_token}`,
-          },
-        });
-
-        if (response.ok) {
-          const data = await response.json();
-          setTierCode(normalizeTierCode(data.tierCode));
-        } else {
-          setTierCode(null);
-        }
-      } catch (error) {
-        console.error('Failed to fetch user subscription:', error);
-        setTierCode(null);
-      }
-    };
-
-    // 延迟获取，确保session已准备好
-    const timer = setTimeout(() => {
-      fetchUserSubscription();
-    }, 1000);
-
-    return () => clearTimeout(timer);
-  }, [user]);
 
   return (
     <div className="app-card-muted app-hairline flex-shrink-0 px-6 py-4 border-0 border-b border-black/10">

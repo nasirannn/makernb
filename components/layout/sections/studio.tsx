@@ -1750,6 +1750,7 @@ const StudioContent = () => {
                         {...studioPanelProps}
                         panelOpen={panelOpen}
                         setPanelOpen={setPanelOpen}
+                        hasPlayer={!!player.currentTrack}
                     />
                 </div>
 
@@ -1861,22 +1862,18 @@ const StudioContent = () => {
 	                    </div>
 	                </div>
 
-                    {player.currentTrack && (
-                        <div
-                            className="fixed md:absolute left-3 right-3 md:left-0 md:right-[var(--studio-player-right)] bottom-[calc(var(--mobile-nav-height,0px)+0.75rem)] md:bottom-0 z-[90] pointer-events-auto"
-                            style={{
-                                // Keep the player inside the main content column (tracks + optional lyrics panel)
-                                // so it aligns to the track list card and never covers the StudioPanel create button.
-                                ['--studio-player-right' as any]: showInlinePanel ? 'calc(20rem + 1rem)' : '0px',
-                            }}
-                        >
-	                            <div className="md:pb-4">
-	                                <MusicPlayer {...musicPlayerProps} />
-	                            </div>
-	                        </div>
-	                    )}
-
 	            </div>
+
+                {player.currentTrack && (
+                    <div
+                        className="fixed md:absolute left-3 right-3 md:left-4 md:right-[calc(var(--studio-player-right)+1rem)] bottom-[calc(var(--mobile-nav-height,0px)+0.75rem)] md:bottom-4 z-[90] pointer-events-auto"
+                        style={{
+                            ['--studio-player-right' as any]: showInlinePanel ? 'calc(20rem + 1rem)' : '0px',
+                        }}
+                    >
+                        <MusicPlayer {...musicPlayerProps} />
+                    </div>
+                )}
 
                 <MobileCreateDrawer
                     isOpen={mobileCreateOpen}

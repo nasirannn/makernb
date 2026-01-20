@@ -11,6 +11,7 @@ import { Music, RotateCcw, ChevronRight, Wand2, Play, CreditCard, UploadCloud, X
 import musicOptions from '@/data/music-options.json';
 import { useAuth } from '@/contexts/AuthContext';
 import { useCredits } from '@/contexts/CreditsContext';
+import { useSubscription } from "@/contexts/SubscriptionContext";
 import { toast } from 'sonner';
 import { Tooltip } from '@/components/ui/tooltip';
 import Image from 'next/image';
@@ -40,6 +41,7 @@ const { genres, vibes, grooveTypes, leadInstruments, drumKits, bassTones, vocalG
 interface StudioPanelProps {
   panelOpen: boolean;
   setPanelOpen: (open: boolean) => void;
+  hasPlayer?: boolean;
   
   // Music generation states
   mode: "simple" | "custom";
@@ -106,6 +108,7 @@ export const StudioPanel = (props: StudioPanelProps) => {
   const {
     panelOpen,
     forceVisibleOnMobile = false,
+    hasPlayer = false,
     setIsAuthModalOpen,
     mode,
     setMode,
@@ -216,54 +219,11 @@ export const StudioPanel = (props: StudioPanelProps) => {
     userSelectedModelRef.current = false;
   }, [user?.id]);
 
-  // Check if user has subscription (Basic or Premium tier)
-  const [hasSubscription, setHasSubscription] = React.useState(false);
-  const [isCheckingSubscription, setIsCheckingSubscription] = React.useState(false);
+  const { hasSubscription } = useSubscription();
 
   // Pricing dialog state
   const [isPricingOpen, setIsPricingOpen] = React.useState(false);
   const [isModelMenuOpen, setIsModelMenuOpen] = React.useState(false);
-
-  // Check subscription status
-  React.useEffect(() => {
-    const checkSubscription = async () => {
-      if (!user?.id) {
-        setHasSubscription(false);
-        return;
-      }
-
-      setIsCheckingSubscription(true);
-      try {
-        const { data: { session } } = await supabase.auth.getSession();
-        if (!session?.access_token) {
-          setHasSubscription(false);
-          return;
-        }
-
-        const response = await fetch('/api/user-subscription', {
-          headers: {
-            Authorization: `Bearer ${session.access_token}`,
-          },
-        });
-
-        if (response.ok) {
-          const data = await response.json();
-          // API 返回 tierCode: 'starter' | 'hobby' | null
-          const hasActive = data.tierCode !== null;
-          setHasSubscription(hasActive);
-        } else {
-          setHasSubscription(false);
-        }
-      } catch (error) {
-        console.error('Error checking subscription:', error);
-        setHasSubscription(false);
-      } finally {
-        setIsCheckingSubscription(false);
-      }
-    };
-
-    checkSubscription();
-  }, [user?.id, selectedModel]);
 
   // State for managing expanded categories
   const [expandedCategory, setExpandedCategory] = React.useState<string | null>(null);
@@ -1375,10 +1335,17 @@ export const StudioPanel = (props: StudioPanelProps) => {
   );
 
   return (
-    <div className={`app-card rounded-[28px] transition-all duration-300 ease-in-out ${
-      // 桌面：左侧固定宽度；移动端：当 forceVisibleOnMobile=true 时占满宽度
-      panelOpen ? (forceVisibleOnMobile ? 'w-full md:w-[28rem]' : 'w-[28rem]') : 'w-0'
-    } ${forceVisibleOnMobile ? 'flex flex-col' : 'h-full flex flex-col overflow-hidden'} ${forceVisibleOnMobile ? 'flex md:flex' : 'hidden md:flex'}`}>
+    <div
+      className={`app-card rounded-[28px] transition-all duration-300 ease-in-out ${
+        // 桌面：左侧固定宽度；移动端：当 forceVisibleOnMobile=true 时占满宽度
+        panelOpen ? (forceVisibleOnMobile ? 'w-full md:w-[28rem]' : 'w-[28rem]') : 'w-0'
+      } ${forceVisibleOnMobile ? 'flex flex-col' : 'h-full flex flex-col overflow-hidden'} ${forceVisibleOnMobile ? 'flex md:flex' : 'hidden md:flex'}`}
+      style={
+        hasPlayer && !forceVisibleOnMobile
+          ? { height: 'calc(100% - var(--player-height, 0px) - 1rem)' }
+          : undefined
+      }
+    >
       {panelOpen && (
         <>
           {/* Header with Mode Tabs */}
@@ -1476,7 +1443,9 @@ export const StudioPanel = (props: StudioPanelProps) => {
           </div>
 
           {/* Main Content */}
-          <div className={`flex-1 ${forceVisibleOnMobile ? '' : 'overflow-y-auto'} px-4 md:px-6 ${forceVisibleOnMobile ? 'pb-20' : 'pb-6'} md:pb-6`}>
+          <div
+            className={`flex-1 ${forceVisibleOnMobile ? '' : 'overflow-y-auto'} px-4 md:px-6 ${forceVisibleOnMobile ? 'pb-20' : 'pb-6'} md:pb-6`}
+          >
             <input
               ref={uploadFileInputRef}
               type="file"
@@ -1510,7 +1479,7 @@ export const StudioPanel = (props: StudioPanelProps) => {
                 <div className="space-y-3">
                   <div className="relative">
                     <Textarea
-                      placeholder={`Describe your song idea (max ${simplePromptMaxLength} characters). Use the quick tags below to add genre, vibe, tempo, and instruments.`}
+                      placeholder={`Describe your song idea`}
                       value={simplePrompt}
                       onChange={(e) => setSimplePrompt(e.target.value)}
                       maxLength={simplePromptMaxLength}

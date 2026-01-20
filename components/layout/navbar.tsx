@@ -7,14 +7,13 @@ import Link from "next/link";
 import Image from "next/image";
 import { usePathname, useSearchParams } from "next/navigation";
 import { useAuth } from "@/contexts/AuthContext";
+import { useSubscription } from "@/contexts/SubscriptionContext";
 import AuthModal from "../ui/auth-modal";
 import { LogOut } from "lucide-react";
 import { getZIndexClass } from "@/lib/z-index";
-import { supabase } from "@/lib/supabase";
 import { EditNicknameDialog } from "@/components/ui/edit-nickname-dialog";
 import { ThemeModeToggle } from "@/components/ui/theme-mode-toggle";
 import { SubscriptionBadge } from "@/components/ui/subscription-badge";
-import { normalizeTierCode, type SubscriptionTier } from "@/lib/subscription-tier";
 
 interface RouteProps {
   href: string;
@@ -75,11 +74,11 @@ export const Navbar = ({ credits = null }: NavbarProps) => {
   const [isNicknameDialogOpen, setIsNicknameDialogOpen] = React.useState(false);
   const [isDropdownOpen, setIsDropdownOpen] = React.useState(false);
   const [dropdownTimeout, setDropdownTimeout] = React.useState<NodeJS.Timeout | null>(null);
-  const [tierCode, setTierCode] = React.useState<SubscriptionTier | null>(null);
   const pathname = usePathname();
   const searchParams = useSearchParams();
   const isHome = pathname === "/";
   const { user, signOut, loading: authLoading } = useAuth();
+  const { tierCode } = useSubscription();
   const displayName = user?.user_metadata?.nickname || user?.user_metadata?.full_name || user?.user_metadata?.name || user?.email?.split('@')[0] || '';
 
   // 处理 Pricing 链接的跳转和滚动
@@ -190,50 +189,6 @@ export const Navbar = ({ credits = null }: NavbarProps) => {
       }
     };
   }, [dropdownTimeout]);
-
-  // 获取用户订阅信息
-  React.useEffect(() => {
-    const fetchUserSubscription = async () => {
-      if (!user) {
-        setTierCode(null);
-        return;
-      }
-
-      try {
-        const { data: { session }, error: sessionError } = await supabase.auth.getSession();
-
-        if (sessionError || !session?.access_token) {
-          setTierCode(null);
-          return;
-        }
-
-        const response = await fetch('/api/user-subscription', {
-          method: 'GET',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${session.access_token}`,
-          },
-        });
-
-        if (response.ok) {
-          const data = await response.json();
-          setTierCode(normalizeTierCode(data.tierCode));
-        } else {
-          setTierCode(null);
-        }
-      } catch (error) {
-        console.error('Failed to fetch user subscription:', error);
-        setTierCode(null);
-      }
-    };
-
-    // 延迟获取，确保session已准备好
-    const timer = setTimeout(() => {
-      fetchUserSubscription();
-    }, 1000);
-
-    return () => clearTimeout(timer);
-  }, [user]);
 
   return (
     <header 

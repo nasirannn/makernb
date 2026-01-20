@@ -7,6 +7,7 @@ import { NavbarWrapper } from "@/components/layout/navbar-wrapper";
 import { AuthProvider } from "@/contexts/AuthContext";
 import { CreditsProvider } from "@/contexts/CreditsContext";
 import { FeaturePermissionsProvider } from "@/contexts/FeaturePermissionsContext";
+import { SubscriptionProvider } from "@/contexts/SubscriptionContext";
 import { PricingModalProvider } from "@/contexts/PricingModalContext";
 import { PricingModal } from "@/components/ui/pricing-modal";
 import { Toaster } from "@/components/ui/sonner";
@@ -68,24 +69,26 @@ export default function RootLayout({
 
         <AuthProvider>
           <CreditsProvider>
-            <FeaturePermissionsProvider>
-              <PricingModalProvider>
-                <ThemeProvider>
-                  <Suspense fallback={null}>
-                    <NavbarWrapper />
-                  </Suspense>
+            <SubscriptionProvider>
+              <FeaturePermissionsProvider>
+                <PricingModalProvider>
+                  <ThemeProvider>
+                    <Suspense fallback={null}>
+                      <NavbarWrapper />
+                    </Suspense>
 
-                  {children}
-                  
-                  <PricingModal />
-                  
-                  <Toaster
-                    position="top-right"
-                    expand={false}
-                  />
-                </ThemeProvider>
-              </PricingModalProvider>
-            </FeaturePermissionsProvider>
+                    {children}
+                    
+                    <PricingModal />
+                    
+                    <Toaster
+                      position="top-right"
+                      expand={false}
+                    />
+                  </ThemeProvider>
+                </PricingModalProvider>
+              </FeaturePermissionsProvider>
+            </SubscriptionProvider>
           </CreditsProvider>
         </AuthProvider>
       </body>
