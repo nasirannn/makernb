@@ -44,7 +44,7 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import AuthModal from "@/components/ui/auth-modal";
 import { LoadingDots } from "@/components/ui/loading-dots";
-import { CheckCircle, Star, Music, Wand2, ChevronLeft } from "lucide-react";
+import { Music, Wand2, ChevronLeft } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 import { toast } from "sonner";
 
@@ -95,9 +95,7 @@ const StudioContent = () => {
     
     // 🎯 使用 ref 保存 audioPlayer 的最新引用，创建稳定的访问接口
     const audioPlayerRef = React.useRef(audioPlayer);
-    React.useEffect(() => {
-        audioPlayerRef.current = audioPlayer;
-    }, [audioPlayer]);
+    audioPlayerRef.current = audioPlayer;
     
     // 🎯 创建稳定的播放器访问接口 - 统一使用 ref，避免依赖项问题
     const player = React.useMemo(() => ({
@@ -1199,13 +1197,11 @@ const StudioContent = () => {
 
             // 显示toast提示
             if (data.isFavorited) {
-                toast('Added to favorites!', {
-                    icon: <Star className="h-4 w-4 text-red-500 fill-current" />,
+                toast.success('Added to favorites!', {
                     description: `"${music.title}" has been added to library.`
                 });
             } else {
-                toast('Removed from favorites', {
-                    icon: <Star className="h-4 w-4 text-gray-500" />,
+                toast.success('Removed from favorites', {
                     description: `"${music.title}" has been removed from library.`
                 });
             }
@@ -1245,9 +1241,7 @@ const StudioContent = () => {
                 });
             }
 
-            toast('Title updated successfully', {
-                icon: <CheckCircle className="h-4 w-4 text-green-500" />,
-            });
+            toast.success('Title updated successfully');
         } catch (error) {
             console.error('Error updating title:', error);
             toast.error('Failed to update title');
@@ -1301,9 +1295,7 @@ const StudioContent = () => {
                 });
             }
 
-            toast('Music info updated successfully', {
-                icon: <CheckCircle className="h-4 w-4 text-green-500" />,
-            });
+            toast.success('Music info updated successfully');
         } catch (error) {
             console.error('Error updating music info:', error);
             toast.error(error instanceof Error ? error.message : 'Failed to update music info');
@@ -1330,7 +1322,7 @@ const StudioContent = () => {
             
             setUserTracks(updatedUserTracks);
 
-            toast('Track deleted successfully');
+            toast.success('Track deleted successfully');
         } catch (error) {
             console.error('Error deleting track:', error);
             toast.error('Failed to delete track');
@@ -1721,9 +1713,7 @@ const StudioContent = () => {
                     setSelectedStudioTrack(null);
                 }
 
-                toast('Track deleted successfully', {
-                    icon: <CheckCircle className="h-4 w-4 text-green-500" />
-                });
+                toast.success('Track deleted successfully');
             } else {
                 toast(data.error || 'Failed to delete track');
             }
@@ -1866,7 +1856,7 @@ const StudioContent = () => {
 
                 {player.currentTrack && (
                     <div
-                        className="fixed md:absolute left-3 right-3 md:left-4 md:right-[calc(var(--studio-player-right)+1rem)] bottom-[calc(var(--mobile-nav-height,0px)+0.75rem)] md:bottom-4 z-[90] pointer-events-auto"
+                        className="fixed md:absolute left-3 right-3 md:left-4 md:right-[calc(var(--studio-player-right)+1rem)] bottom-[calc(var(--mobile-nav-height,0px)+0.75rem)] md:bottom-4 z-[45] pointer-events-auto"
                         style={{
                             ['--studio-player-right' as any]: showInlinePanel ? 'calc(20rem + 1rem)' : '0px',
                         }}

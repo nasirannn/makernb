@@ -83,12 +83,18 @@ export const TrackDetailView: React.FC<TrackDetailViewProps> = ({
     seek,
     setVolume,
     toggleMute,
+    clearCurrentTrack,
   } = useAudioPlayer();
   const { user } = useAuth();
   const { openModal: openPricingModal } = usePricingModal();
   const { hasPermission } = useFeaturePermissions();
 
   // Removed handleBack function entirely
+  useEffect(() => {
+    return () => {
+      clearCurrentTrack();
+    };
+  }, [clearCurrentTrack]);
 
   useEffect(() => {
     if (trackData) {

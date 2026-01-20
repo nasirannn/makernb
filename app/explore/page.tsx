@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { Button } from '@/components/ui/button';
-import { Play, Pause, Music, Clock, Share2, CheckCircle } from 'lucide-react';
+import { Play, Pause, Music, Clock, Share2 } from 'lucide-react';
 import { SafeImage } from '@/components/ui/safe-image';
 import { MusicPlayer } from '@/components/ui/music-player';
 import { CustomAudioWaveIndicator } from '@/components/ui/audio-wave-indicator';
@@ -182,9 +182,8 @@ export default function ExplorePage() {
       if (!trackId) return;
       const shareUrl = `${window.location.origin}/track/${trackId}`;
       await navigator.clipboard.writeText(shareUrl);
-      toast('Link copied', {
+      toast.success('Link copied', {
         duration: 1500,
-        icon: <CheckCircle className="h-4 w-4 text-green-500" />,
       });
     } catch (error) {
       console.error("Error copying share link:", error);

@@ -15,7 +15,6 @@ import { LibraryPanel } from "@/components/ui/library-panel";
 import { MusicPlayer } from "@/components/ui/music-player";
 import { InlineTrackDetailsPanel } from "@/components/ui/inline-track-details";
 import AuthModal from "@/components/ui/auth-modal";
-import { Star } from "lucide-react";
 import { toast } from "sonner";
 
 interface LibraryInlineTrackDetails {
@@ -71,9 +70,7 @@ const LibraryContent = () => {
 
     // ==================== 播放器稳定引用 ====================
     const audioPlayerRef = React.useRef(audioPlayer);
-    React.useEffect(() => {
-        audioPlayerRef.current = audioPlayer;
-    }, [audioPlayer]);
+    audioPlayerRef.current = audioPlayer;
 
     React.useEffect(() => {
         return () => {
@@ -318,13 +315,11 @@ const LibraryContent = () => {
 
             // 显示toast提示
             if (isFavorited) {
-                toast('Added to favorites!', {
-                    icon: <Star className="h-4 w-4 text-red-500 fill-current" />,
+                toast.success('Added to favorites!', {
                     description: `"${track.title}" has been added to library.`
                 });
             } else {
-                toast('Removed from favorites', {
-                    icon: <Star className="h-4 w-4 text-gray-500" />,
+                toast.success('Removed from favorites', {
                     description: `"${track.title}" has been removed from library.`
                 });
                 

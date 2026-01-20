@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { CheckCircle, Copy, Loader2, RefreshCw, UserRound } from "lucide-react";
+import { Copy, Loader2, RefreshCw, UserRound } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 
 interface EditNicknameDialogProps {
@@ -53,7 +53,7 @@ export function EditNicknameDialog({ open, onOpenChange, initialValue = "" }: Ed
     setSaving(true);
     try {
       await updateNickname(trimmedNickname);
-      toast("Nickname updated.", { icon: <CheckCircle className="h-4 w-4 text-green-500" /> });
+      toast.success("Nickname updated.");
       onOpenChange(false);
     } catch (err) {
       console.error("Failed to update nickname:", err);

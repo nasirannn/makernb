@@ -16,7 +16,6 @@ import {
   Trash2,
   Send,
   Share2,
-  CheckCircle,
   XCircle,
   ArrowDown,
   Search,
@@ -377,7 +376,6 @@ export const LibraryPanel = ({
           toast.success('Download started!', {
             id: downloadToast,
             description: `${track.title || 'cover'}.png`,
-            icon: <ArrowDown className="h-4 w-4 text-blue-500" />
           });
         } catch (error) {
           console.error('Cover download error:', error);
@@ -442,7 +440,6 @@ export const LibraryPanel = ({
       toast.success('Download started!', {
         id: downloadToast,
         description: `${track.title}.${format}`,
-        icon: <ArrowDown className="h-4 w-4 text-blue-500" />
       });
     } catch (error) {
       console.error('Download error:', error);
@@ -552,7 +549,6 @@ export const LibraryPanel = ({
               toast.success('Download started!', {
                 id: downloadToast,
                 description: `${track.title}.wav`,
-                icon: <ArrowDown className="h-4 w-4 text-blue-500" />
               });
             } else {
               throw new Error(data.error || 'Download failed');
@@ -564,7 +560,6 @@ export const LibraryPanel = ({
             toast.success('Download started!', {
               id: downloadToast,
               description: `${track.title}.wav`,
-              icon: <ArrowDown className="h-4 w-4 text-blue-500" />
             });
           }
         } else {
@@ -636,9 +631,7 @@ export const LibraryPanel = ({
       if (response.ok && result.success) {
         // 通知父组件更新发布状态
         onTrackAction?.(trackToPublish, 'publish_toggle');
-        toast(result.message, {
-          icon: <CheckCircle className="h-4 w-4 text-green-500" />
-        });
+        toast.success(result.message);
       } else {
         toast(result.error || 'Failed to toggle publication', {
           icon: <XCircle className="h-4 w-4 text-red-500" />
@@ -696,9 +689,7 @@ export const LibraryPanel = ({
           });
         }
         
-        toast('Track deleted successfully', {
-          icon: <CheckCircle className="h-4 w-4 text-green-500" />
-        });
+        toast.success('Track deleted successfully');
       } else {
         toast(data.error || 'Failed to delete track');
       }
@@ -781,9 +772,7 @@ export const LibraryPanel = ({
 
       onTrackAction?.(updatedTrack as LibraryTrack, 'update');
 
-      toast('Track info updated successfully', {
-        icon: <CheckCircle className="h-4 w-4 text-green-500" />
-      });
+      toast.success('Track info updated successfully');
 
       setEditDialogOpen(false);
       setTrackToEdit(null);

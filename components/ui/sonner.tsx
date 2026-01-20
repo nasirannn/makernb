@@ -2,6 +2,7 @@
 
 import { useTheme } from "next-themes"
 import { Toaster as Sonner } from "sonner"
+import { CheckCircle } from "lucide-react"
 
 type ToasterProps = React.ComponentProps<typeof Sonner>
 
@@ -14,6 +15,9 @@ const Toaster = ({ ...props }: ToasterProps) => {
       className="toaster"
       position="top-right"
       duration={3000}
+      icons={{
+        success: <CheckCircle className="h-4 w-4 text-green-500" />,
+      }}
       toastOptions={{
         classNames: {
           toast: "bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 border border-gray-200 dark:border-gray-700 rounded-lg shadow-lg backdrop-blur-sm",

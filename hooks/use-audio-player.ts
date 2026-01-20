@@ -228,9 +228,9 @@ export const useAudioPlayer = () => {
         if (prev.currentTrack?.id === data.trackId) {
           
           
-          // 停止播放
+          // 停止播放并清理当前曲目
           if (audioService.current) {
-            audioService.current.pause();
+            audioService.current.clearCurrentTrack();
           }
           
           // 清空播放器状态

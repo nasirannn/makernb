@@ -4,7 +4,6 @@ import React, { useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { Music, Share2 } from "lucide-react";
 import { toast } from "sonner";
-import { CheckCircle } from "lucide-react";
 import { SafeImage } from "@/components/ui/safe-image";
 import { Skeleton } from "@/components/ui/skeleton";
 import { MusicPlayer } from "@/components/ui/music-player";
@@ -184,9 +183,8 @@ export const ExploreSection = () => {
       if (!trackId) return;
       const shareUrl = `${window.location.origin}/track/${trackId}`;
       await navigator.clipboard.writeText(shareUrl);
-      toast("Link copied", {
+      toast.success("Link copied", {
         duration: 1500,
-        icon: <CheckCircle className="h-4 w-4 text-green-500" />,
       });
     } catch (error) {
       console.error("Error copying share link:", error);
