@@ -1329,6 +1329,7 @@ export const LibraryPanel = ({
         onSave={handleEditSave}
         initialTitle={trackToEdit?.title || ''}
         initialCoverImage={trackToEdit?.coverR2Url || trackToEdit?.coverImage || undefined}
+        trackId={trackToEdit?.id}
       />
 
       {/* Mobile Bottom Sheet Menu */}

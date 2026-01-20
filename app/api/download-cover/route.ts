@@ -22,28 +22,30 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    // 检查是否具备下载封面的功能权限
-    const hasCoverPermission = await hasFeaturePermission(userId, 'download_cover_track');
-    
-    if (!hasCoverPermission) {
-      return NextResponse.json(
-        {
-          error: 'Feature not available',
-          message: 'Cover download is not included in your current subscription plan.'
-        },
-        { status: 403 }
-      );
-    }
-
     // 获取 trackId 参数
     const searchParams = request.nextUrl.searchParams;
     const trackId = searchParams.get('trackId');
+    const purpose = searchParams.get('purpose');
 
     if (!trackId) {
       return NextResponse.json(
         { error: 'Track ID is required' },
         { status: 400 }
       );
+    }
+
+    if (purpose !== 'edit') {
+      const hasCoverPermission = await hasFeaturePermission(userId, 'download_cover_track');
+
+      if (!hasCoverPermission) {
+        return NextResponse.json(
+          {
+            error: 'Feature not available',
+            message: 'Cover download is not included in your current subscription plan.'
+          },
+          { status: 403 }
+        );
+      }
     }
 
     // 查询 track 信息，获取封面 URL

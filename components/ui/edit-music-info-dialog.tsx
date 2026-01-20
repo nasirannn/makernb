@@ -10,8 +10,11 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
-import { Upload, X } from "lucide-react";
-import Image from "next/image";
+import { Trash2, Upload } from "lucide-react";
+import NextImage from "next/image";
+import { Slider } from "@/components/ui/slider";
+import { toast } from "sonner";
+import { supabase } from "@/lib/supabase";
 
 interface EditMusicInfoDialogProps {
   isOpen: boolean;
@@ -19,6 +22,7 @@ interface EditMusicInfoDialogProps {
   onSave: (data: { title: string; coverImageUrl?: string }) => Promise<void>;
   initialTitle: string;
   initialCoverImage?: string;
+  trackId?: string;
 }
 
 export const EditMusicInfoDialog: React.FC<EditMusicInfoDialogProps> = ({
@@ -27,6 +31,7 @@ export const EditMusicInfoDialog: React.FC<EditMusicInfoDialogProps> = ({
   onSave,
   initialTitle,
   initialCoverImage,
+  trackId,
 }) => {
   const [title, setTitle] = useState(initialTitle);
   const [coverImage, setCoverImage] = useState<string | undefined>(initialCoverImage);
@@ -34,6 +39,7 @@ export const EditMusicInfoDialog: React.FC<EditMusicInfoDialogProps> = ({
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [isDragging, setIsDragging] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
+  const [coverScale, setCoverScale] = useState<number[]>([100]);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Reset state when dialog opens
@@ -43,6 +49,7 @@ export const EditMusicInfoDialog: React.FC<EditMusicInfoDialogProps> = ({
       setCoverImage(initialCoverImage);
       setCoverImageFile(null);
       setPreviewUrl(null);
+      setCoverScale([100]);
     }
   }, [isOpen, initialTitle, initialCoverImage]);
 
@@ -73,6 +80,78 @@ export const EditMusicInfoDialog: React.FC<EditMusicInfoDialogProps> = ({
     setPreviewUrl(url);
   }, []);
 
+  const loadImageFromBlob = (blob: Blob) =>
+    new Promise<HTMLImageElement>((resolve, reject) => {
+      const url = URL.createObjectURL(blob);
+      const img = new window.Image();
+      img.onload = () => {
+        URL.revokeObjectURL(url);
+        resolve(img);
+      };
+      img.onerror = (error) => {
+        URL.revokeObjectURL(url);
+        reject(error);
+      };
+      img.src = url;
+    });
+
+  const resolveCoverBlob = useCallback(
+    async (src: string) => {
+      const isRemote = src.startsWith('http');
+      if (isRemote && trackId) {
+        const { data: { session } } = await supabase.auth.getSession();
+        const authToken = session?.access_token;
+        const proxyResponse = await fetch(
+          `/api/download-cover?trackId=${encodeURIComponent(trackId)}&purpose=edit`,
+          authToken
+            ? {
+                headers: {
+                  Authorization: `Bearer ${authToken}`,
+                },
+              }
+            : undefined
+        );
+        if (proxyResponse.ok) {
+          return proxyResponse.blob();
+        }
+      }
+
+      const response = await fetch(src);
+      if (!response.ok) {
+        throw new Error('Failed to fetch cover image.');
+      }
+      return response.blob();
+    },
+    [trackId]
+  );
+
+  const buildScaledCoverDataUrl = useCallback(async (src: string, scale: number) => {
+    const blob = await resolveCoverBlob(src);
+    const image = await loadImageFromBlob(blob);
+    const targetSize = Math.min(1024, Math.min(image.width, image.height));
+
+    const canvas = document.createElement('canvas');
+    canvas.width = targetSize;
+    canvas.height = targetSize;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) {
+      throw new Error('Canvas is not supported in this browser.');
+    }
+
+    ctx.imageSmoothingEnabled = true;
+    ctx.imageSmoothingQuality = 'high';
+
+    const baseCoverScale = Math.max(targetSize / image.width, targetSize / image.height);
+    const scaledCover = baseCoverScale * (scale / 100);
+    const drawWidth = image.width * scaledCover;
+    const drawHeight = image.height * scaledCover;
+    const offsetX = (targetSize - drawWidth) / 2;
+    const offsetY = (targetSize - drawHeight) / 2;
+    ctx.drawImage(image, offsetX, offsetY, drawWidth, drawHeight);
+
+    return canvas.toDataURL('image/png');
+  }, [resolveCoverBlob]);
+
   const handleFileInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
@@ -97,6 +176,7 @@ export const EditMusicInfoDialog: React.FC<EditMusicInfoDialogProps> = ({
     setCoverImageFile(null);
     setPreviewUrl(null);
     setCoverImage(undefined);
+    setCoverScale([100]);
     if (fileInputRef.current) {
       fileInputRef.current.value = '';
     }
@@ -111,26 +191,16 @@ export const EditMusicInfoDialog: React.FC<EditMusicInfoDialogProps> = ({
     try {
       let coverImageUrl: string | undefined = undefined;
 
-      if (coverImageFile) {
-        const reader = new FileReader();
-        reader.onloadend = async () => {
-          const dataUrl = reader.result as string;
-          await onSave({ title: title.trim(), coverImageUrl: dataUrl });
-          setIsSaving(false);
-        };
-        reader.onerror = () => {
-          alert('Failed to read image file');
-          setIsSaving(false);
-        };
-        reader.readAsDataURL(coverImageFile);
-        return;
-      } else if (coverImage !== initialCoverImage) {
+      if (!displayImage && coverImage !== initialCoverImage) {
         coverImageUrl = '';
+      } else if (displayImage && (coverImageFile || coverScale[0] !== 100)) {
+        coverImageUrl = await buildScaledCoverDataUrl(displayImage, coverScale[0]);
       }
 
       await onSave({ title: title.trim(), coverImageUrl });
     } catch (error) {
       console.error('Error saving music info:', error);
+      toast.error('Failed to update music info. Please try again.');
     } finally {
       setIsSaving(false);
     }
@@ -169,7 +239,7 @@ export const EditMusicInfoDialog: React.FC<EditMusicInfoDialogProps> = ({
           </div>
         </DialogHeader>
 
-        <div className="flex-1 overflow-y-auto space-y-3 pt-3 pb-3 px-5">
+        <div className="flex-1 overflow-y-auto p-6 pt-0">
           <div className="space-y-3">
             <div className="space-y-1">
               <label htmlFor="title" className="text-sm text-muted-foreground">
@@ -193,46 +263,62 @@ export const EditMusicInfoDialog: React.FC<EditMusicInfoDialogProps> = ({
             </div>
 
             <div className="space-y-1">
-              <label className="text-sm text-muted-foreground">
+              <label className="text-sm text-muted-foreground block text-left">
                 Cover Image
               </label>
               <div
-                className={`relative border-2 border-dashed rounded-lg transition-colors ${isDragging
-                    ? 'border-primary bg-primary/5'
-                    : 'border-border hover:border-primary/50'
-                  }`}
+                className={`rounded-2xl bg-muted/40 p-3 transition-colors ${
+                  isDragging ? 'bg-primary/5' : 'hover:bg-muted/50'
+                }`}
                 onDrop={handleDrop}
               >
-                <div className="relative w-full max-w-64 aspect-square rounded-lg overflow-hidden bg-muted mx-auto">
-                  {displayImage ? (
-                    <Image
-                      src={displayImage}
-                      alt="Cover preview"
-                      fill
-                      className="object-cover"
-                    />
-                  ) : (
-                    <div
-                      className="absolute inset-0 flex flex-col items-center justify-center p-8 cursor-pointer"
-                      onClick={() => fileInputRef.current?.click()}
-                    >
-                      <Upload className="h-8 w-8 text-muted-foreground mb-2" />
-                      <p className="text-sm text-center text-foreground font-medium mb-1">
-                        Drag and drop or click to upload your Image
-                      </p>
-                      <p className="text-xs text-center text-muted-foreground">
-                        Supported formats: JPG, JPEG, PNG; Maximum size per file: 10MB.
-                      </p>
-                    </div>
-                  )}
+                <div className="flex items-center gap-3">
+                  <div className="relative w-full max-w-48 shrink-0 aspect-square rounded-lg overflow-hidden">
+                    {displayImage ? (
+                      <NextImage
+                        src={displayImage}
+                        alt="Cover preview"
+                        fill
+                        className="object-cover origin-center transition-transform duration-200"
+                        style={{ transform: `scale(${coverScale[0] / 100})` }}
+                      />
+                    ) : (
+                      <div
+                        className="absolute inset-0 flex flex-col items-center justify-center p-8 cursor-pointer"
+                        onClick={() => fileInputRef.current?.click()}
+                      >
+                        <Upload className="h-8 w-8 text-muted-foreground mb-2" />
+                        <p className="text-sm text-center text-foreground font-medium mb-1">
+                          Drag and drop or click to upload your Image
+                        </p>
+                        <p className="text-xs text-center text-muted-foreground">
+                          Supported formats: JPG, JPEG, PNG; Maximum size per file: 10MB.
+                        </p>
+                      </div>
+                    )}
+                  </div>
                   {displayImage && (
-                    <button
-                      onClick={handleRemoveImage}
-                      className="absolute top-2 right-2 p-1.5 rounded-full bg-background/80 hover:bg-background border border-border shadow-sm focus:outline-none focus-visible:outline-none focus-visible:ring-0 focus-visible:ring-offset-0"
-                      type="button"
-                    >
-                      <X className="h-4 w-4" />
-                    </button>
+                    <div className="flex flex-1 items-center gap-3">
+                      <div className="flex flex-1 items-center gap-3 rounded-full bg-muted/60 px-4 py-2">
+                        <span className="text-xs font-medium text-foreground/80">Size</span>
+                        <Slider
+                          value={coverScale}
+                          onValueChange={setCoverScale}
+                          min={100}
+                          max={140}
+                          step={1}
+                          className="flex-1"
+                        />
+                      </div>
+                      <button
+                        onClick={handleRemoveImage}
+                        className="h-9 w-9 shrink-0 rounded-full text-muted-foreground hover:bg-accent hover:text-accent-foreground focus:outline-none focus-visible:outline-none focus-visible:ring-0 focus-visible:ring-offset-0"
+                        type="button"
+                        aria-label="Remove cover image"
+                      >
+                        <Trash2 className="h-4 w-4 mx-auto" />
+                      </button>
+                    </div>
                   )}
                 </div>
               </div>
@@ -247,8 +333,8 @@ export const EditMusicInfoDialog: React.FC<EditMusicInfoDialogProps> = ({
           </div>
         </div>
 
-        <DialogFooter className="flex-shrink-0 pb-4">
-          <div className="w-full px-5"> {/* 与表单区域相同的左右 padding */}
+        <DialogFooter className="flex-shrink-0 p-6 pt-0">
+          <div className="w-full">
             <button
               onClick={handleSave}
               disabled={!title.trim() || isSaving}

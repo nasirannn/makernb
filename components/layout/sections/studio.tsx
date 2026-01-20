@@ -1245,7 +1245,9 @@ const StudioContent = () => {
                 });
             }
 
-            toast('Title updated successfully');
+            toast('Title updated successfully', {
+                icon: <CheckCircle className="h-4 w-4 text-green-500" />,
+            });
         } catch (error) {
             console.error('Error updating title:', error);
             toast.error('Failed to update title');
@@ -1299,7 +1301,9 @@ const StudioContent = () => {
                 });
             }
 
-            toast('Music info updated successfully');
+            toast('Music info updated successfully', {
+                icon: <CheckCircle className="h-4 w-4 text-green-500" />,
+            });
         } catch (error) {
             console.error('Error updating music info:', error);
             toast.error(error instanceof Error ? error.message : 'Failed to update music info');

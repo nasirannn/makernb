@@ -371,6 +371,7 @@ export const TrackActionButtons: React.FC<TrackActionButtonsProps> = ({
             onSave={handleSaveMusicInfo}
             initialTitle={track.title || ''}
             initialCoverImage={track.coverImage || track.coverR2Url}
+            trackId={track.id}
           />
         )}
       </div>
@@ -609,6 +610,7 @@ export const TrackActionButtons: React.FC<TrackActionButtonsProps> = ({
           onSave={handleSaveMusicInfo}
           initialTitle={track.title || ''}
           initialCoverImage={track.coverImage || track.coverR2Url}
+          trackId={track.id}
         />
       )}
     </div>

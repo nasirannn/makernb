@@ -457,6 +457,9 @@ const aiMusicToolsDropdown = [
                             </div>
                           </div>
                         </div>
+                        <span className="mt-1 text-[10px] font-medium text-foreground/45">
+                          Credits
+                        </span>
                       </div>
                     </div>
                   )}
