@@ -103,7 +103,7 @@ export const UploadProgressDialog = ({
     <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
       <DialogContent className="max-w-[calc(100vw-2rem)] sm:max-w-[640px] max-h-[85vh] flex flex-col p-0 border border-border/60 bg-background shadow-xl">
         <div className="pointer-events-none absolute inset-x-0 top-0 h-24 bg-gradient-to-b from-primary/15 via-primary/5 to-transparent" />
-        <DialogHeader className="relative px-6 pt-5 pb-4 border-b border-border/40">
+        <DialogHeader className="relative px-6 pt-5 pb-4">
           <div className="text-[10px] uppercase tracking-[0.28em] text-muted-foreground">
             Upload Audio
           </div>
@@ -142,7 +142,7 @@ export const UploadProgressDialog = ({
           ) : (
             <>
               <div className="rounded-2xl p-[1px] bg-gradient-to-br from-primary/40 via-border/50 to-primary/10">
-                <div className="relative overflow-hidden rounded-2xl bg-muted/20 p-3 shadow-sm">
+                <div className="relative overflow-hidden rounded-2xl bg-white/85 dark:bg-muted/20 p-3 shadow-sm ring-1 ring-black/5 dark:ring-white/10">
                   {isUploading && <div className="upload-progress-sheen absolute inset-0" />}
                   <div className="flex items-center gap-4">
                     <button

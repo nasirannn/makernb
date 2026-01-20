@@ -27,7 +27,7 @@ export const GenerationConfirmDialog = React.memo(({
   return (
     <AlertDialog open={isOpen} onOpenChange={onClose}>
       <AlertDialogContent className="max-w-[calc(100vw-2rem)] sm:max-w-[420px] p-0 border border-border/60 bg-background shadow-xl">
-        <AlertDialogHeader className="px-6 pt-6 pb-4 border-b border-border/40">
+        <AlertDialogHeader className="px-6 pt-6 pb-4">
           <div className="flex items-center gap-2 mb-2">
             <div className="w-2 h-2 bg-primary rounded-full animate-pulse"></div>
             <div className="w-2 h-2 bg-primary/70 rounded-full animate-pulse" style={{ animationDelay: '0.3s' }}></div>
@@ -37,7 +37,7 @@ export const GenerationConfirmDialog = React.memo(({
             Music Generation Started
           </AlertDialogTitle>
           <AlertDialogDescription className="text-sm text-muted-foreground mt-1">
-            Your music is being generated. You can preview it in about 30 seconds.
+            Your music is being generated. You can preview it in about 30 ~ 60 seconds.
           </AlertDialogDescription>
         </AlertDialogHeader>
 

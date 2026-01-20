@@ -11,6 +11,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { WaveformPlayer, WaveformPlayerHandle } from "@/components/ui/waveform-player";
 import { Play, Pause, X } from "lucide-react";
+import { useTheme } from "next-themes";
 
 interface EditAudioDialogProps {
   isOpen: boolean;
@@ -23,9 +24,12 @@ interface EditAudioDialogProps {
   onSave: (file: File, duration: number, title: string) => void | Promise<void>;
 }
 
-const PRIMARY_WAVE_COLOR = "rgba(255, 255, 255, 0.35)";
-const PRIMARY_PROGRESS_COLOR = "rgb(255, 255, 255)";
-const PRIMARY_CURSOR_COLOR = "rgb(255, 255, 255)";
+const PRIMARY_WAVE_COLOR_DARK = "rgba(255, 255, 255, 0.35)";
+const PRIMARY_PROGRESS_COLOR_DARK = "rgb(255, 255, 255)";
+const PRIMARY_CURSOR_COLOR_DARK = "rgb(255, 255, 255)";
+const PRIMARY_WAVE_COLOR_LIGHT = "#d1d5db";
+const PRIMARY_PROGRESS_COLOR_LIGHT = "hsl(262, 100%, 70%)";
+const PRIMARY_CURSOR_COLOR_LIGHT = "hsl(262, 100%, 70%)";
 
 const formatClockTime = (seconds: number) => {
   if (!Number.isFinite(seconds) || seconds < 0) {
@@ -125,6 +129,8 @@ export const EditAudioDialog = ({
   modelLabel,
   onSave,
 }: EditAudioDialogProps) => {
+  const { resolvedTheme } = useTheme();
+  const isDark = resolvedTheme === "dark";
   const [isPlaying, setIsPlaying] = React.useState(false);
   const [currentTime, setCurrentTime] = React.useState(0);
   const [duration, setDuration] = React.useState(0);
@@ -141,9 +147,15 @@ export const EditAudioDialog = ({
   const durationEpsilon = 0.05;
   const activeError = error || durationError;
   const hasError = Boolean(activeError);
-  const waveColor = hasError ? "rgba(239, 68, 68, 0.4)" : PRIMARY_WAVE_COLOR;
-  const progressColor = hasError ? "rgb(239, 68, 68)" : PRIMARY_PROGRESS_COLOR;
-  const cursorColor = hasError ? "rgb(239, 68, 68)" : PRIMARY_CURSOR_COLOR;
+  const waveColor = hasError
+    ? "rgba(239, 68, 68, 0.4)"
+    : (isDark ? PRIMARY_WAVE_COLOR_DARK : PRIMARY_WAVE_COLOR_LIGHT);
+  const progressColor = hasError
+    ? "rgb(239, 68, 68)"
+    : (isDark ? PRIMARY_PROGRESS_COLOR_DARK : PRIMARY_PROGRESS_COLOR_LIGHT);
+  const cursorColor = hasError
+    ? "rgb(239, 68, 68)"
+    : (isDark ? PRIMARY_CURSOR_COLOR_DARK : PRIMARY_CURSOR_COLOR_LIGHT);
   const [flashSelector, setFlashSelector] = React.useState(false);
   const selectorColor = flashSelector ? "rgb(239, 68, 68)" : undefined;
 
@@ -280,7 +292,7 @@ export const EditAudioDialog = ({
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
       <DialogContent className="max-w-[calc(100vw-2rem)] sm:max-w-[620px] max-h-[82vh] flex flex-col p-0 border border-border/60 bg-background shadow-xl">
-        <DialogHeader className="flex-shrink-0 px-6 pt-5 pb-3 border-b border-border/40 text-left relative overflow-hidden">
+        <DialogHeader className="flex-shrink-0 px-6 pt-5 pb-3 text-left relative overflow-hidden">
           <div className="pointer-events-none absolute inset-0 bg-gradient-to-r from-primary/10 via-transparent to-primary/10" />
           <div className="flex items-center justify-between pr-8">
             <div className="relative">
