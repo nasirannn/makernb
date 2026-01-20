@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { FeaturePermissionsProvider } from "@/contexts/FeaturePermissionsContext";
 
 export const metadata: Metadata = {
   title: "Payment Successful | MakeRNB",
@@ -13,5 +14,9 @@ export default function PaymentSuccessLayout({
 }: {
   children: React.ReactNode;
 }) {
-  return children;
+  return (
+    <FeaturePermissionsProvider>
+      {children}
+    </FeaturePermissionsProvider>
+  );
 }
