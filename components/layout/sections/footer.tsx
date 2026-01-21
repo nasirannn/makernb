@@ -179,6 +179,27 @@ export const FooterSection = () => {
               />
             </a>
             <a
+              href="https://frogdr.com/makernb.com?utm_source=makernb.com"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center justify-center rounded-2xl px-2 py-2"
+            >
+              <Image
+                src="https://frogdr.com/makernb.com/badge-light.svg?badge=1"
+                alt="Monitor your Domain Rating with FrogDR"
+                width={250}
+                height={54}
+                className="block dark:hidden"
+              />
+              <Image
+                src="https://frogdr.com/makernb.com/badge-dark.svg?badge=1"
+                alt="Monitor your Domain Rating with FrogDR"
+                width={250}
+                height={54}
+                className="hidden dark:block"
+              />
+            </a>
+            <a
               href="https://fazier.com/launches/makernb.com"
               target="_blank"
               rel="noopener noreferrer"

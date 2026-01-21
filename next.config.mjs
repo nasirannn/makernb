@@ -86,6 +86,10 @@ const nextConfig = {
       },
       {
         protocol: "https",
+        hostname: "frogdr.com",
+      },
+      {
+        protocol: "https",
         hostname: "makernb-assets.nasirann.com",
       },
       {
