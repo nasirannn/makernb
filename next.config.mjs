@@ -78,6 +78,10 @@ const nextConfig = {
       },
       {
         protocol: "https",
+        hostname: "twelve.tools",
+      },
+      {
+        protocol: "https",
         hostname: "makernb-assets.nasirann.com",
       },
       {
