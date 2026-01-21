@@ -64,10 +64,12 @@ export const FooterSection = () => {
 
         <Separator className="my-8" />
 
-        <div className="flex flex-col gap-6 sm:flex-row sm:items-center sm:justify-between">
-          <p className="text-xs text-muted-foreground">
+        <div className="flex flex-col gap-4">
+          <div className="text-xs text-muted-foreground text-center">
             &copy; 2025 MakeRNB. All rights reserved.
-          </p>
+          </div>
+
+          <Separator />
 
           <div className="flex flex-wrap items-center gap-4">
             <a
@@ -150,6 +152,27 @@ export const FooterSection = () => {
               <Image
                 src="https://twelve.tools/badge0-dark.svg"
                 alt="Featured on Twelve Tools"
+                width={200}
+                height={54}
+                className="hidden dark:block"
+              />
+            </a>
+            <a
+              href="https://wired.business"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center justify-center rounded-2xl px-2 py-2"
+            >
+              <Image
+                src="https://wired.business/badge0-light.svg"
+                alt="Featured on Wired Business"
+                width={200}
+                height={54}
+                className="block dark:hidden"
+              />
+              <Image
+                src="https://wired.business/badge0-dark.svg"
+                alt="Featured on Wired Business"
                 width={200}
                 height={54}
                 className="hidden dark:block"

@@ -82,6 +82,10 @@ const nextConfig = {
       },
       {
         protocol: "https",
+        hostname: "wired.business",
+      },
+      {
+        protocol: "https",
         hostname: "makernb-assets.nasirann.com",
       },
       {
