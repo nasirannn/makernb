@@ -66,6 +66,10 @@ const nextConfig = {
       },
       {
         protocol: "https",
+        hostname: "startupfa.me",
+      },
+      {
+        protocol: "https",
         hostname: "fazier.com",
       },
       {
