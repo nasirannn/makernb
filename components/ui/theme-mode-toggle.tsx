@@ -26,7 +26,7 @@ export function ThemeModeToggle({
       type="button"
       onClick={() => setTheme(isDark ? "light" : "dark")}
       className={cn(
-        "app-card-muted inline-flex items-center justify-center rounded-full text-foreground/70 hover:text-foreground hover:bg-foreground/5 transition-colors",
+        "inline-flex items-center justify-center rounded-full bg-transparent text-foreground/70 hover:text-foreground hover:bg-foreground/5 transition-colors",
         btnSize,
         className
       )}

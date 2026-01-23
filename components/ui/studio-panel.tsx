@@ -1225,7 +1225,7 @@ export const StudioPanel = (props: StudioPanelProps) => {
                 handleUpdateStatesFromTextarea(newValue);
               }}
               maxLength={styleTextMaxLength}
-              className="min-h-[180px] md:min-h-[200px] resize-none pr-16 pb-6 border border-border focus-visible:ring-0 focus-visible:ring-offset-0"
+              className="min-h-[180px] md:min-h-[200px] resize-none pr-16 pb-6 border-0 bg-background focus-visible:ring-0 focus-visible:ring-offset-0"
             />
             <div className="absolute bottom-2 right-3 text-xs text-muted-foreground">
               {styleText.length}/{styleTextMaxLength}
@@ -1483,7 +1483,7 @@ export const StudioPanel = (props: StudioPanelProps) => {
                       value={simplePrompt}
                       onChange={(e) => setSimplePrompt(e.target.value)}
                       maxLength={simplePromptMaxLength}
-                      className="min-h-[180px] md:min-h-[200px] resize-none pr-16 pb-4 border-0 bg-transparent focus-visible:ring-0 focus-visible:ring-offset-0"
+                      className="min-h-[180px] md:min-h-[200px] resize-none pr-16 pb-4 border-0 bg-background focus-visible:ring-0 focus-visible:ring-offset-0"
                     />
                   </div>
                   {renderStyleQuickButtons(
@@ -1543,30 +1543,27 @@ export const StudioPanel = (props: StudioPanelProps) => {
       ) : (
         <>
           {/* Custom Mode Content - 流式布局 */}
-          <div className="pt-2 md:pt-3">
-            <div className="mb-4 md:mb-5">
-              <section>
-                {uploadCoverFile ? (
-                  uploadAudioPreview
-                ) : (
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    className="studio-panel-card h-12 w-full justify-center rounded-2xl text-foreground/75 hover:text-foreground hover:bg-foreground/10 transition-colors"
-                    title="Add audio"
-                    onClick={handlePromptAddAudioClick}
-                  >
-                    <UploadCloud className="h-4 w-4" />
-                    <span className="text-sm font-semibold tracking-tight">Add Audio</span>
-                  </Button>
-                )}
-              </section>
-            </div>
+          <div className="space-y-5 md:space-y-6 pt-2 md:pt-3">
+            <section>
+              {uploadCoverFile ? (
+                uploadAudioPreview
+              ) : (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="studio-panel-card h-12 w-full justify-center rounded-2xl text-foreground/75 hover:text-foreground hover:bg-foreground/10 transition-colors"
+                  title="Add audio"
+                  onClick={handlePromptAddAudioClick}
+                >
+                  <UploadCloud className="h-4 w-4" />
+                  <span className="text-sm font-semibold tracking-tight">Add Audio</span>
+                </Button>
+              )}
+            </section>
 
-            <div className="space-y-5 md:space-y-6">
             {/* Lyrics Section */}
             {!instrumentalMode ? (
-            <section>
+              <section>
                 <div className="studio-panel-card rounded-2xl p-3">
                   <div className="flex items-center justify-between mb-3 md:mb-4">
                     <h3 className="text-lg font-semibold tracking-tight flex items-center gap-2">
@@ -1589,7 +1586,7 @@ export const StudioPanel = (props: StudioPanelProps) => {
                         value={customLyrics}
                         onChange={(e) => setCustomLyrics(e.target.value)}
                         maxLength={customPromptMaxLength}
-                      className="min-h-[136px] md:min-h-[160px] resize-none pl-4 pt-3 pr-16 pb-6 border border-border focus-visible:ring-0 focus-visible:ring-offset-0"
+                      className="min-h-[136px] md:min-h-[160px] resize-none pl-4 pt-3 pr-16 pb-6 border-0 bg-background focus-visible:ring-0 focus-visible:ring-offset-0"
                       />
                       {/* Character count - Inside textarea, bottom right */}
                       <div className="absolute bottom-2 right-2 text-xs text-muted-foreground bg-background/80 px-2 py-1 rounded">
@@ -1619,40 +1616,6 @@ export const StudioPanel = (props: StudioPanelProps) => {
                     </div>
                   </div>
                 </div>
-                
-                {/* Vocal Gender Section - Only show when not in instrumental mode */}
-                {!instrumentalMode && (
-                  <div className="mt-4">
-                    <div className="flex items-center justify-between studio-panel-card rounded-2xl p-3">
-                      <Label className="text-sm font-medium text-foreground">Vocal Gender</Label>
-                      <div className="flex gap-2">
-                        <button
-                          onClick={() => setVocalGender('random')}
-                          className={`px-4 py-2 rounded-full text-sm font-medium transition-colors ${
-                            vocalGender === 'random'
-                              ? 'bg-white text-primary hover:bg-white/90'
-                              : 'bg-muted/30 text-muted-foreground hover:bg-muted/50 hover:text-foreground'
-                          }`}
-                        >
-                          Random
-                        </button>
-                        {vocalGenders.map((gender: any) => (
-                          <button
-                            key={gender.id}
-                            onClick={() => setVocalGender(gender.id)}
-                            className={`px-4 py-2 rounded-full text-sm font-medium transition-colors ${
-                              vocalGender === gender.id
-                                ? 'bg-white text-primary hover:bg-white/90'
-                                : 'bg-muted/30 text-muted-foreground hover:bg-muted/50 hover:text-foreground'
-                            }`}
-                          >
-                            {gender.name}
-                          </button>
-                        ))}
-                      </div>
-                    </div>
-                  </div>
-                )}
               </section>
             ) : (
               /* Instrumental Mode Status Display */
@@ -1682,6 +1645,40 @@ export const StudioPanel = (props: StudioPanelProps) => {
               </section>
             )}
 
+            {/* Vocal Gender Section - Only show when not in instrumental mode */}
+            {!instrumentalMode && (
+              <section>
+                <div className="studio-panel-card rounded-2xl p-3 flex items-center justify-between">
+                  <Label className="text-sm font-medium text-foreground">Vocal Gender</Label>
+                  <div className="flex gap-2">
+                    <button
+                      onClick={() => setVocalGender('random')}
+                      className={`px-4 py-2 rounded-full text-sm font-medium transition-colors ${
+                        vocalGender === 'random'
+                          ? 'bg-white text-primary hover:bg-white/90'
+                          : 'bg-muted/30 text-muted-foreground hover:bg-muted/50 hover:text-foreground'
+                      }`}
+                    >
+                      Random
+                    </button>
+                    {vocalGenders.map((gender: any) => (
+                      <button
+                        key={gender.id}
+                        onClick={() => setVocalGender(gender.id)}
+                        className={`px-4 py-2 rounded-full text-sm font-medium transition-colors ${
+                          vocalGender === gender.id
+                            ? 'bg-white text-primary hover:bg-white/90'
+                            : 'bg-muted/30 text-muted-foreground hover:bg-muted/50 hover:text-foreground'
+                        }`}
+                      >
+                        {gender.name}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              </section>
+            )}
+
             {styleSection}
 
             {/* Song Title Section */}
@@ -1697,7 +1694,7 @@ export const StudioPanel = (props: StudioPanelProps) => {
                       value={songTitle}
                       onChange={(e) => setSongTitle(e.target.value)}
                       maxLength={80}
-                      className="pr-16 h-12 text-base border border-border focus-visible:ring-0 focus-visible:ring-offset-0"
+                      className="pr-16 h-12 text-base border-0 bg-background focus-visible:ring-0 focus-visible:ring-offset-0"
                     />
                     <div className="absolute top-1/2 right-2 transform -translate-y-1/2 text-xs text-muted-foreground bg-background/80 px-2 py-1 rounded">
                       {songTitle.length}/80
@@ -1706,7 +1703,6 @@ export const StudioPanel = (props: StudioPanelProps) => {
                 </div>
               </div>
             </section>
-          </div>
           </div>
         </>
       )}

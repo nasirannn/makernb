@@ -260,7 +260,7 @@ const aiMusicToolsDropdown = [
         <div className="flex h-full flex-col bg-background/70 backdrop-blur-md shadow-[1px_0_0_rgba(0,0,0,0.06)] dark:shadow-[1px_0_0_rgba(255,255,255,0.08)]">
           <div className="flex h-full flex-col">
             {/* Home Button */}
-            <div className={`flex items-center min-h-[72px] ${isExpanded ? 'px-5 pt-6 pb-4 justify-between' : 'px-2 py-5 justify-center'}`}>
+            <div className={`flex items-center h-[72px] px-4 ${isExpanded ? 'justify-between' : 'justify-center'}`}>
               {isExpanded ? (
                 <>
                   <Link href="/" className="flex items-center gap-3 hover:opacity-90 transition-opacity">
@@ -288,9 +288,21 @@ const aiMusicToolsDropdown = [
                     onClick={toggleSidebar}
                     variant="ghost"
                     size="sm"
-                    className="w-12 h-12 flex items-center justify-center rounded-2xl text-foreground/60 hover:bg-black/5 hover:text-foreground"
+                    className="group relative w-12 h-12 flex items-center justify-center rounded-2xl text-foreground/60 hover:bg-black/5 hover:text-foreground"
                   >
-                    <ChevronRight className="h-5 w-5" />
+                    <span className="absolute inset-0 flex items-center justify-center transition-opacity duration-150 group-hover:opacity-0 group-focus:opacity-0">
+                      <Image
+                        src="/logo.svg"
+                        alt="MakerNB Logo"
+                        width={28}
+                        height={28}
+                        className="h-7 w-7"
+                      />
+                    </span>
+                    <span className="absolute inset-0 flex items-center justify-center opacity-0 transition-opacity duration-150 group-hover:opacity-100 group-focus:opacity-100">
+                      <ChevronRight className="h-5 w-5" />
+                    </span>
+                    <span className="sr-only">Expand sidebar</span>
                   </Button>
                 </Tooltip>
               )}
@@ -363,7 +375,7 @@ const aiMusicToolsDropdown = [
                           handleRefreshCredits();
                         }}
                         disabled={isRefreshingCredits}
-                        className="h-9 w-9 rounded-full app-card-muted text-foreground/70 hover:text-foreground hover:bg-foreground/5 transition-colors"
+                        className="h-9 w-9 rounded-full text-foreground/70 hover:text-foreground hover:bg-foreground/5 transition-colors"
                         aria-label="Refresh credits"
                       >
                         {isRefreshingCredits ? (
@@ -406,7 +418,7 @@ const aiMusicToolsDropdown = [
                           <div className="absolute inset-0 flex items-center justify-center opacity-0 transition-opacity duration-150 group-hover:opacity-100 group-focus-within:opacity-100">
                             <div
                               aria-hidden="true"
-                              className="h-9 w-9 rounded-full app-card-muted text-foreground/70 hover:text-foreground hover:bg-foreground/5 transition-colors flex items-center justify-center"
+                              className="h-9 w-9 rounded-full text-foreground/70 hover:text-foreground hover:bg-foreground/5 transition-colors flex items-center justify-center"
                             >
                               <RefreshCw className={cn("h-4 w-4", isRefreshingCredits ? "animate-spin" : "")} />
                             </div>

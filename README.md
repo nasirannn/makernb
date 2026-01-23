@@ -23,8 +23,10 @@
 
 - Node.js 18+
 - npm or yarn
+- PostgreSQL database (Neon)
 - Supabase account
-- Suno API key from [Kie.ai](https://kie.ai)
+- KIE (Suno) API key from [Kie.ai](https://kie.ai)
+- Cloudflare R2 account (optional)
 
 ### Installation
 
@@ -46,7 +48,7 @@ cp .env.example .env.local
 
 4. **Configure your environment variables in `.env.local`:**
 ```env
-# Database
+# Database (PostgreSQL / Neon)
 DATABASE_URL=your_postgresql_connection_string
 
 # Supabase
@@ -54,21 +56,36 @@ NEXT_PUBLIC_SUPABASE_URL=your_supabase_url
 NEXT_PUBLIC_SUPABASE_ANON_KEY=your_supabase_anon_key
 SUPABASE_SERVICE_ROLE_KEY=your_supabase_service_role_key
 
-# KIE API
+# KIE API (Suno)
 KIE_API_KEY=your_kie_api_key
+KIE_API_BASE_URL=https://api.kie.ai
+CallBackURL=https://yourdomain.com
 
 # R2 Storage (optional)
 R2_ACCOUNT_ID=your_r2_account_id
 R2_ACCESS_KEY_ID=your_r2_access_key_id
 R2_SECRET_ACCESS_KEY=your_r2_secret_access_key
 R2_BUCKET_NAME=your_r2_bucket_name
-R2_PUBLIC_URL=your_r2_public_url
+R2_PUBLIC_DOMAIN=https://your-cdn-domain.com
+
+# Site / SEO (optional)
+NEXT_PUBLIC_BASE_URL=https://yourdomain.com
+INDEXNOW_KEY=your_indexnow_key
+
+# Payments (optional)
+CREEM_API_KEY=your_creem_api_key
+CREEM_WEBHOOK_SECRET=your_creem_webhook_secret
+CREEM_API_BASE_URL=https://api.creem.io
+NEXT_PUBLIC_MONTHLY_BASIC=your_monthly_basic_product_id
+NEXT_PUBLIC_MONTHLY_PREMIUM=your_monthly_premium_product_id
+NEXT_PUBLIC_YEARLY_BASIC=your_yearly_basic_product_id
+NEXT_PUBLIC_YEARLY_PREMIUM=your_yearly_premium_product_id
 ```
 
 5. **Set up the database:**
 ```bash
-# Run the SQL scripts in the sql/ directory
-# Or use the migration script if available
+# Create the required tables in your PostgreSQL instance
+# (schema/migrations are managed outside this repo)
 ```
 
 6. **Start the development server:**
@@ -123,12 +140,7 @@ npm run dev
 
 ```
 ├── app/                    # Next.js App Router
-│   ├── api/               # API routes
-│   │   ├── generate-music/ # Music generation
-│   │   ├── generate-cover/ # Cover generation
-│   │   ├── generate-lyrics/ # Lyrics generation
-│   │   ├── music-status/   # Status checking
-│   │   └── user-music/     # User library
+│   ├── api/               # API routes (music, cover, lyrics, callbacks, billing)
 │   ├── studio/            # Music studio page
 │   ├── explore/           # Community tracks
 │   └── blog/              # Blog posts
@@ -137,9 +149,9 @@ npm run dev
 │   ├── layout/           # Layout components
 │   └── icons/            # Custom icons
 ├── lib/                  # Utilities and services
-│   ├── music-api.ts      # Suno API service
+│   ├── music-api.ts      # KIE/Suno API service
 │   ├── supabase.ts       # Supabase client
-│   ├── neon.ts           # Database connection
+│   ├── db-pool.ts        # Database connection pool (Neon)
 │   └── r2-storage.ts     # File storage
 ├── hooks/                # Custom React hooks
 ├── contexts/             # React contexts
@@ -149,16 +161,17 @@ npm run dev
 
 ## 🔧 API Configuration
 
-### Suno API Setup
+### KIE (Suno) API Setup
 
 1. Sign up at [Kie.ai](https://kie.ai)
 2. Get your API key
 3. Add it to your environment variables
+4. Set `CallBackURL` to your public base URL for callbacks
 
 ### Database Setup
 
-1. Create a PostgreSQL database (Neon recommended)
-2. Run the SQL scripts in the `sql/` directory
+1. Create a PostgreSQL database (Neon)
+2. Apply your schema/migrations (not included in this repo)
 3. Update your `DATABASE_URL` environment variable
 
 ### Supabase Setup
@@ -181,12 +194,8 @@ npm run dev
 
 Make sure to set all required environment variables in your deployment platform:
 
-- `DATABASE_URL`
-- `NEXT_PUBLIC_SUPABASE_URL`
-- `NEXT_PUBLIC_SUPABASE_ANON_KEY`
-- `SUPABASE_SERVICE_ROLE_KEY`
-- `KIE_API_KEY`
-- `R2_*` (if using R2 storage)
+- **Required**: `DATABASE_URL`, `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY`, `KIE_API_KEY`, `CallBackURL`
+- **Optional**: `KIE_API_BASE_URL`, `R2_*`, `NEXT_PUBLIC_BASE_URL`, `INDEXNOW_KEY`, `CREEM_API_KEY`, `CREEM_WEBHOOK_SECRET`, `CREEM_API_BASE_URL`, `NEXT_PUBLIC_MONTHLY_BASIC`, `NEXT_PUBLIC_MONTHLY_PREMIUM`, `NEXT_PUBLIC_YEARLY_BASIC`, `NEXT_PUBLIC_YEARLY_PREMIUM`, `CRON_SECRET`
 
 ## 🎨 Customization
 
@@ -195,7 +204,6 @@ You can customize the application by editing:
 - **Genres & Styles**: `data/music-options.json`
 - **UI Components**: `components/ui/`
 - **API Logic**: `lib/music-api.ts`
-- **Database Schema**: `sql/` directory
 
 ## 📜 Available Scripts
 
@@ -213,7 +221,6 @@ npm run start
 npm run lint
 
 # Physical deletion scripts
-npm run physical-delete          # Preview mode
 npm run physical-delete:preview  # Preview items to be deleted
 npm run physical-delete:db-only  # Delete database records only
 npm run physical-delete:r2-only  # Delete R2 storage files only
