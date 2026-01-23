@@ -200,6 +200,27 @@ export const FooterSection = () => {
               />
             </a>
             <a
+              href="https://toolsaiapp.com/"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center justify-center rounded-2xl px-2 py-2"
+            >
+              <Image
+                src="https://toolsaiapp.com/wp-content/uploads/2025/12/badge.png"
+                alt="Featured on Tools AI App"
+                width={200}
+                height={54}
+                className="block h-[54px] w-auto dark:hidden"
+              />
+              <Image
+                src="https://toolsaiapp.com/wp-content/uploads/2025/12/badge-dark.png"
+                alt="Featured on Tools AI App"
+                width={200}
+                height={54}
+                className="hidden h-[54px] w-auto dark:block"
+              />
+            </a>
+            <a
               href="https://fazier.com/launches/makernb.com"
               target="_blank"
               rel="noopener noreferrer"

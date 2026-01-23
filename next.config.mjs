@@ -90,6 +90,10 @@ const nextConfig = {
       },
       {
         protocol: "https",
+        hostname: "toolsaiapp.com",
+      },
+      {
+        protocol: "https",
         hostname: "makernb-assets.nasirann.com",
       },
       {
