@@ -1354,7 +1354,7 @@ export const StudioPanel = (props: StudioPanelProps) => {
               {/* Mode Selector */}
               <div
                 ref={modeToggleRef}
-                className="app-card-muted app-hairline relative inline-flex rounded-full p-1 flex-shrink-0 bg-foreground/6 dark:bg-white/10"
+                className="app-card-muted relative inline-flex rounded-full p-1 flex-shrink-0 bg-white/10 dark:bg-white/10"
               >
                 <div
                   className="absolute top-1 bottom-1 rounded-full bg-primary shadow-[0_10px_26px_rgba(0,0,0,0.18)] transition-[transform,width] duration-300 ease-out"
@@ -1396,7 +1396,7 @@ export const StudioPanel = (props: StudioPanelProps) => {
                 <DropdownMenuTrigger asChild>
                   <button
                     type="button"
-                    className="group app-card-muted app-hairline bg-foreground/6 dark:bg-white/10 px-4 py-1.5 rounded-full text-xs md:text-sm font-semibold text-foreground/80 transition-colors hover:bg-accent hover:text-accent-foreground flex items-center gap-1.5"
+                    className="group app-card-muted bg-white/10 dark:bg-white/10 px-4 py-1.5 rounded-full text-xs md:text-sm font-semibold text-foreground/80 transition-colors hover:bg-accent hover:text-accent-foreground flex items-center gap-1.5"
                     title="Click to change model version"
                   >
                     <span>{modelOptions.find(opt => opt.value === selectedModel)?.label || 'v4'}</span>
@@ -1607,7 +1607,7 @@ export const StudioPanel = (props: StudioPanelProps) => {
                       <Button
                         variant="ghost"
                         size="sm"
-                        className="h-7 px-3 rounded-full text-muted-foreground hover:text-foreground opacity-70 hover:opacity-100 transition-opacity"
+                        className="h-7 px-3 rounded-full text-muted-foreground hover:text-foreground hover:bg-muted/30 opacity-70 hover:opacity-100 transition-all duration-200"
                         onClick={() => setCustomLyrics("")}
                       >
                         <Trash2 className="h-3 w-3" />

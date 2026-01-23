@@ -8,8 +8,8 @@ import { normalizeTierCode } from '@/lib/subscription-tier';
 export const dynamic = 'force-dynamic';
 
 /**
- * 获取用户的订阅层级代码
- * 用于前端显示用户的订阅badge
+ * 获取用户的订阅层级代码与名称
+ * 用于前端显示用户的订阅 badge
  * 如果没有活跃订阅，返回 null
  */
 export async function GET(request: NextRequest) {
@@ -31,13 +31,16 @@ export async function GET(request: NextRequest) {
     if (!tierId) {
       return NextResponse.json({
         tierCode: null,
+        tierName: "Free",
+        hasSubscription: false,
         userId
       });
     }
 
     // 通过 tier_id 查询 tier_code
     const result = await query(
-      `SELECT code as tier_code
+      `SELECT code as tier_code,
+              name as tier_name
        FROM subscription_tiers
        WHERE id = $1::uuid`,
       [tierId]
@@ -45,8 +48,11 @@ export async function GET(request: NextRequest) {
 
     if (result.rows.length > 0) {
       const tierCode = normalizeTierCode(result.rows[0].tier_code);
+      const tierName = result.rows[0].tier_name || "Subscribed";
       return NextResponse.json({
         tierCode,
+        tierName,
+        hasSubscription: true,
         userId
       });
     }
@@ -54,6 +60,8 @@ export async function GET(request: NextRequest) {
     // 如果找不到对应的tier，返回 null
     return NextResponse.json({
       tierCode: null,
+      tierName: "Subscribed",
+      hasSubscription: true,
       userId
     });
 

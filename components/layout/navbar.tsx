@@ -13,7 +13,6 @@ import { LogOut } from "lucide-react";
 import { getZIndexClass } from "@/lib/z-index";
 import { EditNicknameDialog } from "@/components/ui/edit-nickname-dialog";
 import { ThemeModeToggle } from "@/components/ui/theme-mode-toggle";
-import { SubscriptionBadge } from "@/components/ui/subscription-badge";
 
 interface RouteProps {
   href: string;
@@ -78,7 +77,7 @@ export const Navbar = ({ credits = null }: NavbarProps) => {
   const searchParams = useSearchParams();
   const isHome = pathname === "/";
   const { user, signOut, loading: authLoading } = useAuth();
-  const { tierCode } = useSubscription();
+  const { tierName } = useSubscription();
   const displayName = user?.user_metadata?.nickname || user?.user_metadata?.full_name || user?.user_metadata?.name || user?.email?.split('@')[0] || '';
 
   // 处理 Pricing 链接的跳转和滚动
@@ -338,9 +337,9 @@ export const Navbar = ({ credits = null }: NavbarProps) => {
                         <p className="text-foreground font-medium text-sm truncate flex-1">
                           {displayName || 'User'}
                         </p>
-	                        {tierCode && (
-	                          <SubscriptionBadge tier={tierCode} />
-	                        )}
+	                        <span className="text-xs font-medium text-foreground/70 flex-shrink-0">
+	                          {tierName}
+	                        </span>
                       </div>
                       <p className="text-muted-foreground text-xs truncate">
                         {user.email}
@@ -517,9 +516,9 @@ export const Navbar = ({ credits = null }: NavbarProps) => {
                     <p className="text-foreground font-semibold text-sm truncate flex-1">
                       {displayName || 'User'}
                     </p>
-	                    {tierCode && (
-	                      <SubscriptionBadge tier={tierCode} />
-	                    )}
+	                    <span className="text-xs font-medium text-foreground/70 flex-shrink-0">
+	                      {tierName}
+	                    </span>
                   </div>
                   <p className="text-muted-foreground text-xs truncate">
                     {user.email}

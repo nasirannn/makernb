@@ -4,19 +4,19 @@ import React from "react";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
-import { Music, Library, Sparkles, LogOut, BookOpen, LogIn, Mic, FileText, Wand2, RefreshCw, ChevronLeft, ChevronRight, PencilLine } from "lucide-react";
+import { Music, Library, Sparkles, Sun, LogOut, BookOpen, LogIn, Mic, FileText, Wand2, RefreshCw, ChevronLeft, ChevronRight, PencilLine } from "lucide-react";
 import { usePathname, useRouter } from "next/navigation";
 import Image from "next/image";
 import Link from "next/link";
 import { useAuth } from '@/contexts/AuthContext';
 import { useCredits } from '@/contexts/CreditsContext';
 import { useSubscription } from "@/contexts/SubscriptionContext";
+import { useTheme } from "next-themes";
 import AuthModal from '@/components/ui/auth-modal';
 import { EditNicknameDialog } from "@/components/ui/edit-nickname-dialog";
 
 import { Tooltip } from '@/components/ui/tooltip';
 import { ThemeModeToggle } from "@/components/ui/theme-mode-toggle";
-import { SubscriptionBadge } from "@/components/ui/subscription-badge";
 import { cn } from "@/lib/utils";
 import { getZIndexClass } from "@/lib/z-index";
 
@@ -45,7 +45,8 @@ export const CommonSidebar = ({
   const router = useRouter();
   const { user, signOut } = useAuth();
   const { credits, refreshCredits } = useCredits();
-  const { tierCode } = useSubscription();
+  const { tierName } = useSubscription();
+  const { theme, setTheme } = useTheme();
 
   // 判断是否选中某个路径
   const isActive = (path: string) => {
@@ -320,15 +321,30 @@ const aiMusicToolsDropdown = [
 
             <div className={`border-t border-dashed border-black/5 dark:border-white/5 ${isExpanded ? 'px-4 pt-4 pb-6' : 'px-2 pt-4 pb-6'} flex flex-col gap-3`}>
               {isExpanded ? (
-                <div className="w-full h-12 rounded-2xl bg-muted/40 px-4 flex items-center justify-between">
-                  <span className="text-sm font-semibold text-foreground/90">
-                    Theme
-                  </span>
+                <div
+                  role="button"
+                  tabIndex={0}
+                  onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
+                  onKeyDown={(event) => {
+                    if (event.key === "Enter" || event.key === " ") {
+                      event.preventDefault();
+                      setTheme(theme === "dark" ? "light" : "dark");
+                    }
+                  }}
+                  className="w-full h-12 rounded-2xl bg-transparent hover:bg-muted/60 px-4 flex items-center justify-between cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-ring/40 focus-visible:ring-offset-0"
+                  aria-label={theme === "dark" ? "Switch to light mode" : "Switch to dark mode"}
+                >
+                  <div className="flex items-center gap-2">
+                    <Sun className="h-4 w-4 text-foreground/60" />
+                    <span className="text-sm font-medium text-foreground/60">
+                      Theme
+                    </span>
+                  </div>
                   <ThemeModeToggle size="sm" className="rounded-2xl" />
                 </div>
               ) : (
                 <Tooltip content="Light / Dark mode" position="right">
-                  <div className="flex justify-center">
+                  <div className="flex h-12 w-full items-center justify-center rounded-2xl">
                     <ThemeModeToggle size="md" className="rounded-2xl" />
                   </div>
                 </Tooltip>
@@ -353,37 +369,40 @@ const aiMusicToolsDropdown = [
                         handleRefreshCredits();
                       }
                     }}
-                    className={`w-full rounded-2xl bg-muted/40 px-4 py-4 text-left transition-all duration-300 border border-transparent focus:outline-none focus-visible:ring-2 focus-visible:ring-ring/40 focus-visible:ring-offset-0 ${
+                    className={`w-full h-14 rounded-2xl bg-transparent px-4 py-4 text-left transition-all duration-300 border border-transparent focus:outline-none focus-visible:ring-2 focus-visible:ring-ring/40 focus-visible:ring-offset-0 ${
                       isRefreshingCredits ? 'opacity-70 cursor-wait' : 'hover:bg-muted/60 cursor-pointer'
                     }`}
                   >
-                    <div className="flex items-center justify-between text-foreground">
-                      <div className="flex flex-col gap-1">
-                        <span className="text-md font-semibold leading-none">
-                          {credits !== null ? credits.toLocaleString() : '...'}
-                        </span>
-                        <span className="text-xs font-medium text-foreground/55">
+                    <div className="flex items-center text-foreground">
+                      <div className="flex items-center gap-2">
+                        <Sparkles className="h-4 w-4 text-foreground/60" />
+                        <span className="text-sm font-medium text-foreground/60">
                           Credits
                         </span>
                       </div>
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        size="icon"
-                        onClick={(event) => {
-                          event.stopPropagation();
-                          handleRefreshCredits();
-                        }}
-                        disabled={isRefreshingCredits}
-                        className="h-9 w-9 rounded-full text-foreground/70 hover:text-foreground hover:bg-foreground/5 transition-colors"
-                        aria-label="Refresh credits"
-                      >
-                        {isRefreshingCredits ? (
-                          <RefreshCw className="h-4 w-4 animate-spin" />
-                        ) : (
-                          <RefreshCw className="h-4 w-4" />
-                        )}
-                      </Button>
+                      <div className="relative group ml-auto flex min-w-[64px] items-center justify-end">
+                        <span className="text-md font-semibold leading-none tabular-nums text-right transition-opacity duration-150 group-hover:opacity-0 group-focus-within:opacity-0">
+                          {credits !== null ? credits.toLocaleString() : '...'}
+                        </span>
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="icon"
+                          onClick={(event) => {
+                            event.stopPropagation();
+                            handleRefreshCredits();
+                          }}
+                          disabled={isRefreshingCredits}
+                          className="absolute right-0 h-8 w-8 rounded-full text-foreground/70 hover:text-foreground hover:bg-foreground/5 transition-opacity duration-150 opacity-0 group-hover:opacity-100 group-focus-within:opacity-100"
+                          aria-label="Refresh credits"
+                        >
+                          {isRefreshingCredits ? (
+                            <RefreshCw className="h-4 w-4 animate-spin" />
+                          ) : (
+                            <RefreshCw className="h-4 w-4" />
+                          )}
+                        </Button>
+                      </div>
                     </div>
                   </div>
                   ) : (
@@ -404,7 +423,7 @@ const aiMusicToolsDropdown = [
                             handleRefreshCredits();
                           }
                         }}
-                        className={`w-full rounded-2xl px-2 py-3 text-foreground transition-all duration-300 focus:outline-none focus-visible:ring-2 focus-visible:ring-ring/40 focus-visible:ring-offset-0 ${
+                        className={`w-full h-14 rounded-2xl px-2 py-3 text-foreground transition-all duration-300 focus:outline-none focus-visible:ring-2 focus-visible:ring-ring/40 focus-visible:ring-offset-0 ${
                           isRefreshingCredits ? 'opacity-70 cursor-wait' : 'cursor-pointer'
                         } flex flex-col items-center text-center`}
                       >
@@ -441,7 +460,7 @@ const aiMusicToolsDropdown = [
                         onClick={() => setUserMenuOpen(!userMenuOpen)}
                         variant="ghost"
                         size="sm"
-                        className="w-full h-16 rounded-2xl bg-muted/40 hover:bg-muted/60 flex items-center gap-3 px-4"
+                        className="w-full h-16 rounded-2xl bg-transparent hover:bg-muted/60 flex items-center gap-3 px-4"
                       >
                         <Avatar className="w-10 h-10 flex-shrink-0">
                           <AvatarImage
@@ -458,18 +477,28 @@ const aiMusicToolsDropdown = [
                             <div className="text-sm font-semibold text-foreground truncate flex-1">
                               {displayName || user.email}
                             </div>
-                            {tierCode && (
-                              <SubscriptionBadge tier={tierCode} />
-                            )}
                           </div>
                           <div className="text-xs text-muted-foreground truncate">
-                            {user.email}
+                            {tierName}
                           </div>
                         </div>
                       </Button>
 
                       {userMenuOpen && (
                         <div className="absolute bottom-full left-0 right-0 mb-2 rounded-2xl bg-background p-3 shadow-[0_18px_55px_rgba(0,0,0,0.12)]">
+                          <div className="px-1 pb-2">
+                            <div className="flex items-center justify-between gap-2 mb-1">
+                              <p className="text-foreground font-semibold text-sm truncate flex-1">
+                                {displayName || user.email}
+                              </p>
+                              <span className="text-xs font-medium text-foreground/70">
+                                {tierName}
+                              </span>
+                            </div>
+                            <p className="text-muted-foreground text-xs truncate">
+                              {user.email}
+                            </p>
+                          </div>
                           <button
                             onClick={() => {
                               setIsNicknameDialogOpen(true);
@@ -494,7 +523,7 @@ const aiMusicToolsDropdown = [
                       )}
                     </div>
                   ) : (
-                    <div className="relative user-menu-container z-[40] flex justify-center">
+                    <div className="relative user-menu-container z-[40] flex h-16 items-center justify-center">
                       <Avatar
                         onClick={() => setUserMenuOpen(!userMenuOpen)}
                         className="w-10 h-10 cursor-pointer"
@@ -516,9 +545,9 @@ const aiMusicToolsDropdown = [
                               <div className="text-sm font-semibold text-foreground truncate flex-1">
                                 {displayName || user.email}
                               </div>
-                              {tierCode && (
-                                <SubscriptionBadge tier={tierCode} />
-                              )}
+                              <span className="text-xs font-medium text-foreground/70">
+                                {tierName}
+                              </span>
                             </div>
                             <div className="text-xs text-muted-foreground truncate">{user.email}</div>
                           </div>

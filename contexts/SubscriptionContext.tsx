@@ -7,6 +7,7 @@ import { useAuth } from "./AuthContext";
 
 interface SubscriptionContextType {
   tierCode: SubscriptionTier | null;
+  tierName: string;
   hasSubscription: boolean;
   loading: boolean;
   refreshSubscription: () => Promise<void>;
@@ -17,6 +18,8 @@ const SubscriptionContext = createContext<SubscriptionContextType | undefined>(u
 export function SubscriptionProvider({ children }: { children: React.ReactNode }) {
   const { user } = useAuth();
   const [tierCode, setTierCode] = useState<SubscriptionTier | null>(null);
+  const [tierName, setTierName] = useState("Free");
+  const [hasSubscription, setHasSubscription] = useState(false);
   const [loading, setLoading] = useState(false);
   const isRefreshingRef = useRef(false);
   const hasFetchedRef = useRef(false);
@@ -28,6 +31,8 @@ export function SubscriptionProvider({ children }: { children: React.ReactNode }
 
     if (!user) {
       setTierCode(null);
+      setTierName("Free");
+      setHasSubscription(false);
       return;
     }
 
@@ -57,9 +62,13 @@ export function SubscriptionProvider({ children }: { children: React.ReactNode }
       if (response.ok) {
         const data = await response.json();
         setTierCode(normalizeTierCode(data.tierCode));
+        setTierName(data.tierName || "Free");
+        setHasSubscription(Boolean(data.hasSubscription));
         hasFetchedRef.current = true;
       } else {
         setTierCode(null);
+        setTierName("Free");
+        setHasSubscription(false);
         hasFetchedRef.current = true;
       }
     } catch (error) {
@@ -73,6 +82,8 @@ export function SubscriptionProvider({ children }: { children: React.ReactNode }
   useEffect(() => {
     if (!user) {
       setTierCode(null);
+      setTierName("Free");
+      setHasSubscription(false);
       hasFetchedRef.current = false;
       return;
     }
@@ -88,7 +99,8 @@ export function SubscriptionProvider({ children }: { children: React.ReactNode }
 
   const value = {
     tierCode,
-    hasSubscription: tierCode !== null,
+    tierName,
+    hasSubscription,
     loading,
     refreshSubscription,
   };

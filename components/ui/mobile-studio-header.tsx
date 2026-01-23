@@ -7,7 +7,6 @@ import { Button } from "@/components/ui/button";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { Sparkles, LogOut, LogIn } from "lucide-react";
 import { useSubscription } from "@/contexts/SubscriptionContext";
-import { SubscriptionBadge } from "@/components/ui/subscription-badge";
 
 interface MobileStudioHeaderProps {
   user: any;
@@ -30,7 +29,7 @@ export const MobileStudioHeader = React.memo(({
   setIsAuthModalOpen,
   signOut,
 }: MobileStudioHeaderProps) => {
-  const { tierCode } = useSubscription();
+  const { tierName } = useSubscription();
   const displayName = user?.user_metadata?.nickname || user?.user_metadata?.full_name || user?.user_metadata?.name || user?.email?.split('@')[0] || '';
 
   return (
@@ -85,9 +84,9 @@ export const MobileStudioHeader = React.memo(({
                         <div className="text-sm font-medium text-foreground truncate flex-1">
                           {displayName || user.email}
                         </div>
-                        {tierCode && (
-                          <SubscriptionBadge tier={tierCode} className="flex-shrink-0" />
-                        )}
+                        <span className="text-xs font-medium text-foreground/70 flex-shrink-0">
+                          {tierName}
+                        </span>
                       </div>
                       <div className="text-xs text-muted-foreground mt-1 truncate">
                         {user.email}
