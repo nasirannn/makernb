@@ -45,7 +45,7 @@ export const CommonSidebar = ({
   const router = useRouter();
   const { user, signOut } = useAuth();
   const { credits, refreshCredits } = useCredits();
-  const { tierName } = useSubscription();
+  const { tierName, hasSubscription } = useSubscription();
   const { theme, setTheme } = useTheme();
 
   // 判断是否选中某个路径
@@ -309,149 +309,7 @@ const aiMusicToolsDropdown = [
               )}
             </div>
 
-            <div className={`flex-1 overflow-y-auto overflow-x-visible ${isExpanded ? 'px-4 pt-4' : 'px-2 pt-4'} pb-6`}>
-              <div className={`rounded-[28px] ${isExpanded ? 'p-3' : 'p-2'} ${isExpanded ? '' : 'flex flex-col items-center'}`}>
-                <div className={`flex flex-col ${isExpanded ? 'gap-2' : 'gap-3 items-center'}`}>
-                  {workspaceNavItems.map(renderNavButton)}
-                  {aiToolNavItems.map(renderNavButton)}
-                  {exploreNavItems.map(renderNavButton)}
-                </div>
-              </div>
-            </div>
-
-            <div className={`border-t border-dashed border-black/5 dark:border-white/5 ${isExpanded ? 'px-4 pt-4 pb-6' : 'px-2 pt-4 pb-6'} flex flex-col gap-3`}>
-              {isExpanded ? (
-                <div
-                  role="button"
-                  tabIndex={0}
-                  onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
-                  onKeyDown={(event) => {
-                    if (event.key === "Enter" || event.key === " ") {
-                      event.preventDefault();
-                      setTheme(theme === "dark" ? "light" : "dark");
-                    }
-                  }}
-                  className="w-full h-12 rounded-2xl bg-transparent hover:bg-muted/60 px-4 flex items-center justify-between cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-ring/40 focus-visible:ring-offset-0"
-                  aria-label={theme === "dark" ? "Switch to light mode" : "Switch to dark mode"}
-                >
-                  <div className="flex items-center gap-2">
-                    <Sun className="h-4 w-4 text-foreground/60" />
-                    <span className="text-sm font-medium text-foreground/60">
-                      Theme
-                    </span>
-                  </div>
-                  <ThemeModeToggle size="sm" className="rounded-2xl" />
-                </div>
-              ) : (
-                <Tooltip content="Light / Dark mode" position="right">
-                  <div className="flex h-12 w-full items-center justify-center rounded-2xl">
-                    <ThemeModeToggle size="md" className="rounded-2xl" />
-                  </div>
-                </Tooltip>
-              )}
-
-              {user && (
-                <>
-                  {isExpanded ? (
-                  <div
-                    role="button"
-                    tabIndex={0}
-                    aria-disabled={isRefreshingCredits}
-                    onClick={() => {
-                      if (!isRefreshingCredits) {
-                        handleRefreshCredits();
-                      }
-                    }}
-                    onKeyDown={(event) => {
-                      if (isRefreshingCredits) return;
-                      if (event.key === 'Enter' || event.key === ' ') {
-                        event.preventDefault();
-                        handleRefreshCredits();
-                      }
-                    }}
-                    className={`w-full h-14 rounded-2xl bg-transparent px-4 py-4 text-left transition-all duration-300 border border-transparent focus:outline-none focus-visible:ring-2 focus-visible:ring-ring/40 focus-visible:ring-offset-0 ${
-                      isRefreshingCredits ? 'opacity-70 cursor-wait' : 'hover:bg-muted/60 cursor-pointer'
-                    }`}
-                  >
-                    <div className="flex items-center text-foreground">
-                      <div className="flex items-center gap-2">
-                        <Sparkles className="h-4 w-4 text-foreground/60" />
-                        <span className="text-sm font-medium text-foreground/60">
-                          Credits
-                        </span>
-                      </div>
-                      <div className="relative group ml-auto flex min-w-[64px] items-center justify-end">
-                        <span className="text-md font-semibold leading-none tabular-nums text-right transition-opacity duration-150 group-hover:opacity-0 group-focus-within:opacity-0">
-                          {credits !== null ? credits.toLocaleString() : '...'}
-                        </span>
-                        <Button
-                          type="button"
-                          variant="ghost"
-                          size="icon"
-                          onClick={(event) => {
-                            event.stopPropagation();
-                            handleRefreshCredits();
-                          }}
-                          disabled={isRefreshingCredits}
-                          className="absolute right-0 h-8 w-8 rounded-full text-foreground/70 hover:text-foreground hover:bg-foreground/5 transition-opacity duration-150 opacity-0 group-hover:opacity-100 group-focus-within:opacity-100"
-                          aria-label="Refresh credits"
-                        >
-                          {isRefreshingCredits ? (
-                            <RefreshCw className="h-4 w-4 animate-spin" />
-                          ) : (
-                            <RefreshCw className="h-4 w-4" />
-                          )}
-                        </Button>
-                      </div>
-                    </div>
-                  </div>
-                  ) : (
-                    <div className="relative group w-full">
-                      <div
-                        role="button"
-                        tabIndex={0}
-                        aria-disabled={isRefreshingCredits}
-                        onClick={() => {
-                          if (!isRefreshingCredits) {
-                            handleRefreshCredits();
-                          }
-                        }}
-                        onKeyDown={(event) => {
-                          if (isRefreshingCredits) return;
-                          if (event.key === 'Enter' || event.key === ' ') {
-                            event.preventDefault();
-                            handleRefreshCredits();
-                          }
-                        }}
-                        className={`w-full h-14 rounded-2xl px-2 py-3 text-foreground transition-all duration-300 focus:outline-none focus-visible:ring-2 focus-visible:ring-ring/40 focus-visible:ring-offset-0 ${
-                          isRefreshingCredits ? 'opacity-70 cursor-wait' : 'cursor-pointer'
-                        } flex flex-col items-center text-center`}
-                      >
-                        <div className="relative w-full">
-                          <div className="transition-opacity duration-150 group-hover:opacity-0 group-focus-within:opacity-0 flex items-center justify-center">
-                            <span className="inline-flex items-center justify-center rounded-full bg-muted/40 px-2.5 py-1 text-sm font-semibold leading-none text-foreground tabular-nums">
-                              {credits !== null ? credits.toLocaleString() : '...'}
-                            </span>
-                          </div>
-
-                          <div className="absolute inset-0 flex items-center justify-center opacity-0 transition-opacity duration-150 group-hover:opacity-100 group-focus-within:opacity-100">
-                            <div
-                              aria-hidden="true"
-                              className="h-9 w-9 rounded-full text-foreground/70 hover:text-foreground hover:bg-foreground/5 transition-colors flex items-center justify-center"
-                            >
-                              <RefreshCw className={cn("h-4 w-4", isRefreshingCredits ? "animate-spin" : "")} />
-                            </div>
-                          </div>
-                        </div>
-                        <span className="mt-1 text-[10px] font-medium text-foreground/45">
-                          Credits
-                        </span>
-                      </div>
-                    </div>
-                  )}
-                </>
-              )}
-
+            <div className={`${isExpanded ? 'px-4 pt-2 pb-2' : 'px-2 pt-2 pb-2'} flex flex-col gap-3`}>
               {user ? (
                 <>
                   {isExpanded ? (
@@ -462,7 +320,7 @@ const aiMusicToolsDropdown = [
                         size="sm"
                         className="w-full h-16 rounded-2xl bg-transparent hover:bg-muted/60 flex items-center gap-3 px-4"
                       >
-                        <Avatar className="w-10 h-10 flex-shrink-0">
+                        <Avatar className="w-8 h-8 flex-shrink-0">
                           <AvatarImage
                             src={user.user_metadata?.avatar_url || user.user_metadata?.picture}
                             alt="User Avatar"
@@ -482,10 +340,16 @@ const aiMusicToolsDropdown = [
                             {tierName}
                           </div>
                         </div>
+                        <ChevronRight
+                          className={cn(
+                            "h-4 w-4 text-foreground/40 flex-shrink-0 transition-transform duration-200",
+                            userMenuOpen ? "rotate-90" : ""
+                          )}
+                        />
                       </Button>
 
                       {userMenuOpen && (
-                        <div className="absolute bottom-full left-0 right-0 mb-2 rounded-2xl bg-background p-3 shadow-[0_18px_55px_rgba(0,0,0,0.12)]">
+                        <div className="absolute top-0 left-full ml-3 w-56 rounded-2xl bg-background p-3 shadow-[0_18px_55px_rgba(0,0,0,0.12)]">
                           <div className="px-1 pb-2">
                             <div className="flex items-center justify-between gap-2 mb-1">
                               <p className="text-foreground font-semibold text-sm truncate flex-1">
@@ -526,7 +390,7 @@ const aiMusicToolsDropdown = [
                     <div className="relative user-menu-container z-[40] flex h-16 items-center justify-center">
                       <Avatar
                         onClick={() => setUserMenuOpen(!userMenuOpen)}
-                        className="w-10 h-10 cursor-pointer"
+                        className="w-8 h-8 cursor-pointer"
                       >
                         <AvatarImage
                           src={user.user_metadata?.avatar_url || user.user_metadata?.picture}
@@ -539,7 +403,7 @@ const aiMusicToolsDropdown = [
                       </Avatar>
 
                       {userMenuOpen && (
-                        <div className="absolute bottom-0 left-full ml-3 w-56 rounded-2xl bg-background shadow-[0_18px_55px_rgba(0,0,0,0.12)]">
+                        <div className="absolute top-0 left-full ml-3 w-56 rounded-2xl bg-background shadow-[0_18px_55px_rgba(0,0,0,0.12)]">
                           <div className="p-4">
                             <div className="flex items-center justify-between gap-2">
                               <div className="text-sm font-semibold text-foreground truncate flex-1">
@@ -601,6 +465,168 @@ const aiMusicToolsDropdown = [
                         <LogIn className="h-5 w-5" />
                       </Button>
                     </Tooltip>
+                  )}
+                </>
+              )}
+            </div>
+
+            <div className={`flex-1 overflow-y-auto overflow-x-visible ${isExpanded ? 'px-4 pt-0' : 'px-2 pt-0'} pb-6`}>
+              <div className={`rounded-[28px] ${isExpanded ? 'p-3' : 'p-2'} ${isExpanded ? '' : 'flex flex-col items-center'}`}>
+                <div className={`flex flex-col ${isExpanded ? 'gap-2' : 'gap-3 items-center'}`}>
+                  {workspaceNavItems.map(renderNavButton)}
+                  {aiToolNavItems.map(renderNavButton)}
+                  {exploreNavItems.map(renderNavButton)}
+                </div>
+              </div>
+            </div>
+
+            <div className={`border-t border-dashed border-black/5 dark:border-white/5 ${isExpanded ? 'px-4 pt-4 pb-6' : 'px-2 pt-4 pb-6'} flex flex-col gap-3`}>
+              {isExpanded ? (
+                <div
+                  role="button"
+                  tabIndex={0}
+                  onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
+                  onKeyDown={(event) => {
+                    if (event.key === "Enter" || event.key === " ") {
+                      event.preventDefault();
+                      setTheme(theme === "dark" ? "light" : "dark");
+                    }
+                  }}
+                  className="w-full h-12 rounded-2xl bg-transparent hover:bg-muted/60 px-4 flex items-center justify-between cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-ring/40 focus-visible:ring-offset-0"
+                  aria-label={theme === "dark" ? "Switch to light mode" : "Switch to dark mode"}
+                >
+                  <div className="flex items-center gap-2">
+                    <Sun className="h-4 w-4 text-foreground/60" />
+                    <span className="text-sm font-medium text-foreground/60">
+                      Theme
+                    </span>
+                  </div>
+                  <ThemeModeToggle size="sm" variant="icon" className="rounded-2xl" />
+                </div>
+              ) : (
+                <Tooltip content="Light / Dark mode" position="right">
+                  <div className="flex h-12 w-full items-center justify-center rounded-2xl">
+                    <ThemeModeToggle size="md" variant="icon" className="rounded-2xl" />
+                  </div>
+                </Tooltip>
+              )}
+
+              {user && (
+                <>
+                  {isExpanded ? (
+                  <>
+                    <div
+                      role="button"
+                      tabIndex={0}
+                      aria-disabled={isRefreshingCredits}
+                      onClick={() => {
+                        if (!isRefreshingCredits) {
+                          handleRefreshCredits();
+                        }
+                      }}
+                      onKeyDown={(event) => {
+                        if (isRefreshingCredits) return;
+                        if (event.key === 'Enter' || event.key === ' ') {
+                          event.preventDefault();
+                          handleRefreshCredits();
+                        }
+                      }}
+                      className={`w-full h-14 rounded-2xl bg-transparent px-4 py-4 text-left transition-all duration-300 border border-transparent focus:outline-none focus-visible:ring-2 focus-visible:ring-ring/40 focus-visible:ring-offset-0 ${
+                        isRefreshingCredits ? 'opacity-70 cursor-wait' : 'hover:bg-muted/60 cursor-pointer'
+                      }`}
+                    >
+                      <div className="flex items-center text-foreground">
+                        <div className="flex items-center gap-2">
+                          <Sparkles className="h-4 w-4 text-foreground/60" />
+                          <span className="text-sm font-medium text-foreground/60">
+                            Credits
+                          </span>
+                        </div>
+                        <div className="relative group ml-auto flex min-w-[64px] items-center justify-end">
+                          <span className="text-md font-semibold leading-none tabular-nums text-right transition-opacity duration-150 group-hover:opacity-0 group-focus-within:opacity-0">
+                            {credits !== null ? credits.toLocaleString() : '...'}
+                          </span>
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="icon"
+                            onClick={(event) => {
+                              event.stopPropagation();
+                              handleRefreshCredits();
+                            }}
+                            disabled={isRefreshingCredits}
+                            className="absolute right-0 h-8 w-8 rounded-full text-foreground/70 hover:text-foreground hover:bg-foreground/5 transition-opacity duration-150 opacity-0 group-hover:opacity-100 group-focus-within:opacity-100"
+                            aria-label="Refresh credits"
+                          >
+                            {isRefreshingCredits ? (
+                              <RefreshCw className="h-4 w-4 animate-spin" />
+                            ) : (
+                              <RefreshCw className="h-4 w-4" />
+                            )}
+                          </Button>
+                        </div>
+                      </div>
+                    </div>
+                    {!hasSubscription && (
+                      <div className="relative w-full overflow-hidden rounded-2xl bg-primary/90 px-4 py-3 text-left text-primary-foreground shadow-[0_12px_32px_hsl(var(--primary)/0.25)]">
+                        <div className="absolute inset-0 bg-[radial-gradient(120%_80%_at_10%_0%,hsl(var(--primary-foreground)/0.35),transparent_60%)]" />
+                        <div className="relative flex flex-col gap-1">
+                          <p className="text-xs text-primary-foreground/80">
+                            Unlock full access & more credits.
+                          </p>
+                          <Button
+                            asChild
+                            className="mt-1 h-9 w-full rounded-full bg-primary-foreground text-primary text-sm font-semibold hover:bg-primary-foreground/90"
+                          >
+                            <Link href="/#pricing">Upgrade Now</Link>
+                          </Button>
+                        </div>
+                      </div>
+                    )}
+                  </>
+                  ) : (
+                    <div className="relative group w-full">
+                      <div
+                        role="button"
+                        tabIndex={0}
+                        aria-disabled={isRefreshingCredits}
+                        onClick={() => {
+                          if (!isRefreshingCredits) {
+                            handleRefreshCredits();
+                          }
+                        }}
+                        onKeyDown={(event) => {
+                          if (isRefreshingCredits) return;
+                          if (event.key === 'Enter' || event.key === ' ') {
+                            event.preventDefault();
+                            handleRefreshCredits();
+                          }
+                        }}
+                        className={`w-full h-14 rounded-2xl px-2 py-3 text-foreground transition-all duration-300 focus:outline-none focus-visible:ring-2 focus-visible:ring-ring/40 focus-visible:ring-offset-0 ${
+                          isRefreshingCredits ? 'opacity-70 cursor-wait' : 'cursor-pointer'
+                        } flex flex-col items-center text-center`}
+                      >
+                        <div className="relative w-full">
+                          <div className="transition-opacity duration-150 group-hover:opacity-0 group-focus-within:opacity-0 flex items-center justify-center">
+                            <span className="inline-flex items-center justify-center rounded-full bg-muted/40 px-2.5 py-1 text-sm font-semibold leading-none text-foreground tabular-nums">
+                              {credits !== null ? credits.toLocaleString() : '...'}
+                            </span>
+                          </div>
+
+                          <div className="absolute inset-0 flex items-center justify-center opacity-0 transition-opacity duration-150 group-hover:opacity-100 group-focus-within:opacity-100">
+                            <div
+                              aria-hidden="true"
+                              className="h-9 w-9 rounded-full text-foreground/70 hover:text-foreground hover:bg-foreground/5 transition-colors flex items-center justify-center"
+                            >
+                              <RefreshCw className={cn("h-4 w-4", isRefreshingCredits ? "animate-spin" : "")} />
+                            </div>
+                          </div>
+                        </div>
+                        <span className="mt-1 text-[10px] font-medium text-foreground/45">
+                          Credits
+                        </span>
+                      </div>
+                    </div>
                   )}
                 </>
               )}

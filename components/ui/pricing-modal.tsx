@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
+import { useState } from "react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -20,11 +20,6 @@ export function PricingModal() {
   const [loading, setLoading] = useState<string | null>(null);
   const [billingPeriod, setBillingPeriod] = useState<'monthly' | 'yearly'>('yearly');
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
-  const toggleRef = useRef<HTMLDivElement>(null);
-  const yearlyRef = useRef<HTMLButtonElement>(null);
-  const monthlyRef = useRef<HTMLButtonElement>(null);
-  const [sliderStyle, setSliderStyle] = useState({ width: 0, x: 0 });
-
 	  const currentPlans = billingPeriod === 'monthly' ? monthlyPlans : yearlyPlans;
 	  const freeFeatures = [
 	    { label: "AI Music Generator", enabled: true },
@@ -45,29 +40,6 @@ export function PricingModal() {
       maximumFractionDigits: 2,
     });
   };
-
-  const updateSlider = useCallback(() => {
-    const container = toggleRef.current;
-    const target = billingPeriod === "yearly" ? yearlyRef.current : monthlyRef.current;
-    if (!container || !target) return;
-
-    const containerRect = container.getBoundingClientRect();
-    const targetRect = target.getBoundingClientRect();
-    setSliderStyle({
-      width: targetRect.width,
-      x: targetRect.left - containerRect.left,
-    });
-  }, [billingPeriod]);
-
-  useLayoutEffect(() => {
-    updateSlider();
-  }, [updateSlider]);
-
-  useEffect(() => {
-    const handleResize = () => updateSlider();
-    window.addEventListener("resize", handleResize);
-    return () => window.removeEventListener("resize", handleResize);
-  }, [updateSlider]);
 
   const handlePurchase = async (plan: PricingPlan) => {
     if (!user) {
@@ -142,52 +114,41 @@ export function PricingModal() {
 
               {/* Billing Period Toggle */}
               <div className="mt-4 flex justify-center">
-                <div ref={toggleRef} className="app-card-muted app-hairline relative inline-flex rounded-full p-1">
-                  <div
-                    className="absolute top-1 bottom-1 rounded-full bg-primary shadow-[0_10px_26px_rgba(0,0,0,0.18)] transition-[transform,width] duration-300 ease-out"
-                    style={{
-                      width: sliderStyle.width,
-                      transform: `translateX(${sliderStyle.x}px)`,
-                    }}
-                  />
-                  <div className="relative z-10 inline-flex items-center gap-1">
-                    <button
-                      onClick={() => setBillingPeriod("yearly")}
-                      ref={yearlyRef}
-                      className={cn(
-                        "px-5 py-2 text-sm font-semibold transition-colors duration-200 rounded-full",
-                        billingPeriod === "yearly"
-                          ? "text-primary-foreground"
-                          : "text-foreground/60 hover:text-foreground"
-                      )}
-                    >
-                      <div className="flex items-center gap-2">
-                        <span>Yearly</span>
-                        <span
-                          className={cn(
-                            "inline-flex items-center rounded-full px-2 py-0.5 text-xs font-semibold transition-colors duration-200",
-                            billingPeriod === "yearly"
-                              ? "bg-black/15 text-primary-foreground"
-                              : "bg-black/5 text-foreground/70 dark:bg-white/10 dark:text-foreground/75"
-                          )}
-                        >
-                          Save 36%
-                        </span>
-                      </div>
-                    </button>
-                    <button
-                      onClick={() => setBillingPeriod("monthly")}
-                      ref={monthlyRef}
-                      className={cn(
-                        "px-5 py-2 text-sm font-semibold transition-colors duration-200 rounded-full",
-                        billingPeriod === "monthly"
-                          ? "text-primary-foreground"
-                          : "text-foreground/60 hover:text-foreground"
-                      )}
-                    >
-                      Monthly
-                    </button>
-                  </div>
+                <div className="inline-flex items-center rounded-full border border-foreground/10 bg-background/80 shadow-[0_1px_2px_rgba(0,0,0,0.08)] backdrop-blur-sm p-1 gap-1">
+                  <button
+                    onClick={() => setBillingPeriod("yearly")}
+                    className={cn(
+                      "px-5 py-2 text-sm font-semibold transition-colors duration-200 rounded-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background",
+                      billingPeriod === "yearly"
+                        ? "bg-primary text-primary-foreground shadow-[0_1px_1px_rgba(0,0,0,0.08)]"
+                        : "text-foreground/60 hover:text-foreground hover:bg-foreground/5"
+                    )}
+                  >
+                    <div className="flex items-center gap-2">
+                      <span>Yearly</span>
+                      <span
+                        className={cn(
+                          "inline-flex items-center rounded-full px-2 py-0.5 text-xs font-semibold transition-colors duration-200",
+                          billingPeriod === "yearly"
+                            ? "bg-primary-foreground/20 text-primary-foreground"
+                            : "bg-foreground/5 text-foreground/70 dark:bg-white/10 dark:text-foreground/75"
+                        )}
+                      >
+                        Save 36%
+                      </span>
+                    </div>
+                  </button>
+                  <button
+                    onClick={() => setBillingPeriod("monthly")}
+                    className={cn(
+                      "px-5 py-2 text-sm font-semibold transition-colors duration-200 rounded-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background",
+                      billingPeriod === "monthly"
+                        ? "bg-primary text-primary-foreground shadow-[0_1px_1px_rgba(0,0,0,0.08)]"
+                        : "text-foreground/60 hover:text-foreground hover:bg-foreground/5"
+                    )}
+                  >
+                    Monthly
+                  </button>
                 </div>
               </div>
             </div>

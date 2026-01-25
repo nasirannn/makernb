@@ -37,6 +37,12 @@ import { PricingSection } from '@/components/layout/sections/pricing';
 
 // Extract options from musicOptions
 const { genres, vibes, grooveTypes, leadInstruments, drumKits, bassTones, vocalGenders, harmonyPalettes } = musicOptions;
+const HERO_GENRE_ICONS: Record<string, string> = {
+  "new-jack-swing": "New Jack Swing Icon.webp",
+  "neo-soul": "Neo-Soul Icon.webp",
+  "quiet-storm": "Quiet Storm Icon.webp",
+  "hip-hop-soul": "Hip-Hop Soul Icon.webp",
+};
 
 interface StudioPanelProps {
   panelOpen: boolean;
@@ -159,35 +165,6 @@ export const StudioPanel = (props: StudioPanelProps) => {
   const maxUploadBytes = 40 * 1024 * 1024;
   const maxUploadDurationSeconds = selectedModel === 'V4_5ALL' ? 60 : 8 * 60;
   const isCustomMode = mode === "custom";
-  const modeToggleRef = React.useRef<HTMLDivElement>(null);
-  const simpleModeRef = React.useRef<HTMLButtonElement>(null);
-  const customModeRef = React.useRef<HTMLButtonElement>(null);
-  const [modeSliderStyle, setModeSliderStyle] = React.useState({ width: 0, x: 0 });
-
-  const updateModeSlider = React.useCallback(() => {
-    const container = modeToggleRef.current;
-    const target = mode === "simple" ? simpleModeRef.current : customModeRef.current;
-    if (!container || !target) return;
-
-    const containerRect = container.getBoundingClientRect();
-    const targetRect = target.getBoundingClientRect();
-    setModeSliderStyle({
-      width: targetRect.width,
-      x: targetRect.left - containerRect.left,
-    });
-  }, [mode]);
-
-  React.useLayoutEffect(() => {
-    if (!panelOpen) return;
-    updateModeSlider();
-  }, [panelOpen, updateModeSlider]);
-
-  React.useEffect(() => {
-    if (!panelOpen) return;
-    const handleResize = () => updateModeSlider();
-    window.addEventListener("resize", handleResize);
-    return () => window.removeEventListener("resize", handleResize);
-  }, [panelOpen, updateModeSlider]);
 
   const updateSelectedModel = React.useCallback((
     model: MusicModel,
@@ -871,6 +848,7 @@ export const StudioPanel = (props: StudioPanelProps) => {
               <div className="flex flex-wrap gap-2">
                 {genres.map((genre: any) => {
                   const isSelected = hasTag(text, genre.value);
+                  const iconName = HERO_GENRE_ICONS[genre.id];
                   return (
                     <button
                       key={genre.id}
@@ -878,12 +856,22 @@ export const StudioPanel = (props: StudioPanelProps) => {
                         setSelectedGenre(genre.id);
                         setText(toggleTag(text, genre.value));
                       }}
-                      className={`inline-flex items-center px-3 py-1.5 rounded-full border border-white/10 text-xs font-semibold transition-all duration-200 ${
+                      className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-full border border-white/10 text-xs font-semibold transition-all duration-200 ${
                         isSelected
                           ? 'bg-primary text-primary-foreground '
                           : 'text-muted-foreground hover:text-foreground hover:bg-muted/50'
                       }`}
                     >
+                      {iconName && (
+                        <Image
+                          src={`/hero/${encodeURIComponent(iconName)}`}
+                          alt=""
+                          width={14}
+                          height={14}
+                          className="h-3.5 w-3.5 opacity-90"
+                          aria-hidden="true"
+                        />
+                      )}
                       <span>{genre.name}</span>
                     </button>
                   );
@@ -1185,53 +1173,52 @@ export const StudioPanel = (props: StudioPanelProps) => {
   };
 
   const styleSection = (
-    <section>
-      <div className="studio-panel-card rounded-2xl p-3">
-        <div className="flex items-center justify-between mb-3 md:mb-4">
-          <h3 className="text-lg font-semibold tracking-tight flex items-center gap-2">
-            Music Style
-          </h3>
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => {
-              setSelectedGenre("");
-              setSelectedVibe("");
-              setGrooveType("");
-              setBpm([60]);
-              setBpmMode('');
-              setLeadInstrument([]);
-              setDrumKit("");
-              setBassTone("");
-              setHarmonyPalette("");
-              setStyleText("");
-            }}
-            className="h-8 px-3 text-muted-foreground hover:text-foreground hover:bg-muted/30 rounded-full transition-all duration-200 flex items-center gap-1"
-            title="Reset"
-          >
-            <RotateCcw className="h-4 w-4" />
-            <span className="text-xs font-medium">Reset</span>
-          </Button>
-        </div>
+    <section className="studio-panel-card rounded-2xl p-3">
+      <div className="flex items-center justify-between mb-3 md:mb-4">
+        <h3 className="text-lg font-semibold tracking-tight flex items-center gap-2">
+          Music Style
+        </h3>
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={() => {
+            setSelectedGenre("");
+            setSelectedVibe("");
+            setGrooveType("");
+            setBpm([60]);
+            setBpmMode('');
+            setLeadInstrument([]);
+            setDrumKit("");
+            setBassTone("");
+            setHarmonyPalette("");
+            setStyleText("");
+          }}
+          className="h-8 px-3 text-muted-foreground hover:text-foreground hover:bg-muted/30 rounded-full transition-all duration-200 flex items-center gap-1"
+          title="Reset"
+        >
+          <RotateCcw className="h-4 w-4" />
+          <span className="text-xs font-medium">Reset</span>
+        </Button>
+      </div>
 
-        <div className="mb-4 md:mb-4">
-          <div className="relative">
-            <Textarea
-              placeholder="Enter style of music"
-              value={styleText}
-              onChange={(e) => {
-                const newValue = e.target.value;
-                setStyleText(newValue);
-                handleUpdateStatesFromTextarea(newValue);
-              }}
-              maxLength={styleTextMaxLength}
-              className="min-h-[180px] md:min-h-[200px] resize-none pr-16 pb-6 border-0 bg-background focus-visible:ring-0 focus-visible:ring-offset-0"
-            />
-            <div className="absolute bottom-2 right-3 text-xs text-muted-foreground">
-              {styleText.length}/{styleTextMaxLength}
-            </div>
+      <div className="mb-4 md:mb-4">
+        <div className="relative">
+          <Textarea
+            placeholder="Enter style of music"
+            value={styleText}
+            onChange={(e) => {
+              const newValue = e.target.value;
+              setStyleText(newValue);
+              handleUpdateStatesFromTextarea(newValue);
+            }}
+            maxLength={styleTextMaxLength}
+            className="min-h-[180px] md:min-h-[200px] resize-none pr-16 pb-6 border-0 bg-background focus-visible:ring-0 focus-visible:ring-offset-0"
+          />
+          <div className="absolute bottom-2 right-3 text-xs text-muted-foreground">
+            {styleText.length}/{styleTextMaxLength}
           </div>
         </div>
+      </div>
 
         {renderStyleQuickButtons(styleText, setStyleText, expandedCategory, setExpandedCategory)}
 
@@ -1330,13 +1317,12 @@ export const StudioPanel = (props: StudioPanelProps) => {
             </SelectContent>
           </Select>
         </div>
-      </div>
     </section>
   );
 
   return (
     <div
-      className={`app-card rounded-[28px] transition-all duration-300 ease-in-out ${
+      className={`studio-panel-cards bg-transparent transition-all duration-300 ease-in-out ${
         // 桌面：左侧固定宽度；移动端：当 forceVisibleOnMobile=true 时占满宽度
         panelOpen ? (forceVisibleOnMobile ? 'w-full md:w-[28rem]' : 'w-[28rem]') : 'w-0'
       } ${forceVisibleOnMobile ? 'flex flex-col' : 'h-full flex flex-col overflow-hidden'} ${forceVisibleOnMobile ? 'flex md:flex' : 'hidden md:flex'}`}
@@ -1349,46 +1335,34 @@ export const StudioPanel = (props: StudioPanelProps) => {
       {panelOpen && (
         <>
           {/* Header with Mode Tabs */}
-          <div className="flex-shrink-0 px-4 md:px-6 pt-4 md:pt-6 pb-4 backdrop-blur-sm">
+          <div className="flex-shrink-0 px-0 pt-4 md:pt-6 pb-4">
             <div className="flex items-center justify-between gap-2 md:gap-4">
               {/* Mode Selector */}
               <div
-                ref={modeToggleRef}
-                className="app-card-muted relative inline-flex rounded-full p-1 flex-shrink-0 bg-white/10 dark:bg-white/10"
+                className="studio-panel-card inline-flex items-center rounded-full p-1 gap-1 flex-shrink-0"
               >
-                <div
-                  className="absolute top-1 bottom-1 rounded-full bg-primary shadow-[0_10px_26px_rgba(0,0,0,0.18)] transition-[transform,width] duration-300 ease-out"
-                  style={{
-                    width: modeSliderStyle.width,
-                    transform: `translateX(${modeSliderStyle.x}px)`,
-                  }}
-                />
-                <div className="relative z-10 inline-flex items-center gap-1">
-                  <button
-                    ref={simpleModeRef}
-                    onClick={() => setMode("simple")}
-                    title="Create random R&B songs with polished production in 90s style. Simple and fast setup."
-                    className={`px-4 py-2 text-xs md:text-sm font-semibold transition-colors duration-200 rounded-full ${
-                      mode === "simple"
-                        ? "text-primary-foreground"
-                        : "text-foreground/60 hover:text-foreground"
-                    }`}
-                  >
-                    Simple
-                  </button>
-                  <button
-                    ref={customModeRef}
-                    onClick={() => setMode("custom")}
-                    title="Fine-tune every aspect of your track with detailed controls for genre, instruments, and style."
-                    className={`px-4 py-2 text-xs md:text-sm font-semibold transition-colors duration-200 rounded-full ${
-                      mode === "custom"
-                        ? "text-primary-foreground"
-                        : "text-foreground/60 hover:text-foreground"
-                    }`}
-                  >
-                    Custom
-                  </button>
-                </div>
+                <button
+                  onClick={() => setMode("simple")}
+                  title="Create random R&B songs with polished production in 90s style. Simple and fast setup."
+                  className={`px-4 py-2 text-xs md:text-sm font-semibold transition-colors duration-200 rounded-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background ${
+                    mode === "simple"
+                      ? "bg-primary text-primary-foreground shadow-[0_1px_1px_rgba(0,0,0,0.08)]"
+                      : "text-foreground/60 hover:text-foreground hover:bg-foreground/5"
+                  }`}
+                >
+                  Simple
+                </button>
+                <button
+                  onClick={() => setMode("custom")}
+                  title="Fine-tune every aspect of your track with detailed controls for genre, instruments, and style."
+                  className={`px-4 py-2 text-xs md:text-sm font-semibold transition-colors duration-200 rounded-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background ${
+                    mode === "custom"
+                      ? "bg-primary text-primary-foreground shadow-[0_1px_1px_rgba(0,0,0,0.08)]"
+                      : "text-foreground/60 hover:text-foreground hover:bg-foreground/5"
+                  }`}
+                >
+                  Custom
+                </button>
               </div>
 
               {/* Model Selection Menu */}
@@ -1396,7 +1370,7 @@ export const StudioPanel = (props: StudioPanelProps) => {
                 <DropdownMenuTrigger asChild>
                   <button
                     type="button"
-                    className="group app-card-muted bg-white/10 dark:bg-white/10 px-4 py-1.5 rounded-full text-xs md:text-sm font-semibold text-foreground/80 transition-colors hover:bg-accent hover:text-accent-foreground flex items-center gap-1.5"
+                    className="group studio-panel-card px-4 py-1.5 rounded-full text-xs md:text-sm font-semibold text-foreground/80 transition-colors hover:bg-accent hover:text-accent-foreground flex items-center gap-1.5"
                     title="Click to change model version"
                   >
                     <span>{modelOptions.find(opt => opt.value === selectedModel)?.label || 'v4'}</span>
@@ -1444,7 +1418,7 @@ export const StudioPanel = (props: StudioPanelProps) => {
 
           {/* Main Content */}
           <div
-            className={`flex-1 ${forceVisibleOnMobile ? '' : 'overflow-y-auto'} px-4 md:px-6 ${forceVisibleOnMobile ? 'pb-20' : 'pb-6'} md:pb-6`}
+            className={`flex-1 ${forceVisibleOnMobile ? '' : 'overflow-y-auto scrollbar-hidden'} px-0 ${forceVisibleOnMobile ? 'pb-20' : 'pb-6'} md:pb-6`}
           >
             <input
               ref={uploadFileInputRef}
@@ -1459,74 +1433,72 @@ export const StudioPanel = (props: StudioPanelProps) => {
           {/* Simple Mode Content - 流式布局 */}
                 <div className="space-y-5 md:space-y-6 pt-2 md:pt-3">
             {/* Custom Prompt Section */}
-            <section>
-              <div className="studio-panel-card rounded-2xl p-3">
-                <div className="mb-3 md:mb-4 flex items-center justify-between gap-3">
-                  <h3 className="text-lg font-semibold tracking-tight flex items-center gap-2">
-                    Prompt
-                  </h3>
-                  <div className="flex items-center gap-3">
-                    <div className="flex items-center gap-2">
-                      <Switch
-                        checked={instrumentalMode}
-                        onCheckedChange={setInstrumentalMode}
-                        className="scale-75"
-                      />
-                      <span className="text-xs text-muted-foreground">Instrumental</span>
-                    </div>
+            <section className="studio-panel-card rounded-2xl p-3">
+              <div className="mb-3 md:mb-4 flex items-center justify-between gap-3">
+                <h3 className="text-lg font-semibold tracking-tight flex items-center gap-2">
+                  Prompt
+                </h3>
+                <div className="flex items-center gap-3">
+                  <div className="flex items-center gap-2">
+                    <Switch
+                      checked={instrumentalMode}
+                      onCheckedChange={setInstrumentalMode}
+                      className="scale-75"
+                    />
+                    <span className="text-xs text-muted-foreground">Instrumental</span>
                   </div>
                 </div>
-                <div className="space-y-3">
-                  <div className="relative">
-                    <Textarea
-                      placeholder={`Describe your song idea`}
-                      value={simplePrompt}
-                      onChange={(e) => setSimplePrompt(e.target.value)}
-                      maxLength={simplePromptMaxLength}
-                      className="min-h-[180px] md:min-h-[200px] resize-none pr-16 pb-4 border-0 bg-background focus-visible:ring-0 focus-visible:ring-offset-0"
-                    />
+              </div>
+              <div className="space-y-3">
+                <div className="relative">
+                  <Textarea
+                    placeholder={`Describe your song idea`}
+                    value={simplePrompt}
+                    onChange={(e) => setSimplePrompt(e.target.value)}
+                    maxLength={simplePromptMaxLength}
+                    className="min-h-[180px] md:min-h-[200px] resize-none pr-16 pb-4 border-0 bg-background focus-visible:ring-0 focus-visible:ring-offset-0"
+                  />
+                </div>
+                {renderStyleQuickButtons(
+                  simplePrompt,
+                  setSimplePrompt,
+                  expandedCategorySimple,
+                  setExpandedCategorySimple
+                )}
+                <div className="flex items-center justify-between">
+                  <div className="text-xs text-muted-foreground">
+                    {simplePrompt.length}/{simplePromptMaxLength}
                   </div>
-                  {renderStyleQuickButtons(
-                    simplePrompt,
-                    setSimplePrompt,
-                    expandedCategorySimple,
-                    setExpandedCategorySimple
-                  )}
-                  <div className="flex items-center justify-between">
-                    <div className="text-xs text-muted-foreground">
-                      {simplePrompt.length}/{simplePromptMaxLength}
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <button
-                        type="button"
-                        onClick={handlePromptAddAudioClick}
-                        className="inline-flex items-center gap-1.5 rounded-full bg-foreground/5 px-3 py-1.5 text-xs font-semibold text-foreground/70 transition-colors hover:bg-foreground/10 hover:text-foreground"
-                        title="Add audio"
-                      >
-                        <UploadCloud className="h-3.5 w-3.5" />
-                        <span>Add Audio</span>
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setSimplePrompt("");
-                          setSelectedGenre("");
-                          setSelectedVibe("");
-                          setGrooveType("");
-                          setBpm([60]);
-                          setBpmMode('');
-                          setLeadInstrument([]);
-                          setDrumKit("");
-                          setBassTone("");
-                          setHarmonyPalette("");
-                        }}
-                        className="inline-flex items-center gap-1.5 rounded-full bg-foreground/5 px-3 py-1.5 text-xs font-semibold text-foreground/70 transition-colors hover:bg-foreground/10 hover:text-foreground"
-                        title="Clear"
-                      >
-                        <Trash2 className="h-3.5 w-3.5" />
-                        <span>Clear</span>
-                      </button>
-                    </div>
+                  <div className="flex items-center gap-2">
+                    <button
+                      type="button"
+                      onClick={handlePromptAddAudioClick}
+                      className="inline-flex items-center gap-1.5 rounded-full bg-foreground/5 px-3 py-1.5 text-xs font-semibold text-foreground/70 transition-colors hover:bg-foreground/10 hover:text-foreground"
+                      title="Add audio"
+                    >
+                      <UploadCloud className="h-3.5 w-3.5" />
+                      <span>Add Audio</span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setSimplePrompt("");
+                        setSelectedGenre("");
+                        setSelectedVibe("");
+                        setGrooveType("");
+                        setBpm([60]);
+                        setBpmMode('');
+                        setLeadInstrument([]);
+                        setDrumKit("");
+                        setBassTone("");
+                        setHarmonyPalette("");
+                      }}
+                      className="inline-flex items-center gap-1.5 rounded-full bg-foreground/5 px-3 py-1.5 text-xs font-semibold text-foreground/70 transition-colors hover:bg-foreground/10 hover:text-foreground"
+                      title="Clear"
+                    >
+                      <Trash2 className="h-3.5 w-3.5" />
+                      <span>Clear</span>
+                    </button>
                   </div>
                 </div>
               </div>
@@ -1563,83 +1535,79 @@ export const StudioPanel = (props: StudioPanelProps) => {
 
             {/* Lyrics Section */}
             {!instrumentalMode ? (
-              <section>
-                <div className="studio-panel-card rounded-2xl p-3">
-                  <div className="flex items-center justify-between mb-3 md:mb-4">
-                    <h3 className="text-lg font-semibold tracking-tight flex items-center gap-2">
-                      Lyrics
-                    </h3>
-                    {/* Instrumental Switch */}
-                    <div className="flex items-center gap-2">
-                      <Switch
-                        checked={instrumentalMode}
-                        onCheckedChange={setInstrumentalMode}
-                        className="scale-75"
-                      />
-                      <span className="text-xs text-muted-foreground">Instrumental</span>
+              <section className="studio-panel-card rounded-2xl px-3 py-4">
+                <div className="flex items-center justify-between mb-3 md:mb-4">
+                  <h3 className="text-lg font-semibold tracking-tight flex items-center gap-2">
+                    Lyrics
+                  </h3>
+                  {/* Instrumental Switch */}
+                  <div className="flex items-center gap-2">
+                    <Switch
+                      checked={instrumentalMode}
+                      onCheckedChange={setInstrumentalMode}
+                      className="scale-75"
+                    />
+                    <span className="text-xs text-muted-foreground">Instrumental</span>
+                  </div>
+                </div>
+                <div className="space-y-3">
+                  <div className="relative">
+                   <Textarea
+                      placeholder="Write your song lyrics here..."
+                      value={customLyrics}
+                      onChange={(e) => setCustomLyrics(e.target.value)}
+                      maxLength={customPromptMaxLength}
+                    className="min-h-[136px] md:min-h-[160px] resize-none pl-4 pt-3 pr-16 pb-6 border-0 bg-background focus-visible:ring-0 focus-visible:ring-offset-0"
+                    />
+                    {/* Character count - Inside textarea, bottom right */}
+                    <div className="absolute bottom-2 right-2 text-xs text-muted-foreground bg-background/80 px-2 py-1 rounded">
+                      {customLyrics.length}/{customPromptMaxLength}
                     </div>
                   </div>
-                  <div className="space-y-3">
-                    <div className="relative">
-                     <Textarea
-                        placeholder="Write your song lyrics here..."
-                        value={customLyrics}
-                        onChange={(e) => setCustomLyrics(e.target.value)}
-                        maxLength={customPromptMaxLength}
-                      className="min-h-[136px] md:min-h-[160px] resize-none pl-4 pt-3 pr-16 pb-6 border-0 bg-background focus-visible:ring-0 focus-visible:ring-offset-0"
-                      />
-                      {/* Character count - Inside textarea, bottom right */}
-                      <div className="absolute bottom-2 right-2 text-xs text-muted-foreground bg-background/80 px-2 py-1 rounded">
-                        {customLyrics.length}/{customPromptMaxLength}
-                      </div>
-                    </div>
-                    <div className="flex items-center justify-between">
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        className="h-7 px-3 rounded-full text-muted-foreground hover:text-foreground opacity-70 hover:opacity-100 transition-opacity flex items-center gap-1"
-                        title="Generate lyrics with AI"
-                        onClick={onGenerateLyrics}
-                      >
-                        <Wand2 className="h-3 w-3" />
-                        <span className="text-xs font-medium">Auto Generate</span>
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        className="h-7 px-3 rounded-full text-muted-foreground hover:text-foreground hover:bg-muted/30 opacity-70 hover:opacity-100 transition-all duration-200"
-                        onClick={() => setCustomLyrics("")}
-                      >
-                        <Trash2 className="h-3 w-3" />
-                        <span className="text-xs font-medium">Clear</span>
-                      </Button>
-                    </div>
+                  <div className="flex items-center justify-between">
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="h-7 px-3 rounded-full text-muted-foreground hover:text-foreground opacity-70 hover:opacity-100 transition-opacity flex items-center gap-1"
+                      title="Generate lyrics with AI"
+                      onClick={onGenerateLyrics}
+                    >
+                      <Wand2 className="h-3 w-3" />
+                      <span className="text-xs font-medium">Auto Generate</span>
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="h-7 px-3 rounded-full text-muted-foreground hover:text-foreground hover:bg-muted/30 opacity-70 hover:opacity-100 transition-all duration-200"
+                      onClick={() => setCustomLyrics("")}
+                    >
+                      <Trash2 className="h-3 w-3" />
+                      <span className="text-xs font-medium">Clear</span>
+                    </Button>
                   </div>
                 </div>
               </section>
             ) : (
               /* Instrumental Mode Status Display */
-              <section>
-                <div className="studio-panel-card rounded-2xl p-3">
-                  <div className="flex items-center justify-between mb-3 md:mb-4">
-                    <h3 className="text-lg font-semibold tracking-tight flex items-center gap-2">
-                      Lyrics
-                    </h3>
-                    {/* Instrumental Switch */}
-                    <div className="flex items-center gap-2">
-                      <Switch
-                        checked={instrumentalMode}
-                        onCheckedChange={setInstrumentalMode}
-                        className="scale-75"
-                      />
-                      <span className="text-xs text-muted-foreground">Instrumental</span>
-                    </div>
+              <section className="studio-panel-card rounded-2xl px-3 py-4">
+                <div className="flex items-center justify-between mb-3 md:mb-4">
+                  <h3 className="text-lg font-semibold tracking-tight flex items-center gap-2">
+                    Lyrics
+                  </h3>
+                  {/* Instrumental Switch */}
+                  <div className="flex items-center gap-2">
+                    <Switch
+                      checked={instrumentalMode}
+                      onCheckedChange={setInstrumentalMode}
+                      className="scale-75"
+                    />
+                    <span className="text-xs text-muted-foreground">Instrumental</span>
                   </div>
-                  {/* Instrumental Status Display */}
-                  <div className="flex items-center justify-center py-4 px-4 bg-muted/30 rounded-lg border border-border/20">
-                    <div className="flex items-center gap-3 text-muted-foreground">
-                      <span className="text-sm font-medium">Instrumental Mode Active,no need to write lyrics</span>
-                    </div>
+                </div>
+                {/* Instrumental Status Display */}
+                <div className="flex items-center justify-center py-4 px-4 bg-muted/30 rounded-lg border border-border/20">
+                  <div className="flex items-center gap-3 text-muted-foreground">
+                    <span className="text-sm font-medium">Instrumental Mode Active,no need to write lyrics</span>
                   </div>
                 </div>
               </section>
@@ -1647,34 +1615,32 @@ export const StudioPanel = (props: StudioPanelProps) => {
 
             {/* Vocal Gender Section - Only show when not in instrumental mode */}
             {!instrumentalMode && (
-              <section>
-                <div className="studio-panel-card rounded-2xl p-3 flex items-center justify-between">
-                  <Label className="text-sm font-medium text-foreground">Vocal Gender</Label>
-                  <div className="flex gap-2">
+              <section className="studio-panel-card rounded-2xl p-3 flex items-center justify-between">
+                <Label className="text-sm font-medium text-foreground">Vocal Gender</Label>
+                <div className="flex gap-2">
+                  <button
+                    onClick={() => setVocalGender('random')}
+                    className={`px-4 py-2 rounded-full text-sm font-medium transition-colors ${
+                      vocalGender === 'random'
+                        ? 'bg-white text-primary hover:bg-white/90'
+                        : 'bg-muted/30 text-muted-foreground hover:bg-muted/50 hover:text-foreground'
+                    }`}
+                  >
+                    Random
+                  </button>
+                  {vocalGenders.map((gender: any) => (
                     <button
-                      onClick={() => setVocalGender('random')}
+                      key={gender.id}
+                      onClick={() => setVocalGender(gender.id)}
                       className={`px-4 py-2 rounded-full text-sm font-medium transition-colors ${
-                        vocalGender === 'random'
+                        vocalGender === gender.id
                           ? 'bg-white text-primary hover:bg-white/90'
                           : 'bg-muted/30 text-muted-foreground hover:bg-muted/50 hover:text-foreground'
                       }`}
                     >
-                      Random
+                      {gender.name}
                     </button>
-                    {vocalGenders.map((gender: any) => (
-                      <button
-                        key={gender.id}
-                        onClick={() => setVocalGender(gender.id)}
-                        className={`px-4 py-2 rounded-full text-sm font-medium transition-colors ${
-                          vocalGender === gender.id
-                            ? 'bg-white text-primary hover:bg-white/90'
-                            : 'bg-muted/30 text-muted-foreground hover:bg-muted/50 hover:text-foreground'
-                        }`}
-                      >
-                        {gender.name}
-                      </button>
-                    ))}
-                  </div>
+                  ))}
                 </div>
               </section>
             )}
@@ -1682,23 +1648,21 @@ export const StudioPanel = (props: StudioPanelProps) => {
             {styleSection}
 
             {/* Song Title Section */}
-            <section>
-              <div className="studio-panel-card rounded-2xl p-3">
-                <h3 className="text-lg font-semibold tracking-tight mb-3 md:mb-4 flex items-center gap-2">
-                  Title
-                </h3>
-                <div className="space-y-3">
-                  <div className="relative">
-                    <Input
-                      placeholder="Enter your song title..."
-                      value={songTitle}
-                      onChange={(e) => setSongTitle(e.target.value)}
-                      maxLength={80}
-                      className="pr-16 h-12 text-base border-0 bg-background focus-visible:ring-0 focus-visible:ring-offset-0"
-                    />
-                    <div className="absolute top-1/2 right-2 transform -translate-y-1/2 text-xs text-muted-foreground bg-background/80 px-2 py-1 rounded">
-                      {songTitle.length}/80
-                    </div>
+            <section className="studio-panel-card rounded-2xl p-3">
+              <h3 className="text-lg font-semibold tracking-tight mb-3 md:mb-4 flex items-center gap-2">
+                Title
+              </h3>
+              <div className="space-y-3">
+                <div className="relative">
+                  <Input
+                    placeholder="Enter your song title..."
+                    value={songTitle}
+                    onChange={(e) => setSongTitle(e.target.value)}
+                    maxLength={80}
+                    className="pr-16 h-12 text-base border-0 bg-background focus-visible:ring-0 focus-visible:ring-offset-0"
+                  />
+                  <div className="absolute top-1/2 right-2 transform -translate-y-1/2 text-xs text-muted-foreground bg-background/80 px-2 py-1 rounded">
+                    {songTitle.length}/80
                   </div>
                 </div>
               </div>
@@ -1712,7 +1676,7 @@ export const StudioPanel = (props: StudioPanelProps) => {
           </div>
 
           {/* Floating Generate Button - Bottom */}
-          <div className="flex-shrink-0 px-4 md:px-6 pt-3 pb-4">
+          <div className="flex-shrink-0 px-0 pt-3 pb-4">
             {(() => {
               // 只根据prompt输入内容来禁用按钮，积分检查移到点击后
               let isDisabled = isGenerating;

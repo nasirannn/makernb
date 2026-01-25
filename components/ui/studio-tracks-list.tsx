@@ -925,7 +925,7 @@ export const StudioTracksList: React.FC<StudioTracksListProps> = React.memo(func
 
   if (showEmptyState) {
     return (
-      <div className="app-card bg-white/90 dark:bg-[rgba(12,13,18,0.78)] flex flex-col items-center justify-center h-full px-6 py-12 overflow-hidden rounded-[28px]">
+      <div className="flex flex-col items-center justify-center h-full px-6 py-12 overflow-hidden">
         <div className="text-center max-w-md space-y-6">
           <div className="flex justify-center mb-6">
             <div className="relative">
@@ -947,10 +947,10 @@ export const StudioTracksList: React.FC<StudioTracksListProps> = React.memo(func
   }
 
   return (
-    <div className="app-card bg-white/90 dark:bg-[rgba(12,13,18,0.78)] flex flex-col h-full min-h-0 overflow-hidden rounded-[28px]">
+    <div className="flex flex-col h-full min-h-0 overflow-hidden">
       {/* Search Bar */}
       <div className="flex-shrink-0 pt-5 pb-3 px-5">
-        <div className="app-card-muted rounded-[22px] p-1">
+        <div className="app-card-muted rounded-[22px]">
           <div className="relative w-full">
             <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-foreground/45" />
             <input
@@ -958,7 +958,7 @@ export const StudioTracksList: React.FC<StudioTracksListProps> = React.memo(func
               placeholder="Enter title and tags"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full rounded-2xl bg-background py-3 pl-11 pr-10 text-sm text-foreground placeholder:text-foreground/40 transition-colors focus:bg-background focus:outline-none"
+              className="w-full rounded-2xl bg-transparent py-3 pl-11 pr-10 text-sm text-foreground placeholder:text-foreground/40 transition-colors focus:bg-transparent focus:outline-none border-0"
             />
                 {searchQuery && (
                   <button
@@ -975,7 +975,7 @@ export const StudioTracksList: React.FC<StudioTracksListProps> = React.memo(func
       {/* Tracks List */}
       <div className="flex-1 overflow-hidden">
         <div 
-          className="h-full overflow-y-auto px-0 relative"
+          className="h-full overflow-y-auto scrollbar-hidden px-0 relative"
           style={{
             paddingBottom: hasPlayer ? 'calc(var(--player-height, 80px) + 1.5rem)' : '5rem'
           }}

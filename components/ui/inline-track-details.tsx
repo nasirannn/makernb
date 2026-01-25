@@ -101,7 +101,7 @@ export const InlineTrackDetailsPanel: React.FC<InlineTrackDetailsPanelProps> = (
           </div>
         </div>
 
-        <div className="flex-1 overflow-auto px-5 pt-3 pb-4">
+        <div className="flex-1 overflow-auto px-5 py-5">
           <div className="text-sm text-foreground/90 whitespace-pre-wrap font-mono leading-relaxed">
             {track.lyrics?.trim()
               ? track.lyrics

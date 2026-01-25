@@ -138,6 +138,16 @@
     overflow: hidden;
   }
 
+  .scrollbar-hidden {
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+  }
+
+  .scrollbar-hidden::-webkit-scrollbar {
+    width: 0;
+    height: 0;
+  }
+
   .line-clamp-3 {
     display: -webkit-box;
     -webkit-line-clamp: 3;
@@ -274,9 +284,6 @@
 
   .studio-panel-card {
     background: rgba(255, 255, 255, 0.70);
-    box-shadow:
-      0 1px 0 rgba(255, 255, 255, 0.85) inset,
-      0 14px 40px rgba(0, 0, 0, 0.06);
     backdrop-filter: blur(10px) saturate(120%);
   }
 
@@ -311,10 +318,10 @@
   .dark .studio-panel-card {
     /* Slightly lighter panel cards (no border) for contrast */
     background: rgba(255, 255, 255, 0.08);
-    box-shadow:
-      0 22px 60px rgba(0, 0, 0, 0.40);
     backdrop-filter: blur(12px) saturate(125%);
   }
+
+
 
   .sidebar-brand {
     position: relative;

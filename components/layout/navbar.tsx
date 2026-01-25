@@ -403,7 +403,7 @@ export const Navbar = ({ credits = null }: NavbarProps) => {
                   <div className="text-[10px] font-semibold uppercase tracking-[0.28em] text-muted-foreground mb-2">
                     Theme
                   </div>
-                  <ThemeModeToggle size="md" />
+                  <ThemeModeToggle size="md" variant="icon" />
                 </div>
                 {routeList.map(({ href, label, hasDropdown, dropdownItems }) => {
                   const isActive = pathname === href ||
@@ -482,7 +482,6 @@ export const Navbar = ({ credits = null }: NavbarProps) => {
 
       {/* <!-- Desktop Right Side --> */}
       <div className="hidden lg:flex ml-auto items-center gap-4">
-        <ThemeModeToggle />
         {authLoading ? (
           <div className="h-10 w-24 rounded-md bg-black/10 animate-pulse" />
         ) : user ? (
@@ -583,6 +582,7 @@ export const Navbar = ({ credits = null }: NavbarProps) => {
             Sign In
           </Button>
         )}
+        <ThemeModeToggle />
       </div>
 
       {/* Auth Modal */}

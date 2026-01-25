@@ -1732,10 +1732,10 @@ const StudioContent = () => {
             className="relative h-screen overflow-hidden"
         >
             <div
-                className="relative h-full flex flex-col md:flex-row md:gap-4 md:p-4 transition-[margin] duration-500"
+                className="relative h-full flex flex-col md:flex-row md:gap-0 md:px-4 md:py-0 transition-[margin] duration-500"
                 style={{ marginLeft: 'var(--sidebar-offset, 0px)' }}
             >
-                <div className="hidden md:block md:order-2 flex-shrink-0">
+                <div className="hidden md:block md:order-2 flex-shrink-0 md:pr-4">
                     <StudioPanel
                         {...studioPanelProps}
                         panelOpen={panelOpen}
@@ -1756,7 +1756,7 @@ const StudioContent = () => {
                 </div>
 
                 <div 
-                    className="flex-1 min-w-0 h-full flex z-10 md:order-3 relative pb-[calc(var(--mobile-nav-height,64px)+var(--player-height,48px)+1rem)] md:pb-0"
+                    className="flex-1 min-w-0 h-full flex z-10 md:order-3 relative pb-[calc(var(--mobile-nav-height,64px)+var(--player-height,48px)+1rem)] md:pb-0 md:pl-4 md:shadow-[-1px_0_0_rgba(0,0,0,0.06)] md:dark:shadow-[-1px_0_0_rgba(255,255,255,0.08)]"
                     style={{
                         paddingBottom: player.currentTrack 
                             ? undefined
@@ -1834,7 +1834,7 @@ const StudioContent = () => {
                         <div
                             className={`relative transition-all duration-300 flex-shrink-0 z-[80] ${
                                 showInlinePanel
-                                    ? 'opacity-100 w-full md:w-80 px-0 md:px-0 overflow-visible'
+                                    ? 'opacity-100 w-full md:w-80 px-0 md:px-0 md:py-4 overflow-visible'
                                     : 'opacity-0 pointer-events-none w-0 md:w-0 px-0 overflow-hidden'
                             }`}
                         >
