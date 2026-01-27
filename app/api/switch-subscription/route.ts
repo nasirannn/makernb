@@ -2,12 +2,20 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getUserIdFromRequest } from '@/lib/auth';
 import { creemUrl } from '@/lib/creem';
 import { query } from '@/lib/db-query-builder';
-import { SUBSCRIPTION_PLANS } from '@/lib/subscription-credits';
+import { getSubscriptionPlanByProductIdAnyMode } from '@/lib/subscription-credits';
 
 export const dynamic = 'force-dynamic';
 
-const getTierFromPlanId = (planId: string): 'starter' | 'hobby' => {
-  return planId.includes('hobby') || planId.includes('premium') ? 'hobby' : 'starter';
+const getTierFromPlan = (plan: { code?: string | null; tier_code?: string | null }): 'starter' | 'hobby' | null => {
+  const tierCode = (plan.tier_code || '').trim().toLowerCase();
+  if (tierCode === 'starter' || tierCode === 'hobby') return tierCode;
+  if (tierCode === 'basic') return 'starter';
+  if (tierCode === 'premium') return 'hobby';
+
+  const planCode = (plan.code || '').trim().toLowerCase();
+  if (planCode.includes('hobby') || planCode.includes('premium')) return 'hobby';
+  if (planCode.includes('starter') || planCode.includes('basic')) return 'starter';
+  return null;
 };
 
 export async function POST(request: NextRequest) {
@@ -28,7 +36,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Missing product id' }, { status: 400 });
     }
 
-    const targetPlan = SUBSCRIPTION_PLANS.find((plan) => plan.productId === productId);
+    const targetPlan = await getSubscriptionPlanByProductIdAnyMode(productId);
     if (!targetPlan) {
       return NextResponse.json({ error: 'Invalid target plan' }, { status: 400 });
     }
@@ -54,13 +62,16 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ success: true, alreadyActive: true });
     }
 
-    const currentPlan = SUBSCRIPTION_PLANS.find((plan) => plan.productId === subscriptionRecord.product_id);
+    const currentPlan = await getSubscriptionPlanByProductIdAnyMode(subscriptionRecord.product_id);
     if (!currentPlan) {
       return NextResponse.json({ error: 'Current plan not found' }, { status: 400 });
     }
 
-    const currentTier = getTierFromPlanId(currentPlan.id);
-    const targetTier = getTierFromPlanId(targetPlan.id);
+    const currentTier = getTierFromPlan(currentPlan);
+    const targetTier = getTierFromPlan(targetPlan);
+    if (!currentTier || !targetTier) {
+      return NextResponse.json({ error: 'Unable to resolve subscription tier' }, { status: 400 });
+    }
     if (currentTier !== targetTier) {
       return NextResponse.json({ error: 'Switch plan only supports same-tier changes' }, { status: 400 });
     }

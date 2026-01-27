@@ -1,117 +1,98 @@
 /**
- * 套餐配置
- * 
- * 统一管理所有定价套餐的配置信息
- * 包括月付和年付套餐的价格、积分、功能等
+ * Pricing plan builders (DB-driven).
  */
+
+export type PricingTierCode = 'starter' | 'hobby';
+export type PricingBillingPeriod = 'monthly' | 'yearly';
+
+export interface PricingPlanApi {
+  code: string;
+  productId: string;
+  billingPeriod: PricingBillingPeriod;
+  credits: number;
+  price: number;
+  tierCode: PricingTierCode;
+  name?: string | null;
+}
 
 export interface PricingPlan {
   id: string;
+  code: string;
   name: string;
   rank: number;
   credits: number;
   price: number;
-  originalPrice?: number;
+  periodPrice: number;
+  billingPeriod: PricingBillingPeriod;
+  tierCode: PricingTierCode;
   popular?: boolean;
   icon: 'star' | 'crown';
   features: string[];
   productId: string;
 }
 
-/**
- * 月付套餐配置
- */
-export const monthlyPlans: PricingPlan[] = [
-  {
-    id: "monthly-basic",
-    name: "Starter",
+const tierMeta: Record<PricingTierCode, { name: string; rank: number; icon: 'star' | 'crown'; popular: boolean; download: string }> = {
+  starter: {
+    name: 'Starter',
     rank: 1,
-    credits: 1000,
-    price: 12.9,
     icon: 'star',
-    features: [
-      "1,000 credits/month (approx. 143 songs)",
-      "AI Music Generator",
-      "AI Lyrics Generator",
-      "AI Vocal Remover",
-      "Create up to 1,000 lyrics with AI",
-      "Download MP3 & Cover PNG",
-      "Commercial License Included",
-      "Vocal separation, Extend music & Replace section",
-      "Access to all models (V5, V4.5-all, V4.5+, V4.5, V4)",
-      "Email customer support"
-    ],
-    productId: process.env.NEXT_PUBLIC_MONTHLY_BASIC!
+    popular: false,
+    download: 'Download MP3 & Cover PNG',
   },
-  {
-    id: "monthly-premium",
-    name: "Hobby",
+  hobby: {
+    name: 'Hobby',
     rank: 2,
-    credits: 2500,
-    price: 25.9,
-    popular: true,
     icon: 'crown',
-    features: [
-      "2,500 credits/month (approx. 357 songs)",
-      "AI Music Generator",
-      "AI Lyrics Generator",
-      "AI Vocal Remover",
-      "Create up to 2,500 lyrics with AI",
-      "Download MP3, WAV & Cover PNG",
-      "Commercial License Included",
-      "Vocal separation, Extend music & Replace section",
-      "Access to all models (V5, V4.5-all, V4.5+, V4.5, V4)",
-      "Email customer support",
-    ],
-    productId: process.env.NEXT_PUBLIC_MONTHLY_PREMIUM!
-  }
-];
+    popular: true,
+    download: 'Download MP3, WAV & Cover PNG',
+  },
+};
 
-/**
- * 年付套餐配置
- */
-export const yearlyPlans: PricingPlan[] = [
-  {
-    id: "yearly-basic",
-    name: "Starter",
-    rank: 1,
-    credits: 12000,
-    price: 8.3,
-    icon: 'star',
-    features: [
-      "12,000 credits/year (approx. 1,714 songs)",
-      "AI Music Generator",
-      "AI Lyrics Generator",
-      "AI Vocal Remover",
-      "Create up to 12,000 lyrics with AI",
-      "Download MP3 & Cover PNG",
-      "Commercial License Included",
-      "Vocal separation, Extend music & Replace section",
-      "Access to all models (V5, V4.5-all, V4.5+, V4.5, V4)",
-      "Email customer support"
-    ],
-    productId: process.env.NEXT_PUBLIC_YEARLY_BASIC!
-  },
-  {
-    id: "yearly-premium",
-    name: "Hobby",
-    rank: 2,
-    credits: 30000,
-    price: 16.6,
-    popular: true,
-    icon: 'crown',
-    features: [
-      "30,000 credits/year (approx. 4,286 songs)",
-      "AI Music Generator",
-      "AI Lyrics Generator",
-      "AI Vocal Remover",
-      "Create up to 30,000 lyrics with AI",
-      "Download MP3, WAV & Cover PNG",
-      "Commercial License Included",
-      "Vocal separation, Extend music & Replace section",
-      "Access to all models (V5, V4.5-all, V4.5+, V4.5, V4)",
-      "Email customer support",
-    ],
-    productId: process.env.NEXT_PUBLIC_YEARLY_PREMIUM!
-  }
-];
+const normalizeTierCode = (tierCode: string): PricingTierCode => {
+  if (tierCode === 'premium') return 'hobby';
+  if (tierCode === 'basic') return 'starter';
+  return tierCode === 'hobby' ? 'hobby' : 'starter';
+};
+
+const buildFeatureList = (tier: PricingTierCode, credits: number, billingPeriod: PricingBillingPeriod) => {
+  const periodLabel = billingPeriod === 'yearly' ? 'year' : 'month';
+  const approxSongs = Math.max(1, Math.round(credits / 7));
+  const creditsLine = `${credits.toLocaleString('en-US')} credits/${periodLabel} (approx. ${approxSongs.toLocaleString('en-US')} songs)`;
+  const lyricLine = `Create up to ${credits.toLocaleString('en-US')} lyrics with AI`;
+  const downloadLine = tierMeta[tier].download;
+
+  return [
+    creditsLine,
+    'AI Music Generator',
+    'AI Lyrics Generator',
+    'AI Vocal Remover',
+    lyricLine,
+    downloadLine,
+    'Commercial License Included',
+    'Vocal separation, Extend music & Replace section',
+    'Access to all models (V5, V4.5-all, V4.5+, V4.5, V4)',
+    'Email customer support',
+  ];
+};
+
+export const buildPricingPlan = (plan: PricingPlanApi): PricingPlan => {
+  const tierCode = normalizeTierCode(plan.tierCode);
+  const meta = tierMeta[tierCode];
+  const displayPrice = plan.billingPeriod === 'yearly' ? plan.price / 12 : plan.price;
+
+  return {
+    id: plan.code,
+    code: plan.code,
+    name: meta.name,
+    rank: meta.rank,
+    credits: plan.credits,
+    price: displayPrice,
+    periodPrice: plan.price,
+    billingPeriod: plan.billingPeriod,
+    tierCode,
+    popular: meta.popular,
+    icon: meta.icon,
+    features: buildFeatureList(tierCode, plan.credits, plan.billingPeriod),
+    productId: plan.productId,
+  };
+};

@@ -1,50 +1,20 @@
 import { query, withTransaction } from './db-query-builder';
+import type { QueryResultRow } from 'pg';
 import { addUserCredits } from './user-db';
 
-export interface SubscriptionPlan {
-  id: string;
+export interface SubscriptionPlanRow {
+  code: string;
   name: string;
-  productId: string;
-  creditsPerPeriod: number;
-  periodType: 'monthly' | 'yearly';
+  product_id: string;
+  mode: 'test' | 'prod' | 'sandbox' | 'local';
+  credits_per_period: number;
+  billing_period: 'monthly' | 'yearly';
   price: number;
+  tier_code: string;
+  is_active: boolean;
 }
 
-// 订阅计划配置
-export const SUBSCRIPTION_PLANS: SubscriptionPlan[] = [
-  {
-    id: 'monthly_starter',
-    name: 'Monthly Starter',
-    productId: process.env.NEXT_PUBLIC_MONTHLY_BASIC || '',
-    creditsPerPeriod: 1000,
-    periodType: 'monthly',
-    price: 9.99
-  },
-  {
-    id: 'monthly_hobby',
-    name: 'Monthly Hobby',
-    productId: process.env.NEXT_PUBLIC_MONTHLY_PREMIUM || '',
-    creditsPerPeriod: 2500,
-    periodType: 'monthly',
-    price: 19.99
-  },
-  {
-    id: 'yearly_starter',
-    name: 'Yearly Starter',
-    productId: process.env.NEXT_PUBLIC_YEARLY_BASIC || '',
-    creditsPerPeriod: 12000,
-    periodType: 'yearly',
-    price: 99.99
-  },
-  {
-    id: 'yearly_hobby',
-    name: 'Yearly Hobby',
-    productId: process.env.NEXT_PUBLIC_YEARLY_PREMIUM || '',
-    creditsPerPeriod: 30000,
-    periodType: 'yearly',
-    price: 199.99
-  }
-];
+type QueryFn = <T extends QueryResultRow = any>(sql: string, params?: any[]) => Promise<{ rows: T[] }>;
 
 const LEGACY_PLAN_ID_MAP: Record<string, string> = {
   monthly_basic: 'monthly_starter',
@@ -55,6 +25,53 @@ const LEGACY_PLAN_ID_MAP: Record<string, string> = {
 
 const normalizePlanId = (planId: string): string => {
   return LEGACY_PLAN_ID_MAP[planId] || planId;
+};
+
+export const getSubscriptionPlanByProductId = async (
+  productId: string,
+  mode: SubscriptionPlanRow["mode"],
+  queryFn: QueryFn = query
+): Promise<SubscriptionPlanRow | null> => {
+  const result = await queryFn<SubscriptionPlanRow>(
+    `SELECT code, name, product_id, mode, credits_per_period, billing_period, price, tier_code, is_active
+     FROM subscription_plans
+     WHERE product_id = $1 AND mode = $2
+     LIMIT 1`,
+    [productId, mode]
+  );
+
+  return result.rows[0] || null;
+};
+
+export const getSubscriptionPlanByCode = async (
+  planCode: string,
+  mode: SubscriptionPlanRow["mode"],
+  queryFn: QueryFn = query
+): Promise<SubscriptionPlanRow | null> => {
+  const result = await queryFn<SubscriptionPlanRow>(
+    `SELECT code, name, product_id, mode, credits_per_period, billing_period, price, tier_code, is_active
+     FROM subscription_plans
+     WHERE code = $1 AND mode = $2
+     LIMIT 1`,
+    [planCode, mode]
+  );
+
+  return result.rows[0] || null;
+};
+
+export const getSubscriptionPlanByProductIdAnyMode = async (
+  productId: string,
+  queryFn: QueryFn = query
+): Promise<SubscriptionPlanRow | null> => {
+  const result = await queryFn<SubscriptionPlanRow>(
+    `SELECT code, name, product_id, mode, credits_per_period, billing_period, price, tier_code, is_active
+     FROM subscription_plans
+     WHERE product_id = $1
+     LIMIT 1`,
+    [productId]
+  );
+
+  return result.rows[0] || null;
 };
 
 export interface UserSubscription {
@@ -86,6 +103,7 @@ export const createOrUpdateUserSubscription = async (
     subscriptionId: string;
     customerId?: string | null;
     productId: string;
+    mode: SubscriptionPlanRow["mode"];
     status: 'active' | 'cancelled' | 'expired' | 'past_due';
     currentPeriodStart: string;
     currentPeriodEnd: string;
@@ -93,9 +111,12 @@ export const createOrUpdateUserSubscription = async (
 ): Promise<UserSubscription> => {
   try {
     // 查找对应的订阅计划
-    const plan = SUBSCRIPTION_PLANS.find(p => p.productId === subscriptionData.productId);
+    const plan = await getSubscriptionPlanByProductId(subscriptionData.productId, subscriptionData.mode);
     if (!plan) {
-      throw new Error(`Unknown product ID: ${subscriptionData.productId}`);
+      throw new Error(`Unknown product ID: ${subscriptionData.productId} (${subscriptionData.mode})`);
+    }
+    if (!plan.is_active) {
+      console.warn(`Subscription plan is inactive: ${plan.code}`);
     }
 
     // 计算下次积分发放日期
@@ -105,7 +126,7 @@ export const createOrUpdateUserSubscription = async (
     // 根据 plan_id 确定 tier_code，然后查询对应的 tier_id
     // monthly_starter / yearly_starter → starter
     // monthly_hobby / yearly_hobby → hobby
-    const tierCode = plan.id.includes("hobby") || plan.id.includes("premium") ? "hobby" : "starter";
+    const tierCode = plan.tier_code || (plan.code.includes("hobby") || plan.code.includes("premium") ? "hobby" : "starter");
     
     return await withTransaction(async (queryFn) => {
       // 查询 tier_id
@@ -113,12 +134,12 @@ export const createOrUpdateUserSubscription = async (
 
       // Backward compatibility: old DB codes (basic/premium)
       if (tierResult.rows.length === 0) {
-        const legacyTierCode = plan.id.includes("hobby") || plan.id.includes("premium") ? "premium" : "basic";
+        const legacyTierCode = plan.code.includes("hobby") || plan.code.includes("premium") ? "premium" : "basic";
         tierResult = await queryFn('SELECT id FROM subscription_tiers WHERE code = $1', [legacyTierCode]);
       }
       
       if (tierResult.rows.length === 0) {
-        throw new Error(`Subscription tier not found for plan '${plan.id}'`);
+        throw new Error(`Subscription tier not found for plan '${plan.code}'`);
       }
       
       const tierId = tierResult.rows[0].id;
@@ -140,12 +161,13 @@ export const createOrUpdateUserSubscription = async (
             tier_id = $5,
             product_id = $6,
             plan_id = $7,
-            customer_id = COALESCE($8, customer_id),
+            credits_per_period = $8,
+            customer_id = COALESCE($9, customer_id),
             cancel_at_period_end = FALSE,
             cancel_at = NULL,
             cancelled_at = NULL,
             updated_at = NOW()
-          WHERE user_id = $9::uuid AND subscription_id = $10
+          WHERE user_id = $10::uuid AND subscription_id = $11
           RETURNING *`,
           [
             subscriptionData.status,
@@ -154,7 +176,8 @@ export const createOrUpdateUserSubscription = async (
             nextCreditGrantDate.toISOString(),
             tierId,
             subscriptionData.productId,
-            plan.id,
+            plan.code,
+            plan.credits_per_period,
             subscriptionData.customerId || null,
             userId,
             subscriptionData.subscriptionId
@@ -176,13 +199,13 @@ export const createOrUpdateUserSubscription = async (
             subscriptionData.subscriptionId,
             subscriptionData.customerId || null,
             subscriptionData.productId,
-            plan.id,
+            plan.code,
             tierId,
             subscriptionData.status,
             subscriptionData.currentPeriodStart,
             subscriptionData.currentPeriodEnd,
             nextCreditGrantDate.toISOString(),
-            plan.creditsPerPeriod
+            plan.credits_per_period
           ]
         );
         return result.rows[0];
@@ -291,15 +314,18 @@ export const grantSubscriptionCredits = async (subscription: UserSubscription): 
       const nextGrantDate = new Date(subscription.next_credit_grant_date);
       
       // 根据订阅类型计算下次发放日期
-      const plan = SUBSCRIPTION_PLANS.find(
-        (p) => p.id === normalizePlanId(subscription.plan_id)
+      const plan = await getSubscriptionPlanByProductIdAnyMode(
+        subscription.product_id,
+        queryFn
       );
       if (plan) {
-        if (plan.periodType === 'monthly') {
+        if (plan.billing_period === 'monthly') {
           nextGrantDate.setMonth(nextGrantDate.getMonth() + 1);
-        } else if (plan.periodType === 'yearly') {
+        } else if (plan.billing_period === 'yearly') {
           nextGrantDate.setFullYear(nextGrantDate.getFullYear() + 1);
         }
+      } else {
+        throw new Error(`Unknown subscription plan: ${subscription.plan_id}`);
       }
 
       await queryFn(

@@ -7,7 +7,8 @@ import {
   getSubscriptionById,
   getSubscriptionByCustomerId,
   scheduleSubscriptionCancellation,
-  clearScheduledCancellation
+  clearScheduledCancellation,
+  getSubscriptionPlanByProductId
 } from '@/lib/subscription-credits';
 
 export const dynamic = 'force-dynamic';
@@ -68,23 +69,25 @@ export async function POST(request: NextRequest) {
         return NextResponse.json({ error: 'Missing subscription data' }, { status: 400 });
       }
 
-      // 从 metadata 获取积分数量，如果没有则根据产品计算
-      let creditsAmount = 0;
-      if (subscription?.metadata?.creditsAmount) {
-        creditsAmount = subscription.metadata.creditsAmount;
-      } else {
-        // 根据产品 ID 计算积分（备用方案）
-        const productId = product?.id || subscription?.product_id || subscription?.productId;
-        if (productId === process.env.NEXT_PUBLIC_MONTHLY_BASIC) creditsAmount = 1000;
-        else if (productId === process.env.NEXT_PUBLIC_MONTHLY_PREMIUM) creditsAmount = 2500;
-        else if (productId === process.env.NEXT_PUBLIC_YEARLY_BASIC) creditsAmount = 12000;
-        else if (productId === process.env.NEXT_PUBLIC_YEARLY_PREMIUM) creditsAmount = 30000;
+      const productId = product?.id || subscription?.product_id || subscription?.productId;
+      const mode = (subscription?.mode || product?.mode) as 'test' | 'prod' | 'sandbox' | 'local' | undefined;
+      if (!productId) {
+        return NextResponse.json({ error: 'Missing product id' }, { status: 400 });
+      }
+      if (!mode) {
+        return NextResponse.json({ error: 'Missing subscription mode' }, { status: 400 });
       }
 
-      if (!creditsAmount) {
-        console.error('Missing credits amount for subscription.paid:', subscriptionId);
-        return NextResponse.json({ error: 'Missing credits amount' }, { status: 400 });
+      const plan = await getSubscriptionPlanByProductId(productId, mode);
+      if (!plan) {
+        console.error('Unknown product id for subscription.paid:', productId);
+        return NextResponse.json({ error: 'Unknown product id' }, { status: 400 });
       }
+      if (!plan.is_active) {
+        console.warn('Subscription plan is inactive for product:', productId);
+      }
+
+      const creditsAmount = plan.credits_per_period;
 
       // 从 metadata 获取用户 ID
       let userId = subscription?.metadata?.userId;
@@ -159,15 +162,11 @@ export async function POST(request: NextRequest) {
           originalEnd: subscription.current_period_end_date
         });
 
-        const productId = product?.id || subscription?.product_id || subscription?.productId;
-        if (!productId) {
-          return NextResponse.json({ error: 'Missing product id' }, { status: 400 });
-        }
-
         const subscriptionRecord = await createOrUpdateUserSubscription(userId, {
           subscriptionId,
           customerId,
           productId,
+          mode,
           status: 'active',
           currentPeriodStart,
           currentPeriodEnd
@@ -176,11 +175,7 @@ export async function POST(request: NextRequest) {
         console.log(`Created/updated subscription record for user ${userId}:`, subscriptionRecord.id);
 
         // 发放首次积分
-        const billingPeriod = product?.billing_period === 'every-month'
-          ? 'monthly'
-          : subscription?.billing_period === 'every-month'
-            ? 'monthly'
-            : 'yearly';
+        const billingPeriod = plan.billing_period;
         const success = await addUserCredits(
           userId,
           creditsAmount,
@@ -281,6 +276,7 @@ export async function POST(request: NextRequest) {
       const subscriptionId = subscription?.id;
       const customerId = customer?.id;
       const productId = product?.id || subscription?.product_id || subscription?.productId;
+      const mode = (subscription?.mode || product?.mode) as 'test' | 'prod' | 'sandbox' | 'local' | undefined;
       let userId = meta.userId;
 
       if (!userId && subscriptionId) {
@@ -297,7 +293,7 @@ export async function POST(request: NextRequest) {
         await clearScheduledCancellation(userId, subscriptionId);
       }
 
-      if (userId && subscriptionId && productId) {
+      if (userId && subscriptionId && productId && mode) {
         const currentPeriodStart = subscription?.current_period_start_date
           ? new Date(subscription.current_period_start_date).toISOString()
           : new Date().toISOString();
@@ -309,10 +305,13 @@ export async function POST(request: NextRequest) {
           subscriptionId,
           customerId,
           productId,
+          mode,
           status: 'active',
           currentPeriodStart,
           currentPeriodEnd
         });
+      } else if (userId && subscriptionId && productId && !mode) {
+        console.warn('Missing mode for subscription update:', { subscriptionId, productId });
       }
 
       return NextResponse.json({ received: true, message: 'Subscription active' });
@@ -340,8 +339,8 @@ export async function POST(request: NextRequest) {
 
       console.log('Refund created:', refund);
 
-      const subscriptionId = refund?.subscription_id;
-      const customerId = refund?.customer_id;
+      const subscriptionId = refund?.subscription?.id || refund?.transaction?.subscription;
+      const customerId = refund?.customer?.id || refund?.transaction?.customer;
 
       const subscriptionRecord = subscriptionId
         ? await getSubscriptionById(subscriptionId)
@@ -389,6 +388,13 @@ export async function POST(request: NextRequest) {
           console.error('Database error when processing refund:', e);
           return NextResponse.json({ error: 'Database error during refund' }, { status: 500 });
         }
+      } else {
+        console.warn('Refund event missing subscription record or credits:', {
+          subscriptionId,
+          customerId,
+          hasSubscriptionRecord: Boolean(subscriptionRecord),
+          creditsAmount,
+        });
       }
       
       return NextResponse.json({ received: true, message: 'Refund processed successfully' });

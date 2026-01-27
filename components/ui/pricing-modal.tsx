@@ -13,7 +13,8 @@ import { cn } from "@/lib/utils";
 import { Check, X } from "lucide-react";
 import AuthModal from "@/components/ui/auth-modal";
 import { CancelSubscriptionDialog } from "@/components/ui/cancel-subscription-dialog";
-import { monthlyPlans, yearlyPlans, type PricingPlan } from "@/lib/pricing-config";
+import { type PricingPlan } from "@/lib/pricing-config";
+import { usePricingPlans } from "@/hooks/use-pricing-plans";
 import { toast } from "sonner";
 
 export function PricingModal() {
@@ -26,6 +27,7 @@ export function PricingModal() {
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
   const [cancelLoading, setCancelLoading] = useState(false);
   const [isCancelDialogOpen, setIsCancelDialogOpen] = useState(false);
+  const { monthlyPlans, yearlyPlans } = usePricingPlans();
   const currentPlans = billingPeriod === 'monthly' ? monthlyPlans : yearlyPlans;
   const allPlans = [...monthlyPlans, ...yearlyPlans];
   const tierRankMap: Record<string, number> = {
@@ -285,8 +287,8 @@ export function PricingModal() {
               </div>
 
               {currentPlans.map((plan) => {
-                const isHobby = plan.name === "Hobby";
-                const planTier = plan.id.includes("premium") ? "hobby" : "starter";
+            const isHobby = plan.tierCode === "hobby";
+            const planTier = plan.tierCode;
                 const isCurrentPlan = hasSubscription && (
                   activeProductId ? activeProductId === plan.productId : tierCode === planTier
                 );

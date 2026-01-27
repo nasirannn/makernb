@@ -12,7 +12,8 @@ import { Check, X } from "lucide-react";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import AuthModal from "@/components/ui/auth-modal";
 import { CancelSubscriptionDialog } from "@/components/ui/cancel-subscription-dialog";
-import { monthlyPlans, yearlyPlans, type PricingPlan } from "@/lib/pricing-config";
+import { type PricingPlan } from "@/lib/pricing-config";
+import { usePricingPlans } from "@/hooks/use-pricing-plans";
 import { FEATURE_CREDITS_CONFIG, MUSIC_GENERATION_CONFIG } from "@/lib/credits-config";
 import { toast } from "sonner";
 
@@ -25,6 +26,7 @@ export const PricingSection = () => {
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
   const [cancelLoading, setCancelLoading] = useState(false);
   const [isCancelDialogOpen, setIsCancelDialogOpen] = useState(false);
+  const { monthlyPlans, yearlyPlans } = usePricingPlans();
   const currentPlans = billingPeriod === 'monthly' ? monthlyPlans : yearlyPlans;
   const allPlans = [...monthlyPlans, ...yearlyPlans];
   const tierRankMap: Record<string, number> = {
@@ -357,9 +359,9 @@ export const PricingSection = () => {
             </div>
           </div>
 
-        {currentPlans.map((plan) => {
-            const isHobby = plan.name === "Hobby";
-            const planTier = plan.id.includes("premium") ? "hobby" : "starter";
+          {currentPlans.map((plan) => {
+            const isHobby = plan.tierCode === "hobby";
+            const planTier = plan.tierCode;
             const isCurrentPlan = hasSubscription && (
               activeProductId ? activeProductId === plan.productId : tierCode === planTier
             );

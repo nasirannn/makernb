@@ -349,7 +349,7 @@ export const Navbar = ({ credits = null }: NavbarProps) => {
                             label={tierName}
                             tooltip={billingNotice ?? undefined}
                             showCalendar={hasSubscription}
-                            className="cursor-pointer transition-colors hover:bg-primary/12"
+                            className="cursor-pointer transition-colors !bg-primary !text-primary-foreground hover:!bg-primary/90 !border-primary/40 dark:!border-primary/50 !py-1"
                           />
                         </button>
                       </div>
@@ -531,7 +531,7 @@ export const Navbar = ({ credits = null }: NavbarProps) => {
                         label={tierName}
                         tooltip={billingNotice ?? undefined}
                         showCalendar={hasSubscription}
-                        className="cursor-pointer transition-colors hover:bg-primary/12"
+                        className="cursor-pointer transition-colors !bg-primary !text-primary-foreground hover:!bg-primary/90 !border-primary/40 dark:!border-primary/50 !py-1"
                       />
                     </button>
                   </div>
