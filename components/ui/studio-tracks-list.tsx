@@ -1,7 +1,8 @@
 "use client";
 
 import React, { useState, useCallback, useMemo, useEffect } from 'react';
-import { CheckCircle, Eye, Music, Search, X } from "lucide-react";
+import Image from "next/image";
+import { CheckCircle, Eye, Search, X } from "lucide-react";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { Button } from '@/components/ui/button';
@@ -929,13 +930,19 @@ export const StudioTracksList: React.FC<StudioTracksListProps> = React.memo(func
         <div className="text-center max-w-md space-y-6">
           <div className="flex justify-center mb-6">
             <div className="relative">
-              <Music className="h-20 w-20 text-muted-foreground/30" strokeWidth={1.5} />
+              <Image
+                src="/icons/Studio-Empty-Coffee.svg"
+                alt="No tracks yet"
+                width={96}
+                height={96}
+                className="h-20 w-20 opacity-70"
+              />
               <div className="absolute inset-0 bg-gradient-to-br from-primary/10 to-transparent rounded-full blur-2xl" />
             </div>
           </div>
           <div className="space-y-3">
             <h3 className="text-2xl font-bold text-foreground">
-              Your tracks will appear here
+              No tracks data
             </h3>
             <p className="text-base text-muted-foreground leading-relaxed">
             Choose your style, describe the vibe, and create your track.

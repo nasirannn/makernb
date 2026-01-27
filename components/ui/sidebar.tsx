@@ -513,16 +513,18 @@ const aiMusicToolsDropdown = [
                       <span className="text-sm font-medium">Sign In</span>
                     </Button>
                   ) : (
-                    <Tooltip content="Sign In" position="right">
-                      <Button
-                        onClick={() => setIsAuthModalOpen(true)}
-                        variant="ghost"
-                        size="sm"
-                        className={collapsedButtonClasses(false)}
-                      >
-                        <LogIn className="h-5 w-5" />
-                      </Button>
-                    </Tooltip>
+                    <div className="flex justify-center">
+                      <Tooltip content="Sign In" position="right">
+                        <Button
+                          onClick={() => setIsAuthModalOpen(true)}
+                          variant="ghost"
+                          size="sm"
+                          className={collapsedButtonClasses(false)}
+                        >
+                          <LogIn className="h-5 w-5" />
+                        </Button>
+                      </Tooltip>
+                    </div>
                   )}
                 </>
               )}
