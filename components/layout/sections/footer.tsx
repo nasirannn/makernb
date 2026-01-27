@@ -1,8 +1,10 @@
 "use client";
 
 import { Separator } from "@/components/ui/separator";
+import { ThemeModeToggle } from "@/components/ui/theme-mode-toggle";
 import Link from "next/link";
 import Image from "next/image";
+import { Mail } from "lucide-react";
 
 export const FooterSection = () => {
   return (
@@ -19,41 +21,34 @@ export const FooterSection = () => {
             <p className="max-w-xl text-sm text-muted-foreground leading-relaxed">
               Create authentic R&B music with AI — from soulful ballads to contemporary grooves. Generate export‑ready tracks in minutes.
             </p>
-            <div className="flex flex-wrap items-center gap-2">
-              <Link
-                href="/studio"
-                className="inline-flex items-center rounded-full bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground hover:bg-primary/90 transition-colors"
-              >
-                Try for free
-              </Link>
-              <Link
-                href="/explore"
-                className="inline-flex items-center rounded-full bg-background/40 px-4 py-2 text-sm font-semibold text-foreground shadow-[0_0_0_1px_rgba(0,0,0,0.08)] dark:shadow-[0_0_0_1px_rgba(255,255,255,0.10)] hover:bg-foreground/5 transition-colors"
-              >
-                Explore
-              </Link>
-            </div>
+            <a
+              href="mailto:contact@makernb.com?subject=Contact from MakeRNB Website&body=Hello MakeRNB Team,%0D%0A%0D%0AI would like to get in touch with you regarding:%0D%0A%0D%0A%0D%0A%0D%0ABest regards,"
+              className="inline-flex h-10 w-10 items-center justify-center rounded-full bg-foreground/5 text-foreground/70 transition-colors hover:bg-foreground/10 hover:text-foreground"
+              aria-label="Email MakeRNB"
+            >
+              <Mail className="h-4 w-4" />
+            </a>
           </div>
 
-          <div className="grid grid-cols-2 gap-8">
+          <div className="grid grid-cols-2 gap-8 md:grid-cols-3">
             <div className="space-y-3">
               <p className="text-[11px] font-semibold uppercase tracking-[0.28em] text-muted-foreground">Product</p>
               <div className="flex flex-col gap-2 text-sm">
                 <Link href="/#features" className="text-foreground/80 hover:text-foreground transition-colors">Features</Link>
-                <Link href="/#pricing" className="text-foreground/80 hover:text-foreground transition-colors">Pricing</Link>
+              </div>
+            </div>
+
+            <div className="space-y-3">
+              <p className="text-[11px] font-semibold uppercase tracking-[0.28em] text-muted-foreground">Resources</p>
+              <div className="flex flex-col gap-2 text-sm">
                 <Link href="/blog" className="text-foreground/80 hover:text-foreground transition-colors">Blog</Link>
+                <Link href="/pricing" className="text-foreground/80 hover:text-foreground transition-colors">Pricing</Link>
               </div>
             </div>
 
             <div className="space-y-3">
               <p className="text-[11px] font-semibold uppercase tracking-[0.28em] text-muted-foreground">Support</p>
               <div className="flex flex-col gap-2 text-sm">
-                <a
-                  href="mailto:contact@makernb.com?subject=Contact from MakeRNB Website&body=Hello MakeRNB Team,%0D%0A%0D%0AI would like to get in touch with you regarding:%0D%0A%0D%0A%0D%0A%0D%0ABest regards,"
-                  className="text-foreground/80 hover:text-foreground transition-colors"
-                >
-                  Contact
-                </a>
                 <Link href="/privacy" className="text-foreground/80 hover:text-foreground transition-colors">Privacy</Link>
                 <Link href="/terms" className="text-foreground/80 hover:text-foreground transition-colors">Terms</Link>
                 <Link href="/refund" className="text-foreground/80 hover:text-foreground transition-colors">Refunds</Link>
@@ -62,11 +57,14 @@ export const FooterSection = () => {
           </div>
         </div>
 
-        <Separator className="my-8" />
+        <Separator className="mt-8 mb-4" />
 
         <div className="flex flex-col gap-4">
-          <div className="text-xs text-muted-foreground text-center">
-            &copy; 2025 MakeRNB. All rights reserved.
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <div className="text-xs text-muted-foreground text-left">
+              &copy; 2025 MakeRNB. All rights reserved.
+            </div>
+            <ThemeModeToggle variant="icon" />
           </div>
 
           <Separator />

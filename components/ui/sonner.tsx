@@ -24,7 +24,7 @@ const Toaster = ({ ...props }: ToasterProps) => {
           description: "text-gray-600 dark:text-gray-400",
           actionButton: "bg-gray-100 hover:bg-gray-200 dark:bg-gray-800 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-md px-3 py-1 text-sm transition-colors",
           cancelButton: "bg-gray-100 hover:bg-gray-200 dark:bg-gray-800 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-md px-3 py-1 text-sm transition-colors",
-          icon: "text-gray-600 dark:text-gray-400",
+          icon: "text-gray-600 dark:text-gray-400 self-start mt-0.5",
         },
       }}
       {...props}

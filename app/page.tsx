@@ -3,7 +3,6 @@ import { IntroductionSection } from "@/components/layout/sections/introduction";
 import { ExploreSection } from "@/components/layout/sections/explore";
 import { FooterSection } from "@/components/layout/sections/footer";
 import { FeaturesSection } from "@/components/layout/sections/features";
-import { PricingSection } from "@/components/layout/sections/pricing";
 import { FAQSection } from "@/components/layout/sections/faq";
 import { HomeCanonical } from "./HomeCanonical";
 import type { Metadata } from "next";
@@ -46,7 +45,6 @@ export default function Home() {
       <IntroductionSection />
       <ExploreSection />
       <FeaturesSection />
-      <PricingSection />
       <FAQSection />
       <FooterSection />
     </>

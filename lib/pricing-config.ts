@@ -8,6 +8,7 @@
 export interface PricingPlan {
   id: string;
   name: string;
+  rank: number;
   credits: number;
   price: number;
   originalPrice?: number;
@@ -24,6 +25,7 @@ export const monthlyPlans: PricingPlan[] = [
   {
     id: "monthly-basic",
     name: "Starter",
+    rank: 1,
     credits: 1000,
     price: 12.9,
     icon: 'star',
@@ -44,6 +46,7 @@ export const monthlyPlans: PricingPlan[] = [
   {
     id: "monthly-premium",
     name: "Hobby",
+    rank: 2,
     credits: 2500,
     price: 25.9,
     popular: true,
@@ -71,6 +74,7 @@ export const yearlyPlans: PricingPlan[] = [
   {
     id: "yearly-basic",
     name: "Starter",
+    rank: 1,
     credits: 12000,
     price: 8.3,
     icon: 'star',
@@ -91,6 +95,7 @@ export const yearlyPlans: PricingPlan[] = [
   {
     id: "yearly-premium",
     name: "Hobby",
+    rank: 2,
     credits: 30000,
     price: 16.6,
     popular: true,

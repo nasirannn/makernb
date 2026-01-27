@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect, Suspense } from "react";
+import React, { useState, useEffect, useRef, Suspense } from "react";
 import { flushSync } from "react-dom";
 import { useRouter } from "next/navigation";
 
@@ -87,6 +87,7 @@ const StudioContent = () => {
     const [selectedStudioTrack, setSelectedStudioTrack] = useState<StudioTrack | null>(null);
     const [panelOpen, setPanelOpen] = useState(true);
     const [lyricsPanelOpen, setLyricsPanelOpen] = useState(true);
+    const lastSelectedTrackIdRef = useRef<string | null>(null);
     const [sidebarWidth, setSidebarWidth] = useState(80);
     const sidebarOffsetRef = React.useRef(sidebarWidth);
 
@@ -1473,9 +1474,16 @@ const StudioContent = () => {
     }, [selectedStudioTrack, findTrackAndMusic, generatedTracks]);
 
     React.useEffect(() => {
-        if (selectedStudioTrack) {
+        if (!selectedStudioTrack) {
+            lastSelectedTrackIdRef.current = null;
+            return;
+        }
+
+        if (lastSelectedTrackIdRef.current !== selectedStudioTrack.id) {
             setLyricsPanelOpen(true);
         }
+
+        lastSelectedTrackIdRef.current = selectedStudioTrack.id;
     }, [selectedStudioTrack]);
 
     const isInlineTrackPlaying = !!(selectedStudioTrack && player.currentTrack?.id === selectedStudioTrack.id && player.isPlaying);
@@ -1953,7 +1961,9 @@ const StudioContent = () => {
                         </AlertDialogDescription>
                     </AlertDialogHeader>
                     <AlertDialogFooter className="flex flex-col sm:flex-row items-center justify-center gap-2 sm:gap-3">
-                        <AlertDialogCancel className="w-full sm:w-auto">Cancel</AlertDialogCancel>
+                        <AlertDialogCancel className="w-full sm:w-auto text-foreground hover:text-foreground dark:hover:text-accent-foreground">
+                            Cancel
+                        </AlertDialogCancel>
                         <AlertDialogAction
                             onClick={handleDeleteConfirm}
                             className="w-full sm:w-auto bg-destructive text-destructive-foreground hover:bg-destructive/90"

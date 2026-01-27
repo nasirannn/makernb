@@ -45,6 +45,16 @@ export default function RefundPolicy() {
         </section>
 
         <section className="mb-8">
+          <h2 className="text-2xl font-semibold mb-4">Cancellation vs. Refund</h2>
+          <p className="mb-4">
+            Cancellation and refunds are separate actions. Cancelling a subscription in the Customer Portal immediately ends your subscription and stops future billing, but it does not automatically issue a refund.
+          </p>
+          <p className="mb-4">
+            Refunds are not initiated through the Customer Portal. If you want to request a refund, please contact our support team as described below.
+          </p>
+        </section>
+
+        <section className="mb-8">
           <h2 className="text-2xl font-semibold mb-4">Qualification Requirements</h2>
           <p className="mb-4">To be eligible for a refund during the trial period, the following conditions must be met:</p>
           <ul className="list-disc pl-6 mb-4">
@@ -72,11 +82,9 @@ export default function RefundPolicy() {
         <section className="mb-8">
           <h2 className="text-2xl font-semibold mb-4">Additional Considerations</h2>
           <ul className="list-disc pl-6 mb-4">
-            <li><strong>Service Credits Alternative:</strong> In some cases, we may offer service credits as an alternative solution, which can be applied to future subscriptions or services</li>
-            <li><strong>Extended Evaluation Period:</strong> Extended evaluation periods may be available for users experiencing technical issues that prevent proper service testing</li>
-            <li><strong>Premium Support:</strong> Premium support and expedited processing available for enterprise subscribers</li>
             <li><strong>Partial Refunds:</strong> If you have used credits beyond the 5-composition limit, a partial refund may be offered based on remaining unused subscription value</li>
             <li><strong>Subscription Status:</strong> Upon refund approval, your subscription will be cancelled and access to premium features will be revoked</li>
+            <li><strong>Credits Adjustment:</strong> If a refund is approved, any remaining subscription credits may be adjusted or revoked</li>
           </ul>
         </section>
 
@@ -95,7 +103,14 @@ export default function RefundPolicy() {
         <section className="mb-8">
           <h2 className="text-2xl font-semibold mb-4">Cancellation Process</h2>
           <p className="mb-4">
-            If you wish to cancel your subscription and request a refund, please follow these steps:
+            To cancel a subscription, open the <strong>Manage Subscription</strong> link in your account to access the Customer Portal, then click <strong>Manage Subscription</strong> and choose <strong>Cancel Subscription</strong>. This cancellation takes effect immediately and stops future billing.
+          </p>
+        </section>
+
+        <section className="mb-8">
+          <h2 className="text-2xl font-semibold mb-4">Refund Request Process</h2>
+          <p className="mb-4">
+            If you wish to request a refund, please follow these steps:
           </p>
           <ol className="list-decimal pl-6 mb-4">
             <li>Send an email to <a href="mailto:contact@makernb.com" className="text-primary hover:underline">contact@makernb.com</a> with the subject line &quot;Refund Request&quot;</li>

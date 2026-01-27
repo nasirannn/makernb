@@ -4,6 +4,7 @@ import React from "react";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
+import { SubscriptionBadge } from "@/components/ui/subscription-badge";
 import { Music, Library, Sparkles, Sun, LogOut, BookOpen, LogIn, Mic, FileText, Wand2, RefreshCw, ChevronLeft, ChevronRight, PencilLine } from "lucide-react";
 import { usePathname, useRouter } from "next/navigation";
 import Image from "next/image";
@@ -11,6 +12,7 @@ import Link from "next/link";
 import { useAuth } from '@/contexts/AuthContext';
 import { useCredits } from '@/contexts/CreditsContext';
 import { useSubscription } from "@/contexts/SubscriptionContext";
+import { usePricingModal } from "@/contexts/PricingModalContext";
 import { useTheme } from "next-themes";
 import AuthModal from '@/components/ui/auth-modal';
 import { EditNicknameDialog } from "@/components/ui/edit-nickname-dialog";
@@ -45,7 +47,8 @@ export const CommonSidebar = ({
   const router = useRouter();
   const { user, signOut } = useAuth();
   const { credits, refreshCredits } = useCredits();
-  const { tierName, hasSubscription } = useSubscription();
+  const { tierCode, tierName, hasSubscription, cancelAtPeriodEnd, cancelAt, currentPeriodEnd } = useSubscription();
+  const { openModal } = usePricingModal();
   const { theme, setTheme } = useTheme();
 
   // 判断是否选中某个路径
@@ -60,8 +63,35 @@ export const CommonSidebar = ({
   const [isRefreshingCredits, setIsRefreshingCredits] = React.useState(false);
   const [isExpanded, setIsExpanded] = React.useState(false);
   const [isNicknameDialogOpen, setIsNicknameDialogOpen] = React.useState(false);
+  const [isCollapsedCreditsHovered, setIsCollapsedCreditsHovered] = React.useState(false);
+  const [suppressCollapsedCreditsHover, setSuppressCollapsedCreditsHover] = React.useState(false);
+  const collapsedCreditsHoverRef = React.useRef(false);
   const mobileNavRef = React.useRef<HTMLDivElement | null>(null);
   const displayName = user?.user_metadata?.nickname || user?.user_metadata?.full_name || user?.user_metadata?.name || user?.email?.split('@')[0] || '';
+  const formatDisplayDate = React.useCallback((dateValue?: string | null) => {
+    if (!dateValue) return null;
+    const parsed = new Date(dateValue);
+    if (Number.isNaN(parsed.getTime())) return null;
+    return parsed.toLocaleDateString("en-CA", {
+      year: "numeric",
+      month: "2-digit",
+      day: "2-digit",
+    });
+  }, []);
+  const billingNotice = React.useMemo(() => {
+    if (!hasSubscription) return null;
+    if (cancelAtPeriodEnd) {
+      const formatted = formatDisplayDate(cancelAt);
+      return formatted ? `Scheduled to cancel on ${formatted}` : "Cancellation scheduled.";
+    }
+    const formatted = formatDisplayDate(currentPeriodEnd);
+    return formatted ? `Next charge on ${formatted}.` : null;
+  }, [hasSubscription, cancelAtPeriodEnd, cancelAt, currentPeriodEnd, formatDisplayDate]);
+
+  const handleOpenPricingModal = () => {
+    setUserMenuOpen(false);
+    openModal();
+  };
 
   // 切换sidebar展开/收起状态
   const toggleSidebar = () => {
@@ -99,6 +129,12 @@ const aiMusicToolsDropdown = [
     } finally {
       setIsRefreshingCredits(false);
     }
+  };
+
+  const handleCollapsedRefreshCredits = async () => {
+    if (isRefreshingCredits) return;
+    await handleRefreshCredits();
+    setSuppressCollapsedCreditsHover(collapsedCreditsHoverRef.current);
   };
 
   // 点击外部关闭用户菜单和下拉菜单
@@ -349,15 +385,27 @@ const aiMusicToolsDropdown = [
                       </Button>
 
                       {userMenuOpen && (
-                        <div className="absolute top-0 left-full ml-3 w-56 rounded-2xl bg-background p-3 shadow-[0_18px_55px_rgba(0,0,0,0.12)]">
+                        <div className="absolute top-0 left-full ml-5 min-w-52 w-max rounded-2xl bg-background p-3 shadow-[0_18px_55px_rgba(0,0,0,0.12)]">
                           <div className="px-1 pb-2">
                             <div className="flex items-center justify-between gap-2 mb-1">
                               <p className="text-foreground font-semibold text-sm truncate flex-1">
                                 {displayName || user.email}
                               </p>
-                              <span className="text-xs font-medium text-foreground/70">
-                                {tierName}
-                              </span>
+                              <button
+                                type="button"
+                                onClick={handleOpenPricingModal}
+                                className="group inline-flex items-center gap-1.5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+                                aria-label="Open pricing"
+                                title={billingNotice ?? undefined}
+                              >
+                                <SubscriptionBadge
+                                  tone={tierCode ?? "free"}
+                                  label={tierName}
+                                  tooltip={billingNotice ?? undefined}
+                                  showCalendar={hasSubscription}
+                                  className="cursor-pointer transition-colors hover:bg-primary/12"
+                                />
+                              </button>
                             </div>
                             <p className="text-muted-foreground text-xs truncate">
                               {user.email}
@@ -403,40 +451,50 @@ const aiMusicToolsDropdown = [
                       </Avatar>
 
                       {userMenuOpen && (
-                        <div className="absolute top-0 left-full ml-3 w-56 rounded-2xl bg-background shadow-[0_18px_55px_rgba(0,0,0,0.12)]">
-                          <div className="p-4">
-                            <div className="flex items-center justify-between gap-2">
+                        <div className="absolute top-0 left-full ml-3 min-w-52 w-max rounded-2xl bg-background p-3 shadow-[0_18px_55px_rgba(0,0,0,0.12)]">
+                          <div className="px-1 pb-2">
+                            <div className="flex items-center justify-between gap-2 mb-1">
                               <div className="text-sm font-semibold text-foreground truncate flex-1">
                                 {displayName || user.email}
                               </div>
-                              <span className="text-xs font-medium text-foreground/70">
-                                {tierName}
-                              </span>
+                              <button
+                                type="button"
+                                onClick={handleOpenPricingModal}
+                                className="group inline-flex items-center gap-1.5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+                                aria-label="Open pricing"
+                                title={billingNotice ?? undefined}
+                              >
+                                <SubscriptionBadge
+                                  tone={tierCode ?? "free"}
+                                  label={tierName}
+                                  tooltip={billingNotice ?? undefined}
+                                  showCalendar={hasSubscription}
+                                  className="cursor-pointer transition-colors hover:bg-primary/12"
+                                />
+                              </button>
                             </div>
                             <div className="text-xs text-muted-foreground truncate">{user.email}</div>
                           </div>
-                          <div className="p-2">
-                            <button
-                              onClick={() => {
-                                setIsNicknameDialogOpen(true);
-                                setUserMenuOpen(false);
-                              }}
-                              className="w-full flex items-center gap-3 rounded-xl px-3 py-2 text-sm text-foreground/70 hover:bg-muted/40 hover:text-foreground"
-                            >
-                              <PencilLine className="w-4 h-4" />
-                              <span>Edit profile</span>
-                            </button>
-                            <button
-                              onClick={() => {
-                                handleSignOut();
-                                setUserMenuOpen(false);
-                              }}
-                              className="w-full flex items-center gap-3 rounded-xl px-3 py-2 text-sm text-foreground/70 hover:bg-muted/40 hover:text-foreground"
-                            >
-                              <LogOut className="w-4 h-4" />
-                              <span>Sign Out</span>
-                            </button>
-                          </div>
+                          <button
+                            onClick={() => {
+                              setIsNicknameDialogOpen(true);
+                              setUserMenuOpen(false);
+                            }}
+                            className="w-full flex items-center gap-3 rounded-xl px-3 py-2 text-sm text-foreground/70 hover:bg-muted/40 hover:text-foreground"
+                          >
+                            <PencilLine className="w-4 h-4" />
+                            <span>Edit profile</span>
+                          </button>
+                          <button
+                            onClick={() => {
+                              handleSignOut();
+                              setUserMenuOpen(false);
+                            }}
+                            className="w-full flex items-center gap-3 rounded-xl px-3 py-2 text-sm text-foreground/70 hover:bg-muted/40 hover:text-foreground"
+                          >
+                            <LogOut className="w-4 h-4" />
+                            <span>Sign Out</span>
+                          </button>
                         </div>
                       )}
                     </div>
@@ -483,17 +541,7 @@ const aiMusicToolsDropdown = [
             <div className={`border-t border-dashed border-black/5 dark:border-white/5 ${isExpanded ? 'px-4 pt-4 pb-6' : 'px-2 pt-4 pb-6'} flex flex-col gap-3`}>
               {isExpanded ? (
                 <div
-                  role="button"
-                  tabIndex={0}
-                  onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
-                  onKeyDown={(event) => {
-                    if (event.key === "Enter" || event.key === " ") {
-                      event.preventDefault();
-                      setTheme(theme === "dark" ? "light" : "dark");
-                    }
-                  }}
-                  className="w-full h-12 rounded-2xl bg-transparent hover:bg-muted/60 px-4 flex items-center justify-between cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-ring/40 focus-visible:ring-offset-0"
-                  aria-label={theme === "dark" ? "Switch to light mode" : "Switch to dark mode"}
+                  className="w-full h-12 rounded-2xl bg-transparent px-4 flex items-center justify-between"
                 >
                   <div className="flex items-center gap-2">
                     <Sun className="h-4 w-4 text-foreground/60" />
@@ -504,7 +552,7 @@ const aiMusicToolsDropdown = [
                   <ThemeModeToggle size="sm" variant="icon" className="rounded-2xl" />
                 </div>
               ) : (
-                <Tooltip content="Light / Dark mode" position="right">
+                <Tooltip content="Toggle theme" position="right">
                   <div className="flex h-12 w-full items-center justify-center rounded-2xl">
                     <ThemeModeToggle size="md" variant="icon" className="rounded-2xl" />
                   </div>
@@ -531,8 +579,8 @@ const aiMusicToolsDropdown = [
                           handleRefreshCredits();
                         }
                       }}
-                      className={`w-full h-14 rounded-2xl bg-transparent px-4 py-4 text-left transition-all duration-300 border border-transparent focus:outline-none focus-visible:ring-2 focus-visible:ring-ring/40 focus-visible:ring-offset-0 ${
-                        isRefreshingCredits ? 'opacity-70 cursor-wait' : 'hover:bg-muted/60 cursor-pointer'
+                      className={`w-full h-14 rounded-2xl bg-transparent px-4 py-4 text-left transition-all duration-300 border border-transparent ${
+                        isRefreshingCredits ? 'opacity-70' : ''
                       }`}
                     >
                       <div className="flex items-center text-foreground">
@@ -542,7 +590,27 @@ const aiMusicToolsDropdown = [
                             Credits
                           </span>
                         </div>
-                        <div className="relative group ml-auto flex min-w-[64px] items-center justify-end">
+                        <div
+                          role="button"
+                          tabIndex={0}
+                          aria-disabled={isRefreshingCredits}
+                          onClick={() => {
+                            if (!isRefreshingCredits) {
+                              handleRefreshCredits();
+                            }
+                          }}
+                          onKeyDown={(event) => {
+                            if (isRefreshingCredits) return;
+                            if (event.key === 'Enter' || event.key === ' ') {
+                              event.preventDefault();
+                              handleRefreshCredits();
+                            }
+                          }}
+                          aria-label="Refresh credits"
+                          className={`relative group ml-auto flex min-w-[64px] items-center justify-end ${
+                            isRefreshingCredits ? 'cursor-wait' : 'cursor-pointer'
+                          }`}
+                        >
                           <span className="text-md font-semibold leading-none tabular-nums text-right transition-opacity duration-150 group-hover:opacity-0 group-focus-within:opacity-0">
                             {credits !== null ? credits.toLocaleString() : '...'}
                           </span>
@@ -578,7 +646,7 @@ const aiMusicToolsDropdown = [
                             asChild
                             className="mt-1 h-9 w-full rounded-full bg-primary-foreground text-primary text-sm font-semibold hover:bg-primary-foreground/90"
                           >
-                            <Link href="/#pricing">Upgrade Now</Link>
+                            <Link href="/pricing">Upgrade Now</Link>
                           </Button>
                         </div>
                       </div>
@@ -587,44 +655,52 @@ const aiMusicToolsDropdown = [
                   ) : (
                     <div className="relative group w-full">
                       <div
-                        role="button"
-                        tabIndex={0}
-                        aria-disabled={isRefreshingCredits}
-                        onClick={() => {
-                          if (!isRefreshingCredits) {
-                            handleRefreshCredits();
-                          }
+                        onMouseEnter={() => {
+                          collapsedCreditsHoverRef.current = true;
+                          setIsCollapsedCreditsHovered(true);
                         }}
-                        onKeyDown={(event) => {
-                          if (isRefreshingCredits) return;
-                          if (event.key === 'Enter' || event.key === ' ') {
-                            event.preventDefault();
-                            handleRefreshCredits();
-                          }
+                        onMouseLeave={() => {
+                          collapsedCreditsHoverRef.current = false;
+                          setIsCollapsedCreditsHovered(false);
+                          setSuppressCollapsedCreditsHover(false);
                         }}
                         className={`w-full h-14 rounded-2xl px-2 py-3 text-foreground transition-all duration-300 focus:outline-none focus-visible:ring-2 focus-visible:ring-ring/40 focus-visible:ring-offset-0 ${
-                          isRefreshingCredits ? 'opacity-70 cursor-wait' : 'cursor-pointer'
+                          isRefreshingCredits ? 'opacity-70 cursor-wait' : 'cursor-default'
                         } flex flex-col items-center text-center`}
                       >
-                        <div className="relative w-full">
-                          <div className="transition-opacity duration-150 group-hover:opacity-0 group-focus-within:opacity-0 flex items-center justify-center">
+                        <div className="relative w-full flex items-center justify-center">
+                          {isRefreshingCredits ? (
+                            <div
+                              aria-hidden="true"
+                              className="h-9 w-9 rounded-full text-foreground/70 transition-colors flex items-center justify-center"
+                            >
+                              <RefreshCw className="h-4 w-4 animate-spin" />
+                            </div>
+                          ) : isCollapsedCreditsHovered && !suppressCollapsedCreditsHover ? (
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="icon"
+                              onClick={(event) => {
+                                event.stopPropagation();
+                                handleCollapsedRefreshCredits();
+                              }}
+                              className="h-9 w-9 rounded-full text-foreground/70 hover:text-foreground hover:bg-foreground/5"
+                              aria-label="Refresh credits"
+                            >
+                              <RefreshCw className="h-4 w-4" />
+                            </Button>
+                          ) : (
                             <span className="inline-flex items-center justify-center rounded-full bg-muted/40 px-2.5 py-1 text-sm font-semibold leading-none text-foreground tabular-nums">
                               {credits !== null ? credits.toLocaleString() : '...'}
                             </span>
-                          </div>
-
-                          <div className="absolute inset-0 flex items-center justify-center opacity-0 transition-opacity duration-150 group-hover:opacity-100 group-focus-within:opacity-100">
-                            <div
-                              aria-hidden="true"
-                              className="h-9 w-9 rounded-full text-foreground/70 hover:text-foreground hover:bg-foreground/5 transition-colors flex items-center justify-center"
-                            >
-                              <RefreshCw className={cn("h-4 w-4", isRefreshingCredits ? "animate-spin" : "")} />
-                            </div>
-                          </div>
+                          )}
                         </div>
-                        <span className="mt-1 text-[10px] font-medium text-foreground/45">
-                          Credits
-                        </span>
+                        {!isRefreshingCredits && (!isCollapsedCreditsHovered || suppressCollapsedCreditsHover) && (
+                          <span className="mt-1 text-[10px] font-medium text-foreground/45">
+                            Credits
+                          </span>
+                        )}
                       </div>
                     </div>
                   )}
@@ -729,6 +805,7 @@ const aiMusicToolsDropdown = [
         isOpen={isAuthModalOpen}
         onClose={() => setIsAuthModalOpen(false)}
       />
+
     </>
   );
 };

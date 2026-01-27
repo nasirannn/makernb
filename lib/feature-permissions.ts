@@ -7,8 +7,8 @@ import { normalizeTierCode, type SubscriptionTier } from "./subscription-tier";
 
 /**
  * 将订阅 plan_id 映射到 tier_code
- * monthly_basic / yearly_basic → starter
- * monthly_premium / yearly_premium → hobby
+ * monthly_starter / yearly_starter → starter
+ * monthly_hobby / yearly_hobby → hobby
  * 无订阅 → null
  * 
  * @deprecated 使用 getUserTierCode() 直接通过 tier_id 查询，此函数仅用于向后兼容
@@ -16,7 +16,7 @@ import { normalizeTierCode, type SubscriptionTier } from "./subscription-tier";
 export const getTierCodeFromPlanId = (planId: string | null): SubscriptionTier | null => {
   if (!planId) return null;
   
-  if (planId.includes('premium')) {
+  if (planId.includes('premium') || planId.includes('hobby')) {
     return 'hobby';
   }
   

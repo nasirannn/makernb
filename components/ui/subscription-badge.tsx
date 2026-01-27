@@ -1,6 +1,7 @@
 "use client";
 
 import * as React from "react";
+import { Calendar } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { SubscriptionTier } from "@/lib/subscription-tier";
 
@@ -15,17 +16,17 @@ const tierConfig: Record<
   starter: {
     label: "Starter",
     className:
-      "bg-foreground/6 text-foreground/70 dark:bg-white/10 dark:text-foreground/80",
+      "border border-foreground/10 bg-foreground/10 text-foreground/80 dark:border-white/15 dark:bg-white/15 dark:text-foreground/90",
   },
   hobby: {
     label: "Hobby",
     className:
-      "bg-primary/12 text-primary dark:bg-primary/22 dark:text-primary-foreground",
+      "border border-primary/20 bg-primary/15 text-primary dark:border-primary/35 dark:bg-primary/30 dark:text-primary-foreground",
   },
   free: {
     label: "Free",
     className:
-      "bg-foreground/6 text-foreground/70 dark:bg-white/10 dark:text-foreground/80",
+      "border border-foreground/10 bg-foreground/10 text-foreground/80 dark:border-white/15 dark:bg-white/15 dark:text-foreground/90",
   },
 };
 
@@ -33,13 +34,18 @@ export function SubscriptionBadge({
   tone = "free",
   label,
   className,
+  tooltip,
+  showCalendar,
 }: {
   tone?: SubscriptionBadgeTone;
   label?: string;
   className?: string;
+  tooltip?: string | null;
+  showCalendar?: boolean;
 }) {
   const config = tierConfig[tone];
   const displayLabel = label ?? config.label;
+  const title = tooltip ?? displayLabel;
 
   return (
     <span
@@ -49,10 +55,11 @@ export function SubscriptionBadge({
         config.className,
         className
       )}
-      title={displayLabel}
+      title={title}
       aria-label={`Subscription: ${displayLabel}`}
     >
       <span>{displayLabel}</span>
+      {showCalendar ? <Calendar className="h-3.5 w-3.5 text-current/70" /> : null}
     </span>
   );
 }

@@ -79,7 +79,7 @@ export const MobileStudioHeader = React.memo(({
               {userMenuOpen && (
                 <div className="absolute top-full right-0 mt-2 w-48 bg-background border border-border/30 rounded-lg shadow-lg z-[60]">
                   <div className="flex flex-col gap-1 p-2">
-                    <div className="px-3 py-2 border-b border-border/20 mb-2">
+                    <div className="px-1 pb-2">
                       <div className="flex items-center justify-between gap-2 mb-1">
                         <div className="text-sm font-medium text-foreground truncate flex-1">
                           {displayName || user.email}
@@ -88,7 +88,7 @@ export const MobileStudioHeader = React.memo(({
                           {tierName}
                         </span>
                       </div>
-                      <div className="text-xs text-muted-foreground mt-1 truncate">
+                      <div className="text-xs text-muted-foreground truncate">
                         {user.email}
                       </div>
                     </div>

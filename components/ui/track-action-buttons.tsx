@@ -199,19 +199,19 @@ export const TrackActionButtons: React.FC<TrackActionButtonsProps> = ({
 
         {/* 收藏按钮 */}
         {onFavoriteToggle && (
-          <Button
-            variant="ghost"
-            size="sm"
-            className={`h-6 w-6 p-0 hover:bg-muted/50 transition-colors ${
-              isFavorited 
-                ? 'text-red-500' 
-                : 'text-muted-foreground hover:text-foreground'
-            }`}
-            title={isFavorited ? 'Remove from library' : 'Add to library'}
-            onClick={(e) => {
-              e.stopPropagation();
-              onFavoriteToggle();
-            }}
+        <Button
+          variant="ghost"
+          size="sm"
+          className={`h-6 w-6 p-0 hover:bg-muted/50 transition-colors ${
+            isFavorited 
+              ? 'text-red-500 hover:text-red-500' 
+              : 'text-muted-foreground hover:text-foreground'
+          }`}
+          title={isFavorited ? 'Remove from library' : 'Add to library'}
+          onClick={(e) => {
+            e.stopPropagation();
+            onFavoriteToggle();
+          }}
             aria-label={isFavorited ? 'Remove from library' : 'Add to library'}
           >
             <Star className={`h-3 w-3 ${isFavorited ? 'fill-current' : ''}`} />
@@ -465,7 +465,7 @@ export const TrackActionButtons: React.FC<TrackActionButtonsProps> = ({
           }}
           className={`h-7 w-7 flex items-center justify-center transition-colors ${
             isFavorited
-              ? 'text-red-500'
+              ? 'text-red-500 hover:text-red-500'
               : 'text-muted-foreground hover:text-foreground'
           }`}
           aria-label={isFavorited ? 'Remove from library' : 'Add to library'}

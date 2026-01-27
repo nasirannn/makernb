@@ -8,6 +8,8 @@ import Image from "next/image";
 import { usePathname, useSearchParams } from "next/navigation";
 import { useAuth } from "@/contexts/AuthContext";
 import { useSubscription } from "@/contexts/SubscriptionContext";
+import { usePricingModal } from "@/contexts/PricingModalContext";
+import { SubscriptionBadge } from "@/components/ui/subscription-badge";
 import AuthModal from "../ui/auth-modal";
 import { LogOut } from "lucide-react";
 import { getZIndexClass } from "@/lib/z-index";
@@ -57,7 +59,7 @@ const routeList: RouteProps[] = [
     label: "Blog",
   },
   {
-    href: "/#pricing",
+    href: "/pricing",
     label: "Pricing",
   },
 ];
@@ -77,37 +79,36 @@ export const Navbar = ({ credits = null }: NavbarProps) => {
   const searchParams = useSearchParams();
   const isHome = pathname === "/";
   const { user, signOut, loading: authLoading } = useAuth();
-  const { tierName } = useSubscription();
+  const { tierCode, tierName, hasSubscription, cancelAtPeriodEnd, cancelAt, currentPeriodEnd } = useSubscription();
+  const { openModal } = usePricingModal();
   const displayName = user?.user_metadata?.nickname || user?.user_metadata?.full_name || user?.user_metadata?.name || user?.email?.split('@')[0] || '';
-
-  // 处理 Pricing 链接的跳转和滚动
-  const handlePricingClick = (e: React.MouseEvent<HTMLAnchorElement>) => {
-    if (pathname === '/') {
-      // 如果已经在首页，阻止默认行为并平滑滚动
-      e.preventDefault();
-      const pricingElement = document.getElementById('pricing');
-      if (pricingElement) {
-        pricingElement.scrollIntoView({ behavior: 'smooth', block: 'start' });
-      }
+  const formatDisplayDate = React.useCallback((dateValue?: string | null) => {
+    if (!dateValue) return null;
+    const parsed = new Date(dateValue);
+    if (Number.isNaN(parsed.getTime())) return null;
+    return parsed.toLocaleDateString("en-CA", {
+      year: "numeric",
+      month: "2-digit",
+      day: "2-digit",
+    });
+  }, []);
+  const billingNotice = React.useMemo(() => {
+    if (!hasSubscription) return null;
+    if (cancelAtPeriodEnd) {
+      const formatted = formatDisplayDate(cancelAt);
+      return formatted ? `Scheduled to cancel on ${formatted}` : "Cancellation scheduled.";
     }
-    // 如果不在首页，让 Link 组件正常处理导航
-    // 跨页面跳转后，通过 useEffect 处理滚动
+    const formatted = formatDisplayDate(currentPeriodEnd);
+    return formatted ? `Next charge on ${formatted}.` : null;
+  }, [hasSubscription, cancelAtPeriodEnd, cancelAt, currentPeriodEnd, formatDisplayDate]);
+
+  const handleOpenPricingModal = (options?: { closeMobileMenu?: boolean }) => {
+    if (options?.closeMobileMenu) {
+      setIsOpen(false);
+    }
+    setIsUserMenuOpen(false);
+    openModal();
   };
-
-  // 处理跨页面跳转后的滚动（当 URL 包含 #pricing hash 时）
-  React.useEffect(() => {
-    if (pathname === '/' && window.location.hash === '#pricing') {
-      // 等待页面渲染完成后滚动
-      setTimeout(() => {
-        const pricingElement = document.getElementById('pricing');
-        if (pricingElement) {
-          pricingElement.scrollIntoView({ behavior: 'smooth', block: 'start' });
-          // 清除 hash 以避免刷新时重复滚动
-          window.history.replaceState(null, '', window.location.pathname);
-        }
-      }, 100);
-    }
-  }, [pathname]);
 
   // 处理下拉菜单的悬停逻辑
   const handleDropdownMouseEnter = () => {
@@ -277,7 +278,6 @@ export const Navbar = ({ credits = null }: NavbarProps) => {
               <li key={href}>
                 <Link
                   href={href}
-                  onClick={href === "/#pricing" ? handlePricingClick : undefined}
                   className={`text-base px-5 py-3 rounded-lg transition-colors duration-200 font-semibold ${
                     isActive
                       ? 'text-primary'
@@ -322,7 +322,7 @@ export const Navbar = ({ credits = null }: NavbarProps) => {
                 <div className="mb-6 pb-6 shadow-[0_1px_0_rgba(0,0,0,0.06)] dark:shadow-[0_1px_0_rgba(255,255,255,0.08)]">
                   {/* User Info */}
                   <div className="flex items-center gap-3 mb-4">
-                    <Avatar className="w-10 h-10 border border-purple-600/30">
+                    <Avatar className="w-10 h-10">
                       <AvatarImage
                         src={user.user_metadata?.avatar_url || user.user_metadata?.picture || `https://api.dicebear.com/7.x/initials/svg?seed=${user.email}`}
                         alt="User Avatar"
@@ -337,9 +337,21 @@ export const Navbar = ({ credits = null }: NavbarProps) => {
                         <p className="text-foreground font-medium text-sm truncate flex-1">
                           {displayName || 'User'}
                         </p>
-	                        <span className="text-xs font-medium text-foreground/70 flex-shrink-0">
-	                          {tierName}
-	                        </span>
+                        <button
+                          type="button"
+                          onClick={() => handleOpenPricingModal({ closeMobileMenu: true })}
+                          className="group inline-flex items-center gap-1.5 flex-shrink-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+                          aria-label="Open pricing"
+                          title={billingNotice ?? undefined}
+                        >
+                          <SubscriptionBadge
+                            tone={tierCode ?? "free"}
+                            label={tierName}
+                            tooltip={billingNotice ?? undefined}
+                            showCalendar={hasSubscription}
+                            className="cursor-pointer transition-colors hover:bg-primary/12"
+                          />
+                        </button>
                       </div>
                       <p className="text-muted-foreground text-xs truncate">
                         {user.email}
@@ -454,15 +466,6 @@ export const Navbar = ({ credits = null }: NavbarProps) => {
                       key={href}
                       onClick={() => {
                         setIsOpen(false);
-                        // 如果是 pricing 链接且已在首页，平滑滚动
-                        if (href === "/#pricing" && pathname === '/') {
-                          setTimeout(() => {
-                            const pricingElement = document.getElementById('pricing');
-                            if (pricingElement) {
-                              pricingElement.scrollIntoView({ behavior: 'smooth', block: 'start' });
-                            }
-                          }, 100);
-                        }
                       }}
                       asChild
                       variant="ghost"
@@ -482,6 +485,7 @@ export const Navbar = ({ credits = null }: NavbarProps) => {
 
       {/* <!-- Desktop Right Side --> */}
       <div className="hidden lg:flex ml-auto items-center gap-4">
+        <ThemeModeToggle size="md" variant="icon" className="rounded-2xl" />
         {authLoading ? (
           <div className="h-10 w-24 rounded-md bg-black/10 animate-pulse" />
         ) : user ? (
@@ -492,7 +496,7 @@ export const Navbar = ({ credits = null }: NavbarProps) => {
             >
             {/* User Avatar */}
             <Avatar 
-              className="w-10 h-10 cursor-pointer hover:scale-105 transition-transform duration-200 border-2 border-purple-600/30"
+              className="w-10 h-10 cursor-pointer hover:scale-105 transition-transform duration-200"
             >
               <AvatarImage
                 src={user.user_metadata?.avatar_url || user.user_metadata?.picture || `https://api.dicebear.com/7.x/initials/svg?seed=${user.email}`}
@@ -515,9 +519,21 @@ export const Navbar = ({ credits = null }: NavbarProps) => {
                     <p className="text-foreground font-semibold text-sm truncate flex-1">
                       {displayName || 'User'}
                     </p>
-	                    <span className="text-xs font-medium text-foreground/70 flex-shrink-0">
-	                      {tierName}
-	                    </span>
+                    <button
+                      type="button"
+                      onClick={() => handleOpenPricingModal()}
+                      className="group inline-flex items-center gap-1.5 flex-shrink-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+                      aria-label="Open pricing"
+                      title={billingNotice ?? undefined}
+                    >
+                      <SubscriptionBadge
+                        tone={tierCode ?? "free"}
+                        label={tierName}
+                        tooltip={billingNotice ?? undefined}
+                        showCalendar={hasSubscription}
+                        className="cursor-pointer transition-colors hover:bg-primary/12"
+                      />
+                    </button>
                   </div>
                   <p className="text-muted-foreground text-xs truncate">
                     {user.email}
@@ -539,10 +555,10 @@ export const Navbar = ({ credits = null }: NavbarProps) => {
                   </div>
                 </div>
 
-                    <button
-                      onClick={() => {
-                        setIsUserMenuOpen(false);
-                        setIsNicknameDialogOpen(true);
+                <button
+                  onClick={() => {
+                    setIsUserMenuOpen(false);
+                    setIsNicknameDialogOpen(true);
                       }}
                       className="w-full flex items-center gap-3 rounded-xl px-3 py-2 text-sm text-foreground/70 hover:bg-black/5 hover:text-foreground transition-colors"
                     >
@@ -582,7 +598,6 @@ export const Navbar = ({ credits = null }: NavbarProps) => {
             Sign In
           </Button>
         )}
-        <ThemeModeToggle />
       </div>
 
       {/* Auth Modal */}

@@ -1004,6 +1004,10 @@ export const StudioTracksList: React.FC<StudioTracksListProps> = React.memo(func
                               {group.modelLabel}
                             </span>
                           )}
+                          <span
+                            aria-hidden="true"
+                            className="h-px flex-1 border-t border-dashed border-foreground/20"
+                          />
                         </div>
                       )}
                     </div>
@@ -1192,7 +1196,7 @@ export const StudioTracksList: React.FC<StudioTracksListProps> = React.memo(func
                 setDeleteDialogOpen(false);
                 setTrackToDelete(null);
               }}
-              className="w-full sm:w-[160px] h-10 rounded-lg bg-muted/70 text-foreground hover:bg-muted"
+              className="w-full sm:w-[160px] h-10 rounded-lg bg-muted/70 text-foreground hover:bg-muted hover:text-foreground dark:hover:text-accent-foreground"
             >
               Cancel
             </AlertDialogCancel>

@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getUserIdFromRequest } from '@/lib/auth';
-import { getUserTierId } from '@/lib/feature-permissions';
 import { query } from '@/lib/db-query-builder';
 import { normalizeTierCode } from '@/lib/subscription-tier';
 
@@ -24,16 +23,36 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    // 获取用户的订阅层级ID
-    const tierId = await getUserTierId(userId);
-    
-    // 如果没有活跃订阅，返回 null
-    if (!tierId) {
+    const subscriptionResult = await query<{
+      tier_id: string | null;
+      plan_id: string | null;
+      product_id: string | null;
+      cancel_at_period_end: boolean | null;
+      cancel_at: string | null;
+      current_period_end: string | null;
+    }>(
+      `SELECT tier_id, plan_id, product_id, cancel_at_period_end, cancel_at, current_period_end
+       FROM user_subscriptions
+       WHERE user_id = $1::uuid
+       AND status = 'active'
+       ORDER BY created_at DESC
+       LIMIT 1`,
+      [userId]
+    );
+
+    const activeSubscription = subscriptionResult.rows[0];
+
+    if (!activeSubscription?.tier_id) {
       return NextResponse.json({
         tierCode: null,
         tierName: "Free",
         hasSubscription: false,
-        userId
+        userId,
+        planId: null,
+        productId: null,
+        cancelAtPeriodEnd: false,
+        cancelAt: null,
+        currentPeriodEnd: null
       });
     }
 
@@ -43,7 +62,7 @@ export async function GET(request: NextRequest) {
               name as tier_name
        FROM subscription_tiers
        WHERE id = $1::uuid`,
-      [tierId]
+      [activeSubscription.tier_id]
     );
 
     if (result.rows.length > 0) {
@@ -53,7 +72,12 @@ export async function GET(request: NextRequest) {
         tierCode,
         tierName,
         hasSubscription: true,
-        userId
+        userId,
+        planId: activeSubscription.plan_id,
+        productId: activeSubscription.product_id,
+        cancelAtPeriodEnd: Boolean(activeSubscription.cancel_at_period_end),
+        cancelAt: activeSubscription.cancel_at,
+        currentPeriodEnd: activeSubscription.current_period_end
       });
     }
 
@@ -62,7 +86,12 @@ export async function GET(request: NextRequest) {
       tierCode: null,
       tierName: "Subscribed",
       hasSubscription: true,
-      userId
+      userId,
+      planId: activeSubscription.plan_id,
+      productId: activeSubscription.product_id,
+      cancelAtPeriodEnd: Boolean(activeSubscription.cancel_at_period_end),
+      cancelAt: activeSubscription.cancel_at,
+      currentPeriodEnd: activeSubscription.current_period_end
     });
 
   } catch (error) {
