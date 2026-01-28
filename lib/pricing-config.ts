@@ -1,5 +1,5 @@
 /**
- * Pricing plan builders (DB-driven).
+ * Pricing plan builders (config-driven).
  */
 
 export type PricingTierCode = 'starter' | 'hobby';

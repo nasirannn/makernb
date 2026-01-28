@@ -70,21 +70,14 @@ export async function POST(request: NextRequest) {
       }
 
       const productId = product?.id || subscription?.product_id || subscription?.productId;
-      const mode = (subscription?.mode || product?.mode) as 'test' | 'prod' | 'sandbox' | 'local' | undefined;
       if (!productId) {
         return NextResponse.json({ error: 'Missing product id' }, { status: 400 });
       }
-      if (!mode) {
-        return NextResponse.json({ error: 'Missing subscription mode' }, { status: 400 });
-      }
 
-      const plan = await getSubscriptionPlanByProductId(productId, mode);
+      const plan = await getSubscriptionPlanByProductId(productId);
       if (!plan) {
         console.error('Unknown product id for subscription.paid:', productId);
         return NextResponse.json({ error: 'Unknown product id' }, { status: 400 });
-      }
-      if (!plan.is_active) {
-        console.warn('Subscription plan is inactive for product:', productId);
       }
 
       const creditsAmount = plan.credits_per_period;
@@ -166,7 +159,6 @@ export async function POST(request: NextRequest) {
           subscriptionId,
           customerId,
           productId,
-          mode,
           status: 'active',
           currentPeriodStart,
           currentPeriodEnd
@@ -276,7 +268,6 @@ export async function POST(request: NextRequest) {
       const subscriptionId = subscription?.id;
       const customerId = customer?.id;
       const productId = product?.id || subscription?.product_id || subscription?.productId;
-      const mode = (subscription?.mode || product?.mode) as 'test' | 'prod' | 'sandbox' | 'local' | undefined;
       let userId = meta.userId;
 
       if (!userId && subscriptionId) {
@@ -293,7 +284,7 @@ export async function POST(request: NextRequest) {
         await clearScheduledCancellation(userId, subscriptionId);
       }
 
-      if (userId && subscriptionId && productId && mode) {
+      if (userId && subscriptionId && productId) {
         const currentPeriodStart = subscription?.current_period_start_date
           ? new Date(subscription.current_period_start_date).toISOString()
           : new Date().toISOString();
@@ -305,13 +296,12 @@ export async function POST(request: NextRequest) {
           subscriptionId,
           customerId,
           productId,
-          mode,
           status: 'active',
           currentPeriodStart,
           currentPeriodEnd
         });
-      } else if (userId && subscriptionId && productId && !mode) {
-        console.warn('Missing mode for subscription update:', { subscriptionId, productId });
+      } else if (userId && subscriptionId && !productId) {
+        console.warn('Missing product id for subscription update:', { subscriptionId });
       }
 
       return NextResponse.json({ received: true, message: 'Subscription active' });

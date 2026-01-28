@@ -69,7 +69,7 @@ export const FooterSection = () => {
 
           <Separator />
 
-          <div className="flex flex-wrap items-center gap-4">
+          <div className="grid items-center justify-items-center gap-4 [grid-template-columns:repeat(auto-fit,minmax(180px,1fr))]">
             <a
               href="https://www.producthunt.com/products/makernb?embed=true&utm_source=badge-featured&utm_medium=badge&utm_source=badge-makernb"
               target="_blank"

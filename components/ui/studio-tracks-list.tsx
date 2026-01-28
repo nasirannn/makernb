@@ -46,6 +46,10 @@ interface MusicGeneration {
 interface StudioTracksListProps {
   userTracks: MusicGeneration[];
   isLoading: boolean;
+  isLoadingMore?: boolean;
+  hasMore?: boolean;
+  onLoadMore?: () => void;
+  summary?: { totalTracks: number; totalDuration: number };
   onTrackSelect?: (trackId: string) => void;
   onTrackPreview?: (track: any) => void;
   onTrackPlay?: (track: LibraryTrack, music: MusicGeneration) => void;
@@ -75,9 +79,9 @@ interface StudioTracksListProps {
 // 稳定的 no-op 函数，用于替代未提供的 extendMusicStartPolling
 const noOpExtendMusicPolling = () => {};
 
-const TrackListSkeleton = () => (
-  <div className="space-y-3 pb-6">
-    {[...Array(5)].map((_, index) => (
+const TrackListSkeleton = ({ count = 5, className = '' }: { count?: number; className?: string }) => (
+  <div className={`space-y-3 pb-6 ${className}`.trim()}>
+    {[...Array(count)].map((_, index) => (
       <div
         key={index}
         className="rounded-2xl bg-muted/10 p-4"
@@ -114,6 +118,10 @@ const TrackListSkeleton = () => (
 export const StudioTracksList: React.FC<StudioTracksListProps> = React.memo(function StudioTracksList({
   userTracks,
   isLoading,
+  isLoadingMore = false,
+  hasMore = false,
+  onLoadMore,
+  summary,
   onTrackSelect,
   onTrackPreview,
   onTrackPlay,
@@ -137,6 +145,9 @@ export const StudioTracksList: React.FC<StudioTracksListProps> = React.memo(func
   const { openModal: openPricingModal } = usePricingModal();
   const globalAudioState = useAudioPlayingState();
   const { hasPermission } = useFeaturePermissions();
+
+  const scrollContainerRef = React.useRef<HTMLDivElement | null>(null);
+  const loadMoreTriggerRef = React.useRef<HTMLDivElement | null>(null);
   
   // 权限检查
   const canDownloadMP3 = hasPermission('download_mp3_track');
@@ -924,6 +935,30 @@ export const StudioTracksList: React.FC<StudioTracksListProps> = React.memo(func
   const showEmptyState = !isLoading && (!userTracks || userTracks.length === 0 || allTracks.length === 0) 
     && stableGeneratedTracks.length === 0;
 
+  const shouldShowLoadMore = Boolean(onLoadMore) && !searchQuery.trim() && hasMore;
+
+  React.useEffect(() => {
+    if (!shouldShowLoadMore || !loadMoreTriggerRef.current || !scrollContainerRef.current) return;
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        const [entry] = entries;
+        if (!entry?.isIntersecting) return;
+        if (isLoading || isLoadingMore) return;
+        onLoadMore?.();
+      },
+      {
+        root: scrollContainerRef.current,
+        rootMargin: '200px',
+        threshold: 0,
+      }
+    );
+
+    observer.observe(loadMoreTriggerRef.current);
+
+    return () => observer.disconnect();
+  }, [isLoading, isLoadingMore, onLoadMore, shouldShowLoadMore]);
+
   if (showEmptyState) {
     return (
       <div className="flex flex-col items-center justify-center h-full px-6 py-12 overflow-hidden">
@@ -945,7 +980,7 @@ export const StudioTracksList: React.FC<StudioTracksListProps> = React.memo(func
               No tracks data
             </h3>
             <p className="text-base text-muted-foreground leading-relaxed">
-            Choose your style, describe the vibe, and create your track.
+              Let{"'"}s bring your R&amp;B track to life.
             </p>
           </div>
         </div>
@@ -983,6 +1018,7 @@ export const StudioTracksList: React.FC<StudioTracksListProps> = React.memo(func
       <div className="flex-1 overflow-hidden">
         <div 
           className="h-full overflow-y-auto scrollbar-hidden px-0 relative"
+          ref={scrollContainerRef}
           style={{
             paddingBottom: hasPlayer ? 'calc(var(--player-height, 80px) + 1.5rem)' : '5rem'
           }}
@@ -1068,21 +1104,34 @@ export const StudioTracksList: React.FC<StudioTracksListProps> = React.memo(func
               {/* Tracks Summary */}
               {currentTracks.length > 0 && (
                 <div className="flex justify-center items-center py-2 px-4">
-                  <div className="text-sm text-muted-foreground font-medium">
+                  <span className="inline-flex items-center rounded-full bg-black/5 px-2 py-0.5 text-[11px] font-semibold tracking-tight text-foreground/80 dark:bg-white/10 dark:text-foreground/85">
                     {(() => {
-                      const totalSongs = currentTracks.length;
-                      const totalDuration = currentTracks.reduce((sum, track) => {
-                        const duration = typeof track.duration === 'string' ? parseFloat(track.duration) : (track.duration || 0);
-                        return sum + (isNaN(duration) ? 0 : duration);
-                      }, 0);
-                        const durationText = formatDurationInMinutes(totalDuration);
+                      const useTotalSummary = Boolean(summary) && !searchQuery.trim();
+                      const totalSongs = useTotalSummary ? summary!.totalTracks : currentTracks.length;
+                      const totalDuration = useTotalSummary
+                        ? summary!.totalDuration
+                        : currentTracks.reduce((sum, track) => {
+                            const duration = typeof track.duration === 'string' ? parseFloat(track.duration) : (track.duration || 0);
+                            return sum + (isNaN(duration) ? 0 : duration);
+                          }, 0);
+                      const durationText = formatDurationInMinutes(totalDuration);
                       return `${totalSongs} song${totalSongs > 1 ? 's' : ''}${durationText ? `, ${durationText}` : ''}`;
                     })()}
-                  </div>
+                  </span>
                 </div>
               )}
             </div>
           )}
+
+            {shouldShowLoadMore && (
+              <div ref={loadMoreTriggerRef} className="h-1" />
+            )}
+
+            {isLoadingMore && (
+              <div className="px-3">
+                <TrackListSkeleton count={3} className="pt-3" />
+              </div>
+            )}
 
             {/* No Search Results */}
           {searchQuery && currentTracks.length === 0 && (

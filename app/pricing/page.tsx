@@ -1,6 +1,8 @@
 import type { Metadata } from "next";
 import { PricingSection } from "@/components/layout/sections/pricing";
 import { FooterSection } from "@/components/layout/sections/footer";
+import { buildPricingPlan } from "@/lib/pricing-config";
+import { getPricingPlans } from "@/lib/pricing-plans";
 
 export const metadata: Metadata = {
   title: "Pricing - MakeRNB",
@@ -15,10 +17,13 @@ export const metadata: Metadata = {
   },
 };
 
-export default function PricingPage() {
+export default async function PricingPage() {
+  const { plans } = await getPricingPlans();
+  const initialPlans = plans.map(buildPricingPlan).sort((a, b) => a.rank - b.rank);
+
   return (
     <div className="min-h-screen bg-gradient-to-b from-primary/10 via-background to-background">
-      <PricingSection />
+      <PricingSection initialPlans={initialPlans} />
       <FooterSection />
     </div>
   );

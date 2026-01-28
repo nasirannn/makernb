@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { softDeleteMusicGeneration } from '@/lib/music-db';
+import { hardDeleteMusicGeneration } from '@/lib/track-delete';
 import { getUserIdFromRequest } from '@/lib/auth';
 
 // 强制动态渲染
@@ -31,18 +31,15 @@ export async function DELETE(request: NextRequest) {
       );
     }
 
-    // 执行软删除
-    console.log('Calling softDeleteMusicGeneration...');
-    const deleted = await softDeleteMusicGeneration(generationId, userId);
-    console.log('softDeleteMusicGeneration result:', deleted);
+    const deleted = await hardDeleteMusicGeneration(generationId, userId);
 
-    if (!deleted) {
+    if (!deleted.success) {
       return NextResponse.json(
-        { 
-          error: 'Generation not found or already deleted',
-          success: false 
+        {
+          error: deleted.error || 'Generation not found or already deleted',
+          success: false,
         },
-        { status: 404 }
+        { status: deleted.statusCode || 404 }
       );
     }
 

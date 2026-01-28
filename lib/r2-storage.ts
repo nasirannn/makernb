@@ -268,6 +268,27 @@ export async function uploadWavFile(
   }
 }
 
+const normalizeCoverFilename = (filename: string, fallbackBase: string, format: string) => {
+  const raw = filename.split('?')[0]?.split('#')[0] || '';
+  const basename = raw.split('/').pop() || '';
+  let cleaned = basename.trim();
+
+  if (!cleaned) {
+    cleaned = fallbackBase;
+  }
+
+  cleaned = cleaned.replace(/^cover[_-]+/i, '');
+  if (!cleaned) {
+    cleaned = fallbackBase;
+  }
+
+  if (!/\.[a-z0-9]+$/i.test(cleaned)) {
+    cleaned = `${cleaned}.${format}`;
+  }
+
+  return cleaned.replace(/[^a-zA-Z0-9._-]/g, '_');
+};
+
 /**
  * 上传封面图片到R2
  *
@@ -292,12 +313,13 @@ export async function uploadCoverImage(
       size: `${(buffer.length / 1024).toFixed(2)}KB`,
     });
 
-    // 直接上传原图
-    const key = `covers/${userId}/${taskId}/${filename}`;
-
     // 检测图片格式
     const format = detectImageFormat(buffer);
     const detectedContentType = contentType || `image/${format}`;
+    const safeFilename = normalizeCoverFilename(filename, `${Date.now()}_${taskId}`, format);
+
+    // 直接上传原图
+    const key = `covers/${userId}/${taskId}/${safeFilename}`;
 
     const command = new PutObjectCommand({
       Bucket: BUCKET_NAME,

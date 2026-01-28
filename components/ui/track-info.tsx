@@ -89,7 +89,7 @@ export const TrackInfo: React.FC<TrackInfoProps> = ({
             {sourceType === 'extended' ? 'Extended' : 'Replaced'}
           </span>
         )}
-        
+
         {/* 时长加载动画（仅在没有时长且不在生成中时显示，生成中会显示 --:--） */}
         {!isError && showDuration && (!duration || duration === 0) && !isGenerating && (
           <div className="flex items-center gap-1">

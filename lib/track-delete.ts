@@ -1,4 +1,29 @@
-import { query } from './db-query-builder';
+import { query, withTransaction } from './db-query-builder';
+import { deleteAudioFiles, extractKeyFromR2Url } from './r2-storage';
+
+const normalizeDomain = (value: string | undefined) => {
+  if (!value) return null;
+  return value.endsWith('/') ? value.slice(0, -1) : value;
+};
+
+const r2PublicDomain = normalizeDomain(process.env.R2_PUBLIC_DOMAIN);
+
+const shouldDeleteUrl = (url: string) => {
+  if (!r2PublicDomain) return true;
+  return url.startsWith(r2PublicDomain);
+};
+
+const collectR2Keys = (urls: Array<string | null | undefined>) => {
+  const keys: string[] = [];
+  urls.forEach((url) => {
+    if (!url || !shouldDeleteUrl(url)) return;
+    const key = extractKeyFromR2Url(url);
+    if (key) {
+      keys.push(key);
+    }
+  });
+  return keys;
+};
 
 // 优化的删除track函数
 export async function deleteTrackOptimized(trackId: string, userId: string): Promise<{
@@ -83,6 +108,236 @@ export async function deleteTrackOptimized(trackId: string, userId: string): Pro
       error: 'Database error occurred',
       statusCode: 500
     };
+  }
+}
+
+export async function hardDeleteTrack(trackId: string, userId: string): Promise<{
+  success: boolean;
+  error?: string;
+  statusCode?: number;
+}> {
+  try {
+    const trackResult = await query(
+      `SELECT
+        mt.id,
+        mt.music_id,
+        mt.audio_url,
+        mt.stream_audio_url,
+        mt.cover_image_url,
+        mg.user_id
+      FROM tracks mt
+      INNER JOIN music mg ON mt.music_id = mg.id
+      WHERE mt.id = $1::uuid`,
+      [trackId]
+    );
+
+    if (trackResult.rows.length === 0) {
+      return { success: false, error: 'Track not found', statusCode: 404 };
+    }
+
+    const track = trackResult.rows[0];
+    if (track.user_id !== userId) {
+      return { success: false, error: 'Forbidden', statusCode: 403 };
+    }
+
+    const wavResult = await query(
+      `SELECT wav_r2_url
+       FROM track_wav_conversions
+       WHERE track_id = $1::uuid`,
+      [trackId]
+    );
+
+    const vocalRemovalResult = await query(
+      `SELECT r2_vocal_url, r2_instrumental_url
+       FROM vocal_removals
+       WHERE track_id = $1::uuid`,
+      [trackId]
+    );
+
+    const r2Keys = collectR2Keys([
+      track.audio_url,
+      track.stream_audio_url,
+      track.cover_image_url,
+      ...wavResult.rows.map((row) => row.wav_r2_url),
+      ...vocalRemovalResult.rows.flatMap((row) => [row.r2_vocal_url, row.r2_instrumental_url]),
+    ]);
+
+    if (r2Keys.length > 0) {
+      try {
+        await deleteAudioFiles(r2Keys);
+      } catch (error) {
+        console.error('[TRACK-DELETE] Failed to delete R2 assets:', error);
+      }
+    }
+
+    const generationId = track.music_id;
+
+    await withTransaction(async (queryFn) => {
+      await queryFn(
+        `DELETE FROM track_wav_conversions
+         WHERE track_id = $1::uuid`,
+        [trackId]
+      );
+
+      await queryFn(
+        `DELETE FROM vocal_removals
+         WHERE track_id = $1::uuid`,
+        [trackId]
+      );
+
+      await queryFn(
+        `DELETE FROM user_favorites
+         WHERE track_id = $1::uuid`,
+        [trackId]
+      );
+
+      await queryFn(
+        `DELETE FROM tracks
+         WHERE id = $1::uuid`,
+        [trackId]
+      );
+
+      const remainingTracks = await queryFn(
+        `SELECT id FROM tracks WHERE music_id = $1::uuid LIMIT 1`,
+        [generationId]
+      );
+
+      if (remainingTracks.rows.length === 0) {
+        await queryFn(
+          `DELETE FROM lyrics
+           WHERE music_id = $1::uuid`,
+          [generationId]
+        );
+
+        await queryFn(
+          `DELETE FROM generation_errors
+           WHERE reference_id = $1`,
+          [generationId]
+        );
+
+        await queryFn(
+          `DELETE FROM music
+           WHERE id = $1::uuid`,
+          [generationId]
+        );
+      }
+    });
+
+    return { success: true };
+  } catch (error) {
+    console.error('Error in hardDeleteTrack:', error);
+    return { success: false, error: 'Database error occurred', statusCode: 500 };
+  }
+}
+
+export async function hardDeleteMusicGeneration(generationId: string, userId: string): Promise<{
+  success: boolean;
+  error?: string;
+  statusCode?: number;
+}> {
+  try {
+    const generationResult = await query(
+      `SELECT id
+       FROM music
+       WHERE id = $1::uuid AND user_id = $2::uuid`,
+      [generationId, userId]
+    );
+
+    if (generationResult.rows.length === 0) {
+      return { success: false, error: 'Generation not found', statusCode: 404 };
+    }
+
+    const tracksResult = await query(
+      `SELECT id, audio_url, stream_audio_url, cover_image_url
+       FROM tracks
+       WHERE music_id = $1::uuid`,
+      [generationId]
+    );
+
+    const trackIds = tracksResult.rows.map((row) => row.id);
+
+    const wavResult = trackIds.length
+      ? await query(
+          `SELECT wav_r2_url, track_id
+           FROM track_wav_conversions
+           WHERE track_id = ANY($1)`,
+          [trackIds]
+        )
+      : { rows: [] };
+
+    const vocalRemovalResult = trackIds.length
+      ? await query(
+          `SELECT r2_vocal_url, r2_instrumental_url
+           FROM vocal_removals
+           WHERE track_id = ANY($1)`,
+          [trackIds]
+        )
+      : { rows: [] };
+
+    const r2Keys = collectR2Keys([
+      ...tracksResult.rows.flatMap((row) => [row.audio_url, row.stream_audio_url, row.cover_image_url]),
+      ...wavResult.rows.map((row) => row.wav_r2_url),
+      ...vocalRemovalResult.rows.flatMap((row) => [row.r2_vocal_url, row.r2_instrumental_url]),
+    ]);
+
+    if (r2Keys.length > 0) {
+      try {
+        await deleteAudioFiles(r2Keys);
+      } catch (error) {
+        console.error('[GENERATION-DELETE] Failed to delete R2 assets:', error);
+      }
+    }
+
+    await withTransaction(async (queryFn) => {
+      if (trackIds.length > 0) {
+        await queryFn(
+          `DELETE FROM track_wav_conversions
+           WHERE track_id = ANY($1)`,
+          [trackIds]
+        );
+
+        await queryFn(
+          `DELETE FROM vocal_removals
+           WHERE track_id = ANY($1)`,
+          [trackIds]
+        );
+
+        await queryFn(
+          `DELETE FROM user_favorites
+           WHERE track_id = ANY($1)`,
+          [trackIds]
+        );
+
+        await queryFn(
+          `DELETE FROM tracks
+           WHERE id = ANY($1)`,
+          [trackIds]
+        );
+      }
+
+      await queryFn(
+        `DELETE FROM lyrics
+         WHERE music_id = $1::uuid`,
+        [generationId]
+      );
+
+      await queryFn(
+        `DELETE FROM generation_errors
+         WHERE reference_id = $1`,
+        [generationId]
+      );
+
+      await queryFn(
+        `DELETE FROM music
+         WHERE id = $1::uuid`,
+        [generationId]
+      );
+    });
+
+    return { success: true };
+  } catch (error) {
+    console.error('Error in hardDeleteMusicGeneration:', error);
+    return { success: false, error: 'Database error occurred', statusCode: 500 };
   }
 }
 

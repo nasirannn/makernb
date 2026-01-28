@@ -675,7 +675,7 @@ async function processCallbackAsync(callback: NormalizedKieCallback, callbackId:
               try {
 
                 const imageBuffer = await downloadFromUrl(track.cover_image_url);
-                const filename = `cover_${Date.now()}_${track.id}.png`;
+                const filename = `${Date.now()}_${track.id}.png`;
 
                 // Upload cover image
                 const coverImageUrl = await uploadCoverImage(

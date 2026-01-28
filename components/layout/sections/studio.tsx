@@ -48,6 +48,8 @@ import { Music, Wand2, ChevronLeft } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 import { toast } from "sonner";
 
+const USER_TRACKS_PAGE_SIZE = 10;
+
 const StudioContent = () => {
     // Router 和 Search Params
     const router = useRouter();
@@ -84,12 +86,24 @@ const StudioContent = () => {
 
     // 本地状态管理 - 替换zustand store
     const [userTracks, setUserTracks] = useState<any[]>([]);
+    const [userTracksOffset, setUserTracksOffset] = useState(0);
+    const [hasMoreUserTracks, setHasMoreUserTracks] = useState(true);
+    const [isFetchingMoreUserTracks, setIsFetchingMoreUserTracks] = useState(false);
+    const [userTracksSummary, setUserTracksSummary] = useState<{ totalTracks: number; totalDuration: number }>({
+        totalTracks: 0,
+        totalDuration: 0,
+    });
     const [selectedStudioTrack, setSelectedStudioTrack] = useState<StudioTrack | null>(null);
     const [panelOpen, setPanelOpen] = useState(true);
     const [lyricsPanelOpen, setLyricsPanelOpen] = useState(true);
     const lastSelectedTrackIdRef = useRef<string | null>(null);
     const [sidebarWidth, setSidebarWidth] = useState(80);
     const sidebarOffsetRef = React.useRef(sidebarWidth);
+
+    const normalizeDuration = React.useCallback((value: unknown) => {
+        const parsed = typeof value === 'string' ? parseFloat(value) : value;
+        return typeof parsed === 'number' && Number.isFinite(parsed) ? parsed : 0;
+    }, []);
 
     // ==================== 播放器状态管理 ====================
     const audioPlayer = useAudioPlayer();
@@ -301,12 +315,16 @@ const StudioContent = () => {
         }));
     }, [allTracks]);
 
+    const playableTracks = React.useMemo(() => {
+        return allTracks;
+    }, [allTracks]);
+
     // ==================== 播放歌曲核心函数 ====================
     const playTrackById = React.useCallback(async (trackId: string) => {
         try {
             // 首先查找本地track信息
             let localTrack = allTracks.find(track => track.id === trackId);
-            
+
             // 如果在本地找不到，可能是新创建的延长音乐track，尝试从数据库获取
             if (!localTrack || !localTrack.audioUrl) {
                 console.log('Track not found in local cache, fetching from server:', trackId);
@@ -336,8 +354,9 @@ const StudioContent = () => {
                                 track.genre,
                                 track.lyrics,
                                 track.isFavorited || false,
-                                track.streamAudioUrl,
-                                track.createdAt
+                            track.streamAudioUrl,
+                            track.createdAt,
+                            track.generationMode
                             );
                             console.log('Successfully fetched track from server:', localTrack);
                         }
@@ -374,13 +393,13 @@ const StudioContent = () => {
 
     // ==================== 上一首/下一首函数 ====================
     const handlePrevious = React.useCallback(() => {
-        if (!player.currentTrack || allTracks.length === 0) return;
+        if (!player.currentTrack || playableTracks.length === 0) return;
         
-        const currentIndex = allTracks.findIndex(track => track.id === player.currentTrack?.id);
+        const currentIndex = playableTracks.findIndex(track => track.id === player.currentTrack?.id);
         if (currentIndex === -1) return;
         
-        const prevIndex = currentIndex > 0 ? currentIndex - 1 : allTracks.length - 1;
-        const prevTrack = allTracks[prevIndex];
+        const prevIndex = currentIndex > 0 ? currentIndex - 1 : playableTracks.length - 1;
+        const prevTrack = playableTracks[prevIndex];
         
         if (prevTrack) {
             playTrackById(prevTrack.id);
@@ -388,16 +407,16 @@ const StudioContent = () => {
             setSelectedStudioTrack(prevTrack);
             setLyricsPanelOpen(true);
         }
-    }, [player, allTracks, playTrackById]);
+    }, [player, playableTracks, playTrackById]);
 
     const handleNext = React.useCallback(() => {
-        if (!player.currentTrack || allTracks.length === 0) return;
+        if (!player.currentTrack || playableTracks.length === 0) return;
         
-        const currentIndex = allTracks.findIndex(track => track.id === player.currentTrack?.id);
+        const currentIndex = playableTracks.findIndex(track => track.id === player.currentTrack?.id);
         if (currentIndex === -1) return;
         
-        const nextIndex = currentIndex < allTracks.length - 1 ? currentIndex + 1 : 0;
-        const nextTrack = allTracks[nextIndex];
+        const nextIndex = currentIndex < playableTracks.length - 1 ? currentIndex + 1 : 0;
+        const nextTrack = playableTracks[nextIndex];
         
         if (nextTrack) {
             playTrackById(nextTrack.id);
@@ -405,23 +424,42 @@ const StudioContent = () => {
             setSelectedStudioTrack(nextTrack);
             setLyricsPanelOpen(true);
         }
-    }, [player, allTracks, playTrackById]);
+    }, [player, playableTracks, playTrackById]);
 
     // 获取用户 tracks
-    const fetchUserTracks = React.useCallback(async () => {
+    const fetchUserTracks = React.useCallback(async (options?: { mode?: 'reset' | 'append' | 'merge' }) => {
+        const mode = options?.mode ?? 'reset';
+        const isAppend = mode === 'append';
+        const isMerge = mode === 'merge';
+
         if (!user?.id) {
             setUserTracks([]);
+            setUserTracksOffset(0);
+            setHasMoreUserTracks(false);
             setIsFetchingUserTracks(false);
+            setIsFetchingMoreUserTracks(false);
+            setUserTracksSummary({ totalTracks: 0, totalDuration: 0 });
             return;
         }
-        setIsFetchingUserTracks(true);
+
+        if (isAppend && (isFetchingMoreUserTracks || isFetchingUserTracks || !hasMoreUserTracks)) {
+            return;
+        }
+
+        if (isAppend) {
+            setIsFetchingMoreUserTracks(true);
+        } else {
+            setIsFetchingUserTracks(true);
+        }
+
         try {
             // 获取当前session的access token
             const { data: { session } } = await supabase.auth.getSession();
             
             // 添加时间戳参数强制刷新缓存
             const timestamp = Date.now();
-            const response = await fetch(`/api/user-music/${user.id}?limit=50&offset=0&_t=${timestamp}`, {
+            const offset = isAppend ? userTracksOffset : 0;
+            const response = await fetch(`/api/user-music/${user.id}?limit=${USER_TRACKS_PAGE_SIZE}&offset=${offset}&_t=${timestamp}`, {
                 headers: {
                     'Authorization': `Bearer ${session?.access_token}`,
                     'Cache-Control': 'no-cache'
@@ -429,18 +467,70 @@ const StudioContent = () => {
             });
             if (response.ok) {
                 const data = await response.json();
-                const tracks = data.data?.music || [];
-                setUserTracks(tracks);
+                const tracks = (Array.isArray(data.data?.music) ? data.data.music : []) as any[];
+                const totalTracks = Number(data.data?.totalTracks ?? 0);
+                const totalDuration = Number(data.data?.totalDuration ?? 0);
+
+                setUserTracks(prevTracks => {
+                    if (isAppend) {
+                        const existingIds = new Set(prevTracks.map((track: any) => track.id));
+                        const merged = [...prevTracks];
+                        tracks.forEach((track: any) => {
+                            if (!existingIds.has(track.id)) {
+                                merged.push(track);
+                            }
+                        });
+                        return merged;
+                    }
+
+                    if (isMerge) {
+                        const incomingIds = new Set(tracks.map((track: any) => track.id));
+                        const merged = [...tracks];
+                        prevTracks.forEach((track: any) => {
+                            if (!incomingIds.has(track.id)) {
+                                merged.push(track);
+                            }
+                        });
+                        return merged;
+                    }
+
+                    return tracks;
+                });
+
+                if (Number.isFinite(totalTracks) && Number.isFinite(totalDuration)) {
+                    setUserTracksSummary({
+                        totalTracks,
+                        totalDuration,
+                    });
+                }
+
+                if (isAppend) {
+                    setUserTracksOffset(prevOffset => prevOffset + tracks.length);
+                } else if (isMerge) {
+                    setUserTracksOffset(prevOffset => (prevOffset === 0 ? tracks.length : prevOffset));
+                } else {
+                    setUserTracksOffset(tracks.length);
+                }
+
+                if (!isMerge) {
+                    setHasMoreUserTracks(tracks.length === USER_TRACKS_PAGE_SIZE);
+                }
             } else {
                 console.error('Failed to fetch user tracks:', response.status, response.statusText);
-                setUserTracks([]);
+                if (!isAppend) {
+                    setUserTracks([]);
+                }
             }
         } catch (error) {
             console.error('Error fetching user tracks:', error);
         } finally {
-            setIsFetchingUserTracks(false);
+            if (isAppend) {
+                setIsFetchingMoreUserTracks(false);
+            } else {
+                setIsFetchingUserTracks(false);
+            }
         }
-    }, [user?.id]);
+    }, [user?.id, userTracksOffset, isFetchingMoreUserTracks, isFetchingUserTracks, hasMoreUserTracks]);
 
     // 使用 ref 存储 fetchUserTracks，供 useExtendMusic 使用
     const fetchUserTracksRef = React.useRef(fetchUserTracks);
@@ -448,22 +538,34 @@ const StudioContent = () => {
         fetchUserTracksRef.current = fetchUserTracks;
     }, [fetchUserTracks]);
 
+    const handleLoadMoreUserTracks = React.useCallback(() => {
+        fetchUserTracks({ mode: 'append' });
+    }, [fetchUserTracks]);
+
     // 传递 updateTracks 回调给 useExtendMusic，直接更新 generatedTracks
     // 延长音乐完成时，刷新 userTracks（数据已写入数据库）
     const extendMusic = useExtendMusic(
         updateTracks,
-        () => fetchUserTracksRef.current()
+        () => fetchUserTracksRef.current({ mode: 'merge' })
     );
 
     // 初始化时获取用户 tracks 或使用模拟数据
     useEffect(() => {
         if (isAuthLoading) return;
         if (user?.id) {
-            fetchUserTracks();
+            setUserTracks([]);
+            setUserTracksOffset(0);
+            setHasMoreUserTracks(true);
+            fetchUserTracksRef.current({ mode: 'reset' });
         } else {
+            setUserTracks([]);
+            setUserTracksOffset(0);
+            setHasMoreUserTracks(false);
+            setIsFetchingMoreUserTracks(false);
             setIsFetchingUserTracks(false);
+            setUserTracksSummary({ totalTracks: 0, totalDuration: 0 });
         }
-    }, [user?.id, fetchUserTracks, isAuthLoading]);
+    }, [user?.id, isAuthLoading]);
 
     // 监听状态机变化，当歌曲生成完成时更新播放器duration
     useEffect(() => {
@@ -816,7 +918,8 @@ const StudioContent = () => {
                     track.lyrics || music.lyrics,
                     track.isFavorited || false,
                     track.streamAudioUrl || '',
-                    track.createdAt || music.createdAt || new Date().toISOString()
+                    track.createdAt || music.createdAt || new Date().toISOString(),
+                    music.generationMode
                 );
             setSelectedStudioTrack(selectedTrack);
             setLyricsPanelOpen(true);
@@ -841,7 +944,8 @@ const StudioContent = () => {
             track.lyrics || music.lyrics,
             track.isFavorited ?? track.is_favorited ?? false,
             track.streamAudioUrl || track.stream_audio_url,
-            track.createdAt || music.createdAt || new Date().toISOString()
+            track.createdAt || music.createdAt || new Date().toISOString(),
+            music.generationMode
         );
         setSelectedStudioTrack(selectedTrack);
         setLyricsPanelOpen(true);
@@ -868,7 +972,8 @@ const StudioContent = () => {
             track.lyrics || track.musicGeneration?.lyricsContent || '',
             track.isFavorited ?? false,
             track.streamAudioUrl || '',
-            track.createdAt || track.musicGeneration?.createdAt || new Date().toISOString()
+            track.createdAt || track.musicGeneration?.createdAt || new Date().toISOString(),
+            track.musicGeneration?.generationMode
         );
         setSelectedStudioTrack(normalized);
         setLyricsPanelOpen(true);
@@ -1315,6 +1420,11 @@ const StudioContent = () => {
                 throw new Error('Failed to delete track');
             }
 
+            const removedTrack = userTracks
+                .flatMap(generation => generation.allTracks || [])
+                .find((track: any) => track.id === trackId);
+            const removedDuration = normalizeDuration(removedTrack?.duration);
+
             // 从本地状态中移除
             const updatedUserTracks = userTracks.map(generation => ({
                 ...generation,
@@ -1322,13 +1432,19 @@ const StudioContent = () => {
             })).filter(generation => generation.allTracks.length > 0);
             
             setUserTracks(updatedUserTracks);
+            if (removedTrack) {
+                setUserTracksSummary(prev => ({
+                    totalTracks: Math.max(0, prev.totalTracks - 1),
+                    totalDuration: Math.max(0, prev.totalDuration - removedDuration),
+                }));
+            }
 
             toast.success('Track deleted successfully');
         } catch (error) {
             console.error('Error deleting track:', error);
             toast.error('Failed to delete track');
         }
-    }, [userTracks]);
+    }, [userTracks, normalizeDuration]);
 
     // ==================== 实时更新用户歌曲列表 ====================
     // 使用 ref 记录已处理的歌曲，防止重复添加
@@ -1409,7 +1525,7 @@ const StudioContent = () => {
 
             // 🔧 刷新 userTracks，确保上传任务完成后同步到列表
             if (user?.id) {
-                await fetchUserTracksRef.current();
+                await fetchUserTracksRef.current({ mode: 'merge' });
             }
 
             // 🔧 延迟清理，确保所有回调都已完成
@@ -1472,6 +1588,8 @@ const StudioContent = () => {
 
         return base;
     }, [selectedStudioTrack, findTrackAndMusic, generatedTracks]);
+
+    const isInitialUserTracksLoading = isFetchingUserTracks && userTracks.length === 0;
 
     React.useEffect(() => {
         if (!selectedStudioTrack) {
@@ -1702,6 +1820,10 @@ const StudioContent = () => {
                         )
                     }));
                     setUserTracks(updatedUserTracks);
+                    setUserTracksSummary(prev => ({
+                        totalTracks: Math.max(0, prev.totalTracks - 1),
+                        totalDuration: Math.max(0, prev.totalDuration - normalizeDuration(trackToDelete.duration)),
+                    }));
 
                     // 发送删除事件到 EventBus
                     if (typeof window !== 'undefined') {
@@ -1803,7 +1925,11 @@ const StudioContent = () => {
                                         onDelete={handleDeleteClick}
                                         onFavoriteToggle={handleFavoriteToggle}
                                         onDownload={handleDownload}
-                                        isLoading={isFetchingUserTracks}
+                                        isLoading={isInitialUserTracksLoading}
+                                        isLoadingMore={isFetchingMoreUserTracks}
+                                        hasMore={hasMoreUserTracks}
+                                        onLoadMore={handleLoadMoreUserTracks}
+                                        summary={userTracksSummary}
                                         selectedTrack={selectedStudioTrack?.id}
                                         hasPlayer={!!player.currentTrack}
                                         onEditTitle={handleEditTitle}
@@ -1818,7 +1944,11 @@ const StudioContent = () => {
                                 <div className="hidden md:block min-h-0 h-full">
                                     <StudioTracksList
                                         userTracks={convertUserTracksToMusicGeneration(userTracks)}
-                                        isLoading={isFetchingUserTracks}
+                                        isLoading={isInitialUserTracksLoading}
+                                        isLoadingMore={isFetchingMoreUserTracks}
+                                        hasMore={hasMoreUserTracks}
+                                        onLoadMore={handleLoadMoreUserTracks}
+                                        summary={userTracksSummary}
                                         onTrackSelect={handleUserTrackSelect}
                                         onTrackPreview={handleInlineTrackPreview}
                                         onTrackPlay={handleUserTrackPlay}

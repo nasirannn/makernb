@@ -205,7 +205,7 @@ const LibraryContent = () => {
                 coverR2Url: (track as any).coverR2Url || track.coverImage || undefined, // 映射为 JavaScript 字段名
                 lyrics: track.lyrics || undefined,
                 isDeleted: track.isDeleted ?? false, // 映射为 JavaScript 字段名
-                isFavorited: track.isFavorited ?? false
+                isFavorited: track.isFavorited ?? false,
             }]
         }));
     }, [tracks]);

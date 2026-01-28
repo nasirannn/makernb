@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getUserIdFromRequest } from '@/lib/auth';
-import { deleteTrackOptimized } from '@/lib/track-delete';
+import { hardDeleteTrack } from '@/lib/track-delete';
 
 // 强制动态渲染
 export const dynamic = 'force-dynamic';
@@ -38,7 +38,7 @@ export async function DELETE(
 
     // 使用优化的删除函数
     const deleteStartTime = Date.now();
-    const result = await deleteTrackOptimized(trackId, userId);
+    const result = await hardDeleteTrack(trackId, userId);
     const deleteDuration = Date.now() - deleteStartTime;
     const totalDuration = Date.now() - startTime;
 

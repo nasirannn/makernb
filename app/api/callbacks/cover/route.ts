@@ -164,7 +164,7 @@ async function processCoverCallbackAsync(callbackData: any) {
           
           // 确保文件名有效，如果提取失败则使用时间戳+索引作为备用
           if (!originalFilename || originalFilename.trim() === '') {
-            originalFilename = `cover_${Date.now()}_${i + 1}.png`;
+            originalFilename = `${Date.now()}_${i + 1}.png`;
           }
           
           originalFilenames.push(originalFilename);
@@ -247,7 +247,7 @@ async function processCoverCallbackAsync(callbackData: any) {
                         console.log(`Starting backup for track: ${track.id}`);
 
                         const imageBuffer = await downloadFromUrl(track.cover_image_url);
-                        const filename = `cover_${Date.now()}_${track.id}.png`;
+                        const filename = `${Date.now()}_${track.id}.png`;
 
                         // Upload cover image
                         const coverImageUrl = await uploadCoverImage(

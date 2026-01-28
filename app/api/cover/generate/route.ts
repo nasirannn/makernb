@@ -121,7 +121,7 @@ export async function POST(request: NextRequest) {
               // 确保文件名有效，如果提取失败则使用时间戳+索引作为备用
               if (!filename || filename.trim() === '') {
                 console.warn(`Failed to extract filename from URL: ${imageUrl}, using fallback`);
-                filename = `cover_${Date.now()}_${i + 1}.png`;
+                filename = `${Date.now()}_${i + 1}.png`;
               }
 
               console.log(`Extracted filename: ${filename} from URL: ${imageUrl}`);

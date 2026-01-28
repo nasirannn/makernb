@@ -82,7 +82,6 @@ export const useLibraryTracks = (userId: string | undefined) => {
         const generationLyrics = generation.lyricsContent || '';
         const generationStatus = generation.status || 'completed';
         const generationCreatedAt = generation.createdAt || generation.generationCreatedAt;
-
         return (generation.allTracks || []).map((track: any) => {
           const duration = typeof track.duration === 'string'
             ? parseFloat(track.duration)

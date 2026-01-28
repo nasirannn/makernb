@@ -430,7 +430,7 @@ async function processCallbackAsync(
                 try {
                   console.log(`[EXTEND-CALLBACK-${callbackId}] Backing up cover image for track ${track.id}`);
                   const imageBuffer = await downloadFromUrl(track.cover_image_url);
-                  const filename = `cover_backup_${Date.now()}_${track.id}.png`;
+                  const filename = `${Date.now()}_${track.id}.png`;
                   const coverTaskId = track.cover_task_id || taskId;
 
                   const r2ImageUrl = await uploadCoverImage(

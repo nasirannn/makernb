@@ -267,7 +267,6 @@ export const LibraryPanel = ({
   }, []);
 
   const handleTrackAction = (track: LibraryTrack, action: 'play' | 'select') => {
-    
     if (action === 'play' && onTrackPlay) {
       onTrackPlay(track);
     } else if (action === 'select' && onTrackSelect) {

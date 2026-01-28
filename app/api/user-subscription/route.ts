@@ -1,18 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getUserIdFromRequest } from '@/lib/auth';
 import { query } from '@/lib/db-query-builder';
-import type { SubscriptionTier } from '@/lib/subscription-tier';
+import { getTierFromPlanId, type SubscriptionTier } from '@/lib/subscription-tier';
 
 // 强制动态渲染
 export const dynamic = 'force-dynamic';
-
-const getTierFromPlanId = (planId?: string | null): SubscriptionTier | null => {
-  if (!planId) return null;
-  const normalized = planId.trim().toLowerCase();
-  if (normalized.includes('hobby') || normalized.includes('premium')) return 'hobby';
-  if (normalized.includes('starter') || normalized.includes('basic')) return 'starter';
-  return null;
-};
 
 const getTierName = (tierCode: SubscriptionTier | null): string => {
   if (tierCode === 'starter') return 'Starter';

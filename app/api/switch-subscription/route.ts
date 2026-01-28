@@ -3,20 +3,9 @@ import { getUserIdFromRequest } from '@/lib/auth';
 import { creemUrl } from '@/lib/creem';
 import { query } from '@/lib/db-query-builder';
 import { getSubscriptionPlanByProductIdAnyMode } from '@/lib/subscription-credits';
+import { getTierFromPlan } from '@/lib/subscription-tier';
 
 export const dynamic = 'force-dynamic';
-
-const getTierFromPlan = (plan: { code?: string | null; tier_code?: string | null }): 'starter' | 'hobby' | null => {
-  const tierCode = (plan.tier_code || '').trim().toLowerCase();
-  if (tierCode === 'starter' || tierCode === 'hobby') return tierCode;
-  if (tierCode === 'basic') return 'starter';
-  if (tierCode === 'premium') return 'hobby';
-
-  const planCode = (plan.code || '').trim().toLowerCase();
-  if (planCode.includes('hobby') || planCode.includes('premium')) return 'hobby';
-  if (planCode.includes('starter') || planCode.includes('basic')) return 'starter';
-  return null;
-};
 
 export async function POST(request: NextRequest) {
   try {

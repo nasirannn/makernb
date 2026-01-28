@@ -7,20 +7,27 @@ interface PricingPlansResponse {
   plans: PricingPlanApi[];
 }
 
-export const usePricingPlans = () => {
-  const [plans, setPlans] = useState<PricingPlan[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
+export const usePricingPlans = (initialPlans?: PricingPlan[]) => {
+  const [plans, setPlans] = useState<PricingPlan[]>(() => initialPlans ?? []);
+  const [isLoading, setIsLoading] = useState(!initialPlans?.length);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     let active = true;
+    const hasInitialPlans = Boolean(initialPlans?.length);
+
+    if (hasInitialPlans) {
+      return () => {
+        active = false;
+      };
+    }
 
     const fetchPlans = async () => {
       try {
         setIsLoading(true);
         const response = await fetch("/api/pricing-plans", {
           method: "GET",
-          cache: "no-store",
+          cache: "force-cache",
         });
 
         if (!response.ok) {
@@ -50,7 +57,7 @@ export const usePricingPlans = () => {
     return () => {
       active = false;
     };
-  }, []);
+  }, [initialPlans]);
 
   const monthlyPlans = useMemo(
     () => plans.filter((plan) => plan.billingPeriod === "monthly"),

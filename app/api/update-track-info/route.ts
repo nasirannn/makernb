@@ -88,7 +88,7 @@ export async function POST(request: NextRequest) {
 
           // Generate filename
           const timestamp = Date.now();
-          const filename = `cover_${timestamp}_${trackId}.png`;
+          const filename = `${timestamp}_${trackId}.png`;
 
           // Upload to R2
           finalCoverImageUrl = await uploadCoverImage(
@@ -101,7 +101,7 @@ export async function POST(request: NextRequest) {
           // External URL - download and upload to R2
           const imageBuffer = await downloadFromUrl(coverImageUrl);
           const timestamp = Date.now();
-          const filename = `cover_${timestamp}_${trackId}.png`;
+          const filename = `${timestamp}_${trackId}.png`;
           
           finalCoverImageUrl = await uploadCoverImage(
             imageBuffer,
@@ -183,4 +183,3 @@ export async function POST(request: NextRequest) {
     );
   }
 }
-

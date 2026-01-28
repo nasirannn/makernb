@@ -46,7 +46,7 @@ export interface TrackInfo {
   tags: string;
   lyrics: string;
   coverImage: string | null;
-  audioUrl: string;
+  audioUrl: string | null;
   createdAt: string;
   duration: string;
   isPublished: boolean;
@@ -121,7 +121,7 @@ export const TrackDetailView: React.FC<TrackDetailViewProps> = ({
               tags: apiTrack.tags || "",
               lyrics: apiTrack.lyrics || "",
               coverImage: apiTrack.coverImage,
-              audioUrl: apiTrack.audioUrl || "",
+              audioUrl: apiTrack.audioUrl ?? null,
               createdAt: apiTrack.createdAt,
               duration: apiTrack.duration?.toString() || "0",
               isPublished: apiTrack.isPublished || false,
@@ -199,7 +199,6 @@ export const TrackDetailView: React.FC<TrackDetailViewProps> = ({
   }, [trackInfo?.tags]);
 
   const canDownloadTrack = hasPermission("download_mp3_track") || hasPermission("download_wav_track");
-
   const ensureDownloadAccess = React.useCallback(() => {
     if (!trackInfo?.audioUrl) {
       return false;
@@ -443,7 +442,7 @@ export const TrackDetailView: React.FC<TrackDetailViewProps> = ({
                 </span>
               </div>
             </div>
-            
+
             {tagsArray.length > 0 && (
               <div className="flex flex-wrap gap-2">
                 {tagsArray.slice(0, 10).map((tag, index) => (

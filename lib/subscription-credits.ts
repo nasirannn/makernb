@@ -1,20 +1,16 @@
 import { query, withTransaction } from './db-query-builder';
-import type { QueryResultRow } from 'pg';
 import { addUserCredits } from './user-db';
+import { getPlanByCode, getPlanByProductId } from './pricing-plans';
 
 export interface SubscriptionPlanRow {
   code: string;
   name: string;
   product_id: string;
-  mode: 'test' | 'prod' | 'sandbox' | 'local';
   credits_per_period: number;
   billing_period: 'monthly' | 'yearly';
   price: number;
   tier_code: string;
-  is_active: boolean;
 }
-
-type QueryFn = <T extends QueryResultRow = any>(sql: string, params?: any[]) => Promise<{ rows: T[] }>;
 
 const LEGACY_PLAN_ID_MAP: Record<string, string> = {
   monthly_basic: 'monthly_starter',
@@ -27,51 +23,71 @@ const normalizePlanId = (planId: string): string => {
   return LEGACY_PLAN_ID_MAP[planId] || planId;
 };
 
-export const getSubscriptionPlanByProductId = async (
-  productId: string,
-  mode: SubscriptionPlanRow["mode"],
-  queryFn: QueryFn = query
-): Promise<SubscriptionPlanRow | null> => {
-  const result = await queryFn<SubscriptionPlanRow>(
-    `SELECT code, name, product_id, mode, credits_per_period, billing_period, price, tier_code, is_active
-     FROM subscription_plans
-     WHERE product_id = $1 AND mode = $2
-     LIMIT 1`,
-    [productId, mode]
-  );
+const toSubscriptionPlan = (plan: {
+  code: string;
+  name: string;
+  productId: string;
+  credits: number;
+  billingPeriod: 'monthly' | 'yearly';
+  price: number;
+  tierCode: string;
+}): SubscriptionPlanRow => ({
+  code: plan.code,
+  name: plan.name,
+  product_id: plan.productId,
+  credits_per_period: plan.credits,
+  billing_period: plan.billingPeriod,
+  price: plan.price,
+  tier_code: plan.tierCode,
+});
 
-  return result.rows[0] || null;
+export const getSubscriptionPlanByProductId = async (
+  productId: string
+): Promise<SubscriptionPlanRow | null> => {
+  const plan = getPlanByProductId(productId);
+  if (!plan) return null;
+  return toSubscriptionPlan({
+    code: plan.code,
+    name: plan.name,
+    productId: plan.productId,
+    credits: plan.credits,
+    billingPeriod: plan.billingPeriod,
+    price: plan.price,
+    tierCode: plan.tierCode,
+  });
 };
 
 export const getSubscriptionPlanByCode = async (
-  planCode: string,
-  mode: SubscriptionPlanRow["mode"],
-  queryFn: QueryFn = query
+  planCode: string
 ): Promise<SubscriptionPlanRow | null> => {
-  const result = await queryFn<SubscriptionPlanRow>(
-    `SELECT code, name, product_id, mode, credits_per_period, billing_period, price, tier_code, is_active
-     FROM subscription_plans
-     WHERE code = $1 AND mode = $2
-     LIMIT 1`,
-    [planCode, mode]
-  );
-
-  return result.rows[0] || null;
+  const normalized = normalizePlanId(planCode);
+  const plan = getPlanByCode(normalized);
+  if (!plan) return null;
+  return toSubscriptionPlan({
+    code: plan.code,
+    name: plan.name,
+    productId: plan.productId,
+    credits: plan.credits,
+    billingPeriod: plan.billingPeriod,
+    price: plan.price,
+    tierCode: plan.tierCode,
+  });
 };
 
 export const getSubscriptionPlanByProductIdAnyMode = async (
-  productId: string,
-  queryFn: QueryFn = query
+  productId: string
 ): Promise<SubscriptionPlanRow | null> => {
-  const result = await queryFn<SubscriptionPlanRow>(
-    `SELECT code, name, product_id, mode, credits_per_period, billing_period, price, tier_code, is_active
-     FROM subscription_plans
-     WHERE product_id = $1
-     LIMIT 1`,
-    [productId]
-  );
-
-  return result.rows[0] || null;
+  const plan = getPlanByProductId(productId);
+  if (!plan) return null;
+  return toSubscriptionPlan({
+    code: plan.code,
+    name: plan.name,
+    productId: plan.productId,
+    credits: plan.credits,
+    billingPeriod: plan.billingPeriod,
+    price: plan.price,
+    tierCode: plan.tierCode,
+  });
 };
 
 export interface UserSubscription {
@@ -103,7 +119,6 @@ export const createOrUpdateUserSubscription = async (
     subscriptionId: string;
     customerId?: string | null;
     productId: string;
-    mode: SubscriptionPlanRow["mode"];
     status: 'active' | 'cancelled' | 'expired' | 'past_due';
     currentPeriodStart: string;
     currentPeriodEnd: string;
@@ -111,12 +126,9 @@ export const createOrUpdateUserSubscription = async (
 ): Promise<UserSubscription> => {
   try {
     // 查找对应的订阅计划
-    const plan = await getSubscriptionPlanByProductId(subscriptionData.productId, subscriptionData.mode);
+    const plan = await getSubscriptionPlanByProductId(subscriptionData.productId);
     if (!plan) {
-      throw new Error(`Unknown product ID: ${subscriptionData.productId} (${subscriptionData.mode})`);
-    }
-    if (!plan.is_active) {
-      console.warn(`Subscription plan is inactive: ${plan.code}`);
+      throw new Error(`Unknown product ID: ${subscriptionData.productId}`);
     }
 
     // 计算下次积分发放日期
@@ -314,10 +326,7 @@ export const grantSubscriptionCredits = async (subscription: UserSubscription): 
       const nextGrantDate = new Date(subscription.next_credit_grant_date);
       
       // 根据订阅类型计算下次发放日期
-      const plan = await getSubscriptionPlanByProductIdAnyMode(
-        subscription.product_id,
-        queryFn
-      );
+      const plan = await getSubscriptionPlanByProductIdAnyMode(subscription.product_id);
       if (plan) {
         if (plan.billing_period === 'monthly') {
           nextGrantDate.setMonth(nextGrantDate.getMonth() + 1);

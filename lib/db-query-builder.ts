@@ -261,6 +261,28 @@ export const getUserMusicGenerationsOptimized = async (
   return result.rows;
 };
 
+export const getUserTrackSummary = async (userId: string): Promise<{ totalTracks: number; totalDuration: number }> => {
+  const sql = `
+    SELECT
+      COUNT(*) as total_tracks,
+      COALESCE(SUM(COALESCE(mt.duration, 0)), 0) as total_duration
+    FROM tracks mt
+    INNER JOIN music mg ON mg.id = mt.music_id
+    WHERE mg.user_id = $1::uuid
+      AND (mt.is_deleted IS NULL OR mt.is_deleted = FALSE)
+  `;
+
+  const result = await query<{ total_tracks: string | number; total_duration: string | number }>(sql, [userId]);
+  const row = result.rows[0] || { total_tracks: 0, total_duration: 0 };
+  const totalTracks = typeof row.total_tracks === 'string' ? parseInt(row.total_tracks, 10) : Number(row.total_tracks || 0);
+  const totalDuration = typeof row.total_duration === 'string' ? parseFloat(row.total_duration) : Number(row.total_duration || 0);
+
+  return {
+    totalTracks: Number.isFinite(totalTracks) ? totalTracks : 0,
+    totalDuration: Number.isFinite(totalDuration) ? totalDuration : 0,
+  };
+};
+
 /**
  * Batch check favorites for multiple tracks
  */

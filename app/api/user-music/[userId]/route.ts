@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getUserMusicGenerationsOptimized, batchCheckFavorites } from '@/lib/db-query-builder';
+import { getUserMusicGenerationsOptimized, batchCheckFavorites, getUserTrackSummary } from '@/lib/db-query-builder';
 import { getUserIdFromRequest } from '@/lib/auth';
 
 // 强制动态渲染
@@ -25,11 +25,14 @@ export async function GET(
     // 获取请求用户ID（用于收藏状态检查）
     const requestUserId = await getUserIdFromRequest(request);
 
-    // 直接查询用户音乐数据
-    const rawData = await getUserMusicGenerationsOptimized(userId, limit, offset);
+    const [rawData, summary] = await Promise.all([
+      getUserMusicGenerationsOptimized(userId, limit, offset),
+      getUserTrackSummary(userId)
+    ]);
 
     // 处理数据格式
     const musicGenerations = processUserMusicData(rawData);
+
 
     // 如果有请求用户，批量检查收藏状态
     if (requestUserId && musicGenerations.length > 0) {
@@ -59,7 +62,9 @@ export async function GET(
         music: musicGenerations,
         count: musicGenerations.length,
         limit,
-        offset
+        offset,
+        totalTracks: summary.totalTracks,
+        totalDuration: summary.totalDuration
       }
     });
 
