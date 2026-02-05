@@ -7,6 +7,209 @@ import Image from "next/image";
 import { Mail } from "lucide-react";
 
 export const FooterSection = () => {
+  const renderBadges = () => (
+    <>
+      <a
+        href="https://launchurapp.com"
+        target="_blank"
+        rel="noopener noreferrer"
+        className="inline-flex items-center justify-center rounded-2xl px-2 py-2"
+        aria-label="Featured on LaunchYourApp"
+      >
+        <img
+          src="https://84826d28beedc6132a2353da3796e843.cdn.bubble.io/f1758681923686x163623620280710200/Featured_On_LaunchYourApp.svg"
+          alt="LaunchYourApp Badge"
+          style={{ width: 202, height: "auto" }}
+          className="block"
+          loading="lazy"
+        />
+      </a>
+      <a
+        href="https://www.producthunt.com/products/makernb?embed=true&utm_source=badge-featured&utm_medium=badge&utm_source=badge-makernb"
+        target="_blank"
+        rel="noopener noreferrer"
+        className="inline-flex items-center justify-center rounded-2xl px-3 py-2"
+      >
+        <Image
+          src="https://api.producthunt.com/widgets/embed-image/v1/featured.svg?post_id=1026584&theme=light&t=1768827078984"
+          alt="MakeRNB - Create authentic R&B tracks with AI, instantly | Product Hunt"
+          width={250}
+          height={54}
+          className="block w-[220px] h-[48px] dark:hidden"
+        />
+        <Image
+          src="https://api.producthunt.com/widgets/embed-image/v1/featured.svg?post_id=1026584&theme=dark&t=1760448580929"
+          alt="MakeRNB - Create authentic R&B tracks with AI, instantly | Product Hunt"
+          width={250}
+          height={54}
+          className="hidden w-[220px] h-[48px] dark:block"
+        />
+      </a>
+      <a
+        href="https://startupfa.st"
+        target="_blank"
+        rel="noopener noreferrer"
+        title="Powered by Startup Fast"
+        className="inline-flex items-center justify-center rounded-2xl px-2 py-2"
+      >
+        <Image
+          src="https://startupfa.st/images/badges/powered-by-light.svg"
+          alt="Powered by Startup Fast"
+          width={150}
+          height={44}
+          className="block dark:hidden"
+        />
+        <Image
+          src="https://startupfa.st/images/badges/powered-by-dark.svg"
+          alt="Powered by Startup Fast"
+          width={150}
+          height={44}
+          className="hidden dark:block"
+        />
+      </a>
+      <a
+        href="https://startupfa.me/s/makernb?utm_source=makernb.com"
+        target="_blank"
+        rel="noopener noreferrer"
+        className="inline-flex items-center justify-center rounded-2xl px-2 py-2"
+      >
+        <Image
+          src="https://startupfa.me/badges/featured/light.webp"
+          alt="MakeRNB - Featured on Startup Fame"
+          width={171}
+          height={54}
+          className="block dark:hidden"
+        />
+        <Image
+          src="https://startupfa.me/badges/featured/dark.webp"
+          alt="MakeRNB - Featured on Startup Fame"
+          width={171}
+          height={54}
+          className="hidden dark:block"
+        />
+      </a>
+      <a
+        href="https://twelve.tools"
+        target="_blank"
+        rel="noopener noreferrer"
+        className="inline-flex items-center justify-center rounded-2xl px-2 py-2"
+      >
+        <Image
+          src="https://twelve.tools/badge0-light.svg"
+          alt="Featured on Twelve Tools"
+          width={200}
+          height={54}
+          className="block dark:hidden"
+        />
+        <Image
+          src="https://twelve.tools/badge0-dark.svg"
+          alt="Featured on Twelve Tools"
+          width={200}
+          height={54}
+          className="hidden dark:block"
+        />
+      </a>
+      <a
+        href="https://wired.business"
+        target="_blank"
+        rel="noopener noreferrer"
+        className="inline-flex items-center justify-center rounded-2xl px-2 py-2"
+      >
+        <Image
+          src="https://wired.business/badge0-light.svg"
+          alt="Featured on Wired Business"
+          width={200}
+          height={54}
+          className="block dark:hidden"
+        />
+        <Image
+          src="https://wired.business/badge0-dark.svg"
+          alt="Featured on Wired Business"
+          width={200}
+          height={54}
+          className="hidden dark:block"
+        />
+      </a>
+      <a
+        href="https://frogdr.com/makernb.com?utm_source=makernb.com"
+        target="_blank"
+        rel="noopener noreferrer"
+        className="inline-flex items-center justify-center rounded-2xl px-2 py-2"
+      >
+        <Image
+          src="https://frogdr.com/makernb.com/badge-light.svg?badge=1"
+          alt="Monitor your Domain Rating with FrogDR"
+          width={250}
+          height={54}
+          className="block dark:hidden"
+        />
+        <Image
+          src="https://frogdr.com/makernb.com/badge-dark.svg?badge=1"
+          alt="Monitor your Domain Rating with FrogDR"
+          width={250}
+          height={54}
+          className="hidden dark:block"
+        />
+      </a>
+      <a
+        href="https://toolsaiapp.com/"
+        target="_blank"
+        rel="noopener noreferrer"
+        className="inline-flex items-center justify-center rounded-2xl px-2 py-2"
+      >
+        <Image
+          src="https://toolsaiapp.com/wp-content/uploads/2025/12/badge.png"
+          alt="Featured on Tools AI App"
+          width={200}
+          height={54}
+          className="block h-[54px] w-auto dark:hidden"
+        />
+        <Image
+          src="https://toolsaiapp.com/wp-content/uploads/2025/12/badge-dark.png"
+          alt="Featured on Tools AI App"
+          width={200}
+          height={54}
+          className="hidden h-[54px] w-auto dark:block"
+        />
+      </a>
+      <a
+        href="https://fazier.com/launches/makernb.com"
+        target="_blank"
+        rel="noopener noreferrer"
+        className="inline-flex items-center justify-center rounded-2xl px-2 py-2"
+      >
+        <Image
+          src="https://fazier.com/api/v1//public/badges/launch_badges.svg?badge_type=launched&theme=light"
+          width={120}
+          height={32}
+          alt="Fazier badge"
+          className="block"
+        />
+      </a>
+      <a
+        href="https://open-launch.com/projects/makernb"
+        target="_blank"
+        rel="noopener noreferrer"
+        className="inline-flex items-center justify-center rounded-2xl px-2 py-2"
+      >
+        <Image
+          src="https://open-launch.com/api/badge/a65b5aca-78a6-4d8b-960e-5de6ee455816/featured-light.svg"
+          alt="Featured on Open-Launch"
+          width={200}
+          height={50}
+          className="block dark:hidden"
+        />
+        <Image
+          src="https://open-launch.com/api/badge/a65b5aca-78a6-4d8b-960e-5de6ee455816/featured-dark.svg"
+          alt="Featured on Open-Launch"
+          width={200}
+          height={50}
+          className="hidden dark:block"
+        />
+      </a>
+    </>
+  );
+
   return (
     <footer id="footer" className="relative">
       <div className="pointer-events-none absolute inset-0 -z-10 bg-[linear-gradient(180deg,transparent,rgba(0,0,0,0.02))] dark:bg-[linear-gradient(180deg,transparent,rgba(255,255,255,0.03))]" />
@@ -69,190 +272,11 @@ export const FooterSection = () => {
 
           <Separator />
 
-          <div className="grid items-center justify-items-center gap-4 [grid-template-columns:repeat(auto-fit,minmax(180px,1fr))]">
-            <a
-              href="https://www.producthunt.com/products/makernb?embed=true&utm_source=badge-featured&utm_medium=badge&utm_source=badge-makernb"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="inline-flex items-center justify-center rounded-2xl px-3 py-2"
-            >
-              <Image
-                src="https://api.producthunt.com/widgets/embed-image/v1/featured.svg?post_id=1026584&theme=light&t=1768827078984"
-                alt="MakeRNB - Create authentic R&B tracks with AI, instantly | Product Hunt"
-                width={250}
-                height={54}
-                className="block w-[220px] h-[48px] dark:hidden"
-              />
-              <Image
-                src="https://api.producthunt.com/widgets/embed-image/v1/featured.svg?post_id=1026584&theme=dark&t=1760448580929"
-                alt="MakeRNB - Create authentic R&B tracks with AI, instantly | Product Hunt"
-                width={250}
-                height={54}
-                className="hidden w-[220px] h-[48px] dark:block"
-              />
-            </a>
-            <a
-              href="https://startupfa.st"
-              target="_blank"
-              rel="noopener noreferrer"
-              title="Powered by Startup Fast"
-              className="inline-flex items-center justify-center rounded-2xl px-2 py-2"
-            >
-              <Image
-                src="https://startupfa.st/images/badges/powered-by-light.svg"
-                alt="Powered by Startup Fast"
-                width={150}
-                height={44}
-                className="block dark:hidden"
-              />
-              <Image
-                src="https://startupfa.st/images/badges/powered-by-dark.svg"
-                alt="Powered by Startup Fast"
-                width={150}
-                height={44}
-                className="hidden dark:block"
-              />
-            </a>
-            <a
-              href="https://startupfa.me/s/makernb?utm_source=makernb.com"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="inline-flex items-center justify-center rounded-2xl px-2 py-2"
-            >
-              <Image
-                src="https://startupfa.me/badges/featured/light.webp"
-                alt="MakeRNB - Featured on Startup Fame"
-                width={171}
-                height={54}
-                className="block dark:hidden"
-              />
-              <Image
-                src="https://startupfa.me/badges/featured/dark.webp"
-                alt="MakeRNB - Featured on Startup Fame"
-                width={171}
-                height={54}
-                className="hidden dark:block"
-              />
-            </a>
-            <a
-              href="https://twelve.tools"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="inline-flex items-center justify-center rounded-2xl px-2 py-2"
-            >
-              <Image
-                src="https://twelve.tools/badge0-light.svg"
-                alt="Featured on Twelve Tools"
-                width={200}
-                height={54}
-                className="block dark:hidden"
-              />
-              <Image
-                src="https://twelve.tools/badge0-dark.svg"
-                alt="Featured on Twelve Tools"
-                width={200}
-                height={54}
-                className="hidden dark:block"
-              />
-            </a>
-            <a
-              href="https://wired.business"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="inline-flex items-center justify-center rounded-2xl px-2 py-2"
-            >
-              <Image
-                src="https://wired.business/badge0-light.svg"
-                alt="Featured on Wired Business"
-                width={200}
-                height={54}
-                className="block dark:hidden"
-              />
-              <Image
-                src="https://wired.business/badge0-dark.svg"
-                alt="Featured on Wired Business"
-                width={200}
-                height={54}
-                className="hidden dark:block"
-              />
-            </a>
-            <a
-              href="https://frogdr.com/makernb.com?utm_source=makernb.com"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="inline-flex items-center justify-center rounded-2xl px-2 py-2"
-            >
-              <Image
-                src="https://frogdr.com/makernb.com/badge-light.svg?badge=1"
-                alt="Monitor your Domain Rating with FrogDR"
-                width={250}
-                height={54}
-                className="block dark:hidden"
-              />
-              <Image
-                src="https://frogdr.com/makernb.com/badge-dark.svg?badge=1"
-                alt="Monitor your Domain Rating with FrogDR"
-                width={250}
-                height={54}
-                className="hidden dark:block"
-              />
-            </a>
-            <a
-              href="https://toolsaiapp.com/"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="inline-flex items-center justify-center rounded-2xl px-2 py-2"
-            >
-              <Image
-                src="https://toolsaiapp.com/wp-content/uploads/2025/12/badge.png"
-                alt="Featured on Tools AI App"
-                width={200}
-                height={54}
-                className="block h-[54px] w-auto dark:hidden"
-              />
-              <Image
-                src="https://toolsaiapp.com/wp-content/uploads/2025/12/badge-dark.png"
-                alt="Featured on Tools AI App"
-                width={200}
-                height={54}
-                className="hidden h-[54px] w-auto dark:block"
-              />
-            </a>
-            <a
-              href="https://fazier.com/launches/makernb.com"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="inline-flex items-center justify-center rounded-2xl px-2 py-2"
-            >
-              <Image
-                src="https://fazier.com/api/v1//public/badges/launch_badges.svg?badge_type=launched&theme=light"
-                width={120}
-                height={32}
-                alt="Fazier badge"
-                className="block"
-              />
-            </a>
-            <a
-              href="https://open-launch.com/projects/makernb"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="inline-flex items-center justify-center rounded-2xl px-2 py-2"
-            >
-              <Image
-                src="https://open-launch.com/api/badge/a65b5aca-78a6-4d8b-960e-5de6ee455816/featured-light.svg"
-                alt="Featured on Open-Launch"
-                width={200}
-                height={50}
-                className="block dark:hidden"
-              />
-              <Image
-                src="https://open-launch.com/api/badge/a65b5aca-78a6-4d8b-960e-5de6ee455816/featured-dark.svg"
-                alt="Featured on Open-Launch"
-                width={200}
-                height={50}
-                className="hidden dark:block"
-              />
-            </a>
+          <div className="relative overflow-hidden">
+            <div className="flex w-max items-center gap-3 animate-marquee motion-reduce:animate-none hover:[animation-play-state:paused]">
+              {renderBadges()}
+              {renderBadges()}
+            </div>
           </div>
         </div>
       </div>

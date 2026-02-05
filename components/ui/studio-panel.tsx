@@ -1698,7 +1698,7 @@ export const StudioPanel = (props: StudioPanelProps) => {
                       handleGenerateWithAuth();
                     }}
                     disabled={isDisabled}
-                    className="flex-1 h-12 px-4 text-base font-semibold bg-primary disabled:bg-muted border-transparent text-primary-foreground disabled:text-muted-foreground shadow-lg disabled:shadow-none disabled:cursor-not-allowed transition-all duration-300 hover:-translate-y-1 hover:scale-[1.02] disabled:hover:translate-y-0 disabled:hover:scale-100 rounded-2xl"
+                    className="flex-1 h-12 px-4 text-base font-semibold bg-primary disabled:bg-foreground/10 dark:disabled:bg-white/10 border-transparent text-primary-foreground disabled:text-foreground/40 dark:disabled:text-white/40 shadow-lg disabled:shadow-none disabled:cursor-not-allowed transition-all duration-300 hover:-translate-y-1 hover:scale-[1.02] disabled:hover:translate-y-0 disabled:hover:scale-100 rounded-2xl"
                   >
                     <div className="relative z-10 flex items-center justify-center">
                       {isGenerating ? (

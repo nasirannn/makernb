@@ -52,7 +52,7 @@
       Roboto, "Helvetica Neue", Arial, "Noto Sans", "Apple Color Emoji", "Segoe UI Emoji",
       "Segoe UI Symbol";
 
-    --background: 45 33% 96%;
+    --background: 0 0% 98%;
     --foreground: 0 0% 8%;
 
     --card: 0 0% 100%;
@@ -283,7 +283,7 @@
   }
 
   .studio-panel-card {
-    background: rgba(255, 255, 255, 0.70);
+    background: rgba(255, 255, 255, 0.78);
     backdrop-filter: blur(10px) saturate(120%);
   }
 
@@ -316,8 +316,7 @@
   }
 
   .dark .studio-panel-card {
-    /* Slightly lighter panel cards (no border) for contrast */
-    background: rgba(255, 255, 255, 0.08);
+    background: rgba(12, 13, 18, 0.72);
     backdrop-filter: blur(12px) saturate(125%);
   }
 

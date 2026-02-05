@@ -192,10 +192,7 @@ export const Navbar = ({ credits = null }: NavbarProps) => {
 
   return (
     <header 
-      className={`w-full flex items-center px-6 lg:px-20 py-3 lg:py-4 absolute top-0 left-0 backdrop-blur-md text-foreground shadow-[0_1px_0_rgba(0,0,0,0.06)] dark:shadow-[0_1px_0_rgba(255,255,255,0.08)] ${getZIndexClass('NAVBAR')} ${
-        // Home should match the same page background tone as other sections (not a gray overlay).
-        isHome ? "bg-[#f7f6f2] dark:bg-[#05060b]" : "bg-background/70"
-      }`}
+      className={`w-full flex items-center px-6 lg:px-20 py-3 lg:py-4 absolute top-0 left-0 text-foreground ${getZIndexClass('NAVBAR')} bg-transparent`}
     >
       <Link href="/" className="flex items-center gap-3">
         <Image

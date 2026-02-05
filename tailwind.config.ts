@@ -193,6 +193,11 @@ module.exports = {
           "50%": { transform: "rotateY(90deg)" },
           "100%": { transform: "rotateY(180deg)" },
         },
+        // Marquee animation (used in footer badges)
+        "marquee": {
+          "0%": { transform: "translateX(0)" },
+          "100%": { transform: "translateX(-50%)" },
+        },
       },
       
       animation: {
@@ -215,6 +220,9 @@ module.exports = {
         
         // Flip
         "flip": "flip 0.6s ease-in-out",
+        // Marquee
+        "marquee": "marquee 40s linear infinite",
+        "marquee-reverse": "marquee 40s linear infinite reverse",
       },
     },
   },

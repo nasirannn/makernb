@@ -1020,7 +1020,7 @@ export const LibraryPanel = ({
                     <Button
                       variant="ghost"
                       size="sm"
-                      className="h-8 w-8 p-0"
+                      className="h-8 w-8 p-0 text-muted-foreground hover:text-foreground transition-colors hover:bg-transparent focus-visible:bg-transparent"
                       title={currentPlayingTrack === track.id && isPlaying ? 'Pause' : 'Play'}
                       onClick={(e) => {
                         e.stopPropagation();
@@ -1193,7 +1193,7 @@ export const LibraryPanel = ({
                   <Button
                     variant="ghost"
                     size="sm"
-                    className="h-8 w-8 p-0 mr-2"
+                    className="h-8 w-8 p-0 mr-2 text-muted-foreground hover:text-foreground transition-colors hover:bg-transparent focus-visible:bg-transparent"
                     title="More actions"
                     onClick={(e) => {
                       e.stopPropagation();

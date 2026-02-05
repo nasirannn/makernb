@@ -96,7 +96,7 @@ export const LibraryTrackActions: React.FC<LibraryTrackActionsProps> = ({
       <Button
         variant="ghost"
         size="sm"
-        className="h-8 w-8 p-0 mr-2"
+        className="h-8 w-8 p-0 mr-2 text-muted-foreground hover:text-foreground transition-colors hover:bg-transparent focus-visible:bg-transparent"
         title="More actions"
         onClick={(e) => {
           e.stopPropagation();
@@ -122,7 +122,7 @@ export const LibraryTrackActions: React.FC<LibraryTrackActionsProps> = ({
             <Button
               variant="ghost"
               size="sm"
-              className="h-8 w-8 p-0"
+              className="h-8 w-8 p-0 text-muted-foreground hover:text-foreground transition-colors hover:bg-transparent focus-visible:bg-transparent data-[state=open]:bg-transparent"
               title="Download"
               onClick={(e) => {
                 e.preventDefault();
@@ -162,13 +162,15 @@ export const LibraryTrackActions: React.FC<LibraryTrackActionsProps> = ({
         <Button
           variant="ghost"
           size="sm"
-          className="h-8 w-8 p-0"
+          className={`group h-8 w-8 p-0 transition-colors hover:bg-transparent focus-visible:bg-transparent ${
+            track.isFavorited ? '' : 'text-muted-foreground hover:text-foreground'
+          }`}
           title={track.isFavorited ? 'Remove from favorites' : 'Add to favorites'}
           onClick={handleFavoriteToggle}
         >
           <Star
             className={`h-4 w-4 ${
-              track.isFavorited ? 'text-red-500 fill-current' : 'text-muted-foreground'
+              track.isFavorited ? 'text-red-500 fill-current' : 'group-hover:text-foreground'
             }`}
           />
         </Button>
@@ -178,7 +180,9 @@ export const LibraryTrackActions: React.FC<LibraryTrackActionsProps> = ({
         <Button
           variant="ghost"
           size="sm"
-          className="h-8 w-8 p-0"
+          className={`group h-8 w-8 p-0 transition-colors hover:bg-transparent focus-visible:bg-transparent ${
+            track.isPublished ? '' : 'text-muted-foreground hover:text-foreground'
+          }`}
           title={track.isPublished ? 'Unpublish track' : 'Publish track'}
           onClick={(e) => {
             e.stopPropagation();
@@ -187,7 +191,7 @@ export const LibraryTrackActions: React.FC<LibraryTrackActionsProps> = ({
         >
           <Send
             className={`h-4 w-4 ${
-              track.isPublished ? 'text-green-500' : 'text-muted-foreground'
+              track.isPublished ? 'text-green-500' : 'group-hover:text-foreground'
             }`}
           />
         </Button>
@@ -198,7 +202,7 @@ export const LibraryTrackActions: React.FC<LibraryTrackActionsProps> = ({
           <Button
             variant="ghost"
             size="sm"
-            className="h-8 w-8 p-0"
+            className="h-8 w-8 p-0 text-muted-foreground hover:text-foreground transition-colors hover:bg-transparent focus-visible:bg-transparent data-[state=open]:bg-transparent"
             title="More actions"
             onClick={(e) => e.stopPropagation()}
           >

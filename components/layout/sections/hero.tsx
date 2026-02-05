@@ -13,6 +13,7 @@ export const HeroSection = () => {
       <div className="pointer-events-none absolute inset-0 -z-10">
         <div className="absolute -top-28 left-1/2 h-[560px] w-[560px] -translate-x-1/2 rounded-full bg-gradient-to-br from-primary/18 via-[rgba(0,198,255,0.10)] to-transparent blur-3xl" />
         <div className="absolute -bottom-52 right-[-160px] h-[520px] w-[520px] rounded-full bg-gradient-to-tr from-[rgba(255,190,83,0.16)] to-transparent blur-3xl" />
+        <div className="absolute inset-x-0 bottom-0 h-32 bg-[linear-gradient(180deg,transparent_0%,hsl(var(--background))_100%)]" />
       </div>
 
       <div className="relative z-10 container mx-auto min-h-screen flex items-center pt-20 pb-16 md:pt-28">
