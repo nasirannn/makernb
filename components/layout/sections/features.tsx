@@ -138,112 +138,44 @@ const featureList: FeaturesProps[] = [
 ];
 
 export const FeaturesSection = () => {
-  const featured = featureList.find((f) => f.featured) ?? featureList[0];
-  const rest = featureList.filter((f) => f !== featured);
-
   return (
     <section id="features" className="py-24 sm:py-32">
       <div className="container">
         <div className="mx-auto max-w-6xl">
-          <div className="text-center mb-12">
-            <h2 className="text-lg text-primary text-center mb-2 tracking-wider">Features</h2>
-            <h2 className="text-3xl md:text-4xl text-center font-bold mb-4">Powerful AI Music Creation</h2>
-            <h3 className="md:w-1/2 mx-auto text-lg text-center text-muted-foreground">
-              Turn an idea into a finished R&amp;B track — then iterate fast with surgical edits.
-            </h3>
+          <div className="mb-12 text-center">
+            <p className="text-primary text-lg font-medium mb-2 tracking-wider">Features</p>
+            <h2 className="text-3xl md:text-4xl font-bold tracking-tight mb-4">
+              Powerful AI music creation, built for iteration
+            </h2>
+            <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
+              Turn a spark into a finished R&amp;B track — then refine vocals, structure, and sound without breaking the vibe.
+            </p>
           </div>
 
-          <div className="grid gap-5 md:grid-cols-12">
-            {/* Featured */}
-            <div className="md:col-span-7 h-full">
-              <div className="app-card relative h-full overflow-hidden rounded-3xl p-6 md:p-8">
+          <div className="grid gap-5 md:grid-cols-3">
+            {featureList.map((f) => (
+              <div
+                key={f.title}
+                className="group app-card-muted relative overflow-hidden rounded-[28px] p-6 transition-transform duration-300 hover:-translate-y-1 hover:bg-foreground/10 dark:hover:bg-white/15"
+              >
                 <div
                   aria-hidden="true"
                   className={cn(
-                    "pointer-events-none absolute inset-0 opacity-80",
-                    "bg-[radial-gradient(820px_420px_at_15%_10%,hsl(var(--primary)/0.20),transparent_60%)]"
+                    "pointer-events-none absolute inset-x-0 top-0 h-1",
+                    `bg-gradient-to-r ${accentStyles[f.accent].wash}`
                   )}
                 />
                 <div className="relative flex items-start gap-4">
-                  <FeatureIconBadge accent={featured.accent}>
-                    <featured.icon className={cn("h-6 w-6", accentStyles[featured.accent].icon)} />
+                  <FeatureIconBadge accent={f.accent}>
+                    <f.icon className={cn("h-6 w-6", accentStyles[f.accent].icon)} />
                   </FeatureIconBadge>
                   <div className="min-w-0">
-                    <div className="text-xs font-semibold tracking-[0.28em] text-muted-foreground uppercase">
-                      Core workflow
-                    </div>
-                    <div className="mt-2 text-2xl font-semibold tracking-tight text-foreground">
-                      {featured.title}
-                    </div>
-                    <p className="mt-3 text-sm md:text-base text-muted-foreground leading-relaxed">
-                      {featured.description}
-                    </p>
-
-                    <div className="mt-5 flex flex-wrap gap-2">
-                      {["Prompt → Music", "Lyrics-aware", "Instant preview", "Export clean audio"].map((chip) => (
-                        <span
-                          key={chip}
-                          className="inline-flex items-center rounded-full bg-foreground/5 px-3 py-1.5 text-xs font-semibold text-foreground/70 dark:bg-white/10 dark:text-foreground/80"
-                        >
-                          {chip}
-                        </span>
-                      ))}
-                    </div>
+                    <div className="text-lg font-semibold tracking-tight text-foreground">{f.title}</div>
+                    <p className="mt-2 text-sm text-muted-foreground leading-relaxed">{f.description}</p>
                   </div>
                 </div>
               </div>
-            </div>
-
-            {/* Bento grid */}
-            <div className="md:col-span-5">
-              <div className="grid gap-5">
-                {rest.slice(0, 2).map((f) => (
-                  <div key={f.title} className="app-card-muted relative overflow-hidden rounded-3xl p-6 transition-colors hover:bg-foreground/10 dark:hover:bg-white/15">
-                    <div
-                      aria-hidden="true"
-                      className={cn(
-                        "pointer-events-none absolute inset-0 opacity-60",
-                        "bg-[radial-gradient(820px_420px_at_15%_10%,hsl(var(--primary)/0.20),transparent_60%)]"
-                      )}
-                    />
-                    <div className="relative flex items-start gap-4">
-                      <FeatureIconBadge accent={f.accent}>
-                        <f.icon className={cn("h-6 w-6", accentStyles[f.accent].icon)} />
-                      </FeatureIconBadge>
-                      <div className="min-w-0">
-                        <div className="text-lg font-semibold tracking-tight text-foreground">{f.title}</div>
-                        <p className="mt-2 text-sm text-muted-foreground leading-relaxed">{f.description}</p>
-                      </div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            <div className="md:col-span-12">
-              <div className="grid gap-5 md:grid-cols-3">
-                {rest.slice(2).map((f) => (
-                  <div key={f.title} className="app-card-muted relative overflow-hidden rounded-3xl p-6 transition-colors hover:bg-foreground/10 dark:hover:bg-white/15">
-                    <div
-                      aria-hidden="true"
-                      className={cn(
-                        "pointer-events-none absolute inset-0 opacity-60",
-                        "bg-[radial-gradient(820px_420px_at_15%_10%,hsl(var(--primary)/0.20),transparent_60%)]"
-                      )}
-                    />
-                    <div className="relative flex items-start gap-4">
-                      <FeatureIconBadge accent={f.accent}>
-                        <f.icon className={cn("h-6 w-6", accentStyles[f.accent].icon)} />
-                      </FeatureIconBadge>
-                      <div className="min-w-0">
-                        <div className="text-lg font-semibold tracking-tight text-foreground">{f.title}</div>
-                        <p className="mt-2 text-sm text-muted-foreground leading-relaxed">{f.description}</p>
-                      </div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
+            ))}
           </div>
         </div>
       </div>

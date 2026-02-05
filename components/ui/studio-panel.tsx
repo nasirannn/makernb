@@ -44,6 +44,136 @@ const HERO_GENRE_ICONS: Record<string, string> = {
   "hip-hop-soul": "Hip-Hop Soul Icon.webp",
 };
 
+const SIMPLE_PROMPT_CONFIG: Record<
+  string,
+  {
+    blocks: {
+      style_anchor: string[];
+      rhythm_groove: string[];
+      instrumentation: string[];
+      vocals: string[];
+      mood: string[];
+    };
+  }
+> = {
+  "new-jack-swing": {
+    blocks: {
+      style_anchor: [
+        "Early 90s New Jack Swing R&B track",
+        "Classic New Jack Swing style R&B song",
+        "Upbeat early-90s New Jack Swing inspired track",
+      ],
+      rhythm_groove: [
+        "bouncy swing rhythm with tight drum machine groove",
+        "energetic, danceable groove with strong rhythmic bounce",
+        "swinging, upbeat rhythm designed for the dance floor",
+      ],
+      instrumentation: [
+        "bright synth stabs and punchy electronic bass",
+        "classic drum machine sounds with glossy synth textures",
+        "sharp keyboard hits and funky electronic instrumentation",
+      ],
+      vocals: [
+        "confident soulful lead vocals",
+        "energetic R&B vocals with attitude",
+        "bright and expressive lead vocal performance",
+      ],
+      mood: [
+        "fun, youthful, and high-energy mood",
+        "playful and upbeat atmosphere",
+        "feel-good, dance-driven vibe",
+      ],
+    },
+  },
+  "hip-hop-soul": {
+    blocks: {
+      style_anchor: [
+        "Early 90s hip-hop soul R&B track",
+        "Classic hip-hop soul style R&B song",
+        "90s hip-hop influenced R&B track",
+      ],
+      rhythm_groove: [
+        "heavy hip-hop inspired groove with deep pocket",
+        "laid-back but hard-hitting hip-hop rhythm",
+        "solid, grounded beat with street influence",
+      ],
+      instrumentation: [
+        "deep bass, sampled-style drums, and minimal instrumentation",
+        "warm keys layered over a hip-hop rhythm foundation",
+        "raw, groove-focused instrumentation with strong low-end",
+      ],
+      vocals: [
+        "powerful soulful lead vocals with emotional weight",
+        "raw and expressive R&B vocal delivery",
+        "heartfelt vocals with gospel-influenced phrasing",
+      ],
+      mood: [
+        "emotional, honest, and street-rooted mood",
+        "deeply personal and soulful atmosphere",
+        "intense and emotionally grounded vibe",
+      ],
+    },
+  },
+  "neo-soul": {
+    blocks: {
+      style_anchor: [
+        "Late 90s neo-soul R&B track",
+        "Classic late-90s neo-soul inspired song",
+        "Warm 90s neo-soul style R&B track",
+      ],
+      rhythm_groove: [
+        "loose, human-played rhythm with relaxed pocket",
+        "laid-back groove with natural timing",
+        "subtle swing and organic rhythmic feel",
+      ],
+      instrumentation: [
+        "live bass and Rhodes-driven arrangement",
+        "warm analog keys with organic rhythm section",
+        "soulful live instrumentation with vintage tone",
+      ],
+      vocals: [
+        "intimate and smooth soulful lead vocals",
+        "warm, close-mic neo-soul vocal delivery",
+        "expressive yet restrained soulful singing",
+      ],
+      mood: [
+        "introspective and reflective late-night mood",
+        "warm, thoughtful, and personal atmosphere",
+        "deeply intimate and relaxed vibe",
+      ],
+    },
+  },
+  "quiet-storm": {
+    blocks: {
+      style_anchor: [
+        "90s quiet storm R&B ballad",
+        "Classic 90s quiet storm style R&B song",
+        "Smooth 90s quiet storm inspired track",
+      ],
+      rhythm_groove: [
+        "slow, smooth rhythm with minimal movement",
+        "gentle, restrained groove supporting the vocals",
+        "soft and steady tempo with subtle pulse",
+      ],
+      instrumentation: [
+        "lush pads and soft keyboard textures",
+        "smooth keys and understated instrumentation",
+        "polished, atmospheric arrangement with gentle tones",
+      ],
+      vocals: [
+        "vocals front and center with warm, emotional delivery",
+        "soft and expressive soulful lead vocals",
+        "smooth, controlled vocal performance with intimacy",
+      ],
+      mood: [
+        "romantic, calm, and intimate night-time mood",
+        "warm, soothing, and emotionally safe atmosphere",
+        "late-night, candle-lit vibe",
+      ],
+    },
+  },
+};
+
 interface StudioPanelProps {
   panelOpen: boolean;
   setPanelOpen: (open: boolean) => void;
@@ -202,9 +332,19 @@ export const StudioPanel = (props: StudioPanelProps) => {
   const [isPricingOpen, setIsPricingOpen] = React.useState(false);
   const [isModelMenuOpen, setIsModelMenuOpen] = React.useState(false);
 
+  type StyleCategory =
+    | "genre"
+    | "vibe"
+    | "groove"
+    | "tempo"
+    | "instrument"
+    | "drum"
+    | "bass"
+    | "harmony";
+
   // State for managing expanded categories
-  const [expandedCategory, setExpandedCategory] = React.useState<string | null>(null);
-  const [expandedCategorySimple, setExpandedCategorySimple] = React.useState<string | null>(null);
+  const [expandedCategory, setExpandedCategory] = React.useState<StyleCategory | null>(null);
+  const [expandedCategorySimple, setExpandedCategorySimple] = React.useState<StyleCategory | null>(null);
   
   // State for hovered instrument
   const [hoveredInstrument, setHoveredInstrument] = React.useState<string | null>(null);
@@ -721,9 +861,28 @@ export const StudioPanel = (props: StudioPanelProps) => {
   const renderStyleQuickButtons = (
     text: string,
     setText: (value: string) => void,
-    expanded: string | null,
-    setExpanded: (value: string | null) => void
+    expanded: StyleCategory | null,
+    setExpanded: (value: StyleCategory | null) => void,
+    categories?: Array<StyleCategory>,
+    options?: {
+      forceExpanded?: StyleCategory;
+      hideCategoryToggles?: boolean;
+      useSelectedGenre?: boolean;
+      onGenreSelect?: (genre: { id: string; value: string }) => string | void;
+      usePromptTemplateOnGenre?: boolean;
+      disableTextUpdateForCategories?: Array<StyleCategory>;
+      horizontalScroll?: boolean;
+    }
   ) => {
+    const allowedCategories = categories ?? ["genre", "vibe", "groove", "tempo", "instrument", "drum", "bass", "harmony"];
+    const allowedSet = new Set(allowedCategories);
+    const disableTextUpdateSet = new Set(options?.disableTextUpdateForCategories ?? []);
+    const activeExpanded =
+      options?.forceExpanded && allowedSet.has(options.forceExpanded)
+        ? options.forceExpanded
+        : expanded && allowedSet.has(expanded)
+          ? expanded
+          : null;
     const parseTags = (value: string) =>
       value
         .split(';')
@@ -741,125 +900,175 @@ export const StudioPanel = (props: StudioPanelProps) => {
       }
       return items.join('; ');
     };
+    const shouldUpdateText = (category: StyleCategory) => !disableTextUpdateSet.has(category);
+
+    const buildSimplePrompt = (genreId: string) => {
+      const config = SIMPLE_PROMPT_CONFIG[genreId];
+      if (!config) return "";
+      const pick = (items: string[]) =>
+        items[Math.floor(Math.random() * items.length)];
+      const { blocks } = config;
+      return [
+        pick(blocks.style_anchor),
+        pick(blocks.rhythm_groove),
+        pick(blocks.instrumentation),
+        pick(blocks.vocals),
+        pick(blocks.mood),
+      ].join(", ") + ".";
+    };
 
     return (
       <div className="space-y-3">
-        <div className="flex flex-wrap gap-2">
-        <button
-          onClick={() => setExpanded(expanded === 'genre' ? null : 'genre')}
-          className={`${BUTTON_CLASSES.category} ${
-            expanded === 'genre'
-              ? STYLES.expanded
-              : STYLES.collapsed
-          }`}
-        >
-          # Genre
-          <ChevronRight className={`h-3 w-3 transition-transform ${expanded === 'genre' ? 'rotate-90' : ''}`} />
-        </button>
+        {!options?.hideCategoryToggles && (
+          <div className="flex flex-wrap gap-2">
+        {allowedSet.has('genre') && (
+          <button
+            onClick={() => setExpanded(activeExpanded === 'genre' ? null : 'genre')}
+            className={`${BUTTON_CLASSES.category} ${
+              activeExpanded === 'genre'
+                ? STYLES.expanded
+                : STYLES.collapsed
+            }`}
+          >
+            # Genre
+            <ChevronRight className={`h-3 w-3 transition-transform ${activeExpanded === 'genre' ? 'rotate-90' : ''}`} />
+          </button>
+        )}
 
-        <button
-          onClick={() => setExpanded(expanded === 'vibe' ? null : 'vibe')}
-          className={`${BUTTON_CLASSES.category} ${
-            expanded === 'vibe'
-              ? STYLES.expanded
-              : STYLES.collapsed
-          }`}
-        >
-          # Vibe
-          <ChevronRight className={`h-3 w-3 transition-transform ${expanded === 'vibe' ? 'rotate-90' : ''}`} />
-        </button>
+        {allowedSet.has('vibe') && (
+          <button
+            onClick={() => setExpanded(activeExpanded === 'vibe' ? null : 'vibe')}
+            className={`${BUTTON_CLASSES.category} ${
+              activeExpanded === 'vibe'
+                ? STYLES.expanded
+                : STYLES.collapsed
+            }`}
+          >
+            # Vibe
+            <ChevronRight className={`h-3 w-3 transition-transform ${activeExpanded === 'vibe' ? 'rotate-90' : ''}`} />
+          </button>
+        )}
 
-        <button
-          onClick={() => setExpanded(expanded === 'groove' ? null : 'groove')}
-          className={`${BUTTON_CLASSES.category} ${
-            expanded === 'groove'
-              ? STYLES.expanded
-              : STYLES.collapsed
-          }`}
-        >
-          # Groove
-          <ChevronRight className={`h-3 w-3 transition-transform ${expanded === 'groove' ? 'rotate-90' : ''}`} />
-        </button>
+        {allowedSet.has('groove') && (
+          <button
+            onClick={() => setExpanded(activeExpanded === 'groove' ? null : 'groove')}
+            className={`${BUTTON_CLASSES.category} ${
+              activeExpanded === 'groove'
+                ? STYLES.expanded
+                : STYLES.collapsed
+            }`}
+          >
+            # Groove
+            <ChevronRight className={`h-3 w-3 transition-transform ${activeExpanded === 'groove' ? 'rotate-90' : ''}`} />
+          </button>
+        )}
 
-        <button
-          onClick={() => setExpanded(expanded === 'tempo' ? null : 'tempo')}
-          className={`${BUTTON_CLASSES.category} ${
-            expanded === 'tempo'
-              ? STYLES.expanded
-              : STYLES.collapsed
-          }`}
-        >
-          # Tempo
-          <ChevronRight className={`h-3 w-3 transition-transform ${expanded === 'tempo' ? 'rotate-90' : ''}`} />
-        </button>
+        {allowedSet.has('tempo') && (
+          <button
+            onClick={() => setExpanded(activeExpanded === 'tempo' ? null : 'tempo')}
+            className={`${BUTTON_CLASSES.category} ${
+              activeExpanded === 'tempo'
+                ? STYLES.expanded
+                : STYLES.collapsed
+            }`}
+          >
+            # Tempo
+            <ChevronRight className={`h-3 w-3 transition-transform ${activeExpanded === 'tempo' ? 'rotate-90' : ''}`} />
+          </button>
+        )}
 
-        <button
-          onClick={() => setExpanded(expanded === 'instrument' ? null : 'instrument')}
-          className={`${BUTTON_CLASSES.category} ${
-            expanded === 'instrument'
-              ? STYLES.expanded
-              : STYLES.collapsed
-          }`}
-        >
-          # Lead Instrument
-          <ChevronRight className={`h-3 w-3 transition-transform ${expanded === 'instrument' ? 'rotate-90' : ''}`} />
-        </button>
+        {allowedSet.has('instrument') && (
+          <button
+            onClick={() => setExpanded(activeExpanded === 'instrument' ? null : 'instrument')}
+            className={`${BUTTON_CLASSES.category} ${
+              activeExpanded === 'instrument'
+                ? STYLES.expanded
+                : STYLES.collapsed
+            }`}
+          >
+            # Lead Instrument
+            <ChevronRight className={`h-3 w-3 transition-transform ${activeExpanded === 'instrument' ? 'rotate-90' : ''}`} />
+          </button>
+        )}
 
-        <button
-          onClick={() => setExpanded(expanded === 'drum' ? null : 'drum')}
-          className={`${BUTTON_CLASSES.category} ${
-            expanded === 'drum'
-              ? STYLES.expanded
-              : STYLES.collapsed
-          }`}
-        >
-          # Drum Kit
-          <ChevronRight className={`h-3 w-3 transition-transform ${expanded === 'drum' ? 'rotate-90' : ''}`} />
-        </button>
+        {allowedSet.has('drum') && (
+          <button
+            onClick={() => setExpanded(activeExpanded === 'drum' ? null : 'drum')}
+            className={`${BUTTON_CLASSES.category} ${
+              activeExpanded === 'drum'
+                ? STYLES.expanded
+                : STYLES.collapsed
+            }`}
+          >
+            # Drum Kit
+            <ChevronRight className={`h-3 w-3 transition-transform ${activeExpanded === 'drum' ? 'rotate-90' : ''}`} />
+          </button>
+        )}
 
-        <button
-          onClick={() => setExpanded(expanded === 'bass' ? null : 'bass')}
-          className={`${BUTTON_CLASSES.category} ${
-            expanded === 'bass'
-              ? STYLES.expanded
-              : STYLES.collapsed
-          }`}
-        >
-          # Bass Tone
-          <ChevronRight className={`h-3 w-3 transition-transform ${expanded === 'bass' ? 'rotate-90' : ''}`} />
-        </button>
+        {allowedSet.has('bass') && (
+          <button
+            onClick={() => setExpanded(activeExpanded === 'bass' ? null : 'bass')}
+            className={`${BUTTON_CLASSES.category} ${
+              activeExpanded === 'bass'
+                ? STYLES.expanded
+                : STYLES.collapsed
+            }`}
+          >
+            # Bass Tone
+            <ChevronRight className={`h-3 w-3 transition-transform ${activeExpanded === 'bass' ? 'rotate-90' : ''}`} />
+          </button>
+        )}
 
-        <button
-          onClick={() => setExpanded(expanded === 'harmony' ? null : 'harmony')}
-          className={`${BUTTON_CLASSES.category} ${
-            expanded === 'harmony'
-              ? STYLES.expanded
-              : STYLES.collapsed
-          }`}
-        >
-          # Harmony Palette
-          <ChevronRight className={`h-3 w-3 transition-transform ${expanded === 'harmony' ? 'rotate-90' : ''}`} />
-        </button>
+        {allowedSet.has('harmony') && (
+          <button
+            onClick={() => setExpanded(activeExpanded === 'harmony' ? null : 'harmony')}
+            className={`${BUTTON_CLASSES.category} ${
+              activeExpanded === 'harmony'
+                ? STYLES.expanded
+                : STYLES.collapsed
+            }`}
+          >
+            # Harmony Palette
+            <ChevronRight className={`h-3 w-3 transition-transform ${activeExpanded === 'harmony' ? 'rotate-90' : ''}`} />
+          </button>
+        )}
       </div>
+        )}
 
-        {expanded && (
+        {activeExpanded && (
           <div className="mt-2 rounded-lg bg-transparent">
-            {expanded === 'genre' && (
+            {activeExpanded === 'genre' && (
               <div className="flex flex-wrap gap-2">
                 {genres.map((genre: any) => {
-                  const isSelected = hasTag(text, genre.value);
+                  const isSelected = options?.useSelectedGenre
+                    ? selectedGenre === genre.id
+                    : hasTag(text, genre.value);
                   const iconName = HERO_GENRE_ICONS[genre.id];
                   return (
                     <button
                       key={genre.id}
                       onClick={() => {
                         setSelectedGenre(genre.id);
-                        setText(toggleTag(text, genre.value));
+                        if (options?.usePromptTemplateOnGenre && shouldUpdateText("genre")) {
+                          setText(buildSimplePrompt(genre.id));
+                          return;
+                        }
+                        const nextText = options?.onGenreSelect?.({
+                          id: genre.id,
+                          value: genre.value,
+                        });
+                        if (typeof nextText === "string" && shouldUpdateText("genre")) {
+                          setText(nextText);
+                          return;
+                        }
+                        if (shouldUpdateText("genre")) {
+                          setText(toggleTag(text, genre.value));
+                        }
                       }}
-                      className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-full border border-white/10 text-xs font-semibold transition-all duration-200 ${
+                      className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-full border border-white/10 dark:border-transparent text-xs font-semibold transition-all duration-200 ${
                         isSelected
                           ? 'bg-primary text-primary-foreground '
-                          : 'text-muted-foreground hover:text-foreground hover:bg-muted/50'
+                          : 'bg-slate-50 text-muted-foreground hover:text-foreground hover:bg-slate-100 dark:bg-white/10 dark:hover:bg-white/15'
                       }`}
                     >
                       {iconName && (
@@ -879,7 +1088,7 @@ export const StudioPanel = (props: StudioPanelProps) => {
               </div>
             )}
 
-            {expanded === 'vibe' && (
+            {activeExpanded === 'vibe' && (
               <div className="flex flex-wrap gap-2">
                 {vibes.map((vibe: any) => {
                   const isSelected = hasTag(text, vibe.value);
@@ -888,7 +1097,9 @@ export const StudioPanel = (props: StudioPanelProps) => {
                       key={vibe.id}
                       onClick={() => {
                         setSelectedVibe(vibe.id);
-                        setText(toggleTag(text, vibe.value));
+                        if (shouldUpdateText("vibe")) {
+                          setText(toggleTag(text, vibe.value));
+                        }
                       }}
                       className={`inline-flex items-center px-3 py-1.5 rounded-full border border-white/10 text-xs font-semibold transition-all duration-200 ${
                         isSelected
@@ -903,7 +1114,7 @@ export const StudioPanel = (props: StudioPanelProps) => {
               </div>
             )}
 
-            {expanded === 'groove' && (
+            {activeExpanded === 'groove' && (
               <div className="flex flex-wrap gap-2">
                 {grooveTypes.map((groove: any) => {
                   const isSelected = hasTag(text, groove.value);
@@ -912,7 +1123,9 @@ export const StudioPanel = (props: StudioPanelProps) => {
                       key={groove.id}
                       onClick={() => {
                         setGrooveType(groove.id);
-                        setText(toggleTag(text, groove.value));
+                        if (shouldUpdateText("groove")) {
+                          setText(toggleTag(text, groove.value));
+                        }
                       }}
                       className={`inline-flex items-center px-3 py-1.5 rounded-full border border-white/10 text-xs font-semibold transition-all duration-200 ${
                         isSelected
@@ -927,7 +1140,7 @@ export const StudioPanel = (props: StudioPanelProps) => {
               </div>
             )}
 
-            {expanded === 'tempo' && (
+            {activeExpanded === 'tempo' && (
               <div className="flex flex-wrap gap-2">
                 <Tooltip content="60-80 BPM" position="top">
                   <button
@@ -935,7 +1148,9 @@ export const StudioPanel = (props: StudioPanelProps) => {
                       const randomBpm = getRandomBpm('slow');
                       setBpm([randomBpm]);
                       setBpmMode('slow');
-                      setText(toggleTag(text, 'Slow'));
+                      if (shouldUpdateText("tempo")) {
+                        setText(toggleTag(text, 'Slow'));
+                      }
                     }}
                     className={`inline-flex items-center px-3 py-1.5 rounded-full border border-white/10 text-xs font-semibold transition-all duration-200 ${
                       hasTag(text, 'Slow')
@@ -952,7 +1167,9 @@ export const StudioPanel = (props: StudioPanelProps) => {
                       const randomBpm = getRandomBpm('moderate');
                       setBpm([randomBpm]);
                       setBpmMode('moderate');
-                      setText(toggleTag(text, 'Moderate'));
+                      if (shouldUpdateText("tempo")) {
+                        setText(toggleTag(text, 'Moderate'));
+                      }
                     }}
                     className={`inline-flex items-center px-3 py-1.5 rounded-full border border-white/10 text-xs font-semibold transition-all duration-200 ${
                       hasTag(text, 'Moderate')
@@ -969,7 +1186,9 @@ export const StudioPanel = (props: StudioPanelProps) => {
                       const randomBpm = getRandomBpm('medium');
                       setBpm([randomBpm]);
                       setBpmMode('medium');
-                      setText(toggleTag(text, 'Medium'));
+                      if (shouldUpdateText("tempo")) {
+                        setText(toggleTag(text, 'Medium'));
+                      }
                     }}
                     className={`inline-flex items-center px-3 py-1.5 rounded-full border border-white/10 text-xs font-semibold transition-all duration-200 ${
                       hasTag(text, 'Medium')
@@ -983,26 +1202,32 @@ export const StudioPanel = (props: StudioPanelProps) => {
               </div>
             )}
 
-            {expanded === 'instrument' && (
-              <div className="flex flex-wrap gap-2">
+            {activeExpanded === 'instrument' && (
+              <div
+                className={`flex gap-2 ${
+                  options?.horizontalScroll ? 'flex-nowrap overflow-x-auto pb-1' : 'flex-wrap'
+                }`}
+              >
                 {leadInstruments.map((instrument: any) => {
-                  const isSelected = hasTag(text, instrument.value);
+                  const isSelected = shouldUpdateText("instrument")
+                    ? hasTag(text, instrument.value)
+                    : false;
                   return (
                     <div
                       key={instrument.id}
                       className="relative"
-                      onMouseEnter={() => setHoveredInstrument(instrument.id)}
-                      onMouseLeave={() => setHoveredInstrument(null)}
                     >
                       <button
                         onClick={() => {
                           setLeadInstrument([instrument.id]);
-                          setText(toggleTag(text, instrument.value));
+                          if (shouldUpdateText("instrument")) {
+                            setText(toggleTag(text, instrument.value));
+                          }
                         }}
-                        className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full border border-white/10 text-xs font-semibold transition-all duration-200 ${
+                        className={`group relative inline-flex shrink-0 flex-col items-center gap-1.5 px-3 py-2 rounded-lg border border-white/80 bg-white text-[#0c0c16] shadow-[0_12px_32px_rgba(5,5,15,0.18)] transition-all duration-200 dark:bg-white/10 dark:text-foreground dark:border-white/15 dark:shadow-[0_12px_32px_rgba(0,0,0,0.35)] ${
                           isSelected
                             ? 'bg-primary text-primary-foreground '
-                            : 'text-muted-foreground hover:text-foreground hover:bg-muted/50'
+                            : 'hover:shadow-[0_14px_36px_rgba(5,5,15,0.24)]'
                         }`}
                       >
                         {getInstrumentIcon(instrument.id) && (
@@ -1011,66 +1236,56 @@ export const StudioPanel = (props: StudioPanelProps) => {
                             alt={instrument.name}
                             width={16}
                             height={16}
-                            className="w-4 h-4"
+                            className="w-7 h-7"
                           />
                         )}
-                        <span>{instrument.name}</span>
-                        <button
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            const audioUrl = getInstrumentAudio(instrument.id);
-                            if (audioUrl) {
-                              playPreviewAudio(audioUrl, `instrument-${instrument.id}`);
-                            }
-                          }}
-                          className="ml-1 p-1 hover:bg-primary/20 rounded-full transition-all duration-200 hover:scale-105"
-                          title="Play sample"
-                        >
-                          <Play className="w-3 h-3" />
-                        </button>
+                        <span className="text-[11px]">{instrument.name}</span>
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          const audioUrl = getInstrumentAudio(instrument.id);
+                          if (audioUrl) {
+                            playPreviewAudio(audioUrl, `instrument-${instrument.id}`);
+                          }
+                        }}
+                        className="absolute inset-0 m-auto h-8 w-8 rounded-full bg-black/50 text-white transition-all duration-200 hover:bg-black/60 opacity-0 group-hover:opacity-100"
+                        title="Play sample"
+                      >
+                        <Play className="h-4 w-4 mx-auto" />
                       </button>
-
-                      {hoveredInstrument === instrument.id && (
-                        <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 z-50">
-                          <div className="bg-popover border border-border rounded-lg shadow-lg p-3 flex flex-col items-center gap-2 min-w-[120px]">
-                            <Image
-                              src={getInstrumentIcon(instrument.id)}
-                              alt={instrument.name}
-                              width={64}
-                              height={64}
-                              className="w-16 h-16"
-                            />
-                            <span className="text-xs font-medium">{instrument.name}</span>
-                          </div>
-                          <div className="absolute top-full left-1/2 transform -translate-x-1/2 w-0 h-0 border-l-4 border-r-4 border-t-4 border-l-transparent border-r-transparent border-t-popover"></div>
-                        </div>
-                      )}
+                      </button>
                     </div>
                   );
                 })}
               </div>
             )}
 
-            {expanded === 'drum' && (
-              <div className="flex flex-wrap gap-2">
+            {activeExpanded === 'drum' && (
+              <div
+                className={`flex gap-2 ${
+                  options?.horizontalScroll ? 'flex-nowrap overflow-x-auto pb-1' : 'flex-wrap'
+                }`}
+              >
                 {drumKits.map((kit: any) => {
-                  const isSelected = hasTag(text, kit.value);
+                  const isSelected = shouldUpdateText("drum")
+                    ? hasTag(text, kit.value)
+                    : false;
                   return (
                     <div
                       key={kit.id}
                       className="relative"
-                      onMouseEnter={() => setHoveredDrumKit(kit.id)}
-                      onMouseLeave={() => setHoveredDrumKit(null)}
                     >
                       <button
                         onClick={() => {
                           setDrumKit(kit.id);
-                          setText(toggleTag(text, kit.value));
+                          if (shouldUpdateText("drum")) {
+                            setText(toggleTag(text, kit.value));
+                          }
                         }}
-                        className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full border border-white/10 text-xs font-semibold transition-all duration-200 ${
+                        className={`group relative inline-flex shrink-0 flex-col items-center gap-1.5 px-3 py-2 rounded-lg border border-white/80 bg-white text-[#0c0c16] shadow-[0_12px_32px_rgba(5,5,15,0.18)] transition-all duration-200 dark:bg-white/10 dark:text-foreground dark:border-white/15 dark:shadow-[0_12px_32px_rgba(0,0,0,0.35)] ${
                           isSelected
                             ? 'bg-primary text-primary-foreground '
-                            : 'text-muted-foreground hover:text-foreground hover:bg-muted/50'
+                            : 'hover:shadow-[0_14px_36px_rgba(5,5,15,0.24)]'
                         }`}
                       >
                         {getDrumKitIcon(kit.id) && (
@@ -1079,71 +1294,59 @@ export const StudioPanel = (props: StudioPanelProps) => {
                             alt={kit.name}
                             width={16}
                             height={16}
-                            className="w-4 h-4"
+                            className="w-7 h-7"
                           />
                         )}
-                        <span>{kit.name}</span>
-                        <button
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            const audioUrl = getDrumKitAudio(kit.id);
-                            if (audioUrl) {
-                              playPreviewAudio(audioUrl, `drum-${kit.id}`);
-                            }
-                          }}
-                          className="ml-1 p-1 hover:bg-primary/20 rounded-full transition-all duration-200 hover:scale-105"
-                          title="Play sample"
-                        >
-                          <Play className="w-3 h-3" />
-                        </button>
+                        <span className="text-[11px]">{kit.name}</span>
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          const audioUrl = getDrumKitAudio(kit.id);
+                          if (audioUrl) {
+                            playPreviewAudio(audioUrl, `drum-${kit.id}`);
+                          }
+                        }}
+                        className="absolute inset-0 m-auto h-8 w-8 rounded-full bg-black/50 text-white transition-all duration-200 hover:bg-black/60 opacity-0 group-hover:opacity-100"
+                        title="Play sample"
+                      >
+                        <Play className="h-4 w-4 mx-auto" />
                       </button>
-
-                      {hoveredDrumKit === kit.id && (
-                        <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 z-50">
-                          <div className="bg-popover border border-border rounded-lg shadow-lg p-3 flex flex-col items-center gap-2 min-w-[120px]">
-                            <Image
-                              src={getDrumKitIcon(kit.id)}
-                              alt={kit.name}
-                              width={64}
-                              height={64}
-                              className="w-16 h-16"
-                            />
-                            <span className="text-xs font-medium">{kit.name}</span>
-                          </div>
-                          <div className="absolute top-full left-1/2 transform -translate-x-1/2 w-0 h-0 border-l-4 border-r-4 border-t-4 border-l-transparent border-r-transparent border-t-popover"></div>
-                        </div>
-                      )}
+                      </button>
                     </div>
                   );
                 })}
               </div>
             )}
 
-            {expanded === 'bass' && (
+            {activeExpanded === 'bass' && (
               <div className="flex flex-wrap gap-2">
                 {bassTones.map((tone: any) => {
-                  const isSelected = hasTag(text, tone.value);
+                  const isSelected = shouldUpdateText("bass")
+                    ? hasTag(text, tone.value)
+                    : false;
                   return (
                     <button
                       key={tone.id}
                       onClick={() => {
                         setBassTone(tone.id);
-                        setText(toggleTag(text, tone.value));
+                        if (shouldUpdateText("bass")) {
+                          setText(toggleTag(text, tone.value));
+                        }
                       }}
-                      className={`inline-flex items-center px-3 py-1.5 rounded-full border border-white/10 text-xs font-semibold transition-all duration-200 ${
+                      className={`group inline-flex flex-col items-center gap-1.5 px-3 py-2 rounded-lg border border-white/80 bg-white text-[#0c0c16] shadow-[0_12px_32px_rgba(5,5,15,0.18)] transition-all duration-200 dark:bg-white/10 dark:text-foreground dark:border-white/15 dark:shadow-[0_12px_32px_rgba(0,0,0,0.35)] ${
                         isSelected
                           ? 'bg-primary text-primary-foreground '
-                          : 'text-muted-foreground hover:text-foreground hover:bg-muted/50'
+                          : 'hover:shadow-[0_14px_36px_rgba(5,5,15,0.24)]'
                       }`}
                     >
-                      <span>{tone.name}</span>
+                      <span className="text-[11px]">{tone.name}</span>
                     </button>
                   );
                 })}
               </div>
             )}
 
-            {expanded === 'harmony' && (
+            {activeExpanded === 'harmony' && (
               <div className="flex flex-wrap gap-2">
                 {harmonyPalettes.map((palette: any) => {
                   const isSelected = hasTag(text, palette.value);
@@ -1152,7 +1355,9 @@ export const StudioPanel = (props: StudioPanelProps) => {
                       key={palette.id}
                       onClick={() => {
                         setHarmonyPalette(palette.id);
-                        setText(toggleTag(text, palette.value));
+                        if (shouldUpdateText("harmony")) {
+                          setText(toggleTag(text, palette.value));
+                        }
                       }}
                       className={`inline-flex items-center px-3 py-1.5 rounded-full border border-white/10 text-xs font-semibold transition-all duration-200 ${
                         isSelected
@@ -1220,7 +1425,19 @@ export const StudioPanel = (props: StudioPanelProps) => {
         </div>
       </div>
 
-        {renderStyleQuickButtons(styleText, setStyleText, expandedCategory, setExpandedCategory)}
+        {renderStyleQuickButtons(
+          styleText,
+          setStyleText,
+          expandedCategory,
+          setExpandedCategory,
+          ["genre"],
+          {
+            forceExpanded: "genre",
+            hideCategoryToggles: true,
+            useSelectedGenre: true,
+            usePromptTemplateOnGenre: true,
+          }
+        )}
 
         <div className="hidden">
           <Select value={selectedGenre} onValueChange={setSelectedGenre}>
@@ -1463,8 +1680,88 @@ export const StudioPanel = (props: StudioPanelProps) => {
                   simplePrompt,
                   setSimplePrompt,
                   expandedCategorySimple,
-                  setExpandedCategorySimple
+                  setExpandedCategorySimple,
+                  ["genre"],
+                  {
+                    forceExpanded: "genre",
+                    hideCategoryToggles: true,
+                    useSelectedGenre: true,
+                    usePromptTemplateOnGenre: true,
+                  }
                 )}
+                <div className="pt-2 pb-2 text-xs font-semibold uppercase tracking-[0.22em] text-muted-foreground">
+                  Instrument Preview
+                </div>
+                <div className="flex flex-nowrap gap-2 overflow-x-auto pb-1">
+                  {leadInstruments.map((instrument: any) => (
+                    <button
+                      key={`instrument-${instrument.id}`}
+                      onClick={() => {
+                        setLeadInstrument([instrument.id]);
+                      }}
+                      className="group relative inline-flex shrink-0 flex-col items-center gap-1.5 px-3 py-2 rounded-lg bg-slate-50 text-[#0c0c16] transition-all duration-200 dark:bg-white/10 dark:text-foreground dark:border-white/15"
+                    >
+                      {getInstrumentIcon(instrument.id) && (
+                        <Image
+                          src={getInstrumentIcon(instrument.id)}
+                          alt={instrument.name}
+                          width={16}
+                          height={16}
+                          className="h-7 w-7"
+                        />
+                      )}
+                      <span className="text-[11px]">{instrument.name}</span>
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          const audioUrl = getInstrumentAudio(instrument.id);
+                          if (audioUrl) {
+                            playPreviewAudio(audioUrl, `instrument-${instrument.id}`);
+                          }
+                        }}
+                        className="absolute inset-0 m-auto h-8 w-8 rounded-full bg-black/50 text-white transition-all duration-200 hover:bg-black/60 opacity-0 group-hover:opacity-100"
+                        title="Play sample"
+                      >
+                        <Play className="h-4 w-4 mx-auto" />
+                      </button>
+                    </button>
+                  ))}
+                  {drumKits.map((kit: any) => (
+                    <button
+                      key={`drum-${kit.id}`}
+                      onClick={() => {
+                        setDrumKit(kit.id);
+                      }}
+                      className="group relative inline-flex shrink-0 flex-col items-center gap-1.5 px-3 py-2 rounded-lg bg-slate-50 text-[#0c0c16] transition-all duration-200 dark:bg-white/10 dark:text-foreground dark:border-white/15"
+                    >
+                      {getDrumKitIcon(kit.id) && (
+                        <Image
+                          src={getDrumKitIcon(kit.id)}
+                          alt={kit.name}
+                          width={16}
+                          height={16}
+                          className="h-7 w-7"
+                        />
+                      )}
+                      <span className="text-[11px]">{kit.name}</span>
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          const audioUrl = getDrumKitAudio(kit.id);
+                          if (audioUrl) {
+                            playPreviewAudio(audioUrl, `drum-${kit.id}`);
+                          }
+                        }}
+                        className="absolute inset-0 m-auto h-8 w-8 rounded-full bg-black/50 text-white transition-all duration-200 hover:bg-black/60 opacity-0 group-hover:opacity-100"
+                        title="Play sample"
+                      >
+                        <Play className="h-4 w-4 mx-auto" />
+                      </button>
+                    </button>
+                  ))}
+                </div>
                 <div className="flex items-center justify-between">
                   <div className="text-xs text-muted-foreground">
                     {simplePrompt.length}/{simplePromptMaxLength}
@@ -1605,7 +1902,7 @@ export const StudioPanel = (props: StudioPanelProps) => {
                   </div>
                 </div>
                 {/* Instrumental Status Display */}
-                <div className="flex items-center justify-center py-4 px-4 bg-muted/30 rounded-lg border border-border/20">
+                <div className="flex items-center justify-center py-4 px-4 bg-muted/30 rounded-lg">
                   <div className="flex items-center gap-3 text-muted-foreground">
                     <span className="text-sm font-medium">Instrumental Mode Active,no need to write lyrics</span>
                   </div>
@@ -1622,7 +1919,7 @@ export const StudioPanel = (props: StudioPanelProps) => {
                     onClick={() => setVocalGender('random')}
                     className={`px-4 py-2 rounded-full text-sm font-medium transition-colors ${
                       vocalGender === 'random'
-                        ? 'bg-white text-primary hover:bg-white/90'
+                        ? 'bg-primary text-primary-foreground'
                         : 'bg-muted/30 text-muted-foreground hover:bg-muted/50 hover:text-foreground'
                     }`}
                   >
@@ -1634,7 +1931,7 @@ export const StudioPanel = (props: StudioPanelProps) => {
                       onClick={() => setVocalGender(gender.id)}
                       className={`px-4 py-2 rounded-full text-sm font-medium transition-colors ${
                         vocalGender === gender.id
-                          ? 'bg-white text-primary hover:bg-white/90'
+                          ? 'bg-primary text-primary-foreground'
                           : 'bg-muted/30 text-muted-foreground hover:bg-muted/50 hover:text-foreground'
                       }`}
                     >

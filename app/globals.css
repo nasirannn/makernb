@@ -316,7 +316,7 @@
   }
 
   .dark .studio-panel-card {
-    background: rgba(12, 13, 18, 0.72);
+    background: rgba(26, 26, 30, 0.88);
     backdrop-filter: blur(12px) saturate(125%);
   }
 

@@ -2,6 +2,7 @@
 
 import Image from "next/image";
 import Link from "next/link"
+import { cn } from "@/lib/utils";
 
 interface IntroductionProps {
   icon: string;
@@ -164,36 +165,48 @@ export const IntroductionSection = () => {
               </p>
             </div>
 
-            <div className="grid gap-6 md:grid-cols-2 max-w-5xl mx-auto">
-              {genreData.map((genre) => (
-                <Link
-                  key={genre.id}
-                  href={genre.href}
-                  className="group app-card rounded-[28px] overflow-hidden transition-transform duration-300 hover:-translate-y-1 hover:shadow-[0_28px_70px_rgba(0,0,0,0.10)]"
-                >
-                  <div className="relative aspect-[16/10] w-full">
-                    <Image
-                      src={genre.image}
-                      alt={genre.title}
-                      fill
-                      className="object-cover"
-                      sizes="(min-width: 768px) 520px, 100vw"
-                    />
-                    <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-black/55 via-black/10 to-transparent" />
-                  </div>
+            <div className="grid gap-6 max-w-5xl mx-auto">
+              {genreData.map((genre, index) => (
+                <div key={genre.id} className="group">
+                  <div className={cn("flex flex-col md:flex-row md:items-center", index % 2 === 1 && "md:flex-row-reverse")}>
+                    <Link
+                      href={genre.href}
+                      className="relative block aspect-square w-full overflow-hidden rounded-2xl md:w-[400px]"
+                      aria-label={genre.title}
+                    >
+                      <Image
+                        src={genre.image}
+                        alt={genre.title}
+                        fill
+                        className="object-cover transition-transform duration-300 group-hover:scale-[1.02]"
+                        sizes="(min-width: 768px) 400px, 100vw"
+                      />
+                      <div
+                        className={cn(
+                          "pointer-events-none absolute inset-0 bg-gradient-to-t from-black/45 via-black/10 to-transparent",
+                          index % 2 === 1
+                            ? "md:bg-gradient-to-l md:from-black/40 md:via-black/10 md:to-transparent"
+                            : "md:bg-gradient-to-r md:from-black/40 md:via-black/10 md:to-transparent"
+                        )}
+                      />
+                    </Link>
 
-                  <div className="p-5 sm:p-6">
-                    <h3 className="text-lg font-semibold tracking-tight text-foreground">
-                      {genre.title}
-                    </h3>
-                    <p className="mt-2 text-sm text-muted-foreground leading-relaxed line-clamp-3">
-                      {genre.description}
-                    </p>
-                    <div className="mt-4 text-sm font-semibold text-primary">
-                      Learn more →
+                    <div className="flex-1 pt-5 md:pt-0 md:px-8">
+                      <h3 className="text-4xl font-semibold tracking-tight text-foreground">
+                        {genre.title}
+                      </h3>
+                      <p className="mt-2 text-base text-muted-foreground leading-relaxed">
+                        {genre.description}
+                      </p>
+                      <Link
+                        href={genre.href}
+                        className="mt-4 inline-flex text-sm font-semibold text-primary hover:text-primary/80 transition-colors"
+                      >
+                        Learn more →
+                      </Link>
                     </div>
                   </div>
-                </Link>
+                </div>
               ))}
             </div>
           </div>

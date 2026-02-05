@@ -16,12 +16,12 @@ export const FooterSection = () => {
         className="inline-flex items-center justify-center rounded-2xl px-2 py-2"
         aria-label="Featured on LaunchYourApp"
       >
-        <img
+        <Image
           src="https://84826d28beedc6132a2353da3796e843.cdn.bubble.io/f1758681923686x163623620280710200/Featured_On_LaunchYourApp.svg"
           alt="LaunchYourApp Badge"
-          style={{ width: 202, height: "auto" }}
-          className="block"
-          loading="lazy"
+          width={202}
+          height={44}
+          className="block h-auto w-[202px]"
         />
       </a>
       <a

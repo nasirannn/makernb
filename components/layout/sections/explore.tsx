@@ -316,16 +316,16 @@ export const ExploreSection = () => {
   );
 
   return (
-    <section id="explore" className="py-20" ref={sectionRef}>
+    <section id="explore" className="py-24 sm:py-32" ref={sectionRef}>
       <div className="container">
         <div className="text-center mb-16">
-          <h2 className="text-lg text-primary text-center mb-2 tracking-wider">Explore</h2>
-          <h2 className="text-3xl md:text-4xl text-center font-bold mb-4">
+          <p className="text-primary text-lg font-medium mb-2 tracking-wider">Explore</p>
+          <h2 className="text-3xl md:text-4xl font-bold mb-4">
             Listen to The AI-Generated R&B Songs
           </h2>
-          <h3 className="md:w-1/2 mx-auto text-base md:text-lg text-center text-muted-foreground mb-8">
+          <p className="md:w-1/2 mx-auto text-base md:text-lg text-muted-foreground mb-8">
             Experience soulful R&B music crafted by artificial intelligence
-          </h3>
+          </p>
         </div>
 
         <div className="max-w-7xl mx-auto">
@@ -345,12 +345,12 @@ export const ExploreSection = () => {
               </div>
             </div>
           ) : shouldLoad && exploreData && exploreData.music.length > 0 ? (
-            <div className="-mx-4 mb-10 overflow-x-auto px-4 pb-2 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-              <div className="flex w-max gap-12 snap-x snap-mandatory">
+            <div className="-mx-4 mb-12 overflow-x-auto px-4 pb-2 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+              <div className="flex w-max gap-6 snap-x snap-mandatory">
                 {chunk(exploreData.music, 2).map((column, colIndex) => (
                   <div
                     key={colIndex}
-                    className="snap-start flex w-[min(78vw,300px)] flex-col gap-6 sm:w-[280px] md:w-[300px] md:gap-10"
+                    className="snap-start flex w-[min(82vw,340px)] flex-col gap-4 sm:w-[320px] md:w-[340px]"
                   >
                     {column.map((music) => {
 	                      const artist = getDisplayAuthor(music.primaryTrack.id || music.id);
@@ -365,7 +365,7 @@ export const ExploreSection = () => {
 	                          key={music.id}
 	                          role="button"
 	                          tabIndex={0}
-                          className="group -mx-2 flex items-center gap-4 rounded-2xl px-2 py-2 cursor-pointer bg-transparent hover:bg-foreground/10 transition-colors duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/25 focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+                          className="group app-card-muted flex items-center gap-4 rounded-2xl px-4 py-4 cursor-pointer transition-transform duration-200 hover:-translate-y-1 hover:bg-foreground/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/25 focus-visible:ring-offset-2 focus-visible:ring-offset-background"
                           onClick={() => handlePlayPause(music.primaryTrack.id, music.primaryTrack.audioUrl || "", music)}
                           onKeyDown={(e) => {
                             if (e.key === "Enter" || e.key === " ") {
@@ -374,7 +374,7 @@ export const ExploreSection = () => {
 	                            }
 	                          }}
 	                        >
-	                          <div className="group/cover relative h-12 w-12 shrink-0 overflow-hidden rounded-md">
+	                          <div className="group/cover relative h-14 w-14 shrink-0 overflow-hidden rounded-xl">
 	                            {music.primaryTrack.coverR2Url ? (
 	                              <SafeImage
 	                                src={music.primaryTrack.coverR2Url}
@@ -391,18 +391,16 @@ export const ExploreSection = () => {
 
                             <div className="pointer-events-none absolute inset-0 flex items-center justify-center opacity-0 transition-opacity duration-150 group-hover/cover:opacity-100">
                               {isPlaying ? (
-                                <SolidPauseIcon className="h-5 w-5 text-white drop-shadow-[0_8px_20px_rgba(0,0,0,0.55)]" />
+                                <SolidPauseIcon className="h-6 w-6 text-white drop-shadow-[0_8px_20px_rgba(0,0,0,0.55)]" />
                               ) : (
-                                <SolidPlayIcon className="h-5 w-5 translate-x-[1px] text-white drop-shadow-[0_8px_20px_rgba(0,0,0,0.55)]" />
+                                <SolidPlayIcon className="h-6 w-6 translate-x-[1px] text-white drop-shadow-[0_8px_20px_rgba(0,0,0,0.55)]" />
                               )}
                             </div>
 	                          </div>
 
                             <div className="min-w-0 flex-1">
-                              <div className="flex items-center gap-2">
-                                <div className="min-w-0 truncate text-[18px] font-semibold tracking-tight text-foreground">
-                                  {music.title}
-                                </div>
+                              <div className="min-w-0 truncate text-[18px] font-semibold tracking-tight text-foreground">
+                                {music.title}
                               </div>
 
 	                            <div className="mt-1 flex min-w-0 items-center gap-3 text-sm text-muted-foreground tabular-nums">
@@ -410,8 +408,8 @@ export const ExploreSection = () => {
 	                                <PlayTriangleIcon />
 	                                <span className="font-medium">{formatPlayCount(music.primaryTrack.playCount)}</span>
 	                              </span>
-                              <span className="min-w-0 truncate">
-                                <span className="text-foreground/55 dark:text-foreground/70">by {artist}</span>
+                              <span className="min-w-0 truncate text-foreground/55 dark:text-foreground/70">
+                                by {artist}
                               </span>
                             </div>
                           </div>
@@ -422,7 +420,7 @@ export const ExploreSection = () => {
                               e.stopPropagation();
                               void handleShare(music.primaryTrack.id);
                             }}
-                            className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-foreground/55 transition-colors hover:text-foreground hover:bg-foreground/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/25 focus-visible:ring-offset-2 focus-visible:ring-offset-background -mr-1"
+                            className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-foreground/55 transition-colors hover:text-foreground hover:bg-foreground/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/25 focus-visible:ring-offset-2 focus-visible:ring-offset-background"
                             aria-label="Share track"
                             title="Copy share link"
                           >
@@ -442,17 +440,17 @@ export const ExploreSection = () => {
             </div>
           ) : null}
 
-	          {shouldLoad && !loading && exploreData && exploreData.music.length > 0 && (
-	            <div className="flex justify-center">
-	              <Link
-	                href="/explore"
-	                aria-label="Explore all published tracks"
-	                className="group inline-flex items-center justify-center gap-2 rounded-full px-7 py-3 text-sm font-semibold text-foreground bg-foreground/5 hover:bg-foreground/10 dark:bg-white/10 dark:hover:bg-white/15 shadow-[0_12px_34px_rgba(0,0,0,0.10)] transition-all duration-200 hover:-translate-y-0.5 active:translate-y-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/30 focus-visible:ring-offset-2 focus-visible:ring-offset-background"
-	              >
-	                <span>Explore All Published Tracks</span>
-	              </Link>
-	            </div>
-	          )}
+          {shouldLoad && !loading && exploreData && exploreData.music.length > 0 && (
+            <div className="flex justify-center">
+              <Link
+                href="/explore"
+                aria-label="Explore all published tracks"
+                className="group inline-flex items-center justify-center gap-2 rounded-full px-7 py-3 text-sm font-semibold text-foreground bg-foreground/5 hover:bg-foreground/10 dark:bg-white/10 dark:hover:bg-white/15 shadow-[0_12px_34px_rgba(0,0,0,0.10)] transition-all duration-200 hover:-translate-y-0.5 active:translate-y-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/30 focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+              >
+                <span>Explore All Published Tracks</span>
+              </Link>
+            </div>
+          )}
 	        </div>
 
         {playlist.length > 0 && currentlyPlaying && (
