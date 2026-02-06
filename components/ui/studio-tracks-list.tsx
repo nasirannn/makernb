@@ -1030,11 +1030,11 @@ export const StudioTracksList: React.FC<StudioTracksListProps> = React.memo(func
             <>
             {/* All Tracks (包含 generatedTracks 和 userTracks，使用分组显示) */}
           {groupedTracks.length > 0 && (
-            <div className="space-y-4">
+            <div className="space-y-2">
               {groupedTracks.map((group) => (
-                <div key={group.id} className="space-y-1">
+                <div key={group.id} className="space-y-2">
                   {(group.modeLabel || group.modelLabel) && (
-                    <div className="px-4 pt-3 pb-2 space-y-1">
+                    <div className="px-4 pt-2 pb-0 space-y-1">
                       {(group.modeLabel || group.modelLabel) && (
                         <div className="flex items-center gap-2">
                           {group.modeLabel && (
@@ -1047,10 +1047,6 @@ export const StudioTracksList: React.FC<StudioTracksListProps> = React.memo(func
                               {group.modelLabel}
                             </span>
                           )}
-                          <span
-                            aria-hidden="true"
-                            className="h-px flex-1 border-t border-dashed border-foreground/20"
-                          />
                         </div>
                       )}
                     </div>
@@ -1240,19 +1236,19 @@ export const StudioTracksList: React.FC<StudioTracksListProps> = React.memo(func
       {/* 删除确认弹窗 */}
       <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
         <AlertDialogContent className="max-w-[calc(100vw-2rem)] sm:max-w-[520px]">
-          <AlertDialogHeader>
+          <AlertDialogHeader className="space-y-3">
             <AlertDialogTitle className="text-lg sm:text-xl">Delete Track</AlertDialogTitle>
             <AlertDialogDescription className="text-sm sm:text-base whitespace-nowrap">
               Are you sure you want to delete the current track?
             </AlertDialogDescription>
           </AlertDialogHeader>
-          <AlertDialogFooter className="flex flex-col sm:flex-row gap-2 sm:gap-3">
+          <AlertDialogFooter className="mt-3 flex flex-col sm:flex-row gap-2 sm:gap-3">
             <AlertDialogCancel 
               onClick={() => {
                 setDeleteDialogOpen(false);
                 setTrackToDelete(null);
               }}
-              className="w-full sm:w-[160px] h-10 rounded-lg bg-muted/70 text-foreground hover:bg-muted hover:text-foreground dark:hover:text-accent-foreground"
+              className="w-full sm:w-[160px] h-10 rounded-lg bg-muted/70 text-foreground hover:bg-muted hover:text-foreground dark:hover:bg-muted dark:hover:text-foreground"
             >
               Cancel
             </AlertDialogCancel>

@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getUserIdFromRequest } from '@/lib/auth';
+import { getUserInfoFromRequest } from '@/lib/auth';
 import { uploadAudioFileToKIE } from '@/lib/kie-file-upload';
 import { FeatureKey, getFeatureCredits } from '@/lib/credits-config';
 import { consumeUserCredit, getUserCredits, addUserCredits } from '@/lib/user-db';
@@ -121,10 +121,11 @@ function requireCustomFields(options: {
 }
 
 export async function POST(request: NextRequest) {
-  const userId = await getUserIdFromRequest(request);
-  if (!userId) {
+  const userInfo = await getUserInfoFromRequest(request);
+  if (!userInfo) {
     return NextResponse.json({ error: 'Authentication required' }, { status: 401 });
   }
+  const { userId, authorName } = userInfo;
 
   const formData = await request.formData();
   const modeValue = (formData.get('mode') || 'cover').toString();
@@ -273,6 +274,7 @@ export async function POST(request: NextRequest) {
     const promptForDb = defaultParamFlag ? (style || 'R&B') : prompt;
     const tagsForDb = defaultParamFlag ? (style || 'R&B') : prompt;
     const musicRecord = await createMusicGeneration(userId, {
+      author_name: authorName,
       title,
       genre: 'R&B',
       tags: tagsForDb,

@@ -118,7 +118,7 @@ export const TrackActionButtons: React.FC<TrackActionButtonsProps> = ({
   // 桌面端按钮
   if (!isMobile) {
     return (
-      <div className="hidden md:flex items-center gap-3">
+      <div className="hidden md:flex items-center gap-2">
         {/* 下载按钮 */}
         {onDownload && (
           <DropdownMenu>
@@ -126,7 +126,7 @@ export const TrackActionButtons: React.FC<TrackActionButtonsProps> = ({
               <Button
                 variant="ghost"
                 size="sm"
-                className="h-6 w-6 p-0 text-muted-foreground hover:text-foreground hover:bg-muted/50"
+                className="h-8 px-3 gap-1.5 rounded-full text-xs font-semibold bg-foreground/5 text-foreground/80 hover:text-foreground hover:bg-foreground/10 dark:bg-white/4 dark:hover:bg-white/8"
                 onClick={(e) => {
                   e.preventDefault();
                   e.stopPropagation();
@@ -134,7 +134,8 @@ export const TrackActionButtons: React.FC<TrackActionButtonsProps> = ({
                 aria-label="Download track"
                 title="Download track"
               >
-                <Download className="h-3 w-3" />
+                <Download className="h-3.5 w-3.5" />
+                <span>Download</span>
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" onClick={(e) => e.stopPropagation()} className="p-1.5 min-w-[160px]">
@@ -202,10 +203,10 @@ export const TrackActionButtons: React.FC<TrackActionButtonsProps> = ({
         <Button
           variant="ghost"
           size="sm"
-          className={`h-6 w-6 p-0 hover:bg-muted/50 transition-colors ${
+          className={`h-8 px-3 gap-1.5 rounded-full text-xs font-semibold bg-foreground/5 hover:bg-foreground/10 transition-colors dark:bg-white/4 dark:hover:bg-white/8 ${
             isFavorited 
               ? 'text-red-500 hover:text-red-500' 
-              : 'text-muted-foreground hover:text-foreground'
+              : 'text-foreground/70 hover:text-foreground'
           }`}
           title={isFavorited ? 'Remove from library' : 'Add to library'}
           onClick={(e) => {
@@ -214,7 +215,8 @@ export const TrackActionButtons: React.FC<TrackActionButtonsProps> = ({
           }}
             aria-label={isFavorited ? 'Remove from library' : 'Add to library'}
           >
-            <Star className={`h-3 w-3 ${isFavorited ? 'fill-current' : ''}`} />
+            <Star className={`h-3.5 w-3.5 ${isFavorited ? 'fill-current' : ''}`} />
+            <span>{isFavorited ? 'Favorited' : 'Favorite'}</span>
           </Button>
         )}
 
@@ -223,10 +225,10 @@ export const TrackActionButtons: React.FC<TrackActionButtonsProps> = ({
           <Button
             variant="ghost"
             size="sm"
-            className={`h-6 w-6 p-0 hover:bg-muted/50 transition-colors ${
+            className={`h-8 px-3 gap-1.5 rounded-full text-xs font-semibold bg-foreground/5 hover:bg-foreground/10 transition-colors dark:bg-white/4 dark:hover:bg-white/8 ${
               isCopied 
                 ? 'text-green-500' 
-                : 'text-muted-foreground hover:text-foreground'
+                : 'text-foreground/70 hover:text-foreground'
             }`}
             title={isCopied ? 'Link copied' : 'Share track'}
             onClick={(e) => {
@@ -236,9 +238,15 @@ export const TrackActionButtons: React.FC<TrackActionButtonsProps> = ({
             aria-label="Share track"
           >
             {isCopied ? (
-              <Check className="h-3 w-3" />
+              <>
+                <Check className="h-3.5 w-3.5" />
+                <span>Copied</span>
+              </>
             ) : (
-              <Share2 className="h-3 w-3" />
+              <>
+                <Share2 className="h-3.5 w-3.5" />
+                <span>Share</span>
+              </>
             )}
           </Button>
         )}
@@ -250,7 +258,7 @@ export const TrackActionButtons: React.FC<TrackActionButtonsProps> = ({
               <Button
                 variant="ghost"
                 size="sm"
-                className="h-6 w-6 p-0 text-muted-foreground hover:text-foreground hover:bg-muted/50"
+                className="h-8 w-8 rounded-full text-xs font-semibold bg-foreground/5 text-foreground/80 hover:text-foreground hover:bg-foreground/10 dark:bg-white/4 dark:hover:bg-white/8"
                 onClick={(e) => {
                   e.preventDefault();
                   e.stopPropagation();
@@ -258,7 +266,7 @@ export const TrackActionButtons: React.FC<TrackActionButtonsProps> = ({
                 aria-label="More options"
                 title="More options"
               >
-                <MoreVertical className="h-3 w-3" />
+                <MoreVertical className="h-3.5 w-3.5" />
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" onClick={(e) => e.stopPropagation()} className="p-2 w-64">
@@ -390,10 +398,11 @@ export const TrackActionButtons: React.FC<TrackActionButtonsProps> = ({
                 e.preventDefault();
                 e.stopPropagation();
               }}
-              className="h-7 w-7 flex items-center justify-center text-muted-foreground hover:text-foreground transition-colors"
+              className="h-8 px-3 inline-flex items-center gap-1.5 rounded-full text-xs font-semibold bg-foreground/5 text-foreground/80 hover:text-foreground hover:bg-foreground/10 transition-colors dark:bg-white/4 dark:hover:bg-white/8"
               aria-label="Download track"
             >
-              <Download className="h-4 w-4" />
+              <Download className="h-3.5 w-3.5" />
+              <span>Download</span>
             </button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end" onClick={(e) => e.stopPropagation()} className="p-1.5 min-w-[160px]">
@@ -463,15 +472,16 @@ export const TrackActionButtons: React.FC<TrackActionButtonsProps> = ({
             e.stopPropagation();
             onFavoriteToggle();
           }}
-          className={`h-7 w-7 flex items-center justify-center transition-colors ${
+          className={`h-8 px-3 inline-flex items-center gap-1.5 rounded-full text-xs font-semibold bg-foreground/5 transition-colors dark:bg-white/4 dark:hover:bg-white/8 ${
             isFavorited
               ? 'text-red-500 hover:text-red-500'
-              : 'text-muted-foreground hover:text-foreground'
+              : 'text-foreground/70 hover:text-foreground'
           }`}
           aria-label={isFavorited ? 'Remove from library' : 'Add to library'}
           title={isFavorited ? 'Remove from library' : 'Add to library'}
         >
-          <Star className={`h-4 w-4 ${isFavorited ? 'fill-current' : ''}`} />
+          <Star className={`h-3.5 w-3.5 ${isFavorited ? 'fill-current' : ''}`} />
+          <span>{isFavorited ? 'Favorited' : 'Favorite'}</span>
         </button>
       )}
 
@@ -482,17 +492,23 @@ export const TrackActionButtons: React.FC<TrackActionButtonsProps> = ({
             e.stopPropagation();
             onShare();
           }}
-          className={`h-7 w-7 flex items-center justify-center transition-colors ${
+          className={`h-8 px-3 inline-flex items-center gap-1.5 rounded-full text-xs font-semibold bg-foreground/5 transition-colors dark:bg-white/4 dark:hover:bg-white/8 ${
             isCopied
               ? 'text-green-500'
-              : 'text-muted-foreground hover:text-foreground'
+              : 'text-foreground/70 hover:text-foreground'
           }`}
           aria-label="Share track"
         >
           {isCopied ? (
-            <Check className="h-4 w-4" />
+            <>
+              <Check className="h-3.5 w-3.5" />
+              <span>Copied</span>
+            </>
           ) : (
-            <Share2 className="h-4 w-4" />
+            <>
+              <Share2 className="h-3.5 w-3.5" />
+              <span>Share</span>
+            </>
           )}
         </button>
       )}
@@ -506,10 +522,10 @@ export const TrackActionButtons: React.FC<TrackActionButtonsProps> = ({
                 e.preventDefault();
                 e.stopPropagation();
               }}
-              className="h-7 w-7 flex items-center justify-center text-muted-foreground hover:text-foreground transition-colors"
+              className="h-8 w-8 inline-flex items-center justify-center rounded-full text-xs font-semibold bg-foreground/5 text-foreground/80 hover:text-foreground hover:bg-foreground/10 transition-colors dark:bg-white/4 dark:hover:bg-white/8"
               aria-label="More options"
             >
-              <MoreVertical className="h-4 w-4" />
+              <MoreVertical className="h-3.5 w-3.5" />
             </button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end" onClick={(e) => e.stopPropagation()} className="p-1.5 min-w-[140px]">

@@ -1235,14 +1235,14 @@ export const LibraryPanel = ({
       {/* Delete Confirmation Dialog */}
       <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
         <AlertDialogContent className="max-w-[calc(100vw-2rem)] sm:max-w-[425px]">
-          <AlertDialogHeader className="space-y-2 sm:space-y-3">
+          <AlertDialogHeader className="space-y-3">
             <AlertDialogTitle className="text-lg sm:text-xl">Delete Track</AlertDialogTitle>
             <AlertDialogDescription className="text-sm sm:text-base whitespace-nowrap">
               Are you sure you want to delete the current track?
             </AlertDialogDescription>
           </AlertDialogHeader>
-          <AlertDialogFooter className="flex-col sm:flex-row gap-2 sm:gap-0">
-            <AlertDialogCancel className="w-full sm:w-auto text-foreground hover:text-foreground dark:hover:text-accent-foreground">
+          <AlertDialogFooter className="mt-3 flex-col sm:flex-row gap-2 sm:gap-0">
+            <AlertDialogCancel className="w-full sm:w-auto text-foreground hover:text-foreground dark:hover:text-foreground hover:bg-muted dark:hover:bg-muted">
               Cancel
             </AlertDialogCancel>
             <AlertDialogAction 

@@ -7,7 +7,7 @@ import { TrackCover } from '@/features/lyrics-cover/components/track-cover';
 import { TrackInfo } from './track-info';
 import { TrackActionButtons } from './track-action-buttons';
 import { LibraryTrack } from '@/types/track';
-import { Trash2 } from 'lucide-react';
+import { Star, Trash2 } from 'lucide-react';
 
 interface TrackItemProps {
   track: LibraryTrack & any;
@@ -90,8 +90,8 @@ export const TrackItem: React.FC<TrackItemProps> = ({
   
   // 统一样式，不再区分延长版本
   const isExtension = false; // 统一样式
-  const paddingClass = variant === 'studio' ? 'px-3 py-3' : 'px-2 py-2';
-  const gapClass = 'gap-4';
+  const paddingClass = variant === 'studio' ? 'px-2.5 py-2' : 'px-2 py-2';
+  const gapClass = 'gap-2';
 
   const containerClassName =
     variant === 'studio'
@@ -127,6 +127,25 @@ export const TrackItem: React.FC<TrackItemProps> = ({
         </div>
       )}
       
+      {showActions && onFavoriteToggle && (
+        <button
+          type="button"
+          onClick={(e) => {
+            e.stopPropagation();
+            onFavoriteToggle();
+          }}
+          className={`flex h-8 w-8 items-center justify-center rounded-full transition-colors ${
+            track.isFavorited
+              ? 'text-red-500 hover:text-red-500'
+              : 'text-foreground/55 hover:text-foreground'
+          }`}
+          aria-label={track.isFavorited ? 'Remove from library' : 'Add to library'}
+          title={track.isFavorited ? 'Remove from library' : 'Add to library'}
+        >
+          <Star className={`h-4 w-4 ${track.isFavorited ? 'fill-current' : ''}`} />
+        </button>
+      )}
+
       {/* 封面 */}
       <TrackCover
         coverUrl={coverUrl}
@@ -177,7 +196,7 @@ export const TrackItem: React.FC<TrackItemProps> = ({
                   canVocalRemoval={canVocalRemoval}
                   canExtendMusic={canExtendMusic}
                   canReplaceSection={canReplaceSection}
-                  onFavoriteToggle={onFavoriteToggle}
+                  onFavoriteToggle={undefined}
                   onShare={onShare}
                   onDownload={onDownload}
                   onVocalRemoval={onVocalRemoval}
@@ -225,7 +244,7 @@ export const TrackItem: React.FC<TrackItemProps> = ({
             canVocalRemoval={canVocalRemoval}
             canExtendMusic={canExtendMusic}
             canReplaceSection={canReplaceSection}
-            onFavoriteToggle={onFavoriteToggle}
+            onFavoriteToggle={undefined}
             onShare={onShare}
             onDownload={onDownload}
             onVocalRemoval={onVocalRemoval}

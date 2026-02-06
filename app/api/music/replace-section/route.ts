@@ -4,7 +4,7 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
-import { getUserIdFromRequest } from '@/lib/auth';
+import { getUserInfoFromRequest } from '@/lib/auth';
 import { getFeatureCredits } from '@/lib/credits-config';
 import { consumeUserCredit, getUserCredits, addUserCredits } from '@/lib/user-db';
 import { hasFeaturePermission } from '@/lib/feature-permissions';
@@ -111,8 +111,8 @@ export async function POST(request: NextRequest) {
 
   try {
     // 1. 验证用户身份
-    const userId = await getUserIdFromRequest(request);
-    if (!userId) {
+    const userInfo = await getUserInfoFromRequest(request);
+    if (!userInfo) {
       console.log(`[REPLACE-SECTION-${requestId}] Authentication failed`);
       return NextResponse.json(
         { success: false, error: 'Authentication required' },
@@ -120,6 +120,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    const { userId, authorName } = userInfo;
     console.log(`[REPLACE-SECTION-${requestId}] User authenticated: ${userId}`);
 
     // 2. 解析请求参数
@@ -348,12 +349,13 @@ export async function POST(request: NextRequest) {
       // 创建 music 记录，使用用户输入的 title
       const musicResult = await query(
         `INSERT INTO music (
-          user_id, task_id, title, genre, tags, prompt,
+          user_id, author_name, task_id, title, genre, tags, prompt,
           is_instrumental, status, type, model
-        ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
+        ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
         RETURNING id`,
         [
           userId,
+          authorName,
           newTaskId,
           title,
           originalTrack.genre || tags,

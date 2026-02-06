@@ -149,10 +149,8 @@ export function EditNicknameDialog({ open, onOpenChange, initialValue = "" }: Ed
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-[calc(100vw-2rem)] sm:max-w-[560px] max-h-[78vh] flex flex-col overflow-hidden p-0 bg-background shadow-xl rounded-[28px]">
-        <div className="relative overflow-hidden rounded-[28px]">
-          <div className="relative overflow-hidden px-6 pt-6 pb-6">
-            <div className="pointer-events-none absolute inset-0 bg-gradient-to-r from-primary/10 via-transparent to-primary/10" />
+      <DialogContent className="max-w-[calc(100vw-2rem)] sm:max-w-[560px] max-h-[78vh] flex flex-col overflow-hidden p-0 bg-background shadow-xl rounded-[28px] border-0">
+          <div className="relative overflow-hidden bg-gradient-to-r from-primary/10 via-transparent to-primary/10 px-6 pt-6 pb-6">
             <DialogHeader className="relative space-y-1.5 text-left">
               <DialogTitle className="text-xl font-semibold tracking-tight">Edit profile</DialogTitle>
               <DialogDescription className="text-sm text-muted-foreground">
@@ -287,7 +285,6 @@ export function EditNicknameDialog({ open, onOpenChange, initialValue = "" }: Ed
               </Button>
             </DialogFooter>
           </div>
-        </div>
       </DialogContent>
     </Dialog>
   );

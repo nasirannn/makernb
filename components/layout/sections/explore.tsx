@@ -296,8 +296,8 @@ export const ExploreSection = () => {
 
   const ExploreTrackCardSkeleton = ({ index }: { index: number }) => (
     <div className="group flex items-center gap-4 rounded-2xl px-2 py-2">
-      <div className="relative h-12 w-12 shrink-0 overflow-hidden rounded-md">
-        <Skeleton className="h-full w-full rounded-md" />
+      <div className="relative h-12 w-12 shrink-0 overflow-hidden rounded-sm">
+        <Skeleton className="h-full w-full rounded-sm" />
       </div>
       <div className="min-w-0 flex-1">
         <div className="flex items-center gap-2">
@@ -365,7 +365,7 @@ export const ExploreSection = () => {
 	                          key={music.id}
 	                          role="button"
 	                          tabIndex={0}
-                          className="group app-card-muted flex items-center gap-4 rounded-2xl px-4 py-4 cursor-pointer transition-transform duration-200 hover:-translate-y-1 hover:bg-foreground/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/25 focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+                          className="group flex items-center gap-4 rounded-2xl px-4 py-4 cursor-pointer transition-transform duration-200 hover:-translate-y-1 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/25 focus-visible:ring-offset-2 focus-visible:ring-offset-background"
                           onClick={() => handlePlayPause(music.primaryTrack.id, music.primaryTrack.audioUrl || "", music)}
                           onKeyDown={(e) => {
                             if (e.key === "Enter" || e.key === " ") {
@@ -374,7 +374,7 @@ export const ExploreSection = () => {
 	                            }
 	                          }}
 	                        >
-	                          <div className="group/cover relative h-14 w-14 shrink-0 overflow-hidden rounded-xl">
+	                          <div className="group/cover relative h-12 w-12 shrink-0 overflow-hidden rounded-sm">
 	                            {music.primaryTrack.coverR2Url ? (
 	                              <SafeImage
 	                                src={music.primaryTrack.coverR2Url}

@@ -1,4 +1,5 @@
 import { NextRequest } from 'next/server';
+import type { User } from '@supabase/supabase-js';
 import { supabaseServer } from '@/lib/supabase-server';
 
 // ============================================================================
@@ -124,6 +125,72 @@ export async function getUserIdFromRequest(
     return user.id;
   } catch (error) {
     console.error('[Auth] Error extracting user ID from request:', error);
+    return null;
+  }
+}
+
+const getDisplayNameFromUser = (user: User): string => {
+  const meta = user.user_metadata || {};
+  const candidates = [
+    meta.author_name,
+    meta.nickname,
+    meta.full_name,
+    meta.name,
+    meta.username,
+    meta.user_name,
+    user.email ? user.email.split('@')[0] : null,
+  ];
+
+  for (const candidate of candidates) {
+    if (typeof candidate === 'string' && candidate.trim().length > 0) {
+      return candidate.trim();
+    }
+  }
+
+  return 'Anonymous';
+};
+
+export async function getUserInfoFromRequest(
+  request: NextRequest,
+  useCache: boolean = true
+): Promise<{ userId: string; authorName: string; email: string | null } | null> {
+  try {
+    const token = extractTokenFromRequest(request);
+    if (!token) {
+      return null;
+    }
+
+    if (useCache) {
+      const cachedUserId = authCache.get(token);
+      if (cachedUserId) {
+        const { data: { user }, error: authError } = await supabaseServer.auth.getUser(token);
+        if (authError || !user) {
+          return null;
+        }
+        return {
+          userId: cachedUserId,
+          authorName: getDisplayNameFromUser(user),
+          email: user.email ?? null,
+        };
+      }
+    }
+
+    const { data: { user }, error: authError } = await supabaseServer.auth.getUser(token);
+    if (authError || !user) {
+      return null;
+    }
+
+    if (useCache) {
+      authCache.set(token, user.id);
+    }
+
+    return {
+      userId: user.id,
+      authorName: getDisplayNameFromUser(user),
+      email: user.email ?? null,
+    };
+  } catch (error) {
+    console.error('[Auth] Error extracting user info from request:', error);
     return null;
   }
 }

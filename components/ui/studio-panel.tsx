@@ -1689,8 +1689,44 @@ export const StudioPanel = (props: StudioPanelProps) => {
                     usePromptTemplateOnGenre: true,
                   }
                 )}
+                <div className="flex items-center justify-between">
+                  <div className="text-xs text-muted-foreground">
+                    {simplePrompt.length}/{simplePromptMaxLength}
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <button
+                      type="button"
+                      onClick={handlePromptAddAudioClick}
+                      className="inline-flex items-center gap-1.5 rounded-full bg-foreground/5 px-3 py-1.5 text-xs font-semibold text-foreground/70 transition-colors hover:bg-foreground/10 hover:text-foreground"
+                      title="Add audio"
+                    >
+                      <UploadCloud className="h-3.5 w-3.5" />
+                      <span>Add Audio</span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setSimplePrompt("");
+                        setSelectedGenre("");
+                        setSelectedVibe("");
+                        setGrooveType("");
+                        setBpm([60]);
+                        setBpmMode('');
+                        setLeadInstrument([]);
+                        setDrumKit("");
+                        setBassTone("");
+                        setHarmonyPalette("");
+                      }}
+                      className="inline-flex items-center gap-1.5 rounded-full bg-foreground/5 px-3 py-1.5 text-xs font-semibold text-foreground/70 transition-colors hover:bg-foreground/10 hover:text-foreground"
+                      title="Clear"
+                    >
+                      <Trash2 className="h-3.5 w-3.5" />
+                      <span>Clear</span>
+                    </button>
+                  </div>
+                </div>
                 <div className="pt-2 pb-2 text-xs font-semibold uppercase tracking-[0.22em] text-muted-foreground">
-                  Instrument Preview
+                  Classic Instruments Preview
                 </div>
                 <div className="flex flex-nowrap gap-2 overflow-x-auto pb-1">
                   {leadInstruments.map((instrument: any) => (
@@ -1761,42 +1797,6 @@ export const StudioPanel = (props: StudioPanelProps) => {
                       </button>
                     </button>
                   ))}
-                </div>
-                <div className="flex items-center justify-between">
-                  <div className="text-xs text-muted-foreground">
-                    {simplePrompt.length}/{simplePromptMaxLength}
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <button
-                      type="button"
-                      onClick={handlePromptAddAudioClick}
-                      className="inline-flex items-center gap-1.5 rounded-full bg-foreground/5 px-3 py-1.5 text-xs font-semibold text-foreground/70 transition-colors hover:bg-foreground/10 hover:text-foreground"
-                      title="Add audio"
-                    >
-                      <UploadCloud className="h-3.5 w-3.5" />
-                      <span>Add Audio</span>
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setSimplePrompt("");
-                        setSelectedGenre("");
-                        setSelectedVibe("");
-                        setGrooveType("");
-                        setBpm([60]);
-                        setBpmMode('');
-                        setLeadInstrument([]);
-                        setDrumKit("");
-                        setBassTone("");
-                        setHarmonyPalette("");
-                      }}
-                      className="inline-flex items-center gap-1.5 rounded-full bg-foreground/5 px-3 py-1.5 text-xs font-semibold text-foreground/70 transition-colors hover:bg-foreground/10 hover:text-foreground"
-                      title="Clear"
-                    >
-                      <Trash2 className="h-3.5 w-3.5" />
-                      <span>Clear</span>
-                    </button>
-                  </div>
                 </div>
               </div>
             </section>

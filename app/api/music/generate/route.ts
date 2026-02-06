@@ -3,7 +3,7 @@ import MusicApiService from '@/lib/music-api';
 import { createMusicGeneration } from '@/lib/music-db';
 import { createGenerationError } from '@/lib/generation-errors-db';
 import { consumeUserCredit } from '@/lib/user-db';
-import { getUserIdFromRequest } from '@/lib/auth';
+import { getUserInfoFromRequest } from '@/lib/auth';
 import { getMusicModel, getMusicCredits } from '@/lib/credits-config';
 
 export const dynamic = 'force-dynamic';
@@ -14,8 +14,8 @@ export async function POST(request: NextRequest) {
   try {
     const { query } = await import('@/lib/db-query-builder');
     // 检查用户是否登录 - 使用统一的身份验证方式
-    const userId = await getUserIdFromRequest(request);
-    if (!userId) {
+    const userInfo = await getUserInfoFromRequest(request);
+    if (!userInfo) {
       console.log(`[MUSIC-GEN-${requestId}] Authentication failed`);
       return NextResponse.json(
         {
@@ -25,6 +25,8 @@ export async function POST(request: NextRequest) {
         { status: 401 }
       );
     }
+
+    const { userId, authorName } = userInfo;
 
     const requestData = await request.json();
     console.log(`[MUSIC-GEN-${requestId}] Request: ${requestData.mode} mode, ${requestData.instrumentalMode ? 'instrumental' : 'with vocals'}, model: ${requestData.model || 'V4'}`);
@@ -253,6 +255,7 @@ export async function POST(request: NextRequest) {
         const generationTags = mode === 'simple' ? trimmedPrompt : trimmedStyle;
         const promptForDb = mode === 'simple' ? customPrompt : trimmedStyle;
         const musicGeneration = await createMusicGeneration(userId, {
+          author_name: authorName,
           title: musicRequest.songTitle || null,
           genre: genreForDb,
           tags: generationTags || null,
