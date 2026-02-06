@@ -101,7 +101,14 @@ export const InlineTrackDetailsPanel: React.FC<InlineTrackDetailsPanelProps> = (
           </div>
         </div>
 
-        <div className="flex-1 overflow-auto px-5 py-5">
+        <div
+          className={`flex-1 overflow-auto px-5 py-5 ${variant === 'studio' ? 'md:pb-5' : ''}`}
+          style={
+            variant === 'studio'
+              ? { paddingBottom: 'calc(var(--player-height, 48px) + 0.75rem)' }
+              : undefined
+          }
+        >
           <div className="text-sm text-foreground/90 whitespace-pre-wrap font-mono leading-relaxed">
             {track.lyrics?.trim()
               ? track.lyrics

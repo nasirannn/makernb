@@ -119,22 +119,21 @@ const LibraryListSkeleton = () => (
         </div>
       ))}
     </div>
-    <div className="md:hidden space-y-3 px-6">
+    <div className="md:hidden space-y-3 px-3">
       {Array.from({ length: 5 }).map((_, index) => (
         <div
           key={`library-skeleton-mobile-${index}`}
-          className="flex items-center gap-4 rounded-2xl bg-muted/10 p-4"
+          className="flex items-center gap-4 rounded-lg py-2 mx-3 border border-transparent"
         >
-          <Skeleton className="h-14 w-14 rounded-xl flex-shrink-0" />
-          <div className="flex-1 space-y-2">
-            <Skeleton className="h-4 w-3/4" />
+          <div className="ml-2">
+            <Skeleton className="h-14 w-14 rounded-xl flex-shrink-0" />
+          </div>
+          <div className="flex-1 space-y-1.5">
+            <Skeleton className="h-4 w-2/3" />
             <Skeleton className="h-3 w-1/2" />
+            <Skeleton className="h-3 w-1/3" />
           </div>
-          <div className="flex items-center gap-2">
-            <Skeleton className="h-6 w-6 rounded-full" />
-            <Skeleton className="h-6 w-6 rounded-full" />
-            <Skeleton className="h-6 w-6 rounded-full" />
-          </div>
+          <Skeleton className="h-8 w-8 rounded-full mr-2" />
         </div>
       ))}
     </div>
@@ -787,7 +786,7 @@ export const LibraryPanel = ({
   return (
     <div className="h-full flex flex-col bg-transparent">
       {/* Mobile Header - 移动端显示 logo 和品牌 */}
-      <div className="flex-shrink-0 md:hidden px-6 py-4 bg-background/60 backdrop-blur-sm">
+      <div className="app-card-muted app-hairline flex-shrink-0 md:hidden px-6 py-4 border-0 border-b-0">
         <div className="flex items-center justify-between gap-3">
           <Link href="/" className="font-bold text-lg flex items-center">
             <Image
@@ -890,7 +889,7 @@ export const LibraryPanel = ({
               View and manage all the favorited music.
             </p>
           </div>
-          <div className="flex items-center gap-4 flex-wrap md:justify-end flex-1 min-w-[240px] self-center">
+          <div className="flex items-center gap-4 flex-wrap md:justify-end flex-1 min-w-[240px] self-center w-full">
             {/* Search Input */}
             <div className="relative w-full md:w-auto">
               <div className="app-card-muted rounded-[22px] p-1 bg-foreground/5 shadow-[0_1px_2px_rgba(0,0,0,0.06)] dark:bg-white/10">

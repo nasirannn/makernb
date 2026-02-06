@@ -33,7 +33,7 @@ export const MobileStudioHeader = React.memo(({
   const displayName = user?.user_metadata?.nickname || user?.user_metadata?.full_name || user?.user_metadata?.name || user?.email?.split('@')[0] || '';
 
   return (
-    <div className="app-card-muted app-hairline flex-shrink-0 px-6 py-4 border-0 border-b border-black/10">
+    <div className="app-card-muted app-hairline flex-shrink-0 px-6 py-4 border-0 border-b-0 relative z-[130]">
       <div className="flex items-center justify-between gap-3">
         <Link href="/" className="font-bold text-lg flex items-center">
           <Image
@@ -77,7 +77,7 @@ export const MobileStudioHeader = React.memo(({
               
               {/* User Menu Dropdown */}
               {userMenuOpen && (
-                <div className="absolute top-full right-0 mt-2 w-48 bg-background border border-border/30 rounded-lg shadow-lg z-[60]">
+                <div className="absolute top-full right-0 mt-2 w-48 bg-background border border-border/30 rounded-lg shadow-lg z-[120]">
                   <div className="flex flex-col gap-1 p-2">
                     <div className="px-1 pb-2">
                       <div className="flex items-center justify-between gap-2 mb-1">

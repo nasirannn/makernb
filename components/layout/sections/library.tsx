@@ -392,7 +392,7 @@ const LibraryContent = () => {
         <>
             <section
                 id="library"
-                className="h-screen flex flex-col bg-[var(--studio-panel-bg)] relative overflow-hidden"
+                className="h-screen flex flex-col bg-background relative overflow-hidden"
             >
                 {/* Main Library Interface */}
                 <div

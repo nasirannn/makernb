@@ -74,6 +74,7 @@ export const Navbar = ({ credits = null }: NavbarProps) => {
   const [isUserMenuOpen, setIsUserMenuOpen] = React.useState(false);
   const [isNicknameDialogOpen, setIsNicknameDialogOpen] = React.useState(false);
   const [isDropdownOpen, setIsDropdownOpen] = React.useState(false);
+  const [isMobileAiOpen, setIsMobileAiOpen] = React.useState(false);
   const [dropdownTimeout, setDropdownTimeout] = React.useState<NodeJS.Timeout | null>(null);
   const pathname = usePathname();
   const searchParams = useSearchParams();
@@ -299,8 +300,8 @@ export const Navbar = ({ credits = null }: NavbarProps) => {
         {isOpen && (
           <div className="fixed inset-0 lg:hidden z-[100]">
             <div className="fixed inset-0 bg-black/50" onClick={() => setIsOpen(false)} />
-            <div className="fixed right-0 top-0 h-full w-80 bg-card shadow-[-1px_0_0_rgba(0,0,0,0.08)] p-6">
-              <div className="flex items-center justify-between mb-6">
+            <div className="fixed right-0 top-0 h-full w-80 bg-card shadow-none p-5 flex flex-col">
+              <div className="flex items-center justify-between mb-4">
                 <Link href="/" className="flex items-center" onClick={() => setIsOpen(false)}>
                   <Image
                     src="/logo.svg"
@@ -314,11 +315,12 @@ export const Navbar = ({ credits = null }: NavbarProps) => {
                 <button onClick={() => setIsOpen(false)} className="text-2xl">×</button>
               </div>
               
+              <div className="flex-1 min-h-0 overflow-y-auto pb-4">
               {/* Mobile User Section */}
               {user ? (
-                <div className="mb-6 pb-6 shadow-[0_1px_0_rgba(0,0,0,0.06)] dark:shadow-[0_1px_0_rgba(255,255,255,0.08)]">
+                <div className="mb-4 pb-4">
                   {/* User Info */}
-                  <div className="flex items-center gap-3 mb-4">
+                  <div className="flex items-center gap-3 mb-3">
                     <Avatar className="w-10 h-10">
                       <AvatarImage
                         src={user.user_metadata?.avatar_url || user.user_metadata?.picture || `https://api.dicebear.com/7.x/initials/svg?seed=${user.email}`}
@@ -357,7 +359,7 @@ export const Navbar = ({ credits = null }: NavbarProps) => {
                   </div>
                   
                   {/* Credits Display */}
-                  <div className="flex items-center gap-2 px-3 py-2 rounded-full bg-black/5">
+                  <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-black/5">
                     <Sparkles className="h-3.5 w-3.5 text-primary" />
                     <span className="text-base font-semibold text-foreground">
                       {credits === null ? '...' : credits} Credits
@@ -365,7 +367,7 @@ export const Navbar = ({ credits = null }: NavbarProps) => {
                   </div>
                   
                   {/* Mobile Menu Items */}
-                  <div className="mt-4 space-y-2">
+                  <div className="mt-3 space-y-2">
                     <button
                       onClick={() => {
                         setIsOpen(false);
@@ -393,7 +395,7 @@ export const Navbar = ({ credits = null }: NavbarProps) => {
                   </div>
                 </div>
               ) : (
-                <div className="mb-6 pb-6 shadow-[0_1px_0_rgba(0,0,0,0.06)] dark:shadow-[0_1px_0_rgba(255,255,255,0.08)]">
+                <div className="mb-4 pb-4">
                   <Button 
                     onClick={() => {
                       setIsAuthModalOpen(true);
@@ -408,12 +410,6 @@ export const Navbar = ({ credits = null }: NavbarProps) => {
               )}
               
               <div className="flex flex-col gap-2">
-                <div className="px-3 pt-2 pb-3">
-                  <div className="text-[10px] font-semibold uppercase tracking-[0.28em] text-muted-foreground mb-2">
-                    Theme
-                  </div>
-                  <ThemeModeToggle size="md" variant="icon" />
-                </div>
                 {routeList.map(({ href, label, hasDropdown, dropdownItems }) => {
                   const isActive = pathname === href ||
                                  (href === "/blog" && pathname.startsWith("/blog")) ||
@@ -425,35 +421,35 @@ export const Navbar = ({ credits = null }: NavbarProps) => {
                   if (hasDropdown && dropdownItems) {
                     return (
                       <div key={href} className="space-y-1">
-                        <div className={`text-sm px-3 py-2 rounded-lg font-medium ${
-                          isActive ? 'bg-primary/10 text-primary' : 'text-foreground/70'
-                        }`}>
-                          {label}
-                        </div>
-                        <div className="ml-4 space-y-1">
-                          {dropdownItems.map((item) => {
-                            const isDropdownItemActive = pathname.startsWith(item.href);
-                            return (
-                              <Button
-                                key={item.href}
-                                onClick={() => setIsOpen(false)}
-                                asChild
-                                variant="ghost"
-                              className={`justify-start text-sm h-auto py-2 px-3 my-1 hover:bg-accent hover:text-accent-foreground ${
-                                isDropdownItemActive
-                                  ? 'bg-foreground/10 text-foreground shadow-[0px_12px_30px_rgba(0,0,0,0.08)] font-medium'
-                                  : 'text-foreground/60'
-                              }`}
-                              >
-                                <Link href={item.href} className="flex items-center gap-2">
-                                  <div>
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          onClick={() => setIsMobileAiOpen((prev) => !prev)}
+                          className="w-full h-10 justify-between px-3 text-base text-foreground/80 hover:text-foreground hover:bg-transparent"
+                          aria-expanded={isMobileAiOpen}
+                        >
+                          <span>{label}</span>
+                          <ChevronDown className={`h-4 w-4 transition-transform ${isMobileAiOpen ? 'rotate-180' : ''}`} />
+                        </Button>
+                        {isMobileAiOpen && (
+                          <div className="ml-4 space-y-1">
+                            {dropdownItems.map((item) => {
+                              return (
+                                <Button
+                                  key={item.href}
+                                  onClick={() => setIsOpen(false)}
+                                  asChild
+                                  variant="ghost"
+                                  className="w-full justify-start text-sm h-auto py-1.5 px-3 my-1 hover:bg-transparent hover:text-foreground text-foreground/70"
+                                >
+                                  <Link href={item.href} className="flex items-center gap-2">
                                     <div className="font-medium">{item.label}</div>
-                                  </div>
-                                </Link>
-                              </Button>
-                            );
-                          })}
-                        </div>
+                                  </Link>
+                                </Button>
+                              );
+                            })}
+                          </div>
+                        )}
                       </div>
                     );
                   }
@@ -466,14 +462,23 @@ export const Navbar = ({ credits = null }: NavbarProps) => {
                       }}
                       asChild
                       variant="ghost"
-                      className={`justify-start text-base ${
-                        isActive ? 'bg-primary/10 text-primary font-medium' : ''
+                      className={`w-full h-10 justify-start px-3 text-base ${
+                        isActive ? 'bg-primary/10 text-primary font-medium' : 'text-foreground/80 hover:text-foreground'
                       }`}
                     >
                       <Link href={href}>{label}</Link>
                     </Button>
                   );
                 })}
+              </div>
+              </div>
+              <div className="mt-auto shrink-0 border-t border-border/20 pt-2 pb-2 px-3 bg-card">
+                <div className="flex items-center justify-between gap-3">
+                  <div className="text-[10px] font-semibold uppercase tracking-[0.28em] text-muted-foreground">
+                    Theme
+                  </div>
+                  <ThemeModeToggle size="md" variant="icon" />
+                </div>
               </div>
             </div>
           </div>

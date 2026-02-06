@@ -2,7 +2,7 @@
 
 import React, { useState, useCallback, useMemo, useEffect } from 'react';
 import Image from "next/image";
-import { CheckCircle, Eye, Search, X } from "lucide-react";
+import { CheckCircle, Eye, Search, X, Wand2 } from "lucide-react";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { Button } from '@/components/ui/button';
@@ -74,6 +74,7 @@ interface StudioTracksListProps {
   extendMusicGetState?: (taskId: string) => any;
   extendMusicClearState?: (taskId: string) => void;
   selectedModel?: MusicModel;
+  onCreate?: () => void;
 }
 
 // 稳定的 no-op 函数，用于替代未提供的 extendMusicStartPolling
@@ -81,33 +82,40 @@ const noOpExtendMusicPolling = () => {};
 
 const TrackListSkeleton = ({ count = 5, className = '' }: { count?: number; className?: string }) => (
   <div className={`space-y-3 pb-6 ${className}`.trim()}>
+    <div className="px-4 pb-1">
+      <div className="flex items-center gap-2">
+        <Skeleton className="h-3 w-16" />
+        <Skeleton className="h-3 w-12 rounded-full" />
+      </div>
+    </div>
     {[...Array(count)].map((_, index) => (
       <div
         key={index}
-        className="rounded-2xl bg-muted/10 p-4"
+        className="rounded-2xl px-3 py-2"
       >
-        <div className="flex items-center gap-4">
+        <div className="flex items-center gap-2">
+          <Skeleton className="h-8 w-8 rounded-full" />
           
           {/* Cover */}
-          <Skeleton className="h-16 w-16 rounded-2xl flex-shrink-0" />
+          <Skeleton className="h-16 w-16 rounded-md flex-shrink-0" />
 
           {/* Title + info */}
           <div className="flex-1 min-w-0">
             <Skeleton className="h-4 w-2/3 mb-2" />
-            <Skeleton className="h-3 w-1/2 mb-4" />
-            <div className="flex items-center gap-4">
-              <Skeleton className="h-3 w-32" />
+            <div className="flex items-center gap-2 mb-2">
+              <Skeleton className="h-3 w-14" />
+              <Skeleton className="h-3 w-28" />
+            </div>
+            <div className="flex items-center gap-3">
+              <Skeleton className="h-3 w-24" />
             </div>
           </div>
 
           {/* Actions */}
-          <div className="flex items-center gap-3 flex-shrink-0">
-            {[...Array(4)].map((_, actionIndex) => (
-              <Skeleton
-                key={actionIndex}
-                className="h-8 w-8 rounded-full"
-              />
-            ))}
+          <div className="flex items-center gap-2 flex-shrink-0">
+            <Skeleton className="h-8 w-8 rounded-full" />
+            <Skeleton className="h-8 w-8 rounded-full" />
+            <Skeleton className="h-8 w-8 rounded-full" />
           </div>
         </div>
       </div>
@@ -138,6 +146,7 @@ export const StudioTracksList: React.FC<StudioTracksListProps> = React.memo(func
   extendMusicGetState,
   extendMusicClearState,
   selectedModel,
+  onCreate,
 }) {
   
   const { user } = useAuth();
@@ -991,10 +1000,11 @@ export const StudioTracksList: React.FC<StudioTracksListProps> = React.memo(func
   return (
     <div className="flex flex-col h-full min-h-0 overflow-hidden">
       {/* Search Bar */}
-      <div className="flex-shrink-0 pt-5 pb-3 px-5">
-        <div className="app-card-muted rounded-[22px]">
+      <div className="flex-shrink-0 px-6 pt-0 pb-4 md:py-6">
+        <div className="flex items-center gap-4 flex-wrap md:justify-end flex-1 min-w-[240px] self-center w-full">
+          <div className="app-card-muted rounded-[22px] flex-1 p-1 bg-foreground/5 shadow-[0_1px_2px_rgba(0,0,0,0.06)] dark:bg-white/10">
           <div className="relative w-full">
-            <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-foreground/45" />
+            <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-foreground/55" />
             <input
               type="text"
               placeholder="Enter title and tags"
@@ -1011,6 +1021,18 @@ export const StudioTracksList: React.FC<StudioTracksListProps> = React.memo(func
                   </button>
                 )}
           </div>
+        </div>
+          {onCreate && (
+            <button
+              type="button"
+              onClick={onCreate}
+              className="inline-flex h-11 w-11 items-center justify-center rounded-2xl bg-primary text-primary-foreground shadow-sm transition-colors hover:bg-primary/90"
+              aria-label="Start Creating"
+              title="Start Creating"
+            >
+              <Wand2 className="h-4 w-4" />
+            </button>
+          )}
         </div>
       </div>
 

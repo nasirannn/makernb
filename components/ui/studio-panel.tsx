@@ -1217,14 +1217,25 @@ export const StudioPanel = (props: StudioPanelProps) => {
                       key={instrument.id}
                       className="relative"
                     >
-                      <button
+                      <div
+                        role="button"
+                        tabIndex={0}
                         onClick={() => {
                           setLeadInstrument([instrument.id]);
                           if (shouldUpdateText("instrument")) {
                             setText(toggleTag(text, instrument.value));
                           }
                         }}
-                        className={`group relative inline-flex shrink-0 flex-col items-center gap-1.5 px-3 py-2 rounded-lg border border-white/80 bg-white text-[#0c0c16] shadow-[0_12px_32px_rgba(5,5,15,0.18)] transition-all duration-200 dark:bg-white/10 dark:text-foreground dark:border-white/15 dark:shadow-[0_12px_32px_rgba(0,0,0,0.35)] ${
+                        onKeyDown={(event) => {
+                          if (event.key === "Enter" || event.key === " ") {
+                            event.preventDefault();
+                            setLeadInstrument([instrument.id]);
+                            if (shouldUpdateText("instrument")) {
+                              setText(toggleTag(text, instrument.value));
+                            }
+                          }
+                        }}
+                        className={`group relative inline-flex shrink-0 cursor-pointer flex-col items-center gap-1.5 px-3 py-2 rounded-lg border border-white/80 bg-white text-[#0c0c16] shadow-[0_12px_32px_rgba(5,5,15,0.18)] transition-all duration-200 dark:bg-white/10 dark:text-foreground dark:border-white/15 dark:shadow-[0_12px_32px_rgba(0,0,0,0.35)] ${
                           isSelected
                             ? 'bg-primary text-primary-foreground '
                             : 'hover:shadow-[0_14px_36px_rgba(5,5,15,0.24)]'
@@ -1240,20 +1251,20 @@ export const StudioPanel = (props: StudioPanelProps) => {
                           />
                         )}
                         <span className="text-[11px]">{instrument.name}</span>
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          const audioUrl = getInstrumentAudio(instrument.id);
-                          if (audioUrl) {
-                            playPreviewAudio(audioUrl, `instrument-${instrument.id}`);
-                          }
-                        }}
-                        className="absolute inset-0 m-auto h-8 w-8 rounded-full bg-black/50 text-white transition-all duration-200 hover:bg-black/60 opacity-0 group-hover:opacity-100"
-                        title="Play sample"
-                      >
-                        <Play className="h-4 w-4 mx-auto" />
-                      </button>
-                      </button>
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            const audioUrl = getInstrumentAudio(instrument.id);
+                            if (audioUrl) {
+                              playPreviewAudio(audioUrl, `instrument-${instrument.id}`);
+                            }
+                          }}
+                          className="absolute inset-0 m-auto h-8 w-8 rounded-full bg-black/50 text-white transition-all duration-200 hover:bg-black/60 opacity-0 group-hover:opacity-100"
+                          title="Play sample"
+                        >
+                          <Play className="h-4 w-4 mx-auto" />
+                        </button>
+                      </div>
                     </div>
                   );
                 })}
@@ -1275,14 +1286,25 @@ export const StudioPanel = (props: StudioPanelProps) => {
                       key={kit.id}
                       className="relative"
                     >
-                      <button
+                      <div
+                        role="button"
+                        tabIndex={0}
                         onClick={() => {
                           setDrumKit(kit.id);
                           if (shouldUpdateText("drum")) {
                             setText(toggleTag(text, kit.value));
                           }
                         }}
-                        className={`group relative inline-flex shrink-0 flex-col items-center gap-1.5 px-3 py-2 rounded-lg border border-white/80 bg-white text-[#0c0c16] shadow-[0_12px_32px_rgba(5,5,15,0.18)] transition-all duration-200 dark:bg-white/10 dark:text-foreground dark:border-white/15 dark:shadow-[0_12px_32px_rgba(0,0,0,0.35)] ${
+                        onKeyDown={(event) => {
+                          if (event.key === "Enter" || event.key === " ") {
+                            event.preventDefault();
+                            setDrumKit(kit.id);
+                            if (shouldUpdateText("drum")) {
+                              setText(toggleTag(text, kit.value));
+                            }
+                          }
+                        }}
+                        className={`group relative inline-flex shrink-0 cursor-pointer flex-col items-center gap-1.5 px-3 py-2 rounded-lg border border-white/80 bg-white text-[#0c0c16] shadow-[0_12px_32px_rgba(5,5,15,0.18)] transition-all duration-200 dark:bg-white/10 dark:text-foreground dark:border-white/15 dark:shadow-[0_12px_32px_rgba(0,0,0,0.35)] ${
                           isSelected
                             ? 'bg-primary text-primary-foreground '
                             : 'hover:shadow-[0_14px_36px_rgba(5,5,15,0.24)]'
@@ -1298,20 +1320,20 @@ export const StudioPanel = (props: StudioPanelProps) => {
                           />
                         )}
                         <span className="text-[11px]">{kit.name}</span>
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          const audioUrl = getDrumKitAudio(kit.id);
-                          if (audioUrl) {
-                            playPreviewAudio(audioUrl, `drum-${kit.id}`);
-                          }
-                        }}
-                        className="absolute inset-0 m-auto h-8 w-8 rounded-full bg-black/50 text-white transition-all duration-200 hover:bg-black/60 opacity-0 group-hover:opacity-100"
-                        title="Play sample"
-                      >
-                        <Play className="h-4 w-4 mx-auto" />
-                      </button>
-                      </button>
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            const audioUrl = getDrumKitAudio(kit.id);
+                            if (audioUrl) {
+                              playPreviewAudio(audioUrl, `drum-${kit.id}`);
+                            }
+                          }}
+                          className="absolute inset-0 m-auto h-8 w-8 rounded-full bg-black/50 text-white transition-all duration-200 hover:bg-black/60 opacity-0 group-hover:opacity-100"
+                          title="Play sample"
+                        >
+                          <Play className="h-4 w-4 mx-auto" />
+                        </button>
+                      </div>
                     </div>
                   );
                 })}

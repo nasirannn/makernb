@@ -713,7 +713,7 @@ const aiMusicToolsDropdown = [
         </div>
       </div>
       {/* Mobile Bottom Navigation */}
-      <div ref={mobileNavRef} className={`md:hidden fixed bottom-0 left-0 right-0 bg-background/95 backdrop-blur-sm border-t border-border/30 z-[100] transition-transform duration-300 ${hideMobileNav ? 'translate-y-full' : 'translate-y-0'}`}>
+      <div ref={mobileNavRef} className={`md:hidden fixed bottom-0 left-0 right-0 bg-background/95 backdrop-blur-sm border-t-0 z-[100] transition-transform duration-300 ${hideMobileNav ? 'translate-y-full' : 'translate-y-0'}`}>
         <div className="flex items-center justify-around py-2">
           {/* Studio Button */}
           <Button

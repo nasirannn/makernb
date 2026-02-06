@@ -16,22 +16,22 @@ export const HeroSection = () => {
         <div className="absolute inset-x-0 bottom-0 h-32 bg-[linear-gradient(180deg,transparent_0%,hsl(var(--background))_100%)]" />
       </div>
 
-      <div className="relative z-10 container mx-auto min-h-screen flex items-center pt-20 pb-16 md:pt-28">
+      <div className="relative z-10 container mx-auto min-h-screen flex items-center pt-28 pb-24 md:pt-28">
         <div className="w-full max-w-4xl mx-auto text-center">
-          <div className="inline-flex items-center gap-2 rounded-full bg-foreground/5 px-4 py-2 text-[11px] font-semibold uppercase tracking-[0.32em] text-foreground/70">
+          <div className="inline-flex items-center gap-2 rounded-full bg-foreground/5 px-4 py-2 text-[11px] font-semibold text-foreground/70 whitespace-nowrap">
             <span>Especially For The Old-School R&B Lovers</span>
           </div>
 
-          <h1 className="mt-6 text-[2.6rem] leading-[0.98] tracking-tight font-black text-foreground sm:text-5xl lg:text-[4.6rem]">
+          <h1 className="mt-9 text-[2.6rem] leading-[0.98] tracking-tight font-black text-foreground sm:text-5xl lg:text-[4.6rem]">
             <span className="block">
               Free Online <span className="hero-ink">AI R&amp;B</span> Music Generator
             </span>
-            <span className="block mt-2 text-foreground/85 text-[1.05rem] sm:text-xl lg:text-2xl font-extrabold tracking-tight">
+            <span className="block mt-4 text-foreground/85 text-[1.05rem] sm:text-xl lg:text-2xl font-extrabold tracking-tight">
               Create R&amp;B songs in different old-school musical styles
             </span>
           </h1>
 
-          <div className="mt-7 flex flex-col sm:flex-row sm:items-center sm:justify-center gap-3">
+          <div className="mt-10 flex flex-col sm:flex-row sm:items-center sm:justify-center gap-4">
             <button
               type="button"
               onClick={() => router.push("/studio")}
@@ -51,11 +51,11 @@ export const HeroSection = () => {
             </button>
           </div>
 
-          <div className="mt-3 text-xs text-muted-foreground">
+          <div className="mt-5 text-xs text-muted-foreground">
             Free daily credits <span className="mx-1 opacity-60">•</span> No experience needed <span className="mx-1 opacity-60">•</span> 100% Royalty-Free
           </div>
 
-          <div className="mt-7 flex flex-wrap justify-center gap-2">
+          <div className="mt-10 flex flex-wrap justify-center gap-2">
             {[
               { label: "New Jack Swing", icon: "New Jack Swing Icon.webp" },
               { label: "Neo‑Soul", icon: "Neo-Soul Icon.webp" },
@@ -82,9 +82,9 @@ export const HeroSection = () => {
         </div>
       </div>
 
-      <div className="pointer-events-none absolute inset-x-0 bottom-0 hidden md:flex items-center justify-center">
+      <div className="pointer-events-none absolute inset-x-0 bottom-[8%] md:bottom-0 flex items-center justify-center">
         <svg
-          className="hero-pulse-line w-[78%] max-w-5xl"
+          className="hero-pulse-line w-[92%] max-w-5xl md:w-[78%]"
           viewBox="0 0 1200 160"
           fill="none"
           aria-hidden="true"

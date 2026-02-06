@@ -1894,26 +1894,17 @@ const StudioContent = () => {
                     }}
                 >
                     <div className="min-h-0 h-full flex flex-col relative w-full z-10">
-                        <div className="md:hidden flex-shrink-0">
-                            <div className="px-6 py-4">
-                                <div className="flex items-center justify-between">
-                                    <div className="flex items-center gap-3">
-                                        <Music className="h-8 w-8 text-primary" />
-                                        <h1 className="text-2xl font-semibold">Studio</h1>
-                                    </div>
-                                    <button
-                                        onClick={() => setMobileCreateOpen(true)}
-                                        className="flex items-center justify-center px-4 py-2 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition-colors text-sm font-medium"
-                                        title="Start Creating"
-                                    >
-                                        <Wand2 className="w-4 h-4" />
-                                    </button>
-                                </div>
-                            </div>
-                        </div>
+                <div className="md:hidden flex-shrink-0 px-6 py-4 bg-background/60 backdrop-blur-sm">
+                    <div className="flex items-center gap-3">
+                        <Music className="h-8 w-8 text-primary" />
+                        <h1 className="text-2xl font-semibold tracking-tight text-foreground">
+                            Studio
+                        </h1>
+                    </div>
+                </div>
 
                     <div className={`flex flex-col md:flex-row flex-1 min-h-0 min-w-0 ${showInlinePanel ? 'md:gap-4' : 'md:gap-0'}`}>
-                        <div className={`flex-1 min-h-0 min-w-0 px-4 md:px-0 ${showInlinePanel ? 'md:pl-0 md:pr-0' : ''}`}>
+                        <div className={`flex flex-col flex-1 min-h-0 min-w-0 px-0 md:px-0 ${showInlinePanel ? 'md:pl-0 md:pr-0' : ''}`}>
                                 <div className="flex-1 min-h-0 md:hidden">
                                     <StudioTracksList
                                         userTracks={convertUserTracksToMusicGeneration(userTracks)}
@@ -1938,6 +1929,7 @@ const StudioContent = () => {
                                         extendMusicGetState={extendMusic.getExtendMusicState}
                                         extendMusicClearState={extendMusic.clearExtendMusicState}
                                         selectedModel={selectedModel}
+                                        onCreate={() => setMobileCreateOpen(true)}
                                     />
                                 </div>
 
@@ -1972,12 +1964,12 @@ const StudioContent = () => {
                         <div
                             className={`relative transition-all duration-300 flex-shrink-0 z-[80] ${
                                 showInlinePanel
-                                    ? 'opacity-100 w-full md:w-80 px-0 md:px-0 md:py-4 overflow-visible'
+                                    ? 'opacity-100 w-full h-[calc(100vh-var(--mobile-nav-height,0px)-var(--player-height,48px)-0.5rem)] md:h-full md:w-80 px-0 md:px-0 md:py-4 overflow-visible'
                                     : 'opacity-0 pointer-events-none w-0 md:w-0 px-0 overflow-hidden'
                             }`}
                         >
                                 {showInlinePanel && (
-                                    <div className="h-full">
+                                    <div className="h-full md:pb-0">
                                     <InlineTrackDetailsPanel
                                         track={inlineTrackDetails}
                                         isPlaying={isInlineTrackPlaying}

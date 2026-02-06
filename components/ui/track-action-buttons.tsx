@@ -21,6 +21,7 @@ import { Input } from "@/components/ui/input";
 import { FileAudio, Image as ImageIcon, Music2, Star, Share2, Check, Download, MoreVertical, Mic, Trash2, Pencil, Maximize2, Scissors } from "lucide-react";
 import { LibraryTrack } from '@/types/track';
 import { EditMusicInfoDialog } from './edit-music-info-dialog';
+import { useSubscription } from "@/contexts/SubscriptionContext";
 
 interface TrackActionButtonsProps {
   track: LibraryTrack & any;
@@ -73,6 +74,8 @@ export const TrackActionButtons: React.FC<TrackActionButtonsProps> = ({
   onEditTitle,
   onEditMusicInfo,
 }) => {
+  const { tierCode } = useSubscription();
+  const isSubscribed = Boolean(tierCode);
   const isInstrumental = track.musicGeneration?.isInstrumental || track.isInstrumental;
   const hasAudioUrl = !!track.audioUrl;
   const hasCoverImage = Boolean(
@@ -114,6 +117,15 @@ export const TrackActionButtons: React.FC<TrackActionButtonsProps> = ({
   
   // 判断是否显示更多菜单（需要至少有一个功能）
   const shouldShowMoreMenu = onVocalRemoval || onExtendMusic || onDelete || onEditTitle || onEditMusicInfo;
+  const hasLockedAdvancedFeature =
+    (onVocalRemoval && !canVocalRemoval) ||
+    (onExtendMusic && !canExtendMusic) ||
+    (onReplaceSection && !canReplaceSection);
+  const advancedFeaturesLabel = isSubscribed
+    ? "Advanced Features"
+    : hasLockedAdvancedFeature
+      ? "Upgrade to unlock"
+      : "Advanced Features";
 
   // 桌面端按钮
   if (!isMobile) {
@@ -291,7 +303,7 @@ export const TrackActionButtons: React.FC<TrackActionButtonsProps> = ({
               {hasAudioUrl && (onVocalRemoval || onExtendMusic || onReplaceSection) && (
                 <>
                   <div className="px-3 py-1.5 text-[10px] text-muted-foreground uppercase">
-                    Advanced Features
+                    {advancedFeaturesLabel}
                   </div>
                   {onVocalRemoval && (
                     <DropdownMenuItem
@@ -398,11 +410,10 @@ export const TrackActionButtons: React.FC<TrackActionButtonsProps> = ({
                 e.preventDefault();
                 e.stopPropagation();
               }}
-              className="h-8 px-3 inline-flex items-center gap-1.5 rounded-full text-xs font-semibold bg-foreground/5 text-foreground/80 hover:text-foreground hover:bg-foreground/10 transition-colors dark:bg-white/4 dark:hover:bg-white/8"
+              className="h-8 w-8 inline-flex items-center justify-center rounded-full text-xs font-semibold bg-foreground/5 text-foreground/80 hover:text-foreground hover:bg-foreground/10 transition-colors dark:bg-white/4 dark:hover:bg-white/8"
               aria-label="Download track"
             >
               <Download className="h-3.5 w-3.5" />
-              <span>Download</span>
             </button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end" onClick={(e) => e.stopPropagation()} className="p-1.5 min-w-[160px]">
@@ -492,7 +503,7 @@ export const TrackActionButtons: React.FC<TrackActionButtonsProps> = ({
             e.stopPropagation();
             onShare();
           }}
-          className={`h-8 px-3 inline-flex items-center gap-1.5 rounded-full text-xs font-semibold bg-foreground/5 transition-colors dark:bg-white/4 dark:hover:bg-white/8 ${
+          className={`h-8 w-8 inline-flex items-center justify-center rounded-full text-xs font-semibold bg-foreground/5 transition-colors dark:bg-white/4 dark:hover:bg-white/8 ${
             isCopied
               ? 'text-green-500'
               : 'text-foreground/70 hover:text-foreground'
@@ -500,15 +511,9 @@ export const TrackActionButtons: React.FC<TrackActionButtonsProps> = ({
           aria-label="Share track"
         >
           {isCopied ? (
-            <>
-              <Check className="h-3.5 w-3.5" />
-              <span>Copied</span>
-            </>
+            <Check className="h-3.5 w-3.5" />
           ) : (
-            <>
-              <Share2 className="h-3.5 w-3.5" />
-              <span>Share</span>
-            </>
+            <Share2 className="h-3.5 w-3.5" />
           )}
         </button>
       )}
@@ -551,10 +556,10 @@ export const TrackActionButtons: React.FC<TrackActionButtonsProps> = ({
             )}
             
             {/* Premium Features 标题和选项 */}
-            {hasAudioUrl && (onVocalRemoval || onExtendMusic) && (
+            {hasAudioUrl && (onVocalRemoval || onExtendMusic || onReplaceSection) && (
               <>
                 <div className="px-2.5 py-1 text-[10px] text-muted-foreground uppercase">
-                  Premium Features
+                  {advancedFeaturesLabel}
                 </div>
                 {(onVocalRemoval) && (
                   <DropdownMenuItem
@@ -594,6 +599,23 @@ export const TrackActionButtons: React.FC<TrackActionButtonsProps> = ({
                   >
                     <Maximize2 className="h-3.5 w-3.5" />
                     <span>Extend Music</span>
+                  </DropdownMenuItem>
+                )}
+                {onReplaceSection && (
+                  <DropdownMenuItem
+                    onClick={(e) => {
+                      e.preventDefault();
+                      e.stopPropagation();
+                      if (!canReplaceSection) {
+                        onPricingModalOpen?.();
+                        return;
+                      }
+                      onReplaceSection();
+                    }}
+                    className="flex items-center gap-1.5 cursor-pointer px-2.5 py-1.5 text-xs"
+                  >
+                    <Scissors className="h-3.5 w-3.5" />
+                    <span>Replace Section</span>
                   </DropdownMenuItem>
                 )}
                 {onDelete && <DropdownMenuSeparator className="my-1" />}
