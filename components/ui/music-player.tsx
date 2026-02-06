@@ -1,7 +1,8 @@
 'use client';
 
 import React from 'react';
-import { Play, Pause, Rewind, FastForward, Volume2, VolumeX, MessageSquare } from 'lucide-react';
+import Image from 'next/image';
+import { Play, Pause, Rewind, FastForward, Volume2, VolumeX, MessageSquare, Music } from 'lucide-react';
 import { VocalSeparationButton } from '@/features/vocal-tools/components/vocal-separation-button';
 import { AudioPlayerTrack } from '@/types/track';
 import { cn } from '@/lib/utils';
@@ -28,7 +29,7 @@ function PlayerIconButton({
       aria-label={title}
       className={cn(
         "inline-flex h-9 w-9 items-center justify-center rounded-full text-muted-foreground transition-colors",
-        "hover:text-foreground hover:bg-foreground/5",
+        "hover:text-foreground hover:bg-foreground/10",
         "disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-transparent",
         "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/30 focus-visible:ring-offset-2 focus-visible:ring-offset-background",
         className
@@ -55,7 +56,9 @@ function PlayerProgressRail({
   return (
     <div
       className={cn(
-        "group relative h-1.5 w-full cursor-pointer overflow-hidden rounded-full bg-foreground/10",
+        "group relative h-2 w-full cursor-pointer overflow-hidden rounded-full",
+        "bg-gradient-to-r from-foreground/10 via-foreground/15 to-foreground/10",
+        "ring-1 ring-black/10 dark:ring-white/10",
         className
       )}
       role="slider"
@@ -82,12 +85,12 @@ function PlayerProgressRail({
       }}
     >
       <div
-        className="absolute inset-y-0 left-0 bg-primary"
+        className="absolute inset-y-0 left-0 bg-gradient-to-r from-primary via-primary/90 to-primary/60"
         style={{ width: `${progressPercentage}%` }}
       />
       <div
         className={cn(
-          "absolute top-1/2 h-2 w-2 -translate-y-1/2 rounded-full bg-primary shadow-sm ring-2 ring-background",
+          "absolute top-1/2 h-2 w-2 -translate-y-1/2 rounded-full bg-primary shadow-[0_0_0_2px_rgba(255,255,255,0.8)] dark:shadow-[0_0_0_2px_rgba(0,0,0,0.5)]",
           "opacity-0 transition-opacity duration-200 group-hover:opacity-100"
         )}
         style={{ left: `calc(${progressPercentage}% - 4px)` }}
@@ -136,6 +139,9 @@ interface MusicPlayerProps {
     audioUrl?: string;
     duration?: number;
     genre?: string;
+    coverImage?: string;
+    coverR2Url?: string;
+    tags?: string;
   };
   
   // 音频引用 - 由父组件管理
@@ -147,6 +153,11 @@ const formatTime = (seconds: number): string => {
   const mins = Math.floor(seconds / 60);
   const secs = Math.floor(seconds % 60);
   return `${mins}:${secs.toString().padStart(2, '0')}`;
+};
+
+const truncateText = (value: string, maxLength: number) => {
+  if (value.length <= maxLength) return value;
+  return `${value.slice(0, Math.max(0, maxLength - 1))}…`;
 };
 
 export const MusicPlayer: React.FC<MusicPlayerProps> = React.memo(function MusicPlayer(props) {
@@ -224,25 +235,70 @@ export const MusicPlayer: React.FC<MusicPlayerProps> = React.memo(function Music
   }, [hideProgress, isPlaying]);
 
   const trackTitle = currentTrack?.title || currentPlayingTrack?.title || 'Untitled';
+  const coverUrl =
+    currentTrack?.coverR2Url ||
+    currentTrack?.coverImage ||
+    currentPlayingTrack?.coverR2Url ||
+    currentPlayingTrack?.coverImage;
+  const trackTags = currentTrack?.tags || currentPlayingTrack?.tags;
+  const tagsText = typeof trackTags === "string" ? truncateText(trackTags, 50) : "";
 
   return (
     <div
       ref={rootRef}
       className={cn(
-        "app-card relative rounded-3xl px-3 py-2 md:px-4 md:py-2",
-        "bg-white/90 dark:bg-[rgba(20,22,32,0.92)]",
-        "shadow-[0_18px_60px_rgba(0,0,0,0.16)] dark:shadow-[0_24px_70px_rgba(0,0,0,0.55)]",
-        "dark:ring-1 dark:ring-white/10 backdrop-blur-xl"
+        "app-card relative rounded-[28px] px-4 py-3 md:px-5 md:py-3",
+        "bg-[linear-gradient(180deg,rgba(255,255,255,0.92),rgba(255,255,255,0.72))] dark:bg-[linear-gradient(180deg,rgba(10,11,15,0.96),rgba(6,7,10,0.92))]",
+        "shadow-[0_16px_48px_rgba(0,0,0,0.12)] dark:shadow-[0_26px_70px_rgba(0,0,0,0.58)]",
+        "ring-1 ring-black/10 dark:ring-white/10 backdrop-blur-xl"
       )}
     >
-      <div className="grid grid-cols-[auto,1fr,auto] items-center gap-3">
-        {/* Left: transport */}
-        <div className="flex items-center gap-1">
+      <div className="grid grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)_auto] items-center gap-3">
+        {/* Left: cover + meta */}
+        <div className="flex items-center gap-3 min-w-0">
+          <div className="relative h-11 w-11 overflow-hidden rounded-2xl bg-foreground/10 ring-1 ring-black/10 dark:ring-white/10">
+            {coverUrl ? (
+              <Image
+                src={coverUrl}
+                alt={trackTitle}
+                fill
+                sizes="40px"
+                className="object-cover"
+              />
+            ) : (
+              <div className="flex h-full w-full items-center justify-center text-foreground/40">
+                <Music className="h-5 w-5" />
+              </div>
+            )}
+          </div>
+          <button
+            type="button"
+            onClick={onTrackInfoClick}
+            disabled={!onTrackInfoClick}
+            className={cn(
+              "min-w-0 text-left",
+              onTrackInfoClick ? "cursor-pointer" : "cursor-default"
+            )}
+            title={trackTitle}
+          >
+            <div className="truncate text-sm font-semibold tracking-tight text-foreground">
+              {trackTitle}
+            </div>
+            {tagsText && (
+              <div className="mt-0.5 truncate text-xs text-muted-foreground/80">
+                {tagsText}
+              </div>
+            )}
+          </button>
+        </div>
+
+        {/* Center: transport */}
+        <div className="flex items-center gap-1 justify-center">
           <PlayerIconButton
             onClick={onPrevious}
             disabled={currentTrackIndex === 0}
             title="Previous"
-            className="h-8 w-8"
+            className="h-9 w-9"
           >
             <Rewind className="h-4 w-4 fill-current" />
           </PlayerIconButton>
@@ -252,16 +308,32 @@ export const MusicPlayer: React.FC<MusicPlayerProps> = React.memo(function Music
             onClick={onPlayPause}
             aria-label={isPlaying ? "Pause" : "Play"}
             className={cn(
-              "inline-flex h-10 w-10 items-center justify-center rounded-full",
-              "bg-primary text-primary-foreground shadow-[0_12px_34px_rgba(0,0,0,0.22)]",
-              "transition-transform hover:scale-[1.03] active:scale-[0.98]",
-              "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+              "inline-flex h-12 w-12 items-center justify-center rounded-full",
+              "border border-primary text-primary-foreground shadow-[0_14px_32px_rgba(0,0,0,0.22)]",
+              "bg-primary",
+              "transition-transform active:scale-[0.98]",
+              "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50 focus-visible:ring-offset-2 focus-visible:ring-offset-background"
             )}
           >
             {isPlaying ? (
-              <Pause className="h-5 w-5 fill-current" />
+              <svg
+                viewBox="0 0 24 24"
+                className="h-5 w-5 text-primary-foreground"
+                aria-hidden="true"
+                focusable="false"
+              >
+                <rect x="7" y="6" width="3.5" height="12" rx="1" fill="currentColor" />
+                <rect x="13.5" y="6" width="3.5" height="12" rx="1" fill="currentColor" />
+              </svg>
             ) : (
-              <Play className="h-5 w-5 fill-current translate-x-[1px]" />
+              <svg
+                viewBox="0 0 24 24"
+                className="h-5 w-5 translate-x-[1px] text-primary-foreground"
+                aria-hidden="true"
+                focusable="false"
+              >
+                <path d="M8 5.5L19 12L8 18.5V5.5Z" fill="currentColor" />
+              </svg>
             )}
           </button>
 
@@ -269,37 +341,19 @@ export const MusicPlayer: React.FC<MusicPlayerProps> = React.memo(function Music
             onClick={onNext}
             disabled={currentTrackIndex === tracks.length - 1}
             title="Next"
-            className="h-8 w-8"
+            className="h-9 w-9"
           >
             <FastForward className="h-4 w-4 fill-current" />
           </PlayerIconButton>
         </div>
 
-        {/* Middle: meta + progress */}
-        <div className="min-w-0">
-          <button
-            type="button"
-            onClick={onTrackInfoClick}
-            disabled={!onTrackInfoClick}
-            className={cn("w-full text-left", onTrackInfoClick ? "cursor-pointer" : "cursor-default")}
-            title={trackTitle}
-          >
-            <div className="flex items-baseline justify-between gap-3">
-              <div className="min-w-0">
-                <div className="truncate text-sm font-semibold tracking-tight text-foreground">
-                  {trackTitle}
-                </div>
-              </div>
-              <div className="flex items-center gap-2 text-xs text-muted-foreground tabular-nums">
-                <span>{formatTime(currentTime)}</span>
-                <span className="opacity-50">/</span>
-                <span>{formatTime(currentDuration)}</span>
-              </div>
-            </div>
-          </button>
-
+        {/* Right: progress + time */}
+        <div className="flex items-center gap-3 w-full min-w-0">
+          <div className="flex items-center gap-2 text-xs text-muted-foreground tabular-nums">
+            <span>{formatTime(currentTime)}</span>
+          </div>
           {!hideProgress && (
-            <div className="mt-2">
+            <div className="flex-1 min-w-[140px]">
               <PlayerProgressRail
                 currentDuration={currentDuration}
                 currentTime={currentTime}
@@ -308,10 +362,13 @@ export const MusicPlayer: React.FC<MusicPlayerProps> = React.memo(function Music
               />
             </div>
           )}
+          <div className="flex items-center gap-2 text-xs text-muted-foreground tabular-nums">
+            <span>{formatTime(currentDuration)}</span>
+          </div>
         </div>
 
         {/* Right: actions */}
-        <div className="flex items-center gap-1">
+        <div className="flex items-center gap-1 justify-self-end">
           {enableVocalSeparation && currentTrack?.audioId && currentTrack?.taskId && currentTrack?.audioUrl && (
             <VocalSeparationButton
               trackId={currentTrack.id}

@@ -1251,7 +1251,10 @@ export const StudioPanel = (props: StudioPanelProps) => {
                           />
                         )}
                         <span className="text-[11px]">{instrument.name}</span>
-                        <button
+                        <div
+                          role="button"
+                          tabIndex={0}
+                          aria-label="Play sample"
                           onClick={(e) => {
                             e.stopPropagation();
                             const audioUrl = getInstrumentAudio(instrument.id);
@@ -1259,11 +1262,20 @@ export const StudioPanel = (props: StudioPanelProps) => {
                               playPreviewAudio(audioUrl, `instrument-${instrument.id}`);
                             }
                           }}
-                          className="absolute inset-0 m-auto h-8 w-8 rounded-full bg-black/50 text-white transition-all duration-200 hover:bg-black/60 opacity-0 group-hover:opacity-100"
+                          onKeyDown={(event) => {
+                            if (event.key === "Enter" || event.key === " ") {
+                              event.preventDefault();
+                              const audioUrl = getInstrumentAudio(instrument.id);
+                              if (audioUrl) {
+                                playPreviewAudio(audioUrl, `instrument-${instrument.id}`);
+                              }
+                            }
+                          }}
+                          className="absolute inset-0 m-auto h-8 w-8 rounded-full bg-black/50 text-white transition-all duration-200 hover:bg-black/60 opacity-0 group-hover:opacity-100 flex items-center justify-center"
                           title="Play sample"
                         >
-                          <Play className="h-4 w-4 mx-auto" />
-                        </button>
+                          <Play className="h-4 w-4" />
+                        </div>
                       </div>
                     </div>
                   );
@@ -1320,7 +1332,10 @@ export const StudioPanel = (props: StudioPanelProps) => {
                           />
                         )}
                         <span className="text-[11px]">{kit.name}</span>
-                        <button
+                        <div
+                          role="button"
+                          tabIndex={0}
+                          aria-label="Play sample"
                           onClick={(e) => {
                             e.stopPropagation();
                             const audioUrl = getDrumKitAudio(kit.id);
@@ -1328,11 +1343,20 @@ export const StudioPanel = (props: StudioPanelProps) => {
                               playPreviewAudio(audioUrl, `drum-${kit.id}`);
                             }
                           }}
-                          className="absolute inset-0 m-auto h-8 w-8 rounded-full bg-black/50 text-white transition-all duration-200 hover:bg-black/60 opacity-0 group-hover:opacity-100"
+                          onKeyDown={(event) => {
+                            if (event.key === "Enter" || event.key === " ") {
+                              event.preventDefault();
+                              const audioUrl = getDrumKitAudio(kit.id);
+                              if (audioUrl) {
+                                playPreviewAudio(audioUrl, `drum-${kit.id}`);
+                              }
+                            }
+                          }}
+                          className="absolute inset-0 m-auto h-8 w-8 rounded-full bg-black/50 text-white transition-all duration-200 hover:bg-black/60 opacity-0 group-hover:opacity-100 flex items-center justify-center"
                           title="Play sample"
                         >
-                          <Play className="h-4 w-4 mx-auto" />
-                        </button>
+                          <Play className="h-4 w-4" />
+                        </div>
                       </div>
                     </div>
                   );
@@ -1752,12 +1776,20 @@ export const StudioPanel = (props: StudioPanelProps) => {
                 </div>
                 <div className="flex flex-nowrap gap-2 overflow-x-auto pb-1">
                   {leadInstruments.map((instrument: any) => (
-                    <button
+                    <div
                       key={`instrument-${instrument.id}`}
+                      role="button"
+                      tabIndex={0}
                       onClick={() => {
                         setLeadInstrument([instrument.id]);
                       }}
-                      className="group relative inline-flex shrink-0 flex-col items-center gap-1.5 px-3 py-2 rounded-lg bg-slate-50 text-[#0c0c16] transition-all duration-200 dark:bg-white/10 dark:text-foreground dark:border-white/15"
+                      onKeyDown={(event) => {
+                        if (event.key === "Enter" || event.key === " ") {
+                          event.preventDefault();
+                          setLeadInstrument([instrument.id]);
+                        }
+                      }}
+                      className="group relative inline-flex shrink-0 cursor-pointer flex-col items-center gap-1.5 px-3 py-2 rounded-lg bg-slate-50 text-[#0c0c16] transition-all duration-200 dark:bg-white/10 dark:text-foreground dark:border-white/15"
                     >
                       {getInstrumentIcon(instrument.id) && (
                         <Image
@@ -1769,8 +1801,10 @@ export const StudioPanel = (props: StudioPanelProps) => {
                         />
                       )}
                       <span className="text-[11px]">{instrument.name}</span>
-                      <button
-                        type="button"
+                      <div
+                        role="button"
+                        tabIndex={0}
+                        aria-label="Play sample"
                         onClick={(e) => {
                           e.stopPropagation();
                           const audioUrl = getInstrumentAudio(instrument.id);
@@ -1778,20 +1812,37 @@ export const StudioPanel = (props: StudioPanelProps) => {
                             playPreviewAudio(audioUrl, `instrument-${instrument.id}`);
                           }
                         }}
-                        className="absolute inset-0 m-auto h-8 w-8 rounded-full bg-black/50 text-white transition-all duration-200 hover:bg-black/60 opacity-0 group-hover:opacity-100"
+                        onKeyDown={(event) => {
+                          if (event.key === "Enter" || event.key === " ") {
+                            event.preventDefault();
+                            const audioUrl = getInstrumentAudio(instrument.id);
+                            if (audioUrl) {
+                              playPreviewAudio(audioUrl, `instrument-${instrument.id}`);
+                            }
+                          }
+                        }}
+                        className="absolute inset-0 m-auto h-8 w-8 rounded-full bg-black/50 text-white transition-all duration-200 hover:bg-black/60 opacity-0 group-hover:opacity-100 flex items-center justify-center"
                         title="Play sample"
                       >
-                        <Play className="h-4 w-4 mx-auto" />
-                      </button>
-                    </button>
+                        <Play className="h-4 w-4" />
+                      </div>
+                    </div>
                   ))}
                   {drumKits.map((kit: any) => (
-                    <button
+                    <div
                       key={`drum-${kit.id}`}
+                      role="button"
+                      tabIndex={0}
                       onClick={() => {
                         setDrumKit(kit.id);
                       }}
-                      className="group relative inline-flex shrink-0 flex-col items-center gap-1.5 px-3 py-2 rounded-lg bg-slate-50 text-[#0c0c16] transition-all duration-200 dark:bg-white/10 dark:text-foreground dark:border-white/15"
+                      onKeyDown={(event) => {
+                        if (event.key === "Enter" || event.key === " ") {
+                          event.preventDefault();
+                          setDrumKit(kit.id);
+                        }
+                      }}
+                      className="group relative inline-flex shrink-0 cursor-pointer flex-col items-center gap-1.5 px-3 py-2 rounded-lg bg-slate-50 text-[#0c0c16] transition-all duration-200 dark:bg-white/10 dark:text-foreground dark:border-white/15"
                     >
                       {getDrumKitIcon(kit.id) && (
                         <Image
@@ -1803,8 +1854,10 @@ export const StudioPanel = (props: StudioPanelProps) => {
                         />
                       )}
                       <span className="text-[11px]">{kit.name}</span>
-                      <button
-                        type="button"
+                      <div
+                        role="button"
+                        tabIndex={0}
+                        aria-label="Play sample"
                         onClick={(e) => {
                           e.stopPropagation();
                           const audioUrl = getDrumKitAudio(kit.id);
@@ -1812,12 +1865,21 @@ export const StudioPanel = (props: StudioPanelProps) => {
                             playPreviewAudio(audioUrl, `drum-${kit.id}`);
                           }
                         }}
-                        className="absolute inset-0 m-auto h-8 w-8 rounded-full bg-black/50 text-white transition-all duration-200 hover:bg-black/60 opacity-0 group-hover:opacity-100"
+                        onKeyDown={(event) => {
+                          if (event.key === "Enter" || event.key === " ") {
+                            event.preventDefault();
+                            const audioUrl = getDrumKitAudio(kit.id);
+                            if (audioUrl) {
+                              playPreviewAudio(audioUrl, `drum-${kit.id}`);
+                            }
+                          }
+                        }}
+                        className="absolute inset-0 m-auto h-8 w-8 rounded-full bg-black/50 text-white transition-all duration-200 hover:bg-black/60 opacity-0 group-hover:opacity-100 flex items-center justify-center"
                         title="Play sample"
                       >
-                        <Play className="h-4 w-4 mx-auto" />
-                      </button>
-                    </button>
+                        <Play className="h-4 w-4" />
+                      </div>
+                    </div>
                   ))}
                 </div>
               </div>
@@ -1936,13 +1998,13 @@ export const StudioPanel = (props: StudioPanelProps) => {
             {!instrumentalMode && (
               <section className="studio-panel-card rounded-2xl p-3 flex items-center justify-between">
                 <Label className="text-sm font-medium text-foreground">Vocal Gender</Label>
-                <div className="flex gap-2">
+                <div className="studio-panel-card inline-flex items-center rounded-full p-1 gap-1">
                   <button
                     onClick={() => setVocalGender('random')}
-                    className={`px-4 py-2 rounded-full text-sm font-medium transition-colors ${
+                    className={`px-4 py-2 text-xs md:text-sm font-semibold transition-colors duration-200 rounded-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background ${
                       vocalGender === 'random'
-                        ? 'bg-primary text-primary-foreground'
-                        : 'bg-muted/30 text-muted-foreground hover:bg-muted/50 hover:text-foreground'
+                        ? 'bg-primary text-primary-foreground shadow-[0_1px_1px_rgba(0,0,0,0.08)]'
+                        : 'text-foreground/60 hover:text-foreground hover:bg-foreground/5'
                     }`}
                   >
                     Random
@@ -1951,11 +2013,11 @@ export const StudioPanel = (props: StudioPanelProps) => {
                     <button
                       key={gender.id}
                       onClick={() => setVocalGender(gender.id)}
-                      className={`px-4 py-2 rounded-full text-sm font-medium transition-colors ${
+                      className={`px-4 py-2 text-xs md:text-sm font-semibold transition-colors duration-200 rounded-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background ${
                         vocalGender === gender.id
-                          ? 'bg-primary text-primary-foreground'
-                          : 'bg-muted/30 text-muted-foreground hover:bg-muted/50 hover:text-foreground'
-                      }`}
+                          ? 'bg-primary text-primary-foreground shadow-[0_1px_1px_rgba(0,0,0,0.08)]'
+                          : 'text-foreground/60 hover:text-foreground hover:bg-foreground/5'
+                    }`}
                     >
                       {gender.name}
                     </button>

@@ -299,7 +299,6 @@ const StudioContent = () => {
     }, [generatedTracks, userTracks, createTrackObject]);
 
     // 为 MusicPlayer 创建稳定的 tracks 数组，避免不必要的重新渲染
-    // 注意：移动端播放器不再显示封面，只显示歌曲标题和时长
     const musicPlayerTracks = React.useMemo(() => {
         return allTracks.map(track => ({
             id: track.id,
@@ -307,6 +306,9 @@ const StudioContent = () => {
             audioUrl: track.audioUrl,
             duration: track.duration,
             artist: track.genre,
+            tags: track.tags,
+            coverImage: track.coverImage,
+            coverR2Url: track.coverR2Url,
             allTracks: [{
                 id: track.id,
                 audioUrl: track.audioUrl,
@@ -384,6 +386,8 @@ const StudioContent = () => {
                 tags: localTrack.tags,
                 generationId: localTrack.generationId,
                 isFavorited: localTrack.isFavorited,
+                coverImage: localTrack.coverImage,
+                coverR2Url: localTrack.coverR2Url,
             });
             
         } catch (error) {
@@ -1729,6 +1733,7 @@ const StudioContent = () => {
     const musicPlayerProps = {
         tracks: musicPlayerTracks,
         currentTrackIndex: allTracks.findIndex(track => track.id === player.currentTrack?.id),
+        currentPlayingTrack: player.currentTrack || undefined,
         isPlaying: player.isPlaying,
         currentTime: player.currentTime,
         duration: player.duration,

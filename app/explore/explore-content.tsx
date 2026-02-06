@@ -463,6 +463,7 @@ export default function ExplorePage() {
                 duration: typeof music.totalDuration === 'string' ? parseFloat(music.totalDuration) : music.totalDuration,
                 coverImage: music.primaryTrack.coverR2Url,
                 artist: music.genre,
+                tags: music.tags || "",
                 allTracks: music.allTracks.map(track => ({
                   id: track.id,
                   audioUrl: track.audioUrl,

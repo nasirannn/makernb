@@ -166,7 +166,9 @@ const LibraryContent = () => {
             streamAudioUrl: track.streamAudioUrl,
             duration: track.duration,
             artist: track.genre || 'Unknown Artist',
+            tags: track.tags,
             coverImage: track.coverImage || undefined,
+            coverR2Url: (track as any).coverR2Url || undefined,
             allTracks: [{
                 id: track.id,
                 audioUrl: track.audioUrl,

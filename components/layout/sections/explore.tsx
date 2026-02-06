@@ -487,6 +487,7 @@ export const ExploreSection = () => {
                   duration: music.totalDuration,
                   coverImage: music.primaryTrack.coverR2Url || "",
                   artist: music.primaryTrack.artist || "Unknown Artist",
+                  tags: music.tags || "",
                   allTracks: music.allTracks.map((track) => ({
                     id: track.id,
                     audioUrl: track.audioUrl || "",
