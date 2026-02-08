@@ -22,17 +22,17 @@ export const MobileCreateDrawer = React.memo(({
   if (!isOpen) return null;
 
   return (
-    <div className="md:hidden fixed inset-0 z-[50]">
+    <div className="md:hidden fixed inset-0 z-[130]">
       <div className="absolute inset-0 bg-black/50" onClick={onClose} />
       <div 
-        className="absolute bottom-0 left-0 right-0 bg-background border-t border-border/30 rounded-t-3xl shadow-2xl transform-gpu transition-transform duration-300 ease-out will-change-transform overflow-hidden" 
+        className="absolute bottom-0 left-0 right-0 bg-background border-t border-border/30 rounded-t-3xl shadow-2xl transform-gpu transition-transform duration-300 ease-out will-change-transform overflow-hidden pb-[env(safe-area-inset-bottom)]" 
         style={{ 
           height: 'auto', 
-          minHeight: 'calc(500px + var(--mobile-nav-height, 0px))', 
-          maxHeight: 'calc(100vh - var(--mobile-nav-height, 0px))' 
+          minHeight: '500px', 
+          maxHeight: '100dvh' 
         }}
       >
-        <div className="flex flex-col" style={{ maxHeight: 'calc(100vh - var(--mobile-nav-height, 0px))' }}>
+        <div className="flex flex-col" style={{ maxHeight: '100dvh' }}>
           {/* Drag Handle - 拖动指示器 */}
           <div 
             onClick={onClose}
@@ -82,7 +82,7 @@ export const MobileCreateDrawer = React.memo(({
           </div>
 
           {/* Create Panel Content */}
-          <div className="overflow-y-auto" style={{ maxHeight: 'calc(100vh - var(--mobile-nav-height, 0px) - 140px)' }}>
+          <div className="overflow-y-auto" style={{ maxHeight: 'calc(100dvh - 140px - env(safe-area-inset-bottom))' }}>
             <StudioPanel
               {...studioPanelProps}
               forceVisibleOnMobile
@@ -98,4 +98,3 @@ export const MobileCreateDrawer = React.memo(({
 });
 
 MobileCreateDrawer.displayName = 'MobileCreateDrawer';
-

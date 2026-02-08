@@ -4,7 +4,7 @@ import React from 'react';
 import Image from 'next/image';
 import { Button } from "@/components/ui/button";
 import { CustomAudioWaveIndicator } from '@/components/ui/audio-wave-indicator';
-import { Play, Pause, Music, Loader2 } from "lucide-react";
+import { Play, Pause, Loader2 } from "lucide-react";
 
 interface TrackCoverProps {
   coverUrl?: string;
@@ -17,6 +17,8 @@ interface TrackCoverProps {
   onPlayPause?: () => void;
   trackId?: string;
   isExtension?: boolean;
+  showLoadingOverlay?: boolean;
+  durationLabel?: string | null;
 }
 
 export const TrackCover: React.FC<TrackCoverProps> = ({
@@ -30,15 +32,17 @@ export const TrackCover: React.FC<TrackCoverProps> = ({
   onPlayPause,
   trackId,
   isExtension = false,
+  showLoadingOverlay = true,
+  durationLabel,
 }) => {
   const showPlayButton = !isError && hasPlayableAudio && onPlayPause;
   const showWaveIndicator = isCurrentTrack && isPlaying && !isError;
-  const sizeClass = isExtension ? 'w-12 h-12' : 'w-16 h-16';
-  const imageSize = isExtension ? 48 : 64;
-  const iconSize = isExtension ? 'h-4 w-4' : 'h-6 w-6';
+  const sizeClass = isExtension ? 'w-12 h-12' : 'w-[80px] h-[80px]';
+  const imageSize = isExtension ? 48 : 80;
   const buttonSize = isExtension ? 'h-7 w-7' : 'h-8 w-8';
   const iconButtonSize = isExtension ? 'h-3 w-3' : 'h-4 w-4';
-  const showLoading = !isError && !hasPlayableAudio;
+  const showLoading = showLoadingOverlay && !isError && !hasPlayableAudio;
+  const showAnimatedPlaceholder = !isError && !coverUrl && (isGenerating || showLoading);
 
   return (
     <div
@@ -62,12 +66,13 @@ export const TrackCover: React.FC<TrackCoverProps> = ({
           className="w-full h-full object-cover transition-all duration-300 border-0"
         />
       ) : (
-        <div className="w-full h-full bg-gradient-to-br from-primary/20 to-primary/40 flex items-center justify-center transition-all duration-300 border-0">
-          {isGenerating ? (
-            <Music className={`${iconSize} text-primary/90 animate-pulse`} />
-          ) : (
-            <Music className={`${iconSize} text-primary`} />
-          )}
+        <div className="relative h-full w-full overflow-hidden bg-gradient-to-br from-primary/85 via-primary/45 to-primary/20 dark:from-primary/70 dark:via-primary/35 dark:to-primary/10">
+          <div className={`absolute -left-1/4 -top-1/4 h-14 w-14 rounded-full bg-white/20 blur-2xl ${showAnimatedPlaceholder ? 'animate-pulse' : ''}`} />
+          <div
+            className={`absolute -bottom-1/4 -right-1/4 h-16 w-16 rounded-full bg-primary-foreground/20 blur-2xl ${showAnimatedPlaceholder ? 'animate-pulse' : ''}`}
+            style={showAnimatedPlaceholder ? { animationDelay: '500ms' } : undefined}
+          />
+          <div className="absolute inset-0 bg-[linear-gradient(135deg,transparent_12%,rgba(255,255,255,0.12)_48%,transparent_82%)]" />
         </div>
       )}
 
@@ -106,6 +111,14 @@ export const TrackCover: React.FC<TrackCoverProps> = ({
             size="sm"
             className="text-white"
           />
+        </div>
+      )}
+
+      {durationLabel && !showLoading && (
+        <div className="pointer-events-none absolute inset-x-0 bottom-1.5 flex items-center justify-center">
+          <span className="inline-flex items-center rounded-md bg-black/60 px-2 py-0.5 text-[10px] font-medium leading-none text-white/90 backdrop-blur-sm">
+            {durationLabel}
+          </span>
         </div>
       )}
     </div>

@@ -35,6 +35,7 @@ interface UploadPayload {
   title: string;
   style?: string;
   prompt?: string;
+  personaId?: string;
   model?: string;
   callBackUrl: string;
   instrumental?: boolean;
@@ -69,6 +70,10 @@ function buildKIEPayload(mode: UploadMode, params: UploadPayload) {
 
   if (mode === 'extend' && useDefaultParamFlag && typeof params.continueAt === 'number') {
     payload.continueAt = params.continueAt;
+  }
+
+  if (params.personaId) {
+    payload.persona_id = params.personaId;
   }
 
   return payload;
@@ -155,6 +160,7 @@ export async function POST(request: NextRequest) {
   const promptInput = formData.get('prompt')?.toString() || formData.get('lyrics')?.toString() || '';
   const promptLimit = !defaultParamFlag ? 400 : limits.prompt;
   const prompt = promptInput.slice(0, promptLimit) || '';
+  const personaId = formData.get('personaId')?.toString().trim() || '';
   const instrumental = formData.get('instrumental') === 'true';
   const continueAt = parseNumber(formData.get('continueAt'), 0);
 
@@ -244,6 +250,7 @@ export async function POST(request: NextRequest) {
       title,
       style,
       prompt,
+      personaId,
       model,
       callBackUrl: callbackUrl,
       instrumental,
@@ -343,30 +350,42 @@ export async function POST(request: NextRequest) {
 
     console.log(`[UPLOAD-AUDIO] ✅ Created ${initialTracks.length} placeholder tracks for taskId: ${taskId}`);
 
-    // 启动封面生成（异步，不阻塞响应）
-    setImmediate(async () => {
-      try {
-        const coverResponse = await fetch(`${process.env.CallBackURL}/api/cover/generate`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            musicTaskId: taskId,
-            userId: userId
-          }),
-        });
+    // 立即启动封面生成：在拿到 taskId 后同步发起请求，不再等待 first/complete 回调
+    try {
+      const callBackBaseUrl = process.env.CallBackURL;
+      if (!callBackBaseUrl) {
+        console.warn(`[UPLOAD-AUDIO] Cover trigger skipped: CallBackURL is not configured`);
+      } else {
+        const coverExists = await query(
+          'SELECT id FROM cover_generations WHERE music_task_id = $1 LIMIT 1',
+          [taskId]
+        );
 
-        if (coverResponse.ok) {
-          console.log(`[UPLOAD-AUDIO] ✅ Cover generation started for taskId: ${taskId}`);
+        if (coverExists.rows.length > 0) {
+          console.log(`[UPLOAD-AUDIO] Cover generation already exists for taskId: ${taskId}`);
         } else {
-          console.error(`[UPLOAD-AUDIO] ❌ Cover generation failed for taskId: ${taskId}`);
+          const coverResponse = await fetch(`${callBackBaseUrl}/api/cover/generate`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              musicTaskId: taskId,
+              userId
+            }),
+          });
+
+          if (coverResponse.ok) {
+            console.log(`[UPLOAD-AUDIO] ✅ Cover generation started for taskId: ${taskId}`);
+          } else {
+            const coverError = await coverResponse.text().catch(() => '');
+            console.error(`[UPLOAD-AUDIO] ❌ Cover generation failed for taskId: ${taskId}, status=${coverResponse.status}, details=${coverError}`);
+          }
         }
-      } catch (coverError) {
-        console.error(`[UPLOAD-AUDIO] Error starting cover generation:`, coverError);
-        // 封面生成失败不影响上传流程
       }
-    });
+    } catch (coverError) {
+      console.error(`[UPLOAD-AUDIO] Error starting cover generation:`, coverError);
+    }
 
     return NextResponse.json({
       success: true,

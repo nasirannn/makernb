@@ -56,8 +56,9 @@ interface StudioTracksListProps {
   selectedTrack?: string | null;
   generatedTracks?: any[];
   onGeneratedTrackSelect?: (trackId: string) => void;
-  onDownload?: (track: LibraryTrack, music: MusicGeneration, format?: 'mp3' | 'wav' | 'cover') => void;
+  onDownload?: (track: LibraryTrack, music: MusicGeneration, format?: 'mp3' | 'wav' | 'mp4' | 'cover') => void;
   onFavoriteToggle?: (track: LibraryTrack, music: MusicGeneration) => void;
+  onLikeToggle?: (track: LibraryTrack, music: MusicGeneration) => void;
   onDelete?: (track: LibraryTrack, music: MusicGeneration) => void;
   onEditTitle?: (trackId: string, newTitle: string) => void;
   onEditMusicInfo?: (trackId: string, data: { title: string; coverImageUrl?: string }) => Promise<void>;
@@ -89,33 +90,17 @@ const TrackListSkeleton = ({ count = 5, className = '' }: { count?: number; clas
       </div>
     </div>
     {[...Array(count)].map((_, index) => (
-      <div
-        key={index}
-        className="rounded-2xl px-3 py-2"
-      >
+      <div key={index} className="rounded-2xl px-2.5 py-2">
         <div className="flex items-center gap-2">
-          <Skeleton className="h-8 w-8 rounded-full" />
-          
-          {/* Cover */}
-          <Skeleton className="h-16 w-16 rounded-md flex-shrink-0" />
+          <Skeleton className="h-[80px] w-[80px] rounded-md flex-shrink-0" />
 
-          {/* Title + info */}
-          <div className="flex-1 min-w-0">
-            <Skeleton className="h-4 w-2/3 mb-2" />
-            <div className="flex items-center gap-2 mb-2">
-              <Skeleton className="h-3 w-14" />
-              <Skeleton className="h-3 w-28" />
+          <div className="min-w-0 flex-1 space-y-2">
+            <div className="flex items-center gap-2">
+              <Skeleton className="h-4 w-[58%]" />
+              <Skeleton className="ml-auto h-4 w-10 rounded-full" />
             </div>
-            <div className="flex items-center gap-3">
-              <Skeleton className="h-3 w-24" />
-            </div>
-          </div>
-
-          {/* Actions */}
-          <div className="flex items-center gap-2 flex-shrink-0">
-            <Skeleton className="h-8 w-8 rounded-full" />
-            <Skeleton className="h-8 w-8 rounded-full" />
-            <Skeleton className="h-8 w-8 rounded-full" />
+            <Skeleton className="h-3 w-[76%]" />
+            <Skeleton className="h-3 w-[62%]" />
           </div>
         </div>
       </div>
@@ -138,6 +123,7 @@ export const StudioTracksList: React.FC<StudioTracksListProps> = React.memo(func
   onGeneratedTrackSelect,
   onDownload,
   onFavoriteToggle,
+  onLikeToggle,
   onDelete,
   onEditTitle,
   onEditMusicInfo,
@@ -161,6 +147,7 @@ export const StudioTracksList: React.FC<StudioTracksListProps> = React.memo(func
   // 权限检查
   const canDownloadMP3 = hasPermission('download_mp3_track');
   const canDownloadWAV = hasPermission('download_wav_track');
+  const canDownloadMP4 = hasPermission('download_mp4_track');
   const canDownloadCover = hasPermission('download_cover_track');
   const canVocalRemoval = hasPermission('vocal_removal_studio');
   const canExtendMusic = hasPermission('extend_music');
@@ -417,7 +404,7 @@ export const StudioTracksList: React.FC<StudioTracksListProps> = React.memo(func
   }, []);
   
   // 处理下载
-  const handleDownload = useCallback((track: any, music: any, format: 'mp3' | 'wav' | 'cover' = 'mp3') => {
+  const handleDownload = useCallback((track: any, music: any, format: 'mp3' | 'wav' | 'mp4' | 'cover' = 'mp3') => {
     if (onDownload) {
       onDownload(track, music ?? track.musicGeneration, format);
     }
@@ -429,6 +416,12 @@ export const StudioTracksList: React.FC<StudioTracksListProps> = React.memo(func
       onFavoriteToggle(track, track.musicGeneration);
     }
   }, [onFavoriteToggle]);
+
+  const handleLikeToggle = useCallback((track: any) => {
+    if (onLikeToggle) {
+      onLikeToggle(track, track.musicGeneration);
+    }
+  }, [onLikeToggle]);
   
   // 处理删除 - 显示确认弹窗
   const handleDelete = useCallback((trackId: string) => {
@@ -547,9 +540,9 @@ export const StudioTracksList: React.FC<StudioTracksListProps> = React.memo(func
 
     // 获取原始 track 信息（从所有 tracks 中查找）
     const originalTrack = findTrackById(pendingExtendMusicTrackId);
-    const trackTitle = params.defaultParamFlag 
-      ? `${pendingExtendMusicTrackTitle} (Extended)`
-      : (params.title || pendingExtendMusicTrackTitle);
+    const trackTitle = params.defaultParamFlag
+      ? (params.title || pendingExtendMusicTrackTitle)
+      : `${pendingExtendMusicTrackTitle} (Extended)`;
 
     try {
       // 获取认证令牌
@@ -566,8 +559,8 @@ export const StudioTracksList: React.FC<StudioTracksListProps> = React.memo(func
         defaultParamFlag: params.defaultParamFlag,
       };
 
-      // 如果是自定义模式，添加自定义参数
-      if (!params.defaultParamFlag) {
+      // 如果是自定义模式（defaultParamFlag=true），添加自定义参数
+      if (params.defaultParamFlag) {
         requestBody.prompt = params.prompt;
         requestBody.style = params.style;
         requestBody.title = params.title;
@@ -1088,6 +1081,7 @@ export const StudioTracksList: React.FC<StudioTracksListProps> = React.memo(func
                             modelBadgePlacement="none"
                             canDownloadMP3={canDownloadMP3}
                             canDownloadWAV={canDownloadWAV}
+                            canDownloadMP4={canDownloadMP4}
                             canDownloadCover={canDownloadCover}
                             canVocalRemoval={canVocalRemoval}
                             canExtendMusic={canExtendMusic}
@@ -1100,9 +1094,11 @@ export const StudioTracksList: React.FC<StudioTracksListProps> = React.memo(func
                                 handleTrackSelect(track);
                               }
                             }}
+                            onPreviewLyrics={onTrackPreview ? () => onTrackPreview(track) : undefined}
                             onPlayPause={() => handlePlayPause(track)}
                             onFavoriteToggle={onFavoriteToggle ? () => handleFavoriteToggle(track) : undefined}
                             onShare={() => handleShare(track.id)}
+                            onLikeToggle={onLikeToggle ? () => handleLikeToggle(track) : undefined}
                             onDownload={onDownload ? (format) => handleDownload(track, track.musicGeneration, format) : undefined}
                             onVocalRemoval={() => handleVocalRemoval(track.id)}
                             onExtendMusic={() => handleExtendMusic(track.id)}

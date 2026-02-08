@@ -36,7 +36,21 @@ export async function GET(request: NextRequest) {
         mt.cover_image_url as cover_r2_url,
         mg.tags,
         mg.genre,
-        mg.created_at as music_created_at
+        mg.created_at as music_created_at,
+        EXISTS(
+          SELECT 1
+          FROM track_personas tp
+          WHERE tp.audio_id = mt.suno_track_id
+            AND COALESCE(tp.status, 'active') = 'active'
+        ) AS has_persona,
+        (
+          SELECT tp.persona_id
+          FROM track_personas tp
+          WHERE tp.audio_id = mt.suno_track_id
+            AND COALESCE(tp.status, 'active') = 'active'
+          ORDER BY tp.created_at DESC
+          LIMIT 1
+        ) AS persona_id
       FROM tracks mt
       INNER JOIN music mg ON mt.music_id = mg.id
       WHERE mg.user_id = $1::uuid
@@ -61,6 +75,8 @@ export async function GET(request: NextRequest) {
       tags: row.tags || '',
       genre: row.genre || '',
       createdAt: row.music_created_at,
+      hasPersona: !!row.has_persona,
+      personaId: row.persona_id || null,
       // 标记是否可以用于人声分离（KIE API 需要 audioId）
       canSeparate: !!row.audio_id && row.audio_id !== ''
     }));
@@ -78,4 +94,3 @@ export async function GET(request: NextRequest) {
     );
   }
 }
-

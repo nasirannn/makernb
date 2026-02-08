@@ -30,6 +30,7 @@ import { MobileStudioHeader } from "@/components/ui/mobile-studio-header";
 import { MobileCreateDrawer } from "@/components/ui/mobile-create-drawer";
 import { GenerationConfirmDialog } from "@/components/ui/generation-confirm-dialog";
 import { DownloadProgressDialog } from "@/components/ui/download-progress-dialog";
+import { Mp4BrandingDialog } from "@/components/ui/mp4-branding-dialog";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -83,6 +84,11 @@ const StudioContent = () => {
     const [wavDownloadStatusText, setWavDownloadStatusText] = useState<string>('');
     const [wavDownloadErrorMessage, setWavDownloadErrorMessage] = useState<string>('');
     const [wavDownloadTrackTitle, setWavDownloadTrackTitle] = useState<string>('');
+    const [mp4DialogOpen, setMp4DialogOpen] = useState(false);
+    const [pendingMp4Track, setPendingMp4Track] = useState<any>(null);
+    const [pendingMp4Music, setPendingMp4Music] = useState<any>(null);
+    const [mp4Author, setMp4Author] = useState('');
+    const [mp4DomainName, setMp4DomainName] = useState('');
 
     // 本地状态管理 - 替换zustand store
     const [userTracks, setUserTracks] = useState<any[]>([]);
@@ -95,9 +101,8 @@ const StudioContent = () => {
     });
     const [selectedStudioTrack, setSelectedStudioTrack] = useState<StudioTrack | null>(null);
     const [panelOpen, setPanelOpen] = useState(true);
-    const [lyricsPanelOpen, setLyricsPanelOpen] = useState(true);
-    const lastSelectedTrackIdRef = useRef<string | null>(null);
-    const [sidebarWidth, setSidebarWidth] = useState(80);
+    const [lyricsPanelOpen, setLyricsPanelOpen] = useState(false);
+    const [sidebarWidth, setSidebarWidth] = useState(72);
     const sidebarOffsetRef = React.useRef(sidebarWidth);
 
     const normalizeDuration = React.useCallback((value: unknown) => {
@@ -155,6 +160,7 @@ const StudioContent = () => {
         bassTone, setBassTone,
         vocalGender, setVocalGender,
         harmonyPalette, setHarmonyPalette,
+        selectedPersonaId, setSelectedPersonaId,
         trackExistingTask,
     } = musicGeneration;
 
@@ -230,6 +236,7 @@ const StudioContent = () => {
         genre?: string,
         lyrics?: string,
         isFavorited: boolean = false,
+        isLiked: boolean = false,
         streamAudioUrl?: string,
         createdAt?: string,
         generationMode?: string
@@ -247,6 +254,7 @@ const StudioContent = () => {
         lyrics,
         generationMode,
         isFavorited: isFavorited, // 使用驼峰命名
+        isLiked: isLiked,
         createdAt
     }), []);
 
@@ -267,6 +275,7 @@ const StudioContent = () => {
                 track.genre,
                 track.lyrics,
                 track.isFavorited ?? false,
+                track.isLiked ?? false,
                 track.streamAudioUrl ?? '',
                 track.createdAt || new Date().toISOString(),
                 track.generationMode
@@ -288,6 +297,7 @@ const StudioContent = () => {
                         music.genre,
                         track.lyrics ?? music.lyrics ?? '',
                         track.isFavorited ?? false,
+                        track.isLiked ?? false,
                         track.streamAudioUrl ?? '',
                         track.createdAt ?? music.createdAt ?? new Date().toISOString(),
                         music.generationMode
@@ -356,6 +366,7 @@ const StudioContent = () => {
                                 track.genre,
                                 track.lyrics,
                                 track.isFavorited || false,
+                                track.isLiked || false,
                             track.streamAudioUrl,
                             track.createdAt,
                             track.generationMode
@@ -386,6 +397,7 @@ const StudioContent = () => {
                 tags: localTrack.tags,
                 generationId: localTrack.generationId,
                 isFavorited: localTrack.isFavorited,
+                isLiked: localTrack.isLiked,
                 coverImage: localTrack.coverImage,
                 coverR2Url: localTrack.coverR2Url,
             });
@@ -811,6 +823,10 @@ const StudioContent = () => {
                 if (!instrumentalMode && trimmedCustomLyrics) {
                     formData.append("prompt", trimmedCustomLyrics.slice(0, limits.prompt));
                 }
+
+                if (selectedPersonaId) {
+                    formData.append("personaId", selectedPersonaId);
+                }
             } else if (trimmedSimplePrompt) {
                 const maxSimplePrompt = 400;
                 formData.append("prompt", trimmedSimplePrompt.slice(0, maxSimplePrompt));
@@ -869,6 +885,7 @@ const StudioContent = () => {
         instrumentalMode,
         mode,
         selectedModel,
+        selectedPersonaId,
         getModelLimits,
         refreshCredits,
         updateTracks,
@@ -921,6 +938,7 @@ const StudioContent = () => {
                     music.genre,
                     track.lyrics || music.lyrics,
                     track.isFavorited || false,
+                    track.isLiked || false,
                     track.streamAudioUrl || '',
                     track.createdAt || music.createdAt || new Date().toISOString(),
                     music.generationMode
@@ -947,6 +965,7 @@ const StudioContent = () => {
             music.genre,
             track.lyrics || music.lyrics,
             track.isFavorited ?? track.is_favorited ?? false,
+            track.isLiked ?? track.is_liked ?? false,
             track.streamAudioUrl || track.stream_audio_url,
             track.createdAt || music.createdAt || new Date().toISOString(),
             music.generationMode
@@ -975,6 +994,7 @@ const StudioContent = () => {
             track.genre || track.musicGenre || '',
             track.lyrics || track.musicGeneration?.lyricsContent || '',
             track.isFavorited ?? false,
+            track.isLiked ?? false,
             track.streamAudioUrl || '',
             track.createdAt || track.musicGeneration?.createdAt || new Date().toISOString(),
             track.musicGeneration?.generationMode
@@ -1127,9 +1147,36 @@ const StudioContent = () => {
         await pollForWav();
     }, [downloadFile]);
 
-    const handleDownload = React.useCallback(async (track: any, music: any, format: 'mp3' | 'wav' | 'cover' = 'mp3') => {
+    const handleDownload = React.useCallback(async (
+        track: any,
+        music: any,
+        format: 'mp3' | 'wav' | 'mp4' | 'cover' = 'mp3',
+        options?: {
+            skipPrompt?: boolean;
+            author?: string;
+            domainName?: string;
+        }
+    ) => {
         if (!track.id) {
             toast.error('Track ID is required');
+            return;
+        }
+
+        if (format === 'mp4' && !options?.skipPrompt) {
+            setPendingMp4Track(track);
+            setPendingMp4Music(music);
+            if (!mp4Author.trim()) {
+                const defaultAuthor =
+                    user?.user_metadata?.nickname ||
+                    user?.user_metadata?.full_name ||
+                    user?.user_metadata?.name ||
+                    user?.email?.split('@')[0] ||
+                    '';
+                if (defaultAuthor) {
+                    setMp4Author(defaultAuthor.slice(0, 50));
+                }
+            }
+            setMp4DialogOpen(true);
             return;
         }
 
@@ -1192,6 +1239,91 @@ const StudioContent = () => {
             // WAV格式：统一通过下载 API 处理（API 会查询 track_wav_conversions 表）
             if (format === 'wav') {
                 await handleWavDownloadWithPolling(track, music, session.access_token);
+                return;
+            }
+
+            // MP4格式：通过下载API处理（轮询等待生成完成）
+            if (format === 'mp4') {
+                const POLL_INTERVAL = 3000;
+                const MAX_POLL_TIME = 180000;
+                const startTime = Date.now();
+                const mp4ToastId = toast.loading('Generating MP4 video...', {
+                    description: 'This may take 1-3 minutes. You can continue using Studio.',
+                });
+
+                const mp4Params = new URLSearchParams({
+                    trackId: track.id,
+                    format: 'mp4',
+                });
+
+                if (options?.author?.trim()) {
+                    mp4Params.set('author', options.author.trim().slice(0, 50));
+                }
+
+                if (options?.domainName?.trim()) {
+                    mp4Params.set('domainName', options.domainName.trim().slice(0, 50));
+                }
+
+                const mp4RequestUrl = `/api/download-track?${mp4Params.toString()}`;
+
+                const pollForMp4 = async (): Promise<void> => {
+                    const response = await fetch(mp4RequestUrl, {
+                        headers: {
+                            'Authorization': `Bearer ${session.access_token}`
+                        }
+                    });
+
+                    const elapsedTime = Date.now() - startTime;
+                    if (elapsedTime > MAX_POLL_TIME) {
+                        throw new Error('MP4 generation timeout');
+                    }
+
+                    if (response.status === 202) {
+                        const data = await response.json();
+                        if (data.status === 'generating') {
+                            await new Promise((resolve) => setTimeout(resolve, POLL_INTERVAL));
+                            return pollForMp4();
+                        }
+                        throw new Error(data.error || data.message || 'MP4 generation failed');
+                    }
+
+                    if (!response.ok) {
+                        const errorData = await response.json().catch(() => ({}));
+                        throw new Error(errorData.message || errorData.error || `HTTP error! status: ${response.status}`);
+                    }
+
+                    const contentType = response.headers.get('content-type');
+                    if (contentType?.includes('application/json')) {
+                        const data = await response.json();
+                        if (data.fallback && data.videoUrl) {
+                            const videoResponse = await fetch(data.videoUrl);
+                            if (!videoResponse.ok) {
+                                throw new Error(`Failed to fetch MP4: ${videoResponse.status}`);
+                            }
+                            const blob = await videoResponse.blob();
+                            downloadFile(blob, track.title || music.title || 'track', 'mp4');
+                            return;
+                        }
+                        throw new Error(data.error || 'Download failed');
+                    }
+
+                    const blob = await response.blob();
+                    downloadFile(blob, track.title || music.title || 'track', 'mp4');
+                };
+
+                try {
+                    await pollForMp4();
+                    toast.success('MP4 download started!', {
+                        id: mp4ToastId,
+                        description: `${track.title || music.title || 'track'}.mp4`,
+                    });
+                } catch (error) {
+                    console.error('MP4 download error:', error);
+                    toast.error('MP4 download failed', {
+                        id: mp4ToastId,
+                        description: error instanceof Error ? error.message : 'Unable to download MP4 file',
+                    });
+                }
                 return;
             }
 
@@ -1259,7 +1391,7 @@ const StudioContent = () => {
             console.error('Download error:', error);
             // 不显示toast，直接静默失败
         }
-    }, [downloadFile, handleWavDownloadWithPolling]);
+    }, [downloadFile, handleWavDownloadWithPolling, mp4Author, user]);
 
     const handleFavoriteToggle = React.useCallback(async (track: any, music: any) => {
         if (!user?.id) {
@@ -1318,6 +1450,62 @@ const StudioContent = () => {
         } catch (error) {
             console.error('Error toggling favorite:', error);
             toast.error('Failed to update favorite status');
+        }
+    }, [user?.id, updateTrack]);
+
+    const handleLikeToggle = React.useCallback(async (track: any, music: any) => {
+        if (!user?.id) {
+            toast('Please log in to like tracks');
+            return;
+        }
+
+        try {
+            const { data: { session } } = await supabase.auth.getSession();
+
+            const response = await fetch('/api/likes/toggle', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${session?.access_token}`,
+                },
+                body: JSON.stringify({
+                    trackId: track.id
+                })
+            });
+
+            if (!response.ok) {
+                throw new Error('Failed to toggle like');
+            }
+
+            const data = await response.json();
+            if (!data.success) {
+                throw new Error(data.error || 'Failed to toggle like');
+            }
+
+            updateTrack(track.id, (t) => ({ ...t, isLiked: data.isLiked }));
+
+            setSelectedStudioTrack(prev => {
+                if (prev?.id === track.id) {
+                    return {
+                        ...prev,
+                        isLiked: data.isLiked
+                    } as StudioTrack;
+                }
+                return prev;
+            });
+
+            if (data.isLiked) {
+                toast.success('Liked', {
+                    description: `You liked "${music.title}".`
+                });
+            } else {
+                toast.success('Unliked', {
+                    description: `You removed like from "${music.title}".`
+                });
+            }
+        } catch (error) {
+            console.error('Error toggling like:', error);
+            toast.error('Failed to update like status');
         }
     }, [user?.id, updateTrack]);
 
@@ -1487,7 +1675,8 @@ const StudioContent = () => {
                 isPinned: false,
                 coverR2Url: completedTrack.coverImage || completedTrack.coverR2Url,
                 lyrics: completedTrack.lyrics || '',
-                isFavorited: false
+                isFavorited: false,
+                isLiked: false
             }]
         };
 
@@ -1513,13 +1702,7 @@ const StudioContent = () => {
         generatedTracks,
         player,
         onTrackUpdate: (updater) => {
-            setSelectedStudioTrack((prev) => {
-                const next = updater(prev);
-                if (next) {
-                    setLyricsPanelOpen(true);
-                }
-                return next;
-            });
+            setSelectedStudioTrack((prev) => updater(prev));
         },
         onTrackCompleted: handleTrackCompleted, // 🆕 添加单个歌曲完成的回调
         onAllTracksCompleted: async () => {
@@ -1559,7 +1742,8 @@ const StudioContent = () => {
             lyrics: selectedStudioTrack.lyrics || '',
             coverImage: selectedStudioTrack.coverImage || null,
             createdAt: selectedStudioTrack.createdAt || new Date().toISOString(),
-            duration: selectedStudioTrack.duration ? selectedStudioTrack.duration.toString() : undefined
+            duration: selectedStudioTrack.duration ? selectedStudioTrack.duration.toString() : undefined,
+            isLiked: selectedStudioTrack.isLiked ?? false,
         };
 
         const { track: userTrack, music } = findTrackAndMusic(selectedStudioTrack.id);
@@ -1573,7 +1757,8 @@ const StudioContent = () => {
                 createdAt: music.createdAt || base.createdAt,
                 duration: userTrack.duration
                     ? userTrack.duration.toString()
-                    : base.duration
+                    : base.duration,
+                isLiked: userTrack.isLiked ?? base.isLiked,
             };
         }
 
@@ -1586,7 +1771,8 @@ const StudioContent = () => {
                 lyrics: generated.lyrics || base.lyrics,
                 coverImage: generated.coverImage || base.coverImage,
                 createdAt: generated.createdAt || base.createdAt,
-                duration: generated.duration ? generated.duration.toString() : base.duration
+                duration: generated.duration ? generated.duration.toString() : base.duration,
+                isLiked: generated.isLiked ?? base.isLiked,
             };
         }
 
@@ -1595,21 +1781,21 @@ const StudioContent = () => {
 
     const isInitialUserTracksLoading = isFetchingUserTracks && userTracks.length === 0;
 
-    React.useEffect(() => {
-        if (!selectedStudioTrack) {
-            lastSelectedTrackIdRef.current = null;
-            return;
-        }
-
-        if (lastSelectedTrackIdRef.current !== selectedStudioTrack.id) {
-            setLyricsPanelOpen(true);
-        }
-
-        lastSelectedTrackIdRef.current = selectedStudioTrack.id;
-    }, [selectedStudioTrack]);
-
     const isInlineTrackPlaying = !!(selectedStudioTrack && player.currentTrack?.id === selectedStudioTrack.id && player.isPlaying);
     const showInlinePanel = Boolean(selectedStudioTrack) && lyricsPanelOpen;
+
+    React.useEffect(() => {
+        if (!showInlinePanel) return;
+
+        const handleEscapeClose = (event: KeyboardEvent) => {
+            if (event.key === 'Escape') {
+                setLyricsPanelOpen(false);
+            }
+        };
+
+        window.addEventListener('keydown', handleEscapeClose);
+        return () => window.removeEventListener('keydown', handleEscapeClose);
+    }, [showInlinePanel]);
 
     const handleInlinePanelPlay = React.useCallback(() => {
         if (!selectedStudioTrack) return;
@@ -1716,12 +1902,15 @@ const StudioContent = () => {
         setIsAuthModalOpen,
         selectedModel,
         setSelectedModel,
+        selectedPersonaId,
+        setSelectedPersonaId,
     }), [
         mode, setMode, selectedGenre, setSelectedGenre, selectedVibe, setSelectedVibe,
         simplePrompt, setSimplePrompt, customLyrics, setCustomLyrics, songTitle, setSongTitle, instrumentalMode, setInstrumentalMode,
         isPublished, styleText, setStyleText, bpm, setBpm, grooveType, setGrooveType,
         leadInstrument, setLeadInstrument, drumKit, setDrumKit, bassTone, setBassTone,
         vocalGender, setVocalGender, harmonyPalette, setHarmonyPalette, bpmMode, setBpmMode,
+        selectedPersonaId, setSelectedPersonaId,
         isGenerating, handleGenerationStart, handleGenerateLyrics,
         isAuthModalOpen, setIsAuthModalOpen, selectedModel, setSelectedModel
     ]);
@@ -1908,8 +2097,8 @@ const StudioContent = () => {
                     </div>
                 </div>
 
-                    <div className={`flex flex-col md:flex-row flex-1 min-h-0 min-w-0 ${showInlinePanel ? 'md:gap-4' : 'md:gap-0'}`}>
-                        <div className={`flex flex-col flex-1 min-h-0 min-w-0 px-0 md:px-0 ${showInlinePanel ? 'md:pl-0 md:pr-0' : ''}`}>
+                    <div className="flex flex-col flex-1 min-h-0 min-w-0">
+                        <div className="relative flex flex-col flex-1 min-h-0 min-w-0 px-0 md:px-0">
                                 <div className="flex-1 min-h-0 md:hidden">
                                     <StudioTracksList
                                         userTracks={convertUserTracksToMusicGeneration(userTracks)}
@@ -1920,6 +2109,7 @@ const StudioContent = () => {
                                         onGeneratedTrackSelect={handleGeneratedTrackSelect}
                                         onDelete={handleDeleteClick}
                                         onFavoriteToggle={handleFavoriteToggle}
+                                        onLikeToggle={handleLikeToggle}
                                         onDownload={handleDownload}
                                         isLoading={isInitialUserTracksLoading}
                                         isLoadingMore={isFetchingMoreUserTracks}
@@ -1954,6 +2144,7 @@ const StudioContent = () => {
                                         onGeneratedTrackSelect={handleGeneratedTrackSelect}
                                         onDownload={handleDownload}
                                         onFavoriteToggle={handleFavoriteToggle}
+                                        onLikeToggle={handleLikeToggle}
                                         onDelete={handleTrackDelete}
                                         hasPlayer={!!player.currentTrack}
                                         onEditTitle={handleEditTitle}
@@ -1964,37 +2155,45 @@ const StudioContent = () => {
                                         selectedModel={selectedModel}
                                     />
                                 </div>
-                            </div>
-
-                        <div
-                            className={`relative transition-all duration-300 flex-shrink-0 z-[80] ${
-                                showInlinePanel
-                                    ? 'opacity-100 w-full h-[calc(100vh-var(--mobile-nav-height,0px)-var(--player-height,48px)-0.5rem)] md:h-full md:w-80 px-0 md:px-0 md:py-4 overflow-visible'
-                                    : 'opacity-0 pointer-events-none w-0 md:w-0 px-0 overflow-hidden'
-                            }`}
-                        >
-                                {showInlinePanel && (
-                                    <div className="h-full md:pb-0">
-                                    <InlineTrackDetailsPanel
-                                        track={inlineTrackDetails}
-                                        isPlaying={isInlineTrackPlaying}
-                                        onClose={() => setLyricsPanelOpen(false)}
-                                        variant="studio"
+                                <div
+                                    className={`absolute inset-0 z-[90] transition-opacity duration-200 ${
+                                        showInlinePanel ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none'
+                                    }`}
+                                    aria-hidden={!showInlinePanel}
+                                >
+                                    <button
+                                        type="button"
+                                        aria-label="Close lyrics panel"
+                                        onClick={() => setLyricsPanelOpen(false)}
+                                        className="absolute inset-0 bg-background/20 backdrop-blur-[1px] md:bg-background/10"
                                     />
+
+                                    <div
+                                        className={`absolute right-0 top-0 h-full w-full max-w-[min(96vw,480px)] md:right-0 md:max-w-[24rem] transform-gpu transition-transform duration-300 ease-out ${
+                                            showInlinePanel ? 'translate-x-0' : 'translate-x-full'
+                                        }`}
+                                    >
+                                        {showInlinePanel && (
+                                            <div className="h-full p-2 md:py-4 md:pl-3 md:pr-0">
+                                                <InlineTrackDetailsPanel
+                                                    track={inlineTrackDetails}
+                                                    isPlaying={isInlineTrackPlaying}
+                                                    onClose={() => setLyricsPanelOpen(false)}
+                                                    variant="studio"
+                                                />
+                                            </div>
+                                        )}
                                     </div>
-                                )}
+                                </div>
                             </div>
-	                    </div>
-	                </div>
+		                    </div>
+		                </div>
 
 	            </div>
 
                 {player.currentTrack && (
                     <div
-                        className="fixed md:absolute left-3 right-3 md:left-4 md:right-[calc(var(--studio-player-right)+1rem)] bottom-[calc(var(--mobile-nav-height,0px)+0.75rem)] md:bottom-4 z-[45] pointer-events-auto"
-                        style={{
-                            ['--studio-player-right' as any]: showInlinePanel ? 'calc(20rem + 1rem)' : '0px',
-                        }}
+                        className="fixed md:absolute left-3 right-3 md:left-4 md:right-4 bottom-[calc(var(--mobile-nav-height,0px)+0.75rem)] md:bottom-4 z-[45] pointer-events-auto"
                     >
                         <MusicPlayer {...musicPlayerProps} />
                     </div>
@@ -2128,6 +2327,42 @@ const StudioContent = () => {
                 status={wavDownloadStatus}
                 statusText={wavDownloadStatusText}
                 errorMessage={wavDownloadErrorMessage}
+            />
+
+            <Mp4BrandingDialog
+                open={mp4DialogOpen}
+                onOpenChange={(open) => {
+                    setMp4DialogOpen(open);
+                    if (!open) {
+                        setPendingMp4Track(null);
+                        setPendingMp4Music(null);
+                    }
+                }}
+                author={mp4Author}
+                domainName={mp4DomainName}
+                onAuthorChange={setMp4Author}
+                onDomainNameChange={setMp4DomainName}
+                onGenerate={() => {
+                    if (!pendingMp4Track) {
+                        setMp4DialogOpen(false);
+                        return;
+                    }
+
+                    const selectedTrack = pendingMp4Track;
+                    const selectedMusic = pendingMp4Music;
+                    const authorValue = mp4Author.trim();
+                    const domainValue = mp4DomainName.trim();
+
+                    setMp4DialogOpen(false);
+                    setPendingMp4Track(null);
+                    setPendingMp4Music(null);
+
+                    handleDownload(selectedTrack, selectedMusic, 'mp4', {
+                        skipPrompt: true,
+                        author: authorValue || undefined,
+                        domainName: domainValue || undefined,
+                    });
+                }}
             />
         </>
     );

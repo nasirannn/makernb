@@ -125,8 +125,8 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // 自定义模式参数验证
-    if (!defaultParamFlag) {
+    // 自定义模式参数验证（文档语义：defaultParamFlag=true 表示自定义模式）
+    if (defaultParamFlag) {
       if (!prompt || !style || !title || continueAt === undefined) {
         console.log(`[EXTEND-MUSIC-${requestId}] Validation failed: Custom mode requires prompt, style, title, and continueAt`);
         return NextResponse.json(
@@ -251,8 +251,8 @@ export async function POST(request: NextRequest) {
       callBackUrl: `${process.env.CallBackURL}/api/callbacks/extend-music`,
     };
 
-    // 添加自定义参数
-    if (!defaultParamFlag) {
+    // 添加自定义参数（仅自定义模式）
+    if (defaultParamFlag) {
       kieParams.prompt = prompt;
       kieParams.style = style;
       kieParams.title = title;
@@ -270,7 +270,7 @@ export async function POST(request: NextRequest) {
       audio_id: kieParams.audio_id,
       model: kieParams.model,
       default_param_flag: kieParams.default_param_flag,
-      has_custom_params: !kieParams.default_param_flag,
+      has_custom_params: !!kieParams.default_param_flag,
     });
 
     let kieResponse: KIEExtendMusicResponse;
@@ -326,18 +326,18 @@ export async function POST(request: NextRequest) {
     console.log(`[EXTEND-MUSIC-${requestId}] KIE API task created: taskId=${taskId}`);
 
     // 11. 在数据库中创建扩展任务记录
-    const extendTitle = defaultParamFlag 
-      ? `${originalTrack.title} (Extended)`
-      : title!;
+    const extendTitle = defaultParamFlag
+      ? title!
+      : `${originalTrack.title} (Extended)`;
 
     const extendStyle = defaultParamFlag
-      ? originalTrack.tags
-      : style!;
+      ? style!
+      : originalTrack.tags;
     const extendPrompt = defaultParamFlag
-      ? `Extended from: ${originalTrack.title}`
-      : prompt!;
+      ? prompt!
+      : `Extended from: ${originalTrack.title}`;
     const promptForDb = extendStyle;
-    const generationMode = defaultParamFlag ? 'simple' : 'custom';
+    const generationMode = defaultParamFlag ? 'custom' : 'simple';
 
     try {
       console.log(`[EXTEND-MUSIC-${requestId}] Creating extend music task in database`);
@@ -361,7 +361,7 @@ export async function POST(request: NextRequest) {
         title: extendTitle,
       });
 
-      if (!defaultParamFlag && prompt && prompt.trim().length > 0) {
+      if (defaultParamFlag && prompt && prompt.trim().length > 0) {
         try {
           const { query } = await import('@/lib/db-query-builder');
           const existingLyrics = await query(
@@ -419,6 +419,43 @@ export async function POST(request: NextRequest) {
 
       console.log(`[EXTEND-MUSIC-${requestId}] ✅ Created ${initialTracks.length} placeholder tracks`);
 
+      // 立即启动封面生成：在拿到 taskId 后同步发起请求，不再等待 first/complete 回调
+      try {
+        const callBackBaseUrl = process.env.CallBackURL;
+        if (!callBackBaseUrl) {
+          console.warn(`[EXTEND-MUSIC-${requestId}] Cover trigger skipped: CallBackURL is not configured`);
+        } else {
+          const coverExists = await query(
+            'SELECT id FROM cover_generations WHERE music_task_id = $1 LIMIT 1',
+            [taskId]
+          );
+
+          if (coverExists.rows.length > 0) {
+            console.log(`[EXTEND-MUSIC-${requestId}] Cover generation already exists for taskId: ${taskId}`);
+          } else {
+            const coverResponse = await fetch(`${callBackBaseUrl}/api/cover/generate`, {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+              },
+              body: JSON.stringify({
+                musicTaskId: taskId,
+                userId,
+              }),
+            });
+
+            if (coverResponse.ok) {
+              console.log(`[EXTEND-MUSIC-${requestId}] ✅ Cover generation started for taskId: ${taskId}`);
+            } else {
+              const coverError = await coverResponse.text().catch(() => '');
+              console.error(`[EXTEND-MUSIC-${requestId}] ❌ Cover generation failed for taskId: ${taskId}, status=${coverResponse.status}, details=${coverError}`);
+            }
+          }
+        }
+      } catch (coverError) {
+        console.error(`[EXTEND-MUSIC-${requestId}] Error starting cover generation:`, coverError);
+      }
+
       // 12. 返回成功响应（包含初始 tracks）
       const response: ExtendMusicAPIResponse = {
         success: true,
@@ -430,10 +467,6 @@ export async function POST(request: NextRequest) {
           initialTracks, // 添加初始占位 tracks
         },
       };
-
-      // 13. 封面图片处理
-      // 注意：不再调用 generate-cover API，直接使用延长音乐接口返回的 image_url 作为封面
-      // 封面图片将在 callbacks/extend-music 中从回调数据中获取并保存
 
       console.log(`[EXTEND-MUSIC-${requestId}] Request completed successfully`);
       return NextResponse.json(response);

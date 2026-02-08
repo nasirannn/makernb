@@ -25,7 +25,7 @@ export const GenerationConfirmDialog = React.memo(({
 }: GenerationConfirmDialogProps) => {
   return (
     <AlertDialog open={isOpen} onOpenChange={onClose}>
-      <AlertDialogContent className="max-w-[calc(100vw-2rem)] sm:max-w-[420px] p-0 border border-border/60 bg-background shadow-xl">
+      <AlertDialogContent className="max-w-[calc(100vw-2rem)] sm:max-w-[420px] p-0 border border-border/60 dark:border-transparent bg-background shadow-xl">
         <AlertDialogHeader className="px-6 pt-6 pb-4">
           <div className="flex items-center gap-2 mb-2">
             <div className="w-2 h-2 bg-primary rounded-full animate-pulse"></div>

@@ -231,6 +231,7 @@ export const getUserMusicGenerationsOptimized = async (
         mt.id as track_id, mt.suno_track_id, mt.audio_url, mt.stream_audio_url, mt.duration,
         mt.is_published, mt.is_pinned, mt.created_at as track_created_at,
         mt.cover_image_url as cover_r2_url,
+        COALESCE(mt.is_liked, FALSE) as is_liked,
         mt.original_track_id,
         mt.source_type,
         COALESCE(mt.title, ug.title) as track_title,

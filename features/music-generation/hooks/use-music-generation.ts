@@ -45,6 +45,7 @@ export const useMusicGeneration = () => {
   const [vocalStyle, setVocalStyle] = useState("");
   const [vocalGender, setVocalGender] = useState("random");
   const [harmonyPalette, setHarmonyPalette] = useState("");
+  const [selectedPersonaId, setSelectedPersonaId] = useState("");
 
   // ==================== 生成状态 ====================
   const [isGenerating, setIsGenerating] = useState(false);
@@ -122,6 +123,10 @@ export const useMusicGeneration = () => {
 
     if (vocalGender !== 'random') {
       data.vocalGender = vocalGender;
+    }
+
+    if (selectedPersonaId) {
+      data.personaId = selectedPersonaId;
     }
 
     return data;
@@ -577,6 +582,7 @@ export const useMusicGeneration = () => {
     vocalStyle, setVocalStyle,
     vocalGender, setVocalGender,
     harmonyPalette, setHarmonyPalette,
+    selectedPersonaId, setSelectedPersonaId,
     selectedModel, setSelectedModel, // 添加模型状态
 
     // 状态

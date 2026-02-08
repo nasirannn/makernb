@@ -40,6 +40,7 @@ export async function POST(request: NextRequest) {
       styleText,
       vocalGender,
       genre,
+      personaId,
       model = 'V4' // 默认使用 V4
     } = requestData;
     const mode = rawMode;
@@ -224,6 +225,7 @@ export async function POST(request: NextRequest) {
       songTitle,
       styleText,
       vocalGender,
+      personaId,
       model: modelVersion // 添加模型参数
     };
 
@@ -323,6 +325,43 @@ export async function POST(request: NextRequest) {
         // 将初始 tracks 添加到响应中
         (result as any).initialTracks = initialTracks;
         console.log(`[MUSIC-GEN-${requestId}] ✅ Created ${initialTracks.length} initial tracks`);
+
+        // 立即启动封面生成：在拿到 taskId 后同步发起请求，不再等待 first/complete 回调
+        try {
+          const callBackBaseUrl = process.env.CallBackURL;
+          if (!callBackBaseUrl) {
+            console.warn(`[MUSIC-GEN-${requestId}] Cover trigger skipped: CallBackURL is not configured`);
+          } else {
+            const coverExists = await query(
+              'SELECT id FROM cover_generations WHERE music_task_id = $1 LIMIT 1',
+              [result.taskId]
+            );
+
+            if (coverExists.rows.length > 0) {
+              console.log(`[MUSIC-GEN-${requestId}] Cover generation already exists for taskId: ${result.taskId}`);
+            } else {
+              const coverResponse = await fetch(`${callBackBaseUrl}/api/cover/generate`, {
+                method: 'POST',
+                headers: {
+                  'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                  musicTaskId: result.taskId,
+                  userId,
+                }),
+              });
+
+              if (coverResponse.ok) {
+                console.log(`[MUSIC-GEN-${requestId}] ✅ Cover generation started for taskId: ${result.taskId}`);
+              } else {
+                const coverError = await coverResponse.text().catch(() => '');
+                console.error(`[MUSIC-GEN-${requestId}] ❌ Cover generation failed for taskId: ${result.taskId}, status=${coverResponse.status}, details=${coverError}`);
+              }
+            }
+          }
+        } catch (coverError) {
+          console.error(`[MUSIC-GEN-${requestId}] Error starting cover generation:`, coverError);
+        }
         
       } catch (dbError) {
         console.error(`[MUSIC-GEN-${requestId}] ❌ Database operation failed`);

@@ -41,6 +41,7 @@ import { usePricingModal } from '@/contexts/PricingModalContext';
 import { CustomAudioWaveIndicator } from './audio-wave-indicator';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Progress } from './progress';
+import { Input } from '@/components/ui/input';
 import { LibraryTrack } from '@/types/track';
 import { getEventBus, TRACK_EVENTS } from '@/lib/event-bus';
 import { TrackCover } from '@/features/lyrics-cover/components/track-cover';
@@ -72,6 +73,7 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 import { EditMusicInfoDialog } from '@/components/ui/edit-music-info-dialog';
+import { Mp4BrandingDialog } from '@/components/ui/mp4-branding-dialog';
 
 interface LibraryPanelProps {
   tracks: LibraryTrack[];
@@ -164,6 +166,7 @@ export const LibraryPanel = ({
   // 检查下载权限
   const canDownloadMP3 = hasPermission('download_mp3_track');
   const canDownloadWAV = hasPermission('download_wav_track');
+  const canDownloadMP4 = hasPermission('download_mp4_track');
   const canDownloadCover = hasPermission('download_cover_track');
   
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
@@ -186,7 +189,17 @@ export const LibraryPanel = ({
   const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [trackToEdit, setTrackToEdit] = useState<LibraryTrack | null>(null);
   const [copiedTrackId, setCopiedTrackId] = useState<string | null>(null);
+  const [mp4DialogOpen, setMp4DialogOpen] = useState(false);
+  const [mp4TrackToDownload, setMp4TrackToDownload] = useState<LibraryTrack | null>(null);
+  const [mp4Author, setMp4Author] = useState('');
+  const [mp4DomainName, setMp4DomainName] = useState('');
   const isLibraryLoading = authLoading || isLoading;
+
+  type Mp4BrandingOptions = {
+    author?: string;
+    domainName?: string;
+    skipPrompt?: boolean;
+  };
 
   const formatModelLabel = (model?: string | null) => {
     if (!model) return null;
@@ -311,11 +324,25 @@ export const LibraryPanel = ({
     }
   }, []);
 
-  const handleDownload = async (track: LibraryTrack, format: 'mp3' | 'wav' | 'cover' = 'mp3') => {
+  const handleDownload = async (
+    track: LibraryTrack,
+    format: 'mp3' | 'wav' | 'mp4' | 'cover' = 'mp3',
+    mp4Options?: Mp4BrandingOptions
+  ) => {
     if (format === 'cover' && !canDownloadCover) {
       openPricingModal();
       return;
     }
+
+    if (format === 'mp4' && !mp4Options?.skipPrompt) {
+      setMp4TrackToDownload(track);
+      if (!mp4Author.trim() && displayName?.trim()) {
+        setMp4Author(displayName.trim().slice(0, 50));
+      }
+      setMp4DialogOpen(true);
+      return;
+    }
+
     if (!track.id) {
       toast.error('Track ID is required');
       return;
@@ -391,8 +418,26 @@ export const LibraryPanel = ({
         return;
       }
 
+      // MP4格式：统一通过下载 API 处理（API 会查询 track_mp4_generations 表）
+      if (format === 'mp4') {
+        await handleMp4DownloadWithPolling(track, downloadToast, {
+          author: mp4Options?.author,
+          domainName: mp4Options?.domainName,
+        });
+        return;
+      }
+
       // MP3格式直接下载
-      const response = await fetch(`/api/download-track?trackId=${track.id}&format=${format}`);
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session?.access_token) {
+        throw new Error('Authentication required');
+      }
+
+      const response = await fetch(`/api/download-track?trackId=${track.id}&format=${format}`, {
+        headers: {
+          'Authorization': `Bearer ${session.access_token}`
+        }
+      });
       
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}));
@@ -475,7 +520,16 @@ export const LibraryPanel = ({
 
     const pollForWav = async (): Promise<void> => {
       try {
-        const response = await fetch(`/api/download-track?trackId=${track.id}&format=wav`);
+        const { data: { session } } = await supabase.auth.getSession();
+        if (!session?.access_token) {
+          throw new Error('Authentication required');
+        }
+
+        const response = await fetch(`/api/download-track?trackId=${track.id}&format=wav`, {
+          headers: {
+            'Authorization': `Bearer ${session.access_token}`
+          }
+        });
         const elapsedTime = Date.now() - startTime;
         
         // 检查是否超时
@@ -576,6 +630,113 @@ export const LibraryPanel = ({
 
     // 开始首次请求
     await pollForWav();
+  };
+
+  // MP4下载轮询函数
+  const handleMp4DownloadWithPolling = async (
+    track: LibraryTrack,
+    downloadToast: string | number,
+    options?: {
+      author?: string;
+      domainName?: string;
+    }
+  ) => {
+    const POLL_INTERVAL = 3000;
+    const MAX_POLL_TIME = 180000;
+    const startTime = Date.now();
+
+    const mp4Params = new URLSearchParams({
+      trackId: track.id,
+      format: 'mp4',
+    });
+
+    if (options?.author?.trim()) {
+      mp4Params.set('author', options.author.trim().slice(0, 50));
+    }
+
+    if (options?.domainName?.trim()) {
+      mp4Params.set('domainName', options.domainName.trim().slice(0, 50));
+    }
+
+    const mp4RequestUrl = `/api/download-track?${mp4Params.toString()}`;
+
+    const pollForMp4 = async (): Promise<void> => {
+      try {
+        const { data: { session } } = await supabase.auth.getSession();
+        if (!session?.access_token) {
+          throw new Error('Authentication required');
+        }
+
+        const response = await fetch(mp4RequestUrl, {
+          headers: {
+            'Authorization': `Bearer ${session.access_token}`
+          }
+        });
+        const elapsedTime = Date.now() - startTime;
+
+        if (elapsedTime > MAX_POLL_TIME) {
+          toast.error('MP4 generation timeout', {
+            id: downloadToast,
+            description: 'MP4 generation is taking longer than expected. Please try again later.'
+          });
+          return;
+        }
+
+        if (response.status === 202) {
+          const data = await response.json();
+          if (data.status === 'generating') {
+            toast.loading('Generating MP4 video...', {
+              id: downloadToast,
+              description: 'Creating visualized video for your track...'
+            });
+            setTimeout(pollForMp4, POLL_INTERVAL);
+            return;
+          }
+          throw new Error(data.error || data.message || 'MP4 generation failed');
+        }
+
+        if (response.status === 200) {
+          const contentType = response.headers.get('content-type');
+
+          if (contentType?.includes('application/json')) {
+            const data = await response.json();
+            if (data.fallback && data.videoUrl) {
+              const videoResponse = await fetch(data.videoUrl);
+              if (!videoResponse.ok) {
+                throw new Error(`Failed to fetch MP4: ${videoResponse.status}`);
+              }
+              const blob = await videoResponse.blob();
+              downloadFile(blob, track.title || 'track', 'mp4');
+              toast.success('Download started!', {
+                id: downloadToast,
+                description: `${track.title}.mp4`,
+              });
+              return;
+            }
+            throw new Error(data.error || 'Download failed');
+          }
+
+          const blob = await response.blob();
+          downloadFile(blob, track.title || 'track', 'mp4');
+          toast.success('Download started!', {
+            id: downloadToast,
+            description: `${track.title}.mp4`,
+          });
+          return;
+        }
+
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.message || errorData.error || `HTTP error! status: ${response.status}`);
+      } catch (error) {
+        console.error('MP4 download polling error:', error);
+        toast.error('MP4 download failed', {
+          id: downloadToast,
+          description: error instanceof Error ? error.message : 'Unable to download MP4 file'
+        });
+      }
+    };
+
+    await pollForMp4();
   };
 
   // 辅助函数：下载文件
@@ -1100,6 +1261,7 @@ export const LibraryPanel = ({
                       canDownloadMP3={canDownloadMP3}
                       canDownloadWAV={canDownloadWAV}
                       canDownloadCover={canDownloadCover}
+                      canDownloadMP4={canDownloadMP4}
                       onDownload={(format) => handleDownload(track, format)}
                       onFavorite={() => {
                         if (onFavoriteToggle) {
@@ -1323,6 +1485,39 @@ export const LibraryPanel = ({
         trackId={trackToEdit?.id}
       />
 
+      <Mp4BrandingDialog
+        open={mp4DialogOpen}
+        onOpenChange={(open) => {
+          setMp4DialogOpen(open);
+          if (!open) {
+            setMp4TrackToDownload(null);
+          }
+        }}
+        author={mp4Author}
+        domainName={mp4DomainName}
+        onAuthorChange={setMp4Author}
+        onDomainNameChange={setMp4DomainName}
+        onGenerate={() => {
+          if (!mp4TrackToDownload) {
+            setMp4DialogOpen(false);
+            return;
+          }
+
+          const targetTrack = mp4TrackToDownload;
+          const authorValue = mp4Author.trim();
+          const domainValue = mp4DomainName.trim();
+
+          setMp4DialogOpen(false);
+          setMp4TrackToDownload(null);
+
+          handleDownload(targetTrack, 'mp4', {
+            skipPrompt: true,
+            author: authorValue || undefined,
+            domainName: domainValue || undefined,
+          });
+        }}
+      />
+
       {/* Mobile Bottom Sheet Menu */}
       <Dialog open={mobileMenuOpen} onOpenChange={setMobileMenuOpen}>
         <DialogContent className="sm:max-w-md p-0 gap-0 [&>button]:hidden md:hidden bottom-0 top-auto translate-y-0 data-[state=closed]:slide-out-to-bottom data-[state=open]:slide-in-from-bottom rounded-t-3xl rounded-b-none border-0">
@@ -1437,6 +1632,38 @@ export const LibraryPanel = ({
               </button>
             )}
 
+            {/* Download Cover */}
+            {selectedTrackForMenu && (selectedTrackForMenu.coverImage || selectedTrackForMenu.coverR2Url || selectedTrackForMenu.allTracks?.[0]?.coverR2Url) && (
+              <button
+                onClick={() => {
+                  if (!canDownloadCover) {
+                    setMobileMenuOpen(false);
+                    openPricingModal();
+                    return;
+                  }
+                  handleDownload(selectedTrackForMenu, 'cover');
+                  setMobileMenuOpen(false);
+                }}
+                className="w-full flex items-center gap-3 p-3 rounded-lg hover:bg-muted transition-colors"
+              >
+                <Download className="h-5 w-5" />
+                <div className="flex-1 flex items-center justify-between gap-3">
+                  <span className="font-medium">Download PNG</span>
+                  {!canDownloadCover && (
+                    <Badge variant="outline" className="text-xs px-2 py-0.5 bg-gradient-create text-white border-0 shrink-0">
+                      Basic
+                    </Badge>
+                  )}
+                </div>
+              </button>
+            )}
+
+            {selectedTrackForMenu && (
+              <div className="px-3 py-1.5 text-[10px] text-muted-foreground uppercase">
+                Advanced Features
+              </div>
+            )}
+
             {/* Download MP3 */}
             {selectedTrackForMenu && (
               <button
@@ -1484,29 +1711,29 @@ export const LibraryPanel = ({
               </button>
             )}
 
-            {/* Download Cover */}
-            {selectedTrackForMenu && (selectedTrackForMenu.coverImage || selectedTrackForMenu.coverR2Url || selectedTrackForMenu.allTracks?.[0]?.coverR2Url) && (
+            {/* Download MP4 */}
+            {selectedTrackForMenu && (
               <button
                 onClick={() => {
-                  if (!canDownloadCover) {
+                  if (!canDownloadMP4) {
                     setMobileMenuOpen(false);
                     openPricingModal();
                     return;
                   }
-                  handleDownload(selectedTrackForMenu, 'cover');
+                  handleDownload(selectedTrackForMenu, 'mp4');
                   setMobileMenuOpen(false);
                 }}
-                className="w-full flex items-center gap-3 p-3 rounded-lg hover:bg-muted transition-colors"
+                className="w-full flex items-center justify-between gap-3 p-3 rounded-lg hover:bg-muted transition-colors"
               >
-                <Download className="h-5 w-5" />
-                <div className="flex-1 flex items-center justify-between gap-3">
-                  <span className="font-medium">Download PNG</span>
-                  {!canDownloadCover && (
-                    <Badge variant="outline" className="text-xs px-2 py-0.5 bg-gradient-create text-white border-0 shrink-0">
-                      Basic
-                    </Badge>
-                  )}
+                <div className="flex items-center gap-3">
+                  <Download className="h-5 w-5" />
+                  <span className="font-medium">Download MP4</span>
                 </div>
+                {!canDownloadMP4 && (
+                  <Badge variant="outline" className="text-xs px-2 py-0.5 bg-gradient-create text-white border-0 shrink-0">
+                    Hobby
+                  </Badge>
+                )}
               </button>
             )}
 

@@ -3,6 +3,7 @@ import { query } from '@/lib/db-query-builder';
 import { getUserIdFromRequest } from '@/lib/auth';
 import { hasFeaturePermission } from '@/lib/feature-permissions';
 import MusicApiService from '@/lib/music-api';
+import { upsertTrackMp4Generation } from '@/lib/track-mp4-db';
 
 // 强制动态渲染
 export const dynamic = 'force-dynamic';
@@ -27,11 +28,13 @@ export async function GET(request: NextRequest) {
     const searchParams = request.nextUrl.searchParams;
     const trackId = searchParams.get('trackId');
     const format = searchParams.get('format') || 'mp3'; // 默认 mp3
+    const mp4Author = searchParams.get('author')?.trim() || undefined;
+    const mp4DomainName = searchParams.get('domainName')?.trim() || undefined;
 
     // 验证格式参数
-    if (format !== 'mp3' && format !== 'wav') {
+    if (format !== 'mp3' && format !== 'wav' && format !== 'mp4') {
       return NextResponse.json(
-        { error: 'Invalid format. Supported formats: mp3, wav' },
+        { error: 'Invalid format. Supported formats: mp3, wav, mp4' },
         { status: 400 }
       );
     }
@@ -50,6 +53,10 @@ export async function GET(request: NextRequest) {
     if (format === 'wav') {
       // WAV 下载使用 feature code: download_wav_track
       const featureCode = 'download_wav_track';
+      hasPermission = await hasFeaturePermission(userId, featureCode);
+    } else if (format === 'mp4') {
+      // MP4 下载使用 feature code: download_mp4_track
+      const featureCode = 'download_mp4_track';
       hasPermission = await hasFeaturePermission(userId, featureCode);
     } else {
       // MP3 下载使用 feature code: download_mp3_track
@@ -110,11 +117,10 @@ export async function GET(request: NextRequest) {
       let existingWavCheck;
       try {
         existingWavCheck = await query(
-          `SELECT id, status, task_id, wav_r2_url
+          `SELECT id, status, task_id, wav_url, wav_r2_url
            FROM track_wav_conversions 
            WHERE track_id = $1::uuid 
              AND status = 'completed'
-             AND (wav_r2_url IS NOT NULL AND wav_r2_url != '')
            ORDER BY created_at DESC
            LIMIT 1`,
           [trackId]
@@ -128,10 +134,11 @@ export async function GET(request: NextRequest) {
       if (existingWavCheck.rows.length > 0) {
         const existingWav = existingWavCheck.rows[0];
         
-        // 如果 wav_r2_url 存在，直接返回下载
-        if (existingWav.wav_r2_url) {
+        // 如果 wav_r2_url 或 wav_url 存在，直接返回下载
+        const availableWavUrl = existingWav.wav_r2_url || existingWav.wav_url;
+        if (availableWavUrl) {
           try {
-            const wavResponse = await fetch(existingWav.wav_r2_url, {
+            const wavResponse = await fetch(availableWavUrl, {
               headers: {
                 'User-Agent': 'Mozilla/5.0 (compatible; MakernbBot/1.0)',
               },
@@ -263,6 +270,116 @@ export async function GET(request: NextRequest) {
           {
             error: 'Failed to generate WAV',
             details: errorMessage
+          },
+          { status: 500 }
+        );
+      }
+    }
+
+    // MP4 格式：调用视频生成/下载逻辑
+    if (format === 'mp4') {
+      const existingMp4Check = await query(
+        `SELECT id, task_id, status, video_url
+         FROM track_mp4_generations
+         WHERE track_id = $1::uuid
+         ORDER BY created_at DESC
+         LIMIT 1`,
+        [trackId]
+      );
+
+      if (existingMp4Check.rows.length > 0) {
+        const existingMp4 = existingMp4Check.rows[0];
+
+        if (existingMp4.status === 'completed' && existingMp4.video_url) {
+          try {
+            const videoResponse = await fetch(existingMp4.video_url, {
+              headers: {
+                'User-Agent': 'Mozilla/5.0 (compatible; MakernbBot/1.0)',
+              },
+              cache: 'no-store',
+            });
+
+            if (!videoResponse.ok) {
+              throw new Error(`Failed to fetch MP4: ${videoResponse.status}`);
+            }
+
+            const videoBuffer = await videoResponse.arrayBuffer();
+
+            return new NextResponse(videoBuffer, {
+              status: 200,
+              headers: {
+                'Content-Type': 'video/mp4',
+                'Content-Disposition': `attachment; filename="${encodeURIComponent(track.title || 'track')}.mp4"`,
+                'Content-Length': videoBuffer.byteLength.toString(),
+              },
+            });
+          } catch (fetchError) {
+            console.error('[DOWNLOAD-TRACK] Error fetching MP4 from source URL:', fetchError);
+          }
+        }
+
+        if (existingMp4.status === 'generating') {
+          return NextResponse.json(
+            {
+              error: 'MP4 generation in progress',
+              message: 'MP4 generation is already in progress. Please try again in a few moments.',
+              status: 'generating',
+              taskId: existingMp4.task_id,
+            },
+            { status: 202 }
+          );
+        }
+      }
+
+      if (!track.task_id || !track.audio_id) {
+        return NextResponse.json(
+          {
+            error: 'Cannot generate MP4',
+            message: 'Track does not have required task ID or audio ID for MP4 conversion',
+          },
+          { status: 400 }
+        );
+      }
+
+      try {
+        const apiKey = process.env.KIE_API_KEY;
+        if (!apiKey) {
+          return NextResponse.json(
+            { error: 'API key not configured' },
+            { status: 500 }
+          );
+        }
+
+        const musicApi = new MusicApiService(apiKey);
+        const result = await musicApi.generateMp4Video({
+          taskId: track.task_id,
+          audioId: track.audio_id,
+          author: mp4Author,
+          domainName: mp4DomainName,
+        });
+
+        await upsertTrackMp4Generation({
+          trackId,
+          taskId: result.data.taskId,
+          status: 'generating',
+        });
+
+        return NextResponse.json(
+          {
+            error: 'MP4 generation started',
+            message: 'MP4 generation has been started. Please try again in a few moments.',
+            status: 'generating',
+            taskId: result.data.taskId,
+          },
+          { status: 202 }
+        );
+      } catch (error) {
+        console.error('[DOWNLOAD-TRACK] Error generating MP4:', error);
+
+        return NextResponse.json(
+          {
+            error: 'Failed to generate MP4',
+            details: error instanceof Error ? error.message : 'Unknown error',
           },
           { status: 500 }
         );

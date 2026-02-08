@@ -16,7 +16,6 @@ import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
-  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { LibraryTrack } from '@/types/track';
@@ -26,8 +25,9 @@ interface LibraryTrackActionsProps {
   isMobile?: boolean;
   canDownloadMP3?: boolean;
   canDownloadWAV?: boolean;
+  canDownloadMP4?: boolean;
   canDownloadCover?: boolean;
-  onDownload?: (format: 'mp3' | 'wav' | 'cover') => void;
+  onDownload?: (format: 'mp3' | 'wav' | 'mp4' | 'cover') => void;
   onEdit?: () => void;
   onShare?: () => void;
   onPublish?: () => void;
@@ -48,6 +48,7 @@ export const LibraryTrackActions: React.FC<LibraryTrackActionsProps> = ({
   isMobile = false,
   canDownloadMP3 = false,
   canDownloadWAV = false,
+  canDownloadMP4 = false,
   canDownloadCover = false,
   onDownload,
   onShare,
@@ -66,12 +67,13 @@ export const LibraryTrackActions: React.FC<LibraryTrackActionsProps> = ({
   const canDownload = {
     mp3: !!canDownloadMP3,
     wav: !!canDownloadWAV,
+    mp4: !!canDownloadMP4,
     cover: !!canDownloadCover,
   };
 
   const handleDownloadClick = (
     e: React.MouseEvent,
-    format: 'mp3' | 'wav' | 'cover'
+    format: 'mp3' | 'wav' | 'mp4' | 'cover'
   ) => {
     e.preventDefault();
     e.stopPropagation();
@@ -80,6 +82,7 @@ export const LibraryTrackActions: React.FC<LibraryTrackActionsProps> = ({
     const canDownloadFormat =
       (format === 'mp3' && canDownload.mp3) ||
       (format === 'wav' && canDownload.wav) ||
+      (format === 'mp4' && canDownload.mp4) ||
       (format === 'cover' && canDownload.cover);
 
     if (!canDownloadFormat) {
@@ -134,6 +137,19 @@ export const LibraryTrackActions: React.FC<LibraryTrackActionsProps> = ({
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end" onClick={(e) => e.stopPropagation()} className="p-2 min-w-[160px]">
+            {hasCoverImage ? (
+              <DropdownMenuItem
+                onClick={(e) => handleDownloadClick(e, 'cover')}
+                className="flex items-center justify-between gap-2 cursor-pointer px-3 py-2 text-xs"
+              >
+                <span className="font-medium">Download PNG</span>
+              </DropdownMenuItem>
+            ) : null}
+
+            <div className="px-3 py-1.5 text-[10px] text-muted-foreground uppercase">
+              Advanced Features
+            </div>
+
             <DropdownMenuItem
               onClick={(e) => handleDownloadClick(e, 'mp3')}
               className="flex items-center justify-between gap-2 cursor-pointer px-3 py-2 text-xs"
@@ -146,14 +162,12 @@ export const LibraryTrackActions: React.FC<LibraryTrackActionsProps> = ({
             >
               <span className="font-medium">Download WAV</span>
             </DropdownMenuItem>
-            {hasCoverImage ? (
-              <DropdownMenuItem
-                onClick={(e) => handleDownloadClick(e, 'cover')}
-                className="flex items-center justify-between gap-2 cursor-pointer px-3 py-2 text-xs"
-              >
-                <span className="font-medium">Download PNG</span>
-              </DropdownMenuItem>
-            ) : null}
+            <DropdownMenuItem
+              onClick={(e) => handleDownloadClick(e, 'mp4')}
+              className="flex items-center justify-between gap-2 cursor-pointer px-3 py-2 text-xs"
+            >
+              <span className="font-medium">Download MP4</span>
+            </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
       )}

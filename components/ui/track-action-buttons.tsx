@@ -1,27 +1,15 @@
 "use client";
 
-import React, { useState } from 'react';
+import React from 'react';
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
-  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
-import { Input } from "@/components/ui/input";
-import { FileAudio, Image as ImageIcon, Music2, Star, Share2, Check, Download, MoreVertical, Mic, Trash2, Pencil, Maximize2, Scissors } from "lucide-react";
+import { FileAudio, FileVideo, Image as ImageIcon, Music2, Star, Share2, Check, Download, MoreVertical, Mic, Trash2, Maximize2, Scissors, Pencil, ThumbsUp, FileText } from "lucide-react";
 import { LibraryTrack } from '@/types/track';
-import { EditMusicInfoDialog } from './edit-music-info-dialog';
-import { useSubscription } from "@/contexts/SubscriptionContext";
 
 interface TrackActionButtonsProps {
   track: LibraryTrack & any;
@@ -29,11 +17,13 @@ interface TrackActionButtonsProps {
   
   // 状态
   isFavorited?: boolean;
+  isLiked?: boolean;
   isCopied?: boolean;
   
   // 权限
   canDownloadMP3?: boolean;
   canDownloadWAV?: boolean;
+  canDownloadMP4?: boolean;
   canDownloadCover?: boolean;
   canVocalRemoval?: boolean;
   canExtendMusic?: boolean;
@@ -42,40 +32,40 @@ interface TrackActionButtonsProps {
   // 回调函数
   onFavoriteToggle?: () => void;
   onShare?: () => void;
-  onDownload?: (format: 'mp3' | 'wav' | 'cover') => void;
+  onLikeToggle?: () => void;
+  onDownload?: (format: 'mp3' | 'wav' | 'mp4' | 'cover') => void;
   onVocalRemoval?: () => void;
   onExtendMusic?: () => void;
   onReplaceSection?: () => void;
   onDelete?: () => void;
+  onViewLyrics?: () => void;
   onPricingModalOpen?: () => void;
-  onEditTitle?: (trackId: string, newTitle: string) => void;
-  onEditMusicInfo?: (trackId: string, data: { title: string; coverImageUrl?: string }) => Promise<void>;
 }
 
 export const TrackActionButtons: React.FC<TrackActionButtonsProps> = ({
   track,
   isMobile = false,
   isFavorited = false,
+  isLiked = false,
   isCopied = false,
   canDownloadMP3 = false,
   canDownloadWAV = false,
+  canDownloadMP4 = false,
   canDownloadCover = false,
   canVocalRemoval = false,
   canExtendMusic = false,
   canReplaceSection = false,
   onFavoriteToggle,
   onShare,
+  onLikeToggle,
   onDownload,
   onVocalRemoval,
   onExtendMusic,
   onReplaceSection,
   onDelete,
+  onViewLyrics,
   onPricingModalOpen,
-  onEditTitle,
-  onEditMusicInfo,
 }) => {
-  const { tierCode } = useSubscription();
-  const isSubscribed = Boolean(tierCode);
   const isInstrumental = track.musicGeneration?.isInstrumental || track.isInstrumental;
   const hasAudioUrl = !!track.audioUrl;
   const hasCoverImage = Boolean(
@@ -86,51 +76,93 @@ export const TrackActionButtons: React.FC<TrackActionButtonsProps> = ({
     track.musicGeneration?.coverImageUrl
   );
   
-  // 编辑音乐信息对话框状态
-  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
-  
-  // 处理编辑音乐信息
-  const handleEditMusicInfoClick = (e?: React.MouseEvent) => {
-    if (e) {
-      e.preventDefault();
-      e.stopPropagation();
-    }
-    setIsEditDialogOpen(true);
-  };
-  
-  // 保存编辑的音乐信息
-  const handleSaveMusicInfo = async (data: { title: string; coverImageUrl?: string }) => {
-    if (onEditMusicInfo) {
-      await onEditMusicInfo(track.id, data);
-      setIsEditDialogOpen(false);
-    } else if (onEditTitle && data.title) {
-      // Fallback to old onEditTitle if onEditMusicInfo is not provided
-      onEditTitle(track.id, data.title);
-      setIsEditDialogOpen(false);
-    }
-  };
+  const shouldShowMoreMenu = Boolean(onDelete || onViewLyrics);
+  const shouldShowEditMenu = hasAudioUrl && (onVocalRemoval || onExtendMusic || onReplaceSection);
 
-  // 处理对话框关闭，确保不会触发其他事件
-  const handleDialogClose = () => {
-    setIsEditDialogOpen(false);
-  };
-  
-  // 判断是否显示更多菜单（需要至少有一个功能）
-  const shouldShowMoreMenu = onVocalRemoval || onExtendMusic || onDelete || onEditTitle || onEditMusicInfo;
-  const hasLockedAdvancedFeature =
-    (onVocalRemoval && !canVocalRemoval) ||
-    (onExtendMusic && !canExtendMusic) ||
-    (onReplaceSection && !canReplaceSection);
-  const advancedFeaturesLabel = isSubscribed
-    ? "Advanced Features"
-    : hasLockedAdvancedFeature
-      ? "Upgrade to unlock"
-      : "Advanced Features";
 
   // 桌面端按钮
   if (!isMobile) {
     return (
       <div className="hidden md:flex items-center gap-2">
+        {shouldShowEditMenu && (
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button
+                variant="ghost"
+                size="sm"
+                className="h-8 rounded-full px-2.5 text-xs font-medium bg-foreground/5 text-foreground/80 hover:text-foreground hover:bg-foreground/10 transition-all duration-150 opacity-0 pointer-events-none group-hover:opacity-100 group-hover:pointer-events-auto focus-visible:opacity-100 focus-visible:pointer-events-auto data-[state=open]:opacity-100 data-[state=open]:pointer-events-auto dark:bg-white/4 dark:hover:bg-white/8"
+                onClick={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                }}
+                aria-label="Edit options"
+                title="Edit options"
+              >
+                Edit
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" onClick={(e) => e.stopPropagation()} className="p-2 w-64">
+              {onVocalRemoval && (
+                <DropdownMenuItem
+                  onClick={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    if (isInstrumental) return;
+                    if (!canVocalRemoval) {
+                      onPricingModalOpen?.();
+                      return;
+                    }
+                    onVocalRemoval();
+                  }}
+                  disabled={isInstrumental}
+                  className={`flex items-center justify-between gap-2 px-3 py-2 text-xs ${
+                    isInstrumental ? 'cursor-not-allowed' : 'cursor-pointer'
+                  }`}
+                >
+                  <div className="flex items-center gap-1.5">
+                    <Mic className="h-3.5 w-3.5" />
+                    <span>Vocal Separation</span>
+                  </div>
+                </DropdownMenuItem>
+              )}
+              {onExtendMusic && (
+                <DropdownMenuItem
+                  onClick={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    if (!canExtendMusic) {
+                      onPricingModalOpen?.();
+                      return;
+                    }
+                    onExtendMusic();
+                  }}
+                  className="flex items-center gap-2 cursor-pointer px-3 py-2 text-xs"
+                >
+                  <Maximize2 className="h-3.5 w-3.5" />
+                  <span>Extend Music</span>
+                </DropdownMenuItem>
+              )}
+              {onReplaceSection && (
+                <DropdownMenuItem
+                  onClick={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    if (!canReplaceSection) {
+                      onPricingModalOpen?.();
+                      return;
+                    }
+                    onReplaceSection();
+                  }}
+                  className="flex items-center gap-2 cursor-pointer px-3 py-2 text-xs"
+                >
+                  <Scissors className="h-3.5 w-3.5" />
+                  <span>Replace Section</span>
+                </DropdownMenuItem>
+              )}
+            </DropdownMenuContent>
+          </DropdownMenu>
+        )}
+
         {/* 下载按钮 */}
         {onDownload && (
           <DropdownMenu>
@@ -138,7 +170,7 @@ export const TrackActionButtons: React.FC<TrackActionButtonsProps> = ({
               <Button
                 variant="ghost"
                 size="sm"
-                className="h-8 px-3 gap-1.5 rounded-full text-xs font-semibold bg-foreground/5 text-foreground/80 hover:text-foreground hover:bg-foreground/10 dark:bg-white/4 dark:hover:bg-white/8"
+                className="h-8 w-8 rounded-full text-xs font-semibold bg-foreground/5 text-foreground/80 hover:text-foreground hover:bg-foreground/10 transition-all duration-150 opacity-0 pointer-events-none group-hover:opacity-100 group-hover:pointer-events-auto focus-visible:opacity-100 focus-visible:pointer-events-auto data-[state=open]:opacity-100 data-[state=open]:pointer-events-auto dark:bg-white/4 dark:hover:bg-white/8"
                 onClick={(e) => {
                   e.preventDefault();
                   e.stopPropagation();
@@ -147,10 +179,33 @@ export const TrackActionButtons: React.FC<TrackActionButtonsProps> = ({
                 title="Download track"
               >
                 <Download className="h-3.5 w-3.5" />
-                <span>Download</span>
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" onClick={(e) => e.stopPropagation()} className="p-1.5 min-w-[160px]">
+              {hasCoverImage && (
+                <DropdownMenuItem
+                  onClick={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    if (!canDownloadCover) {
+                      onPricingModalOpen?.();
+                      return;
+                    }
+                    onDownload('cover');
+                  }}
+                  className="flex items-center justify-between gap-1.5 cursor-pointer px-2.5 py-1.5 text-xs"
+                >
+                  <span className="flex items-center gap-2 font-medium">
+                    <ImageIcon className="h-3.5 w-3.5" />
+                    PNG (Cover Art)
+                  </span>
+                </DropdownMenuItem>
+              )}
+
+              <div className="px-2.5 py-1 text-[10px] text-muted-foreground uppercase">
+                Advanced Features
+              </div>
+
               <DropdownMenuItem
                 onClick={(e) => {
                   e.preventDefault();
@@ -187,22 +242,22 @@ export const TrackActionButtons: React.FC<TrackActionButtonsProps> = ({
                   </span>
                 </DropdownMenuItem>
               )}
-              {hasCoverImage && (
+              {canDownloadMP4 !== undefined && (
                 <DropdownMenuItem
                   onClick={(e) => {
                     e.preventDefault();
                     e.stopPropagation();
-                    if (!canDownloadCover) {
+                    if (!canDownloadMP4) {
                       onPricingModalOpen?.();
                       return;
                     }
-                    onDownload('cover');
+                    onDownload('mp4');
                   }}
                   className="flex items-center justify-between gap-1.5 cursor-pointer px-2.5 py-1.5 text-xs"
                 >
                   <span className="flex items-center gap-2 font-medium">
-                    <ImageIcon className="h-3.5 w-3.5" />
-                    PNG (Cover Art)
+                    <FileVideo className="h-3.5 w-3.5" />
+                    MP4 (Music Video)
                   </span>
                 </DropdownMenuItem>
               )}
@@ -211,58 +266,6 @@ export const TrackActionButtons: React.FC<TrackActionButtonsProps> = ({
         )}
 
         {/* 收藏按钮 */}
-        {onFavoriteToggle && (
-        <Button
-          variant="ghost"
-          size="sm"
-          className={`h-8 px-3 gap-1.5 rounded-full text-xs font-semibold bg-foreground/5 hover:bg-foreground/10 transition-colors dark:bg-white/4 dark:hover:bg-white/8 ${
-            isFavorited 
-              ? 'text-red-500 hover:text-red-500' 
-              : 'text-foreground/70 hover:text-foreground'
-          }`}
-          title={isFavorited ? 'Remove from library' : 'Add to library'}
-          onClick={(e) => {
-            e.stopPropagation();
-            onFavoriteToggle();
-          }}
-            aria-label={isFavorited ? 'Remove from library' : 'Add to library'}
-          >
-            <Star className={`h-3.5 w-3.5 ${isFavorited ? 'fill-current' : ''}`} />
-            <span>{isFavorited ? 'Favorited' : 'Favorite'}</span>
-          </Button>
-        )}
-
-        {/* 分享按钮 */}
-        {onShare && (
-          <Button
-            variant="ghost"
-            size="sm"
-            className={`h-8 px-3 gap-1.5 rounded-full text-xs font-semibold bg-foreground/5 hover:bg-foreground/10 transition-colors dark:bg-white/4 dark:hover:bg-white/8 ${
-              isCopied 
-                ? 'text-green-500' 
-                : 'text-foreground/70 hover:text-foreground'
-            }`}
-            title={isCopied ? 'Link copied' : 'Share track'}
-            onClick={(e) => {
-              e.stopPropagation();
-              onShare();
-            }}
-            aria-label="Share track"
-          >
-            {isCopied ? (
-              <>
-                <Check className="h-3.5 w-3.5" />
-                <span>Copied</span>
-              </>
-            ) : (
-              <>
-                <Share2 className="h-3.5 w-3.5" />
-                <span>Share</span>
-              </>
-            )}
-          </Button>
-        )}
-        
         {/* 更多按钮 */}
         {shouldShowMoreMenu && (
           <DropdownMenu>
@@ -281,91 +284,19 @@ export const TrackActionButtons: React.FC<TrackActionButtonsProps> = ({
                 <MoreVertical className="h-3.5 w-3.5" />
               </Button>
             </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" onClick={(e) => e.stopPropagation()} className="p-2 w-64">
-              {/* Edit Music Info 选项 */}
-              {(onEditMusicInfo || onEditTitle) && (
-                <>
-                  <DropdownMenuItem
-                    onClick={(e) => {
-                      e.preventDefault();
-                      e.stopPropagation();
-                      handleEditMusicInfoClick();
-                    }}
-                    className="flex items-center gap-2 cursor-pointer px-3 py-2 text-xs"
-                  >
-                    <Pencil className="h-3.5 w-3.5" />
-                    <span>Edit Music Info</span>
-                  </DropdownMenuItem>
-                </>
+            <DropdownMenuContent align="end" onClick={(e) => e.stopPropagation()} className="p-1.5 min-w-[140px]">
+              {onViewLyrics && (
+                <DropdownMenuItem
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onViewLyrics();
+                  }}
+                  className="flex items-center gap-2 cursor-pointer px-3 py-2 text-xs"
+                >
+                  <FileText className="h-3.5 w-3.5" />
+                  <span>View Lyrics</span>
+                </DropdownMenuItem>
               )}
-
-              {/* Premium Features 标题和选项 */}
-              {hasAudioUrl && (onVocalRemoval || onExtendMusic || onReplaceSection) && (
-                <>
-                  <div className="px-3 py-1.5 text-[10px] text-muted-foreground uppercase">
-                    {advancedFeaturesLabel}
-                  </div>
-                  {onVocalRemoval && (
-                    <DropdownMenuItem
-                      onClick={(e) => {
-                        e.preventDefault();
-                        e.stopPropagation();
-                        if (isInstrumental) return;
-                        if (!canVocalRemoval) {
-                          onPricingModalOpen?.();
-                          return;
-                        }
-                        onVocalRemoval();
-                    }}
-                    disabled={isInstrumental}
-                    className={`flex items-center justify-between gap-2 px-3 py-2 text-xs ${
-                      isInstrumental ? 'cursor-not-allowed' : 'cursor-pointer'
-                    }`}
-                  >
-                    <div className="flex items-center gap-1.5">
-                      <Mic className="h-3.5 w-3.5" />
-                        <span>Vocal Separation</span>
-                      </div>
-                    </DropdownMenuItem>
-                  )}
-                  {onExtendMusic && (
-                    <DropdownMenuItem
-                      onClick={(e) => {
-                        e.preventDefault();
-                        e.stopPropagation();
-                        if (!canExtendMusic) {
-                          onPricingModalOpen?.();
-                          return;
-                        }
-                        onExtendMusic();
-                      }}
-                      className="flex items-center gap-2 cursor-pointer px-3 py-2 text-xs"
-                    >
-                      <Maximize2 className="h-3.5 w-3.5" />
-                      <span>Extend Music</span>
-                    </DropdownMenuItem>
-                  )}
-                  {onReplaceSection && (
-                    <DropdownMenuItem
-                      onClick={(e) => {
-                        e.preventDefault();
-                        e.stopPropagation();
-                        if (!canReplaceSection) {
-                          onPricingModalOpen?.();
-                          return;
-                        }
-                        onReplaceSection();
-                      }}
-                      className="flex items-center gap-2 cursor-pointer px-3 py-2 text-xs"
-                    >
-                      <Scissors className="h-3.5 w-3.5" />
-                      <span>Replace Section</span>
-                    </DropdownMenuItem>
-                  )}
-                </>
-              )}
-              
-              {/* 删除选项 */}
               {onDelete && (
                 <DropdownMenuItem
                   onClick={(e) => {
@@ -382,26 +313,69 @@ export const TrackActionButtons: React.FC<TrackActionButtonsProps> = ({
             </DropdownMenuContent>
           </DropdownMenu>
         )}
-        
-        {/* 编辑音乐信息对话框 */}
-        {(onEditMusicInfo || onEditTitle) && (
-          <EditMusicInfoDialog
-            isOpen={isEditDialogOpen}
-            onClose={handleDialogClose}
-            onSave={handleSaveMusicInfo}
-            initialTitle={track.title || ''}
-            initialCoverImage={track.coverImage || track.coverR2Url}
-            trackId={track.id}
-          />
-        )}
       </div>
     );
   }
 
-  // 移动端按钮
   return (
     <div className="md:hidden flex items-center gap-1.5 flex-shrink-0">
-      {/* 下载按钮 */}
+      {onShare && (
+        <button
+          onClick={(e) => {
+            e.stopPropagation();
+            onShare();
+          }}
+          className={`h-8 w-8 inline-flex items-center justify-center rounded-full text-xs font-semibold bg-foreground/5 transition-colors dark:bg-white/4 dark:hover:bg-white/8 ${
+            isCopied
+              ? 'text-green-500'
+              : 'text-foreground/70 hover:text-foreground'
+          }`}
+          aria-label={isCopied ? 'Link copied' : 'Share track'}
+        >
+          {isCopied ? (
+            <Check className="h-3.5 w-3.5" />
+          ) : (
+            <Share2 className="h-3.5 w-3.5" />
+          )}
+        </button>
+      )}
+
+      {onFavoriteToggle && (
+        <button
+          onClick={(e) => {
+            e.stopPropagation();
+            onFavoriteToggle();
+          }}
+          className={`h-8 w-8 inline-flex items-center justify-center rounded-full text-xs font-semibold bg-foreground/5 transition-colors dark:bg-white/4 dark:hover:bg-white/8 ${
+            isFavorited
+              ? 'text-red-500 hover:text-red-500'
+              : 'text-foreground/70 hover:text-foreground'
+          }`}
+          aria-label={isFavorited ? 'Remove from library' : 'Add to library'}
+          title={isFavorited ? 'Remove from library' : 'Add to library'}
+        >
+          <Star className={`h-3.5 w-3.5 ${isFavorited ? 'fill-current' : ''}`} />
+        </button>
+      )}
+
+      {onLikeToggle && (
+        <button
+          onClick={(e) => {
+            e.stopPropagation();
+            onLikeToggle();
+          }}
+          className={`h-8 w-8 inline-flex items-center justify-center rounded-full text-xs font-semibold bg-foreground/5 transition-colors dark:bg-white/4 dark:hover:bg-white/8 ${
+            isLiked
+              ? 'text-pink-500 hover:text-pink-500'
+              : 'text-foreground/70 hover:text-foreground'
+          }`}
+          aria-label={isLiked ? 'Unlike track' : 'Like track'}
+          title={isLiked ? 'Unlike track' : 'Like track'}
+        >
+          <ThumbsUp className="h-3.5 w-3.5" />
+        </button>
+      )}
+
       {onDownload && (
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
@@ -417,6 +391,30 @@ export const TrackActionButtons: React.FC<TrackActionButtonsProps> = ({
             </button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end" onClick={(e) => e.stopPropagation()} className="p-1.5 min-w-[160px]">
+            {hasCoverImage && (
+              <DropdownMenuItem
+                onClick={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  if (!canDownloadCover) {
+                    onPricingModalOpen?.();
+                    return;
+                  }
+                  onDownload('cover');
+                }}
+                className="flex items-center justify-between gap-1.5 cursor-pointer px-2.5 py-1.5 text-xs"
+              >
+                <span className="flex items-center gap-2 font-medium">
+                  <ImageIcon className="h-3.5 w-3.5" />
+                  PNG (Cover Art)
+                </span>
+              </DropdownMenuItem>
+            )}
+
+            <div className="px-2.5 py-1 text-[10px] text-muted-foreground uppercase">
+              Advanced Features
+            </div>
+
             <DropdownMenuItem
               onClick={(e) => {
                 e.preventDefault();
@@ -453,22 +451,22 @@ export const TrackActionButtons: React.FC<TrackActionButtonsProps> = ({
                 </span>
               </DropdownMenuItem>
             )}
-            {hasCoverImage && (
+            {canDownloadMP4 !== undefined && (
               <DropdownMenuItem
                 onClick={(e) => {
                   e.preventDefault();
                   e.stopPropagation();
-                  if (!canDownloadCover) {
+                  if (!canDownloadMP4) {
                     onPricingModalOpen?.();
                     return;
                   }
-                  onDownload('cover');
+                  onDownload('mp4');
                 }}
                 className="flex items-center justify-between gap-1.5 cursor-pointer px-2.5 py-1.5 text-xs"
               >
                 <span className="flex items-center gap-2 font-medium">
-                  <ImageIcon className="h-3.5 w-3.5" />
-                  PNG (Cover Art)
+                  <FileVideo className="h-3.5 w-3.5" />
+                  MP4 (Music Video)
                 </span>
               </DropdownMenuItem>
             )}
@@ -476,49 +474,6 @@ export const TrackActionButtons: React.FC<TrackActionButtonsProps> = ({
         </DropdownMenu>
       )}
 
-      {/* 收藏按钮 */}
-      {onFavoriteToggle && (
-        <button
-          onClick={(e) => {
-            e.stopPropagation();
-            onFavoriteToggle();
-          }}
-          className={`h-8 px-3 inline-flex items-center gap-1.5 rounded-full text-xs font-semibold bg-foreground/5 transition-colors dark:bg-white/4 dark:hover:bg-white/8 ${
-            isFavorited
-              ? 'text-red-500 hover:text-red-500'
-              : 'text-foreground/70 hover:text-foreground'
-          }`}
-          aria-label={isFavorited ? 'Remove from library' : 'Add to library'}
-          title={isFavorited ? 'Remove from library' : 'Add to library'}
-        >
-          <Star className={`h-3.5 w-3.5 ${isFavorited ? 'fill-current' : ''}`} />
-          <span>{isFavorited ? 'Favorited' : 'Favorite'}</span>
-        </button>
-      )}
-
-      {/* 分享按钮 */}
-      {onShare && (
-        <button
-          onClick={(e) => {
-            e.stopPropagation();
-            onShare();
-          }}
-          className={`h-8 w-8 inline-flex items-center justify-center rounded-full text-xs font-semibold bg-foreground/5 transition-colors dark:bg-white/4 dark:hover:bg-white/8 ${
-            isCopied
-              ? 'text-green-500'
-              : 'text-foreground/70 hover:text-foreground'
-          }`}
-          aria-label="Share track"
-        >
-          {isCopied ? (
-            <Check className="h-3.5 w-3.5" />
-          ) : (
-            <Share2 className="h-3.5 w-3.5" />
-          )}
-        </button>
-      )}
-      
-      {/* 更多按钮 */}
       {shouldShowMoreMenu && (
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
@@ -534,95 +489,18 @@ export const TrackActionButtons: React.FC<TrackActionButtonsProps> = ({
             </button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end" onClick={(e) => e.stopPropagation()} className="p-1.5 min-w-[140px]">
-            {/* Edit Music Info 选项 */}
-            {(onEditMusicInfo || onEditTitle) && (
-              <>
-                <DropdownMenuItem
-                  onClick={(e) => {
-                    e.preventDefault();
-                    e.stopPropagation();
-                    handleEditMusicInfoClick();
-                  }}
-                  className="flex items-center gap-1.5 cursor-pointer px-2.5 py-1.5 text-xs"
-                >
-                  <Pencil className="h-3.5 w-3.5" />
-                  <span>Edit Music Info</span>
-                </DropdownMenuItem>
-              </>
+            {onViewLyrics && (
+              <DropdownMenuItem
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onViewLyrics();
+                }}
+                className="flex items-center gap-1.5 cursor-pointer px-2.5 py-1.5 text-xs"
+              >
+                <FileText className="h-3.5 w-3.5" />
+                <span>View Lyrics</span>
+              </DropdownMenuItem>
             )}
-
-            {(onEditMusicInfo || onEditTitle) && (onVocalRemoval || onExtendMusic || onReplaceSection || onDelete) && (
-              <DropdownMenuSeparator className="my-1" />
-            )}
-            
-            {/* Premium Features 标题和选项 */}
-            {hasAudioUrl && (onVocalRemoval || onExtendMusic || onReplaceSection) && (
-              <>
-                <div className="px-2.5 py-1 text-[10px] text-muted-foreground uppercase">
-                  {advancedFeaturesLabel}
-                </div>
-                {(onVocalRemoval) && (
-                  <DropdownMenuItem
-                    onClick={(e) => {
-                      e.preventDefault();
-                      e.stopPropagation();
-                      if (isInstrumental) return;
-                      if (!canVocalRemoval) {
-                        onPricingModalOpen?.();
-                        return;
-                      }
-                      onVocalRemoval();
-                    }}
-                    disabled={isInstrumental}
-                    className={`flex items-center justify-between gap-1.5 px-2.5 py-1.5 text-xs ${
-                      isInstrumental ? 'cursor-not-allowed' : 'cursor-pointer'
-                    }`}
-                  >
-                    <div className="flex items-center gap-1.5">
-                      <Mic className="h-3.5 w-3.5" />
-                      <span>Vocal Separation</span>
-                    </div>
-                  </DropdownMenuItem>
-                )}
-                {onExtendMusic && (
-                  <DropdownMenuItem
-                    onClick={(e) => {
-                      e.preventDefault();
-                      e.stopPropagation();
-                      if (!canExtendMusic) {
-                        onPricingModalOpen?.();
-                        return;
-                        }
-                        onExtendMusic();
-                      }}
-                    className="flex items-center gap-1.5 cursor-pointer px-2.5 py-1.5 text-xs"
-                  >
-                    <Maximize2 className="h-3.5 w-3.5" />
-                    <span>Extend Music</span>
-                  </DropdownMenuItem>
-                )}
-                {onReplaceSection && (
-                  <DropdownMenuItem
-                    onClick={(e) => {
-                      e.preventDefault();
-                      e.stopPropagation();
-                      if (!canReplaceSection) {
-                        onPricingModalOpen?.();
-                        return;
-                      }
-                      onReplaceSection();
-                    }}
-                    className="flex items-center gap-1.5 cursor-pointer px-2.5 py-1.5 text-xs"
-                  >
-                    <Scissors className="h-3.5 w-3.5" />
-                    <span>Replace Section</span>
-                  </DropdownMenuItem>
-                )}
-                {onDelete && <DropdownMenuSeparator className="my-1" />}
-              </>
-            )}
-            
-            {/* 删除选项 */}
             {onDelete && (
               <DropdownMenuItem
                 onClick={(e) => {
@@ -639,17 +517,82 @@ export const TrackActionButtons: React.FC<TrackActionButtonsProps> = ({
           </DropdownMenuContent>
         </DropdownMenu>
       )}
-      
-      {/* 编辑音乐信息对话框 */}
-      {(onEditMusicInfo || onEditTitle) && (
-        <EditMusicInfoDialog
-          isOpen={isEditDialogOpen}
-          onClose={() => setIsEditDialogOpen(false)}
-          onSave={handleSaveMusicInfo}
-          initialTitle={track.title || ''}
-          initialCoverImage={track.coverImage || track.coverR2Url}
-          trackId={track.id}
-        />
+
+      {shouldShowEditMenu && (
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <button
+              onClick={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+              }}
+              className="h-8 w-8 inline-flex items-center justify-center rounded-full text-xs font-semibold bg-foreground/5 text-foreground/80 hover:text-foreground hover:bg-foreground/10 transition-colors dark:bg-white/4 dark:hover:bg-white/8"
+              aria-label="Edit options"
+              title="Edit options"
+            >
+              <Pencil className="h-3.5 w-3.5" />
+            </button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end" onClick={(e) => e.stopPropagation()} className="p-1.5 min-w-[160px]">
+            {onVocalRemoval && (
+              <DropdownMenuItem
+                onClick={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  if (isInstrumental) return;
+                  if (!canVocalRemoval) {
+                    onPricingModalOpen?.();
+                    return;
+                  }
+                  onVocalRemoval();
+                }}
+                disabled={isInstrumental}
+                className={`flex items-center justify-between gap-1.5 px-2.5 py-1.5 text-xs ${
+                  isInstrumental ? 'cursor-not-allowed' : 'cursor-pointer'
+                }`}
+              >
+                <div className="flex items-center gap-1.5">
+                  <Mic className="h-3.5 w-3.5" />
+                  <span>Vocal Separation</span>
+                </div>
+              </DropdownMenuItem>
+            )}
+            {onExtendMusic && (
+              <DropdownMenuItem
+                onClick={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  if (!canExtendMusic) {
+                    onPricingModalOpen?.();
+                    return;
+                  }
+                  onExtendMusic();
+                }}
+                className="flex items-center gap-1.5 cursor-pointer px-2.5 py-1.5 text-xs"
+              >
+                <Maximize2 className="h-3.5 w-3.5" />
+                <span>Extend Music</span>
+              </DropdownMenuItem>
+            )}
+            {onReplaceSection && (
+              <DropdownMenuItem
+                onClick={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  if (!canReplaceSection) {
+                    onPricingModalOpen?.();
+                    return;
+                  }
+                  onReplaceSection();
+                }}
+                className="flex items-center gap-1.5 cursor-pointer px-2.5 py-1.5 text-xs"
+              >
+                <Scissors className="h-3.5 w-3.5" />
+                <span>Replace Section</span>
+              </DropdownMenuItem>
+            )}
+          </DropdownMenuContent>
+        </DropdownMenu>
       )}
     </div>
   );

@@ -13,6 +13,7 @@ export interface GenerateMusicRequest {
   songTitle?: string;
   styleText?: string; // 用户直接输入的style内容
   vocalGender?: string; // 人声性别偏好：'m' 或 'f'
+  personaId?: string;
 }
 
 export interface GeneratedMusic {
@@ -113,6 +114,47 @@ export interface WavConversionStatusResponse {
     status?: 'processing' | 'completed' | 'error';
     audio_wav_url?: string;
     errorMessage?: string;
+  };
+}
+
+// ============================================================================
+// MP4 GENERATION INTERFACES
+// ============================================================================
+
+export interface Mp4GenerationRequest {
+  taskId: string; // 原始音乐生成任务的taskId
+  audioId: string; // 要可视化的音频曲目audioId
+  author?: string; // 视频作者署名（可选）
+  domainName?: string; // 视频底部品牌水印（可选）
+  callBackUrl?: string; // 回调URL
+}
+
+export interface Mp4GenerationApiResponse {
+  code: number;
+  msg: string;
+  data: {
+    taskId: string; // MP4生成任务taskId
+  };
+}
+
+// ============================================================================
+// PERSONA GENERATION INTERFACES
+// ============================================================================
+
+export interface GeneratePersonaRequest {
+  taskId: string;
+  audioId: string;
+  name: string;
+  description: string;
+}
+
+export interface GeneratePersonaApiResponse {
+  code: number;
+  msg: string;
+  data: {
+    personaId: string;
+    name: string;
+    description: string;
   };
 }
 
@@ -231,6 +273,10 @@ class MusicApiService {
         apiParams.vocalGender = request.vocalGender;
       }
 
+    }
+
+    if (request.personaId) {
+      apiParams.persona_id = request.personaId;
     }
     // 权重参数 - 最大styleWeight来更强制地遵循R&B风格
     apiParams.styleWeight = DEFAULT_STYLE_WEIGHT;
@@ -676,6 +722,114 @@ class MusicApiService {
     }
     
     throw new Error('WAV conversion timeout');
+  }
+
+  // ============================================================================
+  // MP4 GENERATION METHODS
+  // ============================================================================
+
+  /**
+   * Starts MP4 music video generation process
+   * Converts an existing audio track into a visualized MP4 video
+   */
+  async generateMp4Video(request: Mp4GenerationRequest): Promise<Mp4GenerationApiResponse> {
+    const apiParams: Record<string, string> = {
+      taskId: request.taskId,
+      audioId: request.audioId,
+      callBackUrl: request.callBackUrl || `${process.env.CallBackURL}/api/callbacks/mp4`,
+    };
+
+    if (request.author && request.author.trim()) {
+      apiParams.author = request.author.trim().slice(0, 50);
+    }
+
+    if (request.domainName && request.domainName.trim()) {
+      apiParams.domainName = request.domainName.trim().slice(0, 50);
+    }
+
+    const response = await this.fetchWithRetry(`${this.baseUrl}/api/v1/mp4/generate`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${this.apiKey}`,
+      },
+      body: JSON.stringify(apiParams),
+    });
+
+    if (!response.ok) {
+      const errorData = await response.text();
+      console.error(`MP4 generation API call failed: ${response.status} - ${errorData}`);
+      throw new Error(`MP4 generation API call failed: ${response.statusText} - ${errorData}`);
+    }
+
+    const data = await response.json();
+
+    if (data.code === 200) {
+      return {
+        code: data.code,
+        msg: data.msg || 'MP4 generation started successfully',
+        data: {
+          taskId: data.data?.taskId || data.data?.task_id,
+        }
+      };
+    }
+
+    console.error(`MP4 generation API error: ${data.code} - ${data.msg}`);
+    throw new Error(`MP4 generation API error (${data.code}): ${data.msg || 'Unknown error'}`);
+  }
+
+  /**
+   * Creates a music persona from an existing generated track
+   */
+  async generatePersona(request: GeneratePersonaRequest): Promise<GeneratePersonaApiResponse> {
+    const apiParams = {
+      taskId: request.taskId,
+      audioId: request.audioId,
+      name: request.name.trim(),
+      description: request.description.trim(),
+    };
+
+    const response = await this.fetchWithRetry(`${this.baseUrl}/api/v1/generate/generate-persona`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${this.apiKey}`,
+      },
+      body: JSON.stringify(apiParams),
+    });
+
+    let data: any = null;
+    try {
+      data = await response.json();
+    } catch {
+      // Ignore JSON parse errors; handled below
+    }
+
+    if (!response.ok) {
+      const error = new Error(
+        `Persona generation API call failed: ${response.statusText} - ${data?.msg || 'Unknown error'}`
+      ) as Error & { code?: number };
+      error.code = data?.code || response.status;
+      throw error;
+    }
+
+    if (data?.code === 200) {
+      return {
+        code: data.code,
+        msg: data.msg || 'Persona generated successfully',
+        data: {
+          personaId: data.data?.personaId || data.data?.persona_id,
+          name: data.data?.name || apiParams.name,
+          description: data.data?.description || apiParams.description,
+        },
+      };
+    }
+
+    const apiError = new Error(
+      `Persona generation API error (${data?.code ?? 'unknown'}): ${data?.msg || 'Unknown error'}`
+    ) as Error & { code?: number };
+    apiError.code = data?.code;
+    throw apiError;
   }
 
 }

@@ -30,13 +30,15 @@ import { usePricingModal } from "@/contexts/PricingModalContext";
 import { useFeaturePermissions } from "@/contexts/FeaturePermissionsContext";
 import { useAudioPlayer } from "@/hooks/use-audio-player";
 import { MusicPlayer } from "@/components/ui/music-player";
+import { supabase } from "@/lib/supabase";
+import { Mp4BrandingDialog } from "@/components/ui/mp4-branding-dialog";
 
 interface TrackDetailViewProps {
   trackData?: TrackInfo;
   trackId?: string;
   onBack?: () => void;
   onPlayTrack?: (trackInfo: TrackInfo) => void;
-  onDownload?: (trackInfo: TrackInfo, format: "mp3" | "wav") => void;
+  onDownload?: (trackInfo: TrackInfo, format: "mp3" | "wav" | "mp4") => void;
   fullPage?: boolean;
 }
 
@@ -70,6 +72,9 @@ export const TrackDetailView: React.FC<TrackDetailViewProps> = ({
   const [copied, setCopied] = useState(false);
   const [downloadMenuOpen, setDownloadMenuOpen] = useState(false);
   const [authModalOpen, setAuthModalOpen] = useState(false);
+  const [mp4DialogOpen, setMp4DialogOpen] = useState(false);
+  const [mp4Author, setMp4Author] = useState("");
+  const [mp4DomainName, setMp4DomainName] = useState("");
 
   const {
     currentTrack,
@@ -198,7 +203,10 @@ export const TrackDetailView: React.FC<TrackDetailViewProps> = ({
       : [];
   }, [trackInfo?.tags]);
 
-  const canDownloadTrack = hasPermission("download_mp3_track") || hasPermission("download_wav_track");
+  const canDownloadTrack =
+    hasPermission("download_mp3_track") ||
+    hasPermission("download_wav_track") ||
+    hasPermission("download_mp4_track");
   const ensureDownloadAccess = React.useCallback(() => {
     if (!trackInfo?.audioUrl) {
       return false;
@@ -243,7 +251,7 @@ export const TrackDetailView: React.FC<TrackDetailViewProps> = ({
   const isCurrentTrack = Boolean(trackInfo?.id && currentTrack?.id === trackInfo.id);
   const isPlayingCurrent = isPlaying && isCurrentTrack;
 
-  const internalDownload = React.useCallback(async (track: TrackInfo, format: "mp3" | "wav") => {
+  const internalDownload = React.useCallback(async (track: TrackInfo, format: "mp3" | "wav" | "mp4") => {
     if (!track?.id) {
       toast.error("Missing track information");
       return;
@@ -251,34 +259,12 @@ export const TrackDetailView: React.FC<TrackDetailViewProps> = ({
 
     const downloadingToast = toast.loading("Preparing download...");
     try {
-      const response = await fetch(`/api/download-track?trackId=${track.id}&format=${format}`);
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}));
-        throw new Error(errorData.error || errorData.message || "Download failed");
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session?.access_token) {
+        throw new Error("Authentication required");
       }
 
-      const contentType = response.headers.get("content-type");
-      if (contentType?.includes("application/json")) {
-        const data = await response.json();
-        if (data.fallback && data.audioUrl) {
-          const fallbackResponse = await fetch(data.audioUrl);
-          if (!fallbackResponse.ok) {
-            throw new Error(`Failed to fetch audio: ${fallbackResponse.status}`);
-          }
-          const blob = await fallbackResponse.blob();
-          const blobUrl = window.URL.createObjectURL(blob);
-          const link = document.createElement("a");
-          link.href = blobUrl;
-          link.download = `${track.title || "track"}.${format}`;
-          document.body.appendChild(link);
-          link.click();
-          document.body.removeChild(link);
-          window.URL.revokeObjectURL(blobUrl);
-        } else {
-          throw new Error(data.error || "Download failed");
-        }
-      } else {
-        const blob = await response.blob();
+      const triggerBlobDownload = (blob: Blob) => {
         const blobUrl = window.URL.createObjectURL(blob);
         const link = document.createElement("a");
         link.href = blobUrl;
@@ -287,13 +273,96 @@ export const TrackDetailView: React.FC<TrackDetailViewProps> = ({
         link.click();
         document.body.removeChild(link);
         window.URL.revokeObjectURL(blobUrl);
+      };
+
+      const processDownloadResponse = async (response: Response) => {
+        const contentType = response.headers.get("content-type");
+        if (contentType?.includes("application/json")) {
+          const data = await response.json();
+          const fallbackUrl = data.audioUrl || data.wavUrl || data.videoUrl;
+          if (data.fallback && fallbackUrl) {
+            const fallbackResponse = await fetch(fallbackUrl);
+            if (!fallbackResponse.ok) {
+              throw new Error(`Failed to fetch file: ${fallbackResponse.status}`);
+            }
+            const blob = await fallbackResponse.blob();
+            triggerBlobDownload(blob);
+            return;
+          }
+          throw new Error(data.error || data.message || "Download failed");
+        }
+
+        const blob = await response.blob();
+        triggerBlobDownload(blob);
+      };
+
+      if (format === "wav" || format === "mp4") {
+        const POLL_INTERVAL = 3000;
+        const MAX_POLL_TIME = 180000;
+        const startTime = Date.now();
+
+        const queryParams = new URLSearchParams({
+          trackId: track.id,
+          format,
+        });
+
+        if (format === "mp4") {
+          if (mp4Author.trim()) {
+            queryParams.set("author", mp4Author.trim().slice(0, 50));
+          }
+          if (mp4DomainName.trim()) {
+            queryParams.set("domainName", mp4DomainName.trim().slice(0, 50));
+          }
+        }
+
+        const requestUrl = `/api/download-track?${queryParams.toString()}`;
+
+        while (true) {
+          const response = await fetch(requestUrl, {
+            headers: {
+              Authorization: `Bearer ${session.access_token}`,
+            },
+          });
+
+          if (response.status === 202) {
+            const elapsed = Date.now() - startTime;
+            if (elapsed > MAX_POLL_TIME) {
+              throw new Error(`${format.toUpperCase()} generation timeout`);
+            }
+            await new Promise((resolve) => setTimeout(resolve, POLL_INTERVAL));
+            continue;
+          }
+
+          if (!response.ok) {
+            const errorData = await response.json().catch(() => ({}));
+            throw new Error(errorData.error || errorData.message || "Download failed");
+          }
+
+          await processDownloadResponse(response);
+          break;
+        }
+
+        toast.success("Download started", { id: downloadingToast });
+        return;
       }
+
+      const response = await fetch(`/api/download-track?trackId=${track.id}&format=${format}`, {
+        headers: {
+          Authorization: `Bearer ${session.access_token}`,
+        },
+      });
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.error || errorData.message || "Download failed");
+      }
+
+      await processDownloadResponse(response);
 
       toast.success("Download started", { id: downloadingToast });
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "Unable to download file", { id: downloadingToast });
     }
-  }, []);
+  }, [mp4Author, mp4DomainName]);
 
   const effectiveOnDownload = onDownload ?? internalDownload;
   const isDownloadableResolved = Boolean(trackInfo?.audioUrl && effectiveOnDownload);
@@ -500,6 +569,9 @@ export const TrackDetailView: React.FC<TrackDetailViewProps> = ({
                     </Button>
                   </DropdownMenuTrigger>
                   <DropdownMenuContent align="start" className="w-40 p-1.5 rounded-2xl app-card">
+                    <div className="px-2 py-1 text-[10px] text-muted-foreground uppercase">
+                      Advanced Features
+                    </div>
                     <DropdownMenuItem
                       className="cursor-pointer text-sm"
                       onClick={() => {
@@ -522,6 +594,25 @@ export const TrackDetailView: React.FC<TrackDetailViewProps> = ({
                     >
                       WAV
                     </DropdownMenuItem>
+                    <DropdownMenuItem
+                      className="cursor-pointer text-sm"
+                      onClick={() => {
+                        if (trackInfo) {
+                          const defaultAuthor =
+                            user?.user_metadata?.nickname ||
+                            user?.user_metadata?.full_name ||
+                            user?.user_metadata?.name ||
+                            user?.email?.split('@')[0] ||
+                            "";
+                          setMp4Author(defaultAuthor.slice(0, 50));
+                          setMp4DomainName("");
+                          setMp4DialogOpen(true);
+                        }
+                        setDownloadMenuOpen(false);
+                      }}
+                    >
+                      MP4
+                    </DropdownMenuItem>
                   </DropdownMenuContent>
                 </DropdownMenu>
               )}
@@ -537,6 +628,21 @@ export const TrackDetailView: React.FC<TrackDetailViewProps> = ({
           </div>
         </div>
       </section>
+
+      <Mp4BrandingDialog
+        open={mp4DialogOpen}
+        onOpenChange={setMp4DialogOpen}
+        author={mp4Author}
+        domainName={mp4DomainName}
+        onAuthorChange={setMp4Author}
+        onDomainNameChange={setMp4DomainName}
+        onGenerate={() => {
+          if (trackInfo) {
+            effectiveOnDownload(trackInfo, "mp4");
+          }
+          setMp4DialogOpen(false);
+        }}
+      />
 
       <section className="app-card rounded-[28px] p-5 sm:p-6 md:p-7">
         <div className="flex items-center justify-between gap-3 pb-3">

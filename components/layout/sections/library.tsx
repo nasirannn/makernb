@@ -44,7 +44,7 @@ const LibraryContent = () => {
     const [inlineTrackDetails, setInlineTrackDetails] = useState<LibraryInlineTrackDetails | null>(null);
     const [lyricsPanelOpen, setLyricsPanelOpen] = useState(false);
     // Sidebar宽度状态
-    const [sidebarWidth, setSidebarWidth] = useState(80); // 默认收起状态的宽度
+    const [sidebarWidth, setSidebarWidth] = useState(72); // 默认收起状态的宽度
     const sidebarOffsetRef = React.useRef(sidebarWidth);
 
     React.useEffect(() => {

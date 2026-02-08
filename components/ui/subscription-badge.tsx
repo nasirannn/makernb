@@ -1,7 +1,6 @@
 "use client";
 
 import * as React from "react";
-import { Calendar } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { SubscriptionTier } from "@/lib/subscription-tier";
 
@@ -35,13 +34,11 @@ export function SubscriptionBadge({
   label,
   className,
   tooltip,
-  showCalendar,
 }: {
   tone?: SubscriptionBadgeTone;
   label?: string;
   className?: string;
   tooltip?: string | null;
-  showCalendar?: boolean;
 }) {
   const config = tierConfig[tone];
   const displayLabel = label ?? config.label;
@@ -59,7 +56,6 @@ export function SubscriptionBadge({
       aria-label={`Subscription: ${displayLabel}`}
     >
       <span>{displayLabel}</span>
-      {showCalendar ? <Calendar className="h-3.5 w-3.5 text-current/70" /> : null}
     </span>
   );
 }

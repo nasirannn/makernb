@@ -347,7 +347,6 @@ export const Navbar = ({ credits = null }: NavbarProps) => {
                             tone={tierCode ?? "free"}
                             label={tierName}
                             tooltip={billingNotice ?? undefined}
-                            showCalendar={hasSubscription}
                             className="cursor-pointer transition-colors !bg-primary !text-primary-foreground hover:!bg-primary/90 !border-primary/40 dark:!border-primary/50 !py-1"
                           />
                         </button>
@@ -532,7 +531,6 @@ export const Navbar = ({ credits = null }: NavbarProps) => {
                         tone={tierCode ?? "free"}
                         label={tierName}
                         tooltip={billingNotice ?? undefined}
-                        showCalendar={hasSubscription}
                         className="cursor-pointer transition-colors !bg-primary !text-primary-foreground hover:!bg-primary/90 !border-primary/40 dark:!border-primary/50 !py-1"
                       />
                     </button>
@@ -543,18 +541,16 @@ export const Navbar = ({ credits = null }: NavbarProps) => {
                 </div>
 
                 {/* Credits */}
-                <div className="px-2.5 pb-1.5">
-                  <div className="flex items-center justify-between gap-3 py-1.5">
-                    <div className="flex items-center gap-3">
-                      <div className="flex-shrink-0 h-8 w-8 rounded-lg flex items-center justify-center text-primary">
-                        <Sparkles className="h-3.5 w-3.5" />
-                      </div>
-                      <span className="text-sm font-medium text-foreground">Credits</span>
+                <div className="w-full flex items-center justify-between gap-3 rounded-xl px-3 py-2">
+                  <div className="flex items-center gap-3">
+                    <div className="flex-shrink-0 h-8 w-8 rounded-lg flex items-center justify-center text-primary">
+                      <Sparkles className="h-3.5 w-3.5" />
                     </div>
-                    <span className="min-w-6 rounded-md bg-black/5 px-2 py-0.5 text-center text-[11px] font-semibold text-foreground">
-                      {credits === null ? '...' : credits}
-                    </span>
+                    <span className="text-sm font-medium text-foreground">Credits</span>
                   </div>
+                  <span className="min-w-6 text-right text-[11px] font-semibold text-foreground tabular-nums">
+                    {credits === null ? '...' : credits}
+                  </span>
                 </div>
 
                 <button

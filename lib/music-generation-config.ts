@@ -7,7 +7,7 @@
  * Negative Tags - 避免不符合R&B风格的元素
  * 用于所有音乐生成相关的API调用
  */
-export const DEFAULT_NEGATIVE_TAGS = "edm, techno, trance, dubstep, synthpop, electronic, house, distorted noise, pop, rock, metal, country, jazz, classical, folk, indie, alternative, punk, blues, reggae, hip hop, rap";
+export const DEFAULT_NEGATIVE_TAGS = "edm, techno, trance, dubstep, synthpop, electronic, house, distorted noise, dance, pop, rock, metal, country, jazz, classical, folk, indie, alternative, punk, blues, reggae, hip hop, rap";
 
 /**
  * 默认的风格权重参数

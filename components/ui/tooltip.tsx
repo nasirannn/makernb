@@ -3,6 +3,7 @@
 import React, { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { Z_INDEX } from '@/lib/z-index';
+import { cn } from '@/lib/utils';
 
 interface TooltipProps {
   children: React.ReactNode;
@@ -10,6 +11,7 @@ interface TooltipProps {
   position?: 'top' | 'bottom' | 'left' | 'right';
   delay?: number;
   className?: string;
+  contentClassName?: string;
   allowWrap?: boolean; // 新增：是否允许换行
   matchWidth?: boolean; // 新增：是否匹配子元素宽度
 }
@@ -20,6 +22,7 @@ export const Tooltip: React.FC<TooltipProps> = ({
   position = 'right',
   delay = 200,
   className = '',
+  contentClassName = '',
   allowWrap = false,
   matchWidth = false
 }) => {
@@ -28,6 +31,7 @@ export const Tooltip: React.FC<TooltipProps> = ({
   const [mounted, setMounted] = useState(false);
   const [positionStyle, setPositionStyle] = useState<React.CSSProperties | null>(null);
   const triggerRef = useRef<HTMLDivElement | null>(null);
+  const tooltipRef = useRef<HTMLDivElement | null>(null);
 
   const showTooltip = () => {
     if (timeoutId) clearTimeout(timeoutId);
@@ -53,52 +57,104 @@ export const Tooltip: React.FC<TooltipProps> = ({
     }
 
     const updatePosition = () => {
-      if (!triggerRef.current) return;
-      const rect = triggerRef.current.getBoundingClientRect();
-      const offset = 16;
-      const style: React.CSSProperties = {
-        position: 'fixed',
-        pointerEvents: 'none',
-        top: rect.top + rect.height / 2,
-        left: rect.right + offset,
-        transform: 'translateY(-50%)',
+      const triggerEl = triggerRef.current;
+      const tooltipEl = tooltipRef.current;
+      if (!triggerEl || !tooltipEl) return;
+
+      const triggerRect = triggerEl.getBoundingClientRect();
+      const tooltipRect = tooltipEl.getBoundingClientRect();
+      const viewportWidth = window.innerWidth;
+      const viewportHeight = window.innerHeight;
+      const viewportPadding = 12;
+      const offset = 12;
+
+      const clamp = (value: number, min: number, max: number) => {
+        if (max < min) return min;
+        return Math.min(Math.max(value, min), max);
       };
 
-      switch (position) {
-        case 'top':
-          style.top = rect.top - offset;
-          style.left = rect.left + rect.width / 2;
-          style.transform = 'translate(-50%, -100%)';
+      const placementOrder: Array<'top' | 'bottom' | 'left' | 'right'> = (() => {
+        switch (position) {
+          case 'top':
+            return ['top', 'bottom', 'right', 'left'];
+          case 'bottom':
+            return ['bottom', 'top', 'right', 'left'];
+          case 'left':
+            return ['left', 'right', 'bottom', 'top'];
+          case 'right':
+          default:
+            return ['right', 'left', 'bottom', 'top'];
+        }
+      })();
+
+      const getCoordinates = (placement: 'top' | 'bottom' | 'left' | 'right') => {
+        switch (placement) {
+          case 'top':
+            return {
+              top: triggerRect.top - tooltipRect.height - offset,
+              left: triggerRect.left + triggerRect.width / 2 - tooltipRect.width / 2,
+            };
+          case 'bottom':
+            return {
+              top: triggerRect.bottom + offset,
+              left: triggerRect.left + triggerRect.width / 2 - tooltipRect.width / 2,
+            };
+          case 'left':
+            return {
+              top: triggerRect.top + triggerRect.height / 2 - tooltipRect.height / 2,
+              left: triggerRect.left - tooltipRect.width - offset,
+            };
+          case 'right':
+          default:
+            return {
+              top: triggerRect.top + triggerRect.height / 2 - tooltipRect.height / 2,
+              left: triggerRect.right + offset,
+            };
+        }
+      };
+
+      const fitsViewport = (coords: { top: number; left: number }) => (
+        coords.top >= viewportPadding &&
+        coords.left >= viewportPadding &&
+        coords.top + tooltipRect.height <= viewportHeight - viewportPadding &&
+        coords.left + tooltipRect.width <= viewportWidth - viewportPadding
+      );
+
+      let selectedCoords = getCoordinates(placementOrder[0]);
+      for (const placement of placementOrder) {
+        const candidate = getCoordinates(placement);
+        if (fitsViewport(candidate)) {
+          selectedCoords = candidate;
           break;
-        case 'bottom':
-          style.top = rect.bottom + offset;
-          style.left = rect.left + rect.width / 2;
-          style.transform = 'translate(-50%, 0)';
-          break;
-        case 'left':
-          style.left = rect.left - offset;
-          style.top = rect.top + rect.height / 2;
-          style.transform = 'translate(-100%, -50%)';
-          break;
-        case 'right':
-        default:
-          style.left = rect.right + offset;
-          style.top = rect.top + rect.height / 2;
-          style.transform = 'translate(0, -50%)';
-          break;
+        }
       }
 
-      if (matchWidth) {
-        style.minWidth = rect.width;
-      }
-
-      setPositionStyle(style);
+      setPositionStyle({
+        position: 'fixed',
+        pointerEvents: 'none',
+        top: Math.round(
+          clamp(
+            selectedCoords.top,
+            viewportPadding,
+            viewportHeight - tooltipRect.height - viewportPadding
+          )
+        ),
+        left: Math.round(
+          clamp(
+            selectedCoords.left,
+            viewportPadding,
+            viewportWidth - tooltipRect.width - viewportPadding
+          )
+        ),
+        minWidth: matchWidth ? triggerRect.width : undefined,
+      });
     };
 
-    updatePosition();
+    const frameId = window.requestAnimationFrame(updatePosition);
     window.addEventListener('scroll', updatePosition, true);
     window.addEventListener('resize', updatePosition);
     return () => {
+      window.cancelAnimationFrame(frameId);
       window.removeEventListener('scroll', updatePosition, true);
       window.removeEventListener('resize', updatePosition);
     };
@@ -107,7 +163,12 @@ export const Tooltip: React.FC<TooltipProps> = ({
   const getTooltipClasses = () => {
     const whitespaceClass = allowWrap ? 'break-words' : 'whitespace-nowrap';
     const widthClass = matchWidth ? 'min-w-full text-center' : '';
-    return `relative inline-flex items-center rounded-full px-3 py-1 text-xs font-semibold tracking-tight text-[#0c0c16] bg-white shadow-[0_12px_32px_rgba(5,5,15,0.35)] border border-white/80 transition-all duration-200 ease-out ${whitespaceClass} ${widthClass}`;
+    return cn(
+      'relative inline-flex items-center rounded-full px-3 py-1 text-xs font-semibold tracking-tight text-[#0c0c16] bg-white shadow-[0_12px_32px_rgba(5,5,15,0.35)] border border-white/80 transition-all duration-200 ease-out',
+      whitespaceClass,
+      widthClass,
+      contentClassName
+    );
   };
 
   return (
@@ -118,13 +179,24 @@ export const Tooltip: React.FC<TooltipProps> = ({
       onMouseLeave={hideTooltip}
     >
       {children}
-      {isVisible && mounted && positionStyle &&
+      {isVisible && mounted &&
         createPortal(
           <div
+            ref={tooltipRef}
             className={getTooltipClasses()}
             style={{
-              ...positionStyle,
-              zIndex: Z_INDEX.TOOLTIP,
+              ...(positionStyle ?? {
+                position: 'fixed',
+                pointerEvents: 'none',
+                top: 0,
+                left: 0,
+                opacity: 0,
+              }),
+              zIndex: Math.max(
+                Z_INDEX.TOOLTIP,
+                Z_INDEX.DIALOG_CONTENT + 1,
+                Z_INDEX.AUTH_MODAL_CONTENT + 1
+              ),
             }}
           >
             {content}

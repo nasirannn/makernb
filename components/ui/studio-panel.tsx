@@ -7,7 +7,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
-import { Music, RotateCcw, ChevronRight, Wand2, Play, CreditCard, UploadCloud, X, Check, Triangle, Pause, Trash2 } from "lucide-react";
+import { Music, RotateCcw, ChevronRight, Wand2, Play, CreditCard, UploadCloud, X, Check, Triangle, Pause, Trash2, Users, Info, Plus, MoreHorizontal } from "lucide-react";
 import musicOptions from '@/data/music-options.json';
 import { useAuth } from '@/contexts/AuthContext';
 import { useCredits } from '@/contexts/CreditsContext';
@@ -15,21 +15,28 @@ import { useSubscription } from "@/contexts/SubscriptionContext";
 import { toast } from 'sonner';
 import { Tooltip } from '@/components/ui/tooltip';
 import Image from 'next/image';
+import { Skeleton } from '@/components/ui/skeleton';
 import { CLIENT_EXTEND_MUSIC_CREDITS, CLIENT_MUSIC_CREDITS, CLIENT_UPLOAD_AUDIO_CREDITS } from '@/lib/credits-config';
 import { getInstrumentIcon, getInstrumentAudio, getDrumKitIcon, getDrumKitAudio } from '@/lib/music-resources';
 import { replaceTextInStyle, updateStatesFromTextarea, getRandomBpm } from '@/lib/studio-utils';
 import { TEMPO_KEYWORDS, BUTTON_CLASSES, STYLES } from '@/lib/studio-constants';
 import { useAudioPlayer } from '@/hooks/use-audio-player';
 import { UploadProgressDialog } from "@/components/ui/upload-progress-dialog";
-import { formatDuration } from '@/lib/format-utils';
+import { formatDuration, formatDateTime } from '@/lib/format-utils';
 import { WaveformPlayer } from "@/components/ui/waveform-player";
 import { EditAudioDialog } from "@/features/music-upload/components/edit-audio-dialog";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { MusicModel, modelOptions } from '@/components/ui/model-selection-dialog';
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
-  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { supabase } from '@/lib/supabase';
@@ -238,7 +245,28 @@ interface StudioPanelProps {
   // Model selection
   selectedModel?: MusicModel;
   setSelectedModel?: (model: MusicModel) => void;
+  selectedPersonaId?: string;
+  setSelectedPersonaId?: (personaId: string) => void;
 }
+
+type PersonaOption = {
+  id: string;
+  personaId: string;
+  name: string | null;
+  description: string | null;
+  trackTitle: string | null;
+};
+
+type PersonaTrackOption = {
+  id: string;
+  title: string | null;
+  duration: number;
+  createdAt: string;
+  audioId: string | null;
+  coverR2Url: string | null;
+  hasPersona: boolean;
+  personaId: string | null;
+};
 
 export const StudioPanel = (props: StudioPanelProps) => {
   const {
@@ -284,6 +312,8 @@ export const StudioPanel = (props: StudioPanelProps) => {
     onGenerateLyrics,
     selectedModel = 'V4',
     setSelectedModel,
+    selectedPersonaId = '',
+    setSelectedPersonaId,
   } = props;
 
   const { user } = useAuth();
@@ -331,6 +361,20 @@ export const StudioPanel = (props: StudioPanelProps) => {
   // Pricing dialog state
   const [isPricingOpen, setIsPricingOpen] = React.useState(false);
   const [isModelMenuOpen, setIsModelMenuOpen] = React.useState(false);
+  const [isPersonaDialogOpen, setIsPersonaDialogOpen] = React.useState(false);
+  const [isPersonaLoading, setIsPersonaLoading] = React.useState(false);
+  const [personaOptions, setPersonaOptions] = React.useState<PersonaOption[]>([]);
+  const hasLoadedPersonaOptionsInCurrentOpenRef = React.useRef(false);
+  const [isSelectMusicOpen, setIsSelectMusicOpen] = React.useState(false);
+  const [isSelectMusicLoading, setIsSelectMusicLoading] = React.useState(false);
+  const [selectMusicOptions, setSelectMusicOptions] = React.useState<PersonaTrackOption[]>([]);
+  const [selectedMusicTrackId, setSelectedMusicTrackId] = React.useState('');
+  const [pendingMusicTrackId, setPendingMusicTrackId] = React.useState('');
+  const [isCreatePersonaDialogOpen, setIsCreatePersonaDialogOpen] = React.useState(false);
+  const [createPersonaName, setCreatePersonaName] = React.useState('');
+  const [createPersonaDescription, setCreatePersonaDescription] = React.useState('');
+  const [isCreatingPersona, setIsCreatingPersona] = React.useState(false);
+  const [deletingPersonaRecordId, setDeletingPersonaRecordId] = React.useState<string | null>(null);
 
   type StyleCategory =
     | "genre"
@@ -354,6 +398,340 @@ export const StudioPanel = (props: StudioPanelProps) => {
   
   // Audio player hook
   const { playPreviewAudio } = useAudioPlayer();
+
+  const selectedPersona = React.useMemo(
+    () => personaOptions.find((item) => item.personaId === selectedPersonaId) || null,
+    [personaOptions, selectedPersonaId]
+  );
+
+  const selectedMusicTrack = React.useMemo(
+    () => selectMusicOptions.find((item) => item.id === selectedMusicTrackId) || null,
+    [selectMusicOptions, selectedMusicTrackId]
+  );
+
+  const pendingMusicTrack = React.useMemo(
+    () => selectMusicOptions.find((item) => item.id === pendingMusicTrackId) || null,
+    [selectMusicOptions, pendingMusicTrackId]
+  );
+
+  const getPersonaTrackUnavailableReason = React.useCallback((track: PersonaTrackOption | null | undefined) => {
+    if (!track) {
+      return null;
+    }
+
+    if (track.hasPersona) {
+      return 'Persona already created for this audio. Each audio ID can only generate one persona.';
+    }
+
+    return null;
+  }, []);
+
+  const pendingMusicTrackUnavailableReason = React.useMemo(
+    () => getPersonaTrackUnavailableReason(pendingMusicTrack),
+    [pendingMusicTrack, getPersonaTrackUnavailableReason]
+  );
+
+  const formatTrackCreatedAt = React.useCallback((value: string) => {
+    if (!value) {
+      return 'Unknown date';
+    }
+
+    const date = new Date(value);
+    if (Number.isNaN(date.getTime())) {
+      return 'Unknown date';
+    }
+
+    return formatDateTime(value);
+  }, []);
+
+  const loadPersonaOptions = React.useCallback(async () => {
+    if (!user) {
+      setPersonaOptions([]);
+      return;
+    }
+
+    setIsPersonaLoading(true);
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session?.access_token) {
+        setPersonaOptions([]);
+        return;
+      }
+
+      const response = await fetch('/api/personas', {
+        method: 'GET',
+        headers: {
+          Authorization: `Bearer ${session.access_token}`,
+        },
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to load personas');
+      }
+
+      const result = await response.json();
+      const list = Array.isArray(result?.data) ? result.data : [];
+      setPersonaOptions(list);
+
+      if (selectedPersonaId && !list.some((item: PersonaOption) => item.personaId === selectedPersonaId)) {
+        setSelectedPersonaId?.('');
+      }
+    } catch (error) {
+      console.error('[StudioPanel] Failed to load personas:', error);
+      toast.error('Failed to load personas');
+      setPersonaOptions([]);
+    } finally {
+      setIsPersonaLoading(false);
+    }
+  }, [user, selectedPersonaId, setSelectedPersonaId]);
+
+  const loadSelectMusicOptions = React.useCallback(async () => {
+    if (!user) {
+      setSelectMusicOptions([]);
+      return;
+    }
+
+    setIsSelectMusicLoading(true);
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session?.access_token) {
+        setSelectMusicOptions([]);
+        return;
+      }
+
+      const response = await fetch(`/api/studio-tracks-for-separation?limit=50&t=${Date.now()}`, {
+        method: 'GET',
+        cache: 'no-store',
+        headers: {
+          Authorization: `Bearer ${session.access_token}`,
+        },
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to load current songs');
+      }
+
+      const result = await response.json();
+      const list = Array.isArray(result?.data) ? result.data : [];
+      setSelectMusicOptions(
+        list.map((item: any) => {
+          const normalizedPersonaId = item.personaId || item.persona_id || null;
+          const normalizedHasPersona = Boolean(item.hasPersona ?? item.has_persona ?? normalizedPersonaId);
+
+          return {
+            id: item.id,
+            title: item.title || 'Untitled Track',
+            duration: typeof item.duration === 'number' ? item.duration : Number(item.duration || 0),
+            createdAt: item.createdAt || item.created_at || '',
+            audioId: item.audioId || item.audio_id || null,
+            coverR2Url: item.coverR2Url || item.cover_r2_url || null,
+            hasPersona: normalizedHasPersona,
+            personaId: normalizedPersonaId,
+          };
+        })
+      );
+    } catch (error) {
+      console.error('[StudioPanel] Failed to load current songs:', error);
+      toast.error('Failed to load current songs');
+      setSelectMusicOptions([]);
+    } finally {
+      setIsSelectMusicLoading(false);
+    }
+  }, [user]);
+
+  const handleDeletePersona = React.useCallback(async (persona: PersonaOption) => {
+    if (!user) {
+      toast.error('Please sign in to delete personas.');
+      return;
+    }
+
+    if (deletingPersonaRecordId) {
+      return;
+    }
+
+    setDeletingPersonaRecordId(persona.id);
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session?.access_token) {
+        toast.error('Authentication expired. Please sign in again.');
+        return;
+      }
+
+      const response = await fetch('/api/personas', {
+        method: 'DELETE',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${session.access_token}`,
+        },
+        body: JSON.stringify({
+          personaRecordId: persona.id,
+        }),
+      });
+
+      const result = await response.json();
+      if (!response.ok || !result?.success) {
+        throw new Error(result?.error || 'Failed to delete persona');
+      }
+
+      if (selectedPersonaId === persona.personaId) {
+        setSelectedPersonaId?.('');
+      }
+
+      await loadPersonaOptions();
+      toast.success('Persona deleted');
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Failed to delete persona';
+      toast.error(message);
+    } finally {
+      setDeletingPersonaRecordId(null);
+    }
+  }, [user, deletingPersonaRecordId, selectedPersonaId, setSelectedPersonaId, loadPersonaOptions]);
+
+  const openSelectMusicDialog = React.useCallback(() => {
+    setPendingMusicTrackId(selectedMusicTrackId);
+    setSelectMusicOptions([]);
+    setIsSelectMusicOpen(true);
+    void loadSelectMusicOptions();
+  }, [selectedMusicTrackId, loadSelectMusicOptions]);
+
+  const closeSelectMusicDialog = React.useCallback(() => {
+    setPendingMusicTrackId(selectedMusicTrackId);
+    setIsSelectMusicOpen(false);
+  }, [selectedMusicTrackId]);
+
+  const openCreatePersonaDialog = React.useCallback((trackId: string) => {
+    const track = selectMusicOptions.find((item) => item.id === trackId);
+
+    const unavailableReason = getPersonaTrackUnavailableReason(track);
+    if (unavailableReason) {
+      toast.error(unavailableReason);
+      return;
+    }
+
+    setSelectedMusicTrackId(trackId);
+    setCreatePersonaName(track?.title?.trim() || '');
+    setCreatePersonaDescription('');
+    setIsCreatePersonaDialogOpen(true);
+  }, [selectMusicOptions, getPersonaTrackUnavailableReason]);
+
+  const closeCreatePersonaDialog = React.useCallback(() => {
+    if (isCreatingPersona) {
+      return;
+    }
+    setIsCreatePersonaDialogOpen(false);
+  }, [isCreatingPersona]);
+
+  const confirmSelectMusicDialog = React.useCallback(() => {
+    if (!pendingMusicTrackId) {
+      return;
+    }
+
+    if (pendingMusicTrackUnavailableReason) {
+      toast.error(pendingMusicTrackUnavailableReason);
+      return;
+    }
+
+    setIsSelectMusicOpen(false);
+    openCreatePersonaDialog(pendingMusicTrackId);
+  }, [pendingMusicTrackId, pendingMusicTrackUnavailableReason, openCreatePersonaDialog]);
+
+  const handleCreatePersona = React.useCallback(async () => {
+    const trackId = selectedMusicTrackId;
+    if (!trackId) {
+      toast.error('Please select a track first.');
+      return;
+    }
+
+    const selectedTrackOption = selectMusicOptions.find((item) => item.id === trackId) || null;
+    const unavailableReason = getPersonaTrackUnavailableReason(selectedTrackOption);
+    if (unavailableReason) {
+      toast.error(unavailableReason);
+      return;
+    }
+
+    const name = createPersonaName.trim();
+    const description = createPersonaDescription.trim();
+
+    if (!name || !description) {
+      toast.error('Please enter both name and description.');
+      return;
+    }
+
+    if (!user) {
+      toast.error('Please sign in to create a persona.');
+      return;
+    }
+
+    setIsCreatingPersona(true);
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session?.access_token) {
+        toast.error('Authentication expired. Please sign in again.');
+        return;
+      }
+
+      const response = await fetch('/api/generate-persona', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${session.access_token}`,
+        },
+        body: JSON.stringify({
+          trackId,
+          name,
+          description,
+        }),
+      });
+
+      const result = await response.json();
+      if (!response.ok || !result?.success) {
+        const message = result?.message || result?.error || 'Failed to create persona';
+        throw new Error(message);
+      }
+
+      const personaId = result?.data?.personaId as string | undefined;
+      if (personaId) {
+        setSelectedPersonaId?.(personaId);
+      }
+
+      await loadPersonaOptions();
+      setIsCreatePersonaDialogOpen(false);
+      toast.success(result?.data?.isExisting ? 'Persona already exists and has been selected.' : 'Persona created successfully.');
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Failed to create persona';
+      toast.error(message);
+    } finally {
+      setIsCreatingPersona(false);
+    }
+  }, [selectedMusicTrackId, selectMusicOptions, getPersonaTrackUnavailableReason, createPersonaName, createPersonaDescription, user, setSelectedPersonaId, loadPersonaOptions]);
+
+  React.useEffect(() => {
+    if (!pendingMusicTrackId || !pendingMusicTrackUnavailableReason) {
+      return;
+    }
+
+    setPendingMusicTrackId('');
+  }, [pendingMusicTrackId, pendingMusicTrackUnavailableReason]);
+
+  React.useEffect(() => {
+    if (isPersonaDialogOpen) {
+      if (hasLoadedPersonaOptionsInCurrentOpenRef.current) {
+        return;
+      }
+
+      hasLoadedPersonaOptionsInCurrentOpenRef.current = true;
+      void loadPersonaOptions();
+      return;
+    }
+
+    hasLoadedPersonaOptionsInCurrentOpenRef.current = false;
+    setIsSelectMusicOpen(false);
+    setIsCreatePersonaDialogOpen(false);
+    setSelectedMusicTrackId('');
+    setPendingMusicTrackId('');
+    setCreatePersonaName('');
+    setCreatePersonaDescription('');
+  }, [isPersonaDialogOpen, loadPersonaOptions]);
 
   type UploadPanelMode = "simple" | "custom";
   type UploadAudioMode = "cover" | "extend";
@@ -1587,7 +1965,7 @@ export const StudioPanel = (props: StudioPanelProps) => {
     <div
       className={`studio-panel-cards bg-transparent transition-all duration-300 ease-in-out ${
         // 桌面：左侧固定宽度；移动端：当 forceVisibleOnMobile=true 时占满宽度
-        panelOpen ? (forceVisibleOnMobile ? 'w-full md:w-[28rem]' : 'w-[28rem]') : 'w-0'
+        panelOpen ? (forceVisibleOnMobile ? 'w-full md:w-[30rem]' : 'w-[30rem]') : 'w-0'
       } ${forceVisibleOnMobile ? 'flex flex-col' : 'h-full flex flex-col overflow-hidden'} ${forceVisibleOnMobile ? 'flex md:flex' : 'hidden md:flex'}`}
       style={
         hasPlayer && !forceVisibleOnMobile
@@ -1633,7 +2011,7 @@ export const StudioPanel = (props: StudioPanelProps) => {
                 <DropdownMenuTrigger asChild>
                   <button
                     type="button"
-                    className="group studio-panel-card px-4 py-1.5 rounded-full text-xs md:text-sm font-semibold text-foreground/80 transition-colors hover:bg-accent hover:text-accent-foreground flex items-center gap-1.5"
+                    className="group studio-panel-card h-11 px-4 rounded-full text-xs md:text-sm font-semibold text-foreground/80 transition-colors hover:bg-accent hover:text-accent-foreground flex items-center gap-1.5"
                     title="Click to change model version"
                   >
                     <span>{modelOptions.find(opt => opt.value === selectedModel)?.label || 'v4'}</span>
@@ -1642,7 +2020,10 @@ export const StudioPanel = (props: StudioPanelProps) => {
                     />
                   </button>
                 </DropdownMenuTrigger>
-                <DropdownMenuContent align="end" className="w-80 p-1.5 rounded-2xl app-card">
+                <DropdownMenuContent
+                  align="end"
+                  className="z-[170] w-80 max-h-[70vh] overflow-y-auto p-1.5 rounded-2xl !border-0 !bg-zinc-900/95 !text-zinc-100 shadow-[0_20px_56px_rgba(0,0,0,0.5)] backdrop-blur-xl"
+                >
                   {modelOptions.map((option, index) => {
                     const isSelected = option.value === selectedModel;
                     const creditsPerTrack = CLIENT_EXTEND_MUSIC_CREDITS[option.value];
@@ -1650,11 +2031,11 @@ export const StudioPanel = (props: StudioPanelProps) => {
                       <React.Fragment key={option.value}>
                         <DropdownMenuItem
                           onClick={() => handleModelSelect(option.value)}
-                          className="group flex flex-col items-start gap-1 rounded-xl px-3.5 py-2.5 transition-colors hover:bg-black/5 focus:bg-black/5 data-[highlighted]:bg-black/5 dark:hover:bg-white/5 dark:focus:bg-white/5 dark:data-[highlighted]:bg-white/5"
+                          className="group flex flex-col items-start gap-1 rounded-xl px-3.5 py-2.5 transition-colors hover:bg-white/10 focus:bg-white/10 data-[highlighted]:bg-white/10"
                         >
                           <div className="flex w-full items-center justify-between gap-2">
                             <div className="flex items-center gap-2">
-                              <span className="text-sm font-semibold text-foreground">
+                              <span className="text-sm font-semibold text-zinc-100">
                                 {option.label}
                               </span>
                             </div>
@@ -1664,10 +2045,10 @@ export const StudioPanel = (props: StudioPanelProps) => {
                               </span>
                             )}
                           </div>
-                          <span className="text-[11px] text-muted-foreground">
+                          <span className="text-[11px] text-zinc-400">
                             {creditsPerTrack} credits per track
                           </span>
-                          <span className="text-xs text-muted-foreground">
+                          <span className="text-xs text-zinc-400">
                             {option.description}
                           </span>
                         </DropdownMenuItem>
@@ -1681,7 +2062,7 @@ export const StudioPanel = (props: StudioPanelProps) => {
 
           {/* Main Content */}
           <div
-            className={`flex-1 ${forceVisibleOnMobile ? '' : 'overflow-y-auto scrollbar-hidden'} px-0 ${forceVisibleOnMobile ? 'pb-20' : 'pb-6'} md:pb-6`}
+            className={`flex-1 ${forceVisibleOnMobile ? '' : 'overflow-y-auto scrollbar-hidden'} px-0 ${forceVisibleOnMobile ? 'pb-28' : 'pb-6'} md:pb-6`}
           >
             <input
               ref={uploadFileInputRef}
@@ -1901,16 +2282,31 @@ export const StudioPanel = (props: StudioPanelProps) => {
               {uploadCoverFile ? (
                 uploadAudioPreview
               ) : (
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className="studio-panel-card h-12 w-full justify-center rounded-2xl text-foreground/75 hover:text-foreground hover:bg-foreground/10 transition-colors"
-                  title="Add audio"
-                  onClick={handlePromptAddAudioClick}
-                >
-                  <UploadCloud className="h-4 w-4" />
-                  <span className="text-sm font-semibold tracking-tight">Add Audio</span>
-                </Button>
+                <div className="grid grid-cols-2 gap-2">
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="studio-panel-card h-12 w-full justify-center rounded-2xl text-foreground/75 hover:text-foreground hover:bg-foreground/10 transition-colors"
+                    title="Add audio"
+                    onClick={handlePromptAddAudioClick}
+                  >
+                    <UploadCloud className="h-4 w-4" />
+                    <span className="text-sm font-semibold tracking-tight">Add Audio</span>
+                  </Button>
+
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="studio-panel-card h-12 w-full justify-center rounded-2xl text-foreground/75 hover:text-foreground hover:bg-foreground/10 transition-colors"
+                    title="Select persona"
+                    onClick={() => setIsPersonaDialogOpen(true)}
+                  >
+                    <Users className="h-4 w-4" />
+                    <span className="text-sm font-semibold tracking-tight">
+                      {selectedPersona?.name?.trim() || (selectedPersonaId ? 'Persona Selected' : 'Select Persona')}
+                    </span>
+                  </Button>
+                </div>
               )}
             </section>
 
@@ -2057,7 +2453,13 @@ export const StudioPanel = (props: StudioPanelProps) => {
           </div>
 
           {/* Floating Generate Button - Bottom */}
-          <div className="flex-shrink-0 px-0 pt-3 pb-4">
+          <div
+            className={`flex-shrink-0 px-0 pt-3 ${
+              forceVisibleOnMobile
+                ? 'sticky bottom-0 z-20 bg-background/95 pb-[calc(env(safe-area-inset-bottom)+0.75rem)] backdrop-blur supports-[backdrop-filter]:bg-background/80'
+                : 'pb-4'
+            }`}
+          >
             {(() => {
               // 只根据prompt输入内容来禁用按钮，积分检查移到点击后
               let isDisabled = isGenerating;
@@ -2148,6 +2550,443 @@ export const StudioPanel = (props: StudioPanelProps) => {
           }
         }}
       />
+
+      <Dialog open={isPersonaDialogOpen} onOpenChange={setIsPersonaDialogOpen}>
+        <DialogContent className="max-w-[calc(100vw-2rem)] sm:max-w-[620px] max-h-[82vh] flex flex-col overflow-hidden p-0 border-0 bg-background shadow-xl">
+          <div className="pointer-events-none absolute inset-x-0 top-0 h-24 bg-gradient-to-b from-primary/15 via-primary/5 to-transparent" />
+
+          <DialogHeader className="relative px-6 pt-5 pb-4 text-left">
+            <div className="text-[10px] uppercase tracking-[0.28em] text-muted-foreground">
+              Persona
+            </div>
+            <DialogTitle className="text-xl font-semibold tracking-tight text-foreground">
+              Music Persona
+            </DialogTitle>
+            <DialogDescription className="text-sm text-muted-foreground">
+              Extract persona from your generated tracks.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="flex-1 space-y-4 overflow-y-auto px-6 pb-6">
+            <button
+              type="button"
+              onClick={openSelectMusicDialog}
+              className="group flex w-full cursor-pointer items-center gap-3 rounded-2xl bg-muted/30 px-4 py-3 text-left transition-colors duration-200 hover:bg-muted/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+            >
+              <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-primary/12 text-primary">
+                <Plus className="h-4.5 w-4.5" aria-hidden="true" />
+              </span>
+              <span className="min-w-0 flex-1">
+                <span className="block text-sm font-semibold text-foreground">Create Persona</span>
+                <span className="mt-0.5 block text-xs text-muted-foreground">
+                  Choose a song and continue to create your persona
+                </span>
+              </span>
+              <ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground transition-colors group-hover:text-foreground" aria-hidden="true" />
+            </button>
+
+            <div className="flex items-center justify-between gap-2">
+              <h3 className="text-sm font-semibold tracking-tight text-foreground">My Personas</h3>
+              {selectedPersonaId && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setSelectedPersonaId?.('');
+                    setIsPersonaDialogOpen(false);
+                  }}
+                  className="cursor-pointer rounded-md px-2 py-1 text-xs font-medium text-muted-foreground transition-colors hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                >
+                  Use No Persona
+                </button>
+              )}
+            </div>
+
+            <div className="max-h-[320px] space-y-2 overflow-y-auto pr-1">
+              {isPersonaLoading ? (
+                <div className="space-y-2">
+                  {Array.from({ length: 4 }).map((_, index) => (
+                    <div key={`persona-skeleton-${index}`} className="rounded-2xl bg-card/70 px-4 py-3">
+                      <div className="space-y-2">
+                        <Skeleton className="h-4 w-1/2" />
+                        <Skeleton className="h-3 w-1/3" />
+                        <Skeleton className="h-3 w-4/5" />
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : personaOptions.length === 0 ? (
+                <div className="flex min-h-[220px] flex-col items-center justify-center rounded-2xl bg-muted/30 px-4 py-6 text-center">
+                  <div className="mb-3 flex h-14 w-14 items-center justify-center rounded-full bg-primary/12 text-primary">
+                    <Users className="h-6 w-6" aria-hidden="true" />
+                  </div>
+                  <div className="text-base font-semibold text-foreground">No Personas Yet</div>
+                  <p className="mt-1 max-w-[420px] text-xs leading-relaxed text-muted-foreground">
+                    No personas yet. Select music to create one.
+                  </p>
+                </div>
+              ) : (
+                personaOptions.map((persona) => {
+                  const isSelected = selectedPersonaId === persona.personaId;
+                  const isDeletingPersona = deletingPersonaRecordId === persona.id;
+
+                  return (
+                    <div
+                      key={persona.id}
+                      role="button"
+                      tabIndex={0}
+                      onClick={() => {
+                        setSelectedPersonaId?.(persona.personaId);
+                        setIsPersonaDialogOpen(false);
+                      }}
+                      onKeyDown={(event) => {
+                        if (event.key === 'Enter' || event.key === ' ') {
+                          event.preventDefault();
+                          setSelectedPersonaId?.(persona.personaId);
+                          setIsPersonaDialogOpen(false);
+                        }
+                      }}
+                      className={`group w-full cursor-pointer rounded-2xl px-4 py-3 text-left transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring ${
+                        isSelected
+                          ? 'bg-primary/15 hover:bg-primary/20'
+                          : 'bg-muted/30 hover:bg-muted/50'
+                      }`}
+                    >
+                      <div className="flex w-full items-center gap-3">
+                        <div className="min-w-0 flex-1">
+                          <div className="truncate text-sm font-semibold text-foreground">
+                            {persona.name?.trim() || 'Unnamed Persona'}
+                          </div>
+                          {persona.trackTitle && (
+                            <div className="mt-0.5 text-[11px] text-muted-foreground">From: {persona.trackTitle}</div>
+                          )}
+                          {persona.description && (
+                            <div className="mt-1.5 line-clamp-2 text-xs leading-relaxed text-muted-foreground">
+                              {persona.description}
+                            </div>
+                          )}
+                        </div>
+
+                        <DropdownMenu modal={false}>
+                          <DropdownMenuTrigger asChild>
+                            <button
+                              type="button"
+                              onPointerDown={(event) => {
+                                event.stopPropagation();
+                              }}
+                              onClick={(event) => {
+                                event.stopPropagation();
+                              }}
+                              className="inline-flex h-8 w-8 shrink-0 cursor-pointer items-center justify-center rounded-md text-muted-foreground opacity-0 pointer-events-none transition-[opacity,color,background-color] duration-200 group-hover:opacity-100 group-hover:pointer-events-auto group-focus-within:opacity-100 group-focus-within:pointer-events-auto hover:bg-muted/60 hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                              aria-label="Persona actions"
+                              title="More actions"
+                            >
+                              <MoreHorizontal className="h-4 w-4" aria-hidden="true" />
+                            </button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end" className="z-[180] w-36">
+                            <DropdownMenuItem
+                              onSelect={() => {
+                                toast.info('Edit persona (coming soon)');
+                              }}
+                              disabled={isDeletingPersona}
+                            >
+                              Edit
+                            </DropdownMenuItem>
+                            <DropdownMenuItem
+                              onSelect={() => {
+                                void handleDeletePersona(persona);
+                              }}
+                              disabled={isDeletingPersona}
+                              className="text-destructive focus:text-destructive"
+                            >
+                              {isDeletingPersona ? 'Deleting...' : 'Delete'}
+                            </DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+                      </div>
+                    </div>
+                  );
+                })
+              )}
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog
+        open={isSelectMusicOpen}
+        onOpenChange={(open) => {
+          if (open) {
+            setPendingMusicTrackId(selectedMusicTrackId);
+            setIsSelectMusicOpen(true);
+            return;
+          }
+          closeSelectMusicDialog();
+        }}
+      >
+        <DialogContent className="max-w-[calc(100vw-2rem)] sm:max-w-[640px] max-h-[82vh] flex flex-col overflow-hidden p-0 border-0 bg-background shadow-xl">
+          <div className="pointer-events-none absolute inset-x-0 top-0 h-24 bg-gradient-to-b from-primary/15 via-primary/5 to-transparent" />
+
+          <DialogHeader className="relative px-6 pt-5 pb-4 text-left">
+            <div className="text-[10px] uppercase tracking-[0.28em] text-muted-foreground">
+              Current Songs
+            </div>
+            <DialogTitle className="text-lg font-semibold tracking-tight text-foreground">
+              Select Music
+            </DialogTitle>
+            <DialogDescription className="text-sm text-muted-foreground">
+              Choose one of your current songs, then confirm.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="flex-1 space-y-3 overflow-y-auto px-6 pb-4">
+            {isSelectMusicLoading ? (
+              <div className="max-h-[400px] space-y-1.5 overflow-y-auto rounded-2xl bg-muted/20 p-2 pr-1">
+                {Array.from({ length: 6 }).map((_, index) => (
+                  <div key={`select-music-skeleton-${index}`} className="rounded-xl bg-card/70 px-3 py-2.5">
+                    <div className="flex items-center gap-3">
+                      <Skeleton className="h-10 w-10 shrink-0 rounded-md" />
+                      <div className="min-w-0 flex-1 space-y-1.5">
+                        <Skeleton className="h-4 w-2/3" />
+                        <div className="flex items-center gap-1.5">
+                          <Skeleton className="h-4 w-12 rounded-md" />
+                          <Skeleton className="h-4 w-28 rounded-md" />
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : selectMusicOptions.length === 0 ? (
+              <div className="flex min-h-[200px] flex-col items-center justify-center rounded-2xl bg-muted/30 px-4 py-6 text-center">
+                <div className="mb-3 flex h-14 w-14 items-center justify-center rounded-full bg-primary/12 text-primary">
+                  <Music className="h-6 w-6" aria-hidden="true" />
+                </div>
+                <div className="text-base font-semibold text-foreground">No Songs Yet</div>
+                <div className="mt-1 text-xs text-muted-foreground">Generate or upload a song to see it here.</div>
+              </div>
+            ) : (
+              <div className="max-h-[400px] space-y-1.5 overflow-y-auto rounded-2xl bg-muted/20 p-2 pr-1">
+                {selectMusicOptions.map((track) => {
+                  const unavailableReason = getPersonaTrackUnavailableReason(track);
+                  const isUnavailable = Boolean(unavailableReason);
+                  const isPending = pendingMusicTrackId === track.id;
+
+                  return (
+                    <button
+                      key={track.id}
+                      type="button"
+                      disabled={isUnavailable}
+                      onClick={() => {
+                        if (isUnavailable) {
+                          return;
+                        }
+                        setPendingMusicTrackId(track.id);
+                      }}
+                      className={`w-full rounded-xl px-3 py-2.5 text-left transition-colors duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring ${
+                        isPending && !isUnavailable
+                          ? 'cursor-pointer bg-primary/15 hover:bg-primary/20'
+                          : isUnavailable
+                            ? 'cursor-not-allowed bg-muted/35 opacity-75'
+                            : 'cursor-pointer bg-card/75 hover:bg-muted/40'
+                      }`}
+                      title={isUnavailable ? unavailableReason || undefined : undefined}
+                    >
+                      <div className="flex items-center gap-3">
+                        <div className="relative h-10 w-10 shrink-0 overflow-hidden rounded-md bg-muted/50">
+                          {track.coverR2Url ? (
+                            <Image
+                              src={track.coverR2Url}
+                              alt={track.title || 'Track cover'}
+                              fill
+                              sizes="40px"
+                              className="object-cover"
+                            />
+                          ) : (
+                            <div className="flex h-full w-full items-center justify-center text-muted-foreground/70">
+                              <Music className="h-4 w-4" aria-hidden="true" />
+                            </div>
+                          )}
+                        </div>
+
+                        <div className="min-w-0 flex-1">
+                          <div className="truncate text-sm font-medium text-foreground">
+                            {track.title || 'Untitled Track'}
+                          </div>
+                          <div className="mt-1 flex items-center gap-1.5 text-[11px] text-muted-foreground">
+                            <span className="rounded-md bg-muted/60 px-1.5 py-0.5">
+                              {formatDuration(Math.floor(track.duration || 0)) || '0:00'}
+                            </span>
+                            <span className="rounded-md bg-muted/60 px-1.5 py-0.5">
+                              {formatTrackCreatedAt(track.createdAt)}
+                            </span>
+                          </div>
+                          {isUnavailable && unavailableReason && (
+                            <div className="mt-1.5 text-[11px] text-amber-600 dark:text-amber-400">
+                              {unavailableReason}
+                            </div>
+                          )}
+                        </div>
+
+                        {isPending && !isUnavailable && (
+                          <span className="inline-flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-primary">
+                            <Check className="h-3 w-3 text-primary-foreground" strokeWidth={2.8} aria-hidden="true" />
+                          </span>
+                        )}
+                      </div>
+                    </button>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+
+          <div className="flex items-center gap-2 bg-background/95 px-6 py-4 backdrop-blur">
+            <div className="min-w-0 flex-1 truncate text-xs text-muted-foreground">
+              {pendingMusicTrack
+                ? pendingMusicTrackUnavailableReason
+                  ? pendingMusicTrackUnavailableReason
+                  : `Selected: ${pendingMusicTrack.title || 'Untitled Track'}`
+                : "You haven't selected any tracks yet"}
+            </div>
+            <div className="flex shrink-0 items-center gap-2">
+              <Button
+                type="button"
+                variant="ghost"
+                onClick={closeSelectMusicDialog}
+                className="h-9 px-4"
+              >
+                Cancel
+              </Button>
+              <Button
+                type="button"
+                onClick={confirmSelectMusicDialog}
+                className="h-9 px-4"
+                disabled={isSelectMusicLoading || !pendingMusicTrackId || !!pendingMusicTrackUnavailableReason}
+              >
+                Confirm
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={isCreatePersonaDialogOpen} onOpenChange={setIsCreatePersonaDialogOpen}>
+        <DialogContent className="max-w-[calc(100vw-2rem)] sm:max-w-[620px] max-h-[82vh] flex flex-col overflow-hidden p-0 border-0 bg-background shadow-xl">
+          <DialogHeader className="px-6 pt-5 pb-4 text-left">
+            <DialogTitle className="text-lg font-semibold tracking-tight text-foreground">
+              Create a Persona
+            </DialogTitle>
+            <DialogDescription className="text-sm text-muted-foreground">
+              Add a name and description for this music persona.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="flex-1 space-y-4 overflow-y-auto px-6 pb-4">
+            {selectedMusicTrack ? (
+              <div className="rounded-xl bg-muted/25 px-3 py-2.5">
+                <div className="flex items-center gap-3">
+                  <div className="relative h-10 w-10 shrink-0 overflow-hidden rounded-md bg-muted/50">
+                    {selectedMusicTrack.coverR2Url ? (
+                      <Image
+                        src={selectedMusicTrack.coverR2Url}
+                        alt={selectedMusicTrack.title || 'Track cover'}
+                        fill
+                        sizes="40px"
+                        className="object-cover"
+                      />
+                    ) : (
+                      <div className="flex h-full w-full items-center justify-center text-muted-foreground/70">
+                        <Music className="h-4 w-4" aria-hidden="true" />
+                      </div>
+                    )}
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <div className="truncate text-sm font-semibold text-foreground">
+                      {selectedMusicTrack.title || 'Untitled Track'}
+                    </div>
+                    <div className="mt-0.5 text-[11px] text-muted-foreground">
+                      {formatDuration(Math.floor(selectedMusicTrack.duration || 0)) || '0:00'} • {formatTrackCreatedAt(selectedMusicTrack.createdAt)}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            ) : null}
+
+            <div className="space-y-2">
+              <div className="flex items-center gap-1.5">
+                <Label htmlFor="create-persona-name" className="text-sm font-medium text-foreground">
+                  Name
+                </Label>
+                <button
+                  type="button"
+                  aria-label="Name field information"
+                  title="A descriptive name that captures the essence of the musical style or character"
+                  className="inline-flex h-7 w-7 cursor-help items-center justify-center rounded-full text-muted-foreground transition-colors duration-200 hover:text-foreground"
+                >
+                  <Info className="h-3.5 w-3.5" />
+                </button>
+              </div>
+              <Input
+                id="create-persona-name"
+                value={createPersonaName}
+                onChange={(event) => setCreatePersonaName(event.target.value)}
+                placeholder="Enter persona name"
+                maxLength={100}
+                className="h-11"
+              />
+            </div>
+
+            <div className="space-y-2">
+              <div className="flex items-center gap-1.5">
+                <Label htmlFor="create-persona-description" className="text-sm font-medium text-foreground">
+                  Description
+                </Label>
+                <button
+                  type="button"
+                  aria-label="Description field information"
+                  title="Detailed description of the Persona's musical characteristics, style, and personality. Be specific about genre, mood, instrumentation, and vocal qualities."
+                  className="inline-flex h-7 w-7 cursor-help items-center justify-center rounded-full text-muted-foreground transition-colors duration-200 hover:text-foreground"
+                >
+                  <Info className="h-3.5 w-3.5" />
+                </button>
+              </div>
+              <Textarea
+                id="create-persona-description"
+                value={createPersonaDescription}
+                onChange={(event) => setCreatePersonaDescription(event.target.value)}
+                placeholder="Describe this persona"
+                maxLength={1000}
+                className="min-h-[120px] resize-none"
+              />
+              <div className="text-right text-[11px] text-muted-foreground">
+                {createPersonaDescription.length}/1000
+              </div>
+            </div>
+          </div>
+
+          <div className="flex items-center justify-end gap-2 bg-background/95 px-6 py-4 backdrop-blur">
+            <Button
+              type="button"
+              variant="ghost"
+              onClick={closeCreatePersonaDialog}
+              className="h-9 px-4"
+              disabled={isCreatingPersona}
+            >
+              Cancel
+            </Button>
+            <Button
+              type="button"
+              onClick={handleCreatePersona}
+              className="h-9 px-4"
+              disabled={isCreatingPersona || !createPersonaName.trim() || !createPersonaDescription.trim()}
+            >
+              {isCreatingPersona ? 'Creating...' : 'Confirm'}
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
       <UploadProgressDialog
         isOpen={isUploadProgressOpen}
         onClose={() => {
@@ -2199,7 +3038,7 @@ export const StudioPanel = (props: StudioPanelProps) => {
 
       {/* Pricing Dialog */}
       {isPricingOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-4" onClick={() => setIsPricingOpen(false)}>
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/65 dark:bg-black/60 backdrop-blur-[1px] p-4" onClick={() => setIsPricingOpen(false)}>
           <div className="relative max-w-6xl w-full max-h-[90vh] overflow-y-auto bg-background rounded-2xl" onClick={(e) => e.stopPropagation()}>
             <button
               onClick={() => setIsPricingOpen(false)}

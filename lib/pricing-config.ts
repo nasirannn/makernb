@@ -37,14 +37,14 @@ const tierMeta: Record<PricingTierCode, { name: string; rank: number; icon: 'sta
     rank: 1,
     icon: 'star',
     popular: false,
-    download: 'Download MP3 & Cover PNG',
+    download: 'Download MP3, MP4 & Cover PNG',
   },
   hobby: {
     name: 'Hobby',
     rank: 2,
     icon: 'crown',
     popular: true,
-    download: 'Download MP3, WAV & Cover PNG',
+    download: 'Download MP3, WAV, MP4 & Cover PNG',
   },
 };
 
@@ -65,6 +65,7 @@ const buildFeatureList = (tier: PricingTierCode, credits: number, billingPeriod:
     creditsLine,
     'AI Music Generator',
     'AI Lyrics Generator',
+    'AI Persona Generator',
     'AI Vocal Remover',
     lyricLine,
     downloadLine,

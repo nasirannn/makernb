@@ -21,6 +21,7 @@ export interface BaseTrack {
   generationMode?: string;
   createdAt?: string;
   isFavorited?: boolean;
+  isLiked?: boolean;
   musicType?: MusicType;
   model?: string;
   
@@ -87,6 +88,7 @@ export interface LibraryTrack extends BaseTrack {
     lyrics?: string;
     isDeleted: boolean; // 是否删除（兼容旧字段名 is_deleted）
     isFavorited?: boolean; // 是否收藏（兼容旧字段名 is_favorited）
+    isLiked?: boolean; // 是否点赞（兼容旧字段名 is_liked）
   }>;
 }
 
@@ -118,6 +120,7 @@ export interface TrackInfoResponse {
   generationCreatedAt: string;
   lyrics: string;
   isFavorited: boolean;
+  isLiked: boolean;
 }
 
 // 通用Track类型 - 用于大多数场景
@@ -155,6 +158,7 @@ export function convertToBaseTrack(track: any): BaseTrack {
     lyrics: track.lyrics,
     createdAt: track.createdAt || track.created_at,
     isFavorited: track.isFavorited ?? track.is_favorited ?? false, // 兼容旧字段名
+    isLiked: track.isLiked ?? track.is_liked ?? false, // 兼容旧字段名
     model: track.model || track.musicModel || track.musicGeneration?.model
   };
 }
@@ -173,6 +177,7 @@ export const createDefaultTrack = (id: string, title: string = 'Untitled Track')
   lyrics: '',
   createdAt: new Date().toISOString(),
   isFavorited: false,
+  isLiked: false,
 });
 
 // ============================================================================
@@ -212,4 +217,82 @@ export interface UpdateTrackWavConversionData {
   wavUrl?: string | null; // 接口返回的临时 URL（兼容旧字段名 wav_url）
   wavR2Url?: string | null; // R2 持久化 URL（兼容旧字段名 wav_r2_url）
   status?: 'generating' | 'completed' | 'error' | 'expired';
+}
+
+// ============================================================================
+// MP4 生成相关类型定义
+// ============================================================================
+
+/**
+ * MP4 生成记录接口
+ * 用于存储音乐视频生成任务记录
+ */
+export interface TrackMp4Generation {
+  id: string;
+  trackId: string; // 关联的track ID（兼容旧字段名 track_id）
+  taskId: string; // MP4生成任务的taskId（兼容旧字段名 task_id）
+  videoUrl: string | null; // 接口返回的临时 MP4 文件 URL（14天有效）（兼容旧字段名 video_url）
+  status: 'generating' | 'completed' | 'error' | 'expired';
+  createdAt: string; // 创建时间（兼容旧字段名 created_at）
+  updatedAt: string; // 更新时间（兼容旧字段名 updated_at）
+}
+
+/**
+ * 创建 MP4 生成记录的数据接口
+ */
+export interface CreateTrackMp4GenerationData {
+  trackId: string; // 关联的track ID（兼容旧字段名 track_id）
+  taskId: string; // MP4生成任务的taskId（兼容旧字段名 task_id）
+  status?: 'generating' | 'completed' | 'error' | 'expired';
+  videoUrl?: string | null; // 接口返回的临时 URL（兼容旧字段名 video_url）
+}
+
+/**
+ * 更新 MP4 生成记录的数据接口
+ */
+export interface UpdateTrackMp4GenerationData {
+  videoUrl?: string | null; // 接口返回的临时 URL（兼容旧字段名 video_url）
+  status?: 'generating' | 'completed' | 'error' | 'expired';
+}
+
+// ============================================================================
+// Persona 相关类型定义
+// ============================================================================
+
+/**
+ * Persona 记录接口
+ * 用于存储从已生成音频创建的 Persona 结果
+ */
+export interface TrackPersona {
+  id: string;
+  trackId: string; // 关联的 track ID（兼容旧字段名 track_id）
+  taskId: string; // 原始音乐任务 taskId（兼容旧字段名 task_id）
+  audioId: string; // 音频ID（兼容旧字段名 audio_id）
+  personaId: string; // Persona ID（兼容旧字段名 persona_id）
+  status: 'active' | 'deleted';
+  name: string | null;
+  description: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+/**
+ * 创建 Persona 记录的数据接口
+ */
+export interface CreateTrackPersonaData {
+  trackId: string;
+  taskId: string;
+  audioId: string;
+  personaId: string;
+  name?: string | null;
+  description?: string | null;
+}
+
+/**
+ * 更新 Persona 记录的数据接口
+ */
+export interface UpdateTrackPersonaData {
+  name?: string | null;
+  description?: string | null;
+  status?: 'active' | 'deleted';
 }

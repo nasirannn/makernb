@@ -393,7 +393,7 @@ async function processCallbackAsync(callback: NormalizedKieCallback, callbackId:
           console.error('Failed to update tracks records in text callback:', tracksError);
         }
 
-        // 4.1.5 封面生成已在音乐生成API中立即启动，text回调不再需要调用
+        // 4.1.5 封面生成优先在生成接口返回 taskId 后立即触发；first/complete 回调仅兜底补偿
 
         return; // 直接返回，不处理其他逻辑
         
@@ -478,6 +478,40 @@ async function processCallbackAsync(callback: NormalizedKieCallback, callbackId:
               callbackId
             );
           }
+
+          // first 回调兜底触发封面生成：若生成接口阶段未成功触发，则在此补偿启动
+          setImmediate(async () => {
+            try {
+              const coverExists = await query(
+                'SELECT id FROM cover_generations WHERE music_task_id = $1 LIMIT 1',
+                [taskIdValue]
+              );
+
+              if (coverExists.rows.length > 0) {
+                console.log(`[CALLBACK-${callbackId}] FIRST: Cover generation already exists for taskId: ${taskIdValue}`);
+                return;
+              }
+
+              const coverResponse = await fetch(`${process.env.CallBackURL}/api/cover/generate`, {
+                method: 'POST',
+                headers: {
+                  'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                  musicTaskId: taskIdValue,
+                  userId: finalUserId,
+                }),
+              });
+
+              if (coverResponse.ok) {
+                console.log(`[CALLBACK-${callbackId}] FIRST: ✅ Cover generation started for taskId: ${taskIdValue}`);
+              } else {
+                console.error(`[CALLBACK-${callbackId}] FIRST: ❌ Cover generation failed for taskId: ${taskIdValue}`);
+              }
+            } catch (coverError) {
+              console.error(`[CALLBACK-${callbackId}] FIRST: Error starting cover generation:`, coverError);
+            }
+          });
           
         } catch (err) {
           console.error('First callback processing error:', err);
@@ -601,7 +635,7 @@ async function processCallbackAsync(callback: NormalizedKieCallback, callbackId:
           callbackId
         );
 
-        // 音乐成功完成后再触发封面生成，避免失败任务浪费资源
+        // complete 回调兜底触发封面生成：若 first 回调未成功触发，则在此补偿启动
         setImmediate(async () => {
           try {
             const coverExists = await query(

@@ -174,6 +174,14 @@ export async function hardDeleteTrack(trackId: string, userId: string): Promise<
 
     await withTransaction(async (queryFn) => {
       await queryFn(
+        `UPDATE track_personas
+         SET status = 'deleted', updated_at = NOW()
+         WHERE track_id = $1::uuid
+           AND COALESCE(status, 'active') = 'active'`,
+        [trackId]
+      );
+
+      await queryFn(
         `DELETE FROM track_wav_conversions
          WHERE track_id = $1::uuid`,
         [trackId]
@@ -290,6 +298,14 @@ export async function hardDeleteMusicGeneration(generationId: string, userId: st
 
     await withTransaction(async (queryFn) => {
       if (trackIds.length > 0) {
+        await queryFn(
+          `UPDATE track_personas
+           SET status = 'deleted', updated_at = NOW()
+           WHERE track_id = ANY($1)
+             AND COALESCE(status, 'active') = 'active'`,
+          [trackIds]
+        );
+
         await queryFn(
           `DELETE FROM track_wav_conversions
            WHERE track_id = ANY($1)`,

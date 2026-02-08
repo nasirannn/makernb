@@ -124,13 +124,11 @@ export function FeaturePermissionsProvider({ children }: { children: React.React
   // 只在用户登录时获取权限
   useEffect(() => {
     if (user && permissions.size === 0) {
-      // 缩短延迟，使用更短的延迟确保session基本准备好
-      // 从 4.5 秒减少到 1.5 秒，提高用户体验
-      const timer = setTimeout(() => {
-        refreshPermissions();
-      }, 1500); // 延迟1.5秒，确保session基本准备好，同时提升用户体验
-      return () => clearTimeout(timer);
-    } else if (!user) {
+      refreshPermissions();
+      return;
+    }
+
+    if (!user) {
       setPermissions(new Set());
     }
   }, [user?.id, permissions.size, refreshPermissions]);

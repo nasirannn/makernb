@@ -14,6 +14,7 @@ interface InlineTrackDetails {
   coverImage?: string | null;
   createdAt?: string;
   duration?: string;
+  isLiked?: boolean;
 }
 
 interface InlineTrackDetailsPanelProps {
@@ -95,6 +96,20 @@ export const InlineTrackDetailsPanel: React.FC<InlineTrackDetailsPanelProps> = (
                 <span className="inline-flex items-center gap-1">
                   <Clock className="h-3.5 w-3.5" />
                   {parseDuration(track.duration)}
+                </span>
+                {track.createdAt && (
+                  <span className="inline-flex items-center gap-1">
+                    <Calendar className="h-3.5 w-3.5" />
+                    {formatDateTime(track.createdAt)}
+                  </span>
+                )}
+              </div>
+            )}
+            {!track.duration && track.createdAt && (
+              <div className="mt-2 flex flex-wrap justify-start gap-3 text-xs text-white/70">
+                <span className="inline-flex items-center gap-1">
+                  <Calendar className="h-3.5 w-3.5" />
+                  {formatDateTime(track.createdAt)}
                 </span>
               </div>
             )}

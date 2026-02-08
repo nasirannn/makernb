@@ -247,7 +247,7 @@ export const MusicPlayer: React.FC<MusicPlayerProps> = React.memo(function Music
     <div
       ref={rootRef}
       className={cn(
-        "app-card relative rounded-[28px] px-4 py-3 md:px-5 md:py-3",
+        "app-card relative rounded-2xl px-4 py-3 md:px-5 md:py-3",
         "bg-[linear-gradient(180deg,rgba(255,255,255,0.92),rgba(255,255,255,0.72))] dark:bg-[linear-gradient(180deg,rgba(10,11,15,0.96),rgba(6,7,10,0.92))]",
         "shadow-[0_16px_48px_rgba(0,0,0,0.12)] dark:shadow-[0_26px_70px_rgba(0,0,0,0.58)]",
         "ring-1 ring-black/10 dark:ring-white/10 backdrop-blur-xl"
@@ -256,7 +256,7 @@ export const MusicPlayer: React.FC<MusicPlayerProps> = React.memo(function Music
       <div className="grid grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)_auto] items-center gap-3">
         {/* Left: cover + meta */}
         <div className="flex items-center gap-3 min-w-0">
-          <div className="relative h-11 w-11 overflow-hidden rounded-2xl bg-foreground/10 ring-1 ring-black/10 dark:ring-white/10">
+          <div className="relative h-11 w-11 overflow-hidden rounded-md bg-foreground/10 ring-1 ring-black/10 dark:ring-white/10">
             {coverUrl ? (
               <Image
                 src={coverUrl}
@@ -318,7 +318,7 @@ export const MusicPlayer: React.FC<MusicPlayerProps> = React.memo(function Music
             {isPlaying ? (
               <svg
                 viewBox="0 0 24 24"
-                className="h-5 w-5 text-primary-foreground"
+                className="h-6 w-6 text-primary-foreground"
                 aria-hidden="true"
                 focusable="false"
               >
@@ -328,7 +328,7 @@ export const MusicPlayer: React.FC<MusicPlayerProps> = React.memo(function Music
             ) : (
               <svg
                 viewBox="0 0 24 24"
-                className="h-5 w-5 translate-x-[1px] text-primary-foreground"
+                className="h-6 w-6 translate-x-[1px] text-primary-foreground"
                 aria-hidden="true"
                 focusable="false"
               >

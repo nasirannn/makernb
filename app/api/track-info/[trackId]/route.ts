@@ -6,6 +6,17 @@ import type { TrackInfoResponse } from '@/types/track';
 // 强制动态渲染
 export const dynamic = 'force-dynamic';
 
+let likedColumnEnsurePromise: Promise<void> | null = null;
+const ensureLikedColumn = async () => {
+  if (!likedColumnEnsurePromise) {
+    likedColumnEnsurePromise = query(`
+      ALTER TABLE tracks
+      ADD COLUMN IF NOT EXISTS is_liked BOOLEAN NOT NULL DEFAULT FALSE
+    `).then(() => undefined);
+  }
+  await likedColumnEnsurePromise;
+};
+
 export async function GET(
   request: NextRequest,
   { params }: { params: { trackId: string } }
@@ -24,6 +35,7 @@ export async function GET(
 
     // 获取请求用户ID（用于收藏状态检查）
     const requestUserId = await getUserIdFromRequest(request);
+    await ensureLikedColumn();
 
     // 查询 track 信息
     const trackResult = await query(
@@ -37,6 +49,7 @@ export async function GET(
         mt.is_pinned,
         mt.created_at as track_created_at,
         mt.cover_image_url as cover_r2_url,
+        COALESCE(mt.is_liked, FALSE) as is_liked,
         mg.id as generation_id,
         COALESCE(mt.title, mg.title) as title,
         mg.genre,
@@ -91,6 +104,7 @@ export async function GET(
       generationCreatedAt: row.generation_created_at, // 映射数据库字段为 JavaScript 字段名
       lyrics: row.lyrics_content || '',
       isFavorited: false, // 初始值，稍后会根据用户状态更新
+      isLiked: row.is_liked ?? false,
     };
 
     // 如果有请求用户，检查收藏状态

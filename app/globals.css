@@ -121,7 +121,7 @@
 
 @media (min-width: 768px) {
   :root {
-    --sidebar-offset: 80px;
+    --sidebar-offset: 72px;
   }
 }
 

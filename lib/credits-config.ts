@@ -41,6 +41,18 @@ export const FEATURE_CREDITS_CONFIG: Record<string, FeatureConfig> = {
     enabled: true,
     description: '转换为WAV格式'
   },
+  convert_to_mp4_video: {
+    name: 'Convert to MP4 Video',
+    credits: 2,
+    enabled: true,
+    description: '将音乐转换为MP4视频'
+  },
+  generate_persona: {
+    name: 'Generate Persona',
+    credits: 2,
+    enabled: true,
+    description: '从已生成音乐创建 Persona'
+  },
   separate_vocals_from_music_local: {
     name: 'Separate Vocals from Music (Local File)',
     credits: 3,

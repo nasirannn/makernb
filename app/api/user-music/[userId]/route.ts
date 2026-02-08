@@ -1,9 +1,21 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getUserMusicGenerationsOptimized, batchCheckFavorites, getUserTrackSummary } from '@/lib/db-query-builder';
 import { getUserIdFromRequest } from '@/lib/auth';
+import { query } from '@/lib/db-query-builder';
 
 // 强制动态渲染
 export const dynamic = 'force-dynamic';
+
+let likedColumnEnsurePromise: Promise<void> | null = null;
+const ensureLikedColumn = async () => {
+  if (!likedColumnEnsurePromise) {
+    likedColumnEnsurePromise = query(`
+      ALTER TABLE tracks
+      ADD COLUMN IF NOT EXISTS is_liked BOOLEAN NOT NULL DEFAULT FALSE
+    `).then(() => undefined);
+  }
+  await likedColumnEnsurePromise;
+};
 
 export async function GET(
   request: NextRequest,
@@ -24,6 +36,7 @@ export async function GET(
 
     // 获取请求用户ID（用于收藏状态检查）
     const requestUserId = await getUserIdFromRequest(request);
+    await ensureLikedColumn();
 
     const [rawData, summary] = await Promise.all([
       getUserMusicGenerationsOptimized(userId, limit, offset),
@@ -137,6 +150,7 @@ function processUserMusicData(rawData: any[]) {
         coverR2Url: row.cover_r2_url, // 映射数据库字段为 JavaScript 字段名
         title: row.track_title, // 使用 COALESCE(tracks.title, music.title) 的结果
         lyrics: row.lyrics_content || '',
+        isLiked: row.is_liked ?? false,
         // wavR2Url 不再在列表加载时查询，只在下载时查询 track_wav_conversions 表
         // 扩展相关字段（从 track 和 generation 获取）
         isExtension: generation.isExtension,
