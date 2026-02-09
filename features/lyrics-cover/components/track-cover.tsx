@@ -4,7 +4,7 @@ import React from 'react';
 import Image from 'next/image';
 import { Button } from "@/components/ui/button";
 import { CustomAudioWaveIndicator } from '@/components/ui/audio-wave-indicator';
-import { Play, Pause, Loader2 } from "lucide-react";
+import { Play, Pause } from "lucide-react";
 
 interface TrackCoverProps {
   coverUrl?: string;
@@ -17,7 +17,6 @@ interface TrackCoverProps {
   onPlayPause?: () => void;
   trackId?: string;
   isExtension?: boolean;
-  showLoadingOverlay?: boolean;
   durationLabel?: string | null;
 }
 
@@ -32,7 +31,6 @@ export const TrackCover: React.FC<TrackCoverProps> = ({
   onPlayPause,
   trackId,
   isExtension = false,
-  showLoadingOverlay = true,
   durationLabel,
 }) => {
   const showPlayButton = !isError && hasPlayableAudio && onPlayPause;
@@ -41,8 +39,7 @@ export const TrackCover: React.FC<TrackCoverProps> = ({
   const imageSize = isExtension ? 48 : 80;
   const buttonSize = isExtension ? 'h-7 w-7' : 'h-8 w-8';
   const iconButtonSize = isExtension ? 'h-3 w-3' : 'h-4 w-4';
-  const showLoading = showLoadingOverlay && !isError && !hasPlayableAudio;
-  const showAnimatedPlaceholder = !isError && !coverUrl && (isGenerating || showLoading);
+  const showAnimatedPlaceholder = !isError && !coverUrl && isGenerating;
 
   return (
     <div
@@ -73,12 +70,6 @@ export const TrackCover: React.FC<TrackCoverProps> = ({
             style={showAnimatedPlaceholder ? { animationDelay: '500ms' } : undefined}
           />
           <div className="absolute inset-0 bg-[linear-gradient(135deg,transparent_12%,rgba(255,255,255,0.12)_48%,transparent_82%)]" />
-        </div>
-      )}
-
-      {showLoading && (
-        <div className="absolute inset-0 flex items-center justify-center bg-black/50 backdrop-blur-[1px]">
-          <Loader2 className="h-5 w-5 text-white/90 animate-spin" />
         </div>
       )}
 
@@ -114,7 +105,7 @@ export const TrackCover: React.FC<TrackCoverProps> = ({
         </div>
       )}
 
-      {durationLabel && !showLoading && (
+      {durationLabel && (
         <div className="pointer-events-none absolute inset-x-0 bottom-1.5 flex items-center justify-center">
           <span className="inline-flex items-center rounded-md bg-black/60 px-2 py-0.5 text-[10px] font-medium leading-none text-white/90 backdrop-blur-sm">
             {durationLabel}

@@ -599,7 +599,7 @@ const aiMusicToolsDropdown = [
                     >
                       <div className="flex min-h-8 items-center text-foreground">
                         <div className="flex items-center gap-2.5">
-                          <span className="inline-flex h-8 w-8 items-center justify-center rounded-lg bg-foreground/5 text-foreground/60">
+                          <span className="inline-flex h-8 w-8 items-center justify-center rounded-lg text-foreground/60">
                             <Sparkles className="h-4 w-4" />
                           </span>
                           <span className="text-sm font-medium leading-none text-foreground/65">
@@ -608,7 +608,7 @@ const aiMusicToolsDropdown = [
                         </div>
                         <div className="ml-auto flex h-8 min-w-[72px] items-center justify-end">
                           {isRefreshingCredits ? (
-                            <span className="inline-flex h-8 w-8 items-center justify-center rounded-lg bg-foreground/5 text-foreground/60" aria-hidden="true">
+                            <span className="inline-flex h-8 w-8 items-center justify-center rounded-lg text-foreground/60" aria-hidden="true">
                               <RefreshCw className="h-4 w-4 animate-spin" />
                             </span>
                           ) : (
@@ -677,7 +677,7 @@ const aiMusicToolsDropdown = [
                                 event.stopPropagation();
                                 handleCollapsedRefreshCredits();
                               }}
-                              className="h-9 w-9 rounded-full text-foreground/70 hover:text-foreground hover:bg-foreground/5"
+                              className="h-9 w-9 rounded-full text-foreground/70 hover:text-foreground"
                               aria-label="Refresh credits"
                             >
                               <RefreshCw className="h-4 w-4" />
@@ -705,7 +705,7 @@ const aiMusicToolsDropdown = [
                 >
                   <div className="flex min-h-8 w-full items-center justify-between">
                     <div className="flex items-center gap-2.5">
-                      <span className="inline-flex h-8 w-8 items-center justify-center rounded-lg bg-foreground/5 text-foreground/60">
+                      <span className="inline-flex h-8 w-8 items-center justify-center rounded-lg text-foreground/60">
                         <Sun className="h-4 w-4" />
                       </span>
                       <span className="text-sm font-medium leading-none text-foreground/65">
@@ -715,7 +715,7 @@ const aiMusicToolsDropdown = [
                     <ThemeModeToggle
                       size="sm"
                       variant="icon"
-                      className="h-8 w-8 rounded-lg text-foreground/60 hover:text-foreground hover:bg-foreground/5"
+                      className="h-8 w-8 rounded-lg text-foreground/60 hover:text-foreground"
                     />
                   </div>
                 </div>
@@ -725,7 +725,7 @@ const aiMusicToolsDropdown = [
                     <ThemeModeToggle
                       size="md"
                       variant="icon"
-                      className="rounded-2xl text-foreground/60 hover:text-foreground hover:bg-foreground/5"
+                      className="rounded-2xl text-foreground/60 hover:text-foreground"
                     />
                   </div>
                 </Tooltip>

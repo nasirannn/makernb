@@ -154,7 +154,7 @@ export const TrackItem: React.FC<TrackItemProps> = ({
       }}
     >
       {/* Loading 状态遮罩 */}
-      {track.isLoading && (
+      {track.isLoading && !track.isGenerating && (
         <div className="absolute inset-0 bg-black/60 flex items-center justify-center pointer-events-none z-10">
           <LoadingDots size="md" color="white" />
         </div>
