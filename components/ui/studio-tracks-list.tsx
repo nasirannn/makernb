@@ -2,7 +2,7 @@
 
 import React, { useState, useCallback, useMemo, useEffect } from 'react';
 import Image from "next/image";
-import { CheckCircle, Eye, Search, X, Wand2 } from "lucide-react";
+import { ArrowDownUp, CheckCircle, Eye, Search, X, Wand2 } from "lucide-react";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { Button } from '@/components/ui/button';
@@ -31,7 +31,6 @@ interface MusicGeneration {
   genre: string;
   tags: string;
   prompt: string;
-  generationMode?: string;
   isInstrumental: boolean;
   status: string;
   model?: string;
@@ -83,12 +82,6 @@ const noOpExtendMusicPolling = () => {};
 
 const TrackListSkeleton = ({ count = 5, className = '' }: { count?: number; className?: string }) => (
   <div className={`space-y-3 pb-6 ${className}`.trim()}>
-    <div className="px-4 pb-1">
-      <div className="flex items-center gap-2">
-        <Skeleton className="h-3 w-16" />
-        <Skeleton className="h-3 w-12 rounded-full" />
-      </div>
-    </div>
     {[...Array(count)].map((_, index) => (
       <div key={index} className="rounded-2xl px-2.5 py-2">
         <div className="flex items-center gap-2">
@@ -156,6 +149,7 @@ export const StudioTracksList: React.FC<StudioTracksListProps> = React.memo(func
   // UI 状态
   const [copiedTrackId, setCopiedTrackId] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
+  const [createdAtSortOrder, setCreatedAtSortOrder] = useState<'desc' | 'asc'>('desc');
   
   // Vocal Removal 管理
   const vocalRemovalManager = useVocalRemovalManager();
@@ -247,7 +241,6 @@ export const StudioTracksList: React.FC<StudioTracksListProps> = React.memo(func
       tags: track.tags || '',
       genre: track.genre || '',
       lyrics: track.lyrics || '',
-      generationMode: track.generationMode,
       isFavorited: false,
       musicTitle: track.title,
       musicTags: track.tags || '',
@@ -258,7 +251,6 @@ export const StudioTracksList: React.FC<StudioTracksListProps> = React.memo(func
         title: track.title,
         genre: track.genre || '',
         tags: track.tags || '',
-        generationMode: track.generationMode,
         status: track.isError ? 'error' : (track.isGenerating ? 'generating' : (track.isCompleted ? 'complete' : 'generating')),
         model: track.model,
       } as MusicGeneration,
@@ -315,46 +307,27 @@ export const StudioTracksList: React.FC<StudioTracksListProps> = React.memo(func
       return track;
     });
 
-    // 按创建时间排序（最新的在前）
+    // 按创建时间排序（默认最新在前）
     tracksWithSource.sort((a, b) => {
       const dateA = new Date(a.createdAt || a.musicGeneration?.createdAt || 0).getTime();
       const dateB = new Date(b.createdAt || b.musicGeneration?.createdAt || 0).getTime();
-      return dateB - dateA; // 降序排列
+      return createdAtSortOrder === 'desc' ? (dateB - dateA) : (dateA - dateB);
     });
 
     return tracksWithSource;
-  }, [currentTracks, allTracksCombined]);
-
-  const formatModelLabel = useCallback((model?: string) => {
-    if (!model) return '';
-    if (model === 'V4_5PLUS') return 'V4.5+';
-    if (model === 'V4_5ALL') return 'V4.5ALL';
-    if (model === 'V4_5') return 'V4.5';
-    if (model === 'V4') return 'V4';
-    if (model === 'V5') return 'V5';
-    return model.replace('_', '.');
-  }, []);
+  }, [currentTracks, allTracksCombined, createdAtSortOrder]);
 
   const groupedTracks = React.useMemo(() => {
-    const groups: Array<{ id: string; modeLabel?: string; modelLabel?: string; tracks: any[] }> = [];
+    const groups: Array<{ id: string; tracks: any[] }> = [];
     const groupMap = new Map<string, number>();
 
     flatTracks.forEach((track) => {
       const groupId = track.generationId || track.musicGeneration?.id || track.id;
-      const modeValue = track.generationMode || track.musicGeneration?.generationMode;
-      const modelValue = track.model || track.musicGeneration?.model;
-      const modeLabel = modeValue
-        ? (modeValue.toLowerCase() === 'simple'
-            ? 'Simple'
-            : (modeValue.toLowerCase() === 'custom' ? 'Custom' : modeValue))
-        : undefined;
 
       if (!groupMap.has(groupId)) {
         groupMap.set(groupId, groups.length);
         groups.push({
           id: groupId,
-          modeLabel,
-          modelLabel: formatModelLabel(modelValue),
           tracks: [track],
         });
         return;
@@ -363,17 +336,11 @@ export const StudioTracksList: React.FC<StudioTracksListProps> = React.memo(func
       const index = groupMap.get(groupId);
       if (index !== undefined) {
         groups[index].tracks.push(track);
-        if (!groups[index].modeLabel && modeLabel) {
-          groups[index].modeLabel = modeLabel;
-        }
-        if (!groups[index].modelLabel && modelValue) {
-          groups[index].modelLabel = formatModelLabel(modelValue);
-        }
       }
     });
 
     return groups;
-  }, [flatTracks, formatModelLabel]);
+  }, [flatTracks]);
 
   // 处理歌曲选择
   const handleTrackSelect = useCallback((track: any) => {
@@ -993,17 +960,17 @@ export const StudioTracksList: React.FC<StudioTracksListProps> = React.memo(func
   return (
     <div className="flex flex-col h-full min-h-0 overflow-hidden">
       {/* Search Bar */}
-      <div className="flex-shrink-0 px-6 pt-0 pb-4 md:py-6">
+      <div className="flex-shrink-0 px-3 pt-4 md:pt-6 pb-4">
         <div className="flex items-center gap-4 flex-wrap md:justify-end flex-1 min-w-[240px] self-center w-full">
-          <div className="app-card-muted rounded-[22px] flex-1 p-1 bg-foreground/5 shadow-[0_1px_2px_rgba(0,0,0,0.06)] dark:bg-white/10">
-          <div className="relative w-full">
+          <div className="app-card-muted rounded-2xl flex-1 h-11 px-1 bg-foreground/5 shadow-[0_1px_2px_rgba(0,0,0,0.06)] dark:bg-white/10">
+          <div className="relative h-full w-full">
             <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-foreground/55" />
             <input
               type="text"
               placeholder="Enter title and tags"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full rounded-2xl bg-transparent py-3 pl-11 pr-10 text-sm text-foreground placeholder:text-foreground/40 transition-colors focus:bg-transparent focus:outline-none border-0"
+              className="w-full h-full rounded-2xl bg-transparent pl-11 pr-10 text-sm text-foreground placeholder:text-foreground/40 transition-colors focus:bg-transparent focus:outline-none border-0"
             />
                 {searchQuery && (
                   <button
@@ -1015,6 +982,16 @@ export const StudioTracksList: React.FC<StudioTracksListProps> = React.memo(func
                 )}
           </div>
         </div>
+          <button
+            type="button"
+            onClick={() => setCreatedAtSortOrder((prev) => (prev === 'desc' ? 'asc' : 'desc'))}
+            className="inline-flex h-11 w-[108px] items-center justify-center gap-1.5 rounded-2xl bg-foreground/5 px-3 text-xs font-semibold text-foreground/70 shadow-[0_1px_2px_rgba(0,0,0,0.06)] transition-colors hover:bg-foreground/10 hover:text-foreground dark:bg-white/10"
+            aria-label={createdAtSortOrder === 'desc' ? 'Sort by newest first' : 'Sort by oldest first'}
+            title={createdAtSortOrder === 'desc' ? 'Sorted: Newest first' : 'Sorted: Oldest first'}
+          >
+            <ArrowDownUp className="h-3.5 w-3.5" />
+            <span>{createdAtSortOrder === 'desc' ? 'Newest' : 'Oldest'}</span>
+          </button>
           {onCreate && (
             <button
               type="button"
@@ -1048,24 +1025,7 @@ export const StudioTracksList: React.FC<StudioTracksListProps> = React.memo(func
             <div className="space-y-2">
               {groupedTracks.map((group) => (
                 <div key={group.id} className="space-y-2">
-                  {(group.modeLabel || group.modelLabel) && (
-                    <div className="px-4 pt-2 pb-0 space-y-1">
-                      {(group.modeLabel || group.modelLabel) && (
-                        <div className="flex items-center gap-2">
-                          {group.modeLabel && (
-                            <span className="text-[11px] font-semibold uppercase tracking-[0.28em] text-muted-foreground">
-                              {group.modeLabel}
-                            </span>
-                          )}
-                          {group.modelLabel && (
-                            <span className="inline-flex items-center rounded-full bg-black/5 px-2 py-0.5 text-[11px] font-semibold tracking-tight text-foreground/80 dark:bg-white/10 dark:text-foreground/85">
-                              {group.modelLabel}
-                            </span>
-                          )}
-                        </div>
-                      )}
-                    </div>
-                  )}
+
                   <div className="space-y-1 px-3">
                     {group.tracks.map((track) => {
                       const isGeneratedTrack = track.isGenerating !== undefined || track.isPlaceholder !== undefined;
@@ -1078,7 +1038,7 @@ export const StudioTracksList: React.FC<StudioTracksListProps> = React.memo(func
                             isPlaying={globalAudioState.isPlaying}
                             isCurrentTrack={globalAudioState.currentPlayingTrackId === track.id}
                             isCopied={copiedTrackId === track.id}
-                            modelBadgePlacement="none"
+                            modelBadgePlacement="title"
                             canDownloadMP3={canDownloadMP3}
                             canDownloadWAV={canDownloadWAV}
                             canDownloadMP4={canDownloadMP4}

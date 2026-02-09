@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { query } from '@/lib/db-query-builder';
+import { batchCheckFavorites, query } from '@/lib/db-query-builder';
+import { getUserIdFromRequest } from '@/lib/auth';
 
 // 强制动态渲染
 export const dynamic = 'force-dynamic';
@@ -10,6 +11,8 @@ export async function GET(request: NextRequest) {
     const limit = parseInt(searchParams.get('limit') || '20');
     const offset = parseInt(searchParams.get('offset') || '0');
     const genre = searchParams.get('genre');
+
+    const requestUserId = await getUserIdFromRequest(request);
 
     // 首先获取总数
     const countResult = await query(`
@@ -56,34 +59,46 @@ export async function GET(request: NextRequest) {
       LIMIT $1 OFFSET $2
     `, genre && genre !== 'all' ? [limit, offset, genre] : [limit, offset]);
 
+    const trackIds: string[] = result.rows.map(row => row.track_id).filter(Boolean);
+    const favoriteStatus = requestUserId && trackIds.length > 0
+      ? await batchCheckFavorites(requestUserId, trackIds)
+      : {};
+
     // 将tracks数据转换为前端需要的格式（使用驼峰命名）
-    const tracks = result.rows.map(row => ({
-      id: row.track_id,
-      title: row.title,
-      genre: row.genre,
-      tags: row.tags,
-      prompt: row.prompt,
-      model: row.model,
-      lyrics: row.lyrics_content,
-      createdAt: row.generation_created_at,
-      updatedAt: row.updated_at,
-      primaryTrack: {
+    const tracks = result.rows.map(row => {
+      const isFavorited = favoriteStatus[row.track_id] || false;
+
+      return {
         id: row.track_id,
-        audioUrl: row.audio_url, // 映射数据库字段为 JavaScript 字段名
-        duration: row.duration,
-        coverR2Url: row.cover_r2_url, // 映射数据库字段为 JavaScript 字段名
-        playCount: row.play_count
-      },
-      allTracks: [{
-        id: row.track_id,
-        audioUrl: row.audio_url, // 映射数据库字段为 JavaScript 字段名
-        duration: row.duration,
-        coverR2Url: row.cover_r2_url, // 映射数据库字段为 JavaScript 字段名
-        playCount: row.play_count
-      }],
-      totalDuration: parseFloat(row.duration) || 0,
-      trackCount: 1
-    }));
+        title: row.title,
+        genre: row.genre,
+        tags: row.tags,
+        prompt: row.prompt,
+        model: row.model,
+        lyrics: row.lyrics_content,
+        createdAt: row.generation_created_at,
+        updatedAt: row.updated_at,
+        isFavorited,
+        primaryTrack: {
+          id: row.track_id,
+          audioUrl: row.audio_url, // 映射数据库字段为 JavaScript 字段名
+          duration: row.duration,
+          coverR2Url: row.cover_r2_url, // 映射数据库字段为 JavaScript 字段名
+          playCount: row.play_count,
+          isFavorited,
+        },
+        allTracks: [{
+          id: row.track_id,
+          audioUrl: row.audio_url, // 映射数据库字段为 JavaScript 字段名
+          duration: row.duration,
+          coverR2Url: row.cover_r2_url, // 映射数据库字段为 JavaScript 字段名
+          playCount: row.play_count,
+          isFavorited,
+        }],
+        totalDuration: parseFloat(row.duration) || 0,
+        trackCount: 1
+      };
+    });
 
     return NextResponse.json({
       success: true,

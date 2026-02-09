@@ -3,7 +3,6 @@
 import React from 'react';
 import { formatDuration, formatDateTime } from '@/lib/format-utils';
 import { Tooltip } from '@/components/ui/tooltip';
-import { Loader2, Pencil } from 'lucide-react';
 
 interface TrackInfoProps {
   title: string;
@@ -20,8 +19,6 @@ interface TrackInfoProps {
   isExtension?: boolean;
   originalTrackTitle?: string;
   sourceType?: 'extended' | 'replace_section';
-  showTitleEditButton?: boolean;
-  onTitleEditClick?: (e: React.MouseEvent<HTMLButtonElement>) => void;
   titleActions?: React.ReactNode;
   footerActions?: React.ReactNode;
 }
@@ -41,8 +38,6 @@ export const TrackInfo: React.FC<TrackInfoProps> = ({
   isExtension = false,
   originalTrackTitle,
   sourceType,
-  showTitleEditButton = false,
-  onTitleEditClick,
   titleActions,
   footerActions,
 }) => {
@@ -111,34 +106,6 @@ export const TrackInfo: React.FC<TrackInfoProps> = ({
             }`}>
             {displayTitle}
           </h3>
-
-          {showTitleEditButton && !isError && (
-            isGenerating ? (
-              <span
-                className="inline-flex h-6 w-6 flex-shrink-0 items-center justify-center text-muted-foreground"
-                aria-label="Generating"
-                title="Generating"
-              >
-                <Loader2 className="h-3.5 w-3.5 animate-spin" />
-              </span>
-            ) : (
-              onTitleEditClick && (
-                <button
-                  type="button"
-                  onClick={(e) => {
-                    e.preventDefault();
-                    e.stopPropagation();
-                    onTitleEditClick(e);
-                  }}
-                  className="inline-flex h-6 w-6 flex-shrink-0 items-center justify-center rounded-md text-muted-foreground opacity-0 transition-all duration-150 hover:text-foreground focus-visible:opacity-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 group-hover:opacity-100"
-                  aria-label="Edit music info"
-                  title="Edit music info"
-                >
-                  <Pencil className="h-3.5 w-3.5" />
-                </button>
-              )
-            )
-          )}
 
           {modelLabel && modelPlacement === 'title' && (
             <span className="inline-flex items-center rounded-sm bg-accent px-1 py-0.5 text-[10px] font-medium text-accent-foreground">

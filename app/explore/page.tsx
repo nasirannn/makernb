@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { Button } from '@/components/ui/button';
-import { Play, Pause, Music, Clock, Share2 } from 'lucide-react';
+import { Play, Pause, Music, Clock, Share2, ThumbsUp, Loader2 } from 'lucide-react';
 import { SafeImage } from '@/components/ui/safe-image';
 import { MusicPlayer } from '@/components/ui/music-player';
 import { CustomAudioWaveIndicator } from '@/components/ui/audio-wave-indicator';
@@ -10,7 +10,10 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { FooterSection } from '@/components/layout/sections/footer';
 import { stopAllAudioGlobally } from '@/lib/audio-service';
 import { useAudioPlayer } from '@/hooks/use-audio-player';
+import { supabase } from '@/lib/supabase';
 import { toast } from 'sonner';
+import { useRouter } from 'next/navigation';
+import { SolidThumbsUpIcon } from '@/components/icons/solid-thumbs-up-icon';
 
 interface Track {
   id: string;
@@ -18,6 +21,7 @@ interface Track {
   duration: number | string;
   coverR2Url?: string;
   playCount?: number;
+  isFavorited?: boolean;
 }
 
 interface MusicGeneration {
@@ -30,6 +34,7 @@ interface MusicGeneration {
   model?: string;
   createdAt: string;
   updatedAt: string;
+  isFavorited?: boolean;
   primaryTrack: Track;
   allTracks: Track[];
   totalDuration: number;
@@ -45,6 +50,7 @@ interface ExploreData {
 
 
 export default function ExplorePage() {
+  const router = useRouter();
   const [exploreData, setExploreData] = useState<ExploreData | null>(null);
   const [loading, setLoading] = useState(true);
   const [loadingMore, setLoadingMore] = useState(false);
@@ -55,6 +61,20 @@ export default function ExplorePage() {
   // 播放器状态 - 使用统一的AudioService
   const audioPlayer = useAudioPlayer();
   const [playlist, setPlaylist] = useState<MusicGeneration[]>([]);
+  const [favoriteLoadingTrackId, setFavoriteLoadingTrackId] = useState<string | null>(null);
+
+  const getAuthHeaders = useCallback(async () => {
+    const headers: Record<string, string> = {
+      'Content-Type': 'application/json',
+    };
+
+    const { data: { session } } = await supabase.auth.getSession();
+    if (session?.access_token) {
+      headers.Authorization = `Bearer ${session.access_token}`;
+    }
+
+    return headers;
+  }, []);
 
   useEffect(() => {
     const loadData = async () => {
@@ -62,9 +82,7 @@ export default function ExplorePage() {
         setLoading(true);
         const response = await fetch(`/api/explore?limit=20&offset=0`, {
           method: 'GET',
-          headers: {
-            'Content-Type': 'application/json',
-          },
+          headers: await getAuthHeaders(),
           cache: 'no-store'
         });
         if (response.ok) {
@@ -87,7 +105,7 @@ export default function ExplorePage() {
     };
 
     loadData();
-  }, []);
+  }, [getAuthHeaders]);
 
   // 组件卸载时清理音频
   useEffect(() => {
@@ -110,9 +128,7 @@ export default function ExplorePage() {
       
       const response = await fetch(`/api/explore?limit=20&offset=${offset}`, {
         method: 'GET',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        headers: await getAuthHeaders(),
         cache: 'no-store'
       });
       const data = await response.json();
@@ -143,7 +159,7 @@ export default function ExplorePage() {
       setLoading(false);
       setLoadingMore(false);
     }
-  }, [exploreData]);
+  }, [exploreData, getAuthHeaders]);
 
   const loadMore = useCallback(() => {
     if (exploreData && exploreData.music && !loadingMore && hasMore) {
@@ -191,6 +207,84 @@ export default function ExplorePage() {
     }
   };
 
+  const updateFavoriteState = useCallback((trackId: string, isFavorited: boolean) => {
+    const applyFavoriteState = (music: MusicGeneration) => {
+      if (music.primaryTrack.id !== trackId) {
+        return music;
+      }
+
+      return {
+        ...music,
+        isFavorited,
+        primaryTrack: {
+          ...music.primaryTrack,
+          isFavorited,
+        },
+        allTracks: music.allTracks.map((track) =>
+          track.id === trackId ? { ...track, isFavorited } : track
+        ),
+      };
+    };
+
+    setExploreData((prev) => {
+      if (!prev) {
+        return prev;
+      }
+
+      return {
+        ...prev,
+        music: prev.music.map(applyFavoriteState),
+      };
+    });
+
+    setPlaylist((prev) => prev.map(applyFavoriteState));
+  }, []);
+
+  const handleToggleFavorite = useCallback(async (trackId: string) => {
+    if (!trackId || favoriteLoadingTrackId === trackId) {
+      return;
+    }
+
+    setFavoriteLoadingTrackId(trackId);
+
+    try {
+      const headers = await getAuthHeaders();
+      if (!headers.Authorization) {
+        toast('Please log in to like songs');
+        router.push('/login');
+        return;
+      }
+
+      const response = await fetch('/api/favorites/toggle', {
+        method: 'POST',
+        headers,
+        body: JSON.stringify({ trackId }),
+      });
+
+      const result = await response.json().catch(() => ({}));
+      if (!response.ok || !result.success) {
+        if (response.status === 401) {
+          toast('Please log in to like songs');
+          router.push('/login');
+          return;
+        }
+
+        throw new Error(result.error || 'Failed to update like status');
+      }
+
+      const isFavorited = Boolean(result.isFavorited);
+      updateFavoriteState(trackId, isFavorited);
+      toast.success(isFavorited ? 'Liked' : 'Like removed', {
+        duration: 1200,
+      });
+    } catch (error) {
+      console.error('Error toggling favorite on explore:', error);
+      toast.error('Failed to update like status.');
+    } finally {
+      setFavoriteLoadingTrackId(null);
+    }
+  }, [favoriteLoadingTrackId, getAuthHeaders, router, updateFavoriteState]);
+
   const formatPlayCount = (count?: number) => {
     if (!count || count < 0) return '0';
     if (count >= 1000) {
@@ -206,6 +300,7 @@ export default function ExplorePage() {
       <path d="M8 5.75v12.5c0 .8.88 1.28 1.55.84l9.5-6.25a1 1 0 0 0 0-1.68l-9.5-6.25A1 1 0 0 0 8 5.75z" />
     </svg>
   );
+
 
   // 歌曲卡片Skeleton组件
   const SongCardSkeleton = () => (
@@ -414,8 +509,31 @@ export default function ExplorePage() {
                               <Button
                                 variant="ghost"
                                 size="sm"
+                                className={`h-12 w-12 p-0 bg-white/20 hover:bg-white/30 backdrop-blur-sm ${music.primaryTrack.isFavorited ? 'text-pink-200' : 'text-white'}`}
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleToggleFavorite(music.primaryTrack.id);
+                                }}
+                                aria-label={music.primaryTrack.isFavorited ? 'Unlike track' : 'Like track'}
+                                title={music.primaryTrack.isFavorited ? 'Unlike track' : 'Like track'}
+                                disabled={favoriteLoadingTrackId === music.primaryTrack.id}
+                              >
+                                {favoriteLoadingTrackId === music.primaryTrack.id ? (
+                                  <Loader2 className="h-5 w-5 animate-spin text-white" />
+                                ) : music.primaryTrack.isFavorited ? (
+                                  <SolidThumbsUpIcon className="h-5 w-5 fill-current" />
+                                ) : (
+                                  <ThumbsUp className="h-5 w-5" />
+                                )}
+                              </Button>
+                              <Button
+                                variant="ghost"
+                                size="sm"
                                 className="h-12 w-12 p-0 bg-white/20 hover:bg-white/30 backdrop-blur-sm"
-                                onClick={() => handlePlayPause(music.primaryTrack.id, music.primaryTrack.audioUrl, music)}
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handlePlayPause(music.primaryTrack.id, music.primaryTrack.audioUrl, music);
+                                }}
                               >
                                 {currentlyPlaying === music.primaryTrack.id && audioPlayer.isPlaying ? (
                                   <Pause className="h-5 w-5 text-white" />

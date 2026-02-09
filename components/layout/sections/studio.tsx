@@ -76,6 +76,7 @@ const StudioContent = () => {
     const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
     const [isFetchingUserTracks, setIsFetchingUserTracks] = useState(true);
     const [userMenuOpen, setUserMenuOpen] = useState(false);
+    const [isWritingNextLyricLine, setIsWritingNextLyricLine] = useState(false);
     
     // WAV 下载进度弹窗状态
     const [wavDownloadDialogOpen, setWavDownloadDialogOpen] = useState(false);
@@ -914,6 +915,70 @@ const StudioContent = () => {
         }
         setShowLyricsDialog(true);
     }, [user?.id, setShowLyricsDialog]);
+
+    const handleWriteNextLyricLine = React.useCallback(async () => {
+        if (!user?.id) {
+            setIsAuthModalOpen(true);
+            return;
+        }
+
+        const trimmedLyrics = customLyrics.trim();
+        if (!trimmedLyrics) {
+            toast.error('Please enter lyrics first');
+            return;
+        }
+
+        setIsWritingNextLyricLine(true);
+
+        try {
+            const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+
+            if (sessionError) {
+                throw new Error('Failed to get session. Please try logging in again.');
+            }
+
+            if (!session?.access_token) {
+                throw new Error('Please log in to continue.');
+            }
+
+            const response = await fetch('/api/lyrics/next-line', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    Authorization: `Bearer ${session.access_token}`,
+                },
+                body: JSON.stringify({
+                    lyrics: trimmedLyrics,
+                }),
+            });
+
+            const result = await response.json().catch(() => ({}));
+
+            if (!response.ok || !result?.success) {
+                if (response.status === 401) {
+                    throw new Error('Your session has expired. Please log in again.');
+                }
+                throw new Error(result?.error || 'Failed to write next lyric line.');
+            }
+
+            const nextLine = typeof result?.data?.line === 'string' ? result.data.line.trim() : '';
+            if (!nextLine) {
+                throw new Error('Model returned empty content. Please try again.');
+            }
+
+            setCustomLyrics((prevLyrics) => {
+                const baseLyrics = prevLyrics.trimEnd();
+                return baseLyrics ? baseLyrics + '\n' + nextLine : nextLine;
+            });
+            toast.success('Next lyric line added');
+        } catch (error) {
+            console.error('Write next lyric line failed:', error);
+            const message = error instanceof Error ? error.message : 'Failed to write next lyric line.';
+            toast.error(message);
+        } finally {
+            setIsWritingNextLyricLine(false);
+        }
+    }, [user?.id, customLyrics, setCustomLyrics, setIsAuthModalOpen]);
 
     // ==================== 歌曲选择处理函数 ====================
     // 通用的 track 选择处理函数
@@ -1898,6 +1963,8 @@ const StudioContent = () => {
         isGenerating,
         onGenerationStart: handleGenerationStart,
         onGenerateLyrics: handleGenerateLyrics,
+        onWriteNextLyricLine: handleWriteNextLyricLine,
+        isWritingNextLyricLine,
         isAuthModalOpen,
         setIsAuthModalOpen,
         selectedModel,
@@ -1911,9 +1978,44 @@ const StudioContent = () => {
         leadInstrument, setLeadInstrument, drumKit, setDrumKit, bassTone, setBassTone,
         vocalGender, setVocalGender, harmonyPalette, setHarmonyPalette, bpmMode, setBpmMode,
         selectedPersonaId, setSelectedPersonaId,
-        isGenerating, handleGenerationStart, handleGenerateLyrics,
+        isGenerating, handleGenerationStart, handleGenerateLyrics, handleWriteNextLyricLine,
+        isWritingNextLyricLine,
         isAuthModalOpen, setIsAuthModalOpen, selectedModel, setSelectedModel
     ]);
+
+    const handlePlayerLyricsToggle = React.useCallback(() => {
+        const playerTrack = player.currentTrack as any;
+        if (!playerTrack?.id) return;
+
+        if (!lyricsPanelOpen || selectedStudioTrack?.id !== playerTrack.id) {
+            const matchedTrack = allTracks.find((track) => track.id === playerTrack.id);
+
+            if (matchedTrack) {
+                setSelectedStudioTrack(matchedTrack);
+            } else {
+                setSelectedStudioTrack(
+                    createTrackObject(
+                        playerTrack.id,
+                        playerTrack.generationId || '',
+                        playerTrack.title || 'Untitled Track',
+                        playerTrack.audioUrl || '',
+                        Number(playerTrack.duration || player.duration || 0),
+                        playerTrack.coverR2Url || playerTrack.coverImage,
+                        playerTrack.tags || '',
+                        playerTrack.genre || '',
+                        playerTrack.lyrics || '',
+                        playerTrack.isFavorited ?? false,
+                        playerTrack.isLiked ?? false,
+                        playerTrack.streamAudioUrl || '',
+                        new Date().toISOString(),
+                        ''
+                    )
+                );
+            }
+        }
+
+        setLyricsPanelOpen((prev) => !prev);
+    }, [player.currentTrack, player.duration, lyricsPanelOpen, selectedStudioTrack?.id, allTracks, createTrackObject]);
 
     // MusicPlayer 通用 props
     // ✅ 直接创建对象，不缓存，因为 player 使用 getter 模式
@@ -1935,6 +2037,7 @@ const StudioContent = () => {
         onVolumeChange: changeVolume,
         onMuteToggle: toggleMute,
         hideProgress: false,
+        onTrackInfoClick: handlePlayerLyricsToggle,
         onTrackChange: (index: number) => {
             const selectedTrack = allTracks[index];
             if (selectedTrack) {
@@ -1942,7 +2045,6 @@ const StudioContent = () => {
             }
         },
         playTrackById,
-        // 在 Studio 中不传递 onTrackInfoClick，移除歌词按钮
     };
 
     // Delete handlers
@@ -2169,7 +2271,7 @@ const StudioContent = () => {
                                     />
 
                                     <div
-                                        className={`absolute right-0 top-0 h-full w-full max-w-[min(96vw,480px)] md:right-0 md:max-w-[24rem] transform-gpu transition-transform duration-300 ease-out ${
+                                        className={`absolute right-0 top-0 h-full w-full max-w-[min(90vw,400px)] md:right-0 md:max-w-[20rem] transform-gpu transition-transform duration-300 ease-out ${
                                             showInlinePanel ? 'translate-x-0' : 'translate-x-full'
                                         }`}
                                     >
@@ -2178,6 +2280,7 @@ const StudioContent = () => {
                                                 <InlineTrackDetailsPanel
                                                     track={inlineTrackDetails}
                                                     isPlaying={isInlineTrackPlaying}
+                                                    currentTime={isInlineTrackPlaying ? player.currentTime : 0}
                                                     onClose={() => setLyricsPanelOpen(false)}
                                                     variant="studio"
                                                 />

@@ -9,6 +9,7 @@ import { TrackActionButtons } from './track-action-buttons';
 import { EditMusicInfoDialog } from './edit-music-info-dialog';
 import { LibraryTrack } from '@/types/track';
 import { Check, Share2, Star, ThumbsUp, Trash2 } from 'lucide-react';
+import { SolidThumbsUpIcon } from '@/components/icons/solid-thumbs-up-icon';
 import { formatDuration } from '@/lib/format-utils';
 
 interface TrackItemProps {
@@ -193,8 +194,6 @@ export const TrackItem: React.FC<TrackItemProps> = ({
               isExtension={isExtension}
               originalTrackTitle={track.originalTrackTitle}
               sourceType={track.sourceType}
-              showTitleEditButton={variant === 'studio' && canEditMusicInfo}
-              onTitleEditClick={variant === 'studio' && canEditMusicInfo ? handleEditMusicInfoClick : undefined}
               footerActions={
                 variant === 'studio' && !isError ? (
                   <div className="flex items-center gap-1.5 text-xs">
@@ -254,7 +253,11 @@ export const TrackItem: React.FC<TrackItemProps> = ({
                         aria-label={track.isLiked ? 'Unlike track' : 'Like track'}
                         title={track.isLiked ? 'Unlike track' : 'Like track'}
                       >
-                        <ThumbsUp className="h-3.5 w-3.5" />
+                        {track.isLiked ? (
+                          <SolidThumbsUpIcon className="h-3.5 w-3.5 fill-current" />
+                        ) : (
+                          <ThumbsUp className="h-3.5 w-3.5" />
+                        )}
                       </button>
                     )}
                   </div>
@@ -285,6 +288,7 @@ export const TrackItem: React.FC<TrackItemProps> = ({
                         onReplaceSection={onReplaceSection}
                         onDelete={onDelete}
                         onViewLyrics={onPreviewLyrics}
+                        onEditMusicInfo={canEditMusicInfo ? handleEditMusicInfoClick : undefined}
                         onPricingModalOpen={onPricingModalOpen}
                       />
                     </div>
@@ -337,6 +341,7 @@ export const TrackItem: React.FC<TrackItemProps> = ({
             onReplaceSection={onReplaceSection}
             onDelete={onDelete}
             onViewLyrics={onPreviewLyrics}
+            onEditMusicInfo={canEditMusicInfo ? handleEditMusicInfoClick : undefined}
             onPricingModalOpen={onPricingModalOpen}
           />
         )}

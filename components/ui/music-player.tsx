@@ -2,7 +2,7 @@
 
 import React from 'react';
 import Image from 'next/image';
-import { Play, Pause, Rewind, FastForward, Volume2, VolumeX, MessageSquare, Music } from 'lucide-react';
+import { Play, Pause, Rewind, FastForward, Volume2, VolumeX, FileText, Music } from 'lucide-react';
 import { VocalSeparationButton } from '@/features/vocal-tools/components/vocal-separation-button';
 import { AudioPlayerTrack } from '@/types/track';
 import { cn } from '@/lib/utils';
@@ -382,16 +382,6 @@ export const MusicPlayer: React.FC<MusicPlayerProps> = React.memo(function Music
             />
           )}
 
-          {onTrackInfoClick && (
-            <PlayerIconButton
-              onClick={onTrackInfoClick}
-              title={hideProgress ? "Hide lyrics" : "Show lyrics"}
-              className={cn(hideProgress ? "text-primary hover:text-primary" : undefined)}
-            >
-              <MessageSquare className="h-4 w-4 fill-current" />
-            </PlayerIconButton>
-          )}
-
           <PlayerIconButton onClick={onMuteToggle} title={isMuted || volume === 0 ? "Unmute" : "Mute"}>
             {isMuted || volume === 0 ? (
               <VolumeX className="h-4 w-4" />
@@ -399,6 +389,16 @@ export const MusicPlayer: React.FC<MusicPlayerProps> = React.memo(function Music
               <Volume2 className="h-4 w-4" />
             )}
           </PlayerIconButton>
+
+          {onTrackInfoClick && (
+            <PlayerIconButton
+              onClick={onTrackInfoClick}
+              title={hideProgress ? "Hide lyrics" : "Show lyrics"}
+              className={cn(hideProgress ? "text-primary hover:text-primary" : undefined)}
+            >
+              <FileText className="h-3.5 w-3.5" />
+            </PlayerIconButton>
+          )}
         </div>
       </div>
     </div>

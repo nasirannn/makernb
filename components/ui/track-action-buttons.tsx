@@ -8,8 +8,9 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { FileAudio, FileVideo, Image as ImageIcon, Music2, Star, Share2, Check, Download, MoreVertical, Mic, Trash2, Maximize2, Scissors, Pencil, ThumbsUp, FileText } from "lucide-react";
+import { FileAudio, FileVideo, Image as ImageIcon, Music2, Star, Share2, Check, Download, MoreVertical, Mic, Trash2, Maximize2, Scissors, Pencil, ThumbsUp, FileText, ChevronDown } from "lucide-react";
 import { LibraryTrack } from '@/types/track';
+import { SolidThumbsUpIcon } from '@/components/icons/solid-thumbs-up-icon';
 
 interface TrackActionButtonsProps {
   track: LibraryTrack & any;
@@ -39,6 +40,7 @@ interface TrackActionButtonsProps {
   onReplaceSection?: () => void;
   onDelete?: () => void;
   onViewLyrics?: () => void;
+  onEditMusicInfo?: () => void;
   onPricingModalOpen?: () => void;
 }
 
@@ -64,6 +66,7 @@ export const TrackActionButtons: React.FC<TrackActionButtonsProps> = ({
   onReplaceSection,
   onDelete,
   onViewLyrics,
+  onEditMusicInfo,
   onPricingModalOpen,
 }) => {
   const isInstrumental = track.musicGeneration?.isInstrumental || track.isInstrumental;
@@ -76,7 +79,7 @@ export const TrackActionButtons: React.FC<TrackActionButtonsProps> = ({
     track.musicGeneration?.coverImageUrl
   );
   
-  const shouldShowMoreMenu = Boolean(onDelete || onViewLyrics);
+  const shouldShowMoreMenu = Boolean(onDelete || onViewLyrics || onEditMusicInfo);
   const shouldShowEditMenu = hasAudioUrl && (onVocalRemoval || onExtendMusic || onReplaceSection);
 
 
@@ -98,7 +101,10 @@ export const TrackActionButtons: React.FC<TrackActionButtonsProps> = ({
                 aria-label="Edit options"
                 title="Edit options"
               >
-                Edit
+                <span className="inline-flex items-center gap-1">
+                  Edit
+                  <ChevronDown className="h-3 w-3" />
+                </span>
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" onClick={(e) => e.stopPropagation()} className="p-2 w-64">
@@ -284,7 +290,20 @@ export const TrackActionButtons: React.FC<TrackActionButtonsProps> = ({
                 <MoreVertical className="h-3.5 w-3.5" />
               </Button>
             </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" onClick={(e) => e.stopPropagation()} className="p-1.5 min-w-[140px]">
+            <DropdownMenuContent align="end" onClick={(e) => e.stopPropagation()} className="p-1.5 min-w-[180px]">
+              {onEditMusicInfo && (
+                <DropdownMenuItem
+                  onClick={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    onEditMusicInfo();
+                  }}
+                  className="flex items-center gap-2 cursor-pointer px-3 py-2 text-xs"
+                >
+                  <Pencil className="h-3.5 w-3.5" />
+                  <span>Edit title and cover</span>
+                </DropdownMenuItem>
+              )}
               {onViewLyrics && (
                 <DropdownMenuItem
                   onClick={(e) => {
@@ -372,7 +391,11 @@ export const TrackActionButtons: React.FC<TrackActionButtonsProps> = ({
           aria-label={isLiked ? 'Unlike track' : 'Like track'}
           title={isLiked ? 'Unlike track' : 'Like track'}
         >
-          <ThumbsUp className="h-3.5 w-3.5" />
+          {isLiked ? (
+            <SolidThumbsUpIcon className="h-3.5 w-3.5 fill-current" />
+          ) : (
+            <ThumbsUp className="h-3.5 w-3.5" />
+          )}
         </button>
       )}
 
@@ -488,7 +511,20 @@ export const TrackActionButtons: React.FC<TrackActionButtonsProps> = ({
               <MoreVertical className="h-3.5 w-3.5" />
             </button>
           </DropdownMenuTrigger>
-          <DropdownMenuContent align="end" onClick={(e) => e.stopPropagation()} className="p-1.5 min-w-[140px]">
+          <DropdownMenuContent align="end" onClick={(e) => e.stopPropagation()} className="p-1.5 min-w-[180px]">
+            {onEditMusicInfo && (
+              <DropdownMenuItem
+                onClick={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  onEditMusicInfo();
+                }}
+                className="flex items-center gap-1.5 cursor-pointer px-2.5 py-1.5 text-xs"
+              >
+                <Pencil className="h-3.5 w-3.5" />
+                <span>Edit title and cover</span>
+              </DropdownMenuItem>
+            )}
             {onViewLyrics && (
               <DropdownMenuItem
                 onClick={(e) => {

@@ -2,11 +2,16 @@
 
 import React from "react";
 import Image from "next/image";
-import { Play, Trash2, UploadCloud, Users, Wand2 } from "lucide-react";
+import { Play, Trash2, UploadCloud, Users, Wand2, Tag, Sparkles } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
 import { getDrumKitIcon, getInstrumentIcon } from "@/lib/music-resources";
@@ -20,6 +25,16 @@ type VocalGenderOption = {
   id: string;
   name: string;
 };
+
+const LYRICS_TAG_OPTIONS = [
+  { label: "Intro", value: "[Intro]" },
+  { label: "Verse", value: "[Verse]" },
+  { label: "Pre-Chorus", value: "[Pre-Chorus]" },
+  { label: "Chorus", value: "[Chorus]" },
+  { label: "Bridge", value: "[Bridge]" },
+  { label: "Interlude", value: "[Interlude]" },
+  { label: "Outro", value: "[Outro]" },
+] as const;
 
 interface StudioSimpleModeContentProps {
   instrumentalMode: boolean;
@@ -63,7 +78,7 @@ export const StudioSimpleModeContent: React.FC<StudioSimpleModeContentProps> = (
       <div className="space-y-5 md:space-y-6 pt-2 md:pt-3">
         <section className="studio-panel-card rounded-2xl p-3">
           <div className="mb-3 md:mb-4 flex items-center justify-between gap-3">
-            <h3 className="text-lg font-semibold tracking-tight flex items-center gap-2">
+            <h3 className="text-xs md:text-sm font-semibold flex items-center gap-2">
               Prompt
             </h3>
             <div className="flex items-center gap-3">
@@ -84,11 +99,13 @@ export const StudioSimpleModeContent: React.FC<StudioSimpleModeContentProps> = (
                 value={simplePrompt}
                 onChange={(e) => setSimplePrompt(e.target.value)}
                 maxLength={simplePromptMaxLength}
-                className="min-h-[180px] md:min-h-[200px] resize-none pr-16 pb-4 border-0 bg-background focus-visible:ring-0 focus-visible:ring-offset-0"
+                className="min-h-[180px] md:min-h-[200px] resize-none pl-0 pr-0 pb-20 border-0 bg-transparent focus-visible:ring-0 focus-visible:ring-offset-0"
               />
-            </div>
 
-            {quickButtons}
+              <div className="absolute inset-x-0 bottom-2">
+                {quickButtons}
+              </div>
+            </div>
 
             <div className="flex items-center justify-between">
               <div className="text-xs text-muted-foreground">
@@ -115,116 +132,118 @@ export const StudioSimpleModeContent: React.FC<StudioSimpleModeContentProps> = (
                 </button>
               </div>
             </div>
+          </div>
+        </section>
 
-            <div className="pt-2 pb-2 text-xs font-semibold uppercase tracking-[0.22em] text-muted-foreground">
-              Classic Instruments Preview
-            </div>
+        <section className="studio-panel-card rounded-2xl p-3">
+          <div className="pb-2 text-xs font-semibold uppercase tracking-[0.22em] text-muted-foreground">
+            Classic Instruments Preview
+          </div>
 
-            <div className="flex flex-nowrap gap-2 overflow-x-auto pb-1">
-              {leadInstruments.map((instrument) => {
-                const iconUrl = getInstrumentIcon(instrument.id);
+          <div className="flex flex-nowrap gap-2 overflow-x-auto pb-1">
+            {leadInstruments.map((instrument) => {
+              const iconUrl = getInstrumentIcon(instrument.id);
 
-                return (
-                  <div
-                    key={`instrument-${instrument.id}`}
-                    role="button"
-                    tabIndex={0}
-                    onClick={() => {
+              return (
+                <div
+                  key={`instrument-${instrument.id}`}
+                  role="button"
+                  tabIndex={0}
+                  onClick={() => {
+                    onSelectLeadInstrument(instrument.id);
+                  }}
+                  onKeyDown={(event) => {
+                    if (event.key === "Enter" || event.key === " ") {
+                      event.preventDefault();
                       onSelectLeadInstrument(instrument.id);
-                    }}
-                    onKeyDown={(event) => {
-                      if (event.key === "Enter" || event.key === " ") {
-                        event.preventDefault();
-                        onSelectLeadInstrument(instrument.id);
-                      }
-                    }}
-                    className="group relative inline-flex shrink-0 cursor-pointer flex-col items-center gap-1.5 px-3 py-2 rounded-lg bg-slate-50 text-[#0c0c16] transition-all duration-200 dark:bg-white/10 dark:text-foreground dark:border-white/15"
-                  >
-                    {iconUrl && (
-                      <Image
-                        src={iconUrl}
-                        alt={instrument.name}
-                        width={16}
-                        height={16}
-                        className="h-7 w-7"
-                      />
-                    )}
-                    <span className="text-[11px]">{instrument.name}</span>
-                    <div
-                      role="button"
-                      tabIndex={0}
-                      aria-label="Play sample"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        onPreviewLeadInstrument(instrument.id);
-                      }}
-                      onKeyDown={(event) => {
-                        if (event.key === "Enter" || event.key === " ") {
-                          event.preventDefault();
-                          onPreviewLeadInstrument(instrument.id);
-                        }
-                      }}
-                      className="absolute inset-0 m-auto h-8 w-8 rounded-full bg-black/50 text-white transition-all duration-200 hover:bg-black/60 opacity-0 group-hover:opacity-100 flex items-center justify-center"
-                      title="Play sample"
-                    >
-                      <Play className="h-4 w-4" />
-                    </div>
-                  </div>
-                );
-              })}
-
-              {drumKits.map((kit) => {
-                const iconUrl = getDrumKitIcon(kit.id);
-
-                return (
+                    }
+                  }}
+                  className="group relative inline-flex shrink-0 cursor-pointer flex-col items-center gap-1.5 px-3 py-2 rounded-lg bg-slate-50 text-[#0c0c16] transition-all duration-200 dark:bg-white/10 dark:text-foreground dark:border-white/15"
+                >
+                  {iconUrl && (
+                    <Image
+                      src={iconUrl}
+                      alt={instrument.name}
+                      width={16}
+                      height={16}
+                      className="h-7 w-7"
+                    />
+                  )}
+                  <span className="text-[11px]">{instrument.name}</span>
                   <div
-                    key={`drum-${kit.id}`}
                     role="button"
                     tabIndex={0}
-                    onClick={() => {
-                      onSelectDrumKit(kit.id);
+                    aria-label="Play sample"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      onPreviewLeadInstrument(instrument.id);
                     }}
                     onKeyDown={(event) => {
                       if (event.key === "Enter" || event.key === " ") {
                         event.preventDefault();
-                        onSelectDrumKit(kit.id);
+                        onPreviewLeadInstrument(instrument.id);
                       }
                     }}
-                    className="group relative inline-flex shrink-0 cursor-pointer flex-col items-center gap-1.5 px-3 py-2 rounded-lg bg-slate-50 text-[#0c0c16] transition-all duration-200 dark:bg-white/10 dark:text-foreground dark:border-white/15"
+                    className="absolute inset-0 m-auto h-8 w-8 rounded-full bg-black/50 text-white transition-all duration-200 hover:bg-black/60 opacity-0 group-hover:opacity-100 flex items-center justify-center"
+                    title="Play sample"
                   >
-                    {iconUrl && (
-                      <Image
-                        src={iconUrl}
-                        alt={kit.name}
-                        width={16}
-                        height={16}
-                        className="h-7 w-7"
-                      />
-                    )}
-                    <span className="text-[11px]">{kit.name}</span>
-                    <div
-                      role="button"
-                      tabIndex={0}
-                      aria-label="Play sample"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        onPreviewDrumKit(kit.id);
-                      }}
-                      onKeyDown={(event) => {
-                        if (event.key === "Enter" || event.key === " ") {
-                          event.preventDefault();
-                          onPreviewDrumKit(kit.id);
-                        }
-                      }}
-                      className="absolute inset-0 m-auto h-8 w-8 rounded-full bg-black/50 text-white transition-all duration-200 hover:bg-black/60 opacity-0 group-hover:opacity-100 flex items-center justify-center"
-                      title="Play sample"
-                    >
-                      <Play className="h-4 w-4" />
-                    </div>
+                    <Play className="h-4 w-4" />
                   </div>
-                );
-              })}
-            </div>
+                </div>
+              );
+            })}
+
+            {drumKits.map((kit) => {
+              const iconUrl = getDrumKitIcon(kit.id);
+
+              return (
+                <div
+                  key={`drum-${kit.id}`}
+                  role="button"
+                  tabIndex={0}
+                  onClick={() => {
+                    onSelectDrumKit(kit.id);
+                  }}
+                  onKeyDown={(event) => {
+                    if (event.key === "Enter" || event.key === " ") {
+                      event.preventDefault();
+                      onSelectDrumKit(kit.id);
+                    }
+                  }}
+                  className="group relative inline-flex shrink-0 cursor-pointer flex-col items-center gap-1.5 px-3 py-2 rounded-lg bg-slate-50 text-[#0c0c16] transition-all duration-200 dark:bg-white/10 dark:text-foreground dark:border-white/15"
+                >
+                  {iconUrl && (
+                    <Image
+                      src={iconUrl}
+                      alt={kit.name}
+                      width={16}
+                      height={16}
+                      className="h-7 w-7"
+                    />
+                  )}
+                  <span className="text-[11px]">{kit.name}</span>
+                  <div
+                    role="button"
+                    tabIndex={0}
+                    aria-label="Play sample"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      onPreviewDrumKit(kit.id);
+                    }}
+                    onKeyDown={(event) => {
+                      if (event.key === "Enter" || event.key === " ") {
+                        event.preventDefault();
+                        onPreviewDrumKit(kit.id);
+                      }
+                    }}
+                    className="absolute inset-0 m-auto h-8 w-8 rounded-full bg-black/50 text-white transition-all duration-200 hover:bg-black/60 opacity-0 group-hover:opacity-100 flex items-center justify-center"
+                    title="Play sample"
+                  >
+                    <Play className="h-4 w-4" />
+                  </div>
+                </div>
+              );
+            })}
           </div>
         </section>
 
@@ -251,6 +270,8 @@ interface StudioCustomModeContentProps {
   setCustomLyrics: (lyrics: string) => void;
   customPromptMaxLength: number;
   onGenerateLyrics?: () => void;
+  onWriteNextLyricLine?: () => void;
+  isWritingNextLyricLine?: boolean;
   onClearCustomLyrics: () => void;
   vocalGender: string;
   setVocalGender: (gender: string) => void;
@@ -273,6 +294,8 @@ export const StudioCustomModeContent: React.FC<StudioCustomModeContentProps> = (
   setCustomLyrics,
   customPromptMaxLength,
   onGenerateLyrics,
+  onWriteNextLyricLine,
+  isWritingNextLyricLine = false,
   onClearCustomLyrics,
   vocalGender,
   setVocalGender,
@@ -281,6 +304,18 @@ export const StudioCustomModeContent: React.FC<StudioCustomModeContentProps> = (
   songTitle,
   setSongTitle,
 }) => {
+  const handleInsertLyricsTag = (tag: string) => {
+    const trimmedLyrics = customLyrics.trimEnd();
+    const nextLyrics = trimmedLyrics
+      ? `${trimmedLyrics}
+
+${tag}
+`
+      : `${tag}
+`;
+    setCustomLyrics(nextLyrics);
+  };
+
   return (
     <>
       <div className="space-y-5 md:space-y-6 pt-2 md:pt-3">
@@ -296,7 +331,7 @@ export const StudioCustomModeContent: React.FC<StudioCustomModeContentProps> = (
                 title="Add audio"
                 onClick={onAddAudio}
               >
-                <UploadCloud className="h-4 w-4" />
+                <UploadCloud className="h-3.5 w-3.5" />
                 <span className="text-sm font-semibold tracking-tight">Add Audio</span>
               </Button>
 
@@ -307,7 +342,7 @@ export const StudioCustomModeContent: React.FC<StudioCustomModeContentProps> = (
                 title="Select persona"
                 onClick={onOpenPersonaDialog}
               >
-                <Users className="h-4 w-4" />
+                <Users className="h-3.5 w-3.5" />
                 <span className="text-sm font-semibold tracking-tight">
                   {selectedPersonaName || (selectedPersonaId ? "Persona Selected" : "Select Persona")}
                 </span>
@@ -316,20 +351,32 @@ export const StudioCustomModeContent: React.FC<StudioCustomModeContentProps> = (
           )}
         </section>
 
-        {!instrumentalMode ? (
-          <section className="studio-panel-card rounded-2xl px-3 py-4">
+        <section className="studio-panel-card rounded-2xl px-3 py-3 flex items-center justify-between">
+          <h3 className="text-xs md:text-sm font-semibold text-foreground">Instrumental</h3>
+          <Switch
+            checked={instrumentalMode}
+            onCheckedChange={setInstrumentalMode}
+            className="scale-75"
+          />
+        </section>
+
+
+        {!instrumentalMode && (
+          <section className="studio-panel-card rounded-2xl p-3">
             <div className="flex items-center justify-between mb-3 md:mb-4">
-              <h3 className="text-lg font-semibold tracking-tight flex items-center gap-2">
+              <h3 className="text-xs md:text-sm font-semibold flex items-center gap-2">
                 Lyrics
               </h3>
-              <div className="flex items-center gap-2">
-                <Switch
-                  checked={instrumentalMode}
-                  onCheckedChange={setInstrumentalMode}
-                  className="scale-75"
-                />
-                <span className="text-xs text-muted-foreground">Instrumental</span>
-              </div>
+              <Button
+                variant="ghost"
+                size="sm"
+                className="inline-flex h-8 items-center gap-1.5 rounded-full bg-foreground/5 px-3 text-xs font-semibold text-foreground/70 transition-colors hover:bg-foreground/10 hover:text-foreground"
+                title="Generate lyrics with AI"
+                onClick={onGenerateLyrics}
+              >
+                <Wand2 className="h-3.5 w-3.5" />
+                <span className="text-xs font-medium">Auto Generate</span>
+              </Button>
             </div>
             <div className="space-y-3">
               <div className="relative">
@@ -338,61 +385,71 @@ export const StudioCustomModeContent: React.FC<StudioCustomModeContentProps> = (
                   value={customLyrics}
                   onChange={(e) => setCustomLyrics(e.target.value)}
                   maxLength={customPromptMaxLength}
-                  className="min-h-[136px] md:min-h-[160px] resize-none pl-4 pt-3 pr-16 pb-6 border-0 bg-background focus-visible:ring-0 focus-visible:ring-offset-0"
+                  className="min-h-[136px] md:min-h-[160px] resize-y pl-0 pt-3 pr-0 pb-6 border-0 bg-transparent focus-visible:ring-0 focus-visible:ring-offset-0"
                 />
-                <div className="absolute bottom-2 right-2 text-xs text-muted-foreground bg-background/80 px-2 py-1 rounded">
-                  {customLyrics.length}/{customPromptMaxLength}
-                </div>
               </div>
               <div className="flex items-center justify-between">
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className="h-7 px-3 rounded-full text-muted-foreground hover:text-foreground opacity-70 hover:opacity-100 transition-opacity flex items-center gap-1"
-                  title="Generate lyrics with AI"
-                  onClick={onGenerateLyrics}
-                >
-                  <Wand2 className="h-3 w-3" />
-                  <span className="text-xs font-medium">Auto Generate</span>
-                </Button>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className="h-7 px-3 rounded-full text-muted-foreground hover:text-foreground hover:bg-muted/30 opacity-70 hover:opacity-100 transition-all duration-200"
-                  onClick={onClearCustomLyrics}
-                >
-                  <Trash2 className="h-3 w-3" />
-                  <span className="text-xs font-medium">Clear</span>
-                </Button>
-              </div>
-            </div>
-          </section>
-        ) : (
-          <section className="studio-panel-card rounded-2xl px-3 py-4">
-            <div className="flex items-center justify-between mb-3 md:mb-4">
-              <h3 className="text-lg font-semibold tracking-tight flex items-center gap-2">
-                Lyrics
-              </h3>
-              <div className="flex items-center gap-2">
-                <Switch
-                  checked={instrumentalMode}
-                  onCheckedChange={setInstrumentalMode}
-                  className="scale-75"
-                />
-                <span className="text-xs text-muted-foreground">Instrumental</span>
-              </div>
-            </div>
-            <div className="flex items-center justify-center py-4 px-4 bg-muted/30 rounded-lg">
-              <div className="flex items-center gap-3 text-muted-foreground">
-                <span className="text-sm font-medium">Instrumental Mode Active,no need to write lyrics</span>
+                <div className="text-xs text-muted-foreground">
+                  {customLyrics.length}/{customPromptMaxLength}
+                </div>
+                <div className="flex items-center gap-2">
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        title="Lyrics Tags"
+                        aria-label="Lyrics Tags"
+                        className="h-8 w-8 rounded-full bg-foreground/5 p-0 text-foreground/70 transition-colors hover:bg-foreground/10 hover:text-foreground"
+                      >
+                        <Tag className="h-3.5 w-3.5" />
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end" className="min-w-[156px] p-1.5">
+                      {LYRICS_TAG_OPTIONS.map((option) => (
+                        <DropdownMenuItem
+                          key={option.value}
+                          onClick={() => handleInsertLyricsTag(option.value)}
+                          className="cursor-pointer px-2.5 py-1.5 text-xs"
+                        >
+                          {option.label}
+                        </DropdownMenuItem>
+                      ))}
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    title={isWritingNextLyricLine ? "Writing next line" : "Write Next Line"}
+                    aria-label={isWritingNextLyricLine ? "Writing next line" : "Write Next Line"}
+                    className="h-8 w-8 rounded-full bg-foreground/5 p-0 text-foreground/70 transition-colors hover:bg-foreground/10 hover:text-foreground disabled:opacity-50 disabled:cursor-not-allowed"
+                    onClick={onWriteNextLyricLine}
+                    disabled={isWritingNextLyricLine || !customLyrics.trim()}
+                  >
+                    <Sparkles className="h-3.5 w-3.5" />
+                  </Button>
+
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    title="Clear Lyrics"
+                    aria-label="Clear Lyrics"
+                    className="h-8 w-8 rounded-full bg-foreground/5 p-0 text-foreground/70 transition-colors hover:bg-foreground/10 hover:text-foreground disabled:opacity-50 disabled:cursor-not-allowed"
+                    onClick={onClearCustomLyrics}
+                    disabled={!customLyrics.trim()}
+                  >
+                    <Trash2 className="h-3.5 w-3.5" />
+                  </Button>
+                </div>
               </div>
             </div>
           </section>
         )}
 
         {!instrumentalMode && (
-          <section className="studio-panel-card rounded-2xl p-3 flex items-center justify-between">
-            <Label className="text-sm font-medium text-foreground">Vocal Gender</Label>
+          <section className="studio-panel-card rounded-2xl px-3 py-3 flex items-center justify-between gap-3">
+            <h3 className="text-xs md:text-sm font-semibold text-foreground">Vocal Gender</h3>
             <div className="studio-panel-card inline-flex items-center rounded-full p-1 gap-1">
               <button
                 onClick={() => setVocalGender('random')}
@@ -424,21 +481,19 @@ export const StudioCustomModeContent: React.FC<StudioCustomModeContentProps> = (
         {styleSection}
 
         <section className="studio-panel-card rounded-2xl p-3">
-          <h3 className="text-lg font-semibold tracking-tight mb-3 md:mb-4 flex items-center gap-2">
+          <h3 className="text-xs md:text-sm font-semibold mb-3 md:mb-4 flex items-center gap-2">
             Title
           </h3>
-          <div className="space-y-3">
-            <div className="relative">
-              <Input
-                placeholder="Enter your song title..."
-                value={songTitle}
-                onChange={(e) => setSongTitle(e.target.value)}
-                maxLength={80}
-                className="pr-16 h-12 text-base border-0 bg-background focus-visible:ring-0 focus-visible:ring-offset-0"
-              />
-              <div className="absolute top-1/2 right-2 transform -translate-y-1/2 text-xs text-muted-foreground bg-background/80 px-2 py-1 rounded">
-                {songTitle.length}/80
-              </div>
+          <div>
+            <Input
+              placeholder="Enter your song title..."
+              value={songTitle}
+              onChange={(e) => setSongTitle(e.target.value)}
+              maxLength={80}
+              className="h-12 pl-0 pr-0 text-base border-0 bg-transparent focus-visible:ring-0 focus-visible:ring-offset-0"
+            />
+            <div className="mt-2 text-xs text-muted-foreground">
+              {songTitle.length}/80
             </div>
           </div>
         </section>
@@ -446,4 +501,3 @@ export const StudioCustomModeContent: React.FC<StudioCustomModeContentProps> = (
     </>
   );
 };
-

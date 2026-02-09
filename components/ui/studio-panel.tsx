@@ -4,15 +4,16 @@ import React from "react";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
-import { RotateCcw, ChevronRight, Play, CreditCard, X, Check, Triangle, Pause } from "lucide-react";
+import { ChevronRight, Play, CreditCard, X, Check, Triangle, Pause, Wand2, Trash2, Loader2 } from "lucide-react";
 import musicOptions from '@/data/music-options.json';
 import { useAuth } from '@/contexts/AuthContext';
 import { useCredits } from '@/contexts/CreditsContext';
 import { useSubscription } from "@/contexts/SubscriptionContext";
 import { toast } from 'sonner';
+import { supabase } from '@/lib/supabase';
 import { Tooltip } from '@/components/ui/tooltip';
 import Image from 'next/image';
-import { CLIENT_EXTEND_MUSIC_CREDITS, CLIENT_MUSIC_CREDITS, CLIENT_UPLOAD_AUDIO_CREDITS } from '@/lib/credits-config';
+import { CLIENT_MUSIC_CREDITS, CLIENT_UPLOAD_AUDIO_CREDITS } from '@/lib/credits-config';
 import { getInstrumentIcon, getInstrumentAudio, getDrumKitIcon, getDrumKitAudio } from '@/lib/music-resources';
 import { replaceTextInStyle, updateStatesFromTextarea, getRandomBpm } from '@/lib/studio-utils';
 import { TEMPO_KEYWORDS, BUTTON_CLASSES, STYLES } from '@/lib/studio-constants';
@@ -44,135 +45,6 @@ const HERO_GENRE_ICONS: Record<string, string> = {
   "hip-hop-soul": "Hip-Hop Soul Icon.webp",
 };
 
-const SIMPLE_PROMPT_CONFIG: Record<
-  string,
-  {
-    blocks: {
-      style_anchor: string[];
-      rhythm_groove: string[];
-      instrumentation: string[];
-      vocals: string[];
-      mood: string[];
-    };
-  }
-> = {
-  "new-jack-swing": {
-    blocks: {
-      style_anchor: [
-        "Early 90s New Jack Swing R&B track",
-        "Classic New Jack Swing style R&B song",
-        "Upbeat early-90s New Jack Swing inspired track",
-      ],
-      rhythm_groove: [
-        "bouncy swing rhythm with tight drum machine groove",
-        "energetic, danceable groove with strong rhythmic bounce",
-        "swinging, upbeat rhythm designed for the dance floor",
-      ],
-      instrumentation: [
-        "bright synth stabs and punchy electronic bass",
-        "classic drum machine sounds with glossy synth textures",
-        "sharp keyboard hits and funky electronic instrumentation",
-      ],
-      vocals: [
-        "confident soulful lead vocals",
-        "energetic R&B vocals with attitude",
-        "bright and expressive lead vocal performance",
-      ],
-      mood: [
-        "fun, youthful, and high-energy mood",
-        "playful and upbeat atmosphere",
-        "feel-good, dance-driven vibe",
-      ],
-    },
-  },
-  "hip-hop-soul": {
-    blocks: {
-      style_anchor: [
-        "Early 90s hip-hop soul R&B track",
-        "Classic hip-hop soul style R&B song",
-        "90s hip-hop influenced R&B track",
-      ],
-      rhythm_groove: [
-        "heavy hip-hop inspired groove with deep pocket",
-        "laid-back but hard-hitting hip-hop rhythm",
-        "solid, grounded beat with street influence",
-      ],
-      instrumentation: [
-        "deep bass, sampled-style drums, and minimal instrumentation",
-        "warm keys layered over a hip-hop rhythm foundation",
-        "raw, groove-focused instrumentation with strong low-end",
-      ],
-      vocals: [
-        "powerful soulful lead vocals with emotional weight",
-        "raw and expressive R&B vocal delivery",
-        "heartfelt vocals with gospel-influenced phrasing",
-      ],
-      mood: [
-        "emotional, honest, and street-rooted mood",
-        "deeply personal and soulful atmosphere",
-        "intense and emotionally grounded vibe",
-      ],
-    },
-  },
-  "neo-soul": {
-    blocks: {
-      style_anchor: [
-        "Late 90s neo-soul R&B track",
-        "Classic late-90s neo-soul inspired song",
-        "Warm 90s neo-soul style R&B track",
-      ],
-      rhythm_groove: [
-        "loose, human-played rhythm with relaxed pocket",
-        "laid-back groove with natural timing",
-        "subtle swing and organic rhythmic feel",
-      ],
-      instrumentation: [
-        "live bass and Rhodes-driven arrangement",
-        "warm analog keys with organic rhythm section",
-        "soulful live instrumentation with vintage tone",
-      ],
-      vocals: [
-        "intimate and smooth soulful lead vocals",
-        "warm, close-mic neo-soul vocal delivery",
-        "expressive yet restrained soulful singing",
-      ],
-      mood: [
-        "introspective and reflective late-night mood",
-        "warm, thoughtful, and personal atmosphere",
-        "deeply intimate and relaxed vibe",
-      ],
-    },
-  },
-  "quiet-storm": {
-    blocks: {
-      style_anchor: [
-        "90s quiet storm R&B ballad",
-        "Classic 90s quiet storm style R&B song",
-        "Smooth 90s quiet storm inspired track",
-      ],
-      rhythm_groove: [
-        "slow, smooth rhythm with minimal movement",
-        "gentle, restrained groove supporting the vocals",
-        "soft and steady tempo with subtle pulse",
-      ],
-      instrumentation: [
-        "lush pads and soft keyboard textures",
-        "smooth keys and understated instrumentation",
-        "polished, atmospheric arrangement with gentle tones",
-      ],
-      vocals: [
-        "vocals front and center with warm, emotional delivery",
-        "soft and expressive soulful lead vocals",
-        "smooth, controlled vocal performance with intimacy",
-      ],
-      mood: [
-        "romantic, calm, and intimate night-time mood",
-        "warm, soothing, and emotionally safe atmosphere",
-        "late-night, candle-lit vibe",
-      ],
-    },
-  },
-};
 
 interface StudioPanelProps {
   panelOpen: boolean;
@@ -225,6 +97,8 @@ interface StudioPanelProps {
     continueAt?: number;
   }) => Promise<boolean> | void;
   onGenerateLyrics?: () => void;
+  onWriteNextLyricLine?: () => void;
+  isWritingNextLyricLine?: boolean;
   // 新增：在移动端强制可见（用于移动端Tab中的创作页）
   forceVisibleOnMobile?: boolean;
   // 新增：点击收起并显示tracks列表
@@ -284,6 +158,8 @@ export const StudioPanel = (props: StudioPanelProps) => {
     isGenerating,
     onGenerationStart,
     onGenerateLyrics,
+    onWriteNextLyricLine,
+    isWritingNextLyricLine = false,
     selectedModel = 'V4',
     setSelectedModel,
     selectedPersonaId = '',
@@ -334,6 +210,16 @@ export const StudioPanel = (props: StudioPanelProps) => {
   // Pricing dialog state
   const [isPricingOpen, setIsPricingOpen] = React.useState(false);
   const [isModelMenuOpen, setIsModelMenuOpen] = React.useState(false);
+  const [isGeneratingGenrePrompt, setIsGeneratingGenrePrompt] = React.useState(false);
+  const [pendingGenreId, setPendingGenreId] = React.useState<string | null>(null);
+  const genrePromptAbortRef = React.useRef<AbortController | null>(null);
+  const genrePromptRequestIdRef = React.useRef(0);
+
+  React.useEffect(() => {
+    return () => {
+      genrePromptAbortRef.current?.abort();
+    };
+  }, []);
 
   const {
     isPersonaDialogOpen,
@@ -448,6 +334,97 @@ export const StudioPanel = (props: StudioPanelProps) => {
     updateSelectedModel(model, { userInitiated: true });
   }, [hasSubscription, updateSelectedModel]);
 
+  const handleGenerateGenrePrompt = React.useCallback(async ({
+    genreId,
+    genreName,
+    currentText,
+    onSuccess,
+  }: {
+    genreId: string;
+    genreName: string;
+    currentText: string;
+    onSuccess: (value: string) => void;
+  }) => {
+    if (!user) {
+      setIsAuthModalOpen?.(true);
+      return;
+    }
+
+    const requestId = genrePromptRequestIdRef.current + 1;
+    genrePromptRequestIdRef.current = requestId;
+
+    genrePromptAbortRef.current?.abort();
+    const abortController = new AbortController();
+    genrePromptAbortRef.current = abortController;
+
+    setPendingGenreId(genreId);
+    setIsGeneratingGenrePrompt(true);
+
+    try {
+      const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+
+      if (sessionError) {
+        throw new Error("Failed to get session. Please try logging in again.");
+      }
+
+      if (!session?.access_token) {
+        throw new Error("Please log in to continue.");
+      }
+
+      const response = await fetch("/api/prompt/simple-genre", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: "Bearer " + session.access_token,
+        },
+        signal: abortController.signal,
+        body: JSON.stringify({
+          genreId,
+          genreName,
+          currentPrompt: currentText,
+        }),
+      });
+
+      const result = await response.json().catch(() => ({}));
+
+      if (abortController.signal.aborted || requestId !== genrePromptRequestIdRef.current) {
+        return;
+      }
+
+      if (!response.ok || !result?.success) {
+        if (response.status === 401) {
+          setIsAuthModalOpen?.(true);
+          throw new Error("Your session has expired. Please log in again.");
+        }
+
+        throw new Error(result?.error || "Failed to generate prompt.");
+      }
+
+      const generatedPrompt = typeof result?.data?.prompt === "string"
+        ? result.data.prompt.trim()
+        : "";
+
+      if (!generatedPrompt) {
+        throw new Error("Model returned empty prompt. Please try again.");
+      }
+
+      onSuccess(generatedPrompt);
+    } catch (error) {
+      if (error instanceof Error && error.name === "AbortError") {
+        return;
+      }
+
+      console.error("Generate genre prompt failed:", error);
+      const message = error instanceof Error ? error.message : "Failed to generate prompt.";
+      toast.error(message);
+    } finally {
+      if (requestId === genrePromptRequestIdRef.current) {
+        setIsGeneratingGenrePrompt(false);
+        setPendingGenreId(null);
+        genrePromptAbortRef.current = null;
+      }
+    }
+  }, [user, setIsAuthModalOpen]);
   // Function to update states based on textarea content with debouncing
   const handleUpdateStatesFromTextarea = React.useCallback((text: string) => {
     const timeoutId = setTimeout(() => {
@@ -668,21 +645,6 @@ export const StudioPanel = (props: StudioPanelProps) => {
     };
     const shouldUpdateText = (category: StyleCategory) => !disableTextUpdateSet.has(category);
 
-    const buildSimplePrompt = (genreId: string) => {
-      const config = SIMPLE_PROMPT_CONFIG[genreId];
-      if (!config) return "";
-      const pick = (items: string[]) =>
-        items[Math.floor(Math.random() * items.length)];
-      const { blocks } = config;
-      return [
-        pick(blocks.style_anchor),
-        pick(blocks.rhythm_groove),
-        pick(blocks.instrumentation),
-        pick(blocks.vocals),
-        pick(blocks.mood),
-      ].join(", ") + ".";
-    };
-
     return (
       <div className="space-y-3">
         {!options?.hideCategoryToggles && (
@@ -804,19 +766,31 @@ export const StudioPanel = (props: StudioPanelProps) => {
         {activeExpanded && (
           <div className="mt-2 rounded-lg bg-transparent">
             {activeExpanded === 'genre' && (
-              <div className="flex flex-wrap gap-2">
+              <div
+                className={`flex gap-2 ${
+                  options?.horizontalScroll ? 'flex-nowrap overflow-x-auto pb-1' : 'flex-wrap'
+                }`}
+              >
                 {genres.map((genre: any) => {
                   const isSelected = options?.useSelectedGenre
                     ? selectedGenre === genre.id
                     : hasTag(text, genre.value);
                   const iconName = HERO_GENRE_ICONS[genre.id];
+                  const shouldGenerateTemplate = Boolean(options?.usePromptTemplateOnGenre && shouldUpdateText("genre"));
+                  const isGeneratingThisGenre = shouldGenerateTemplate && isGeneratingGenrePrompt && pendingGenreId === genre.id;
+
                   return (
                     <button
                       key={genre.id}
                       onClick={() => {
                         setSelectedGenre(genre.id);
-                        if (options?.usePromptTemplateOnGenre && shouldUpdateText("genre")) {
-                          setText(buildSimplePrompt(genre.id));
+                        if (shouldGenerateTemplate) {
+                          void handleGenerateGenrePrompt({
+                            genreId: genre.id,
+                            genreName: genre.name,
+                            currentText: text,
+                            onSuccess: setText,
+                          });
                           return;
                         }
                         const nextText = options?.onGenreSelect?.({
@@ -831,21 +805,26 @@ export const StudioPanel = (props: StudioPanelProps) => {
                           setText(toggleTag(text, genre.value));
                         }
                       }}
-                      className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-full border border-white/10 dark:border-transparent text-xs font-semibold transition-all duration-200 ${
+                      className={`inline-flex shrink-0 items-center gap-2 px-3 py-1.5 rounded-full border border-white/10 dark:border-transparent text-xs font-semibold transition-all duration-200 disabled:opacity-60 disabled:cursor-not-allowed ${
                         isSelected
                           ? 'bg-primary text-primary-foreground '
                           : 'bg-slate-50 text-muted-foreground hover:text-foreground hover:bg-slate-100 dark:bg-white/10 dark:hover:bg-white/15'
                       }`}
+                      disabled={isGeneratingThisGenre}
                     >
-                      {iconName && (
-                        <Image
-                          src={`/hero/${encodeURIComponent(iconName)}`}
-                          alt=""
-                          width={14}
-                          height={14}
-                          className="h-3.5 w-3.5 opacity-90"
-                          aria-hidden="true"
-                        />
+                      {isGeneratingThisGenre ? (
+                        <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                      ) : (
+                        iconName && (
+                          <Image
+                            src={`/hero/${encodeURIComponent(iconName)}`}
+                            alt=""
+                            width={14}
+                            height={14}
+                            className="h-3.5 w-3.5 opacity-90"
+                            aria-hidden="true"
+                          />
+                        )
                       )}
                       <span>{genre.name}</span>
                     </button>
@@ -1191,34 +1170,13 @@ export const StudioPanel = (props: StudioPanelProps) => {
 
   const styleSection = (
     <section className="studio-panel-card rounded-2xl p-3">
-      <div className="flex items-center justify-between mb-3 md:mb-4">
-        <h3 className="text-lg font-semibold tracking-tight flex items-center gap-2">
+      <div className="mb-3 md:mb-4">
+        <h3 className="text-xs md:text-sm font-semibold flex items-center gap-2">
           Music Style
         </h3>
-        <Button
-          variant="ghost"
-          size="sm"
-          onClick={() => {
-            setSelectedGenre("");
-            setSelectedVibe("");
-            setGrooveType("");
-            setBpm([60]);
-            setBpmMode('');
-            setLeadInstrument([]);
-            setDrumKit("");
-            setBassTone("");
-            setHarmonyPalette("");
-            setStyleText("");
-          }}
-          className="h-8 px-3 text-muted-foreground hover:text-foreground hover:bg-muted/30 rounded-full transition-all duration-200 flex items-center gap-1"
-          title="Reset"
-        >
-          <RotateCcw className="h-4 w-4" />
-          <span className="text-xs font-medium">Reset</span>
-        </Button>
       </div>
 
-      <div className="mb-4 md:mb-4">
+      <div>
         <div className="relative">
           <Textarea
             placeholder="Enter style of music"
@@ -1229,27 +1187,51 @@ export const StudioPanel = (props: StudioPanelProps) => {
               handleUpdateStatesFromTextarea(newValue);
             }}
             maxLength={styleTextMaxLength}
-            className="min-h-[180px] md:min-h-[200px] resize-none pr-16 pb-6 border-0 bg-background focus-visible:ring-0 focus-visible:ring-offset-0"
+            className="min-h-[180px] md:min-h-[200px] resize-none pl-0 pr-0 pb-20 border-0 bg-transparent focus-visible:ring-0 focus-visible:ring-offset-0"
           />
-          <div className="absolute bottom-2 right-3 text-xs text-muted-foreground">
-            {styleText.length}/{styleTextMaxLength}
+          <div className="absolute inset-x-0 bottom-2">
+            {renderStyleQuickButtons(
+              styleText,
+              setStyleText,
+              expandedCategory,
+              setExpandedCategory,
+              ["genre"],
+              {
+                forceExpanded: "genre",
+                hideCategoryToggles: true,
+                useSelectedGenre: true,
+                usePromptTemplateOnGenre: true,
+                horizontalScroll: true,
+              }
+            )}
           </div>
         </div>
+        <div className="mt-3 flex items-center justify-between">
+          <div className="text-xs text-muted-foreground">
+            {styleText.length}/{styleTextMaxLength}
+          </div>
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => {
+              setSelectedGenre("");
+              setSelectedVibe("");
+              setGrooveType("");
+              setBpm([60]);
+              setBpmMode('');
+              setLeadInstrument([]);
+              setDrumKit("");
+              setBassTone("");
+              setHarmonyPalette("");
+              setStyleText("");
+            }}
+            className="inline-flex items-center gap-1.5 rounded-full bg-foreground/5 px-3 py-1.5 text-xs font-semibold text-foreground/70 transition-colors hover:bg-foreground/10 hover:text-foreground"
+          >
+            <Trash2 className="h-3 w-3" />
+            <span className="text-xs font-medium">Clear</span>
+          </Button>
+        </div>
       </div>
-
-        {renderStyleQuickButtons(
-          styleText,
-          setStyleText,
-          expandedCategory,
-          setExpandedCategory,
-          ["genre"],
-          {
-            forceExpanded: "genre",
-            hideCategoryToggles: true,
-            useSelectedGenre: true,
-            usePromptTemplateOnGenre: true,
-          }
-        )}
 
         <div className="hidden">
           <Select value={selectedGenre} onValueChange={setSelectedGenre}>
@@ -1368,12 +1350,11 @@ export const StudioPanel = (props: StudioPanelProps) => {
             <div className="flex items-center justify-between gap-2 md:gap-4">
               {/* Mode Selector */}
               <div
-                className="studio-panel-card inline-flex items-center rounded-full p-1 gap-1 flex-shrink-0"
+                className="studio-panel-card inline-flex items-center rounded-2xl p-1 gap-1 flex-shrink-0"
               >
                 <button
                   onClick={() => setMode("simple")}
-                  title="Create random R&B songs with polished production in 90s style. Simple and fast setup."
-                  className={`px-4 py-2 text-xs md:text-sm font-semibold transition-colors duration-200 rounded-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background ${
+                  className={`px-4 py-2 text-xs md:text-sm font-semibold transition-colors duration-200 rounded-2xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background ${
                     mode === "simple"
                       ? "bg-primary text-primary-foreground shadow-[0_1px_1px_rgba(0,0,0,0.08)]"
                       : "text-foreground/60 hover:text-foreground hover:bg-foreground/5"
@@ -1383,8 +1364,7 @@ export const StudioPanel = (props: StudioPanelProps) => {
                 </button>
                 <button
                   onClick={() => setMode("custom")}
-                  title="Fine-tune every aspect of your track with detailed controls for genre, instruments, and style."
-                  className={`px-4 py-2 text-xs md:text-sm font-semibold transition-colors duration-200 rounded-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background ${
+                  className={`px-4 py-2 text-xs md:text-sm font-semibold transition-colors duration-200 rounded-2xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background ${
                     mode === "custom"
                       ? "bg-primary text-primary-foreground shadow-[0_1px_1px_rgba(0,0,0,0.08)]"
                       : "text-foreground/60 hover:text-foreground hover:bg-foreground/5"
@@ -1399,7 +1379,7 @@ export const StudioPanel = (props: StudioPanelProps) => {
                 <DropdownMenuTrigger asChild>
                   <button
                     type="button"
-                    className="group studio-panel-card h-11 px-4 rounded-full text-xs md:text-sm font-semibold text-foreground/80 transition-colors hover:bg-accent hover:text-accent-foreground flex items-center gap-1.5"
+                    className="group studio-panel-card h-11 px-4 rounded-2xl text-xs md:text-sm font-semibold text-foreground/80 transition-colors hover:bg-accent hover:text-accent-foreground flex items-center gap-1.5"
                     title="Click to change model version"
                   >
                     <span>{modelOptions.find(opt => opt.value === selectedModel)?.label || 'v4'}</span>
@@ -1414,12 +1394,11 @@ export const StudioPanel = (props: StudioPanelProps) => {
                 >
                   {modelOptions.map((option, index) => {
                     const isSelected = option.value === selectedModel;
-                    const creditsPerTrack = CLIENT_EXTEND_MUSIC_CREDITS[option.value];
                     return (
                       <React.Fragment key={option.value}>
                         <DropdownMenuItem
                           onClick={() => handleModelSelect(option.value)}
-                          className="group flex flex-col items-start gap-1 rounded-xl px-3.5 py-2.5 transition-colors hover:bg-accent focus:bg-accent data-[highlighted]:bg-accent"
+                          className="group flex flex-col items-start gap-1 rounded-xl px-3.5 py-2.5 transition-colors hover:bg-black/5 focus:bg-black/5 data-[highlighted]:bg-black/5 dark:hover:bg-white/5 dark:focus:bg-white/5 dark:data-[highlighted]:bg-white/5"
                         >
                           <div className="flex w-full items-center justify-between gap-2">
                             <div className="flex items-center gap-2">
@@ -1433,9 +1412,6 @@ export const StudioPanel = (props: StudioPanelProps) => {
                               </span>
                             )}
                           </div>
-                          <span className="text-[11px] text-muted-foreground">
-                            {creditsPerTrack} credits per track
-                          </span>
                           <span className="text-xs text-muted-foreground">
                             {option.description}
                           </span>
@@ -1478,6 +1454,7 @@ export const StudioPanel = (props: StudioPanelProps) => {
               hideCategoryToggles: true,
               useSelectedGenre: true,
               usePromptTemplateOnGenre: true,
+              horizontalScroll: true,
             }
           )}
           onAddAudio={handlePromptAddAudioClick}
@@ -1530,6 +1507,8 @@ export const StudioPanel = (props: StudioPanelProps) => {
           setCustomLyrics={setCustomLyrics}
           customPromptMaxLength={customPromptMaxLength}
           onGenerateLyrics={onGenerateLyrics}
+          onWriteNextLyricLine={onWriteNextLyricLine}
+          isWritingNextLyricLine={isWritingNextLyricLine}
           onClearCustomLyrics={() => setCustomLyrics("")}
           vocalGender={vocalGender}
           setVocalGender={setVocalGender}
@@ -1582,8 +1561,16 @@ export const StudioPanel = (props: StudioPanelProps) => {
                             <div className="w-1 h-1 bg-white rounded-full animate-pulse" style={{ animationDelay: '0.6s' }}></div>
                           </div>
                         </div>
+                      ) : isDisabled ? (
+                        <span className="inline-flex items-center gap-1.5">
+                          <Wand2 className="h-4 w-4" />
+                          <span>Create</span>
+                        </span>
                       ) : (
-                        <span>Create</span>
+                        <span className="inline-flex items-center gap-1.5">
+                          <Wand2 className="h-4 w-4" />
+                          <span>{`Create (-${createCredits} Credits)`}</span>
+                        </span>
                       )}
                     </div>
                   </button>

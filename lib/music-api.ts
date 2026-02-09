@@ -138,6 +138,34 @@ export interface Mp4GenerationApiResponse {
 }
 
 // ============================================================================
+// TIMESTAMPED LYRICS INTERFACES
+// ============================================================================
+
+export interface TimestampedLyricsRequest {
+  taskId: string;
+  audioId: string;
+}
+
+export interface TimestampedLyricWord {
+  word: string;
+  success: boolean;
+  startS: number;
+  endS: number;
+  palign: number;
+}
+
+export interface TimestampedLyricsApiResponse {
+  code: number;
+  msg: string;
+  data: {
+    alignedWords: TimestampedLyricWord[];
+    waveformData: number[];
+    hootCer?: number;
+    isStreamed?: boolean;
+  };
+}
+
+// ============================================================================
 // PERSONA GENERATION INTERFACES
 // ============================================================================
 
@@ -776,6 +804,57 @@ class MusicApiService {
 
     console.error(`MP4 generation API error: ${data.code} - ${data.msg}`);
     throw new Error(`MP4 generation API error (${data.code}): ${data.msg || 'Unknown error'}`);
+  }
+
+  /**
+   * Gets timestamped lyrics for a generated track
+   */
+  async getTimestampedLyrics(request: TimestampedLyricsRequest): Promise<TimestampedLyricsApiResponse> {
+    const response = await this.fetchWithRetry(`${this.baseUrl}/api/v1/generate/get-timestamped-lyrics`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${this.apiKey}`,
+      },
+      body: JSON.stringify({
+        taskId: request.taskId,
+        audioId: request.audioId,
+      }),
+    });
+
+    let data: any = null;
+    try {
+      data = await response.json();
+    } catch {
+      // Ignore JSON parse errors; handled below
+    }
+
+    if (!response.ok) {
+      const error = new Error(
+        `Timestamped lyrics API call failed: ${response.statusText} - ${data?.msg || 'Unknown error'}`
+      ) as Error & { code?: number };
+      error.code = data?.code || response.status;
+      throw error;
+    }
+
+    if (data?.code === 200) {
+      return {
+        code: data.code,
+        msg: data.msg || 'Timestamped lyrics fetched successfully',
+        data: {
+          alignedWords: Array.isArray(data.data?.alignedWords) ? data.data.alignedWords : [],
+          waveformData: Array.isArray(data.data?.waveformData) ? data.data.waveformData : [],
+          hootCer: typeof data.data?.hootCer === 'number' ? data.data.hootCer : undefined,
+          isStreamed: typeof data.data?.isStreamed === 'boolean' ? data.data.isStreamed : undefined,
+        },
+      };
+    }
+
+    const apiError = new Error(
+      `Timestamped lyrics API error (${data?.code ?? 'unknown'}): ${data?.msg || 'Unknown error'}`
+    ) as Error & { code?: number };
+    apiError.code = data?.code;
+    throw apiError;
   }
 
   /**
