@@ -238,6 +238,7 @@ const StudioContent = () => {
         lyrics?: string,
         isFavorited: boolean = false,
         isLiked: boolean = false,
+        isDisliked: boolean = false,
         streamAudioUrl?: string,
         createdAt?: string,
         generationMode?: string
@@ -256,6 +257,7 @@ const StudioContent = () => {
         generationMode,
         isFavorited: isFavorited, // 使用驼峰命名
         isLiked: isLiked,
+        isDisliked: isDisliked,
         createdAt
     }), []);
 
@@ -277,6 +279,7 @@ const StudioContent = () => {
                 track.lyrics,
                 track.isFavorited ?? false,
                 track.isLiked ?? false,
+                track.isDisliked ?? false,
                 track.streamAudioUrl ?? '',
                 track.createdAt || new Date().toISOString(),
                 track.generationMode
@@ -299,6 +302,7 @@ const StudioContent = () => {
                         track.lyrics ?? music.lyrics ?? '',
                         track.isFavorited ?? false,
                         track.isLiked ?? false,
+                        track.isDisliked ?? false,
                         track.streamAudioUrl ?? '',
                         track.createdAt ?? music.createdAt ?? new Date().toISOString(),
                         music.generationMode
@@ -368,6 +372,7 @@ const StudioContent = () => {
                                 track.lyrics,
                                 track.isFavorited || false,
                                 track.isLiked || false,
+                                track.isDisliked || false,
                             track.streamAudioUrl,
                             track.createdAt,
                             track.generationMode
@@ -399,6 +404,7 @@ const StudioContent = () => {
                 generationId: localTrack.generationId,
                 isFavorited: localTrack.isFavorited,
                 isLiked: localTrack.isLiked,
+                isDisliked: localTrack.isDisliked,
                 coverImage: localTrack.coverImage,
                 coverR2Url: localTrack.coverR2Url,
             });
@@ -700,6 +706,7 @@ const StudioContent = () => {
         const trimmedTitle = songTitle.trim();
         const isSimpleMode = mode === "simple";
         const isCustomMode = mode === "custom";
+        const effectiveModel = isCustomMode ? selectedModel : 'V4';
 
         if (isSimpleMode && !trimmedSimplePrompt) {
             toast.error("Please enter a prompt.");
@@ -757,7 +764,7 @@ const StudioContent = () => {
                     genre: '',
                     prompt: placeholderPrompt,
                     lyrics: '',
-                    model: selectedModel,
+                    model: effectiveModel,
                     createdAt: new Date().toISOString(),
                     isGenerating: true,
                     isCompleted: false,
@@ -777,7 +784,7 @@ const StudioContent = () => {
                     genre: '',
                     prompt: placeholderPrompt,
                     lyrics: '',
-                    model: selectedModel,
+                    model: effectiveModel,
                     createdAt: new Date().toISOString(),
                     isGenerating: true,
                     isCompleted: false,
@@ -799,7 +806,7 @@ const StudioContent = () => {
             }
 
             const formData = new FormData();
-            const limits = getModelLimits(selectedModel);
+            const limits = getModelLimits(effectiveModel);
             const uploadMode = options?.mode === "extend" ? "extend" : "cover";
             formData.append("mode", uploadMode);
             formData.append("uploadUrl", uploadUrl);
@@ -809,7 +816,7 @@ const StudioContent = () => {
                 formData.append("customMode", isCustomMode ? "true" : "false");
             }
             formData.append("instrumental", isCustomMode ? (instrumentalMode ? "true" : "false") : "false");
-            formData.append("model", selectedModel);
+            formData.append("model", effectiveModel);
             if (uploadMode === "extend" && isCustomMode) {
                 formData.append("continueAt", continueAt.toString());
             }
@@ -1004,6 +1011,7 @@ const StudioContent = () => {
                     track.lyrics || music.lyrics,
                     track.isFavorited || false,
                     track.isLiked || false,
+                    track.isDisliked || false,
                     track.streamAudioUrl || '',
                     track.createdAt || music.createdAt || new Date().toISOString(),
                     music.generationMode
@@ -1031,6 +1039,7 @@ const StudioContent = () => {
             track.lyrics || music.lyrics,
             track.isFavorited ?? track.is_favorited ?? false,
             track.isLiked ?? track.is_liked ?? false,
+            track.isDisliked ?? track.is_disliked ?? false,
             track.streamAudioUrl || track.stream_audio_url,
             track.createdAt || music.createdAt || new Date().toISOString(),
             music.generationMode
@@ -1060,6 +1069,7 @@ const StudioContent = () => {
             track.lyrics || track.musicGeneration?.lyricsContent || '',
             track.isFavorited ?? false,
             track.isLiked ?? false,
+            track.isDisliked ?? false,
             track.streamAudioUrl || '',
             track.createdAt || track.musicGeneration?.createdAt || new Date().toISOString(),
             track.musicGeneration?.generationMode
@@ -1518,9 +1528,9 @@ const StudioContent = () => {
         }
     }, [user?.id, updateTrack]);
 
-    const handleLikeToggle = React.useCallback(async (track: any, music: any) => {
+    const handleLikeToggle = React.useCallback(async (track: any, _music: any) => {
         if (!user?.id) {
-            toast('Please log in to like tracks');
+            setIsAuthModalOpen(true);
             return;
         }
 
@@ -1547,32 +1557,84 @@ const StudioContent = () => {
                 throw new Error(data.error || 'Failed to toggle like');
             }
 
-            updateTrack(track.id, (t) => ({ ...t, isLiked: data.isLiked }));
+            updateTrack(track.id, (t) => ({ ...t, isLiked: data.isLiked, isDisliked: data.isDisliked ?? false }));
+            updateTracks((prevTracks) =>
+                prevTracks.map((t) =>
+                    t.id === track.id
+                        ? { ...t, isLiked: data.isLiked, isDisliked: data.isDisliked ?? false }
+                        : t
+                )
+            );
 
             setSelectedStudioTrack(prev => {
                 if (prev?.id === track.id) {
                     return {
                         ...prev,
-                        isLiked: data.isLiked
+                        isLiked: data.isLiked,
+                        isDisliked: data.isDisliked ?? false
                     } as StudioTrack;
                 }
                 return prev;
             });
 
-            if (data.isLiked) {
-                toast.success('Liked', {
-                    description: `You liked "${music.title}".`
-                });
-            } else {
-                toast.success('Unliked', {
-                    description: `You removed like from "${music.title}".`
-                });
-            }
         } catch (error) {
             console.error('Error toggling like:', error);
-            toast.error('Failed to update like status');
         }
-    }, [user?.id, updateTrack]);
+    }, [setIsAuthModalOpen, updateTrack, updateTracks, user?.id]);
+
+    const handleDislikeToggle = React.useCallback(async (track: any, _music: any) => {
+        if (!user?.id) {
+            setIsAuthModalOpen(true);
+            return;
+        }
+
+        try {
+            const { data: { session } } = await supabase.auth.getSession();
+
+            const response = await fetch('/api/dislikes/toggle', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${session?.access_token}`,
+                },
+                body: JSON.stringify({
+                    trackId: track.id
+                })
+            });
+
+            if (!response.ok) {
+                throw new Error('Failed to toggle dislike');
+            }
+
+            const data = await response.json();
+            if (!data.success) {
+                throw new Error(data.error || 'Failed to toggle dislike');
+            }
+
+            updateTrack(track.id, (t) => ({ ...t, isDisliked: data.isDisliked, isLiked: data.isLiked ?? false }));
+            updateTracks((prevTracks) =>
+                prevTracks.map((t) =>
+                    t.id === track.id
+                        ? { ...t, isDisliked: data.isDisliked, isLiked: data.isLiked ?? false }
+                        : t
+                )
+            );
+
+            setSelectedStudioTrack(prev => {
+                if (prev?.id === track.id) {
+                    return {
+                        ...prev,
+                        isDisliked: data.isDisliked,
+                        isLiked: data.isLiked ?? false
+                    } as StudioTrack;
+                }
+                return prev;
+            });
+
+        } catch (error) {
+            console.error('Error toggling dislike:', error);
+        }
+    }, [setIsAuthModalOpen, updateTrack, updateTracks, user?.id]);
 
     // ==================== 歌曲列表删除处理函数 ====================
     const handleTrackDelete = React.useCallback((track: any, music: any) => {
@@ -1732,18 +1794,19 @@ const StudioContent = () => {
             status: 'completed',
             createdAt: completedTrack.createdAt || new Date().toISOString(),
             lyricsContent: completedTrack.lyrics || '',
-            allTracks: [{
-                id: completedTrack.id,
-                audioUrl: completedTrack.audioUrl || completedTrack.streamAudioUrl,
-                duration: completedTrack.duration || 0,
-                isPublished: false,
-                isPinned: false,
-                coverR2Url: completedTrack.coverImage || completedTrack.coverR2Url,
-                lyrics: completedTrack.lyrics || '',
-                isFavorited: false,
-                isLiked: false
-            }]
-        };
+                allTracks: [{
+                    id: completedTrack.id,
+                    audioUrl: completedTrack.audioUrl || completedTrack.streamAudioUrl,
+                    duration: completedTrack.duration || 0,
+                    isPublished: false,
+                    isPinned: false,
+                    coverR2Url: completedTrack.coverImage || completedTrack.coverR2Url,
+                    lyrics: completedTrack.lyrics || '',
+                    isFavorited: false,
+                    isLiked: false,
+                    isDisliked: false
+                }]
+            };
 
         // 将新歌曲添加到 userTracks 列表的顶部
         setUserTracks(prevTracks => {
@@ -1809,6 +1872,11 @@ const StudioContent = () => {
             createdAt: selectedStudioTrack.createdAt || new Date().toISOString(),
             duration: selectedStudioTrack.duration ? selectedStudioTrack.duration.toString() : undefined,
             isLiked: selectedStudioTrack.isLiked ?? false,
+            isDisliked: selectedStudioTrack.isDisliked ?? false,
+            status: (selectedStudioTrack as any).status || (selectedStudioTrack as any).musicStatus || '',
+            isGenerating: Boolean((selectedStudioTrack as any).isGenerating),
+            isCompleted: Boolean((selectedStudioTrack as any).isCompleted),
+            audioUrl: selectedStudioTrack.audioUrl || '',
         };
 
         const { track: userTrack, music } = findTrackAndMusic(selectedStudioTrack.id);
@@ -1824,6 +1892,11 @@ const StudioContent = () => {
                     ? userTrack.duration.toString()
                     : base.duration,
                 isLiked: userTrack.isLiked ?? base.isLiked,
+                isDisliked: userTrack.isDisliked ?? base.isDisliked,
+                status: music.status || base.status,
+                isGenerating: (music.status || '').toLowerCase() === 'generating',
+                isCompleted: (music.status || '').toLowerCase() === 'complete' || (music.status || '').toLowerCase() === 'completed',
+                audioUrl: userTrack.audioUrl || base.audioUrl,
             };
         }
 
@@ -1838,6 +1911,11 @@ const StudioContent = () => {
                 createdAt: generated.createdAt || base.createdAt,
                 duration: generated.duration ? generated.duration.toString() : base.duration,
                 isLiked: generated.isLiked ?? base.isLiked,
+                isDisliked: generated.isDisliked ?? base.isDisliked,
+                status: (generated as any).status || (generated as any).musicStatus || base.status,
+                isGenerating: Boolean((generated as any).isGenerating),
+                isCompleted: Boolean((generated as any).isCompleted),
+                audioUrl: generated.audioUrl || base.audioUrl,
             };
         }
 
@@ -2006,6 +2084,7 @@ const StudioContent = () => {
                         playerTrack.lyrics || '',
                         playerTrack.isFavorited ?? false,
                         playerTrack.isLiked ?? false,
+                        playerTrack.isDisliked ?? false,
                         playerTrack.streamAudioUrl || '',
                         new Date().toISOString(),
                         ''
@@ -2211,6 +2290,7 @@ const StudioContent = () => {
                                         onGeneratedTrackSelect={handleGeneratedTrackSelect}
                                         onDelete={handleDeleteClick}
                                         onFavoriteToggle={handleFavoriteToggle}
+                                        onDislikeToggle={handleDislikeToggle}
                                         onLikeToggle={handleLikeToggle}
                                         onDownload={handleDownload}
                                         isLoading={isInitialUserTracksLoading}
@@ -2246,6 +2326,7 @@ const StudioContent = () => {
                                         onGeneratedTrackSelect={handleGeneratedTrackSelect}
                                         onDownload={handleDownload}
                                         onFavoriteToggle={handleFavoriteToggle}
+                                        onDislikeToggle={handleDislikeToggle}
                                         onLikeToggle={handleLikeToggle}
                                         onDelete={handleTrackDelete}
                                         hasPlayer={!!player.currentTrack}

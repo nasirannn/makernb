@@ -1,12 +1,24 @@
 import { NextRequest, NextResponse } from 'next/server';
 import MusicApiService from '@/lib/music-api';
-import { createMusicGeneration } from '@/lib/music-db';
+import { createMusicGeneration, updateMusicGeneration } from '@/lib/music-db';
 import { createGenerationError } from '@/lib/generation-errors-db';
 import { consumeUserCredit } from '@/lib/user-db';
 import { getUserInfoFromRequest } from '@/lib/auth';
-import { getMusicModel, getMusicCredits } from '@/lib/credits-config';
+import { getMusicCredits } from '@/lib/credits-config';
 
 export const dynamic = 'force-dynamic';
+
+const GENERATE_IDEMPOTENCY_CACHE_TTL_MS = 5 * 60 * 1000;
+const generateIdempotencyCache = new Map<string, { createdAt: number; response: any }>();
+
+function cleanupGenerateIdempotencyCache() {
+  const now = Date.now();
+  generateIdempotencyCache.forEach((value, key) => {
+    if (now - value.createdAt > GENERATE_IDEMPOTENCY_CACHE_TTL_MS) {
+      generateIdempotencyCache.delete(key);
+    }
+  });
+}
 
 export async function POST(request: NextRequest) {
   const requestId = `req_${Date.now()}_${Math.random().toString(36).substring(2, 11)}`;
@@ -28,6 +40,17 @@ export async function POST(request: NextRequest) {
 
     const { userId, authorName } = userInfo;
 
+    const rawIdempotencyKey = request.headers.get('x-idempotency-key')?.trim();
+    const idempotencyKey = rawIdempotencyKey ? `${userId}:${rawIdempotencyKey}` : null;
+
+    cleanupGenerateIdempotencyCache();
+    if (idempotencyKey) {
+      const cached = generateIdempotencyCache.get(idempotencyKey);
+      if (cached) {
+        return NextResponse.json(cached.response);
+      }
+    }
+
     const requestData = await request.json();
     console.log(`[MUSIC-GEN-${requestId}] Request: ${requestData.mode} mode, ${requestData.instrumentalMode ? 'instrumental' : 'with vocals'}, model: ${requestData.model || 'V4'}`);
 
@@ -41,7 +64,7 @@ export async function POST(request: NextRequest) {
       vocalGender,
       genre,
       personaId,
-      model = 'V4' // 默认使用 V4
+      model: requestedModel = 'V4' // 默认使用 V4
     } = requestData;
     const mode = rawMode;
     if (mode === 'simple') {
@@ -70,7 +93,8 @@ export async function POST(request: NextRequest) {
       }
     };
 
-    const limits = getModelLimits(model);
+    const modelVersion = mode === 'simple' ? 'V4' : requestedModel;
+    const limits = getModelLimits(modelVersion);
     const trimmedPrompt = customPrompt?.trim() || '';
     const trimmedStyle = styleText?.trim() || '';
     const trimmedTitle = songTitle?.trim() || '';
@@ -124,7 +148,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json(
         {
           error: 'Prompt too long',
-          message: `Prompt must be ${promptLimit} characters or less for ${model}.`,
+          message: `Prompt must be ${promptLimit} characters or less for ${modelVersion}.`,
           success: false
         },
         { status: 400 }
@@ -135,7 +159,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json(
         {
           error: 'Style too long',
-          message: `Style must be ${limits.style} characters or less for ${model}.`,
+          message: `Style must be ${limits.style} characters or less for ${modelVersion}.`,
           success: false
         },
         { status: 400 }
@@ -157,7 +181,6 @@ export async function POST(request: NextRequest) {
 
     // 根据模式确定积分成本和模型版本
     const musicMode = mode === 'custom' ? 'custom' : 'simple';
-    const modelVersion = model; // 使用前端传递的模型
     const creditCost = getMusicCredits(musicMode);
 
     try {
@@ -214,6 +237,23 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // 先落地本地生成记录（task_id 暂为空），避免第三方已创建任务但本地无记录
+    const genreForDb = 'R&B';
+    const promptForDb = mode === 'simple' ? customPrompt : trimmedStyle;
+
+    const pendingGeneration = await createMusicGeneration(userId, {
+      author_name: authorName,
+      title: trimmedTitle || null,
+      genre: genreForDb,
+      tags: undefined,
+      prompt: promptForDb,
+      generation_mode: mode,
+      is_instrumental: Boolean(instrumentalMode),
+      task_id: undefined,
+      status: 'generating',
+      model: modelVersion,
+    });
+
     // 积分验证通过，调用音乐生成API
     const musicApi = new MusicApiService(apiKey);
 
@@ -240,8 +280,13 @@ export async function POST(request: NextRequest) {
       // 成功获得taskId，分步骤处理以减少单个事务时间
       try {
         console.log(`[MUSIC-GEN-${requestId}] ✅ Processing successful generation`);
-        // 统一存储固定 genre
-        const genreForDb = 'R&B';
+
+        // 步骤0: 先将 task_id 绑定到本地记录
+        await updateMusicGeneration(pendingGeneration.id, {
+          task_id: result.taskId,
+          status: 'generating',
+          model: modelVersion,
+        });
 
         // 步骤1: 扣除积分
 
@@ -253,36 +298,22 @@ export async function POST(request: NextRequest) {
           'music_generation'
         );
 
-        // 步骤2: 创建音乐生成记录
-        const generationTags = mode === 'simple' ? trimmedPrompt : trimmedStyle;
-        const promptForDb = mode === 'simple' ? customPrompt : trimmedStyle;
-        const musicGeneration = await createMusicGeneration(userId, {
-          author_name: authorName,
-          title: musicRequest.songTitle || null,
-          genre: genreForDb,
-          tags: generationTags || null,
-          prompt: promptForDb,
-          generation_mode: mode,
-          task_id: result.taskId,
-          status: 'generating',
-          model: modelVersion
-        });
-
+        // 步骤2: 写入歌词（如有）
         if (mode === 'custom' && !instrumentalMode && trimmedPrompt) {
           try {
             const existingLyrics = await query(
               'SELECT id FROM lyrics WHERE music_id = $1::uuid',
-              [musicGeneration.id]
+              [pendingGeneration.id]
             );
             if (existingLyrics.rows.length > 0) {
               await query(
                 'UPDATE lyrics SET title = $1, content = $2 WHERE music_id = $3::uuid',
-                [musicRequest.songTitle || 'Untitled Track', trimmedPrompt, musicGeneration.id]
+                [musicRequest.songTitle || 'Untitled Track', trimmedPrompt, pendingGeneration.id]
               );
             } else {
               await query(
                 'INSERT INTO lyrics (music_id, title, content) VALUES ($1::uuid, $2, $3)',
-                [musicGeneration.id, musicRequest.songTitle || 'Untitled Track', trimmedPrompt]
+                [pendingGeneration.id, musicRequest.songTitle || 'Untitled Track', trimmedPrompt]
               );
             }
           } catch (lyricsError) {
@@ -298,19 +329,19 @@ export async function POST(request: NextRequest) {
           `INSERT INTO tracks (music_id, is_published, cover_image_url, suno_track_id)
            VALUES ($1, $2, NULL, NULL), ($1, $2, NULL, NULL)
            RETURNING *`,
-          [musicGeneration.id, isPublished]
+          [pendingGeneration.id, isPublished]
         );
 
         // 构建初始 tracks 数据返回给前端
         const initialTracks = tracksResult.rows.map((row: any, index: number) => ({
           id: row.id,
-          generationId: musicGeneration.id,
+          generationId: pendingGeneration.id,
           suno_track_id: row.suno_track_id || null, // 包含suno_track_id用于匹配
           title: musicRequest.songTitle || 'Untitled Track',
           audioUrl: '',
           duration: undefined,
           coverImage: row.cover_image_url || null,
-          tags: generationTags || '',
+          tags: '',
           genre: genreForDb,
           prompt: promptForDb,
           lyrics: '',
@@ -365,6 +396,14 @@ export async function POST(request: NextRequest) {
         
       } catch (dbError) {
         console.error(`[MUSIC-GEN-${requestId}] ❌ Database operation failed`);
+
+        try {
+          await updateMusicGeneration(pendingGeneration.id, {
+            status: 'error',
+          });
+        } catch (statusError) {
+          console.error(`[MUSIC-GEN-${requestId}] Failed to update pending generation status to error:`, statusError);
+        }
 
         // 数据库操作失败的补偿逻辑
         // 尝试回滚积分（如果积分扣除成功但记录创建失败）
@@ -426,27 +465,15 @@ export async function POST(request: NextRequest) {
       // 没有taskId，说明生成失败（可能包含敏感词等）
 
       try {
-        // 创建失败记录到数据库
-        const genreForDb = 'R&B';
-
-        const generationTags = mode === 'simple' ? trimmedPrompt : '';
-        const promptForDb = mode === 'simple' ? customPrompt : trimmedStyle;
-        const failedGeneration = await createMusicGeneration(userId, {
-          title: musicRequest.songTitle || undefined,
-          genre: genreForDb,
-          tags: generationTags || null,
-          prompt: promptForDb,
-          generation_mode: mode,
-          task_id: undefined, // 没有taskId
+        await updateMusicGeneration(pendingGeneration.id, {
           status: 'error',
-          model: modelVersion
         });
 
         // 创建错误记录
         await createGenerationError(
           'music_generation',
           userId,
-          failedGeneration.id,
+          pendingGeneration.id,
           result.errorMessage || result.error || 'Generation failed',
           result.error
         );
@@ -454,19 +481,28 @@ export async function POST(request: NextRequest) {
         // 修改result以包含失败信息和积分信息
         (result as any).creditConsumed = 0; // 失败时不扣除积分
         (result as any).generationFailed = true;
-        (result as any).generationId = failedGeneration.id; // 返回generationId供前端删除使用
+        (result as any).generationId = pendingGeneration.id; // 返回generationId供前端删除使用
 
       } catch (dbError) {
-        console.error(`[MUSIC-GEN-${requestId}] Failed to create failed music generation record:`, dbError);
+        console.error(`[MUSIC-GEN-${requestId}] Failed to update failed music generation record:`, dbError);
       }
     }
 
     console.log(`[MUSIC-GEN-${requestId}] Request completed`);
 
-    return NextResponse.json({
+    const responsePayload = {
       success: true,
       data: result,
-    });
+    };
+
+    if (idempotencyKey) {
+      generateIdempotencyCache.set(idempotencyKey, {
+        createdAt: Date.now(),
+        response: responsePayload,
+      });
+    }
+
+    return NextResponse.json(responsePayload);
 
   } catch (error) {
     console.error(`[MUSIC-GEN-${requestId}] Music generation error:`, error);

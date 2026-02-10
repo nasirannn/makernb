@@ -22,6 +22,7 @@ export interface BaseTrack {
   createdAt?: string;
   isFavorited?: boolean;
   isLiked?: boolean;
+  isDisliked?: boolean;
   musicType?: MusicType;
   model?: string;
   
@@ -89,6 +90,7 @@ export interface LibraryTrack extends BaseTrack {
     isDeleted: boolean; // 是否删除（兼容旧字段名 is_deleted）
     isFavorited?: boolean; // 是否收藏（兼容旧字段名 is_favorited）
     isLiked?: boolean; // 是否点赞（兼容旧字段名 is_liked）
+    isDisliked?: boolean; // 是否点踩（兼容旧字段名 is_disliked）
   }>;
 }
 
@@ -121,6 +123,7 @@ export interface TrackInfoResponse {
   lyrics: string;
   isFavorited: boolean;
   isLiked: boolean;
+  isDisliked: boolean;
 }
 
 // 通用Track类型 - 用于大多数场景
@@ -159,6 +162,7 @@ export function convertToBaseTrack(track: any): BaseTrack {
     createdAt: track.createdAt || track.created_at,
     isFavorited: track.isFavorited ?? track.is_favorited ?? false, // 兼容旧字段名
     isLiked: track.isLiked ?? track.is_liked ?? false, // 兼容旧字段名
+    isDisliked: track.isDisliked ?? track.is_disliked ?? false, // 兼容旧字段名
     model: track.model || track.musicModel || track.musicGeneration?.model
   };
 }
@@ -178,6 +182,7 @@ export const createDefaultTrack = (id: string, title: string = 'Untitled Track')
   createdAt: new Date().toISOString(),
   isFavorited: false,
   isLiked: false,
+  isDisliked: false,
 });
 
 // ============================================================================

@@ -311,6 +311,7 @@ class MusicApiService {
     apiParams.weirdnessConstraint = DEFAULT_WEIRDNESS_CONSTRAINT;
     apiParams.audioWeight = DEFAULT_AUDIO_WEIGHT;
 
+    // ⚠️ 生成任务创建接口不做自动重试，避免上游已创建成功但本地因5xx重试导致重复task
     const response = await this.fetchWithRetry(`${this.baseUrl}/api/v1/generate`, {
       method: 'POST',
       headers: {
@@ -318,7 +319,7 @@ class MusicApiService {
         'Authorization': `Bearer ${this.apiKey}`,
       },
       body: JSON.stringify(apiParams),
-    });
+    }, 1);
 
     if (!response.ok) {
       const errorData = await response.text();

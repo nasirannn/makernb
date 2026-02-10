@@ -58,6 +58,7 @@ interface StudioTracksListProps {
   onDownload?: (track: LibraryTrack, music: MusicGeneration, format?: 'mp3' | 'wav' | 'mp4' | 'cover') => void;
   onFavoriteToggle?: (track: LibraryTrack, music: MusicGeneration) => void;
   onLikeToggle?: (track: LibraryTrack, music: MusicGeneration) => void;
+  onDislikeToggle?: (track: LibraryTrack, music: MusicGeneration) => void;
   onDelete?: (track: LibraryTrack, music: MusicGeneration) => void;
   onEditTitle?: (trackId: string, newTitle: string) => void;
   onEditMusicInfo?: (trackId: string, data: { title: string; coverImageUrl?: string }) => Promise<void>;
@@ -117,6 +118,7 @@ export const StudioTracksList: React.FC<StudioTracksListProps> = React.memo(func
   onDownload,
   onFavoriteToggle,
   onLikeToggle,
+  onDislikeToggle,
   onDelete,
   onEditTitle,
   onEditMusicInfo,
@@ -215,9 +217,11 @@ export const StudioTracksList: React.FC<StudioTracksListProps> = React.memo(func
 
   // 搜索过滤
   const filterTracks = useCallback((tracks: any[]) => {
-    if (!searchQuery.trim()) return tracks;
+    const visibleTracks = tracks.filter((track) => !(track.isDisliked ?? track.is_disliked ?? false));
+
+    if (!searchQuery.trim()) return visibleTracks;
     const query = searchQuery.toLowerCase();
-    return tracks.filter(track => {
+    return visibleTracks.filter(track => {
       if (track.title?.toLowerCase().includes(query)) return true;
       if (track.musicTitle?.toLowerCase().includes(query)) return true;
       if (track.tags?.toLowerCase().includes(query)) return true;
@@ -242,6 +246,7 @@ export const StudioTracksList: React.FC<StudioTracksListProps> = React.memo(func
       genre: track.genre || '',
       lyrics: track.lyrics || '',
       isFavorited: false,
+      isDisliked: track.isDisliked ?? track.is_disliked ?? false,
       musicTitle: track.title,
       musicTags: track.tags || '',
       musicGenre: track.genre || '',
@@ -389,6 +394,12 @@ export const StudioTracksList: React.FC<StudioTracksListProps> = React.memo(func
       onLikeToggle(track, track.musicGeneration);
     }
   }, [onLikeToggle]);
+
+  const handleDislikeToggle = useCallback((track: any) => {
+    if (onDislikeToggle) {
+      onDislikeToggle(track, track.musicGeneration);
+    }
+  }, [onDislikeToggle]);
   
   // 处理删除 - 显示确认弹窗
   const handleDelete = useCallback((trackId: string) => {
@@ -985,11 +996,20 @@ export const StudioTracksList: React.FC<StudioTracksListProps> = React.memo(func
           <button
             type="button"
             onClick={() => setCreatedAtSortOrder((prev) => (prev === 'desc' ? 'asc' : 'desc'))}
-            className="inline-flex h-11 w-[108px] items-center justify-center gap-1.5 rounded-2xl bg-foreground/5 px-3 text-xs font-semibold text-foreground/70 shadow-[0_1px_2px_rgba(0,0,0,0.06)] transition-colors hover:bg-foreground/10 hover:text-foreground dark:bg-white/10"
+            className={`inline-flex h-11 w-[108px] items-center justify-center gap-1.5 rounded-2xl bg-foreground/5 px-3 text-xs font-semibold shadow-[0_1px_2px_rgba(0,0,0,0.06)] transition-colors hover:bg-foreground/10 dark:bg-white/10 ${
+              createdAtSortOrder === 'desc'
+                ? 'text-foreground'
+                : 'text-foreground/80 hover:text-foreground'
+            }`}
             aria-label={createdAtSortOrder === 'desc' ? 'Sort by newest first' : 'Sort by oldest first'}
             title={createdAtSortOrder === 'desc' ? 'Sorted: Newest first' : 'Sorted: Oldest first'}
+            aria-pressed={createdAtSortOrder === 'asc'}
           >
-            <ArrowDownUp className="h-3.5 w-3.5" />
+            <ArrowDownUp
+              className={`h-3.5 w-3.5 transition-transform duration-200 ${
+                createdAtSortOrder === 'asc' ? 'rotate-180' : ''
+              }`}
+            />
             <span>{createdAtSortOrder === 'desc' ? 'Newest' : 'Oldest'}</span>
           </button>
           {onCreate && (
@@ -1058,6 +1078,7 @@ export const StudioTracksList: React.FC<StudioTracksListProps> = React.memo(func
                             onPlayPause={() => handlePlayPause(track)}
                             onFavoriteToggle={onFavoriteToggle ? () => handleFavoriteToggle(track) : undefined}
                             onShare={() => handleShare(track.id)}
+                            onDislikeToggle={onDislikeToggle ? () => handleDislikeToggle(track) : undefined}
                             onLikeToggle={onLikeToggle ? () => handleLikeToggle(track) : undefined}
                             onDownload={onDownload ? (format) => handleDownload(track, track.musicGeneration, format) : undefined}
                             onVocalRemoval={() => handleVocalRemoval(track.id)}

@@ -34,7 +34,7 @@ export const useMusicGeneration = () => {
   const [selectedVibe, setSelectedVibe] = useState("");
   const [instrumentalMode, setInstrumentalMode] = useState(false);
   const [isPublished] = useState(false);
-  const [selectedModel, setSelectedModel] = useState<MusicModel>('V4'); // 默认使用 V4
+  const [selectedModel, setSelectedModel] = useState<MusicModel>('V4_5'); // Custom 默认使用 V4.5
 
   // 高级选项
   const [bpm, setBpm] = useState([60]);
@@ -111,6 +111,7 @@ export const useMusicGeneration = () => {
 
   const buildRequestData = () => {
     const prompt = mode === "simple" ? simplePrompt : customLyrics;
+    const requestModel: MusicModel = mode === 'simple' ? 'V4' : selectedModel;
     const data: Record<string, unknown> = {
       mode,
       customPrompt: prompt,
@@ -118,7 +119,7 @@ export const useMusicGeneration = () => {
       songTitle,
       styleText,
       isPublished,
-      model: selectedModel, // 添加模型参数
+      model: requestModel,
     };
 
     if (vocalGender !== 'random') {
@@ -162,7 +163,8 @@ export const useMusicGeneration = () => {
     title: string,
     tags: string,
     prompt: string,
-    generationMode: string
+    generationMode: string,
+    model: MusicModel
   ): MusicGenerationTrack[] => {
     const now = new Date().toISOString();
     return Array.from({ length: 2 }, (_, index) => ({
@@ -179,7 +181,7 @@ export const useMusicGeneration = () => {
       prompt,
       lyrics: '',
       generationMode,
-      model: selectedModel,
+      model,
       createdAt: now,
       isGenerating: true,
       isCompleted: false,
@@ -471,6 +473,7 @@ export const useMusicGeneration = () => {
     const placeholderTags = mode === 'custom' ? trimmedStyle : trimmedPrompt;
     const placeholderPrompt = mode === 'custom' ? trimmedStyle : trimmedPrompt;
     const placeholderMode = mode;
+    const requestModel: MusicModel = mode === 'simple' ? 'V4' : selectedModel;
 
     flushSync(() => {
       setGeneratedTracks(prevTracks => {
@@ -479,7 +482,8 @@ export const useMusicGeneration = () => {
           trimmedTitle,
           placeholderTags,
           placeholderPrompt,
-          placeholderMode
+          placeholderMode,
+          requestModel
         );
         return [...placeholders, ...prevTracks];
       });
@@ -496,6 +500,7 @@ export const useMusicGeneration = () => {
         headers: {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${session.access_token}`,
+          'X-Idempotency-Key': placeholderGenerationId,
         },
         body: JSON.stringify(buildRequestData()),
       });

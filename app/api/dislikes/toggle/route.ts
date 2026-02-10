@@ -12,7 +12,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json(
         {
           error: 'Authentication required',
-          message: 'Please log in to like tracks'
+          message: 'Please log in to dislike tracks'
         },
         { status: 401 }
       );
@@ -30,16 +30,16 @@ export async function POST(request: NextRequest) {
 
     const result = await query(
       `UPDATE tracks
-       SET is_liked = NOT COALESCE(is_liked, FALSE),
-           is_disliked = CASE WHEN NOT COALESCE(is_liked, FALSE) THEN FALSE ELSE COALESCE(is_disliked, FALSE) END,
+       SET is_disliked = NOT COALESCE(is_disliked, FALSE),
+           is_liked = CASE WHEN NOT COALESCE(is_disliked, FALSE) THEN FALSE ELSE COALESCE(is_liked, FALSE) END,
            updated_at = NOW()
        WHERE id = $1::uuid
          AND music_id IN (
            SELECT id FROM music WHERE user_id = $2::uuid
          )
          AND (is_deleted IS NULL OR is_deleted = FALSE)
-       RETURNING COALESCE(is_liked, FALSE) as is_liked,
-                 COALESCE(is_disliked, FALSE) as is_disliked`,
+       RETURNING COALESCE(is_disliked, FALSE) as is_disliked,
+                 COALESCE(is_liked, FALSE) as is_liked`,
       [trackId, userId]
     );
 
@@ -50,21 +50,21 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const isLiked = Boolean(result.rows[0].is_liked);
     const isDisliked = Boolean(result.rows[0].is_disliked);
+    const isLiked = Boolean(result.rows[0].is_liked);
 
     return NextResponse.json({
       success: true,
-      isLiked,
       isDisliked,
-      message: isLiked ? 'Track liked' : 'Track unliked'
+      isLiked,
+      message: isDisliked ? 'Track disliked' : 'Track undisliked'
     });
   } catch (error) {
-    console.error('Toggle like error:', error);
+    console.error('Toggle dislike error:', error);
 
     return NextResponse.json(
       {
-        error: error instanceof Error ? error.message : 'Error occurred while toggling like',
+        error: error instanceof Error ? error.message : 'Error occurred while toggling dislike',
         success: false
       },
       { status: 500 }

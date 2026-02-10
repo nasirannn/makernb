@@ -34,6 +34,7 @@ interface TrackItemProps {
   onSelect?: () => void;
   onPlayPause?: () => void;
   onFavoriteToggle?: () => void;
+  onDislikeToggle?: () => void;
   onLikeToggle?: () => void;
   onShare?: () => void;
   onDownload?: (format: 'mp3' | 'wav' | 'mp4' | 'cover') => void;
@@ -65,6 +66,7 @@ export const TrackItem: React.FC<TrackItemProps> = ({
   onSelect,
   onPlayPause,
   onFavoriteToggle,
+  onDislikeToggle,
   onLikeToggle,
   onShare,
   onDownload,
@@ -87,13 +89,25 @@ export const TrackItem: React.FC<TrackItemProps> = ({
   
   // 确定标题和标签
   const title = track.title || track.musicTitle || 'Untitled Track';
+  const callbackTags = track.musicGeneration?.tags;
+  const promptFallback = track.prompt || track.musicGeneration?.prompt;
   const tags =
+    callbackTags ||
     track.tags ||
-    track.musicGeneration?.tags ||
-    track.prompt ||
-    track.musicGeneration?.prompt ||
+    promptFallback ||
     track.genre ||
     (Array.isArray(track.tagList) ? track.tagList.join(', ') : undefined);
+  const isPromptFallbackTags = Boolean(
+    !callbackTags &&
+    promptFallback &&
+    tags &&
+    String(tags).trim() === String(promptFallback).trim()
+  );
+  const shouldRenderTagsAsPlainText = Boolean(
+    !callbackTags &&
+    tags &&
+    (isPromptFallbackTags || isGenerating || !track.audioUrl)
+  );
   const model = track.model || track.musicGeneration?.model;
   const numericDuration =
     typeof track.duration === 'string'
@@ -126,6 +140,9 @@ export const TrackItem: React.FC<TrackItemProps> = ({
   const isExtension = false; // 统一样式
   const paddingClass = variant === 'studio' ? 'px-2.5 py-2' : 'px-2 py-2';
   const gapClass = 'gap-2';
+  const infoHeightClass = variant === 'studio'
+    ? (isExtension ? 'h-12' : 'h-[80px]')
+    : '';
 
   const containerClassName =
     variant === 'studio'
@@ -176,9 +193,9 @@ export const TrackItem: React.FC<TrackItemProps> = ({
       />
       
       {/* Track Info */}
-      <div className={`flex-1 min-w-0 flex items-center ${gapClass}`}>
-        <div className={`flex-1 min-w-0 flex items-center min-h-16`}>
-          <div className="w-full">
+      <div className={`flex-1 min-w-0 flex items-center ${gapClass} ${infoHeightClass}`}>
+        <div className={`flex-1 min-w-0 flex ${variant === 'studio' ? 'h-full items-stretch' : 'items-center min-h-16'}`}>
+          <div className={`w-full ${variant === 'studio' ? 'h-full' : ''}`}>
             <TrackInfo
               title={title}
               tags={tags}
@@ -194,9 +211,10 @@ export const TrackItem: React.FC<TrackItemProps> = ({
               isExtension={isExtension}
               originalTrackTitle={track.originalTrackTitle}
               sourceType={track.sourceType}
+              renderTagsAsText={shouldRenderTagsAsPlainText}
               footerActions={
                 variant === 'studio' && !isError ? (
-                  <div className="flex items-center gap-1.5 text-xs">
+                  <div className="flex h-7 items-center gap-1 text-xs">
                     {onFavoriteToggle && (
                       <button
                         type="button"
@@ -205,7 +223,7 @@ export const TrackItem: React.FC<TrackItemProps> = ({
                           e.stopPropagation();
                           onFavoriteToggle();
                         }}
-                        className={`inline-flex h-8 w-8 items-center justify-center rounded-full bg-foreground/5 text-xs font-semibold transition-colors dark:bg-white/4 dark:hover:bg-white/8 ${
+                        className={`inline-flex h-7 w-7 items-center justify-center rounded-full bg-foreground/5 text-xs font-semibold transition-colors dark:bg-white/4 dark:hover:bg-white/8 ${
                           track.isFavorited
                             ? 'text-red-500 hover:text-red-500 hover:bg-foreground/10 dark:hover:bg-white/8'
                             : 'text-foreground/80 hover:text-foreground hover:bg-foreground/10 dark:hover:bg-white/8'
@@ -213,7 +231,7 @@ export const TrackItem: React.FC<TrackItemProps> = ({
                         aria-label={track.isFavorited ? 'Remove from library' : 'Add to library'}
                         title={track.isFavorited ? 'Remove from library' : 'Add to library'}
                       >
-                        <Star className={`h-3.5 w-3.5 ${track.isFavorited ? 'fill-current' : ''}`} />
+                        <Star className={`h-3 w-3 ${track.isFavorited ? 'fill-current' : ''}`} />
                       </button>
                     )}
 
@@ -225,7 +243,7 @@ export const TrackItem: React.FC<TrackItemProps> = ({
                           e.stopPropagation();
                           onShare();
                         }}
-                        className={`inline-flex h-8 w-8 items-center justify-center rounded-full bg-foreground/5 text-xs font-semibold transition-colors dark:bg-white/4 dark:hover:bg-white/8 ${
+                        className={`inline-flex h-7 w-7 items-center justify-center rounded-full bg-foreground/5 text-xs font-semibold transition-colors dark:bg-white/4 dark:hover:bg-white/8 ${
                           isCopied
                             ? 'text-green-500 hover:text-green-500 hover:bg-foreground/10 dark:hover:bg-white/8'
                             : 'text-foreground/80 hover:text-foreground hover:bg-foreground/10 dark:hover:bg-white/8'
@@ -233,7 +251,7 @@ export const TrackItem: React.FC<TrackItemProps> = ({
                         aria-label={isCopied ? 'Link copied' : 'Share track'}
                         title={isCopied ? 'Link copied' : 'Share track'}
                       >
-                        {isCopied ? <Check className="h-3.5 w-3.5" /> : <Share2 className="h-3.5 w-3.5" />}
+                        {isCopied ? <Check className="h-3 w-3" /> : <Share2 className="h-3 w-3" />}
                       </button>
                     )}
 
@@ -245,7 +263,7 @@ export const TrackItem: React.FC<TrackItemProps> = ({
                           e.stopPropagation();
                           onLikeToggle();
                         }}
-                        className={`inline-flex h-8 w-8 items-center justify-center rounded-full bg-foreground/5 text-xs font-semibold transition-colors dark:bg-white/4 dark:hover:bg-white/8 ${
+                        className={`inline-flex h-7 w-7 items-center justify-center rounded-full bg-foreground/5 text-xs font-semibold transition-colors dark:bg-white/4 dark:hover:bg-white/8 ${
                           track.isLiked
                             ? 'text-pink-500 hover:text-pink-500 hover:bg-foreground/10 dark:hover:bg-white/8'
                             : 'text-foreground/80 hover:text-foreground hover:bg-foreground/10 dark:hover:bg-white/8'
@@ -254,9 +272,9 @@ export const TrackItem: React.FC<TrackItemProps> = ({
                         title={track.isLiked ? 'Unlike track' : 'Like track'}
                       >
                         {track.isLiked ? (
-                          <SolidThumbsUpIcon className="h-3.5 w-3.5 fill-current" />
+                          <SolidThumbsUpIcon className="h-3 w-3 fill-current" />
                         ) : (
-                          <ThumbsUp className="h-3.5 w-3.5" />
+                          <ThumbsUp className="h-3 w-3" />
                         )}
                       </button>
                     )}
@@ -272,6 +290,7 @@ export const TrackItem: React.FC<TrackItemProps> = ({
                         track={track}
                         isMobile={false}
                         isFavorited={track.isFavorited}
+                        isDisliked={track.isDisliked}
                         isCopied={isCopied}
                         canDownloadMP3={canDownloadMP3}
                         canDownloadWAV={canDownloadWAV}
@@ -282,6 +301,7 @@ export const TrackItem: React.FC<TrackItemProps> = ({
                         canReplaceSection={canReplaceSection}
                         onFavoriteToggle={undefined}
                         onShare={onShare}
+                        onDislikeToggle={onDislikeToggle}
                         onDownload={onDownload}
                         onVocalRemoval={onVocalRemoval}
                         onExtendMusic={onExtendMusic}
@@ -324,6 +344,7 @@ export const TrackItem: React.FC<TrackItemProps> = ({
             isMobile={true}
             isFavorited={track.isFavorited}
             isLiked={track.isLiked}
+            isDisliked={track.isDisliked}
             isCopied={isCopied}
             canDownloadMP3={canDownloadMP3}
             canDownloadWAV={canDownloadWAV}
@@ -335,6 +356,7 @@ export const TrackItem: React.FC<TrackItemProps> = ({
             onFavoriteToggle={undefined}
             onShare={onShare}
             onLikeToggle={onLikeToggle}
+            onDislikeToggle={onDislikeToggle}
             onDownload={onDownload}
             onVocalRemoval={onVocalRemoval}
             onExtendMusic={onExtendMusic}

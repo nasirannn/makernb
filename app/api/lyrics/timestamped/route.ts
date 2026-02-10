@@ -33,7 +33,8 @@ export async function POST(request: NextRequest) {
         mt.suno_track_id as audio_id,
         mg.task_id as task_id,
         mg.user_id,
-        mg.is_instrumental
+        mg.is_instrumental,
+        mg.status
       FROM tracks mt
       INNER JOIN music mg ON mt.music_id = mg.id
       WHERE mt.id = $1::uuid
@@ -58,6 +59,24 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    const normalizedStatus = typeof track.status === 'string'
+      ? track.status.trim().toLowerCase()
+      : '';
+    const isGenerationCompleted = normalizedStatus === 'complete' || normalizedStatus === 'completed';
+
+    if ((normalizedStatus && !isGenerationCompleted) || (!normalizedStatus && (!track.task_id || !track.audio_id))) {
+      return NextResponse.json({
+        success: true,
+        data: {
+          alignedWords: [],
+          waveformData: [],
+          isInstrumental: Boolean(track.is_instrumental),
+          isPending: true,
+          status: track.status || null,
+        },
+      });
+    }
+
     if (track.is_instrumental) {
       return NextResponse.json({
         success: true,
@@ -65,22 +84,23 @@ export async function POST(request: NextRequest) {
           alignedWords: [],
           waveformData: [],
           isInstrumental: true,
+          isPending: false,
+          status: track.status || null,
         },
       });
     }
 
-    if (!track.task_id) {
-      return NextResponse.json(
-        { error: 'Track does not have taskId' },
-        { status: 400 }
-      );
-    }
-
-    if (!track.audio_id) {
-      return NextResponse.json(
-        { error: 'Track does not have audioId' },
-        { status: 400 }
-      );
+    if (!track.task_id || !track.audio_id) {
+      return NextResponse.json({
+        success: true,
+        data: {
+          alignedWords: [],
+          waveformData: [],
+          isInstrumental: false,
+          isPending: true,
+          status: track.status || null,
+        },
+      });
     }
 
     const apiKey = process.env.KIE_API_KEY;
@@ -105,6 +125,8 @@ export async function POST(request: NextRequest) {
         hootCer: result.data.hootCer,
         isStreamed: result.data.isStreamed,
         isInstrumental: false,
+        isPending: false,
+        status: track.status || null,
       },
     });
   } catch (error) {

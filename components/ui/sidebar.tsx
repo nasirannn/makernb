@@ -618,10 +618,14 @@ const aiMusicToolsDropdown = [
                                 event.stopPropagation();
                                 handleRefreshCredits();
                               }}
-                              className="inline-flex h-8 min-w-[72px] items-center justify-end rounded-lg px-2 text-sm font-semibold leading-none tabular-nums text-right text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                              className="inline-flex h-8 min-w-[72px] items-center justify-end rounded-lg px-2 text-xs font-semibold leading-none tabular-nums text-right text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                               aria-label="Refresh credits"
                             >
-                              {credits !== null ? credits.toLocaleString() : '...'}
+                              {credits !== null ? (
+                                credits.toLocaleString()
+                              ) : (
+                                <span className="inline-flex h-full items-center leading-none">...</span>
+                              )}
                             </button>
                           )}
                         </div>
@@ -683,8 +687,12 @@ const aiMusicToolsDropdown = [
                               <RefreshCw className="h-4 w-4" />
                             </Button>
                           ) : (
-                            <span className="inline-flex items-center justify-center rounded-full bg-muted/40 px-2.5 py-1 text-sm font-semibold leading-none text-foreground tabular-nums">
-                              {credits !== null ? credits.toLocaleString() : '...'}
+                            <span className="inline-flex items-center justify-center rounded-full px-2.5 py-1 text-xs font-semibold leading-none text-foreground tabular-nums">
+                              {credits !== null ? (
+                                credits.toLocaleString()
+                              ) : (
+                                <span className="inline-flex h-full items-center leading-none">...</span>
+                              )}
                             </span>
                           )}
                         </div>

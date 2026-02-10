@@ -219,6 +219,7 @@ export const getUserMusicGenerationsOptimized = async (
       INNER JOIN tracks mt ON mg.id = mt.music_id
       WHERE mg.user_id = $1::uuid
         AND (mt.is_deleted IS NULL OR mt.is_deleted = FALSE)
+        AND COALESCE(mt.is_disliked, FALSE) = FALSE
       ORDER BY mg.created_at DESC
       LIMIT $2 OFFSET $3
     ),
@@ -232,6 +233,7 @@ export const getUserMusicGenerationsOptimized = async (
         mt.is_published, mt.is_pinned, mt.created_at as track_created_at,
         mt.cover_image_url as cover_r2_url,
         COALESCE(mt.is_liked, FALSE) as is_liked,
+        COALESCE(mt.is_disliked, FALSE) as is_disliked,
         mt.original_track_id,
         mt.source_type,
         COALESCE(mt.title, ug.title) as track_title,
@@ -241,6 +243,7 @@ export const getUserMusicGenerationsOptimized = async (
       FROM user_generations ug
       LEFT JOIN tracks mt ON ug.id = mt.music_id
         AND (mt.is_deleted IS NULL OR mt.is_deleted = FALSE)
+        AND COALESCE(mt.is_disliked, FALSE) = FALSE
       LEFT JOIN lyrics ml ON ug.id = ml.music_id
       LEFT JOIN tracks omt ON mt.original_track_id = omt.id
       LEFT JOIN music omg ON ug.original_music_id = omg.id
@@ -271,6 +274,7 @@ export const getUserTrackSummary = async (userId: string): Promise<{ totalTracks
     INNER JOIN music mg ON mg.id = mt.music_id
     WHERE mg.user_id = $1::uuid
       AND (mt.is_deleted IS NULL OR mt.is_deleted = FALSE)
+      AND COALESCE(mt.is_disliked, FALSE) = FALSE
   `;
 
   const result = await query<{ total_tracks: string | number; total_duration: string | number }>(sql, [userId]);

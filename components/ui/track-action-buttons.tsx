@@ -8,9 +8,10 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { FileAudio, FileVideo, Image as ImageIcon, Music2, Star, Share2, Check, Download, MoreVertical, Mic, Trash2, Maximize2, Scissors, Pencil, ThumbsUp, FileText, ChevronDown } from "lucide-react";
+import { FileAudio, FileVideo, Image as ImageIcon, Music2, Star, Share2, Check, Download, MoreVertical, Mic, Trash2, Maximize2, Scissors, Pencil, ThumbsDown, ThumbsUp, FileText, ChevronDown } from "lucide-react";
 import { LibraryTrack } from '@/types/track';
 import { SolidThumbsUpIcon } from '@/components/icons/solid-thumbs-up-icon';
+import { SolidThumbsDownIcon } from '@/components/icons/solid-thumbs-down-icon';
 
 interface TrackActionButtonsProps {
   track: LibraryTrack & any;
@@ -19,6 +20,7 @@ interface TrackActionButtonsProps {
   // 状态
   isFavorited?: boolean;
   isLiked?: boolean;
+  isDisliked?: boolean;
   isCopied?: boolean;
   
   // 权限
@@ -33,6 +35,7 @@ interface TrackActionButtonsProps {
   // 回调函数
   onFavoriteToggle?: () => void;
   onShare?: () => void;
+  onDislikeToggle?: () => void;
   onLikeToggle?: () => void;
   onDownload?: (format: 'mp3' | 'wav' | 'mp4' | 'cover') => void;
   onVocalRemoval?: () => void;
@@ -49,6 +52,7 @@ export const TrackActionButtons: React.FC<TrackActionButtonsProps> = ({
   isMobile = false,
   isFavorited = false,
   isLiked = false,
+  isDisliked = false,
   isCopied = false,
   canDownloadMP3 = false,
   canDownloadWAV = false,
@@ -59,6 +63,7 @@ export const TrackActionButtons: React.FC<TrackActionButtonsProps> = ({
   canReplaceSection = false,
   onFavoriteToggle,
   onShare,
+  onDislikeToggle,
   onLikeToggle,
   onDownload,
   onVocalRemoval,
@@ -79,7 +84,7 @@ export const TrackActionButtons: React.FC<TrackActionButtonsProps> = ({
     track.musicGeneration?.coverImageUrl
   );
   
-  const shouldShowMoreMenu = Boolean(onDelete || onViewLyrics || onEditMusicInfo);
+  const shouldShowMoreMenu = Boolean(onDelete || onViewLyrics || onEditMusicInfo || onDislikeToggle);
   const shouldShowEditMenu = hasAudioUrl && (onVocalRemoval || onExtendMusic || onReplaceSection);
 
 
@@ -316,6 +321,27 @@ export const TrackActionButtons: React.FC<TrackActionButtonsProps> = ({
                   <span>View Lyrics</span>
                 </DropdownMenuItem>
               )}
+              {onDislikeToggle && (
+                <DropdownMenuItem
+                  onClick={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    onDislikeToggle();
+                  }}
+                  className={`flex items-center gap-2 cursor-pointer px-3 py-2 text-xs ${
+                    isDisliked
+                      ? 'text-amber-600 dark:text-amber-400 data-[highlighted]:bg-amber-500/10'
+                      : ''
+                  }`}
+                >
+                  {isDisliked ? (
+                    <SolidThumbsDownIcon className="h-3.5 w-3.5 fill-current" />
+                  ) : (
+                    <ThumbsDown className="h-3.5 w-3.5" />
+                  )}
+                  <span>{isDisliked ? 'Remove Dislike' : 'Dislike'}</span>
+                </DropdownMenuItem>
+              )}
               {onDelete && (
                 <DropdownMenuItem
                   onClick={(e) => {
@@ -525,8 +551,8 @@ export const TrackActionButtons: React.FC<TrackActionButtonsProps> = ({
                 <span>Edit title and cover</span>
               </DropdownMenuItem>
             )}
-            {onViewLyrics && (
-              <DropdownMenuItem
+              {onViewLyrics && (
+                <DropdownMenuItem
                 onClick={(e) => {
                   e.stopPropagation();
                   onViewLyrics();
@@ -534,11 +560,32 @@ export const TrackActionButtons: React.FC<TrackActionButtonsProps> = ({
                 className="flex items-center gap-1.5 cursor-pointer px-2.5 py-1.5 text-xs"
               >
                 <FileText className="h-3.5 w-3.5" />
-                <span>View Lyrics</span>
-              </DropdownMenuItem>
-            )}
-            {onDelete && (
-              <DropdownMenuItem
+                  <span>View Lyrics</span>
+                </DropdownMenuItem>
+              )}
+              {onDislikeToggle && (
+                <DropdownMenuItem
+                  onClick={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    onDislikeToggle();
+                  }}
+                  className={`flex items-center gap-1.5 cursor-pointer px-2.5 py-1.5 text-xs ${
+                    isDisliked
+                      ? 'text-amber-600 dark:text-amber-400 data-[highlighted]:bg-amber-500/10'
+                      : ''
+                  }`}
+                >
+                  {isDisliked ? (
+                    <SolidThumbsDownIcon className="h-3.5 w-3.5 fill-current" />
+                  ) : (
+                    <ThumbsDown className="h-3.5 w-3.5" />
+                  )}
+                  <span>{isDisliked ? 'Remove Dislike' : 'Dislike'}</span>
+                </DropdownMenuItem>
+              )}
+              {onDelete && (
+                <DropdownMenuItem
                 onClick={(e) => {
                   e.preventDefault();
                   e.stopPropagation();

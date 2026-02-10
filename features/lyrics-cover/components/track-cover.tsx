@@ -63,13 +63,31 @@ export const TrackCover: React.FC<TrackCoverProps> = ({
           className="w-full h-full object-cover transition-all duration-300 border-0"
         />
       ) : (
-        <div className="relative h-full w-full overflow-hidden bg-gradient-to-br from-primary/85 via-primary/45 to-primary/20 dark:from-primary/70 dark:via-primary/35 dark:to-primary/10">
-          <div className={`absolute -left-1/4 -top-1/4 h-14 w-14 rounded-full bg-white/20 blur-2xl ${showAnimatedPlaceholder ? 'animate-pulse' : ''}`} />
+        <div
+          className={`relative h-full w-full overflow-hidden bg-gradient-to-br from-primary/85 via-primary/45 to-primary/20 dark:from-primary/70 dark:via-primary/35 dark:to-primary/10 ${
+            showAnimatedPlaceholder ? 'cover-jelly-surface' : ''
+          }`}
+        >
           <div
-            className={`absolute -bottom-1/4 -right-1/4 h-16 w-16 rounded-full bg-primary-foreground/20 blur-2xl ${showAnimatedPlaceholder ? 'animate-pulse' : ''}`}
-            style={showAnimatedPlaceholder ? { animationDelay: '500ms' } : undefined}
+            className={`cover-jelly-blob absolute -left-[32%] -top-[30%] h-16 w-16 rounded-[42%] bg-white/25 blur-2xl ${
+              showAnimatedPlaceholder ? 'cover-jelly-blob--one' : ''
+            }`}
           />
-          <div className="absolute inset-0 bg-[linear-gradient(135deg,transparent_12%,rgba(255,255,255,0.12)_48%,transparent_82%)]" />
+          <div
+            className={`cover-jelly-blob absolute -bottom-[30%] -right-[28%] h-[72px] w-[72px] rounded-[40%] bg-primary-foreground/25 blur-2xl ${
+              showAnimatedPlaceholder ? 'cover-jelly-blob--two' : ''
+            }`}
+          />
+          <div
+            className={`cover-jelly-blob absolute left-1/3 top-1/3 h-10 w-10 rounded-[38%] bg-white/18 blur-xl ${
+              showAnimatedPlaceholder ? 'cover-jelly-blob--three' : ''
+            }`}
+          />
+          <div
+            className={`absolute inset-0 bg-[linear-gradient(135deg,transparent_12%,rgba(255,255,255,0.12)_48%,transparent_82%)] ${
+              showAnimatedPlaceholder ? 'cover-jelly-shimmer' : ''
+            }`}
+          />
         </div>
       )}
 

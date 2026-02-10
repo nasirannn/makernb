@@ -9,24 +9,20 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
-import { X } from "lucide-react";
 
-// 模型类型定义 - 与后端 API 保持一致
-export type MusicModel = 'V4_5ALL' | 'V4' | 'V4_5' | 'V4_5PLUS' | 'V5';
+export type MusicModel = 'V4' | 'V4_5' | 'V4_5PLUS' | 'V5';
 
 interface ModelOption {
   value: MusicModel;
   label: string;
   description: string;
-  requiresSubscription: boolean; // 是否需要订阅
+  requiresSubscription: boolean;
 }
 
 const modelOptions: ModelOption[] = [
   { value: 'V5', label: 'V5', description: 'Superior musical expression, faster generation.', requiresSubscription: false },
   { value: 'V4_5PLUS', label: 'V4.5+', description: 'Best sound quality, max 8 min, creative rhythms, rich harmonies', requiresSubscription: false },
   { value: 'V4_5', label: 'V4.5', description: 'High-quality vocals, smarter prompts, faster generation, up to 8 minutes', requiresSubscription: false },
-  { value: 'V4', label: 'V4', description: 'Basic model with improved vocal quality, up to 4 minutes', requiresSubscription: false },
-  { value: 'V4_5ALL', label: 'V4.5 All', description: 'All-around model, max 4 min.', requiresSubscription: false },
 ];
 
 interface ModelSelectionDialogProps {
@@ -34,9 +30,7 @@ interface ModelSelectionDialogProps {
   onClose: () => void;
   selectedModel: MusicModel;
   onSelectModel: (model: MusicModel) => void;
-  /** 用户是否有订阅 */
   hasSubscription?: boolean;
-  /** 当无订阅用户选择付费模型时的回调 */
   onShowPricing?: () => void;
 }
 
@@ -50,7 +44,6 @@ export const ModelSelectionDialog: React.FC<ModelSelectionDialogProps> = ({
 }) => {
   const [tempSelectedModel, setTempSelectedModel] = React.useState<MusicModel>(selectedModel);
 
-  // 当弹窗打开时，同步当前选中的模型
   React.useEffect(() => {
     if (isOpen) {
       setTempSelectedModel(selectedModel);
@@ -58,16 +51,14 @@ export const ModelSelectionDialog: React.FC<ModelSelectionDialogProps> = ({
   }, [isOpen, selectedModel]);
 
   const handleConfirm = () => {
-    // 如果用户没有订阅且选择了非 V4.5 All 模型，显示pricing弹窗
-    if (!hasSubscription && tempSelectedModel !== 'V4_5ALL') {
+    const selectedOption = modelOptions.find((option) => option.value === tempSelectedModel);
+
+    if (!hasSubscription && selectedOption?.requiresSubscription) {
       onClose();
-      if (onShowPricing) {
-        onShowPricing();
-      }
+      onShowPricing?.();
       return;
     }
 
-    // 否则正常选择模型
     onSelectModel(tempSelectedModel);
     onClose();
   };
@@ -75,7 +66,6 @@ export const ModelSelectionDialog: React.FC<ModelSelectionDialogProps> = ({
   return (
     <AlertDialog open={isOpen} onOpenChange={onClose}>
       <AlertDialogContent className="max-w-[calc(100vw-2rem)] sm:max-w-[560px] max-h-[90vh] flex flex-col p-0 border border-border/60 bg-background shadow-xl">
-        {/* 固定头部 */}
         <AlertDialogHeader className="flex-shrink-0 px-6 pt-6 pb-4 border-b border-border/40">
           <AlertDialogTitle className="text-xl font-semibold pr-8 tracking-tight">
             Select Model Version
@@ -85,13 +75,10 @@ export const ModelSelectionDialog: React.FC<ModelSelectionDialogProps> = ({
           </p>
         </AlertDialogHeader>
 
-        {/* 可滚动的主要内容区域 */}
         <div className="flex-1 overflow-y-auto px-6 py-5">
           <div className="space-y-2.5">
             {modelOptions.map((option) => {
               const isSelected = tempSelectedModel === option.value;
-              // 所有模型都可以选择
-              const isClickable = true;
 
               return (
                 <button
@@ -104,10 +91,7 @@ export const ModelSelectionDialog: React.FC<ModelSelectionDialogProps> = ({
                   }`}
                 >
                   <div className="flex items-center justify-between gap-3">
-                    <h3 className="text-base font-semibold">
-                    {option.label}
-                    </h3>
-                    {/* 只有在用户无订阅时显示订阅标识 */}
+                    <h3 className="text-base font-semibold">{option.label}</h3>
                     {!hasSubscription && option.requiresSubscription && (
                       <span className="inline-flex items-center px-2 py-0.5 rounded-full border border-border/60 text-[11px] font-medium text-muted-foreground">
                         Pro
@@ -121,7 +105,6 @@ export const ModelSelectionDialog: React.FC<ModelSelectionDialogProps> = ({
           </div>
         </div>
 
-        {/* 固定底部按钮 */}
         <AlertDialogFooter className="flex-shrink-0 px-6 pt-4 pb-6 border-t border-border/40">
           <Button
             onClick={handleConfirm}
@@ -135,5 +118,4 @@ export const ModelSelectionDialog: React.FC<ModelSelectionDialogProps> = ({
   );
 };
 
-// 导出模型选项供其他组件使用
 export { modelOptions };

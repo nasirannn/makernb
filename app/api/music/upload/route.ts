@@ -145,7 +145,8 @@ export async function POST(request: NextRequest) {
 
   const defaultParamFlagValue = formData.get('defaultParamFlag') ?? formData.get('customMode');
   const defaultParamFlag = defaultParamFlagValue === 'true';
-  const model = formData.get('model')?.toString() || 'V4';
+  const requestedModel = formData.get('model')?.toString() || 'V4';
+  const model = defaultParamFlag ? requestedModel : 'V4';
   const limits = getModelLimits(model);
 
   // 标题处理逻辑：用户填写了就用用户的，没填写就用 "Untitled Track"
@@ -279,19 +280,18 @@ export async function POST(request: NextRequest) {
     const taskId = json.data.taskId as string;
 
     const promptForDb = defaultParamFlag ? (style || 'R&B') : prompt;
-    const tagsForDb = defaultParamFlag ? (style || 'R&B') : prompt;
     const musicRecord = await createMusicGeneration(userId, {
       author_name: authorName,
       title,
       genre: 'R&B',
-      tags: tagsForDb,
+      tags: undefined,
       prompt: promptForDb,
       generation_mode: defaultParamFlag ? 'custom' : 'simple',
       is_instrumental: instrumental,
       task_id: taskId,
       status: 'generating',
       type: MODE_CONFIG[mode].type,
-      model: model
+      model
     });
 
     if (defaultParamFlag && prompt && prompt.trim().length > 0 && !instrumental) {
@@ -335,8 +335,7 @@ export async function POST(request: NextRequest) {
       audioUrl: '',
       duration: undefined,
       coverImage: row.cover_image_url || null,
-      // defaultParamFlag=true: tags留空，prompt使用style
-      tags: tagsForDb || '',
+      tags: '',
       genre: 'R&B',
       prompt: promptForDb,
       lyrics: '',
@@ -345,7 +344,7 @@ export async function POST(request: NextRequest) {
       isCompleted: false,
       streamAudioUrl: '',
       createdAt: row.created_at || new Date().toISOString(),
-      model: model
+      model
     }));
 
     console.log(`[UPLOAD-AUDIO] ✅ Created ${initialTracks.length} placeholder tracks for taskId: ${taskId}`);

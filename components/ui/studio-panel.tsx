@@ -160,7 +160,7 @@ export const StudioPanel = (props: StudioPanelProps) => {
     onGenerateLyrics,
     onWriteNextLyricLine,
     isWritingNextLyricLine = false,
-    selectedModel = 'V4',
+    selectedModel = 'V4_5',
     setSelectedModel,
     selectedPersonaId = '',
     setSelectedPersonaId,
@@ -170,10 +170,11 @@ export const StudioPanel = (props: StudioPanelProps) => {
   const { credits } = useCredits();
   const userSelectedModelRef = React.useRef(false);
   const simplePromptMaxLength = 400;
-  const customPromptMaxLength = selectedModel === 'V4_5ALL' ? 5000 : 5000;
-  const styleTextMaxLength = selectedModel === 'V4_5ALL' ? 1000 : 1000;
-  const maxUploadDurationSeconds = selectedModel === 'V4_5ALL' ? 60 : 8 * 60;
+  const customPromptMaxLength = 5000;
+  const styleTextMaxLength = 1000;
+  const maxUploadDurationSeconds = 8 * 60;
   const isCustomMode = mode === "custom";
+  const effectiveModel: MusicModel = isCustomMode ? selectedModel : 'V4';
 
   const updateSelectedModel = React.useCallback((
     model: MusicModel,
@@ -1177,7 +1178,7 @@ export const StudioPanel = (props: StudioPanelProps) => {
       </div>
 
       <div>
-        <div className="relative">
+        <div>
           <Textarea
             placeholder="Enter style of music"
             value={styleText}
@@ -1187,24 +1188,24 @@ export const StudioPanel = (props: StudioPanelProps) => {
               handleUpdateStatesFromTextarea(newValue);
             }}
             maxLength={styleTextMaxLength}
-            className="min-h-[180px] md:min-h-[200px] resize-none pl-0 pr-0 pb-20 border-0 bg-transparent focus-visible:ring-0 focus-visible:ring-offset-0"
+            className="min-h-[180px] md:min-h-[200px] resize-none pl-0 pr-0 pb-2 border-0 bg-transparent focus-visible:ring-0 focus-visible:ring-offset-0"
           />
-          <div className="absolute inset-x-0 bottom-2">
-            {renderStyleQuickButtons(
-              styleText,
-              setStyleText,
-              expandedCategory,
-              setExpandedCategory,
-              ["genre"],
-              {
-                forceExpanded: "genre",
-                hideCategoryToggles: true,
-                useSelectedGenre: true,
-                usePromptTemplateOnGenre: true,
-                horizontalScroll: true,
-              }
-            )}
-          </div>
+        </div>
+        <div className="mt-2">
+          {renderStyleQuickButtons(
+            styleText,
+            setStyleText,
+            expandedCategory,
+            setExpandedCategory,
+            ["genre"],
+            {
+              forceExpanded: "genre",
+              hideCategoryToggles: true,
+              useSelectedGenre: true,
+              usePromptTemplateOnGenre: true,
+              horizontalScroll: true,
+            }
+          )}
         </div>
         <div className="mt-3 flex items-center justify-between">
           <div className="text-xs text-muted-foreground">
@@ -1375,52 +1376,54 @@ export const StudioPanel = (props: StudioPanelProps) => {
               </div>
 
               {/* Model Selection Menu */}
-              <DropdownMenu open={isModelMenuOpen} onOpenChange={setIsModelMenuOpen}>
-                <DropdownMenuTrigger asChild>
-                  <button
-                    type="button"
-                    className="group studio-panel-card h-11 px-4 rounded-2xl text-xs md:text-sm font-semibold text-foreground/80 transition-colors hover:bg-accent hover:text-accent-foreground flex items-center gap-1.5"
-                    title="Click to change model version"
+              {mode === "custom" && (
+                <DropdownMenu open={isModelMenuOpen} onOpenChange={setIsModelMenuOpen}>
+                  <DropdownMenuTrigger asChild>
+                    <button
+                      type="button"
+                      className="group studio-panel-card h-11 px-4 rounded-2xl text-xs md:text-sm font-semibold text-foreground/80 transition-colors hover:bg-accent hover:text-accent-foreground flex items-center gap-1.5"
+                      title="Click to change model version"
+                    >
+                      <span>{modelOptions.find((opt) => opt.value === selectedModel)?.label || 'V4.5'}</span>
+                      <Triangle
+                        className={`w-2 h-2 fill-current text-foreground/70 transition-colors transition-transform group-hover:text-accent-foreground ${isModelMenuOpen ? 'rotate-180' : ''}`}
+                      />
+                    </button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent
+                    align="end"
+                    className="z-[170] w-80 max-h-[70vh] overflow-y-auto rounded-2xl bg-popover p-1.5 text-popover-foreground shadow-[0_20px_56px_rgba(0,0,0,0.18)] backdrop-blur-xl dark:shadow-[0_20px_56px_rgba(0,0,0,0.5)]"
                   >
-                    <span>{modelOptions.find(opt => opt.value === selectedModel)?.label || 'v4'}</span>
-                    <Triangle
-                      className={`w-2 h-2 fill-current text-foreground/70 transition-colors transition-transform group-hover:text-accent-foreground ${isModelMenuOpen ? 'rotate-180' : ''}`}
-                    />
-                  </button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent
-                  align="end"
-                  className="z-[170] w-80 max-h-[70vh] overflow-y-auto rounded-2xl bg-popover p-1.5 text-popover-foreground shadow-[0_20px_56px_rgba(0,0,0,0.18)] backdrop-blur-xl dark:shadow-[0_20px_56px_rgba(0,0,0,0.5)]"
-                >
-                  {modelOptions.map((option, index) => {
-                    const isSelected = option.value === selectedModel;
-                    return (
-                      <React.Fragment key={option.value}>
-                        <DropdownMenuItem
-                          onClick={() => handleModelSelect(option.value)}
-                          className="group flex flex-col items-start gap-1 rounded-xl px-3.5 py-2.5 transition-colors hover:bg-black/5 focus:bg-black/5 data-[highlighted]:bg-black/5 dark:hover:bg-white/5 dark:focus:bg-white/5 dark:data-[highlighted]:bg-white/5"
-                        >
-                          <div className="flex w-full items-center justify-between gap-2">
-                            <div className="flex items-center gap-2">
-                              <span className="text-sm font-semibold text-foreground">
-                                {option.label}
-                              </span>
+                    {modelOptions.map((option) => {
+                      const isSelected = option.value === selectedModel;
+                      return (
+                        <React.Fragment key={option.value}>
+                          <DropdownMenuItem
+                            onClick={() => handleModelSelect(option.value)}
+                            className="group flex flex-col items-start gap-1 rounded-xl px-3.5 py-2.5 transition-colors hover:bg-black/5 focus:bg-black/5 data-[highlighted]:bg-black/5 dark:hover:bg-white/5 dark:focus:bg-white/5 dark:data-[highlighted]:bg-white/5"
+                          >
+                            <div className="flex w-full items-center justify-between gap-2">
+                              <div className="flex items-center gap-2">
+                                <span className="text-sm font-semibold text-foreground">
+                                  {option.label}
+                                </span>
+                              </div>
+                              {isSelected && (
+                                <span className="inline-flex h-4 w-4 items-center justify-center rounded-full bg-primary">
+                                  <Check className="h-2.5 w-2.5 text-primary-foreground" strokeWidth={2.5} aria-hidden="true" />
+                                </span>
+                              )}
                             </div>
-                            {isSelected && (
-                              <span className="inline-flex h-4 w-4 items-center justify-center rounded-full bg-primary">
-                                <Check className="h-2.5 w-2.5 text-primary-foreground" strokeWidth={2.5} aria-hidden="true" />
-                              </span>
-                            )}
-                          </div>
-                          <span className="text-xs text-muted-foreground">
-                            {option.description}
-                          </span>
-                        </DropdownMenuItem>
-                      </React.Fragment>
-                    );
-                  })}
-                </DropdownMenuContent>
-              </DropdownMenu>
+                            <span className="text-xs text-muted-foreground">
+                              {option.description}
+                            </span>
+                          </DropdownMenuItem>
+                        </React.Fragment>
+                      );
+                    })}
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              )}
             </div>
           </div>
 
@@ -1588,7 +1591,7 @@ export const StudioPanel = (props: StudioPanelProps) => {
         audioUrl={pendingAudioUrl}
         minDuration={3}
         maxDuration={maxUploadDurationSeconds}
-        modelLabel={modelOptions.find((option) => option.value === selectedModel)?.label || selectedModel}
+        modelLabel={modelOptions.find((option) => option.value === effectiveModel)?.label || effectiveModel}
         onSave={async (file, durationValue, title) => {
           const nextReadyUrl = URL.createObjectURL(file);
           updateUploadState(pendingAudioMode, {

@@ -15,6 +15,10 @@ interface InlineTrackDetails {
   createdAt?: string;
   duration?: string;
   isLiked?: boolean;
+  status?: string;
+  isGenerating?: boolean;
+  isCompleted?: boolean;
+  audioUrl?: string;
 }
 
 interface InlineTrackDetailsPanelProps {
@@ -60,6 +64,28 @@ export const InlineTrackDetailsPanel: React.FC<InlineTrackDetailsPanelProps> = (
   const lyricsScrollContainerRef = React.useRef<HTMLDivElement | null>(null);
   const lyricLineRefs = React.useRef<Map<number, HTMLDivElement>>(new Map());
 
+  const isTrackGenerationComplete = React.useMemo(() => {
+    if (!track?.id) return false;
+
+    const normalizedStatus = typeof track.status === 'string'
+      ? track.status.trim().toLowerCase()
+      : '';
+
+    if (normalizedStatus === 'complete' || normalizedStatus === 'completed') {
+      return true;
+    }
+
+    if (track.isCompleted === true) {
+      return true;
+    }
+
+    if (track.isGenerating === true) {
+      return false;
+    }
+
+    return Boolean(track.audioUrl);
+  }, [track?.id, track?.status, track?.isCompleted, track?.isGenerating, track?.audioUrl]);
+
   const setLyricLineRef = React.useCallback(
     (index: number) => (node: HTMLDivElement | null) => {
       if (node) {
@@ -73,6 +99,13 @@ export const InlineTrackDetailsPanel: React.FC<InlineTrackDetailsPanelProps> = (
 
   React.useEffect(() => {
     if (!track?.id) {
+      setTimestampedWords([]);
+      setIsTimestampedLoading(false);
+      setIsInstrumentalTrack(false);
+      return;
+    }
+
+    if (!isTrackGenerationComplete) {
       setTimestampedWords([]);
       setIsTimestampedLoading(false);
       setIsInstrumentalTrack(false);
@@ -118,6 +151,12 @@ export const InlineTrackDetailsPanel: React.FC<InlineTrackDetailsPanelProps> = (
 
         if (isCancelled) return;
 
+        if (payload?.data?.isPending) {
+          setTimestampedWords([]);
+          setIsInstrumentalTrack(Boolean(payload?.data?.isInstrumental));
+          return;
+        }
+
         const alignedWords = Array.isArray(payload?.data?.alignedWords)
           ? payload.data.alignedWords
           : [];
@@ -141,7 +180,7 @@ export const InlineTrackDetailsPanel: React.FC<InlineTrackDetailsPanelProps> = (
     return () => {
       isCancelled = true;
     };
-  }, [track?.id]);
+  }, [track?.id, isTrackGenerationComplete]);
 
   const timestampedLines = React.useMemo<TimestampedLyricLine[]>(() => {
     if (!timestampedWords.length) return [];
@@ -353,11 +392,13 @@ export const InlineTrackDetailsPanel: React.FC<InlineTrackDetailsPanelProps> = (
               </div>
             ) : (
               <div className="text-sm text-foreground/90 whitespace-pre-wrap font-mono leading-relaxed">
-                {isInstrumentalTrack
-                  ? "This is an instrumental track. Synced lyrics are not available."
-                  : track.lyrics?.trim()
-                    ? track.lyrics
-                    : "Lyrics are not available yet. Try generating lyrics or check back later."}
+                {!isTrackGenerationComplete
+                  ? "Synced lyrics will be available after generation completes."
+                  : isInstrumentalTrack
+                    ? "This is an instrumental track. Synced lyrics are not available."
+                    : track.lyrics?.trim()
+                      ? track.lyrics
+                      : "Lyrics are not available yet. Try generating lyrics or check back later."}
               </div>
             )}
           </div>

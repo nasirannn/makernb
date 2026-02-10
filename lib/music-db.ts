@@ -86,7 +86,6 @@ export const createMusicGeneration = async (
     checkLength('title', data.title ?? null, 255);
     checkLength('author_name', data.author_name ?? null, 255);
     checkLength('genre', data.genre ?? null, 255);
-    checkLength('tags', data.tags ?? null, 255);
     checkLength('task_id', data.task_id ?? null, 255);
     checkLength('generation_mode', data.generation_mode ?? null, 20);
     checkLength('status', data.status ?? null, 20);

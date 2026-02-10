@@ -208,12 +208,11 @@ export async function POST(request: NextRequest) {
     const taskId = json.data.taskId as string;
 
     const promptForDb = customMode ? (style || 'R&B') : lyrics;
-    const tagsForDb = customMode ? (style || 'R&B') : (lyrics || 'R&B');
     const musicRecord = await createMusicGeneration(userId, {
       author_name: authorName,
       title,
       genre: 'R&B',
-      tags: tagsForDb,
+      tags: undefined,
       prompt: promptForDb,
       generation_mode: customMode ? 'custom' : 'simple',
       is_instrumental: instrumental,
@@ -241,8 +240,7 @@ export async function POST(request: NextRequest) {
       audioUrl: '',
       duration: undefined,
       coverImage: row.cover_image_url || null,
-      // customMode=true: tags留空，prompt使用style
-      tags: tagsForDb || '',
+      tags: '',
       genre: 'R&B',
       prompt: promptForDb,
       lyrics: '',

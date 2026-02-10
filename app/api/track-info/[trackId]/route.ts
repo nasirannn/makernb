@@ -2,20 +2,10 @@ import { NextRequest, NextResponse } from 'next/server';
 import { query } from '@/lib/db-query-builder';
 import { getUserIdFromRequest } from '@/lib/auth';
 import type { TrackInfoResponse } from '@/types/track';
+import { ensureTrackReactionsSchema } from '@/lib/track-reactions-db';
 
 // 强制动态渲染
 export const dynamic = 'force-dynamic';
-
-let likedColumnEnsurePromise: Promise<void> | null = null;
-const ensureLikedColumn = async () => {
-  if (!likedColumnEnsurePromise) {
-    likedColumnEnsurePromise = query(`
-      ALTER TABLE tracks
-      ADD COLUMN IF NOT EXISTS is_liked BOOLEAN NOT NULL DEFAULT FALSE
-    `).then(() => undefined);
-  }
-  await likedColumnEnsurePromise;
-};
 
 export async function GET(
   request: NextRequest,
@@ -35,7 +25,7 @@ export async function GET(
 
     // 获取请求用户ID（用于收藏状态检查）
     const requestUserId = await getUserIdFromRequest(request);
-    await ensureLikedColumn();
+    await ensureTrackReactionsSchema();
 
     // 查询 track 信息
     const trackResult = await query(
@@ -50,6 +40,7 @@ export async function GET(
         mt.created_at as track_created_at,
         mt.cover_image_url as cover_r2_url,
         COALESCE(mt.is_liked, FALSE) as is_liked,
+        COALESCE(mt.is_disliked, FALSE) as is_disliked,
         mg.id as generation_id,
         COALESCE(mt.title, mg.title) as title,
         mg.genre,
@@ -105,6 +96,7 @@ export async function GET(
       lyrics: row.lyrics_content || '',
       isFavorited: false, // 初始值，稍后会根据用户状态更新
       isLiked: row.is_liked ?? false,
+      isDisliked: row.is_disliked ?? false,
     };
 
     // 如果有请求用户，检查收藏状态

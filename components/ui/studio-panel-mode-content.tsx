@@ -93,18 +93,18 @@ export const StudioSimpleModeContent: React.FC<StudioSimpleModeContentProps> = (
             </div>
           </div>
           <div className="space-y-3">
-            <div className="relative">
+            <div>
               <Textarea
                 placeholder="Describe your song idea"
                 value={simplePrompt}
                 onChange={(e) => setSimplePrompt(e.target.value)}
                 maxLength={simplePromptMaxLength}
-                className="min-h-[180px] md:min-h-[200px] resize-none pl-0 pr-0 pb-20 border-0 bg-transparent focus-visible:ring-0 focus-visible:ring-offset-0"
+                className="min-h-[180px] md:min-h-[200px] resize-none pl-0 pr-0 pb-2 border-0 bg-transparent focus-visible:ring-0 focus-visible:ring-offset-0"
               />
+            </div>
 
-              <div className="absolute inset-x-0 bottom-2">
-                {quickButtons}
-              </div>
+            <div>
+              {quickButtons}
             </div>
 
             <div className="flex items-center justify-between">
