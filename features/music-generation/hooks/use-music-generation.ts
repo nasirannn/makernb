@@ -35,6 +35,7 @@ export const useMusicGeneration = () => {
   const [instrumentalMode, setInstrumentalMode] = useState(false);
   const [isPublished] = useState(false);
   const [selectedModel, setSelectedModel] = useState<MusicModel>('V4_5'); // Custom 默认使用 V4.5
+  const [enhanceStyle, setEnhanceStyle] = useState(true);
 
   // 高级选项
   const [bpm, setBpm] = useState([60]);
@@ -112,6 +113,7 @@ export const useMusicGeneration = () => {
   const buildRequestData = () => {
     const prompt = mode === "simple" ? simplePrompt : customLyrics;
     const requestModel: MusicModel = mode === 'simple' ? 'V4' : selectedModel;
+    const canEnhanceStyle = mode === 'custom' && ['V4_5', 'V4_5PLUS', 'V4_5ALL'].includes(requestModel as string);
     const data: Record<string, unknown> = {
       mode,
       customPrompt: prompt,
@@ -120,6 +122,7 @@ export const useMusicGeneration = () => {
       styleText,
       isPublished,
       model: requestModel,
+      enhanceStyle: canEnhanceStyle ? enhanceStyle : false,
     };
 
     if (vocalGender !== 'random') {
@@ -589,6 +592,7 @@ export const useMusicGeneration = () => {
     harmonyPalette, setHarmonyPalette,
     selectedPersonaId, setSelectedPersonaId,
     selectedModel, setSelectedModel, // 添加模型状态
+    enhanceStyle, setEnhanceStyle,
 
     // 状态
     isGenerating,

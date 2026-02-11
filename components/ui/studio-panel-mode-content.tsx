@@ -327,11 +327,11 @@ ${tag}
           {uploadCoverFile ? (
             uploadAudioPreview
           ) : (
-            <div className="grid grid-cols-2 gap-2">
+            <div className="grid grid-cols-2 gap-1">
               <Button
                 variant="ghost"
                 size="sm"
-                className="studio-panel-card h-12 w-full justify-center rounded-2xl text-foreground/75 hover:text-foreground hover:bg-foreground/10 transition-colors"
+                className="studio-panel-card h-12 w-full justify-center rounded-l-2xl rounded-r-none text-foreground/75 hover:text-foreground hover:bg-foreground/10 transition-colors"
                 title="Add audio"
                 onClick={onAddAudio}
               >
@@ -342,7 +342,7 @@ ${tag}
               <Button
                 variant="ghost"
                 size="sm"
-                className="studio-panel-card h-12 w-full justify-center rounded-2xl text-foreground/75 hover:text-foreground hover:bg-foreground/10 transition-colors"
+                className="studio-panel-card h-12 w-full justify-center rounded-r-2xl rounded-l-none text-foreground/75 hover:text-foreground hover:bg-foreground/10 transition-colors"
                 title="Select persona"
                 onClick={onOpenPersonaDialog}
               >

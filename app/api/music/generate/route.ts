@@ -10,6 +10,15 @@ export const dynamic = 'force-dynamic';
 
 const GENERATE_IDEMPOTENCY_CACHE_TTL_MS = 5 * 60 * 1000;
 const generateIdempotencyCache = new Map<string, { createdAt: number; response: any }>();
+const STYLE_BOOST_SUPPORTED_MODELS = new Set(['V4_5', 'V4_5PLUS', 'V4_5ALL']);
+
+function normalizeModelName(model: string): string {
+  return model.toUpperCase().replace(/\./g, '_').replace(/\+/g, 'PLUS');
+}
+
+function canUseStyleBoost(model: string): boolean {
+  return STYLE_BOOST_SUPPORTED_MODELS.has(normalizeModelName(model));
+}
 
 function cleanupGenerateIdempotencyCache() {
   const now = Date.now();
@@ -64,7 +73,8 @@ export async function POST(request: NextRequest) {
       vocalGender,
       genre,
       personaId,
-      model: requestedModel = 'V4' // 默认使用 V4
+      model: requestedModel = 'V4', // 默认使用 V4
+      enhanceStyle: requestedEnhanceStyle = false,
     } = requestData;
     const mode = rawMode;
     if (mode === 'simple') {
@@ -98,6 +108,7 @@ export async function POST(request: NextRequest) {
     const trimmedPrompt = customPrompt?.trim() || '';
     const trimmedStyle = styleText?.trim() || '';
     const trimmedTitle = songTitle?.trim() || '';
+    const shouldAttemptStyleBoost = mode === 'custom' && requestedEnhanceStyle === true && canUseStyleBoost(modelVersion);
     const promptLimit = mode === 'simple' ? 400 : limits.prompt;
 
     if (mode === 'simple' && !trimmedPrompt) {
@@ -237,9 +248,28 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // 积分验证通过，调用音乐生成API
+    const musicApi = new MusicApiService(apiKey);
+
+    let effectiveStyleText = trimmedStyle;
+    let styleBoostApplied = false;
+
+    if (shouldAttemptStyleBoost && trimmedStyle) {
+      console.log(`[MUSIC-GEN-${requestId}] Attempting style boost for model ${modelVersion}`);
+      const boostedStyle = await musicApi.boostMusicStyle(trimmedStyle);
+
+      if (boostedStyle) {
+        effectiveStyleText = boostedStyle.slice(0, limits.style);
+        styleBoostApplied = true;
+        console.log(`[MUSIC-GEN-${requestId}] Style boost applied successfully`);
+      } else {
+        console.warn(`[MUSIC-GEN-${requestId}] Style boost unavailable, fallback to original style`);
+      }
+    }
+
     // 先落地本地生成记录（task_id 暂为空），避免第三方已创建任务但本地无记录
     const genreForDb = 'R&B';
-    const promptForDb = mode === 'simple' ? customPrompt : trimmedStyle;
+    const promptForDb = mode === 'simple' ? customPrompt : effectiveStyleText;
 
     const pendingGeneration = await createMusicGeneration(userId, {
       author_name: authorName,
@@ -254,18 +284,16 @@ export async function POST(request: NextRequest) {
       model: modelVersion,
     });
 
-    // 积分验证通过，调用音乐生成API
-    const musicApi = new MusicApiService(apiKey);
-
     // 构造完整的请求对象传递给API
     const musicRequest = {
       mode,
       customPrompt,
       instrumentalMode,
       songTitle,
-      styleText,
+      styleText: effectiveStyleText,
       vocalGender,
       personaId,
+      enhanceStyle: shouldAttemptStyleBoost,
       model: modelVersion // 添加模型参数
     };
 
@@ -273,7 +301,7 @@ export async function POST(request: NextRequest) {
     console.log(`[MUSIC-GEN-${requestId}] Calling music API`);
 
     const result = await musicApi.generateMusic(musicRequest);
-    console.log(`[MUSIC-GEN-${requestId}] API response: ${result.taskId ? 'SUCCESS' : 'FAILED'}`);
+    console.log(`[MUSIC-GEN-${requestId}] API response: ${result.taskId ? 'SUCCESS' : 'FAILED'}${styleBoostApplied ? ' (style boosted)' : ''}`);
 
     // 创建数据库记录和扣除积分（只有API调用成功才执行）
     if (result.taskId) {

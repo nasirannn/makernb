@@ -14,6 +14,7 @@ export interface GenerateMusicRequest {
   styleText?: string; // 用户直接输入的style内容
   vocalGender?: string; // 人声性别偏好：'m' 或 'f'
   personaId?: string;
+  enhanceStyle?: boolean;
 }
 
 export interface GeneratedMusic {
@@ -227,6 +228,45 @@ class MusicApiService {
     }
     
     throw new Error(`API call failed after ${retries} attempts: ${lastError?.message || 'Unknown error'}`);
+  }
+
+  async boostMusicStyle(content: string): Promise<string | null> {
+    const trimmedContent = content.trim();
+    if (!trimmedContent) {
+      return null;
+    }
+
+    try {
+      const response = await this.fetchWithRetry(`${this.baseUrl}/api/v1/style/generate`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${this.apiKey}`,
+        },
+        body: JSON.stringify({
+          content: trimmedContent,
+        }),
+      }, 1);
+
+      if (!response.ok) {
+        const errorData = await response.text().catch(() => '');
+        console.warn(`[StyleBoost] Request failed with status ${response.status}: ${errorData}`);
+        return null;
+      }
+
+      const data = await response.json();
+      const boostedStyle = data?.data?.result;
+
+      if (data?.code === 200 && typeof boostedStyle === 'string' && boostedStyle.trim()) {
+        return boostedStyle.trim();
+      }
+
+      console.warn(`[StyleBoost] API returned non-success response: code=${data?.code}, msg=${data?.msg || 'Unknown error'}`);
+      return null;
+    } catch (error) {
+      console.warn('[StyleBoost] Unexpected error while boosting style:', error);
+      return null;
+    }
   }
   
   // Generate music

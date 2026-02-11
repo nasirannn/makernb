@@ -22,6 +22,8 @@ interface TrackActionButtonsProps {
   isLiked?: boolean;
   isDisliked?: boolean;
   isCopied?: boolean;
+  isPublished?: boolean;
+  isPublishing?: boolean;
   
   // 权限
   canDownloadMP3?: boolean;
@@ -42,6 +44,7 @@ interface TrackActionButtonsProps {
   onExtendMusic?: () => void;
   onReplaceSection?: () => void;
   onDelete?: () => void;
+  onPublishToggle?: () => void;
   onViewLyrics?: () => void;
   onEditMusicInfo?: () => void;
   onPricingModalOpen?: () => void;
@@ -54,6 +57,8 @@ export const TrackActionButtons: React.FC<TrackActionButtonsProps> = ({
   isLiked = false,
   isDisliked = false,
   isCopied = false,
+  isPublished = false,
+  isPublishing = false,
   canDownloadMP3 = false,
   canDownloadWAV = false,
   canDownloadMP4 = false,
@@ -70,6 +75,7 @@ export const TrackActionButtons: React.FC<TrackActionButtonsProps> = ({
   onExtendMusic,
   onReplaceSection,
   onDelete,
+  onPublishToggle,
   onViewLyrics,
   onEditMusicInfo,
   onPricingModalOpen,
@@ -86,6 +92,7 @@ export const TrackActionButtons: React.FC<TrackActionButtonsProps> = ({
   
   const shouldShowMoreMenu = Boolean(onDelete || onViewLyrics || onEditMusicInfo || onDislikeToggle);
   const shouldShowEditMenu = hasAudioUrl && (onVocalRemoval || onExtendMusic || onReplaceSection);
+  const currentPublished = Boolean(isPublished ?? track.isPublished);
 
 
   // 桌面端按钮
@@ -98,7 +105,7 @@ export const TrackActionButtons: React.FC<TrackActionButtonsProps> = ({
               <Button
                 variant="ghost"
                 size="sm"
-                className="h-9 rounded-full px-3 text-xs font-medium bg-foreground/5 text-foreground/80 hover:text-foreground hover:bg-foreground/10 transition-all duration-150 opacity-0 pointer-events-none group-hover:opacity-100 group-hover:pointer-events-auto focus-visible:opacity-100 focus-visible:pointer-events-auto data-[state=open]:opacity-100 data-[state=open]:pointer-events-auto dark:bg-white/4 dark:hover:bg-white/8"
+                className="h-8 rounded-full px-3 text-xs font-semibold bg-foreground/5 text-foreground/80 hover:text-foreground hover:bg-foreground/10 transition-all duration-150 opacity-0 pointer-events-none group-hover:opacity-100 group-hover:pointer-events-auto focus-visible:opacity-100 focus-visible:pointer-events-auto data-[state=open]:opacity-100 data-[state=open]:pointer-events-auto dark:bg-white/4 dark:hover:bg-white/8"
                 onClick={(e) => {
                   e.preventDefault();
                   e.stopPropagation();
@@ -172,6 +179,25 @@ export const TrackActionButtons: React.FC<TrackActionButtonsProps> = ({
               )}
             </DropdownMenuContent>
           </DropdownMenu>
+        )}
+
+        {onPublishToggle && (
+          <Button
+            variant="ghost"
+            size="sm"
+            className="h-8 rounded-full px-3 text-xs font-semibold bg-foreground/5 text-foreground/80 hover:text-foreground hover:bg-foreground/10 transition-all duration-150 opacity-0 pointer-events-none group-hover:opacity-100 group-hover:pointer-events-auto focus-visible:opacity-100 focus-visible:pointer-events-auto data-[state=open]:opacity-100 data-[state=open]:pointer-events-auto dark:bg-white/4 dark:hover:bg-white/8"
+            onClick={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              if (isPublishing) return;
+              onPublishToggle();
+            }}
+            aria-label={currentPublished ? 'Unpublish track' : 'Publish track'}
+            title={isPublishing ? 'Updating...' : (currentPublished ? 'Unpublish' : 'Publish')}
+            disabled={isPublishing}
+          >
+            <span>{isPublishing ? 'Updating...' : (currentPublished ? 'Unpublish' : 'Publish')}</span>
+          </Button>
         )}
 
         {/* 下载按钮 */}
@@ -284,7 +310,7 @@ export const TrackActionButtons: React.FC<TrackActionButtonsProps> = ({
               <Button
                 variant="ghost"
                 size="sm"
-                className="h-9 w-9 rounded-full text-xs font-semibold bg-foreground/5 text-foreground/80 hover:text-foreground hover:bg-foreground/10 dark:bg-white/4 dark:hover:bg-white/8"
+                className="h-8 w-8 rounded-full text-xs font-semibold bg-foreground/5 text-foreground/80 hover:text-foreground hover:bg-foreground/10 dark:bg-white/4 dark:hover:bg-white/8"
                 onClick={(e) => {
                   e.preventDefault();
                   e.stopPropagation();
@@ -292,7 +318,7 @@ export const TrackActionButtons: React.FC<TrackActionButtonsProps> = ({
                 aria-label="More options"
                 title="More options"
               >
-                <MoreVertical className="h-4 w-4" />
+                <MoreVertical className="h-3.5 w-3.5" />
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" onClick={(e) => e.stopPropagation()} className="p-1.5 min-w-[180px]">
@@ -422,6 +448,23 @@ export const TrackActionButtons: React.FC<TrackActionButtonsProps> = ({
           ) : (
             <ThumbsUp className="h-3.5 w-3.5" />
           )}
+        </button>
+      )}
+
+      {onPublishToggle && (
+        <button
+          onClick={(e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            if (isPublishing) return;
+            onPublishToggle();
+          }}
+          className="h-8 inline-flex items-center justify-center rounded-full px-3 text-xs font-semibold bg-foreground/5 text-foreground/70 hover:text-foreground transition-colors dark:bg-white/4 dark:hover:bg-white/8"
+          aria-label={currentPublished ? 'Unpublish track' : 'Publish track'}
+          title={isPublishing ? 'Updating...' : (currentPublished ? 'Unpublish' : 'Publish')}
+          disabled={isPublishing}
+        >
+          <span>{isPublishing ? 'Updating...' : (currentPublished ? 'Unpublish' : 'Publish')}</span>
         </button>
       )}
 

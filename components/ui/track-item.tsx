@@ -42,10 +42,12 @@ interface TrackItemProps {
   onExtendMusic?: () => void;
   onReplaceSection?: () => void;
   onDelete?: () => void;
+  onPublishToggle?: () => void;
   onPreviewLyrics?: () => void;
   onPricingModalOpen?: () => void;
   onEditTitle?: (trackId: string, newTitle: string) => void;
   onEditMusicInfo?: (trackId: string, data: { title: string; coverImageUrl?: string }) => Promise<void>;
+  isPublishing?: boolean;
 }
 
 export const TrackItem: React.FC<TrackItemProps> = ({
@@ -74,10 +76,12 @@ export const TrackItem: React.FC<TrackItemProps> = ({
   onExtendMusic,
   onReplaceSection,
   onDelete,
+  onPublishToggle,
   onPreviewLyrics,
   onPricingModalOpen,
   onEditTitle,
   onEditMusicInfo,
+  isPublishing = false,
 }) => {
   const isError = track.isError || (!track.audioUrl && !track.isGenerating && !track.isLoading);
   const isGenerating = track.isGenerating || track.isLoading;
@@ -308,6 +312,9 @@ export const TrackItem: React.FC<TrackItemProps> = ({
                         onExtendMusic={onExtendMusic}
                         onReplaceSection={onReplaceSection}
                         onDelete={onDelete}
+                        onPublishToggle={onPublishToggle}
+                        isPublished={track.isPublished ?? false}
+                        isPublishing={isPublishing}
                         onViewLyrics={onPreviewLyrics}
                         onEditMusicInfo={canEditMusicInfo ? handleEditMusicInfoClick : undefined}
                         onPricingModalOpen={onPricingModalOpen}
@@ -363,6 +370,9 @@ export const TrackItem: React.FC<TrackItemProps> = ({
             onExtendMusic={onExtendMusic}
             onReplaceSection={onReplaceSection}
             onDelete={onDelete}
+            onPublishToggle={onPublishToggle}
+            isPublished={track.isPublished ?? false}
+            isPublishing={isPublishing}
             onViewLyrics={onPreviewLyrics}
             onEditMusicInfo={canEditMusicInfo ? handleEditMusicInfoClick : undefined}
             onPricingModalOpen={onPricingModalOpen}

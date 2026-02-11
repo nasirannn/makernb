@@ -188,6 +188,8 @@ export const StudioTracksList: React.FC<StudioTracksListProps> = React.memo(func
   // 删除确认弹窗状态
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [trackToDelete, setTrackToDelete] = useState<{ id: string; title: string } | null>(null);
+  const [publishStatusOverrides, setPublishStatusOverrides] = useState<Record<string, boolean>>({});
+  const [publishingTrackIds, setPublishingTrackIds] = useState<string[]>([]);
   
   // 将所有 tracks 展平
   const allTracks = userTracks.flatMap(music => {
@@ -201,6 +203,7 @@ export const StudioTracksList: React.FC<StudioTracksListProps> = React.memo(func
         return ({
         ...track,
         isFavorited: track.isFavorited ?? false,
+        isPublished: publishStatusOverrides[track.id] ?? Boolean(track.isPublished),
         coverR2Url: track.coverR2Url ?? undefined,
         musicTitle: music.title,
         musicTags: music.tags,
@@ -246,6 +249,7 @@ export const StudioTracksList: React.FC<StudioTracksListProps> = React.memo(func
       genre: track.genre || '',
       lyrics: track.lyrics || '',
       isFavorited: false,
+      isPublished: publishStatusOverrides[track.id] ?? Boolean(track.isPublished),
       isDisliked: track.isDisliked ?? track.is_disliked ?? false,
       musicTitle: track.title,
       musicTags: track.tags || '',
@@ -265,7 +269,7 @@ export const StudioTracksList: React.FC<StudioTracksListProps> = React.memo(func
       isError: track.isError || false,
       errorMessage: track.errorMessage,
     }));
-  }, [generatedTracks]);
+  }, [generatedTracks, publishStatusOverrides]);
 
   // 合并所有 tracks：生成音乐（已包含延长音乐）+ 用户 tracks
   // 注意：延长音乐已通过 studio.tsx 合并到 generatedTracks 中
@@ -400,6 +404,66 @@ export const StudioTracksList: React.FC<StudioTracksListProps> = React.memo(func
       onDislikeToggle(track, track.musicGeneration);
     }
   }, [onDislikeToggle]);
+
+  const handlePublishToggle = useCallback(async (track: any) => {
+    if (!track?.id) {
+      toast.error('Track not found');
+      return;
+    }
+
+    if (publishingTrackIds.includes(track.id)) {
+      return;
+    }
+
+    const nextPublished = !(track.isPublished ?? false);
+
+    setPublishingTrackIds((prev) => [...prev, track.id]);
+
+    try {
+      let { data: { session }, error: sessionError } = await supabase.auth.getSession();
+
+      if (!session?.access_token || sessionError) {
+        const { data: refreshData, error: refreshError } = await supabase.auth.refreshSession();
+        if (refreshError || !refreshData?.session?.access_token) {
+          toast.error('Session expired. Please log in again.');
+          return;
+        }
+        session = refreshData.session;
+      }
+
+      const response = await fetch('/api/toggle-track-publish', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${session.access_token}`,
+        },
+        body: JSON.stringify({
+          trackId: track.id,
+          isPublished: nextPublished,
+        }),
+      });
+
+      const data = await response.json().catch(() => null);
+
+      if (!response.ok || !data?.success) {
+        toast.error(data?.error || data?.message || 'Failed to update publish status');
+        return;
+      }
+
+      const updatedStatus = Boolean(data.isPublished);
+      setPublishStatusOverrides((prev) => ({
+        ...prev,
+        [track.id]: updatedStatus,
+      }));
+
+      toast.success(data.message || (updatedStatus ? 'Track published successfully' : 'Track unpublished successfully'));
+    } catch (error) {
+      console.error('Toggle publish error:', error);
+      toast.error('Failed to update publish status');
+    } finally {
+      setPublishingTrackIds((prev) => prev.filter((id) => id !== track.id));
+    }
+  }, [publishingTrackIds]);
   
   // 处理删除 - 显示确认弹窗
   const handleDelete = useCallback((trackId: string) => {
@@ -1085,6 +1149,8 @@ export const StudioTracksList: React.FC<StudioTracksListProps> = React.memo(func
                             onExtendMusic={() => handleExtendMusic(track.id)}
                             onReplaceSection={() => handleReplaceSection(track.id)}
                             onDelete={onDelete ? () => handleDelete(track.id) : undefined}
+                            onPublishToggle={() => handlePublishToggle(track)}
+                            isPublishing={publishingTrackIds.includes(track.id)}
                             onPricingModalOpen={openPricingModal}
                             onEditTitle={onEditTitle}
                             onEditMusicInfo={onEditMusicInfo}

@@ -162,6 +162,7 @@ const StudioContent = () => {
         vocalGender, setVocalGender,
         harmonyPalette, setHarmonyPalette,
         selectedPersonaId, setSelectedPersonaId,
+        enhanceStyle, setEnhanceStyle,
         trackExistingTask,
     } = musicGeneration;
 
@@ -2049,13 +2050,15 @@ const StudioContent = () => {
         setSelectedModel,
         selectedPersonaId,
         setSelectedPersonaId,
+        enhanceStyle,
+        setEnhanceStyle,
     }), [
         mode, setMode, selectedGenre, setSelectedGenre, selectedVibe, setSelectedVibe,
         simplePrompt, setSimplePrompt, customLyrics, setCustomLyrics, songTitle, setSongTitle, instrumentalMode, setInstrumentalMode,
         isPublished, styleText, setStyleText, bpm, setBpm, grooveType, setGrooveType,
         leadInstrument, setLeadInstrument, drumKit, setDrumKit, bassTone, setBassTone,
         vocalGender, setVocalGender, harmonyPalette, setHarmonyPalette, bpmMode, setBpmMode,
-        selectedPersonaId, setSelectedPersonaId,
+        selectedPersonaId, setSelectedPersonaId, enhanceStyle, setEnhanceStyle,
         isGenerating, handleGenerationStart, handleGenerateLyrics, handleWriteNextLyricLine,
         isWritingNextLyricLine,
         isAuthModalOpen, setIsAuthModalOpen, selectedModel, setSelectedModel

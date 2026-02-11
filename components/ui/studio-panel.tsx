@@ -12,6 +12,7 @@ import { useSubscription } from "@/contexts/SubscriptionContext";
 import { toast } from 'sonner';
 import { supabase } from '@/lib/supabase';
 import { Tooltip } from '@/components/ui/tooltip';
+import { Switch } from "@/components/ui/switch";
 import Image from 'next/image';
 import { CLIENT_MUSIC_CREDITS, CLIENT_UPLOAD_AUDIO_CREDITS } from '@/lib/credits-config';
 import { getInstrumentIcon, getInstrumentAudio, getDrumKitIcon, getDrumKitAudio } from '@/lib/music-resources';
@@ -71,6 +72,8 @@ interface StudioPanelProps {
   isPublished: boolean;
   styleText: string;
   setStyleText: (text: string) => void;
+  enhanceStyle: boolean;
+  setEnhanceStyle: (enabled: boolean) => void;
   bpm: number[];
   setBpm: (bpm: number[]) => void;
   grooveType: string;
@@ -141,6 +144,8 @@ export const StudioPanel = (props: StudioPanelProps) => {
     isPublished,
     styleText,
     setStyleText,
+    enhanceStyle,
+    setEnhanceStyle,
     bpm,
     setBpm,
     grooveType,
@@ -177,6 +182,9 @@ export const StudioPanel = (props: StudioPanelProps) => {
   const maxUploadDurationSeconds = 8 * 60;
   const isCustomMode = mode === "custom";
   const effectiveModel: MusicModel = isCustomMode ? selectedModel : 'V4';
+  const supportsStyleBoost = ['V4_5', 'V4_5PLUS', 'V4_5ALL'].includes(
+    String(effectiveModel).toUpperCase().replace(/\./g, '_').replace(/\+/g, 'PLUS')
+  );
 
   const updateSelectedModel = React.useCallback((
     model: MusicModel,
@@ -1217,26 +1225,43 @@ export const StudioPanel = (props: StudioPanelProps) => {
           <div className="text-xs text-muted-foreground">
             {styleText.length}/{styleTextMaxLength}
           </div>
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => {
-              setSelectedGenre("");
-              setSelectedVibe("");
-              setGrooveType("");
-              setBpm([60]);
-              setBpmMode('');
-              setLeadInstrument([]);
-              setDrumKit("");
-              setBassTone("");
-              setHarmonyPalette("");
-              setStyleText("");
-            }}
-            className="inline-flex h-8 items-center gap-1.5 rounded-full bg-foreground/5 px-3 text-xs font-semibold text-foreground/70 transition-colors hover:bg-foreground/10 hover:text-foreground"
-          >
-            <Trash2 className="h-3 w-3" />
-            <span className="text-xs font-medium">Clear</span>
-          </Button>
+          <div className="flex items-center gap-2">
+            <div className="inline-flex h-8 items-center gap-2 rounded-full bg-foreground/5 px-3 text-xs text-muted-foreground">
+              <Switch
+                checked={supportsStyleBoost ? enhanceStyle : false}
+                onCheckedChange={(checked) => {
+                  if (!supportsStyleBoost) {
+                    return;
+                  }
+                  setEnhanceStyle(checked);
+                }}
+                disabled={!supportsStyleBoost || isGenerating}
+                className="scale-75"
+                aria-label="Enhance style prompt"
+              />
+              <span className="text-xs">Enhance Style</span>
+            </div>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => {
+                setSelectedGenre("");
+                setSelectedVibe("");
+                setGrooveType("");
+                setBpm([60]);
+                setBpmMode('');
+                setLeadInstrument([]);
+                setDrumKit("");
+                setBassTone("");
+                setHarmonyPalette("");
+                setStyleText("");
+              }}
+              className="inline-flex h-8 items-center gap-1.5 rounded-full bg-foreground/5 px-3 text-xs font-semibold text-foreground/70 transition-colors hover:bg-foreground/10 hover:text-foreground"
+            >
+              <Trash2 className="h-3 w-3" />
+              <span className="text-xs font-medium">Clear</span>
+            </Button>
+          </div>
         </div>
       </div>
 
