@@ -477,7 +477,18 @@ const LibraryContent = () => {
 
 export const LibrarySection = () => {
     return (
-        <Suspense fallback={null}>
+        <Suspense
+            fallback={(
+                <section
+                    id="library"
+                    className="h-screen bg-background px-6 py-4 md:py-6"
+                >
+                    <h1 className="text-2xl font-semibold tracking-tight text-foreground md:text-4xl">
+                        Music Library
+                    </h1>
+                </section>
+            )}
+        >
             <LibraryContent />
         </Suspense>
     );
