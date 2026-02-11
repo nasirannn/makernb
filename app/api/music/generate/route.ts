@@ -4,7 +4,7 @@ import { createMusicGeneration, updateMusicGeneration } from '@/lib/music-db';
 import { createGenerationError } from '@/lib/generation-errors-db';
 import { consumeUserCredit } from '@/lib/user-db';
 import { getUserInfoFromRequest } from '@/lib/auth';
-import { getMusicCredits } from '@/lib/credits-config';
+import { getFeatureCredits, getMusicCredits } from '@/lib/credits-config';
 
 export const dynamic = 'force-dynamic';
 
@@ -193,6 +193,8 @@ export async function POST(request: NextRequest) {
     // 根据模式确定积分成本和模型版本
     const musicMode = mode === 'custom' ? 'custom' : 'simple';
     const creditCost = getMusicCredits(musicMode);
+    const styleBoostCreditCost = shouldAttemptStyleBoost ? getFeatureCredits('boost_music_style') : 0;
+    const totalCreditCost = creditCost + styleBoostCreditCost;
 
     try {
       const { query } = await import('@/lib/db-query-builder');
@@ -214,13 +216,13 @@ export async function POST(request: NextRequest) {
 
       const userCredits = creditResult.rows[0].credits;
 
-      if (userCredits < creditCost) {
+      if (userCredits < totalCreditCost) {
         return NextResponse.json(
           {
             error: 'Insufficient credits',
-            message: `You need ${creditCost} credits but only have ${userCredits}. Please purchase more credits to continue.`,
+            message: `You need ${totalCreditCost} credits but only have ${userCredits}. Please purchase more credits to continue.`,
             success: false,
-            required: creditCost,
+            required: totalCreditCost,
             available: userCredits
           },
           { status: 400 }
@@ -318,10 +320,14 @@ export async function POST(request: NextRequest) {
 
         // 步骤1: 扣除积分
 
+        const consumptionDescription = shouldAttemptStyleBoost
+          ? `Music generation (${modelVersion}) + Style boost`
+          : `Music generation (${modelVersion})`;
+
         await consumeUserCredit(
           userId,
-          creditCost,
-          `Music generation (${modelVersion})`,
+          totalCreditCost,
+          consumptionDescription,
           result.taskId,
           'music_generation'
         );
@@ -461,12 +467,12 @@ export async function POST(request: NextRequest) {
               FROM credit_transactions
               WHERE reference_id = $3 AND description LIKE '%Music generation%'
               LIMIT 1
-            `, [userId, creditCost, result.taskId]);
+            `, [userId, totalCreditCost, result.taskId]);
 
             // 更新用户积分
             await query(
               'UPDATE user_credits SET credits = credits + $2, updated_at = NOW() WHERE user_id = $1::uuid',
-              [userId, creditCost]
+              [userId, totalCreditCost]
             );
 
             console.log(`[MUSIC-GEN-${requestId}] Credit compensation completed`);

@@ -4,7 +4,7 @@ import React from "react";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
-import { ChevronRight, Play, CreditCard, X, Check, Triangle, Pause, Wand2, Trash2, Loader2 } from "lucide-react";
+import { ChevronRight, Play, CreditCard, X, Check, Triangle, Pause, Wand2, Trash2, Loader2, Info } from "lucide-react";
 import musicOptions from '@/data/music-options.json';
 import { useAuth } from '@/contexts/AuthContext';
 import { useCredits } from '@/contexts/CreditsContext';
@@ -14,7 +14,7 @@ import { supabase } from '@/lib/supabase';
 import { Tooltip } from '@/components/ui/tooltip';
 import { Switch } from "@/components/ui/switch";
 import Image from 'next/image';
-import { CLIENT_MUSIC_CREDITS, CLIENT_UPLOAD_AUDIO_CREDITS } from '@/lib/credits-config';
+import { CLIENT_MUSIC_CREDITS, CLIENT_STYLE_BOOST_CREDITS, CLIENT_UPLOAD_AUDIO_CREDITS } from '@/lib/credits-config';
 import { getInstrumentIcon, getInstrumentAudio, getDrumKitIcon, getDrumKitAudio } from '@/lib/music-resources';
 import { replaceTextInStyle, updateStatesFromTextarea, getRandomBpm } from '@/lib/studio-utils';
 import { TEMPO_KEYWORDS, BUTTON_CLASSES, STYLES } from '@/lib/studio-constants';
@@ -330,9 +330,12 @@ export const StudioPanel = (props: StudioPanelProps) => {
   } = useStudioUploadWorkflow({
     mode: mode as UploadPanelMode,
   });
+  const styleBoostCredits = isCustomMode && supportsStyleBoost && enhanceStyle
+    ? CLIENT_STYLE_BOOST_CREDITS
+    : 0;
   const createCredits = uploadCoverFile
     ? CLIENT_UPLOAD_AUDIO_CREDITS[uploadAudioMode]
-    : (mode === "custom" ? CLIENT_MUSIC_CREDITS.custom : CLIENT_MUSIC_CREDITS.simple);
+    : (mode === "custom" ? CLIENT_MUSIC_CREDITS.custom + styleBoostCredits : CLIENT_MUSIC_CREDITS.simple);
 
   const handleModelSelect = React.useCallback((model: MusicModel) => {
     const selectedOption = modelOptions.find((option) => option.value === model);
@@ -495,9 +498,12 @@ export const StudioPanel = (props: StudioPanelProps) => {
       return;
     }
 
-    const requiredCredits = mode === 'custom' 
+    const styleBoostRequiredCredits = mode === 'custom' && supportsStyleBoost && enhanceStyle
+      ? CLIENT_STYLE_BOOST_CREDITS
+      : 0;
+    const requiredCredits = (mode === 'custom' 
       ? CLIENT_MUSIC_CREDITS.custom
-      : CLIENT_MUSIC_CREDITS.simple;
+      : CLIENT_MUSIC_CREDITS.simple) + styleBoostRequiredCredits;
 
     if (credits < requiredCredits) {
       // 使用 sonner 显示积分不足提示
@@ -1240,6 +1246,22 @@ export const StudioPanel = (props: StudioPanelProps) => {
                 aria-label="Enhance style prompt"
               />
               <span className="text-xs">Enhance Style</span>
+              <Tooltip
+                content={`Enhance style quality · ${CLIENT_STYLE_BOOST_CREDITS} credits/use`}
+                position="top"
+              >
+                <button
+                  type="button"
+                  className="inline-flex h-5 w-5 items-center justify-center rounded-full text-muted-foreground/70 transition-colors hover:text-foreground"
+                  aria-label="Enhance Style info"
+                  onClick={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                  }}
+                >
+                  <Info className="h-3.5 w-3.5" />
+                </button>
+              </Tooltip>
             </div>
             <Button
               variant="ghost"

@@ -88,6 +88,12 @@ export const FEATURE_CREDITS_CONFIG: Record<string, FeatureConfig> = {
     credits: 5, // 默认值，实际值根据模型版本而定
     enabled: true,
     description: '替换音乐分区'
+  },
+  boost_music_style: {
+    name: 'Boost Music Style',
+    credits: 0.4,
+    enabled: true,
+    description: '增强音乐风格'
   }
 } as const;
 
@@ -285,6 +291,10 @@ export const CLIENT_MUSIC_CREDITS = {
   custom: MUSIC_GENERATION_CONFIG.custom.credits
 } as const;
 
+export const STYLE_BOOST_CREDITS = FEATURE_CREDITS_CONFIG.boost_music_style.credits;
+
+export const CLIENT_STYLE_BOOST_CREDITS = STYLE_BOOST_CREDITS;
+
 export const CLIENT_UPLOAD_AUDIO_CREDITS = {
   cover: FEATURE_CREDITS_CONFIG.upload_cover_music.credits,
   extend: FEATURE_CREDITS_CONFIG.upload_extend_music.credits,
@@ -316,4 +326,6 @@ export const CLIENT_CREDITS = {
   VOCAL_SEPARATION_CREDITS: FEATURE_CREDITS_CONFIG.separate_vocals_from_music_local.credits,
   /** Extend Music 积分消耗（根据模型版本，使用 CLIENT_EXTEND_MUSIC_CREDITS 替代） */
   EXTEND_MUSIC_CREDITS: FEATURE_CREDITS_CONFIG.extend_music.credits,
+  /** Enhance Style 积分消耗 */
+  STYLE_BOOST_CREDITS: STYLE_BOOST_CREDITS,
 } as const;
