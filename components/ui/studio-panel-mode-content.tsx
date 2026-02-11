@@ -103,7 +103,11 @@ export const StudioSimpleModeContent: React.FC<StudioSimpleModeContentProps> = (
               />
             </div>
 
-            <div>
+            <div className="space-y-2">
+              <div className="border-t border-dashed border-slate-300/35 dark:border-slate-700/25 pt-2" aria-hidden="true" />
+              <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-muted-foreground/80">
+                Style Presets
+              </p>
               {quickButtons}
             </div>
 
@@ -115,20 +119,20 @@ export const StudioSimpleModeContent: React.FC<StudioSimpleModeContentProps> = (
                 <button
                   type="button"
                   onClick={onAddAudio}
-                  className="inline-flex items-center gap-1.5 rounded-full bg-foreground/5 px-3 py-1.5 text-xs font-semibold text-foreground/70 transition-colors hover:bg-foreground/10 hover:text-foreground"
+                  className="inline-flex h-8 items-center gap-1.5 rounded-full bg-foreground/5 px-3 text-xs font-semibold text-foreground/70 transition-colors hover:bg-foreground/10 hover:text-foreground"
                   title="Add audio"
                 >
-                  <UploadCloud className="h-3.5 w-3.5" />
-                  <span>Add Audio</span>
+                  <UploadCloud className="h-3 w-3" />
+                  <span className="text-xs font-medium">Add Audio</span>
                 </button>
                 <button
                   type="button"
                   onClick={onClear}
-                  className="inline-flex items-center gap-1.5 rounded-full bg-foreground/5 px-3 py-1.5 text-xs font-semibold text-foreground/70 transition-colors hover:bg-foreground/10 hover:text-foreground"
+                  className="inline-flex h-8 items-center gap-1.5 rounded-full bg-foreground/5 px-3 text-xs font-semibold text-foreground/70 transition-colors hover:bg-foreground/10 hover:text-foreground"
                   title="Clear"
                 >
-                  <Trash2 className="h-3.5 w-3.5" />
-                  <span>Clear</span>
+                  <Trash2 className="h-3 w-3" />
+                  <span className="text-xs font-medium">Clear</span>
                 </button>
               </div>
             </div>
@@ -136,7 +140,7 @@ export const StudioSimpleModeContent: React.FC<StudioSimpleModeContentProps> = (
         </section>
 
         <section className="studio-panel-card rounded-2xl p-3">
-          <div className="pb-2 text-xs font-semibold uppercase tracking-[0.22em] text-muted-foreground">
+          <div className="pb-2 text-xs md:text-sm font-semibold text-foreground/80">
             Classic Instruments Preview
           </div>
 

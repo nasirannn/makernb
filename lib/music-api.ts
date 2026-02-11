@@ -263,15 +263,10 @@ class MusicApiService {
       apiParams.instrumental = request.instrumentalMode || false;
       apiParams.model = modelValue; // 优先使用请求指定模型
 
-      // 拼接一个≤100字符的R&B风格短语到prompt
-      const styleHint = 'Create in R&B style.'; 
-
-      // Simple Mode的prompt：用户输入 + 风格短语
+      // Simple Mode: 直接使用用户输入
       if (request.customPrompt && request.customPrompt.trim()) {
         const base = request.customPrompt.trim().slice(0, 400);
-        // 若拼接后超过500，优先保证用户400字符，再截断整体至500以内
-        const combined = `${base} | ${styleHint}`;
-        apiParams.prompt = combined.slice(0, 500);
+        apiParams.prompt = base;
       }
     } else {
       // Custom模式: customMode: true

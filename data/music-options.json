@@ -3,7 +3,9 @@
     { "id": "new-jack-swing", "name": "New Jack Swing", "value": "New Jack Swing genre" },
     { "id": "hip-hop-soul", "name": "Hip-Hop Soul", "value": "Hip-Hop Soul genre" },
     { "id": "quiet-storm", "name": "Quiet Storm", "value": "Quiet Storm genre" },
-    { "id": "neo-soul", "name": "Neo-Soul", "value": "Neo-Soul genre" }
+    { "id": "neo-soul", "name": "Neo-Soul", "value": "Neo-Soul genre" },
+    { "id": "pb-rnb", "name": "PB R&B", "value": "PB R&B genre" },
+    { "id": "crunk-rnb", "name": "Crunk R&B", "value": "Crunk R&B genre" }
   ],
   "vibes": [
     { "id": "slow-jam", "name": "Slow Jam", "value": "Slow Jam with intimate, romantic atmosphere" },

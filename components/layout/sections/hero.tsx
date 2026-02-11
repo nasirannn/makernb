@@ -18,8 +18,11 @@ export const HeroSection = () => {
 
       <div className="relative z-10 container mx-auto min-h-screen flex items-center pt-28 pb-24 md:pt-28">
         <div className="w-full max-w-4xl mx-auto text-center">
-          <div className="inline-flex items-center gap-2 rounded-full bg-foreground/5 px-4 py-2 text-[11px] font-semibold text-foreground/70 whitespace-nowrap">
-            <span>Especially For The Old-School R&B Lovers</span>
+          <div className="inline-flex items-center gap-2 rounded-full border border-slate-300/80 bg-white/70 px-2 py-1.5 text-foreground/85 backdrop-blur-sm whitespace-nowrap dark:border-slate-700/70 dark:bg-slate-900/50">
+            <span className="inline-flex items-center rounded-full bg-primary px-3 py-1 text-[11px] font-semibold leading-none text-primary-foreground">
+              R&amp;B
+            </span>
+            <span className="pr-2 text-[12px] font-medium leading-none">Especially For The R&amp;B Lovers</span>
           </div>
 
           <h1 className="mt-9 text-[2.6rem] leading-[0.98] tracking-tight font-black text-foreground sm:text-5xl lg:text-[4.6rem]">
@@ -27,7 +30,7 @@ export const HeroSection = () => {
               Free Online <span className="hero-ink">AI R&amp;B</span> Music Generator
             </span>
             <span className="block mt-4 text-foreground/85 text-[1.05rem] sm:text-xl lg:text-2xl font-extrabold tracking-tight">
-              Create R&amp;B songs in different old-school musical styles
+              Create songs in different Contemporary Rhythm and Blues musical styles
             </span>
           </h1>
 
@@ -57,11 +60,12 @@ export const HeroSection = () => {
 
           <div className="mt-10 flex flex-wrap justify-center gap-2">
             {[
-              { label: "New Jack Swing", icon: "New Jack Swing Icon.webp" },
-              { label: "Neo‑Soul", icon: "Neo-Soul Icon.webp" },
               { label: "Quiet Storm", icon: "Quiet Storm Icon.webp" },
+              { label: "New Jack Swing", icon: "New Jack Swing Icon.webp" },
               { label: "Hip-Hop Soul", icon: "Hip-Hop Soul Icon.webp" },
-              { label: "Contemporary R&B", icon: "Contemporary R&B Icon.webp" },
+              { label: "Neo‑Soul", icon: "Neo-Soul Icon.webp" },
+              { label: "Crunk R&B", icon: "Crunk Icon.webp" },
+              { label: "PBR&B", icon: "PB Icon.webp" },
             ].map(({ label, icon }) => (
               <span
                 key={label}

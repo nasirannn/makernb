@@ -10,12 +10,16 @@ const SUPPORTED_GENRES: Record<string, string> = {
   'hip-hop-soul': 'Hip-Hop Soul',
   'neo-soul': 'Neo Soul',
   'quiet-storm': 'Quiet Storm',
+  'pb-rnb': 'PB R&B',
+  'crunk-rnb': 'Crunk R&B',
 };
 
 const SYSTEM_PROMPT = [
   'You are a music prompt writer for AI song generation.',
-  'Generate exactly one English sentence using this 5-part structure, separated by commas:',
-  'style anchor, rhythm groove, instrumentation, vocals, mood.',
+  'Generate exactly one English sentence using this 6-part structure, separated by commas:',
+  'era, style anchor, rhythm groove, instrumentation, vocals, mood.',
+  'Era can be a concise decade token (80s, 90s, 00s, 10s, 20s) or include timing modifiers like early, mid/middle, or late (for example: early 90s, mid 00s, late 10s).',
+  'The first segment must be era only.',
   'No labels, no bullet points, no line breaks, no extra explanation.',
   'Keep it concise, vivid, and production-ready.',
   'Return only the final prompt sentence.',
@@ -104,8 +108,9 @@ export async function POST(request: NextRequest) {
       currentPrompt ? `Current prompt reference: ${currentPrompt}` : 'Current prompt reference: (none)',
       '',
       'Task:',
-      'Generate one fresh prompt that keeps the same 5-part structure used by this product:',
-      'style anchor, rhythm groove, instrumentation, vocals, mood.',
+      'Generate one fresh prompt that keeps the same 6-part structure used by this product:',
+      'era, style anchor, rhythm groove, instrumentation, vocals, mood.',
+      'Decide the most fitting era for this genre and put it in the first segment; era may use early/mid(middle)/late modifiers.',
       'Keep genre identity clear and avoid generic wording.',
     ].join('\n');
 

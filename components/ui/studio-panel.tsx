@@ -43,6 +43,8 @@ const HERO_GENRE_ICONS: Record<string, string> = {
   "neo-soul": "Neo-Soul Icon.webp",
   "quiet-storm": "Quiet Storm Icon.webp",
   "hip-hop-soul": "Hip-Hop Soul Icon.webp",
+  "crunk-rnb": "Crunk Icon.webp",
+  "pb-rnb": "PB Icon.webp",
 };
 
 
@@ -1191,7 +1193,11 @@ export const StudioPanel = (props: StudioPanelProps) => {
             className="min-h-[180px] md:min-h-[200px] resize-none pl-0 pr-0 pb-2 border-0 bg-transparent focus-visible:ring-0 focus-visible:ring-offset-0"
           />
         </div>
-        <div className="mt-2">
+        <div className="mt-2 space-y-2">
+          <div className="border-t border-dashed border-slate-300/35 dark:border-slate-700/25 pt-2" aria-hidden="true" />
+          <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-muted-foreground/80">
+            Style Presets
+          </p>
           {renderStyleQuickButtons(
             styleText,
             setStyleText,
@@ -1226,7 +1232,7 @@ export const StudioPanel = (props: StudioPanelProps) => {
               setHarmonyPalette("");
               setStyleText("");
             }}
-            className="inline-flex items-center gap-1.5 rounded-full bg-foreground/5 px-3 py-1.5 text-xs font-semibold text-foreground/70 transition-colors hover:bg-foreground/10 hover:text-foreground"
+            className="inline-flex h-8 items-center gap-1.5 rounded-full bg-foreground/5 px-3 text-xs font-semibold text-foreground/70 transition-colors hover:bg-foreground/10 hover:text-foreground"
           >
             <Trash2 className="h-3 w-3" />
             <span className="text-xs font-medium">Clear</span>

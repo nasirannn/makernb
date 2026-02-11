@@ -138,10 +138,10 @@ export const TrackItem: React.FC<TrackItemProps> = ({
   
   // 统一样式，不再区分延长版本
   const isExtension = false; // 统一样式
-  const paddingClass = variant === 'studio' ? 'px-2.5 py-2' : 'px-2 py-2';
-  const gapClass = 'gap-2';
+  const paddingClass = variant === 'studio' ? 'px-3 py-2.5' : 'px-2 py-2';
+  const gapClass = variant === 'studio' ? 'gap-2.5 md:gap-3' : 'gap-2';
   const infoHeightClass = variant === 'studio'
-    ? (isExtension ? 'h-12' : 'h-[80px]')
+    ? (isExtension ? 'h-12' : 'h-[90px]')
     : '';
 
   const containerClassName =
@@ -211,10 +211,11 @@ export const TrackItem: React.FC<TrackItemProps> = ({
               isExtension={isExtension}
               originalTrackTitle={track.originalTrackTitle}
               sourceType={track.sourceType}
+              variant={variant}
               renderTagsAsText={shouldRenderTagsAsPlainText}
               footerActions={
                 variant === 'studio' && !isError ? (
-                  <div className="flex h-7 items-center gap-1 text-xs">
+                  <div className="flex h-8 items-center gap-1.5 text-xs">
                     {onFavoriteToggle && (
                       <button
                         type="button"
@@ -223,7 +224,7 @@ export const TrackItem: React.FC<TrackItemProps> = ({
                           e.stopPropagation();
                           onFavoriteToggle();
                         }}
-                        className={`inline-flex h-7 w-7 items-center justify-center rounded-full bg-foreground/5 text-xs font-semibold transition-colors dark:bg-white/4 dark:hover:bg-white/8 ${
+                        className={`inline-flex h-8 w-8 items-center justify-center rounded-full bg-foreground/5 text-xs font-semibold transition-colors dark:bg-white/4 dark:hover:bg-white/8 ${
                           track.isFavorited
                             ? 'text-red-500 hover:text-red-500 hover:bg-foreground/10 dark:hover:bg-white/8'
                             : 'text-foreground/80 hover:text-foreground hover:bg-foreground/10 dark:hover:bg-white/8'
@@ -231,7 +232,7 @@ export const TrackItem: React.FC<TrackItemProps> = ({
                         aria-label={track.isFavorited ? 'Remove from library' : 'Add to library'}
                         title={track.isFavorited ? 'Remove from library' : 'Add to library'}
                       >
-                        <Star className={`h-3 w-3 ${track.isFavorited ? 'fill-current' : ''}`} />
+                        <Star className={`h-3.5 w-3.5 ${track.isFavorited ? 'fill-current' : ''}`} />
                       </button>
                     )}
 
@@ -243,7 +244,7 @@ export const TrackItem: React.FC<TrackItemProps> = ({
                           e.stopPropagation();
                           onShare();
                         }}
-                        className={`inline-flex h-7 w-7 items-center justify-center rounded-full bg-foreground/5 text-xs font-semibold transition-colors dark:bg-white/4 dark:hover:bg-white/8 ${
+                        className={`inline-flex h-8 w-8 items-center justify-center rounded-full bg-foreground/5 text-xs font-semibold transition-colors dark:bg-white/4 dark:hover:bg-white/8 ${
                           isCopied
                             ? 'text-green-500 hover:text-green-500 hover:bg-foreground/10 dark:hover:bg-white/8'
                             : 'text-foreground/80 hover:text-foreground hover:bg-foreground/10 dark:hover:bg-white/8'
@@ -251,7 +252,7 @@ export const TrackItem: React.FC<TrackItemProps> = ({
                         aria-label={isCopied ? 'Link copied' : 'Share track'}
                         title={isCopied ? 'Link copied' : 'Share track'}
                       >
-                        {isCopied ? <Check className="h-3 w-3" /> : <Share2 className="h-3 w-3" />}
+                        {isCopied ? <Check className="h-3.5 w-3.5" /> : <Share2 className="h-3.5 w-3.5" />}
                       </button>
                     )}
 
@@ -263,7 +264,7 @@ export const TrackItem: React.FC<TrackItemProps> = ({
                           e.stopPropagation();
                           onLikeToggle();
                         }}
-                        className={`inline-flex h-7 w-7 items-center justify-center rounded-full bg-foreground/5 text-xs font-semibold transition-colors dark:bg-white/4 dark:hover:bg-white/8 ${
+                        className={`inline-flex h-8 w-8 items-center justify-center rounded-full bg-foreground/5 text-xs font-semibold transition-colors dark:bg-white/4 dark:hover:bg-white/8 ${
                           track.isLiked
                             ? 'text-pink-500 hover:text-pink-500 hover:bg-foreground/10 dark:hover:bg-white/8'
                             : 'text-foreground/80 hover:text-foreground hover:bg-foreground/10 dark:hover:bg-white/8'
@@ -272,9 +273,9 @@ export const TrackItem: React.FC<TrackItemProps> = ({
                         title={track.isLiked ? 'Unlike track' : 'Like track'}
                       >
                         {track.isLiked ? (
-                          <SolidThumbsUpIcon className="h-3 w-3 fill-current" />
+                          <SolidThumbsUpIcon className="h-3.5 w-3.5 fill-current" />
                         ) : (
-                          <ThumbsUp className="h-3 w-3" />
+                          <ThumbsUp className="h-3.5 w-3.5" />
                         )}
                       </button>
                     )}
@@ -285,7 +286,7 @@ export const TrackItem: React.FC<TrackItemProps> = ({
                 <>
                   {/* 操作按钮 - 桌面端 */}
                   {showActions && (
-                    <div className="flex items-center justify-end gap-1.5 flex-shrink-0">
+                    <div className="flex items-center justify-end gap-2 flex-shrink-0 pl-1">
                       <TrackActionButtons
                         track={track}
                         isMobile={false}

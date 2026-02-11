@@ -91,14 +91,14 @@ export const TrackActionButtons: React.FC<TrackActionButtonsProps> = ({
   // 桌面端按钮
   if (!isMobile) {
     return (
-      <div className="hidden md:flex items-center gap-2">
+      <div className="hidden md:flex items-center gap-2.5">
         {shouldShowEditMenu && (
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button
                 variant="ghost"
                 size="sm"
-                className="h-8 rounded-full px-2.5 text-xs font-medium bg-foreground/5 text-foreground/80 hover:text-foreground hover:bg-foreground/10 transition-all duration-150 opacity-0 pointer-events-none group-hover:opacity-100 group-hover:pointer-events-auto focus-visible:opacity-100 focus-visible:pointer-events-auto data-[state=open]:opacity-100 data-[state=open]:pointer-events-auto dark:bg-white/4 dark:hover:bg-white/8"
+                className="h-9 rounded-full px-3 text-xs font-medium bg-foreground/5 text-foreground/80 hover:text-foreground hover:bg-foreground/10 transition-all duration-150 opacity-0 pointer-events-none group-hover:opacity-100 group-hover:pointer-events-auto focus-visible:opacity-100 focus-visible:pointer-events-auto data-[state=open]:opacity-100 data-[state=open]:pointer-events-auto dark:bg-white/4 dark:hover:bg-white/8"
                 onClick={(e) => {
                   e.preventDefault();
                   e.stopPropagation();
@@ -106,9 +106,9 @@ export const TrackActionButtons: React.FC<TrackActionButtonsProps> = ({
                 aria-label="Edit options"
                 title="Edit options"
               >
-                <span className="inline-flex items-center gap-1">
+                <span className="inline-flex items-center gap-1.5">
                   Edit
-                  <ChevronDown className="h-3 w-3" />
+                  <ChevronDown className="h-3.5 w-3.5" />
                 </span>
               </Button>
             </DropdownMenuTrigger>
@@ -284,7 +284,7 @@ export const TrackActionButtons: React.FC<TrackActionButtonsProps> = ({
               <Button
                 variant="ghost"
                 size="sm"
-                className="h-8 w-8 rounded-full text-xs font-semibold bg-foreground/5 text-foreground/80 hover:text-foreground hover:bg-foreground/10 dark:bg-white/4 dark:hover:bg-white/8"
+                className="h-9 w-9 rounded-full text-xs font-semibold bg-foreground/5 text-foreground/80 hover:text-foreground hover:bg-foreground/10 dark:bg-white/4 dark:hover:bg-white/8"
                 onClick={(e) => {
                   e.preventDefault();
                   e.stopPropagation();
@@ -292,7 +292,7 @@ export const TrackActionButtons: React.FC<TrackActionButtonsProps> = ({
                 aria-label="More options"
                 title="More options"
               >
-                <MoreVertical className="h-3.5 w-3.5" />
+                <MoreVertical className="h-4 w-4" />
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" onClick={(e) => e.stopPropagation()} className="p-1.5 min-w-[180px]">
