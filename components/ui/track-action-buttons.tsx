@@ -99,6 +99,25 @@ export const TrackActionButtons: React.FC<TrackActionButtonsProps> = ({
   if (!isMobile) {
     return (
       <div className="hidden md:flex items-center gap-2.5">
+        {onPublishToggle && (
+          <Button
+            variant="ghost"
+            size="sm"
+            className="h-8 rounded-full px-3 text-xs font-semibold bg-foreground/5 text-foreground/80 hover:text-foreground hover:bg-foreground/10 transition-all duration-150 opacity-0 pointer-events-none group-hover:opacity-100 group-hover:pointer-events-auto focus-visible:opacity-100 focus-visible:pointer-events-auto data-[state=open]:opacity-100 data-[state=open]:pointer-events-auto dark:bg-white/4 dark:hover:bg-white/8"
+            onClick={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              if (isPublishing) return;
+              onPublishToggle();
+            }}
+            aria-label={currentPublished ? 'Unpublish track' : 'Publish track'}
+            title={isPublishing ? 'Updating...' : (currentPublished ? 'Unpublish' : 'Publish')}
+            disabled={isPublishing}
+          >
+            <span>{isPublishing ? 'Updating...' : (currentPublished ? 'Unpublish' : 'Publish')}</span>
+          </Button>
+        )}
+
         {shouldShowEditMenu && (
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
@@ -179,25 +198,6 @@ export const TrackActionButtons: React.FC<TrackActionButtonsProps> = ({
               )}
             </DropdownMenuContent>
           </DropdownMenu>
-        )}
-
-        {onPublishToggle && (
-          <Button
-            variant="ghost"
-            size="sm"
-            className="h-8 rounded-full px-3 text-xs font-semibold bg-foreground/5 text-foreground/80 hover:text-foreground hover:bg-foreground/10 transition-all duration-150 opacity-0 pointer-events-none group-hover:opacity-100 group-hover:pointer-events-auto focus-visible:opacity-100 focus-visible:pointer-events-auto data-[state=open]:opacity-100 data-[state=open]:pointer-events-auto dark:bg-white/4 dark:hover:bg-white/8"
-            onClick={(e) => {
-              e.preventDefault();
-              e.stopPropagation();
-              if (isPublishing) return;
-              onPublishToggle();
-            }}
-            aria-label={currentPublished ? 'Unpublish track' : 'Publish track'}
-            title={isPublishing ? 'Updating...' : (currentPublished ? 'Unpublish' : 'Publish')}
-            disabled={isPublishing}
-          >
-            <span>{isPublishing ? 'Updating...' : (currentPublished ? 'Unpublish' : 'Publish')}</span>
-          </Button>
         )}
 
         {/* 下载按钮 */}
