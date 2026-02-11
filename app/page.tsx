@@ -9,12 +9,12 @@ import type { Metadata } from "next";
 
 export const metadata: Metadata = {
   title: "MakeRNB | Free Online AI R&B Music Generator | Song Creator",
-  description: "Create R&B music with AI. Generate 90s Old School like New Jack Swing, Neo-Soul, Quiet Storm, Hip-Hop Soul tracks and Contemporary R&B. Free credits daily.",
+  description: "Create R&B with AI. Generate 90s old-school styles like New Jack Swing, Neo-Soul, Quiet Storm, Hip-Hop Soul and Contemporary R&B songs. Free credits daily.",
   openGraph: {
     type: "website",
     url: "https://makernb.com/",
     title: "MakeRNB | Free Online AI R&B Music Generator | Song Creator",
-    description: "Create R&B music with AI. Generate 90s Old School like New Jack Swing, Neo-Soul, Quiet Storm, Hip-Hop Soul tracks and Contemporary R&B. Free credits daily.",
+    description: "Create R&B with AI. Generate 90s old-school styles like New Jack Swing, Neo-Soul, Quiet Storm, Hip-Hop Soul and Contemporary R&B songs. Free credits daily.",
     images: [
       {
         url: "/hero-image-dark.jpeg",
@@ -28,7 +28,7 @@ export const metadata: Metadata = {
     card: "summary_large_image",
     site: "https://makernb.com/",
     title: "MakeRNB | Free Online AI R&B Music Generator | Song Creator",
-    description: "Create R&B music with AI. Generate 90s Old School like New Jack Swing, Neo-Soul, Quiet Storm, Hip-Hop Soul tracks and Contemporary R&B. Free credits daily.",
+    description: "Create R&B with AI. Generate 90s old-school styles like New Jack Swing, Neo-Soul, Quiet Storm, Hip-Hop Soul and Contemporary R&B songs. Free credits daily.",
     images: [
       "/hero-image-dark.jpeg",
     ],
