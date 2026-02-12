@@ -265,7 +265,11 @@ interface StudioCustomModeContentProps {
   uploadCoverFile: File | null;
   uploadAudioPreview: React.ReactNode;
   onAddAudio: () => void;
+  onAddMashup?: () => void;
+  isMashupLoading?: boolean;
   onOpenPersonaDialog: () => void;
+  hasUploadPreview?: boolean;
+  hidePersonaAction?: boolean;
   selectedPersonaName?: string | null;
   selectedPersonaId: string;
   instrumentalMode: boolean;
@@ -289,7 +293,11 @@ export const StudioCustomModeContent: React.FC<StudioCustomModeContentProps> = (
   uploadCoverFile,
   uploadAudioPreview,
   onAddAudio,
+  onAddMashup,
+  isMashupLoading = false,
   onOpenPersonaDialog,
+  hasUploadPreview = false,
+  hidePersonaAction = false,
   selectedPersonaName,
   selectedPersonaId,
   instrumentalMode,
@@ -308,6 +316,36 @@ export const StudioCustomModeContent: React.FC<StudioCustomModeContentProps> = (
   songTitle,
   setSongTitle,
 }) => {
+  const showAddAudioActions = !hasUploadPreview;
+  const showMashupAction = showAddAudioActions && typeof onAddMashup === "function";
+  const showPersonaAction = !hidePersonaAction;
+
+  const actionOrder: Array<"add" | "mashup" | "persona"> = [];
+  if (showAddAudioActions) {
+    actionOrder.push("add");
+    if (showMashupAction) {
+      actionOrder.push("mashup");
+    }
+  }
+  if (showPersonaAction) {
+    actionOrder.push("persona");
+  }
+
+  const actionCount = actionOrder.length;
+  const getSegmentClass = (action: "add" | "mashup" | "persona") => {
+    const index = actionOrder.indexOf(action);
+    if (index < 0 || actionCount <= 1) {
+      return "rounded-2xl";
+    }
+    if (index === 0) {
+      return "rounded-l-2xl rounded-r-none";
+    }
+    if (index === actionCount - 1) {
+      return "rounded-r-2xl rounded-l-none";
+    }
+    return "rounded-none";
+  };
+
   const handleInsertLyricsTag = (tag: string) => {
     const trimmedLyrics = customLyrics.trimEnd();
     const nextLyrics = trimmedLyrics
@@ -323,26 +361,43 @@ ${tag}
   return (
     <>
       <div className="space-y-5 md:space-y-6 pt-2 md:pt-3">
-        <section>
-          {uploadCoverFile ? (
-            uploadAudioPreview
-          ) : (
-            <div className="grid grid-cols-2 gap-1">
+        <section className="space-y-2">
+          {actionCount > 0 && (
+            <div className={`grid ${actionCount === 1 ? 'grid-cols-1' : actionCount === 2 ? 'grid-cols-2' : 'grid-cols-3'} gap-1`}>
+            {showAddAudioActions && (
               <Button
                 variant="ghost"
                 size="sm"
-                className="studio-panel-card h-12 w-full justify-center rounded-l-2xl rounded-r-none text-foreground/75 hover:text-foreground hover:bg-foreground/10 transition-colors"
+                className={`studio-panel-card h-12 w-full justify-center text-foreground/75 hover:text-foreground hover:bg-foreground/10 transition-colors ${getSegmentClass("add")}`}
                 title="Add audio"
                 onClick={onAddAudio}
               >
                 <UploadCloud className="h-3.5 w-3.5" />
                 <span className="text-sm font-semibold tracking-tight">Add Audio</span>
               </Button>
+            )}
 
+            {showMashupAction && (
               <Button
                 variant="ghost"
                 size="sm"
-                className="studio-panel-card h-12 w-full justify-center rounded-r-2xl rounded-l-none text-foreground/75 hover:text-foreground hover:bg-foreground/10 transition-colors"
+                className={`studio-panel-card h-12 w-full justify-center text-foreground/75 hover:text-foreground hover:bg-foreground/10 transition-colors ${getSegmentClass("mashup")}`}
+                title="Create mashup"
+                onClick={onAddMashup}
+                disabled={isMashupLoading}
+              >
+                <Sparkles className="h-3.5 w-3.5" />
+                <span className="text-sm font-semibold tracking-tight">
+                  {isMashupLoading ? "Preparing..." : "Mashup"}
+                </span>
+              </Button>
+            )}
+
+            {showPersonaAction && (
+              <Button
+                variant="ghost"
+                size="sm"
+                className={`studio-panel-card h-12 w-full justify-center text-foreground/75 hover:text-foreground hover:bg-foreground/10 transition-colors ${getSegmentClass("persona")}`}
                 title="Select persona"
                 onClick={onOpenPersonaDialog}
               >
@@ -351,8 +406,11 @@ ${tag}
                   {selectedPersonaName || (selectedPersonaId ? "Persona Selected" : "Select Persona")}
                 </span>
               </Button>
+            )}
             </div>
           )}
+
+          {hasUploadPreview && uploadAudioPreview}
         </section>
 
         <section className="studio-panel-card rounded-2xl px-3 py-3 flex items-center justify-between">

@@ -101,7 +101,7 @@ export const UploadProgressDialog = ({
 
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
-      <DialogContent className="max-w-[calc(100vw-2rem)] sm:max-w-[640px] max-h-[85vh] flex flex-col p-0 border border-border/60 bg-background shadow-xl">
+      <DialogContent className="max-w-[calc(100vw-2rem)] sm:max-w-[640px] max-h-[85vh] flex flex-col p-0 border-0 bg-background shadow-xl">
         <div className="pointer-events-none absolute inset-x-0 top-0 h-24 bg-gradient-to-b from-primary/15 via-primary/5 to-transparent" />
         <DialogHeader className="relative px-6 pt-5 pb-4">
           <div className="text-[10px] uppercase tracking-[0.28em] text-muted-foreground">

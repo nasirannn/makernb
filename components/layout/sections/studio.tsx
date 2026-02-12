@@ -132,6 +132,7 @@ const StudioContent = () => {
         toggleMute: () => audioPlayerRef.current.toggleMute(),
         seek: (time: number) => audioPlayerRef.current.seek(time),
         updateCurrentTrackDuration: (duration: number) => audioPlayerRef.current.updateCurrentTrackDuration(duration),
+        clearCurrentTrack: () => audioPlayerRef.current.clearCurrentTrack(),
     }), []); // ✅ 空依赖，完全稳定
     
     // BPM Mode状态
@@ -906,14 +907,132 @@ const StudioContent = () => {
     const handleGenerationStart = React.useCallback(async (options?: {
         uploadFile?: File | null;
         uploadUrl?: string | null;
-        mode?: "cover" | "extend";
+        uploadUrlList?: string[];
+        mode?: "cover" | "extend" | "mashup";
         continueAt?: number;
     }) => {
+        if (options?.mode === 'mashup') {
+            if (!user?.id) {
+                setIsAuthModalOpen(true);
+                return false;
+            }
+
+            const uploadUrlList = (options?.uploadUrlList || []).map((url) => url.trim()).filter(Boolean);
+            if (uploadUrlList.length !== 2) {
+                toast.error('Please provide exactly 2 uploaded audio URLs for mashup.');
+                return false;
+            }
+
+            const trimmedCustomLyrics = customLyrics.trim();
+            const trimmedStyle = styleText.trim();
+            const trimmedTitle = songTitle.trim();
+
+            if (!trimmedStyle) {
+                toast.error('Please enter a style.');
+                return false;
+            }
+            if (!trimmedTitle) {
+                toast.error('Please enter a title.');
+                return false;
+            }
+            if (!instrumentalMode && !trimmedCustomLyrics) {
+                toast.error('Please enter lyrics.');
+                return false;
+            }
+
+            const normalizeVocalGender = (gender: string) => {
+                if (gender === 'male' || gender === 'm') return 'm';
+                if (gender === 'female' || gender === 'f') return 'f';
+                return '';
+            };
+
+            const modelLimits = getModelLimits(selectedModel);
+
+            try {
+                const { data: { session } } = await supabase.auth.getSession();
+
+                if (!session?.access_token) {
+                    throw new Error('Authentication expired. Please sign in again.');
+                }
+
+                const formData = new FormData();
+                formData.append('uploadUrlList', uploadUrlList.join(','));
+                formData.append('customMode', 'true');
+                formData.append('model', selectedModel);
+                formData.append('title', trimmedTitle.slice(0, modelLimits.title));
+                formData.append('style', trimmedStyle.slice(0, modelLimits.style));
+                formData.append('instrumental', instrumentalMode ? 'true' : 'false');
+                if (!instrumentalMode) {
+                    formData.append('prompt', trimmedCustomLyrics.slice(0, modelLimits.prompt));
+                }
+                const vocalGenderValue = normalizeVocalGender(vocalGender);
+                if (vocalGenderValue) {
+                    formData.append('vocalGender', vocalGenderValue);
+                }
+
+                const response = await fetch('/api/music/mashup', {
+                    method: 'POST',
+                    headers: {
+                        Authorization: `Bearer ${session.access_token}`,
+                    },
+                    body: formData,
+                });
+
+                const result = await response.json().catch(() => ({}));
+
+                if (!response.ok || !result?.success) {
+                    if (response.status === 402) {
+                        toast.error(result?.error || 'Insufficient credits. Please top up credits.');
+                    } else {
+                        toast.error(result?.error || 'Mashup generation failed. Please try again.');
+                    }
+                    return false;
+                }
+
+                const taskId = result?.data?.taskId;
+                const initialTracks = result?.data?.initialTracks;
+
+                if (!taskId) {
+                    toast.error('Mashup task ID is missing. Please try again.');
+                    return false;
+                }
+
+                musicGeneration.trackExistingTask(taskId, initialTracks);
+                setGenerationConfirmOpen(true);
+                await refreshCredits?.();
+                return true;
+            } catch (error) {
+                console.error('Mashup generation failed:', error);
+                const message = error instanceof Error ? error.message : 'Mashup generation failed. Please try again.';
+                toast.error(message);
+                return false;
+            }
+        }
+
         if (options?.uploadFile || options?.uploadUrl) {
-            return await handleUploadCover(options);
+            return await handleUploadCover({
+                uploadFile: options.uploadFile,
+                uploadUrl: options.uploadUrl,
+                mode: options.mode === "extend" ? "extend" : "cover",
+                continueAt: options.continueAt,
+            });
         }
         return await handleGenerate();
-    }, [handleGenerate, handleUploadCover]);
+    }, [
+        user?.id,
+        customLyrics,
+        styleText,
+        songTitle,
+        instrumentalMode,
+        selectedModel,
+        vocalGender,
+        getModelLimits,
+        refreshCredits,
+        handleGenerate,
+        handleUploadCover,
+        musicGeneration,
+        setIsAuthModalOpen,
+    ]);
 
     // 移除自动关闭逻辑，让用户手动关闭确认弹窗
     const handleGenerateLyrics = React.useCallback(() => {
@@ -2118,6 +2237,11 @@ const StudioContent = () => {
         onSeek: (time: number) => player.seek(time),
         onVolumeChange: changeVolume,
         onMuteToggle: toggleMute,
+        onClose: () => {
+            player.clearCurrentTrack();
+            setLyricsPanelOpen(false);
+            setSelectedStudioTrack(null);
+        },
         hideProgress: false,
         onTrackInfoClick: handlePlayerLyricsToggle,
         onTrackChange: (index: number) => {

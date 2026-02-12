@@ -9,6 +9,7 @@ import musicOptions from '@/data/music-options.json';
 import { useAuth } from '@/contexts/AuthContext';
 import { useCredits } from '@/contexts/CreditsContext';
 import { useSubscription } from "@/contexts/SubscriptionContext";
+import { useFeaturePermissions } from '@/contexts/FeaturePermissionsContext';
 import { toast } from 'sonner';
 import { supabase } from '@/lib/supabase';
 import { Tooltip } from '@/components/ui/tooltip';
@@ -25,6 +26,8 @@ import { UploadProgressDialog } from "@/components/ui/upload-progress-dialog";
 import { formatDuration } from '@/lib/format-utils';
 import { WaveformPlayer } from "@/components/ui/waveform-player";
 import { EditAudioDialog } from "@/features/music-upload/components/edit-audio-dialog";
+import { MashupEditDialog, type MashupEditedTrack } from "@/features/music-upload/components/mashup-edit-dialog";
+import { MashupUploadConfirmDialog } from "@/components/ui/mashup-upload-confirm-dialog";
 import { StudioCustomModeContent, StudioSimpleModeContent } from "@/components/ui/studio-panel-mode-content";
 import { StudioPanelPersonaDialogs } from "@/components/ui/studio-panel-persona-dialogs";
 import { useStudioPersonaManager } from "@/hooks/use-studio-persona-manager";
@@ -36,6 +39,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { PricingSection } from '@/components/layout/sections/pricing';
+import { useTheme } from "next-themes";
 
 // Extract options from musicOptions
 const { genres, vibes, grooveTypes, leadInstruments, drumKits, bassTones, vocalGenders, harmonyPalettes } = musicOptions;
@@ -46,6 +50,17 @@ const HERO_GENRE_ICONS: Record<string, string> = {
   "hip-hop-soul": "Hip-Hop Soul Icon.webp",
   "crunk-rnb": "Crunk Icon.webp",
   "pb-rnb": "PB Icon.webp",
+};
+const UPLOAD_WAVE_COLOR_LIGHT = "#d1d5db";
+const UPLOAD_PROGRESS_COLOR_LIGHT = "hsl(262, 100%, 70%)";
+const UPLOAD_CURSOR_COLOR_LIGHT = "hsl(262, 100%, 70%)";
+
+type MashupPreviewTrack = {
+  file: File;
+  fileName: string;
+  audioUrl: string;
+  duration: number;
+  uploadUrl: string | null;
 };
 
 
@@ -98,7 +113,8 @@ interface StudioPanelProps {
   onGenerationStart?: (options?: {
     uploadFile?: File | null;
     uploadUrl?: string | null;
-    mode?: "cover" | "extend";
+    uploadUrlList?: string[];
+    mode?: "cover" | "extend" | "mashup";
     continueAt?: number;
   }) => Promise<boolean> | void;
   onGenerateLyrics?: () => void;
@@ -175,6 +191,7 @@ export const StudioPanel = (props: StudioPanelProps) => {
 
   const { user } = useAuth();
   const { credits } = useCredits();
+  const { resolvedTheme } = useTheme();
   const userSelectedModelRef = React.useRef(false);
   const simplePromptMaxLength = 400;
   const customPromptMaxLength = 5000;
@@ -185,6 +202,10 @@ export const StudioPanel = (props: StudioPanelProps) => {
   const supportsStyleBoost = ['V4_5', 'V4_5PLUS', 'V4_5ALL'].includes(
     String(effectiveModel).toUpperCase().replace(/\./g, '_').replace(/\+/g, 'PLUS')
   );
+  const isDark = resolvedTheme === "dark";
+  const uploadWaveColor = isDark ? "rgba(255, 255, 255, 0.7)" : UPLOAD_WAVE_COLOR_LIGHT;
+  const uploadProgressColor = isDark ? "rgba(255, 255, 255, 0.95)" : UPLOAD_PROGRESS_COLOR_LIGHT;
+  const uploadCursorColor = isDark ? "rgba(255, 255, 255, 0.95)" : UPLOAD_CURSOR_COLOR_LIGHT;
 
   const updateSelectedModel = React.useCallback((
     model: MusicModel,
@@ -217,12 +238,24 @@ export const StudioPanel = (props: StudioPanelProps) => {
   }, [user?.id]);
 
   const { hasSubscription } = useSubscription();
+  const { hasPermission } = useFeaturePermissions();
+  const canUseMashup = hasPermission('upload_mashup_music');
+  const canUsePersona = hasPermission('generate_persona');
 
   // Pricing dialog state
   const [isPricingOpen, setIsPricingOpen] = React.useState(false);
   const [isModelMenuOpen, setIsModelMenuOpen] = React.useState(false);
   const [isGeneratingGenrePrompt, setIsGeneratingGenrePrompt] = React.useState(false);
   const [pendingGenreId, setPendingGenreId] = React.useState<string | null>(null);
+  const [isMashupEditOpen, setIsMashupEditOpen] = React.useState(false);
+  const [isMashupConfirmOpen, setIsMashupConfirmOpen] = React.useState(false);
+  const [isMashupPreparing, setIsMashupPreparing] = React.useState(false);
+  const [isMashupSubmitting, setIsMashupSubmitting] = React.useState(false);
+  const [mashupError, setMashupError] = React.useState<string | null>(null);
+  const [mashupTracks, setMashupTracks] = React.useState<MashupPreviewTrack[]>([]);
+  const [mashupPreviewTracks, setMashupPreviewTracks] = React.useState<MashupPreviewTrack[]>([]);
+  const [mashupPlayingIndex, setMashupPlayingIndex] = React.useState<number | null>(null);
+  const [mashupCurrentTimes, setMashupCurrentTimes] = React.useState<number[]>([]);
   const genrePromptAbortRef = React.useRef<AbortController | null>(null);
   const genrePromptRequestIdRef = React.useRef(0);
 
@@ -231,6 +264,47 @@ export const StudioPanel = (props: StudioPanelProps) => {
       genrePromptAbortRef.current?.abort();
     };
   }, []);
+
+  const clearMashupPreviewTracks = React.useCallback((tracks: MashupPreviewTrack[]) => {
+    tracks.forEach((track) => {
+      if (track.audioUrl) {
+        URL.revokeObjectURL(track.audioUrl);
+      }
+    });
+  }, []);
+
+  React.useEffect(() => {
+    return () => {
+      clearMashupPreviewTracks(mashupPreviewTracks);
+      clearMashupPreviewTracks(mashupTracks);
+    };
+  }, [clearMashupPreviewTracks, mashupPreviewTracks, mashupTracks]);
+
+  React.useEffect(() => {
+    setMashupPlayingIndex(null);
+    setMashupCurrentTimes(mashupTracks.map(() => 0));
+  }, [mashupTracks]);
+
+  const clearMashupSelection = React.useCallback(() => {
+    setMashupTracks((prev) => {
+      clearMashupPreviewTracks(prev);
+      return [];
+    });
+    setMashupPreviewTracks((prev) => {
+      clearMashupPreviewTracks(prev);
+      return [];
+    });
+    setMashupPlayingIndex(null);
+    setMashupCurrentTimes([]);
+    setMashupError(null);
+  }, [clearMashupPreviewTracks]);
+
+  React.useEffect(() => {
+    if (canUseMashup) return;
+    setIsMashupEditOpen(false);
+    setIsMashupConfirmOpen(false);
+    clearMashupSelection();
+  }, [canUseMashup, clearMashupSelection]);
 
   const {
     isPersonaDialogOpen,
@@ -333,9 +407,11 @@ export const StudioPanel = (props: StudioPanelProps) => {
   const styleBoostCredits = isCustomMode && supportsStyleBoost && enhanceStyle
     ? CLIENT_STYLE_BOOST_CREDITS
     : 0;
-  const createCredits = uploadCoverFile
-    ? CLIENT_UPLOAD_AUDIO_CREDITS[uploadAudioMode]
-    : (mode === "custom" ? CLIENT_MUSIC_CREDITS.custom + styleBoostCredits : CLIENT_MUSIC_CREDITS.simple);
+  const createCredits = mashupTracks.length === 2
+    ? CLIENT_UPLOAD_AUDIO_CREDITS.mashup
+    : uploadCoverFile
+      ? CLIENT_UPLOAD_AUDIO_CREDITS[uploadAudioMode]
+      : (mode === "custom" ? CLIENT_MUSIC_CREDITS.custom + styleBoostCredits : CLIENT_MUSIC_CREDITS.simple);
 
   const handleModelSelect = React.useCallback((model: MusicModel) => {
     const selectedOption = modelOptions.find((option) => option.value === model);
@@ -475,6 +551,81 @@ export const StudioPanel = (props: StudioPanelProps) => {
       return;
     }
 
+    if (mashupTracks.length === 2) {
+      if (!canUseMashup) {
+        setIsPricingOpen(true);
+        clearMashupSelection();
+        return;
+      }
+
+      const trimmedCustomLyrics = customLyrics.trim();
+      const trimmedStyle = styleText.trim();
+      const trimmedTitle = songTitle.trim();
+
+      if (!trimmedStyle) {
+        toast.error('Please enter a style before creating mashup.');
+        return;
+      }
+      if (!trimmedTitle) {
+        toast.error('Please enter a title before creating mashup.');
+        return;
+      }
+      if (!instrumentalMode && !trimmedCustomLyrics) {
+        toast.error('Please enter lyrics before creating mashup.');
+        return;
+      }
+
+      if (credits === null) {
+        toast('Loading credits, please wait...');
+        return;
+      }
+
+      const mashupCredits = CLIENT_UPLOAD_AUDIO_CREDITS.mashup;
+      if (credits < mashupCredits) {
+        toast('Insufficient Credits', {
+          description: `Need ${mashupCredits} credits (you have ${credits}). Please wait for daily rewards or buy credits.`,
+          icon: <CreditCard className="h-4 w-4" />,
+        });
+        return;
+      }
+
+      setIsMashupSubmitting(true);
+      setMashupError(null);
+
+      let result = false;
+      try {
+        const uploadedUrls = await Promise.all(
+          mashupTracks.map(async (track) => uploadAudioToServer(track.file))
+        );
+
+        const uploadUrlList = uploadedUrls
+          .map((url) => url.trim())
+          .filter(Boolean);
+
+        if (uploadUrlList.length !== 2) {
+          throw new Error('Failed to upload mashup audio files. Please try again.');
+        }
+
+        const generationResult = await onGenerationStart?.({
+          uploadUrlList,
+          mode: 'mashup',
+        });
+        result = Boolean(generationResult);
+      } catch (error) {
+        console.error('Mashup generation failed:', error);
+        const message = error instanceof Error ? error.message : 'Mashup generation failed. Please try again.';
+        setMashupError(message);
+        toast.error(message);
+      } finally {
+        setIsMashupSubmitting(false);
+      }
+
+      if (result) {
+        clearMashupSelection();
+      }
+      return;
+    }
+
     if (uploadCoverFile) {
       if (!uploadAudioUploadUrl) {
         toast.error("Upload URL is missing. Please save your audio again.");
@@ -527,6 +678,144 @@ export const StudioPanel = (props: StudioPanelProps) => {
     uploadFileInputRef.current?.click();
   }, [user, setIsAuthModalOpen, uploadFileInputRef]);
 
+  const handleMashupAudioClick = React.useCallback(() => {
+    if (!user) {
+      setIsAuthModalOpen?.(true);
+      return;
+    }
+    if (!canUseMashup) {
+      setIsPricingOpen(true);
+      return;
+    }
+    if (uploadCoverFile) {
+      toast.error('Please remove current uploaded audio before creating mashup.');
+      return;
+    }
+    setMashupError(null);
+    setIsMashupEditOpen(true);
+  }, [user, setIsAuthModalOpen, canUseMashup, uploadCoverFile]);
+
+  const handleOpenPersonaDialog = React.useCallback(() => {
+    if (!user) {
+      setIsAuthModalOpen?.(true);
+      return;
+    }
+
+    if (!canUsePersona) {
+      setIsPricingOpen(true);
+      return;
+    }
+
+    setIsPersonaDialogOpen(true);
+  }, [user, setIsAuthModalOpen, canUsePersona, setIsPersonaDialogOpen]);
+
+  const handleMashupEditSave = React.useCallback(async (editedTracks: MashupEditedTrack[]) => {
+    if (!user) {
+      setIsAuthModalOpen?.(true);
+      return;
+    }
+
+    if (editedTracks.length !== 2) {
+      setMashupError('Please select exactly 2 audio files for mashup.');
+      return;
+    }
+
+    if (credits === null) {
+      toast('Loading credits, please wait...');
+      return;
+    }
+
+    const mashupCredits = CLIENT_UPLOAD_AUDIO_CREDITS.mashup;
+    if (credits < mashupCredits) {
+      toast('Insufficient Credits', {
+        description: `Need ${mashupCredits} credits (you have ${credits}). Please wait for daily rewards or buy credits.`,
+        icon: <CreditCard className="h-4 w-4" />,
+      });
+      return;
+    }
+
+    setMashupError(null);
+    setIsMashupPreparing(true);
+
+    try {
+      const previewTracks: MashupPreviewTrack[] = editedTracks.map((track, index) => {
+        const fileName = track.title?.trim() || track.file.name || `Mashup Audio ${index + 1}`;
+        return {
+          file: track.file,
+          fileName,
+          audioUrl: URL.createObjectURL(track.file),
+          duration: track.duration,
+          uploadUrl: null,
+        };
+      });
+
+      clearMashupPreviewTracks(mashupPreviewTracks);
+      setMashupPreviewTracks(previewTracks);
+      setIsMashupEditOpen(false);
+      setIsMashupConfirmOpen(true);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Failed to prepare mashup audio.';
+      setMashupError(message);
+      toast.error(message);
+    } finally {
+      setIsMashupPreparing(false);
+    }
+  }, [
+    user,
+    setIsAuthModalOpen,
+    credits,
+    mashupPreviewTracks,
+    clearMashupPreviewTracks,
+  ]);
+
+  const handleMashupConfirmCancel = React.useCallback(() => {
+    if (isMashupSubmitting) return;
+    setIsMashupConfirmOpen(false);
+    setMashupError(null);
+  }, [isMashupSubmitting]);
+
+  const handleMashupConfirmSubmit = React.useCallback(async () => {
+    if (!user) {
+      setIsAuthModalOpen?.(true);
+      return;
+    }
+
+    if (mashupPreviewTracks.length !== 2) {
+      setMashupError('Please select 2 audio files.');
+      return;
+    }
+
+    setIsMashupSubmitting(true);
+    setMashupError(null);
+
+    try {
+      const nextTracks: MashupPreviewTrack[] = mashupPreviewTracks.map((track) => ({
+        ...track,
+        uploadUrl: null,
+      }));
+
+      setMashupTracks((prev) => {
+        clearMashupPreviewTracks(prev);
+        return nextTracks;
+      });
+
+      setIsMashupConfirmOpen(false);
+      toast.success('Mashup audio preview is ready.');
+    } catch (error) {
+      console.error('Mashup confirm failed:', error);
+      const message = error instanceof Error ? error.message : 'Failed to confirm mashup audio.';
+      setMashupError(message);
+      toast.error(message);
+    } finally {
+      setIsMashupSubmitting(false);
+    }
+  }, [
+    user,
+    setIsAuthModalOpen,
+    mashupPreviewTracks,
+    clearMashupPreviewTracks,
+  ]);
+
   const uploadAudioPreview = uploadCoverFile ? (
     <div className="space-y-2">
       <div className="rounded-2xl p-[1px] bg-gradient-to-br from-primary/40 via-border/50 to-primary/10">
@@ -537,7 +826,7 @@ export const StudioPanel = (props: StudioPanelProps) => {
               <button
                 type="button"
                 onClick={handleUploadAudioPlayPause}
-                className="flex items-center justify-center h-10 w-10 rounded-full bg-primary/10 border border-primary/30 text-primary transition hover:text-primary/80 hover:bg-primary/15 p-0"
+                className="flex items-center justify-center h-10 w-10 rounded-full bg-primary/10 text-primary transition hover:text-primary/80 hover:bg-primary/15 p-0"
                 disabled={!uploadCoverFile || isUploadAudioAnalyzing}
               >
                 {isUploadAudioPlaying ? (
@@ -546,7 +835,7 @@ export const StudioPanel = (props: StudioPanelProps) => {
                   <Play className="w-4 h-4 fill-current" />
                 )}
               </button>
-              <div className="min-w-0 flex flex-col justify-center gap-1">
+              <div className="min-w-0 flex-1 flex flex-col justify-center gap-1">
                 <div className="flex items-center gap-2 min-w-0">
                   <p className="text-sm font-semibold truncate text-foreground leading-none">
                     {uploadCoverFileName || uploadCoverFile.name}
@@ -554,6 +843,14 @@ export const StudioPanel = (props: StudioPanelProps) => {
                   <span className="inline-flex items-center rounded-full bg-primary/15 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-primary/90">
                     {uploadAudioMode === "extend" ? "Extend" : "Cover"}
                   </span>
+                  <button
+                    type="button"
+                    onClick={clearUploadCoverFile}
+                    className="ml-auto inline-flex h-5 w-5 items-center justify-center rounded-full text-muted-foreground hover:text-foreground transition-colors p-0"
+                    title="Remove"
+                  >
+                    <X className="h-3 w-3" />
+                  </button>
                 </div>
                 <div className="flex items-center gap-2">
                   <p className="text-xs text-muted-foreground leading-none">
@@ -568,43 +865,38 @@ export const StudioPanel = (props: StudioPanelProps) => {
                   </p>
                 </div>
               </div>
-              <button
-                type="button"
-                onClick={clearUploadCoverFile}
-                className="ml-auto inline-flex h-7 w-7 items-center justify-center rounded-full bg-primary/10 text-muted-foreground hover:text-foreground hover:bg-primary/20 transition-colors p-0"
-                title="Remove"
-              >
-                <X className="h-3.5 w-3.5" />
-              </button>
             </div>
             {uploadAudioUrl && (
               <div className="space-y-2">
-                <WaveformPlayer
-                  audioUrl={uploadAudioUrl}
-                  audioBlob={uploadCoverFile}
-                  isPlaying={isUploadAudioPlaying}
-                  externalCurrentTime={uploadAudioCurrentTime}
-                  onPlayPause={handleUploadAudioPlayPause}
-                  onFinish={() => updateCurrentUploadState({ isPlaying: false })}
-                  showControls={false}
-                  separateControls={false}
-                  isLoading={!uploadAudioUrl}
-                  syncWithIsPlaying={false}
-                  backend="MediaElement"
-                  waveHeight={54}
-                  waveColor="rgba(255, 255, 255, 0.7)"
-                  progressColor="rgba(255, 255, 255, 0.95)"
-                  cursorColor="rgba(255, 255, 255, 0.95)"
-                  cursorWidth={2}
-                  className="rounded-lg bg-gradient-to-br from-primary/10 via-white/5 to-transparent"
-                  showSelector={uploadAudioMode === "extend"}
-                  selectorOverlay={true}
-                  showSelectorEndHandle={false}
-                  showSelectorLabels={false}
-                  selectorStart={uploadExtendStartTime}
-                  selectorEnd={uploadAudioDuration || 0}
-                  onSelectorStartChange={(time) => updateExtendStartTime(time)}
-                />
+                <div className="w-full h-[54px] rounded-md bg-muted/20 backdrop-blur-md px-3">
+                  <WaveformPlayer
+                    audioUrl={uploadAudioUrl}
+                    audioBlob={uploadCoverFile}
+                    isPlaying={isUploadAudioPlaying}
+                    externalCurrentTime={uploadAudioCurrentTime}
+                    onPlayPause={handleUploadAudioPlayPause}
+                    onFinish={() => updateCurrentUploadState({ isPlaying: false })}
+                    showControls={false}
+                    separateControls={false}
+                    isLoading={!uploadAudioUrl}
+                    syncWithIsPlaying={false}
+                    backend="MediaElement"
+                    waveHeight={54}
+                    waveColor={uploadWaveColor}
+                    progressColor={uploadProgressColor}
+                    cursorColor={uploadCursorColor}
+                    cursorWidth={2}
+                    chrome={false}
+                    className="w-full h-full"
+                    showSelector={uploadAudioMode === "extend"}
+                    selectorOverlay={true}
+                    showSelectorEndHandle={false}
+                    showSelectorLabels={false}
+                    selectorStart={uploadExtendStartTime}
+                    selectorEnd={uploadAudioDuration || 0}
+                    onSelectorStartChange={(time) => updateExtendStartTime(time)}
+                  />
+                </div>
                 {uploadAudioMode === "extend" && (
                   <div className="text-xs text-muted-foreground">
                     Continue at {formatDuration(Math.floor(uploadExtendStartTime)) || "0:00"}
@@ -615,6 +907,109 @@ export const StudioPanel = (props: StudioPanelProps) => {
           </div>
         </div>
       </div>
+    </div>
+  ) : null;
+
+  const mashupAudioPreview = mashupTracks.length === 2 ? (
+    <div className="space-y-2">
+      {mashupTracks.map((track, index) => (
+        <div key={`${track.fileName}-${index}`} className="rounded-2xl p-[1px] bg-gradient-to-br from-primary/40 via-border/50 to-primary/10">
+          <div className="relative overflow-hidden rounded-2xl bg-background p-3 shadow-sm">
+            <div className="relative flex flex-col gap-3">
+              <div className="flex items-center gap-4">
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (mashupPlayingIndex === index) {
+                      setMashupPlayingIndex(null);
+                      return;
+                    }
+                    setMashupCurrentTimes((prev) => prev.map((_, currentIndex) => (currentIndex === index ? prev[currentIndex] || 0 : 0)));
+                    setMashupPlayingIndex(index);
+                  }}
+                  className="flex items-center justify-center h-10 w-10 rounded-full bg-primary/10 text-primary transition hover:text-primary/80 hover:bg-primary/15 p-0"
+                >
+                  {mashupPlayingIndex === index ? (
+                    <Pause className="w-4 h-4 fill-current" />
+                  ) : (
+                    <Play className="w-4 h-4 fill-current" />
+                  )}
+                </button>
+                <div className="min-w-0 flex-1 flex flex-col justify-center gap-1">
+                  <div className="flex items-center gap-2 min-w-0">
+                    <p className="text-sm font-semibold truncate text-foreground leading-none">
+                      {track.fileName}
+                    </p>
+                    <span className="inline-flex items-center rounded-full bg-primary/15 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-primary/90">
+                      Mashup
+                    </span>
+                    <button
+                      type="button"
+                      onClick={clearMashupSelection}
+                      className="ml-auto inline-flex h-5 w-5 items-center justify-center rounded-full text-muted-foreground hover:text-foreground transition-colors p-0"
+                      title="Remove"
+                    >
+                      <X className="h-3 w-3" />
+                    </button>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <p className="text-xs text-muted-foreground leading-none">
+                      {formatDuration(Math.floor(Math.max(0, track.duration - (mashupCurrentTimes[index] || 0)))) || "0:00"}
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              <div className="w-full h-[54px] rounded-md bg-muted/20 backdrop-blur-md px-3">
+                <WaveformPlayer
+                  audioUrl={track.audioUrl}
+                  audioBlob={track.file}
+                  isPlaying={mashupPlayingIndex === index}
+                  externalCurrentTime={mashupCurrentTimes[index] || 0}
+                  onPlayPause={() => {
+                    setMashupPlayingIndex((prev) => {
+                      if (prev === index) {
+                        return null;
+                      }
+                      return index;
+                    });
+                  }}
+                  onFinish={() => {
+                    setMashupPlayingIndex((prev) => (prev === index ? null : prev));
+                    setMashupCurrentTimes((prev) => prev.map((time, currentIndex) => (currentIndex === index ? 0 : time)));
+                  }}
+                  onTimeUpdate={(time) => {
+                    setMashupCurrentTimes((prev) => {
+                      const next = prev.length === mashupTracks.length ? [...prev] : mashupTracks.map(() => 0);
+                      next[index] = time;
+                      return next;
+                    });
+                  }}
+                  onPlayStateChange={(playing) => {
+                    if (playing) {
+                      setMashupPlayingIndex(index);
+                      return;
+                    }
+                    setMashupPlayingIndex((prev) => (prev === index ? null : prev));
+                  }}
+                  showControls={false}
+                  separateControls={false}
+                  isLoading={!track.audioUrl}
+                  syncWithIsPlaying={true}
+                  backend="MediaElement"
+                  waveHeight={54}
+                  waveColor={uploadWaveColor}
+                  progressColor={uploadProgressColor}
+                  cursorColor={uploadCursorColor}
+                  cursorWidth={2}
+                  chrome={false}
+                  className="w-full h-full"
+                />
+              </div>
+            </div>
+          </div>
+        </div>
+      ))}
     </div>
   ) : null;
 
@@ -1552,9 +1947,13 @@ export const StudioPanel = (props: StudioPanelProps) => {
       ) : (
         <StudioCustomModeContent
           uploadCoverFile={uploadCoverFile}
-          uploadAudioPreview={uploadAudioPreview}
+          uploadAudioPreview={mashupTracks.length === 2 ? mashupAudioPreview : uploadAudioPreview}
           onAddAudio={handlePromptAddAudioClick}
-          onOpenPersonaDialog={() => setIsPersonaDialogOpen(true)}
+          onAddMashup={handleMashupAudioClick}
+          isMashupLoading={isMashupPreparing || isMashupSubmitting}
+          onOpenPersonaDialog={handleOpenPersonaDialog}
+          hasUploadPreview={!!uploadCoverFile || mashupTracks.length === 2}
+          hidePersonaAction={mashupTracks.length === 2}
           selectedPersonaName={selectedPersona?.name?.trim() || null}
           selectedPersonaId={selectedPersonaId}
           instrumentalMode={instrumentalMode}
@@ -1760,6 +2159,31 @@ export const StudioPanel = (props: StudioPanelProps) => {
             updateCurrentUploadState({ readyAudioUrl: null });
           }
         }}
+      />
+
+      <MashupEditDialog
+        isOpen={isMashupEditOpen}
+        onClose={() => {
+          if (isMashupPreparing) return;
+          setIsMashupEditOpen(false);
+          setMashupError(null);
+        }}
+        minDuration={3}
+        maxDuration={maxUploadDurationSeconds}
+        onSave={handleMashupEditSave}
+      />
+
+      <MashupUploadConfirmDialog
+        isOpen={isMashupConfirmOpen}
+        onClose={handleMashupConfirmCancel}
+        tracks={mashupPreviewTracks.map((track) => ({
+          fileName: track.fileName,
+          audioUrl: track.audioUrl,
+          duration: track.duration,
+        }))}
+        onConfirm={handleMashupConfirmSubmit}
+        isConfirming={isMashupSubmitting}
+        errorMessage={mashupError}
       />
 
       {/* Pricing Dialog */}

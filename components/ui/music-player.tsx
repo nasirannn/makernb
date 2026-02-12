@@ -2,7 +2,7 @@
 
 import React from 'react';
 import Image from 'next/image';
-import { Play, Pause, Rewind, FastForward, Volume2, VolumeX, FileText, Music } from 'lucide-react';
+import { Play, Pause, Rewind, FastForward, Volume2, VolumeX, FileText, Music, X } from 'lucide-react';
 import { VocalSeparationButton } from '@/features/vocal-tools/components/vocal-separation-button';
 import { AudioPlayerTrack } from '@/types/track';
 import { cn } from '@/lib/utils';
@@ -128,6 +128,7 @@ interface MusicPlayerProps {
   onMuteToggle: () => void;
   onTrackChange: (index: number) => void;
   onTrackInfoClick?: () => void; // 点击歌曲信息区域的回调
+  onClose?: () => void; // 关闭播放器
 
   // 新增：支持通过 track ID 播放
   playTrackById?: (trackId: string) => void; // 通过 track ID 播放歌曲
@@ -177,6 +178,7 @@ export const MusicPlayer: React.FC<MusicPlayerProps> = React.memo(function Music
     onSeek,
     onMuteToggle,
     onTrackInfoClick,
+    onClose,
     currentPlayingTrack,
   } = props;
 
@@ -397,6 +399,12 @@ export const MusicPlayer: React.FC<MusicPlayerProps> = React.memo(function Music
               className={cn(hideProgress ? "text-primary hover:text-primary" : undefined)}
             >
               <FileText className="h-3.5 w-3.5" />
+            </PlayerIconButton>
+          )}
+
+          {onClose && (
+            <PlayerIconButton onClick={onClose} title="Close player">
+              <X className="h-4 w-4" />
             </PlayerIconButton>
           )}
         </div>

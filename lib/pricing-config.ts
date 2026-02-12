@@ -60,6 +60,10 @@ const buildFeatureList = (tier: PricingTierCode, credits: number, billingPeriod:
   const creditsLine = `${credits.toLocaleString('en-US')} credits/${periodLabel} (approx. ${approxSongs.toLocaleString('en-US')} songs)`;
   const lyricLine = `Create up to ${credits.toLocaleString('en-US')} lyrics with AI`;
   const downloadLine = tierMeta[tier].download;
+  const advancedEditingLine =
+    tier === 'hobby'
+      ? 'Vocal separation, Extend music, Replace section & Mashup'
+      : 'Vocal separation, Extend music & Replace section';
 
   return [
     creditsLine,
@@ -70,7 +74,7 @@ const buildFeatureList = (tier: PricingTierCode, credits: number, billingPeriod:
     lyricLine,
     downloadLine,
     'Commercial License Included',
-    'Vocal separation, Extend music & Replace section',
+    advancedEditingLine,
     'Access to all models (V5, V4.5-all, V4.5+, V4.5, V4)',
     'Email customer support',
   ];

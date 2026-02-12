@@ -28,8 +28,9 @@ const PRIMARY_WAVE_COLOR_DARK = "rgba(255, 255, 255, 0.35)";
 const PRIMARY_PROGRESS_COLOR_DARK = "rgb(255, 255, 255)";
 const PRIMARY_CURSOR_COLOR_DARK = "rgb(255, 255, 255)";
 const PRIMARY_WAVE_COLOR_LIGHT = "#d1d5db";
-const PRIMARY_PROGRESS_COLOR_LIGHT = "hsl(262, 100%, 70%)";
+const PRIMARY_PROGRESS_COLOR_LIGHT = "#d1d5db";
 const PRIMARY_CURSOR_COLOR_LIGHT = "hsl(262, 100%, 70%)";
+const PRIMARY_SELECTOR_COLOR = "hsl(262, 100%, 70%)";
 
 const formatClockTime = (seconds: number) => {
   if (!Number.isFinite(seconds) || seconds < 0) {
@@ -291,7 +292,7 @@ export const EditAudioDialog = ({
 
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
-      <DialogContent className="max-w-[calc(100vw-2rem)] sm:max-w-[620px] max-h-[82vh] flex flex-col p-0 border border-border/60 bg-background shadow-xl">
+      <DialogContent className="max-w-[calc(100vw-2rem)] sm:max-w-[620px] max-h-[82vh] flex flex-col p-0 border-0 bg-background shadow-xl">
         <DialogHeader className="flex-shrink-0 px-6 pt-5 pb-3 text-left relative overflow-hidden">
           <div className="pointer-events-none absolute inset-0 bg-gradient-to-r from-primary/10 via-transparent to-primary/10" />
           <div className="flex items-center justify-between pr-8">
@@ -395,7 +396,7 @@ export const EditAudioDialog = ({
                   waveColor={waveColor}
                   progressColor={progressColor}
                   cursorColor={cursorColor}
-                  selectorColor={selectorColor}
+                  selectorColor={selectorColor || PRIMARY_SELECTOR_COLOR}
                   cursorWidth={3}
                   backend="MediaElement"
                   chrome={false}

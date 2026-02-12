@@ -6,6 +6,6 @@ export const FREE_FEATURES = [
   { label: "Create up to 15 lyrics with AI / day", enabled: true },
   { label: "Access to all models (V5, V4.5-all, V4.5+, V4.5, V4)", enabled: true },
   { label: "Download MP3, WAV & Cover PNG", enabled: false },
-  { label: "Vocal separation, Extend music & Replace section", enabled: false },
+  { label: "Vocal separation, Extend music, Replace section & Mashup", enabled: false },
   { label: "Email customer support", enabled: false },
 ] as const;

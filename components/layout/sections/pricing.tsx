@@ -52,6 +52,11 @@ export const PricingSection = ({ initialPlans }: PricingSectionProps) => {
       note: "Upload audio",
     },
     {
+      feature: FEATURE_CREDITS_CONFIG.upload_mashup_music.name,
+      credits: FEATURE_CREDITS_CONFIG.upload_mashup_music.credits,
+      note: "Upload 2 audios",
+    },
+    {
       feature: FEATURE_CREDITS_CONFIG.extend_music.name,
       credits: FEATURE_CREDITS_CONFIG.extend_music.credits,
       note: "Per extend",

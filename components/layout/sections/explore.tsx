@@ -257,6 +257,11 @@ export const ExploreSection = () => {
     void playTrack(index);
   };
 
+  const handleClosePlayer = () => {
+    audioPlayer.clearCurrentTrack();
+    setCurrentlyPlaying(null);
+  };
+
   const chunk = <T,>(items: T[], size: number) => {
     const result: T[][] = [];
     for (let i = 0; i < items.length; i += size) {
@@ -508,6 +513,7 @@ export const ExploreSection = () => {
                 onVolumeChange={handleVolumeChange}
                 onMuteToggle={handleMuteToggle}
                 onTrackChange={handleTrackChange}
+                onClose={handleClosePlayer}
               />
             </div>
           </>

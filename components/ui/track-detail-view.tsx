@@ -203,11 +203,18 @@ export const TrackDetailView: React.FC<TrackDetailViewProps> = ({
       : [];
   }, [trackInfo?.tags]);
 
-  const canDownloadTrack =
-    hasPermission("download_mp3_track") ||
-    hasPermission("download_wav_track") ||
-    hasPermission("download_mp4_track");
-  const ensureDownloadAccess = React.useCallback(() => {
+  const canDownloadMP3 = hasPermission("download_mp3_track");
+  const canDownloadWAV = hasPermission("download_wav_track");
+  const canDownloadMP4 = hasPermission("download_mp4_track");
+  const canDownloadTrack = canDownloadMP3 || canDownloadWAV || canDownloadMP4;
+
+  const canDownloadByFormat = React.useCallback((format: "mp3" | "wav" | "mp4") => {
+    if (format === "mp3") return canDownloadMP3;
+    if (format === "wav") return canDownloadWAV;
+    return canDownloadMP4;
+  }, [canDownloadMP3, canDownloadWAV, canDownloadMP4]);
+
+  const ensureDownloadAccess = React.useCallback((format?: "mp3" | "wav" | "mp4") => {
     if (!trackInfo?.audioUrl) {
       return false;
     }
@@ -215,12 +222,22 @@ export const TrackDetailView: React.FC<TrackDetailViewProps> = ({
       setAuthModalOpen(true);
       return false;
     }
+
+    if (format) {
+      if (!canDownloadByFormat(format)) {
+        openPricingModal();
+        return false;
+      }
+      return true;
+    }
+
     if (!canDownloadTrack) {
       openPricingModal();
       return false;
     }
+
     return true;
-  }, [trackInfo?.audioUrl, user, canDownloadTrack, openPricingModal]);
+  }, [trackInfo?.audioUrl, user, canDownloadByFormat, canDownloadTrack, openPricingModal]);
 
   const internalPlayTrack = React.useCallback((nextTrack: TrackInfo) => {
     if (!nextTrack?.audioUrl) {
@@ -254,6 +271,10 @@ export const TrackDetailView: React.FC<TrackDetailViewProps> = ({
   const internalDownload = React.useCallback(async (track: TrackInfo, format: "mp3" | "wav" | "mp4") => {
     if (!track?.id) {
       toast.error("Missing track information");
+      return;
+    }
+
+    if (!ensureDownloadAccess(format)) {
       return;
     }
 
@@ -362,7 +383,7 @@ export const TrackDetailView: React.FC<TrackDetailViewProps> = ({
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "Unable to download file", { id: downloadingToast });
     }
-  }, [mp4Author, mp4DomainName]);
+  }, [mp4Author, mp4DomainName, ensureDownloadAccess]);
 
   const effectiveOnDownload = onDownload ?? internalDownload;
   const isDownloadableResolved = Boolean(trackInfo?.audioUrl && effectiveOnDownload);
@@ -386,6 +407,7 @@ export const TrackDetailView: React.FC<TrackDetailViewProps> = ({
     onSeek: (time: number) => seek(time),
     onVolumeChange: (vol: number) => setVolume(vol),
     onMuteToggle: () => toggleMute(),
+    onClose: () => clearCurrentTrack(),
     hideProgress: false,
     onTrackChange: () => {},
     currentPlayingTrack: currentTrack || undefined,
@@ -400,6 +422,7 @@ export const TrackDetailView: React.FC<TrackDetailViewProps> = ({
     seek,
     setVolume,
     toggleMute,
+    clearCurrentTrack,
     currentTrack,
   ]);
 
@@ -575,6 +598,10 @@ export const TrackDetailView: React.FC<TrackDetailViewProps> = ({
                     <DropdownMenuItem
                       className="cursor-pointer text-sm"
                       onClick={() => {
+                        if (!ensureDownloadAccess("mp3")) {
+                          setDownloadMenuOpen(false);
+                          return;
+                        }
                         if (trackInfo) {
                           effectiveOnDownload(trackInfo, "mp3");
                         }
@@ -586,6 +613,10 @@ export const TrackDetailView: React.FC<TrackDetailViewProps> = ({
                     <DropdownMenuItem
                       className="cursor-pointer text-sm"
                       onClick={() => {
+                        if (!ensureDownloadAccess("wav")) {
+                          setDownloadMenuOpen(false);
+                          return;
+                        }
                         if (trackInfo) {
                           effectiveOnDownload(trackInfo, "wav");
                         }
@@ -597,6 +628,10 @@ export const TrackDetailView: React.FC<TrackDetailViewProps> = ({
                     <DropdownMenuItem
                       className="cursor-pointer text-sm"
                       onClick={() => {
+                        if (!ensureDownloadAccess("mp4")) {
+                          setDownloadMenuOpen(false);
+                          return;
+                        }
                         if (trackInfo) {
                           const defaultAuthor =
                             user?.user_metadata?.nickname ||

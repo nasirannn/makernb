@@ -389,6 +389,11 @@ export default function ExplorePage() {
     playTrack(index);
   };
 
+  const handleClosePlayer = () => {
+    audioPlayer.clearCurrentTrack();
+    setCurrentlyPlaying(null);
+  };
+
   if (loading) {
     return (
       <div className="min-h-screen bg-background ">
@@ -661,6 +666,7 @@ export default function ExplorePage() {
 	              onVolumeChange={handleVolumeChange}
 	              onMuteToggle={handleMuteToggle}
 	              onTrackChange={handleTrackChange}
+	              onClose={handleClosePlayer}
 	            />
 	          </div>
 	        </>

@@ -25,6 +25,11 @@ interface LibraryInlineTrackDetails {
     coverImage?: string | null;
     createdAt?: string;
     duration?: string;
+    status?: string;
+    isGenerating?: boolean;
+    isCompleted?: boolean;
+    audioUrl?: string;
+    streamAudioUrl?: string;
 }
 
 const LibraryContent = () => {
@@ -90,19 +95,30 @@ const LibraryContent = () => {
         setVolume: (vol: number) => audioPlayerRef.current.setVolume(vol),
         toggleMute: () => audioPlayerRef.current.toggleMute(),
         seek: (time: number) => audioPlayerRef.current.seek(time),
+        clearCurrentTrack: () => audioPlayerRef.current.clearCurrentTrack(),
     }), []);
 
-    const convertToInlineTrackDetails = React.useCallback((track: any): LibraryInlineTrackDetails => ({
-        id: track.id,
-        title: track.title || 'Untitled Track',
-        tags: track.tags || '',
-        lyrics: track.lyrics || '',
-        coverImage: track.coverImage || track.coverR2Url || track.coverUrl || null,
-        createdAt: track.createdAt ?? new Date().toISOString(),
-        duration: track.duration
-            ? (typeof track.duration === 'number' ? track.duration.toString() : track.duration)
-            : undefined,
-    }), []);
+    const convertToInlineTrackDetails = React.useCallback((track: any): LibraryInlineTrackDetails => {
+        const normalizedStatus = typeof track?.status === 'string' ? track.status : '';
+        const isCompleted = ['complete', 'completed'].includes(normalizedStatus.trim().toLowerCase());
+
+        return {
+            id: track.id,
+            title: track.title || 'Untitled Track',
+            tags: track.tags || '',
+            lyrics: track.lyrics || '',
+            coverImage: track.coverImage || track.coverR2Url || track.coverUrl || null,
+            createdAt: track.createdAt ?? new Date().toISOString(),
+            duration: track.duration
+                ? (typeof track.duration === 'number' ? track.duration.toString() : track.duration)
+                : undefined,
+            status: normalizedStatus,
+            isGenerating: track?.isGenerating ?? false,
+            isCompleted: track?.isCompleted ?? isCompleted,
+            audioUrl: track?.audioUrl || '',
+            streamAudioUrl: track?.streamAudioUrl || '',
+        };
+    }, []);
 
     // ==================== 选中状态同步 ====================
     // 当 URL 有 track 参数时，更新内部选中状态以及右侧歌词面板数据
@@ -379,6 +395,13 @@ const LibraryContent = () => {
         onSeek: (time: number) => player.seek(time),
         onVolumeChange: (vol: number) => player.setVolume(vol),
         onMuteToggle: () => player.toggleMute(),
+        onClose: () => {
+            player.clearCurrentTrack();
+            setSelectedLibraryTrack(null);
+            setLyricsPanelOpen(false);
+            setInlineTrackDetails(null);
+            router.replace('/library');
+        },
         hideProgress: false,
         onTrackChange: (index: number) => {
             const track = tracks[index];

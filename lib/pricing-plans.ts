@@ -51,7 +51,7 @@ const PLANS_WITH_IDS: PlanWithIds[] = [
     productIds: yearlyStarterIds,
     billingPeriod: "yearly",
     credits: 12000,
-    price: 99.6,
+    price: 99.9,
     tierCode: "starter",
   },
   {
@@ -60,8 +60,8 @@ const PLANS_WITH_IDS: PlanWithIds[] = [
     productId: yearlyHobbyIds[0],
     productIds: yearlyHobbyIds,
     billingPeriod: "yearly",
-    credits: 30000,
-    price: 199.2,
+    credits: 25000,
+    price: 199.9,
     tierCode: "hobby",
   },
 ];

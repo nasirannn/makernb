@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { useMemo } from "react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { Check, X } from "lucide-react";
@@ -63,6 +64,30 @@ export const PricingPlans = ({ variant = "section", onNavigate, initialPlans }: 
   } = usePricingState({ initialPlans });
   const { grid, freeCard, toggle, toggleInner, freeDescription } = variantConfig[variant];
 
+  const yearlySavingsLabel = useMemo(() => {
+    const tiers = Array.from(new Set(allPlans.map((plan) => plan.tierCode)));
+    const savings = tiers
+      .map((tier) => {
+        const monthlyPlan = allPlans.find((plan) => plan.tierCode === tier && plan.billingPeriod === "monthly");
+        const yearlyPlan = allPlans.find((plan) => plan.tierCode === tier && plan.billingPeriod === "yearly");
+
+        if (!monthlyPlan || !yearlyPlan || monthlyPlan.price <= 0) {
+          return null;
+        }
+
+        const percentage = (1 - yearlyPlan.price / monthlyPlan.price) * 100;
+        return Number.isFinite(percentage) && percentage > 0 ? percentage : null;
+      })
+      .filter((value): value is number => value !== null);
+
+    if (savings.length === 0) {
+      return null;
+    }
+
+    const averageSavings = savings.reduce((total, value) => total + value, 0) / savings.length;
+    return `Save ${Math.round(averageSavings)}%`;
+  }, [allPlans]);
+
   const freeCtaLabel =
     variant === "modal"
       ? user
@@ -100,7 +125,7 @@ export const PricingPlans = ({ variant = "section", onNavigate, initialPlans }: 
                     : "bg-foreground/5 text-foreground/70 dark:bg-white/10 dark:text-foreground/75"
                 )}
               >
-                Save 36%
+                {yearlySavingsLabel ?? "Best value"}
               </span>
             </div>
           </button>

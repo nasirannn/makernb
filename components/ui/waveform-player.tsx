@@ -127,6 +127,10 @@ export const WaveformPlayer = React.forwardRef<WaveformPlayerHandle, WaveformPla
   const [isDraggingEnd, setIsDraggingEnd] = useState(false);
   const selectorBorderStyle = selectorColor ? { borderColor: selectorColor } : undefined;
   const selectorFillStyle = selectorColor ? { backgroundColor: selectorColor } : undefined;
+  const selectorOverlayTintStyle = selectorColor
+    ? { backgroundColor: selectorColor, opacity: 0.22 }
+    : undefined;
+  const effectiveProgressColor = showSelector && selectorOverlay ? waveColor : progressColor;
 
   // 使用 prop 传入的 duration 或组件内部的 duration
   const effectiveDuration = propAudioDuration ?? duration;
@@ -165,7 +169,7 @@ export const WaveformPlayer = React.forwardRef<WaveformPlayerHandle, WaveformPla
       const wavesurfer = WaveSurfer.create({
         container: waveformRef.current,
         waveColor,
-        progressColor,
+        progressColor: effectiveProgressColor,
         cursorColor,
         cursorWidth,
         barWidth: 2,
@@ -247,10 +251,25 @@ export const WaveformPlayer = React.forwardRef<WaveformPlayerHandle, WaveformPla
     backend,
     mediaElement,
     waveColor,
-    progressColor,
+    effectiveProgressColor,
     cursorColor,
     cursorWidth,
   ]);
+
+  useEffect(() => {
+    if (!wavesurferRef.current) return;
+    try {
+      wavesurferRef.current.setOptions({
+        waveColor,
+        progressColor: effectiveProgressColor,
+        cursorColor,
+        cursorWidth,
+        height: waveHeight,
+      });
+    } catch (error) {
+      console.warn('Failed to update waveform options:', error);
+    }
+  }, [waveColor, effectiveProgressColor, cursorColor, cursorWidth, waveHeight]);
 
   useEffect(() => {
     if (!wavesurferRef.current || !mediaElement) return;
@@ -649,7 +668,11 @@ export const WaveformPlayer = React.forwardRef<WaveformPlayerHandle, WaveformPla
                           }}
                         >
                           <div
-                            className="pointer-events-none absolute inset-y-0 left-0 bg-primary"
+                            className={selectorColor ? "pointer-events-none absolute inset-0" : "pointer-events-none absolute inset-0 bg-primary/25"}
+                            style={selectorOverlayTintStyle}
+                          />
+                          <div
+                            className="pointer-events-none absolute inset-y-0 left-0 w-[2px] bg-primary"
                             style={selectorFillStyle}
                           >
                             <span className="absolute -top-2 left-1/2 -translate-x-1/2 h-0 w-0 border-x-[4px] border-x-transparent border-b-[6px] border-b-white/90" />
@@ -657,7 +680,7 @@ export const WaveformPlayer = React.forwardRef<WaveformPlayerHandle, WaveformPla
                           </div>
                           {showSelectorEndHandle && (
                             <div
-                              className="pointer-events-none absolute inset-y-0 right-0 bg-primary"
+                              className="pointer-events-none absolute inset-y-0 right-0 w-[2px] bg-primary"
                               style={selectorFillStyle}
                             >
                               <span className="absolute -top-2 left-1/2 -translate-x-1/2 h-0 w-0 border-x-[4px] border-x-transparent border-b-[6px] border-b-white/90" />
