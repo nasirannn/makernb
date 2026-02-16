@@ -223,10 +223,7 @@ export const EditMusicInfoDialog: React.FC<EditMusicInfoDialogProps> = ({
         onClick={(e) => e.stopPropagation()}
       >
         <DialogHeader className="flex-shrink-0 px-5 pt-4 pb-2 text-left">
-          <div className="space-y-1 pr-8">
-            <div className="text-[10px] uppercase tracking-[0.24em] text-muted-foreground">
-              Music Info
-            </div>
+          <div className="pr-8">
             <DialogTitle className="text-xl font-semibold tracking-tight">Edit Music Info</DialogTitle>
           </div>
           <DialogDescription className="text-sm text-muted-foreground">

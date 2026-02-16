@@ -2962,10 +2962,7 @@ const StudioContent = ({ feature, FeaturePanel, panelMode, lockPanelMode }: Stud
             >
                 <DialogContent className="studio-panel-card max-w-[calc(100vw-2rem)] sm:max-w-[620px] max-h-[82vh] flex flex-col overflow-hidden p-0 border-0 shadow-xl">
                     <DialogHeader className="flex-shrink-0 px-5 pt-4 pb-2 text-left">
-                        <div className="space-y-1 pr-8">
-                            <div className="text-[10px] uppercase tracking-[0.24em] text-muted-foreground">
-                                Lyrics
-                            </div>
+                        <div className="pr-8">
                             <DialogTitle className="text-xl font-semibold tracking-tight">
                                 Generate Lyrics
                             </DialogTitle>

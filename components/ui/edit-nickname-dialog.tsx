@@ -149,122 +149,124 @@ export function EditNicknameDialog({ open, onOpenChange, initialValue = "" }: Ed
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-[calc(100vw-2rem)] sm:max-w-[560px] max-h-[78vh] flex flex-col overflow-hidden p-0 bg-background shadow-xl rounded-[28px] border-0">
-          <div className="relative overflow-hidden bg-gradient-to-r from-primary/10 via-transparent to-primary/10 px-6 pt-6 pb-6">
-            <DialogHeader className="relative space-y-1.5 text-left">
+      <DialogContent className="studio-panel-card max-w-[calc(100vw-2rem)] sm:max-w-[560px] max-h-[82vh] flex flex-col overflow-hidden p-0 border-0 shadow-xl">
+          <DialogHeader className="flex-shrink-0 px-5 pt-4 pb-2 text-left">
+            <div className="pr-8">
               <DialogTitle className="text-xl font-semibold tracking-tight">Edit profile</DialogTitle>
-              <DialogDescription className="text-sm text-muted-foreground">
-                Update your display name and profile photo.
-              </DialogDescription>
-            </DialogHeader>
-          </div>
-
-          <div className="p-6 grid gap-4 sm:grid-cols-[168px_1fr]">
-            <div className="rounded-3xl bg-muted/40 p-4">
-              <div className="flex flex-col items-center gap-3 text-center">
-                <Avatar className="h-20 w-20 shadow-sm">
-                  <AvatarImage src={avatarSrc} alt="User avatar" />
-                  <AvatarFallback className="bg-muted text-lg font-semibold">
-                    {fallbackLetter}
-                  </AvatarFallback>
-                </Avatar>
-
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="sm"
-                  onClick={handleChangePhoto}
-                  disabled={avatarUploading}
-                  className="w-full justify-center bg-muted/60 text-foreground/80 hover:bg-accent hover:text-accent-foreground"
-                >
-                  {avatarUploading ? (
-                    <>
-                      <Loader2 className="h-4 w-4 animate-spin" />
-                      Uploading…
-                    </>
-                  ) : (
-                    <>
-                      <RefreshCw className="h-4 w-4" />
-                      Change photo
-                    </>
-                  )}
-                </Button>
-
-                <input
-                  ref={fileInputRef}
-                  type="file"
-                  accept="image/*"
-                  className="hidden"
-                  onChange={handleAvatarFileChange}
-                />
-
-                <div className="w-full space-y-2 pt-1 text-left">
-                  {user?.email && (
-                    <div className="text-[11px] leading-4 text-muted-foreground/80">
-                      <div className="font-semibold text-foreground/70">Email</div>
-                      <div className="truncate">{user.email}</div>
-                    </div>
-                  )}
-                  {user?.id && (
-                    <div className="text-[11px] leading-4 text-muted-foreground/80">
-                      <div className="flex items-center justify-between gap-2">
-                        <div className="font-semibold text-foreground/70">User ID</div>
-                        <Button
-                          type="button"
-                          variant="ghost"
-                          size="icon"
-                          onClick={handleCopyUserId}
-                          className="h-8 w-8 rounded-full text-muted-foreground/70 hover:text-accent-foreground"
-                          aria-label="Copy user ID"
-                        >
-                          <Copy className="h-4 w-4" />
-                        </Button>
-                      </div>
-                      <div className="truncate font-mono text-[10px] tracking-tight text-muted-foreground/70">
-                        {user.id}
-                      </div>
-                    </div>
-                  )}
-                </div>
-              </div>
             </div>
+            <DialogDescription className="text-sm text-muted-foreground">
+              Update your display name and profile photo.
+            </DialogDescription>
+          </DialogHeader>
 
-            <div className="rounded-3xl bg-muted/40 p-4">
-              <div className="space-y-2">
-                <div className="text-xs font-semibold tracking-tight text-foreground/80">Display name</div>
-                <div className="relative">
-                  <UserRound className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-                  <Input
-                    value={nickname}
-                    onChange={(event) => setNickname(event.target.value)}
-                    placeholder={displayName ? displayName : "Enter your nickname"}
-                    maxLength={32}
-                    className="w-full pl-10"
+          <div className="flex-1 overflow-y-auto px-5 py-3">
+            <div className="grid gap-3 sm:grid-cols-[168px_1fr]">
+              <div className="studio-panel-card rounded-2xl p-3 sm:p-4">
+                <div className="flex flex-col items-center gap-3 text-center">
+                  <Avatar className="h-20 w-20 shadow-sm">
+                    <AvatarImage src={avatarSrc} alt="User avatar" />
+                    <AvatarFallback className="bg-muted text-lg font-semibold">
+                      {fallbackLetter}
+                    </AvatarFallback>
+                  </Avatar>
+
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    onClick={handleChangePhoto}
+                    disabled={avatarUploading}
+                    className="h-10 w-full justify-center rounded-xl bg-foreground/5 text-foreground/80 transition-colors hover:bg-foreground/10 hover:text-foreground"
+                  >
+                    {avatarUploading ? (
+                      <>
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                        Uploading…
+                      </>
+                    ) : (
+                      <>
+                        <RefreshCw className="h-4 w-4" />
+                        Change photo
+                      </>
+                    )}
+                  </Button>
+
+                  <input
+                    ref={fileInputRef}
+                    type="file"
+                    accept="image/*"
+                    className="hidden"
+                    onChange={handleAvatarFileChange}
                   />
+
+                  <div className="w-full space-y-2 pt-1 text-left">
+                    {user?.email && (
+                      <div className="text-[11px] leading-4 text-muted-foreground/80">
+                        <div className="font-semibold text-foreground/70">Email</div>
+                        <div className="truncate">{user.email}</div>
+                      </div>
+                    )}
+                    {user?.id && (
+                      <div className="text-[11px] leading-4 text-muted-foreground/80">
+                        <div className="flex items-center justify-between gap-2">
+                          <div className="font-semibold text-foreground/70">User ID</div>
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="icon"
+                            onClick={handleCopyUserId}
+                            className="h-8 w-8 rounded-full text-muted-foreground/70 transition-colors hover:bg-foreground/10 hover:text-foreground"
+                            aria-label="Copy user ID"
+                          >
+                            <Copy className="h-4 w-4" />
+                          </Button>
+                        </div>
+                        <div className="truncate font-mono text-[10px] tracking-tight text-muted-foreground/70">
+                          {user.id}
+                        </div>
+                      </div>
+                    )}
+                  </div>
                 </div>
-                <div className="flex items-start justify-between gap-3">
-                  {error ? (
-                    <p className="text-xs text-red-400">{error}</p>
-                  ) : (
-                    <p className="text-xs text-muted-foreground/70">
-                      Shown on your published tracks.
+              </div>
+
+              <div className="studio-panel-card rounded-2xl p-3 sm:p-4">
+                <div className="space-y-2">
+                  <div className="text-xs md:text-sm font-semibold text-foreground">Display name</div>
+                  <div className="relative">
+                    <UserRound className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                    <Input
+                      value={nickname}
+                      onChange={(event) => setNickname(event.target.value)}
+                      placeholder={displayName ? displayName : "Enter your nickname"}
+                      maxLength={32}
+                      className="h-11 w-full border-0 bg-transparent pl-10 pr-0 focus-visible:ring-0 focus-visible:ring-offset-0"
+                    />
+                  </div>
+                  <div className="flex items-start justify-between gap-3">
+                    {error ? (
+                      <p className="text-xs text-destructive">{error}</p>
+                    ) : (
+                      <p className="text-xs text-muted-foreground/70">
+                        Shown on your published tracks.
+                      </p>
+                    )}
+                    <p className="text-xs tabular-nums text-muted-foreground/60">
+                      {Math.min(32, nickname.length)}/32
                     </p>
-                  )}
-                  <p className="text-xs tabular-nums text-muted-foreground/60">
-                    {Math.min(32, nickname.length)}/32
-                  </p>
+                  </div>
                 </div>
               </div>
             </div>
           </div>
 
-          <div className="p-6 pt-0">
-            <DialogFooter className="flex-col-reverse sm:flex-row sm:justify-between gap-2 sm:gap-3">
+          <div className="flex-shrink-0 px-5 pt-1 pb-4">
+            <DialogFooter className="flex-col-reverse gap-2 sm:flex-row sm:justify-end sm:gap-2">
               <Button
                 type="button"
                 variant="ghost"
                 onClick={() => onOpenChange(false)}
-                className="w-full sm:w-auto"
+                className="h-11 w-full rounded-2xl text-foreground/75 transition-colors hover:bg-foreground/10 hover:text-foreground sm:w-auto"
               >
                 Cancel
               </Button>
@@ -272,7 +274,7 @@ export function EditNicknameDialog({ open, onOpenChange, initialValue = "" }: Ed
                 type="button"
                 onClick={handleSave}
                 disabled={!canSave}
-                className="w-full sm:w-auto min-w-[160px]"
+                className="h-11 w-full rounded-2xl px-5 text-sm font-semibold sm:w-auto sm:min-w-[160px]"
               >
                 {saving ? (
                   <>

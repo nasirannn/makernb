@@ -19,8 +19,7 @@ export function PricingModal() {
             <DialogTitle className="text-center sr-only">Pricing Plans</DialogTitle>
             <div className="space-y-2">
               <div>
-                <h2 className="text-lg text-primary text-center tracking-wider">Pricing</h2>
-                <h2 className="mt-2 text-2xl md:text-3xl text-center font-bold tracking-tight">
+                <h2 className="text-2xl md:text-3xl text-center font-bold tracking-tight">
                   Choose Your Credits Package
                 </h2>
                 <p className="mt-3 text-sm md:text-base text-muted-foreground max-w-2xl mx-auto">

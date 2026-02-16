@@ -149,13 +149,13 @@ export const TrackItem: React.FC<TrackItemProps> = ({
   const paddingClass = variant === 'studio' ? 'px-3 py-2.5' : 'px-2 py-2';
   const gapClass = variant === 'studio' ? 'gap-2.5 md:gap-3' : 'gap-2';
   const infoHeightClass = variant === 'studio'
-    ? (isExtension ? 'h-12' : 'h-[90px]')
+    ? (isExtension ? 'h-12' : 'h-[80px]')
     : '';
 
   const containerClassName =
     variant === 'studio'
-      ? `relative flex items-start ${gapClass} ${paddingClass} w-full transition-all duration-150 group rounded-2xl`
-      : `relative flex items-center ${gapClass} ${paddingClass} w-full transition-all duration-200 group rounded-2xl border`;
+      ? `relative flex items-center ${gapClass} ${paddingClass} w-full overflow-hidden transition-all duration-150 group rounded-2xl`
+      : `relative flex items-center ${gapClass} ${paddingClass} w-full overflow-hidden transition-all duration-200 group rounded-2xl border`;
   
   return (
     <div
@@ -201,8 +201,8 @@ export const TrackItem: React.FC<TrackItemProps> = ({
       />
       
       {/* Track Info */}
-      <div className={`flex-1 min-w-0 flex ${variant === 'studio' ? 'items-start' : 'items-center'} ${gapClass} ${infoHeightClass}`}>
-        <div className={`flex-1 min-w-0 flex ${variant === 'studio' ? 'h-full items-stretch' : 'items-center min-h-16'}`}>
+      <div className={`flex-1 min-w-0 flex items-center ${gapClass} ${infoHeightClass}`}>
+        <div className={`flex-1 min-w-0 flex ${variant === 'studio' ? 'h-full items-center' : 'items-center min-h-16'}`}>
           <div className={`w-full ${variant === 'studio' ? 'h-full' : ''}`}>
             <TrackInfo
               title={title}
@@ -294,7 +294,7 @@ export const TrackItem: React.FC<TrackItemProps> = ({
                 <>
                   {/* 操作按钮 - 桌面端 */}
                   {showActions && (
-                    <div className="flex items-center justify-end gap-2 flex-shrink-0 pl-1">
+                    <div className="flex min-w-0 items-center justify-end pl-1">
                       <TrackActionButtons
                         track={track}
                         isMobile={false}

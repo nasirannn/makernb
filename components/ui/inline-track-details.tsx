@@ -3,7 +3,7 @@
 import React from "react";
 import Image from "next/image";
 import { CassetteTape } from "@/components/ui/cassette-tape";
-import { X } from "lucide-react";
+import { Copy, X } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 
 interface InlineTrackDetails {
@@ -52,10 +52,31 @@ export const InlineTrackDetailsPanel: React.FC<InlineTrackDetailsPanelProps> = (
   const tags = React.useMemo(() => {
     if (!track?.tags) return [];
     return track.tags
-      .split(/[,，]/)
+      .split(/[,，;；]/)
       .map((tag) => tag.trim())
       .filter(Boolean);
   }, [track?.tags]);
+
+  const primaryTag = tags[0] ?? "";
+  const isPrimaryTagTruncated = primaryTag.length > 30;
+  const visiblePrimaryTag = isPrimaryTagTruncated ? `${primaryTag.slice(0, 30)}...` : primaryTag;
+  const allTagsText = React.useMemo(() => {
+    if (track?.tags?.trim()) {
+      return track.tags.trim();
+    }
+    return tags.join(", ");
+  }, [track?.tags, tags]);
+
+  const handleCopyAllTags = React.useCallback(async () => {
+    if (!allTagsText) {
+      return;
+    }
+    try {
+      await navigator.clipboard.writeText(allTagsText);
+    } catch (error) {
+      console.error("Failed to copy tags:", error);
+    }
+  }, [allTagsText]);
 
   const [timestampedWords, setTimestampedWords] = React.useState<TimestampedLyricWord[]>([]);
   const [isTimestampedLoading, setIsTimestampedLoading] = React.useState(false);
@@ -317,20 +338,23 @@ export const InlineTrackDetailsPanel: React.FC<InlineTrackDetailsPanelProps> = (
               {track.title}
             </h3>
 
-            {tags.length > 0 && (
-              <div className="flex flex-wrap items-center gap-1">
-                {tags.slice(0, 3).map((tag) => (
-                  <span
-                    key={tag}
-                    className="inline-flex items-center rounded-full bg-black/30 px-1.5 py-0.5 text-[10px] font-medium text-white/75 backdrop-blur-sm"
+            {primaryTag && (
+              <div className="flex items-center gap-1.5">
+                <span className="inline-flex items-center rounded-full bg-black/30 px-2 py-0.5 text-[10px] font-medium text-white/75 backdrop-blur-sm">
+                  {visiblePrimaryTag}
+                </span>
+                {isPrimaryTagTruncated && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      void handleCopyAllTags();
+                    }}
+                    title="Copy all tags"
+                    aria-label="Copy all tags"
+                    className="inline-flex h-5 w-5 items-center justify-center rounded-full bg-black/30 text-white/70 backdrop-blur-sm transition hover:bg-black/45 hover:text-white/95"
                   >
-                    {tag}
-                  </span>
-                ))}
-                {tags.length > 3 && (
-                  <span className="inline-flex items-center rounded-full bg-black/30 px-1.5 py-0.5 text-[10px] font-medium text-white/65 backdrop-blur-sm">
-                    +{tags.length - 3}
-                  </span>
+                    <Copy className="h-3 w-3" />
+                  </button>
                 )}
               </div>
             )}
