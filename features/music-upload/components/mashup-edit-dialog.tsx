@@ -45,7 +45,7 @@ const PRIMARY_WAVE_COLOR_LIGHT = "#d1d5db";
 const PRIMARY_PROGRESS_COLOR_LIGHT = "#d1d5db";
 const PRIMARY_CURSOR_COLOR_LIGHT = "hsl(262, 100%, 70%)";
 const PRIMARY_SELECTOR_COLOR = "hsl(262, 100%, 70%)";
-const MAX_FILE_BYTES = 40 * 1024 * 1024;
+const MAX_FILE_BYTES = 100 * 1024 * 1024;
 const SLOT_COUNT = 2;
 
 const createEmptySlot = (): SlotState => ({
@@ -229,7 +229,7 @@ export const MashupEditDialog = ({
       return;
     }
     if (file.size > MAX_FILE_BYTES) {
-      setError("Each file must be under 40MB.");
+      setError("Each file must be under 100MB.");
       return;
     }
 
@@ -563,7 +563,7 @@ export const MashupEditDialog = ({
                       </div>
                       <div className="text-sm font-semibold text-foreground">Click to select audio</div>
                       <div className="mt-1 text-xs text-muted-foreground">
-                        Required · audio only · max 40MB
+                        Required · audio only · max 100MB
                       </div>
                     </div>
                   )}

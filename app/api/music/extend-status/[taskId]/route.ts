@@ -86,6 +86,7 @@ export async function GET(
         mg.tags as tags,
         mg.prompt as prompt,
         mg.generation_mode as generation_mode,
+        mg.type as music_type,
         (
           SELECT ml.content FROM lyrics ml
           WHERE ml.music_id = mg.id
@@ -117,6 +118,7 @@ export async function GET(
       audioUrl: row.audio_url || row.stream_audio_url || '',
       streamAudioUrl: row.stream_audio_url || '',
       duration: row.duration || null,
+      musicType: row.music_type || musicType,
       
       // 封面数据
       coverImage: row.cover_image_url || null,

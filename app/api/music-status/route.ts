@@ -19,7 +19,7 @@ export async function GET(request: NextRequest) {
 
     // 查询任务记录
     const genResult = await query(
-      'SELECT id, status, title, genre, tags, generation_mode FROM music WHERE task_id = $1',
+      'SELECT id, status, title, genre, tags, generation_mode, type FROM music WHERE task_id = $1',
       [taskId]
     );
 
@@ -49,6 +49,7 @@ export async function GET(request: NextRequest) {
         mg.tags as tags,
         mg.prompt as prompt,
         mg.generation_mode as generation_mode,
+        mg.type as music_type,
         (
           SELECT ml.content FROM lyrics ml
           WHERE ml.music_id = mg.id
@@ -79,6 +80,7 @@ export async function GET(request: NextRequest) {
       audioUrl: row.audio_url || row.stream_audio_url || '',
       streamAudioUrl: row.stream_audio_url || '',
       duration: row.duration || null, // first回调后就有duration，不需要等到complete
+      musicType: row.music_type || generation.type || 'generated',
       
       // 封面数据 - 图片回调时就有
       coverImage: row.cover_image_url || null,

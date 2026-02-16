@@ -2,22 +2,40 @@
 
 import React from 'react';
 import { X } from "lucide-react";
-import { StudioPanel } from "@/components/ui/studio-panel";
+import type { FeatureCreatePanelProps } from "@/components/ui/feature-panels/music-generator-panel";
+
+type StudioFeaturePanelStateProps = Omit<
+  FeatureCreatePanelProps,
+  | "panelOpen"
+  | "setPanelOpen"
+  | "hasPlayer"
+  | "showModeTabs"
+  | "lockModeSelector"
+  | "showUploadAction"
+  | "allowedUploadIntents"
+  | "forcedUploadIntent"
+  | "forcedTrackUploadMode"
+  | "allowMashupAction"
+>;
+
+type StudioFeaturePanelProps = StudioFeaturePanelStateProps & Pick<FeatureCreatePanelProps, "panelOpen" | "setPanelOpen" | "hasPlayer">;
 
 interface MobileCreateDrawerProps {
   isOpen: boolean;
   onClose: () => void;
-  studioPanelProps: any; // StudioPanel的所有props
+  FeaturePanel: React.ComponentType<StudioFeaturePanelProps>;
+  featurePanelProps: StudioFeaturePanelStateProps;
 }
 
 /**
  * 移动端创作抽屉组件
- * 底部弹出的抽屉，包含StudioPanel用于创作音乐
+ * 底部弹出的抽屉，包含当前功能页对应的创作面板
  */
 export const MobileCreateDrawer = React.memo(({
   isOpen,
   onClose,
-  studioPanelProps,
+  FeaturePanel,
+  featurePanelProps,
 }: MobileCreateDrawerProps) => {
   if (!isOpen) return null;
 
@@ -83,8 +101,8 @@ export const MobileCreateDrawer = React.memo(({
 
           {/* Create Panel Content */}
           <div className="overflow-y-auto" style={{ maxHeight: 'calc(100dvh - 140px - env(safe-area-inset-bottom))' }}>
-            <StudioPanel
-              {...studioPanelProps}
+            <FeaturePanel
+              {...featurePanelProps}
               forceVisibleOnMobile
               onCollapse={onClose}
               panelOpen={true}

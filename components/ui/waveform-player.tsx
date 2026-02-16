@@ -2,7 +2,7 @@
 
 import React, { useEffect, useRef, useState } from 'react';
 import WaveSurfer from 'wavesurfer.js';
-import { Play, Pause } from 'lucide-react';
+import { Play, Pause, GripVertical } from 'lucide-react';
 
 interface WaveformPlayerProps {
   audioUrl?: string | null;
@@ -131,6 +131,7 @@ export const WaveformPlayer = React.forwardRef<WaveformPlayerHandle, WaveformPla
     ? { backgroundColor: selectorColor, opacity: 0.22 }
     : undefined;
   const effectiveProgressColor = showSelector && selectorOverlay ? waveColor : progressColor;
+  const isSingleHandleSelector = showSelector && !showSelectorEndHandle;
 
   // 使用 prop 传入的 duration 或组件内部的 duration
   const effectiveDuration = propAudioDuration ?? duration;
@@ -659,37 +660,63 @@ export const WaveformPlayer = React.forwardRef<WaveformPlayerHandle, WaveformPla
                         className="absolute inset-0"
                         onClick={handleProgressBarClick}
                       >
-                        <div
-                          className="absolute inset-y-0 rounded-2xl border-[3px] border-primary bg-transparent"
-                          style={{
-                            left: `${(selectorStart / effectiveDuration) * 100}%`,
-                            width: `${((selectorEnd - selectorStart) / effectiveDuration) * 100}%`,
-                            ...(selectorBorderStyle || {}),
-                          }}
-                        >
+                        {!isSingleHandleSelector && (
                           <div
-                            className={selectorColor ? "pointer-events-none absolute inset-0" : "pointer-events-none absolute inset-0 bg-primary/25"}
-                            style={selectorOverlayTintStyle}
-                          />
-                          <div
-                            className="pointer-events-none absolute inset-y-0 left-0 w-[2px] bg-primary"
-                            style={selectorFillStyle}
+                            className="absolute inset-y-0 rounded-2xl border-[3px] border-primary bg-transparent"
+                            style={{
+                              left: `${(selectorStart / effectiveDuration) * 100}%`,
+                              width: `${((selectorEnd - selectorStart) / effectiveDuration) * 100}%`,
+                              ...(selectorBorderStyle || {}),
+                            }}
                           >
-                            <span className="absolute -top-2 left-1/2 -translate-x-1/2 h-0 w-0 border-x-[4px] border-x-transparent border-b-[6px] border-b-white/90" />
-                            <span className="absolute -bottom-2 left-1/2 -translate-x-1/2 h-0 w-0 border-x-[4px] border-x-transparent border-t-[6px] border-t-white/90" />
-                          </div>
-                          {showSelectorEndHandle && (
                             <div
-                              className="pointer-events-none absolute inset-y-0 right-0 w-[2px] bg-primary"
+                              className={selectorColor ? "pointer-events-none absolute inset-0" : "pointer-events-none absolute inset-0 bg-primary/25"}
+                              style={selectorOverlayTintStyle}
+                            />
+                            <div
+                              className="pointer-events-none absolute inset-y-0 left-0 w-[2px] bg-primary"
                               style={selectorFillStyle}
                             >
                               <span className="absolute -top-2 left-1/2 -translate-x-1/2 h-0 w-0 border-x-[4px] border-x-transparent border-b-[6px] border-b-white/90" />
                               <span className="absolute -bottom-2 left-1/2 -translate-x-1/2 h-0 w-0 border-x-[4px] border-x-transparent border-t-[6px] border-t-white/90" />
                             </div>
-                          )}
-                        </div>
+                            {showSelectorEndHandle && (
+                              <div
+                                className="pointer-events-none absolute inset-y-0 right-0 w-[2px] bg-primary"
+                                style={selectorFillStyle}
+                              >
+                                <span className="absolute -top-2 left-1/2 -translate-x-1/2 h-0 w-0 border-x-[4px] border-x-transparent border-b-[6px] border-b-white/90" />
+                                <span className="absolute -bottom-2 left-1/2 -translate-x-1/2 h-0 w-0 border-x-[4px] border-x-transparent border-t-[6px] border-t-white/90" />
+                              </div>
+                            )}
+                          </div>
+                        )}
+                        {isSingleHandleSelector && (
+                          <div
+                            className="pointer-events-none absolute inset-y-0 w-[3px] -translate-x-1/2 bg-primary"
+                            style={{
+                              left: `${(selectorStart / effectiveDuration) * 100}%`,
+                              ...(selectorFillStyle || {}),
+                            }}
+                          >
+                            <div
+                              className={`absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 flex h-7 w-5 items-center justify-center rounded-md border border-white/70 text-primary-foreground ${
+                                isDraggingStart
+                                  ? 'bg-primary shadow-md ring-2 ring-primary/30'
+                                  : 'bg-primary/95 shadow-sm'
+                              }`}
+                            >
+                              <GripVertical className="h-3 w-3" />
+                            </div>
+                            <span className="absolute -top-6 left-1/2 -translate-x-1/2 rounded-full bg-background/90 px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-primary shadow-sm">
+                              Start
+                            </span>
+                          </div>
+                        )}
                         <div
-                          className="absolute inset-y-0 w-3 -translate-x-1/2 cursor-ew-resize"
+                          className={`absolute inset-y-0 w-8 -translate-x-1/2 ${
+                            isSingleHandleSelector ? 'cursor-grab active:cursor-grabbing' : 'cursor-ew-resize'
+                          }`}
                           style={{ left: `${(selectorStart / effectiveDuration) * 100}%` }}
                           onMouseDown={handleStartHandleMouseDown}
                         />

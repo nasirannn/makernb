@@ -40,8 +40,8 @@
     { "id": "electric", "name": "Electric", "value": "Electric bass" }
   ],
   "vocalGenders": [
-    { "id": "male", "name": "Male", "value": "m" },
-    { "id": "female", "name": "Female", "value": "f" }
+    { "id": "m", "name": "Male", "value": "m" },
+    { "id": "f", "name": "Female", "value": "f" }
   ],
   "harmonyPalettes": [
     { "id": "simple", "name": "Simple", "value": "Simple harmonies" },

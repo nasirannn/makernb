@@ -118,7 +118,7 @@ function PaymentSuccessContent() {
         <div className="space-y-6">
           <Button 
             className="w-full" 
-            onClick={() => router.push('/studio')}
+            onClick={() => router.push('/music-generator')}
           >
             <Music className="h-4 w-4 mr-2" />
             Start Creating Music

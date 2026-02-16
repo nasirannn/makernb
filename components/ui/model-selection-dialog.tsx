@@ -23,6 +23,7 @@ const modelOptions: ModelOption[] = [
   { value: 'V5', label: 'V5', description: 'Superior musical expression, faster generation.', requiresSubscription: false },
   { value: 'V4_5PLUS', label: 'V4.5+', description: 'Best sound quality, max 8 min, creative rhythms, rich harmonies', requiresSubscription: false },
   { value: 'V4_5', label: 'V4.5', description: 'High-quality vocals, smarter prompts, faster generation, up to 8 minutes', requiresSubscription: false },
+  { value: 'V4', label: 'V4', description: 'Improved vocal quality, up to 4 minutes.', requiresSubscription: false },
 ];
 
 interface ModelSelectionDialogProps {

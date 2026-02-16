@@ -53,7 +53,7 @@ const createUploadState = (): UploadState => ({
 });
 
 export const useStudioUploadWorkflow = ({ mode }: UseStudioUploadWorkflowParams) => {
-  const maxUploadBytes = 40 * 1024 * 1024;
+  const maxUploadBytes = 100 * 1024 * 1024;
 
   const [uploadStateByMode, setUploadStateByMode] = React.useState<Record<UploadPanelMode, UploadState>>(() => ({
     simple: createUploadState(),
@@ -160,11 +160,15 @@ export const useStudioUploadWorkflow = ({ mode }: UseStudioUploadWorkflowParams)
     }
   }, [audioDuration, extendStartTime, updateCurrentUploadState]);
 
-  const updateExtendStartTime = React.useCallback((value: number) => {
+  const updateExtendStartTime = React.useCallback((
+    value: number,
+    options: { syncPlayback?: boolean } = {}
+  ) => {
+    const { syncPlayback = true } = options;
     const maxValue = audioDuration || 0;
     const clamped = Math.max(0, Math.min(value, maxValue));
     updateCurrentUploadState({ extendStartTime: clamped });
-    if (uploadAudioRef.current) {
+    if (syncPlayback && uploadAudioRef.current) {
       uploadAudioRef.current.currentTime = clamped;
       updateCurrentUploadState({ audioCurrentTime: clamped });
     }
@@ -229,7 +233,7 @@ export const useStudioUploadWorkflow = ({ mode }: UseStudioUploadWorkflowParams)
 
     if (file.size > maxUploadBytes) {
       event.target.value = "";
-      throw new Error("File size must be under 40MB.");
+      throw new Error("File size must be under 100MB.");
     }
 
     if (!file.type.startsWith("audio/")) {

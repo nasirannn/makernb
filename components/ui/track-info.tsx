@@ -50,19 +50,20 @@ export const TrackInfo: React.FC<TrackInfoProps> = ({
   const heightClass = isStudio ? 'h-full min-h-[90px]' : 'h-full min-h-16';
   const titleSizeClass = 'text-sm';
   const textSizeClass = 'text-xs';
-  const contentPaddingClass = isStudio ? 'py-1' : 'py-0.5';
+  const contentPaddingClass = 'py-0.5';
+  const contentLayoutClass = isStudio ? 'justify-start gap-0.5' : 'justify-between';
   const titleRowClass = isStudio
-    ? 'h-8 min-h-0 min-w-0 items-end gap-2.5'
+    ? 'h-6 min-h-0 min-w-0 items-start gap-2'
     : 'h-7 min-h-0 min-w-0 -mt-px items-end gap-2';
   const titleMainGapClass = isStudio ? 'gap-2' : 'gap-1.5';
   const tagsRowClass = isStudio
-    ? 'mt-0.5 h-5 min-h-0 items-center gap-2.5'
+    ? 'h-5 min-h-0 items-center gap-2'
     : 'h-4 min-h-0 items-center gap-2';
   const footerRowClass = isStudio
-    ? 'mt-1 h-8 min-h-0 items-center'
+    ? 'h-8 min-h-0 items-center'
     : 'h-7 min-h-0 items-center';
   const footerActionsClass = isStudio
-    ? 'flex h-8 items-center gap-2'
+    ? 'flex h-8 items-center gap-1.5'
     : 'flex h-7 items-center gap-1.5';
 
   const parsedTags = React.useMemo(() => {
@@ -124,7 +125,7 @@ export const TrackInfo: React.FC<TrackInfoProps> = ({
 
   return (
     <div className={`flex-1 min-w-0 ${heightClass}`}>
-      <div className={`flex h-full min-h-0 flex-col justify-between ${contentPaddingClass}`}>
+      <div className={`flex h-full min-h-0 flex-col ${contentLayoutClass} ${contentPaddingClass}`}>
         <div className={`flex ${titleRowClass}`}>
           <div className={`flex min-w-0 flex-1 items-center ${titleMainGapClass}`}>
             <h3 className={`min-w-0 flex-shrink truncate font-semibold leading-none ${titleSizeClass} ${

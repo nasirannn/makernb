@@ -2,10 +2,8 @@
 
 import React, { useState, useCallback, useMemo, useEffect } from 'react';
 import Image from "next/image";
-import { ArrowDownUp, CheckCircle, Eye, Search, X, Wand2 } from "lucide-react";
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { ArrowDownUp, Blend, Check, Disc3, Expand, Mic, Music, Music2, Search, ThumbsDown, X, Wand2, Filter } from "lucide-react";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
-import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { supabase } from "@/lib/supabase";
 import { toast } from 'sonner';
@@ -14,7 +12,6 @@ import { useAudioPlayingState } from "@/hooks/use-audio-playing-state";
 import { useFeaturePermissions } from "@/contexts/FeaturePermissionsContext";
 import { usePricingModal } from "@/contexts/PricingModalContext";
 import { VocalRemovalProgressDialog } from '@/features/vocal-tools/components/vocal-removal-progress-dialog';
-import { ExtendMusicDialog, ExtendMusicParams } from '@/features/music-upload/components/extend-music-dialog';
 import { ReplaceSectionDialog, ReplaceSectionParams } from '@/features/music-upload/components/replace-section-dialog';
 import { CLIENT_VOCAL_SEPARATION_CREDITS } from '@/lib/credits-config';
 import { useVocalRemovalManager } from '@/features/vocal-tools/hooks/use-vocal-removal-manager';
@@ -23,7 +20,17 @@ import { formatDurationInMinutes } from '@/lib/format-utils';
 import { useAuth } from '@/contexts/AuthContext';
 import { useCredits } from '@/contexts/CreditsContext';
 import { getEventBus, TRACK_EVENTS } from "@/lib/event-bus";
-import type { MusicModel } from "@/components/ui/model-selection-dialog";
+import type { MusicType } from "@/types/music";
+import type { ExtendSourceTrack } from "@/types/extend-track-source";
+import { MusicPersonaDialogs } from "@/components/ui/music-persona-dialogs";
+import { useStudioPersonaManager } from "@/hooks/use-studio-persona-manager";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
 interface MusicGeneration {
   id: string;
@@ -62,6 +69,7 @@ interface StudioTracksListProps {
   onDelete?: (track: LibraryTrack, music: MusicGeneration) => void;
   onEditTitle?: (trackId: string, newTitle: string) => void;
   onEditMusicInfo?: (trackId: string, data: { title: string; coverImageUrl?: string }) => Promise<void>;
+  onExtendTrackSelect?: (track: ExtendSourceTrack) => void;
   hasPlayer?: boolean;
   // Extend Music 相关函数（从父组件传递，确保使用同一个 hook 实例）
   extendMusicStartPolling?: (
@@ -72,14 +80,37 @@ interface StudioTracksListProps {
     tags?: string,
     initialTracks?: any[] // 初始占位 tracks
   ) => void;
-  extendMusicGetState?: (taskId: string) => any;
-  extendMusicClearState?: (taskId: string) => void;
-  selectedModel?: MusicModel;
   onCreate?: () => void;
 }
 
 // 稳定的 no-op 函数，用于替代未提供的 extendMusicStartPolling
 const noOpExtendMusicPolling = () => {};
+
+type TrackTypeFilter =
+  | "all"
+  | "music-generator"
+  | "music-extender"
+  | "music-cover"
+  | "mashup"
+  | "add-vocal"
+  | "add-melody"
+  | "disliked";
+
+const TRACK_TYPE_FILTER_OPTIONS: Array<{
+  value: TrackTypeFilter;
+  label: string;
+  musicTypes: MusicType[];
+  icon: React.ElementType;
+}> = [
+  { value: "all", label: "All", musicTypes: [], icon: Filter },
+  { value: "music-generator", label: "Generator", musicTypes: ["generated"], icon: Music2 },
+  { value: "music-extender", label: "Extender", musicTypes: ["upload_extend", "extended"], icon: Expand },
+  { value: "music-cover", label: "Cover", musicTypes: ["upload_cover"], icon: Disc3 },
+  { value: "mashup", label: "Mashup", musicTypes: ["upload_mashup"], icon: Blend },
+  { value: "add-vocal", label: "Vocal", musicTypes: ["upload_vocal"], icon: Mic },
+  { value: "add-melody", label: "Melody", musicTypes: ["upload_melody"], icon: Music },
+  { value: "disliked", label: "Disliked", musicTypes: [], icon: ThumbsDown },
+];
 
 const TrackListSkeleton = ({ count = 5, className = '' }: { count?: number; className?: string }) => (
   <div className={`space-y-3 pb-6 ${className}`.trim()}>
@@ -122,11 +153,9 @@ export const StudioTracksList: React.FC<StudioTracksListProps> = React.memo(func
   onDelete,
   onEditTitle,
   onEditMusicInfo,
+  onExtendTrackSelect,
   hasPlayer = false,
   extendMusicStartPolling,
-  extendMusicGetState,
-  extendMusicClearState,
-  selectedModel,
   onCreate,
 }) {
   
@@ -147,11 +176,19 @@ export const StudioTracksList: React.FC<StudioTracksListProps> = React.memo(func
   const canVocalRemoval = hasPermission('vocal_removal_studio');
   const canExtendMusic = hasPermission('extend_music');
   const canReplaceSection = hasPermission('replace_section');
+  const canCreatePersona = hasPermission('generate_persona');
   
   // UI 状态
   const [copiedTrackId, setCopiedTrackId] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [createdAtSortOrder, setCreatedAtSortOrder] = useState<'desc' | 'asc'>('desc');
+  const [selectedTypeFilter, setSelectedTypeFilter] = useState<TrackTypeFilter>('all');
+  const selectedTypeFilterOption = useMemo(
+    () => TRACK_TYPE_FILTER_OPTIONS.find((option) => option.value === selectedTypeFilter) ?? TRACK_TYPE_FILTER_OPTIONS[0],
+    [selectedTypeFilter]
+  );
+  const selectedTypeFilterMusicTypes = selectedTypeFilterOption.musicTypes;
+  const hasActiveTypeFilter = selectedTypeFilter !== 'all';
   
   // Vocal Removal 管理
   const vocalRemovalManager = useVocalRemovalManager();
@@ -167,14 +204,6 @@ export const StudioTracksList: React.FC<StudioTracksListProps> = React.memo(func
   const [showVocalRemovalProgressDialog, setShowVocalRemovalProgressDialog] = useState(false);
   const [currentProcessingTrackId, setCurrentProcessingTrackId] = useState<string | null>(null);
   const [currentProcessingTrackTitle, setCurrentProcessingTrackTitle] = useState<string>('');
-  
-  // Extend Music 弹窗状态
-  const [showExtendMusicDialog, setShowExtendMusicDialog] = useState(false);
-  const [pendingExtendMusicTrackId, setPendingExtendMusicTrackId] = useState<string | null>(null);
-  const [pendingExtendMusicTrackTitle, setPendingExtendMusicTrackTitle] = useState<string>('');
-  const [pendingExtendMusicTrackDuration, setPendingExtendMusicTrackDuration] = useState<number>(120);
-  const [pendingExtendMusicOriginalStyle, setPendingExtendMusicOriginalStyle] = useState<string>('');
-  const [pendingExtendMusicAudioUrl, setPendingExtendMusicAudioUrl] = useState<string>('');
 
   // Replace Section 弹窗状态
   const [showReplaceSectionDialog, setShowReplaceSectionDialog] = useState(false);
@@ -190,6 +219,45 @@ export const StudioTracksList: React.FC<StudioTracksListProps> = React.memo(func
   const [trackToDelete, setTrackToDelete] = useState<{ id: string; title: string } | null>(null);
   const [publishStatusOverrides, setPublishStatusOverrides] = useState<Record<string, boolean>>({});
   const [publishingTrackIds, setPublishingTrackIds] = useState<string[]>([]);
+  const [selectedPersonaId, setSelectedPersonaId] = useState('');
+
+  const {
+    isPersonaDialogOpen,
+    setIsPersonaDialogOpen,
+    isPersonaLoading,
+    personaOptions,
+    isSelectMusicOpen,
+    setIsSelectMusicOpen,
+    isSelectMusicLoading,
+    selectMusicOptions,
+    selectedMusicTrackId,
+    pendingMusicTrackId,
+    setPendingMusicTrackId,
+    pendingMusicTrack,
+    pendingMusicTrackUnavailableReason,
+    openSelectMusicDialog,
+    closeSelectMusicDialog,
+    confirmSelectMusicDialog,
+    isCreatePersonaDialogOpen,
+    setIsCreatePersonaDialogOpen,
+    selectedMusicTrack,
+    createPersonaName,
+    setCreatePersonaName,
+    createPersonaDescription,
+    setCreatePersonaDescription,
+    closeCreatePersonaDialog,
+    handleCreatePersona,
+    isCreatingPersona,
+    getPersonaTrackUnavailableReason,
+    formatTrackCreatedAt,
+    deletingPersonaRecordId,
+    handleDeletePersona,
+    openCreatePersonaDialog,
+  } = useStudioPersonaManager({
+    user,
+    selectedPersonaId,
+    setSelectedPersonaId,
+  });
   
   // 将所有 tracks 展平
   const allTracks = userTracks.flatMap(music => {
@@ -220,7 +288,24 @@ export const StudioTracksList: React.FC<StudioTracksListProps> = React.memo(func
 
   // 搜索过滤
   const filterTracks = useCallback((tracks: any[]) => {
-    const visibleTracks = tracks.filter((track) => !(track.isDisliked ?? track.is_disliked ?? false));
+    const visibleTracks = tracks.filter((track) => {
+      const isDislikedTrack = Boolean(track.isDisliked ?? track.is_disliked ?? false);
+
+      if (selectedTypeFilter === "disliked") {
+        return isDislikedTrack;
+      }
+
+      if (isDislikedTrack) {
+        return false;
+      }
+
+      if (!hasActiveTypeFilter) {
+        return true;
+      }
+
+      const normalizedType = (track?.musicType ?? 'generated') as MusicType;
+      return selectedTypeFilterMusicTypes.includes(normalizedType);
+    });
 
     if (!searchQuery.trim()) return visibleTracks;
     const query = searchQuery.toLowerCase();
@@ -231,7 +316,7 @@ export const StudioTracksList: React.FC<StudioTracksListProps> = React.memo(func
       if (track.musicTags?.toLowerCase().includes(query)) return true;
       return false;
     });
-  }, [searchQuery]);
+  }, [searchQuery, hasActiveTypeFilter, selectedTypeFilter, selectedTypeFilterMusicTypes]);
 
   // 格式化 generatedTracks（包含延长音乐），使其与 allTracks 格式一致
   const stableGeneratedTracks = React.useMemo(() => {
@@ -378,6 +463,23 @@ export const StudioTracksList: React.FC<StudioTracksListProps> = React.memo(func
       setTimeout(() => setCopiedTrackId(null), 2000);
     });
   }, []);
+
+  const handleCreatePersonaFromTrack = useCallback((track: any) => {
+    if (!user) {
+      toast.error('Please sign in to create a persona.');
+      return;
+    }
+
+    openCreatePersonaDialog(track.id, {
+      title: track.title || track.musicTitle || 'Untitled Track',
+      duration: typeof track.duration === 'string' ? Number.parseFloat(track.duration) || 0 : (track.duration || 0),
+      createdAt: track.createdAt || track.musicGeneration?.createdAt || '',
+      audioId: track.audioId || null,
+      coverR2Url: track.coverR2Url || track.coverImage || null,
+      hasPersona: Boolean(track.personaId || track.persona_id),
+      personaId: track.personaId || track.persona_id || null,
+    });
+  }, [openCreatePersonaDialog, user]);
   
   // 处理下载
   const handleDownload = useCallback((track: any, music: any, format: 'mp3' | 'wav' | 'mp4' | 'cover' = 'mp3') => {
@@ -553,141 +655,42 @@ export const StudioTracksList: React.FC<StudioTracksListProps> = React.memo(func
 
   // 处理 Extend Music
   const handleExtendMusic = useCallback((trackId: string) => {
-    // 检查用户是否登录
     if (!user) {
       toast.error('Please log in to extend music');
       return;
     }
 
-    // 查找曲目（从所有 tracks 中查找）
     const track = findTrackById(trackId);
     if (!track) {
       toast.error('Track not found');
       return;
     }
 
-    // 设置待处理的曲目信息并打开对话框
-    setPendingExtendMusicTrackId(trackId);
-    setPendingExtendMusicTrackTitle(track.title || 'Untitled Track');
-    setPendingExtendMusicTrackDuration(track.duration || 120);
-    setPendingExtendMusicOriginalStyle(track.musicGeneration?.genre || '');
-    // 优先使用 audioUrl，如果没有则使用 streamAudioUrl
-    setPendingExtendMusicAudioUrl(track.audioUrl || track.streamAudioUrl || '');
-    setShowExtendMusicDialog(true);
-  }, [user, findTrackById]);
-
-  // 确认 Extend Music
-  const handleConfirmExtendMusic = useCallback(async (params: ExtendMusicParams): Promise<{ taskId: string } | void> => {
-    if (!pendingExtendMusicTrackId) return;
-
-    // 获取原始 track 信息（从所有 tracks 中查找）
-    const originalTrack = findTrackById(pendingExtendMusicTrackId);
-    const trackTitle = params.defaultParamFlag
-      ? (params.title || pendingExtendMusicTrackTitle)
-      : `${pendingExtendMusicTrackTitle} (Extended)`;
-
-    try {
-      // 获取认证令牌
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session?.access_token) {
-        toast.error('Authentication required. Please log in again.');
-        return;
-      }
-
-      // 准备 API 请求数据
-      const requestBody: any = {
-        trackId: pendingExtendMusicTrackId,
-        model: params.model,
-        defaultParamFlag: params.defaultParamFlag,
-      };
-
-      // 如果是自定义模式（defaultParamFlag=true），添加自定义参数
-      if (params.defaultParamFlag) {
-        requestBody.prompt = params.prompt;
-        requestBody.style = params.style;
-        requestBody.title = params.title;
-        requestBody.continueAt = params.continueAt;
-
-        // 添加可选的高级参数
-        if (params.vocalGender) requestBody.vocalGender = params.vocalGender;
-        if (params.styleWeight !== undefined) requestBody.styleWeight = params.styleWeight;
-        if (params.weirdnessConstraint !== undefined) requestBody.weirdnessConstraint = params.weirdnessConstraint;
-        if (params.audioWeight !== undefined) requestBody.audioWeight = params.audioWeight;
-        if (params.personaId) requestBody.personaId = params.personaId;
-      }
-
-      // 调用扩展音乐 API
-      const response = await fetch('/api/music/extend', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${session.access_token}`,
-        },
-        body: JSON.stringify(requestBody),
-      });
-
-      if (!response.ok) {
-        const errorData = await response.json();
-        
-        // 如果是积分不足错误，刷新积分余额以便用户看到最新状态
-        if (response.status === 402 || errorData.insufficientCredits) {
-          if (refreshCredits) {
-            await refreshCredits();
-          }
-        }
-        
-        throw new Error(errorData.error || 'Failed to extend music');
-      }
-
-      const result = await response.json();
-      
-      if (result.success && result.data) {
-        const { taskId, musicId, initialTracks } = result.data;
-        
-        // 如果有初始占位 tracks，转换为 MusicGenerationTrack 格式并添加到 generatedTracks
-        if (initialTracks && Array.isArray(initialTracks) && initialTracks.length > 0) {
-          // 需要访问 updateTracks，但这里没有直接访问，需要通过 props 传递
-          // 暂时通过 startExtendMusicPolling 传递 initialTracks
-        }
-        
-        // 开始轮询（后台更新 tracks），传递 initialTracks
-        startExtendMusicPolling(
-          taskId,
-          musicId,
-          trackTitle,
-          originalTrack?.musicGenre,
-          originalTrack?.musicTags || pendingExtendMusicOriginalStyle,
-          initialTracks // 传递初始占位 tracks
-        );
-        
-        toast.success('Music extension started successfully!', {
-          description: 'Your extended track is being generated.',
-        });
-        
-        // 清理状态
-        setPendingExtendMusicTrackId(null);
-        setPendingExtendMusicTrackTitle('');
-        setPendingExtendMusicTrackDuration(120);
-        setPendingExtendMusicOriginalStyle('');
-        setPendingExtendMusicAudioUrl('');
-        
-        // 刷新积分（不刷新页面）
-        if (refreshCredits) {
-          await refreshCredits();
-        }
-        
-        // 返回 taskId，通知配置弹窗可以关闭了
-        return { taskId };
-      } else {
-        throw new Error(result.error || 'Failed to extend music');
-      }
-      
-    } catch (error: any) {
-      console.error('Extend music error:', error);
-      toast.error(error.message || 'Failed to extend music. Please try again.');
+    const trackAudioUrl = (track.audioUrl || track.streamAudioUrl || '').trim();
+    if (!trackAudioUrl) {
+      toast.error('Track audio is unavailable.');
       return;
     }
-  }, [pendingExtendMusicTrackId, findTrackById, startExtendMusicPolling, refreshCredits, pendingExtendMusicOriginalStyle, pendingExtendMusicTrackTitle]);
+
+    if (!onExtendTrackSelect) {
+      toast.error('Open Music Extender to continue.');
+      return;
+    }
+
+    onExtendTrackSelect?.({
+      id: track.id,
+      audioId: (track.audioId || '').trim() || undefined,
+      title: track.title || track.musicTitle || 'Untitled Track',
+      audioUrl: trackAudioUrl,
+      duration: typeof track.duration === 'string' ? parseFloat(track.duration) || 0 : (track.duration || 0),
+      tags: track.musicTags || track.tags || '',
+      genre: track.musicGenre || track.genre || '',
+      coverImage: track.coverImage,
+      coverR2Url: track.coverR2Url,
+      musicType: track.musicType,
+      createdAt: track.createdAt || track.musicGeneration?.createdAt,
+    });
+  }, [user, findTrackById, onExtendTrackSelect]);
 
   // 处理 Replace Section
   const handleReplaceSection = useCallback((trackId: string) => {
@@ -980,6 +983,7 @@ export const StudioTracksList: React.FC<StudioTracksListProps> = React.memo(func
     && stableGeneratedTracks.length === 0;
 
   const shouldShowLoadMore = Boolean(onLoadMore) && !searchQuery.trim() && hasMore;
+  const shouldShowNoResults = currentTracks.length === 0 && (Boolean(searchQuery.trim()) || hasActiveTypeFilter);
 
   React.useEffect(() => {
     if (!shouldShowLoadMore || !loadMoreTriggerRef.current || !scrollContainerRef.current) return;
@@ -1057,6 +1061,45 @@ export const StudioTracksList: React.FC<StudioTracksListProps> = React.memo(func
                 )}
           </div>
         </div>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <button
+                type="button"
+                className="inline-flex h-11 min-w-[130px] items-center justify-center gap-1.5 rounded-2xl bg-foreground/5 px-3 text-xs font-semibold text-foreground shadow-[0_1px_2px_rgba(0,0,0,0.06)] transition-colors hover:bg-foreground/10 dark:bg-white/10"
+                aria-label="Filter tracks by type"
+                title="Filter tracks by type"
+              >
+                {React.createElement(selectedTypeFilterOption.icon, { className: "h-3.5 w-3.5" })}
+                <span className="truncate">{selectedTypeFilterOption.label}</span>
+              </button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="w-44">
+              {TRACK_TYPE_FILTER_OPTIONS.map((option) => {
+                const isSelected = option.value === selectedTypeFilter;
+                return (
+                  <React.Fragment key={option.value}>
+                    {option.value === "disliked" && <DropdownMenuSeparator className="my-1" />}
+                    <DropdownMenuItem
+                      onClick={() => setSelectedTypeFilter(option.value)}
+                      className="group flex items-center justify-between gap-2 rounded-xl px-3.5 py-2 transition-colors hover:bg-black/5 focus:bg-black/5 data-[highlighted]:bg-black/5 dark:hover:bg-white/5 dark:focus:bg-white/5 dark:data-[highlighted]:bg-white/5"
+                    >
+                      <span className="flex items-center gap-2">
+                        {React.createElement(option.icon, {
+                          className: `h-4 w-4 ${isSelected ? "text-primary" : "text-foreground/60"}`
+                        })}
+                        <span className="text-sm font-medium text-foreground">{option.label}</span>
+                      </span>
+                      {isSelected && (
+                        <span className="inline-flex h-4 w-4 items-center justify-center rounded-full bg-primary">
+                          <Check className="h-2.5 w-2.5 text-primary-foreground" strokeWidth={2.5} aria-hidden="true" />
+                        </span>
+                      )}
+                    </DropdownMenuItem>
+                  </React.Fragment>
+                );
+              })}
+            </DropdownMenuContent>
+          </DropdownMenu>
           <button
             type="button"
             onClick={() => setCreatedAtSortOrder((prev) => (prev === 'desc' ? 'asc' : 'desc'))}
@@ -1130,6 +1173,7 @@ export const StudioTracksList: React.FC<StudioTracksListProps> = React.memo(func
                             canVocalRemoval={canVocalRemoval}
                             canExtendMusic={canExtendMusic}
                             canReplaceSection={canReplaceSection}
+                            canCreatePersona={canCreatePersona}
                             onSelect={() => {
                               if (isGeneratedTrack && !track.isError && track.audioUrl && onGeneratedTrackSelect) {
                                 onTrackPreview?.(track);
@@ -1148,6 +1192,7 @@ export const StudioTracksList: React.FC<StudioTracksListProps> = React.memo(func
                             onVocalRemoval={() => handleVocalRemoval(track.id)}
                             onExtendMusic={() => handleExtendMusic(track.id)}
                             onReplaceSection={() => handleReplaceSection(track.id)}
+                            onCreatePersona={() => handleCreatePersonaFromTrack(track)}
                             onDelete={onDelete ? () => handleDelete(track.id) : undefined}
                             onPublishToggle={() => handlePublishToggle(track)}
                             isPublishing={publishingTrackIds.includes(track.id)}
@@ -1165,9 +1210,9 @@ export const StudioTracksList: React.FC<StudioTracksListProps> = React.memo(func
               {/* Tracks Summary */}
               {currentTracks.length > 0 && (
                 <div className="flex justify-center items-center py-2 px-4">
-                  <span className="inline-flex items-center rounded-full bg-black/5 px-2 py-0.5 text-[11px] font-semibold tracking-tight text-foreground/80 dark:bg-white/10 dark:text-foreground/85">
+                  <span className="inline-flex items-center px-2 py-0.5 text-[11px] font-semibold tracking-tight text-foreground/80 dark:text-foreground/85">
                     {(() => {
-                      const useTotalSummary = Boolean(summary) && !searchQuery.trim();
+                      const useTotalSummary = Boolean(summary) && !searchQuery.trim() && !hasActiveTypeFilter;
                       const totalSongs = useTotalSummary ? summary!.totalTracks : currentTracks.length;
                       const totalDuration = useTotalSummary
                         ? summary!.totalDuration
@@ -1195,7 +1240,7 @@ export const StudioTracksList: React.FC<StudioTracksListProps> = React.memo(func
             )}
 
             {/* No Search Results */}
-          {searchQuery && currentTracks.length === 0 && (
+          {shouldShowNoResults && (
             <div className="flex items-center justify-center h-full relative min-h-[400px]">
               <div className="text-center max-w-md px-6 py-12">
                 <div className="mb-6 flex justify-center">
@@ -1205,16 +1250,21 @@ export const StudioTracksList: React.FC<StudioTracksListProps> = React.memo(func
                   </div>
                 </div>
                 <h3 className="text-xl font-semibold text-foreground mb-3">
-                  No matching tracks
+                  {searchQuery.trim() ? 'No matching tracks' : 'No tracks in this type'}
                 </h3>
                 <p className="text-muted-foreground mb-6 leading-relaxed">
-                  No tracks found for &quot;{searchQuery}&quot;. Try a different search term.
+                  {searchQuery.trim()
+                    ? `No tracks found for "${searchQuery}". Try a different search term.`
+                    : `No tracks found in "${selectedTypeFilterOption.label}".`}
                 </p>
                 <button
-                  onClick={() => setSearchQuery('')}
+                  onClick={() => {
+                    setSearchQuery('');
+                    setSelectedTypeFilter('all');
+                  }}
                   className="px-4 py-2 bg-primary text-primary-foreground rounded-lg text-sm font-medium hover:bg-primary/90 transition-colors"
                 >
-                  Clear search
+                  Reset
                 </button>
               </div>
             </div>
@@ -1225,6 +1275,41 @@ export const StudioTracksList: React.FC<StudioTracksListProps> = React.memo(func
         </div>
       </div>
       
+      <MusicPersonaDialogs
+        isPersonaDialogOpen={isPersonaDialogOpen}
+        setIsPersonaDialogOpen={setIsPersonaDialogOpen}
+        isPersonaLoading={isPersonaLoading}
+        personaOptions={personaOptions}
+        selectedPersonaId={selectedPersonaId}
+        setSelectedPersonaId={setSelectedPersonaId}
+        deletingPersonaRecordId={deletingPersonaRecordId}
+        onDeletePersona={handleDeletePersona}
+        onOpenSelectMusicDialog={openSelectMusicDialog}
+        isSelectMusicOpen={isSelectMusicOpen}
+        setIsSelectMusicOpen={setIsSelectMusicOpen}
+        closeSelectMusicDialog={closeSelectMusicDialog}
+        isSelectMusicLoading={isSelectMusicLoading}
+        selectMusicOptions={selectMusicOptions}
+        pendingMusicTrackId={pendingMusicTrackId}
+        setPendingMusicTrackId={setPendingMusicTrackId}
+        selectedMusicTrackId={selectedMusicTrackId}
+        pendingMusicTrack={pendingMusicTrack}
+        pendingMusicTrackUnavailableReason={pendingMusicTrackUnavailableReason}
+        getPersonaTrackUnavailableReason={getPersonaTrackUnavailableReason}
+        formatTrackCreatedAt={formatTrackCreatedAt}
+        confirmSelectMusicDialog={confirmSelectMusicDialog}
+        isCreatePersonaDialogOpen={isCreatePersonaDialogOpen}
+        setIsCreatePersonaDialogOpen={setIsCreatePersonaDialogOpen}
+        selectedMusicTrack={selectedMusicTrack}
+        createPersonaName={createPersonaName}
+        setCreatePersonaName={setCreatePersonaName}
+        createPersonaDescription={createPersonaDescription}
+        setCreatePersonaDescription={setCreatePersonaDescription}
+        closeCreatePersonaDialog={closeCreatePersonaDialog}
+        handleCreatePersona={handleCreatePersona}
+        isCreatingPersona={isCreatingPersona}
+      />
+
       {/* Vocal Removal 进度弹窗 */}
       {currentProcessingTrackId && (
         <VocalRemovalProgressDialog
@@ -1257,27 +1342,6 @@ export const StudioTracksList: React.FC<StudioTracksListProps> = React.memo(func
           instrumentalUrl={vocalRemovalManager.getTrackState(currentProcessingTrackId).instrumentalUrl}
         />
       )}
-
-      {/* Extend Music 对话框 */}
-      <ExtendMusicDialog
-        isOpen={showExtendMusicDialog}
-        onClose={() => {
-          setShowExtendMusicDialog(false);
-          setPendingExtendMusicTrackId(null);
-          setPendingExtendMusicTrackTitle('');
-          setPendingExtendMusicTrackDuration(120);
-          setPendingExtendMusicOriginalStyle('');
-          setPendingExtendMusicAudioUrl('');
-        }}
-        onConfirm={handleConfirmExtendMusic}
-        trackTitle={pendingExtendMusicTrackTitle}
-        trackDuration={pendingExtendMusicTrackDuration}
-        originalStyle={pendingExtendMusicOriginalStyle}
-        audioUrl={pendingExtendMusicAudioUrl}
-        userCredits={credits ?? undefined}
-        getExtendMusicState={extendMusicGetState}
-        selectedModel={selectedModel}
-      />
 
       {/* Replace Section 对话框 */}
       <ReplaceSectionDialog

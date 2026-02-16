@@ -1,11 +1,11 @@
 "use client";
-import { Menu, Sparkles, ChevronDown, Mic, FileText, PencilLine } from "lucide-react";
+import { Menu, Coins, ChevronDown, Mic, FileText, PencilLine } from "lucide-react";
 import React from "react";
 import { Button } from "../ui/button";
 import { Avatar, AvatarImage, AvatarFallback } from "../ui/avatar";
 import Link from "next/link";
 import Image from "next/image";
-import { usePathname, useSearchParams } from "next/navigation";
+import { usePathname } from "next/navigation";
 import { useAuth } from "@/contexts/AuthContext";
 import { useSubscription } from "@/contexts/SubscriptionContext";
 import { usePricingModal } from "@/contexts/PricingModalContext";
@@ -15,11 +15,13 @@ import { LogOut } from "lucide-react";
 import { getZIndexClass } from "@/lib/z-index";
 import { EditNicknameDialog } from "@/components/ui/edit-nickname-dialog";
 import { ThemeModeToggle } from "@/components/ui/theme-mode-toggle";
+import { isStudioAreaPath } from "@/lib/studio-features";
 
 interface RouteProps {
   href: string;
   label: string;
   hasDropdown?: boolean;
+  dropdownKey?: DropdownKey;
   dropdownItems?: DropdownItemProps[];
 }
 
@@ -27,6 +29,31 @@ interface DropdownItemProps {
   href: string;
   label: string;
 }
+
+type DropdownKey = "studio" | "ai";
+
+const studioDropdown: DropdownItemProps[] = [
+  {
+    href: "/music-generator",
+    label: "Music Generator",
+  },
+  {
+    href: "/music-extender",
+    label: "Music Extender",
+  },
+  {
+    href: "/music-cover",
+    label: "Music Cover",
+  },
+  {
+    href: "/mashup",
+    label: "Mashup",
+  },
+  {
+    href: "/add-track",
+    label: "Add Track",
+  },
+];
 
 const aiMusicToolsDropdown: DropdownItemProps[] = [
   {
@@ -41,17 +68,21 @@ const aiMusicToolsDropdown: DropdownItemProps[] = [
 
 const routeList: RouteProps[] = [
   {
-    href: "/studio",
+    href: "#studio",
     label: "Studio",
+    hasDropdown: true,
+    dropdownKey: "studio",
+    dropdownItems: studioDropdown,
   },
   {
     href: "/library",
     label: "Library",
   },
   {
-    href: "#",
+    href: "#ai",
     label: "AI Music Tool",
     hasDropdown: true,
+    dropdownKey: "ai",
     dropdownItems: aiMusicToolsDropdown,
   },
   {
@@ -73,11 +104,10 @@ export const Navbar = ({ credits = null }: NavbarProps) => {
   const [isAuthModalOpen, setIsAuthModalOpen] = React.useState(false);
   const [isUserMenuOpen, setIsUserMenuOpen] = React.useState(false);
   const [isNicknameDialogOpen, setIsNicknameDialogOpen] = React.useState(false);
-  const [isDropdownOpen, setIsDropdownOpen] = React.useState(false);
-  const [isMobileAiOpen, setIsMobileAiOpen] = React.useState(false);
+  const [openDropdown, setOpenDropdown] = React.useState<DropdownKey | null>(null);
+  const [openMobileDropdown, setOpenMobileDropdown] = React.useState<DropdownKey | null>(null);
   const [dropdownTimeout, setDropdownTimeout] = React.useState<NodeJS.Timeout | null>(null);
   const pathname = usePathname();
-  const searchParams = useSearchParams();
   const isHome = pathname === "/";
   const { user, signOut, loading: authLoading } = useAuth();
   const { tierCode, tierName, hasSubscription, cancelAtPeriodEnd, cancelAt, currentPeriodEnd } = useSubscription();
@@ -112,17 +142,17 @@ export const Navbar = ({ credits = null }: NavbarProps) => {
   };
 
   // 处理下拉菜单的悬停逻辑
-  const handleDropdownMouseEnter = () => {
+  const handleDropdownMouseEnter = (key: DropdownKey) => {
     if (dropdownTimeout) {
       clearTimeout(dropdownTimeout);
       setDropdownTimeout(null);
     }
-    setIsDropdownOpen(true);
+    setOpenDropdown(key);
   };
 
   const handleDropdownMouseLeave = () => {
     const timeout = setTimeout(() => {
-      setIsDropdownOpen(false);
+      setOpenDropdown(null);
     }, 150); // 150ms延迟
     setDropdownTimeout(timeout);
   };
@@ -163,24 +193,36 @@ export const Navbar = ({ credits = null }: NavbarProps) => {
 
   // Close user menu and dropdown when clicking outside
   React.useEffect(() => {
+    if (!isOpen) {
+      setOpenMobileDropdown(null);
+    }
+  }, [isOpen]);
+
+  React.useEffect(() => {
+    setOpenDropdown(null);
+    setOpenMobileDropdown(null);
+  }, [pathname]);
+
+  React.useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       const userMenuContainer = document.querySelector('.user-menu-container');
-      const dropdownContainer = document.querySelector('.dropdown-container');
+      const target = event.target as HTMLElement | null;
+      const inDropdownContainer = !!target?.closest('.dropdown-container');
       
       if (userMenuContainer && !userMenuContainer.contains(event.target as Node)) {
         setIsUserMenuOpen(false);
       }
       
-      if (dropdownContainer && !dropdownContainer.contains(event.target as Node)) {
-        setIsDropdownOpen(false);
+      if (!inDropdownContainer) {
+        setOpenDropdown(null);
       }
     };
 
-    if (isUserMenuOpen || isDropdownOpen) {
+    if (isUserMenuOpen || openDropdown !== null) {
       document.addEventListener('mousedown', handleClickOutside);
       return () => document.removeEventListener('mousedown', handleClickOutside);
     }
-  }, [isUserMenuOpen, isDropdownOpen]);
+  }, [isUserMenuOpen, openDropdown]);
 
   // 清理timeout
   React.useEffect(() => {
@@ -209,22 +251,22 @@ export const Navbar = ({ credits = null }: NavbarProps) => {
       {/* <!-- Desktop Navigation --> */}
       <nav className="hidden lg:block ml-8">
         <ul className="flex items-center space-x-2">
-          {routeList.map(({ href, label, hasDropdown, dropdownItems }) => {
-            const hasTrackParam = pathname === "/studio" && Boolean(searchParams?.get("track"));
+          {routeList.map(({ href, label, hasDropdown, dropdownItems, dropdownKey }) => {
             const isActive =
               href === "/blog" ? pathname.startsWith("/blog") :
               href === "/explore" ? pathname.startsWith("/explore") :
-              href === "/studio" ? pathname.startsWith("/studio") && !hasTrackParam :
+              hasDropdown && dropdownKey === "studio" ? isStudioAreaPath(pathname) :
               href === "/library" ? pathname.startsWith("/library") :
-              href === "#" ? (pathname.startsWith("/vocal-remover") || pathname.startsWith("/lyrics-generator")) :
+              hasDropdown && dropdownKey === "ai" ? (pathname.startsWith("/vocal-remover") || pathname.startsWith("/lyrics-generator")) :
               pathname === href;
             
-            if (hasDropdown && dropdownItems) {
+            if (hasDropdown && dropdownItems && dropdownKey) {
+              const isOpenDropdown = openDropdown === dropdownKey;
               return (
-                <li key={href} className="relative dropdown-container">
+                <li key={dropdownKey} className="relative dropdown-container">
                   <button
-                    onClick={() => setIsDropdownOpen(!isDropdownOpen)}
-                    onMouseEnter={handleDropdownMouseEnter}
+                    onClick={() => setOpenDropdown((prev) => prev === dropdownKey ? null : dropdownKey)}
+                    onMouseEnter={() => handleDropdownMouseEnter(dropdownKey)}
                     onMouseLeave={handleDropdownMouseLeave}
                   className={`text-base px-5 py-3 rounded-lg transition-colors duration-200 flex items-center gap-1 font-semibold ${
                       isActive
@@ -233,14 +275,14 @@ export const Navbar = ({ credits = null }: NavbarProps) => {
                     }`}
                   >
                     {label}
-                    <ChevronDown className={`h-3 w-3 transition-transform duration-200 ${isDropdownOpen ? 'rotate-180' : ''}`} />
+                    <ChevronDown className={`h-3 w-3 transition-transform duration-200 ${isOpenDropdown ? 'rotate-180' : ''}`} />
                   </button>
                   
                   {/* Dropdown Menu */}
-                  {isDropdownOpen && (
+                  {isOpenDropdown && (
                     <div 
                       className="absolute top-full left-0 mt-2 min-w-48 w-max bg-background rounded-2xl p-2 z-[110] shadow-[0_18px_55px_rgba(0,0,0,0.10)]"
-                      onMouseEnter={handleDropdownMouseEnter}
+                      onMouseEnter={() => handleDropdownMouseEnter(dropdownKey)}
                       onMouseLeave={handleDropdownMouseLeave}
                     >
                       {dropdownItems.map((item) => {
@@ -249,7 +291,7 @@ export const Navbar = ({ credits = null }: NavbarProps) => {
                           <Link
                             key={item.href}
                             href={item.href}
-                            onClick={() => setIsDropdownOpen(false)}
+                            onClick={() => setOpenDropdown(null)}
                             className={`group flex items-center px-3 py-2 my-1 transition-colors rounded-lg hover:bg-accent hover:text-accent-foreground ${
                               isDropdownItemActive
                                 ? 'bg-foreground/10 text-foreground shadow-[0px_12px_30px_rgba(0,0,0,0.08)]'
@@ -359,7 +401,7 @@ export const Navbar = ({ credits = null }: NavbarProps) => {
                   
                   {/* Credits Display */}
                   <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-black/5">
-                    <Sparkles className="h-3.5 w-3.5 text-primary" />
+                    <Coins className="h-3.5 w-3.5 text-primary" />
                     <span className="text-base font-semibold text-foreground">
                       {credits === null ? '...' : credits} Credits
                     </span>
@@ -409,34 +451,38 @@ export const Navbar = ({ credits = null }: NavbarProps) => {
               )}
               
               <div className="flex flex-col gap-2">
-                {routeList.map(({ href, label, hasDropdown, dropdownItems }) => {
+                {routeList.map(({ href, label, hasDropdown, dropdownItems, dropdownKey }) => {
                   const isActive = pathname === href ||
                                  (href === "/blog" && pathname.startsWith("/blog")) ||
                                  (href === "/explore" && pathname.startsWith("/explore")) ||
-                                 (href === "/studio" && pathname.startsWith("/studio")) ||
+                                 (hasDropdown && dropdownKey === "studio" && isStudioAreaPath(pathname)) ||
                                  (href === "/library" && pathname.startsWith("/library")) ||
-                                 (href === "#" && (pathname.startsWith("/vocal-remover") || pathname.startsWith("/lyrics-generator")));
+                                 (hasDropdown && dropdownKey === "ai" && (pathname.startsWith("/vocal-remover") || pathname.startsWith("/lyrics-generator")));
                   
-                  if (hasDropdown && dropdownItems) {
+                  if (hasDropdown && dropdownItems && dropdownKey) {
+                    const isMobileDropdownOpen = openMobileDropdown === dropdownKey;
                     return (
-                      <div key={href} className="space-y-1">
+                      <div key={dropdownKey} className="space-y-1">
                         <Button
                           type="button"
                           variant="ghost"
-                          onClick={() => setIsMobileAiOpen((prev) => !prev)}
+                          onClick={() => setOpenMobileDropdown((prev) => prev === dropdownKey ? null : dropdownKey)}
                           className="w-full h-10 justify-between px-3 text-base text-foreground/80 hover:text-foreground hover:bg-transparent"
-                          aria-expanded={isMobileAiOpen}
+                          aria-expanded={isMobileDropdownOpen}
                         >
                           <span>{label}</span>
-                          <ChevronDown className={`h-4 w-4 transition-transform ${isMobileAiOpen ? 'rotate-180' : ''}`} />
+                          <ChevronDown className={`h-4 w-4 transition-transform ${isMobileDropdownOpen ? 'rotate-180' : ''}`} />
                         </Button>
-                        {isMobileAiOpen && (
+                        {isMobileDropdownOpen && (
                           <div className="ml-4 space-y-1">
                             {dropdownItems.map((item) => {
                               return (
                                 <Button
                                   key={item.href}
-                                  onClick={() => setIsOpen(false)}
+                                  onClick={() => {
+                                    setIsOpen(false);
+                                    setOpenMobileDropdown(null);
+                                  }}
                                   asChild
                                   variant="ghost"
                                   className="w-full justify-start text-sm h-auto py-1.5 px-3 my-1 hover:bg-transparent hover:text-foreground text-foreground/70"
@@ -458,6 +504,7 @@ export const Navbar = ({ credits = null }: NavbarProps) => {
                       key={href}
                       onClick={() => {
                         setIsOpen(false);
+                        setOpenMobileDropdown(null);
                       }}
                       asChild
                       variant="ghost"
@@ -544,7 +591,7 @@ export const Navbar = ({ credits = null }: NavbarProps) => {
                 <div className="w-full flex items-center justify-between gap-3 rounded-xl px-3 py-2">
                   <div className="flex items-center gap-3">
                     <div className="flex-shrink-0 h-8 w-8 rounded-lg flex items-center justify-center text-primary">
-                      <Sparkles className="h-3.5 w-3.5" />
+                      <Coins className="h-3.5 w-3.5" />
                     </div>
                     <span className="text-sm font-medium text-foreground">Credits</span>
                   </div>

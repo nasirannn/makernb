@@ -14,6 +14,8 @@ export interface UploadProgressDialogProps {
   audioUrl?: string | null;
   duration?: number;
   onSelect?: (mode: "cover" | "extend") => void;
+  variant?: "default" | "audio-preview";
+  confirmMode?: "cover" | "extend";
 }
 
 export const UploadProgressDialog = ({
@@ -25,6 +27,8 @@ export const UploadProgressDialog = ({
   audioUrl,
   duration = 0,
   onSelect,
+  variant = "default",
+  confirmMode,
 }: UploadProgressDialogProps) => {
   const audioRef = React.useRef<HTMLAudioElement | null>(null);
   const [isPlaying, setIsPlaying] = React.useState(false);
@@ -98,17 +102,18 @@ export const UploadProgressDialog = ({
   const isReady = status === "ready";
   const isUploading = status === "uploading";
   const disableActions = !isReady;
+  const isAudioPreviewVariant = variant === "audio-preview";
 
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
-      <DialogContent className="max-w-[calc(100vw-2rem)] sm:max-w-[640px] max-h-[85vh] flex flex-col p-0 border-0 bg-background shadow-xl">
+      <DialogContent className="max-w-[calc(100vw-2rem)] sm:max-w-[640px] max-h-[85vh] flex flex-col overflow-hidden rounded-[28px] p-0 border-0 bg-background shadow-xl">
         <div className="pointer-events-none absolute inset-x-0 top-0 h-24 bg-gradient-to-b from-primary/15 via-primary/5 to-transparent" />
         <DialogHeader className="relative px-6 pt-5 pb-4">
           <div className="text-[10px] uppercase tracking-[0.28em] text-muted-foreground">
             Upload Audio
           </div>
           <DialogTitle className="text-xl font-semibold tracking-tight">
-            Processing Upload
+            {isAudioPreviewVariant ? "Audio Preview" : "Processing Upload"}
           </DialogTitle>
           <DialogDescription className="text-sm text-muted-foreground">
             {status === "error" ? "Something went wrong while uploading. Please try again." : "We are preparing your track."}
@@ -141,9 +146,21 @@ export const UploadProgressDialog = ({
             </div>
           ) : (
             <>
-              <div className="rounded-2xl p-[1px] bg-gradient-to-br from-primary/40 via-border/50 to-primary/10">
-                <div className="relative overflow-hidden rounded-2xl bg-white/85 dark:bg-muted/20 p-3 shadow-sm ring-1 ring-black/5 dark:ring-white/10">
-                  {isUploading && <div className="upload-progress-sheen absolute inset-0" />}
+              <div
+                className={
+                  isAudioPreviewVariant
+                    ? "rounded-2xl bg-muted/55 dark:bg-muted/25"
+                    : "rounded-2xl p-[1px] bg-gradient-to-br from-primary/40 via-border/50 to-primary/10"
+                }
+              >
+                <div
+                  className={`relative overflow-hidden rounded-2xl p-3 shadow-sm ${
+                    isAudioPreviewVariant
+                      ? "bg-transparent"
+                      : "bg-white/85 dark:bg-muted/20 ring-1 ring-black/5 dark:ring-white/10"
+                  }`}
+                >
+                  {isUploading && <div className="audio-preview-sheen absolute inset-0" />}
                   <div className="flex items-center gap-4">
                     <button
                       type="button"
@@ -171,88 +188,93 @@ export const UploadProgressDialog = ({
                 </div>
               </div>
 
-              <div>
-                <div className="text-[11px] uppercase tracking-[0.24em] text-muted-foreground">Next Step</div>
-                <div className="text-base font-semibold text-foreground mt-1">Select a creative path</div>
-              </div>
+              {!isAudioPreviewVariant && (
+                <>
+                  <div>
+                    <div className="text-[11px] uppercase tracking-[0.24em] text-muted-foreground">Next Step</div>
+                    <div className="text-base font-semibold text-foreground mt-1">Select a creative path</div>
+                  </div>
 
-              <div className="grid grid-cols-2 gap-3">
-                <button
-                  type="button"
-                  onClick={() => onSelect?.("cover")}
-                  disabled={disableActions}
-                  className={`group rounded-2xl border p-3 text-left shadow-sm transition-all ${
-                    disableActions
-                      ? "border-border/40 bg-muted/30 text-muted-foreground cursor-not-allowed"
-                      : "border-primary/30 bg-transparent hover:-translate-y-0.5 hover:bg-gradient-to-br hover:from-primary/15 hover:via-primary/5 hover:to-transparent hover:border-primary/60 hover:shadow-[0_12px_28px_rgba(0,0,0,0.22)]"
-                  }`}
-                >
-                  <div className="flex items-center gap-3">
-                    <div className={`h-8 w-8 rounded-lg border flex items-center justify-center transition ${
-                      disableActions ? "bg-muted/40 border-border/60 text-muted-foreground" : "bg-transparent border-primary/20 text-primary group-hover:bg-primary/20 group-hover:border-primary/40"
-                    }`}>
-                      <Music2 className="h-4 w-4" />
-                    </div>
-                    <div className="text-base font-semibold">Cover</div>
-                  </div>
-                  <div className="mt-1 text-sm text-muted-foreground">
-                    Restyle your track while keeping its core melody.
-                  </div>
-                </button>
+                  <div className="grid grid-cols-2 gap-3">
+                    <button
+                      type="button"
+                      onClick={() => onSelect?.("cover")}
+                      disabled={disableActions}
+                      className={`group rounded-2xl border p-3 text-left shadow-sm transition-all ${
+                        disableActions
+                          ? "border-border/40 bg-muted/30 text-muted-foreground cursor-not-allowed"
+                          : "border-primary/30 bg-transparent hover:-translate-y-0.5 hover:bg-gradient-to-br hover:from-primary/15 hover:via-primary/5 hover:to-transparent hover:border-primary/60 hover:shadow-[0_12px_28px_rgba(0,0,0,0.22)]"
+                      }`}
+                    >
+                      <div className="flex items-center gap-3">
+                        <div className={`h-8 w-8 rounded-lg border flex items-center justify-center transition ${
+                          disableActions ? "bg-muted/40 border-border/60 text-muted-foreground" : "bg-transparent border-primary/20 text-primary group-hover:bg-primary/20 group-hover:border-primary/40"
+                        }`}>
+                          <Music2 className="h-4 w-4" />
+                        </div>
+                        <div className="text-base font-semibold">Cover</div>
+                      </div>
+                      <div className="mt-1 text-sm text-muted-foreground">
+                        Restyle your track while keeping its core melody.
+                      </div>
+                    </button>
 
-                <button
-                  type="button"
-                  onClick={() => onSelect?.("extend")}
-                  disabled={disableActions}
-                  className={`group rounded-2xl border p-3 text-left shadow-sm transition-all ${
-                    disableActions
-                      ? "border-border/40 bg-muted/30 text-muted-foreground cursor-not-allowed"
-                      : "border-primary/30 bg-transparent hover:-translate-y-0.5 hover:bg-gradient-to-br hover:from-primary/15 hover:via-primary/5 hover:to-transparent hover:border-primary/60 hover:shadow-[0_12px_28px_rgba(0,0,0,0.22)]"
-                  }`}
-                >
-                  <div className="flex items-center gap-3">
-                    <div className={`h-8 w-8 rounded-lg border flex items-center justify-center transition ${
-                      disableActions ? "bg-muted/40 border-border/60 text-muted-foreground" : "bg-transparent border-primary/20 text-primary group-hover:bg-primary/20 group-hover:border-primary/40"
-                    }`}>
-                      <Expand className="h-4 w-4" />
-                    </div>
-                    <div className="text-base font-semibold">Extend</div>
+                    <button
+                      type="button"
+                      onClick={() => onSelect?.("extend")}
+                      disabled={disableActions}
+                      className={`group rounded-2xl border p-3 text-left shadow-sm transition-all ${
+                        disableActions
+                          ? "border-border/40 bg-muted/30 text-muted-foreground cursor-not-allowed"
+                          : "border-primary/30 bg-transparent hover:-translate-y-0.5 hover:bg-gradient-to-br hover:from-primary/15 hover:via-primary/5 hover:to-transparent hover:border-primary/60 hover:shadow-[0_12px_28px_rgba(0,0,0,0.22)]"
+                      }`}
+                    >
+                      <div className="flex items-center gap-3">
+                        <div className={`h-8 w-8 rounded-lg border flex items-center justify-center transition ${
+                          disableActions ? "bg-muted/40 border-border/60 text-muted-foreground" : "bg-transparent border-primary/20 text-primary group-hover:bg-primary/20 group-hover:border-primary/40"
+                        }`}>
+                          <Expand className="h-4 w-4" />
+                        </div>
+                        <div className="text-base font-semibold">Extend</div>
+                      </div>
+                      <div className="mt-1 text-sm text-muted-foreground">
+                        Continue the flow and make it longer.
+                      </div>
+                    </button>
                   </div>
-                  <div className="mt-1 text-sm text-muted-foreground">
-                    Continue the flow and make it longer.
-                  </div>
-                </button>
-              </div>
+                </>
+              )}
             </>
           )}
         </div>
 
+        {isAudioPreviewVariant && (
+          <div className="flex-shrink-0 px-6 pb-6 pt-2">
+            <div className="grid grid-cols-2 gap-3">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={onClose}
+                className="h-11"
+              >
+                Cancel
+              </Button>
+              <Button
+                type="button"
+                onClick={() => {
+                  if (!confirmMode) return;
+                  onSelect?.(confirmMode);
+                }}
+                disabled={disableActions || !confirmMode}
+                className="h-11"
+              >
+                Confirm
+              </Button>
+            </div>
+          </div>
+        )}
+
       </DialogContent>
-      <style jsx>{`
-        .upload-progress-sheen {
-          background: linear-gradient(
-            90deg,
-            rgba(0, 0, 0, 0) 0%,
-            hsl(var(--primary) / 0.18) 40%,
-            hsl(var(--primary) / 0.28) 55%,
-            hsl(var(--primary) / 0.18) 70%,
-            rgba(0, 0, 0, 0) 100%
-          );
-          animation: upload-sheen 1.6s ease-in-out infinite;
-          pointer-events: none;
-        }
-        @keyframes upload-sheen {
-          0% {
-            transform: translateX(-120%);
-          }
-          50% {
-            transform: translateX(0%);
-          }
-          100% {
-            transform: translateX(120%);
-          }
-        }
-      `}</style>
     </Dialog>
   );
 };

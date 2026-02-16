@@ -163,6 +163,7 @@ export function convertToBaseTrack(track: any): BaseTrack {
     isFavorited: track.isFavorited ?? track.is_favorited ?? false, // 兼容旧字段名
     isLiked: track.isLiked ?? track.is_liked ?? false, // 兼容旧字段名
     isDisliked: track.isDisliked ?? track.is_disliked ?? false, // 兼容旧字段名
+    musicType: track.musicType,
     model: track.model || track.musicModel || track.musicGeneration?.model
   };
 }
@@ -183,6 +184,7 @@ export const createDefaultTrack = (id: string, title: string = 'Untitled Track')
   isFavorited: false,
   isLiked: false,
   isDisliked: false,
+  musicType: 'generated',
 });
 
 // ============================================================================

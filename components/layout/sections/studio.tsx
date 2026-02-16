@@ -21,7 +21,6 @@ import { StudioTrack } from "@/types/track";
 
 // Components
 import { CommonSidebar } from "@/components/ui/sidebar";
-import { StudioPanel } from "@/components/ui/studio-panel";
 import { StudioTracksList } from "@/components/ui/studio-tracks-list";
 import { InlineTrackDetailsPanel } from "@/components/ui/inline-track-details";
 import { MusicPlayer } from "@/components/ui/music-player";
@@ -48,10 +47,49 @@ import { LoadingDots } from "@/components/ui/loading-dots";
 import { Music, Wand2, ChevronLeft } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 import { toast } from "sonner";
+import { type MusicType } from "@/types/music";
+import type { ExtendSourceTrack } from "@/types/extend-track-source";
+import type { FeatureCreatePanelProps } from "@/components/ui/feature-panels/music-generator-panel";
+import {
+    getStudioFeaturePath,
+    type StudioFeatureKey,
+} from "@/lib/studio-features";
 
 const USER_TRACKS_PAGE_SIZE = 10;
+type StudioFeaturePanelStateProps = Omit<
+    FeatureCreatePanelProps,
+    | "panelOpen"
+    | "setPanelOpen"
+    | "hasPlayer"
+    | "showModeTabs"
+    | "lockModeSelector"
+    | "showUploadAction"
+    | "allowedUploadIntents"
+    | "forcedUploadIntent"
+    | "forcedTrackUploadMode"
+    | "allowMashupAction"
+>;
 
-const StudioContent = () => {
+type StudioFeaturePanelProps = StudioFeaturePanelStateProps & Pick<FeatureCreatePanelProps, "panelOpen" | "setPanelOpen" | "hasPlayer">;
+
+type StudioContentProps = {
+    feature: StudioFeatureKey;
+    FeaturePanel: React.ComponentType<StudioFeaturePanelProps>;
+    panelMode: "simple" | "custom";
+    lockPanelMode: boolean;
+};
+
+const DEFAULT_FEATURE_MODES: Record<StudioFeatureKey, "simple" | "custom"> = {
+    "music-generator": "simple",
+    "music-extender": "custom",
+    "music-cover": "custom",
+    "mashup": "custom",
+    "add-track": "custom",
+    "add-vocal": "custom",
+    "add-melody": "custom",
+};
+
+const StudioContent = ({ feature, FeaturePanel, panelMode, lockPanelMode }: StudioContentProps) => {
     // Router 和 Search Params
     const router = useRouter();
 
@@ -102,9 +140,12 @@ const StudioContent = () => {
     });
     const [selectedStudioTrack, setSelectedStudioTrack] = useState<StudioTrack | null>(null);
     const [panelOpen, setPanelOpen] = useState(true);
+    const [pendingExtendSourceTrack, setPendingExtendSourceTrack] = useState<ExtendSourceTrack | null>(null);
     const [lyricsPanelOpen, setLyricsPanelOpen] = useState(false);
     const [sidebarWidth, setSidebarWidth] = useState(72);
     const sidebarOffsetRef = React.useRef(sidebarWidth);
+    const [featureModes, setFeatureModes] = useState<Record<StudioFeatureKey, "simple" | "custom">>(DEFAULT_FEATURE_MODES);
+    const previousFeatureRef = React.useRef<StudioFeatureKey | null>(null);
 
     const normalizeDuration = React.useCallback((value: unknown) => {
         const parsed = typeof value === 'string' ? parseFloat(value) : value;
@@ -154,6 +195,7 @@ const StudioContent = () => {
         songTitle, setSongTitle,
         instrumentalMode, setInstrumentalMode,
         isPublished,
+        setIsPublished,
         styleText, setStyleText,
         bpm, setBpm,
         grooveType, setGrooveType,
@@ -163,6 +205,10 @@ const StudioContent = () => {
         vocalGender, setVocalGender,
         harmonyPalette, setHarmonyPalette,
         selectedPersonaId, setSelectedPersonaId,
+        selectedPersonaModel, setSelectedPersonaModel,
+        styleWeight, setStyleWeight,
+        weirdnessConstraint, setWeirdnessConstraint,
+        audioWeight, setAudioWeight,
         enhanceStyle, setEnhanceStyle,
         trackExistingTask,
     } = musicGeneration;
@@ -243,10 +289,13 @@ const StudioContent = () => {
         isDisliked: boolean = false,
         streamAudioUrl?: string,
         createdAt?: string,
-        generationMode?: string
+        generationMode?: string,
+        sunoTrackId?: string | null
     ) => ({
         id,
         generationId,
+        sunoTrackId: sunoTrackId ?? null,
+        audioId: sunoTrackId ?? undefined,
         title,
         audioUrl,
         streamAudioUrl,
@@ -284,7 +333,8 @@ const StudioContent = () => {
                 track.isDisliked ?? false,
                 track.streamAudioUrl ?? '',
                 track.createdAt || new Date().toISOString(),
-                track.generationMode
+                track.generationMode,
+                track.sunoTrackId ?? null
             ));
         });
         
@@ -307,13 +357,44 @@ const StudioContent = () => {
                         track.isDisliked ?? false,
                         track.streamAudioUrl ?? '',
                         track.createdAt ?? music.createdAt ?? new Date().toISOString(),
-                        music.generationMode
+                        music.generationMode,
+                        track.sunoTrackId ?? track.suno_track_id ?? null
                     ));
                 });
             }
         });        
         return tracks;
     }, [generatedTracks, userTracks, createTrackObject]);
+
+    const extendSourceTracks = React.useMemo<ExtendSourceTrack[]>(() => {
+        const deduped = new Map<string, ExtendSourceTrack>();
+
+        allTracks.forEach((track) => {
+            if (!track?.id) return;
+            const audioUrl = (track.audioUrl || track.streamAudioUrl || '').trim();
+            if (!audioUrl) return;
+
+            deduped.set(track.id, {
+                id: track.id,
+                title: track.title || 'Untitled Track',
+                audioUrl,
+                duration: normalizeDuration(track.duration),
+                audioId: (track.audioId || '').trim() || undefined,
+                tags: track.tags || '',
+                genre: track.genre || '',
+                coverImage: track.coverImage,
+                coverR2Url: track.coverR2Url,
+                musicType: track.musicType,
+                createdAt: track.createdAt,
+            });
+        });
+
+        return Array.from(deduped.values()).sort((a, b) => {
+            const dateA = new Date(a.createdAt || 0).getTime();
+            const dateB = new Date(b.createdAt || 0).getTime();
+            return dateB - dateA;
+        });
+    }, [allTracks, normalizeDuration]);
 
     // 为 MusicPlayer 创建稳定的 tracks 数组，避免不必要的重新渲染
     const musicPlayerTracks = React.useMemo(() => {
@@ -377,7 +458,8 @@ const StudioContent = () => {
                                 track.isDisliked || false,
                             track.streamAudioUrl,
                             track.createdAt,
-                            track.generationMode
+                            track.generationMode,
+                            track.sunoTrackId ?? track.suno_track_id ?? null
                             );
                             console.log('Successfully fetched track from server:', localTrack);
                         }
@@ -687,7 +769,7 @@ const StudioContent = () => {
             case "V4_5PLUS":
             case "V5":
             default:
-                return { prompt: 5000, style: 1000, title: 100 };
+                return { prompt: 5000, style: 1000, title: 80 };
         }
     }, []);
 
@@ -696,6 +778,10 @@ const StudioContent = () => {
         uploadUrl?: string | null;
         mode?: "cover" | "extend";
         continueAt?: number;
+        isPublished?: boolean;
+        styleWeight?: number;
+        weirdnessConstraint?: number;
+        audioWeight?: number;
     }) => {
         if (!user?.id) {
             setIsAuthModalOpen(true);
@@ -709,6 +795,10 @@ const StudioContent = () => {
         const isSimpleMode = mode === "simple";
         const isCustomMode = mode === "custom";
         const effectiveModel = isCustomMode ? selectedModel : 'V4';
+        const forceInstrumentalFalseForUpload = feature === "music-extender" || feature === "music-cover";
+        const effectiveUploadInstrumental = forceInstrumentalFalseForUpload
+            ? false
+            : (isCustomMode ? instrumentalMode : false);
 
         if (isSimpleMode && !trimmedSimplePrompt) {
             toast.error("Please enter a prompt.");
@@ -724,7 +814,7 @@ const StudioContent = () => {
                 toast.error("Please enter a title.");
                 return false;
             }
-            if (!instrumentalMode && !trimmedCustomLyrics) {
+            if (!effectiveUploadInstrumental && !trimmedCustomLyrics) {
                 toast.error("Please enter lyrics.");
                 return false;
             }
@@ -750,6 +840,7 @@ const StudioContent = () => {
         const placeholderPrompt = isCustomMode ? trimmedStyle : trimmedSimplePrompt;
         const placeholderTitle = trimmedTitle || (uploadFile?.name ? uploadFile.name.replace(/\.[^/.]+$/, "") : "Untitled Track");
         const generationMode = isCustomMode ? 'custom' : 'simple';
+        const placeholderMusicType: MusicType = options?.mode === 'extend' ? 'upload_extend' : 'upload_cover';
 
         flushSync(() => {
             updateTracks((prevTracks) => ([
@@ -772,6 +863,7 @@ const StudioContent = () => {
                     isCompleted: false,
                     isPlaceholder: true,
                     generationMode,
+                    musicType: placeholderMusicType,
                 },
                 {
                     id: `${placeholderGenerationId}_placeholder_1`,
@@ -792,6 +884,7 @@ const StudioContent = () => {
                     isCompleted: false,
                     isPlaceholder: true,
                     generationMode,
+                    musicType: placeholderMusicType,
                 },
                 ...prevTracks
             ]));
@@ -810,14 +903,16 @@ const StudioContent = () => {
             const formData = new FormData();
             const limits = getModelLimits(effectiveModel);
             const uploadMode = options?.mode === "extend" ? "extend" : "cover";
+            const requestedIsPublished = options?.isPublished ?? isPublished;
             formData.append("mode", uploadMode);
             formData.append("uploadUrl", uploadUrl);
             if (uploadMode === "extend") {
                 formData.append("defaultParamFlag", isCustomMode ? "true" : "false");
             } else {
                 formData.append("customMode", isCustomMode ? "true" : "false");
+                formData.append("isPublished", requestedIsPublished ? "true" : "false");
             }
-            formData.append("instrumental", isCustomMode ? (instrumentalMode ? "true" : "false") : "false");
+            formData.append("instrumental", effectiveUploadInstrumental ? "true" : "false");
             formData.append("model", effectiveModel);
             if (uploadMode === "extend" && isCustomMode) {
                 formData.append("continueAt", continueAt.toString());
@@ -830,15 +925,25 @@ const StudioContent = () => {
                 if (trimmedTitle) {
                     formData.append("title", trimmedTitle.slice(0, limits.title));
                 }
-                if (!instrumentalMode && trimmedCustomLyrics) {
+                if (!effectiveUploadInstrumental && trimmedCustomLyrics) {
                     formData.append("prompt", trimmedCustomLyrics.slice(0, limits.prompt));
                 }
 
                 if (selectedPersonaId) {
                     formData.append("personaId", selectedPersonaId);
+                    formData.append("personaModel", selectedPersonaModel);
+                }
+                if (typeof options?.styleWeight === "number") {
+                    formData.append("styleWeight", options.styleWeight.toString());
+                }
+                if (typeof options?.weirdnessConstraint === "number") {
+                    formData.append("weirdnessConstraint", options.weirdnessConstraint.toString());
+                }
+                if (typeof options?.audioWeight === "number") {
+                    formData.append("audioWeight", options.audioWeight.toString());
                 }
             } else if (trimmedSimplePrompt) {
-                const maxSimplePrompt = 400;
+                const maxSimplePrompt = uploadMode === "extend" ? limits.prompt : 500;
                 formData.append("prompt", trimmedSimplePrompt.slice(0, maxSimplePrompt));
             }
 
@@ -893,9 +998,12 @@ const StudioContent = () => {
         styleText,
         songTitle,
         instrumentalMode,
+        feature,
         mode,
         selectedModel,
         selectedPersonaId,
+        selectedPersonaModel,
+        isPublished,
         getModelLimits,
         refreshCredits,
         updateTracks,
@@ -907,9 +1015,17 @@ const StudioContent = () => {
     const handleGenerationStart = React.useCallback(async (options?: {
         uploadFile?: File | null;
         uploadUrl?: string | null;
+        trackId?: string;
+        audioId?: string;
         uploadUrlList?: string[];
-        mode?: "cover" | "extend" | "mashup";
+        mode?: "cover" | "extend" | "mashup" | "vocal" | "melody";
         continueAt?: number;
+        isPublished?: boolean;
+        tags?: string;
+        negativeTags?: string;
+        styleWeight?: number;
+        weirdnessConstraint?: number;
+        audioWeight?: number;
     }) => {
         if (options?.mode === 'mashup') {
             if (!user?.id) {
@@ -935,16 +1051,10 @@ const StudioContent = () => {
                 toast.error('Please enter a title.');
                 return false;
             }
-            if (!instrumentalMode && !trimmedCustomLyrics) {
+            if (!trimmedCustomLyrics) {
                 toast.error('Please enter lyrics.');
                 return false;
             }
-
-            const normalizeVocalGender = (gender: string) => {
-                if (gender === 'male' || gender === 'm') return 'm';
-                if (gender === 'female' || gender === 'f') return 'f';
-                return '';
-            };
 
             const modelLimits = getModelLimits(selectedModel);
 
@@ -961,13 +1071,18 @@ const StudioContent = () => {
                 formData.append('model', selectedModel);
                 formData.append('title', trimmedTitle.slice(0, modelLimits.title));
                 formData.append('style', trimmedStyle.slice(0, modelLimits.style));
-                formData.append('instrumental', instrumentalMode ? 'true' : 'false');
-                if (!instrumentalMode) {
-                    formData.append('prompt', trimmedCustomLyrics.slice(0, modelLimits.prompt));
+                formData.append('prompt', trimmedCustomLyrics.slice(0, modelLimits.prompt));
+                if (vocalGender) {
+                    formData.append('vocalGender', vocalGender);
                 }
-                const vocalGenderValue = normalizeVocalGender(vocalGender);
-                if (vocalGenderValue) {
-                    formData.append('vocalGender', vocalGenderValue);
+                if (typeof options?.styleWeight === 'number') {
+                    formData.append('styleWeight', options.styleWeight.toString());
+                }
+                if (typeof options?.weirdnessConstraint === 'number') {
+                    formData.append('weirdnessConstraint', options.weirdnessConstraint.toString());
+                }
+                if (typeof options?.audioWeight === 'number') {
+                    formData.append('audioWeight', options.audioWeight.toString());
                 }
 
                 const response = await fetch('/api/music/mashup', {
@@ -1009,22 +1124,280 @@ const StudioContent = () => {
             }
         }
 
+        if (options?.mode === 'vocal' || options?.mode === 'melody') {
+            if (!user?.id) {
+                setIsAuthModalOpen(true);
+                return false;
+            }
+
+            const uploadUrl = options?.uploadUrl?.trim() || '';
+            if (!uploadUrl) {
+                toast.error('Please upload audio first.');
+                return false;
+            }
+
+            const trimmedTitle = songTitle.trim();
+            if (!trimmedTitle) {
+                toast.error('Please enter a title.');
+                return false;
+            }
+
+            const uploadModel = selectedModel === 'V5' || selectedModel === 'V4_5PLUS'
+                ? selectedModel
+                : 'V4_5PLUS';
+            const modelLimits = getModelLimits(uploadModel);
+
+            if (options.mode === 'vocal') {
+                const trimmedStyle = styleText.trim();
+                const trimmedCustomLyrics = customLyrics.trim();
+
+                if (!trimmedStyle) {
+                    toast.error('Please enter a style.');
+                    return false;
+                }
+                if (!trimmedCustomLyrics) {
+                    toast.error('Please enter lyrics.');
+                    return false;
+                }
+            } else {
+                const trimmedTags = options?.tags?.trim() || '';
+                if (!trimmedTags) {
+                    toast.error('Please enter tags for melody mode.');
+                    return false;
+                }
+            }
+
+            try {
+                const { data: { session } } = await supabase.auth.getSession();
+
+                if (!session?.access_token) {
+                    throw new Error('Authentication expired. Please sign in again.');
+                }
+
+                const formData = new FormData();
+                formData.append('mode', options.mode);
+                formData.append('uploadUrl', uploadUrl);
+                formData.append('model', uploadModel);
+                formData.append('title', trimmedTitle.slice(0, modelLimits.title));
+
+                if (options.mode === 'vocal') {
+                    const trimmedStyle = styleText.trim();
+                    const trimmedCustomLyrics = customLyrics.trim();
+                    formData.append('style', trimmedStyle.slice(0, modelLimits.style));
+                    formData.append('prompt', trimmedCustomLyrics.slice(0, modelLimits.prompt));
+
+                    if (vocalGender) {
+                        formData.append('vocalGender', vocalGender);
+                    }
+                } else {
+                    const trimmedTags = options?.tags?.trim() || '';
+                    const trimmedNegativeTags = options?.negativeTags?.trim() || '';
+                    formData.append('tags', trimmedTags.slice(0, modelLimits.style));
+                    if (trimmedNegativeTags) {
+                        formData.append('negativeTags', trimmedNegativeTags.slice(0, modelLimits.style));
+                    }
+                }
+
+                if (typeof options?.styleWeight === 'number') {
+                    formData.append('styleWeight', options.styleWeight.toString());
+                }
+                if (typeof options?.weirdnessConstraint === 'number') {
+                    formData.append('weirdnessConstraint', options.weirdnessConstraint.toString());
+                }
+                if (typeof options?.audioWeight === 'number') {
+                    formData.append('audioWeight', options.audioWeight.toString());
+                }
+
+                const response = await fetch('/api/music/upload', {
+                    method: 'POST',
+                    headers: {
+                        Authorization: 'Bearer ' + session.access_token,
+                    },
+                    body: formData,
+                });
+
+                const result = await response.json().catch(() => ({}));
+
+                if (!response.ok || !result?.success) {
+                    if (response.status === 402) {
+                        toast.error(result?.error || 'Insufficient credits. Please top up credits.');
+                    } else {
+                        toast.error(result?.error || 'Upload generation failed. Please try again.');
+                    }
+                    return false;
+                }
+
+                const taskId = result?.data?.taskId;
+                const initialTracks = result?.data?.initialTracks;
+
+                if (!taskId) {
+                    toast.error('Task ID is missing. Please try again.');
+                    return false;
+                }
+
+                musicGeneration.trackExistingTask(taskId, initialTracks);
+                setGenerationConfirmOpen(true);
+                await refreshCredits?.();
+                return true;
+            } catch (error) {
+                console.error('Upload transform generation failed:', error);
+                const message = error instanceof Error ? error.message : 'Upload generation failed. Please try again.';
+                toast.error(message);
+                return false;
+            }
+        }
+
+        if (options?.mode === 'extend' && options?.trackId) {
+            if (!user?.id) {
+                setIsAuthModalOpen(true);
+                return false;
+            }
+
+            const trackId = options.trackId.trim();
+            const audioId = options?.audioId?.trim() || '';
+            if (!trackId) {
+                toast.error('Track ID is required.');
+                return false;
+            }
+
+            const trimmedSimplePrompt = simplePrompt.trim();
+            const trimmedCustomLyrics = customLyrics.trim();
+            const trimmedStyle = styleText.trim();
+            const trimmedTitle = songTitle.trim();
+            const isSimpleMode = mode === "simple";
+            const isCustomMode = mode === "custom";
+            const effectiveModel = isCustomMode ? selectedModel : 'V4';
+            const limits = getModelLimits(effectiveModel);
+            const continueAt = options?.continueAt ?? 0;
+
+            if (isSimpleMode && !trimmedSimplePrompt) {
+                toast.error("Please enter a prompt.");
+                return false;
+            }
+
+            if (isCustomMode) {
+                if (!trimmedStyle) {
+                    toast.error("Please enter a style.");
+                    return false;
+                }
+                if (!trimmedTitle) {
+                    toast.error("Please enter a title.");
+                    return false;
+                }
+                if (!trimmedCustomLyrics) {
+                    toast.error("Please enter lyrics.");
+                    return false;
+                }
+                if (continueAt <= 0) {
+                    toast.error("Start time must be greater than 0s.");
+                    return false;
+                }
+            }
+
+            try {
+                const { data: { session } } = await supabase.auth.getSession();
+
+                if (!session?.access_token) {
+                    throw new Error('Authentication expired. Please sign in again.');
+                }
+
+                const requestBody: Record<string, unknown> = {
+                    trackId,
+                    model: effectiveModel,
+                    defaultParamFlag: isCustomMode,
+                };
+
+                if (audioId) {
+                    requestBody.audioId = audioId;
+                }
+
+                if (isCustomMode) {
+                    requestBody.prompt = trimmedCustomLyrics.slice(0, limits.prompt);
+                    requestBody.style = trimmedStyle.slice(0, limits.style);
+                    requestBody.title = trimmedTitle.slice(0, limits.title);
+                    requestBody.continueAt = continueAt;
+                    if (vocalGender) {
+                        requestBody.vocalGender = vocalGender;
+                    }
+                    if (selectedPersonaId) {
+                        requestBody.personaId = selectedPersonaId;
+                    }
+                } else {
+                    requestBody.prompt = trimmedSimplePrompt.slice(0, limits.prompt);
+                }
+
+                if (typeof options?.styleWeight === "number") {
+                    requestBody.styleWeight = options.styleWeight;
+                }
+                if (typeof options?.weirdnessConstraint === "number") {
+                    requestBody.weirdnessConstraint = options.weirdnessConstraint;
+                }
+                if (typeof options?.audioWeight === "number") {
+                    requestBody.audioWeight = options.audioWeight;
+                }
+
+                const response = await fetch('/api/music/extend', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        Authorization: `Bearer ${session.access_token}`,
+                    },
+                    body: JSON.stringify(requestBody),
+                });
+
+                const result = await response.json().catch(() => ({}));
+
+                if (!response.ok || !result?.success) {
+                    if (response.status === 402) {
+                        toast.error(result?.error || 'Insufficient credits. Please top up credits.');
+                    } else {
+                        toast.error(result?.error || 'Extend generation failed. Please try again.');
+                    }
+                    return false;
+                }
+
+                const taskId = result?.data?.taskId;
+                const initialTracks = result?.data?.initialTracks;
+
+                if (!taskId) {
+                    toast.error('Extend task ID is missing. Please try again.');
+                    return false;
+                }
+
+                musicGeneration.trackExistingTask(taskId, initialTracks);
+                setGenerationConfirmOpen(true);
+                await refreshCredits?.();
+                return true;
+            } catch (error) {
+                console.error('Extend generation failed:', error);
+                const message = error instanceof Error ? error.message : 'Extend generation failed. Please try again.';
+                toast.error(message);
+                return false;
+            }
+        }
+
         if (options?.uploadFile || options?.uploadUrl) {
             return await handleUploadCover({
                 uploadFile: options.uploadFile,
                 uploadUrl: options.uploadUrl,
                 mode: options.mode === "extend" ? "extend" : "cover",
                 continueAt: options.continueAt,
+                isPublished: options.isPublished,
+                styleWeight: options.styleWeight,
+                weirdnessConstraint: options.weirdnessConstraint,
+                audioWeight: options.audioWeight,
             });
         }
         return await handleGenerate();
     }, [
         user?.id,
+        simplePrompt,
+        mode,
         customLyrics,
         styleText,
         songTitle,
-        instrumentalMode,
         selectedModel,
+        selectedPersonaId,
         vocalGender,
         getModelLimits,
         refreshCredits,
@@ -2110,6 +2483,25 @@ const StudioContent = () => {
         }
     }, [generatedTracks, handleTrackSelect, player.currentTrack?.id, player.isPlaying]);
 
+    const handleExtendTrackSelect = React.useCallback((track: ExtendSourceTrack) => {
+        if (!track?.audioUrl) return;
+
+        setPendingExtendSourceTrack(track);
+        setPanelOpen(true);
+
+        if (feature !== "music-extender") {
+            router.push(getStudioFeaturePath("music-extender"));
+        }
+
+        if (typeof window !== 'undefined' && window.innerWidth < 768) {
+            setMobileCreateOpen(true);
+        }
+    }, [feature, router]);
+
+    const handlePendingExtendSourceTrackConsumed = React.useCallback(() => {
+        setPendingExtendSourceTrack(null);
+    }, []);
+
     // 转换 UserTrack 到 MusicGeneration 格式
     const convertUserTracksToMusicGeneration = (userTracks: any[]): any[] => {
         return userTracks.map(userTrack => ({
@@ -2123,8 +2515,7 @@ const StudioContent = () => {
     };
 
     // ==================== 通用 Props ====================
-    // StudioPanel 通用 props
-    const studioPanelProps = React.useMemo(() => ({
+    const featurePanelProps = React.useMemo<StudioFeaturePanelStateProps>(() => ({
         mode,
         setMode,
         selectedGenre,
@@ -2140,6 +2531,7 @@ const StudioContent = () => {
         instrumentalMode,
         setInstrumentalMode,
         isPublished,
+        setIsPublished,
         styleText,
         setStyleText,
         bpm,
@@ -2156,6 +2548,12 @@ const StudioContent = () => {
         setVocalGender,
         harmonyPalette,
         setHarmonyPalette,
+        styleWeight,
+        setStyleWeight,
+        weirdnessConstraint,
+        setWeirdnessConstraint,
+        audioWeight,
+        setAudioWeight,
         bpmMode,
         setBpmMode,
         isGenerating,
@@ -2169,19 +2567,48 @@ const StudioContent = () => {
         setSelectedModel,
         selectedPersonaId,
         setSelectedPersonaId,
+        selectedPersonaModel,
+        setSelectedPersonaModel,
         enhanceStyle,
         setEnhanceStyle,
+        extendSourceTracks,
+        pendingExtendSourceTrack,
+        onPendingExtendSourceTrackConsumed: handlePendingExtendSourceTrackConsumed,
     }), [
         mode, setMode, selectedGenre, setSelectedGenre, selectedVibe, setSelectedVibe,
         simplePrompt, setSimplePrompt, customLyrics, setCustomLyrics, songTitle, setSongTitle, instrumentalMode, setInstrumentalMode,
-        isPublished, styleText, setStyleText, bpm, setBpm, grooveType, setGrooveType,
+        isPublished, setIsPublished, styleText, setStyleText, bpm, setBpm, grooveType, setGrooveType,
         leadInstrument, setLeadInstrument, drumKit, setDrumKit, bassTone, setBassTone,
-        vocalGender, setVocalGender, harmonyPalette, setHarmonyPalette, bpmMode, setBpmMode,
-        selectedPersonaId, setSelectedPersonaId, enhanceStyle, setEnhanceStyle,
+        vocalGender, setVocalGender, harmonyPalette, setHarmonyPalette,
+        styleWeight, setStyleWeight, weirdnessConstraint, setWeirdnessConstraint, audioWeight, setAudioWeight,
+        bpmMode, setBpmMode,
+        selectedPersonaId, setSelectedPersonaId, selectedPersonaModel, setSelectedPersonaModel, enhanceStyle, setEnhanceStyle,
+        extendSourceTracks, pendingExtendSourceTrack, handlePendingExtendSourceTrackConsumed,
         isGenerating, handleGenerationStart, handleGenerateLyrics, handleWriteNextLyricLine,
         isWritingNextLyricLine,
         isAuthModalOpen, setIsAuthModalOpen, selectedModel, setSelectedModel
     ]);
+
+    React.useEffect(() => {
+        const featureChanged = previousFeatureRef.current !== feature;
+        const targetMode = lockPanelMode
+            ? panelMode
+            : (featureModes[feature] ?? DEFAULT_FEATURE_MODES[feature]);
+
+        if ((featureChanged || lockPanelMode) && mode !== targetMode) {
+            setMode(targetMode);
+        }
+
+        previousFeatureRef.current = feature;
+    }, [feature, featureModes, lockPanelMode, mode, panelMode, setMode]);
+
+    React.useEffect(() => {
+        if (lockPanelMode) return;
+        setFeatureModes((prev) => {
+            if (prev[feature] === mode) return prev;
+            return { ...prev, [feature]: mode };
+        });
+    }, [feature, lockPanelMode, mode]);
 
     const handlePlayerLyricsToggle = React.useCallback(() => {
         const playerTrack = player.currentTrack as any;
@@ -2368,8 +2795,8 @@ const StudioContent = () => {
                 style={{ marginLeft: 'var(--sidebar-offset, 0px)' }}
             >
                 <div className="hidden md:block md:order-2 flex-shrink-0 md:pr-4">
-                    <StudioPanel
-                        {...studioPanelProps}
+                    <FeaturePanel
+                        {...featurePanelProps}
                         panelOpen={panelOpen}
                         setPanelOpen={setPanelOpen}
                         hasPlayer={!!player.currentTrack}
@@ -2410,7 +2837,7 @@ const StudioContent = () => {
                                 <div className="flex-1 min-h-0 md:hidden">
                                     <StudioTracksList
                                         userTracks={convertUserTracksToMusicGeneration(userTracks)}
-                                        generatedTracks={generatedTracks}
+                                        generatedTracks={stableGeneratedTracks}
                                         onTrackSelect={handleUserTrackSelect}
                                         onTrackPreview={handleInlineTrackPreview}
                                         onTrackPlay={handleUserTrackPlay}
@@ -2429,10 +2856,8 @@ const StudioContent = () => {
                                         hasPlayer={!!player.currentTrack}
                                         onEditTitle={handleEditTitle}
                                         onEditMusicInfo={handleEditMusicInfo}
+                                        onExtendTrackSelect={handleExtendTrackSelect}
                                         extendMusicStartPolling={extendMusic.startPolling}
-                                        extendMusicGetState={extendMusic.getExtendMusicState}
-                                        extendMusicClearState={extendMusic.clearExtendMusicState}
-                                        selectedModel={selectedModel}
                                         onCreate={() => setMobileCreateOpen(true)}
                                     />
                                 </div>
@@ -2459,10 +2884,8 @@ const StudioContent = () => {
                                         hasPlayer={!!player.currentTrack}
                                         onEditTitle={handleEditTitle}
                                         onEditMusicInfo={handleEditMusicInfo}
+                                        onExtendTrackSelect={handleExtendTrackSelect}
                                         extendMusicStartPolling={extendMusic.startPolling}
-                                        extendMusicGetState={extendMusic.getExtendMusicState}
-                                        extendMusicClearState={extendMusic.clearExtendMusicState}
-                                        selectedModel={selectedModel}
                                     />
                                 </div>
                                 <div
@@ -2513,7 +2936,8 @@ const StudioContent = () => {
                 <MobileCreateDrawer
                     isOpen={mobileCreateOpen}
                     onClose={() => setMobileCreateOpen(false)}
-                    studioPanelProps={studioPanelProps}
+                    FeaturePanel={FeaturePanel}
+                    featurePanelProps={featurePanelProps}
                 />
             </div>
 
@@ -2536,38 +2960,42 @@ const StudioContent = () => {
                     setShowLyricsDialog(open);
                 }}
             >
-                <DialogContent className="max-w-[calc(100vw-2rem)] sm:max-w-[620px] max-h-[82vh] flex flex-col p-0 border border-border/60 bg-background shadow-xl">
-                    <DialogHeader className="flex-shrink-0 px-6 pt-5 pb-3 text-left relative overflow-hidden">
-                        <div className="pointer-events-none absolute inset-0 bg-gradient-to-r from-primary/10 via-transparent to-primary/10" />
-                        <DialogTitle className="text-xl font-semibold tracking-tight">
-                            Generate Lyrics
-                        </DialogTitle>
-                        <p className="text-sm text-muted-foreground mt-1">
+                <DialogContent className="studio-panel-card max-w-[calc(100vw-2rem)] sm:max-w-[620px] max-h-[82vh] flex flex-col overflow-hidden p-0 border-0 shadow-xl">
+                    <DialogHeader className="flex-shrink-0 px-5 pt-4 pb-2 text-left">
+                        <div className="space-y-1 pr-8">
+                            <div className="text-[10px] uppercase tracking-[0.24em] text-muted-foreground">
+                                Lyrics
+                            </div>
+                            <DialogTitle className="text-xl font-semibold tracking-tight">
+                                Generate Lyrics
+                            </DialogTitle>
+                        </div>
+                        <p className="text-sm text-muted-foreground">
                             Describe the theme, mood, or story you want for your lyrics.
                         </p>
                     </DialogHeader>
-                    <div className="flex-1 px-6 py-4 space-y-4">
-                        <div className="space-y-2">
-                            <label className="text-sm font-medium block">Lyrics Prompt</label>
+                    <div className="flex-1 overflow-y-auto space-y-3 px-5 py-3">
+                        <section className="studio-panel-card rounded-2xl p-3 space-y-2">
+                            <label className="text-xs md:text-sm font-semibold text-foreground block">Lyrics Prompt</label>
                             <div className="relative">
                                 <Textarea
                                     value={lyricsPrompt}
                                     onChange={(e) => setLyricsPrompt(e.target.value)}
                                     placeholder="Describe the theme, mood, or story for your lyrics..."
                                     maxLength={200}
-                                    className="w-full resize-none h-32 border focus-visible:ring-0 focus-visible:ring-offset-0 text-sm pr-16"
+                                    className="min-h-[128px] w-full resize-none border-0 bg-transparent px-0 text-sm pr-16 focus-visible:ring-0 focus-visible:ring-offset-0"
                                 />
-                                <div className="absolute bottom-2 right-2 text-xs text-muted-foreground bg-background/80 px-2 py-1 rounded">
+                                <div className="absolute bottom-2 right-0 rounded-full bg-foreground/10 px-2 py-1 text-xs text-muted-foreground">
                                     {lyricsPrompt.length}/200
                                 </div>
                             </div>
-                        </div>
+                        </section>
                     </div>
-                    <div className="flex-shrink-0 px-6 pb-6">
+                    <div className="flex-shrink-0 px-5 pt-1 pb-4">
                         <Button
                             onClick={() => handleGenerateLyricsHook(setCustomLyrics, user?.id || '')}
                             disabled={isGeneratingLyrics || !lyricsPrompt.trim()}
-                            className="w-full h-11 text-sm font-medium"
+                            className="h-11 w-full rounded-2xl text-sm font-semibold"
                         >
                             {isGeneratingLyrics ? (
                                 <div className="flex items-center gap-2">
@@ -2679,10 +3107,22 @@ const StudioContent = () => {
     );
 };
 
-export const StudioSection = () => {
+type FeatureWorkspaceSectionProps = StudioContentProps;
+
+export const FeatureWorkspaceSection = ({
+    feature,
+    FeaturePanel,
+    panelMode,
+    lockPanelMode,
+}: FeatureWorkspaceSectionProps) => {
     return (
         <Suspense fallback={<div>Loading...</div>}>
-            <StudioContent />
+            <StudioContent
+                feature={feature}
+                FeaturePanel={FeaturePanel}
+                panelMode={panelMode}
+                lockPanelMode={lockPanelMode}
+            />
         </Suspense>
     );
 };

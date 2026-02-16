@@ -5,6 +5,7 @@ import { User, Session } from '@supabase/supabase-js';
 import { supabase } from '@/lib/supabase';
 import { toast } from 'sonner';
 import { useRouter } from 'next/navigation';
+import { isStudioAreaPath } from '@/lib/studio-features';
 
 interface AuthContextType {
   user: User | null;
@@ -210,7 +211,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
           // 只在非studio页面时重定向到首页
           const currentPath = window.location.pathname;
-          if (!currentPath.startsWith('/studio')) {
+          if (!isStudioAreaPath(currentPath)) {
             router.push('/');
           }
         } else if (event === 'SIGNED_IN' && session?.access_token && session.user?.id) {

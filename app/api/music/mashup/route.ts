@@ -75,7 +75,6 @@ export async function POST(request: NextRequest) {
   const promptInput = formData.get('prompt')?.toString().trim() || '';
   const promptLimit = customMode ? limits.prompt : 500;
   const prompt = promptInput.slice(0, promptLimit);
-  const instrumental = formData.get('instrumental') === 'true';
 
   if (!customMode && !prompt) {
     return NextResponse.json({ error: 'Prompt is required in non-custom mode' }, { status: 400 });
@@ -88,8 +87,8 @@ export async function POST(request: NextRequest) {
     if (!titleInput) {
       return NextResponse.json({ error: 'Title is required in custom mode' }, { status: 400 });
     }
-    if (!instrumental && !prompt) {
-      return NextResponse.json({ error: 'Prompt is required when instrumental is false' }, { status: 400 });
+    if (!prompt) {
+      return NextResponse.json({ error: 'Prompt is required in custom mode' }, { status: 400 });
     }
   }
 
@@ -97,6 +96,22 @@ export async function POST(request: NextRequest) {
   const styleWeight = parseNumber(formData.get('styleWeight'));
   const weirdnessConstraint = parseNumber(formData.get('weirdnessConstraint'));
   const audioWeight = parseNumber(formData.get('audioWeight'));
+  const hasAdvancedWeightsRequested =
+    styleWeight !== undefined ||
+    weirdnessConstraint !== undefined ||
+    audioWeight !== undefined;
+
+  if (hasAdvancedWeightsRequested) {
+    const canUseAdvancedOptions = await hasFeaturePermission(userId, 'boost_music_style');
+    if (!canUseAdvancedOptions) {
+      return NextResponse.json(
+        {
+          error: 'Advanced options require an active subscription (Starter or Hobby).',
+        },
+        { status: 403 }
+      );
+    }
+  }
 
   const featureCredits = getFeatureCredits(FEATURE_KEY);
   const userCredits = await getUserCredits(userId);
@@ -139,16 +154,13 @@ export async function POST(request: NextRequest) {
       customMode,
       model,
       callBackUrl: callbackUrl,
-      instrumental,
       negativeTags: DEFAULT_NEGATIVE_TAGS,
     };
 
     if (customMode) {
       payload.style = style;
       payload.title = title;
-      if (!instrumental && prompt) {
-        payload.prompt = prompt;
-      }
+      payload.prompt = prompt;
     } else {
       payload.prompt = prompt;
     }
@@ -189,14 +201,14 @@ export async function POST(request: NextRequest) {
       tags: undefined,
       prompt: promptForDb,
       generation_mode: customMode ? 'custom' : 'simple',
-      is_instrumental: instrumental,
+      is_instrumental: false,
       task_id: taskId,
       status: 'generating',
       type: 'upload_mashup' as MusicType,
       model,
     });
 
-    if (customMode && prompt && prompt.trim().length > 0 && !instrumental) {
+    if (customMode && prompt && prompt.trim().length > 0) {
       try {
         const { query } = await import('@/lib/db-query-builder');
         const existingLyrics = await query(
@@ -245,6 +257,7 @@ export async function POST(request: NextRequest) {
       streamAudioUrl: '',
       createdAt: row.created_at || new Date().toISOString(),
       model,
+      musicType: 'upload_mashup' as MusicType,
     }));
 
     try {

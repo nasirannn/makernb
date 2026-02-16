@@ -399,6 +399,7 @@ export async function POST(request: NextRequest) {
         originalTrackId: trackId, // 设置原歌曲ID
         originalTrackTitle: originalTrack.trackTitle, // 原歌曲标题
         sourceType: 'replace_section', // 来源类型
+        musicType: 'replace_section',
       }));
 
       console.log(`[REPLACE-SECTION-${requestId}] Created ${initialTracks.length} placeholder track(s)`);

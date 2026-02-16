@@ -4,11 +4,10 @@ import React from "react";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
-import { ChevronRight, Play, CreditCard, X, Check, Triangle, Pause, Wand2, Trash2, Loader2, Info } from "lucide-react";
+import { ChevronRight, Play, CreditCard, X, Check, Triangle, Pause, Wand2, Trash2, Loader2, RefreshCw } from "lucide-react";
 import musicOptions from '@/data/music-options.json';
 import { useAuth } from '@/contexts/AuthContext';
 import { useCredits } from '@/contexts/CreditsContext';
-import { useSubscription } from "@/contexts/SubscriptionContext";
 import { useFeaturePermissions } from '@/contexts/FeaturePermissionsContext';
 import { toast } from 'sonner';
 import { supabase } from '@/lib/supabase';
@@ -22,16 +21,16 @@ import { TEMPO_KEYWORDS, BUTTON_CLASSES, STYLES } from '@/lib/studio-constants';
 import { useAudioPlayer } from '@/hooks/use-audio-player';
 import { useStudioUploadWorkflow } from '@/hooks/use-studio-upload-workflow';
 import type { UploadPanelMode } from '@/hooks/use-studio-upload-workflow';
-import { UploadProgressDialog } from "@/components/ui/upload-progress-dialog";
 import { formatDuration } from '@/lib/format-utils';
 import { WaveformPlayer } from "@/components/ui/waveform-player";
 import { EditAudioDialog } from "@/features/music-upload/components/edit-audio-dialog";
 import { MashupEditDialog, type MashupEditedTrack } from "@/features/music-upload/components/mashup-edit-dialog";
 import { MashupUploadConfirmDialog } from "@/components/ui/mashup-upload-confirm-dialog";
-import { StudioCustomModeContent, StudioSimpleModeContent } from "@/components/ui/studio-panel-mode-content";
-import { StudioPanelPersonaDialogs } from "@/components/ui/studio-panel-persona-dialogs";
+import { StudioCustomModeContent, StudioSimpleModeContent, type AudioUploadIntent } from "@/components/ui/feature-panels/music-extender-panel-mode-content";
+import { MusicPersonaDialogs } from "@/components/ui/music-persona-dialogs";
 import { useStudioPersonaManager } from "@/hooks/use-studio-persona-manager";
 import { MusicModel, modelOptions } from '@/components/ui/model-selection-dialog';
+import type { ExtendSourceTrack } from "@/types/extend-track-source";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -55,6 +54,18 @@ const UPLOAD_WAVE_COLOR_LIGHT = "#d1d5db";
 const UPLOAD_PROGRESS_COLOR_LIGHT = "hsl(262, 100%, 70%)";
 const UPLOAD_CURSOR_COLOR_LIGHT = "hsl(262, 100%, 70%)";
 
+const UPLOAD_ACTION_CREDITS: Record<AudioUploadIntent, number> = {
+  track: CLIENT_UPLOAD_AUDIO_CREDITS.cover,
+  vocal: CLIENT_UPLOAD_AUDIO_CREDITS.vocal,
+  melody: CLIENT_UPLOAD_AUDIO_CREDITS.melody,
+};
+
+const UPLOAD_INTENT_LABEL: Record<AudioUploadIntent, string> = {
+  track: "Track",
+  vocal: "Vocal",
+  melody: "Melody",
+};
+
 type MashupPreviewTrack = {
   file: File;
   fileName: string;
@@ -63,11 +74,17 @@ type MashupPreviewTrack = {
   uploadUrl: string | null;
 };
 
+type SelectedExtendSource = {
+  trackId: string;
+  audioId?: string;
+};
 
-interface StudioPanelProps {
+
+export interface FeatureCreatePanelProps {
   panelOpen: boolean;
   setPanelOpen: (open: boolean) => void;
   hasPlayer?: boolean;
+  panelTitle?: string;
   
   // Music generation states
   mode: "simple" | "custom";
@@ -103,6 +120,12 @@ interface StudioPanelProps {
   setVocalGender: (gender: string) => void;
   harmonyPalette: string;
   setHarmonyPalette: (palette: string) => void;
+  styleWeight?: number;
+  setStyleWeight?: (value: number) => void;
+  weirdnessConstraint?: number;
+  setWeirdnessConstraint?: (value: number) => void;
+  audioWeight?: number;
+  setAudioWeight?: (value: number) => void;
   
   // BPM Mode
   bpmMode: 'slow' | 'moderate' | 'medium' | '';
@@ -113,9 +136,16 @@ interface StudioPanelProps {
   onGenerationStart?: (options?: {
     uploadFile?: File | null;
     uploadUrl?: string | null;
+    trackId?: string;
+    audioId?: string;
     uploadUrlList?: string[];
-    mode?: "cover" | "extend" | "mashup";
+    mode?: "cover" | "extend" | "mashup" | "vocal" | "melody";
     continueAt?: number;
+    tags?: string;
+    negativeTags?: string;
+    styleWeight?: number;
+    weirdnessConstraint?: number;
+    audioWeight?: number;
   }) => Promise<boolean> | void;
   onGenerateLyrics?: () => void;
   onWriteNextLyricLine?: () => void;
@@ -135,13 +165,25 @@ interface StudioPanelProps {
   setSelectedModel?: (model: MusicModel) => void;
   selectedPersonaId?: string;
   setSelectedPersonaId?: (personaId: string) => void;
+  selectedPersonaModel?: 'style_persona' | 'voice_persona';
+  setSelectedPersonaModel?: (model: 'style_persona' | 'voice_persona') => void;
+  showUploadAction?: boolean;
+  allowedUploadIntents?: AudioUploadIntent[];
+  forcedUploadIntent?: AudioUploadIntent | null;
+  forcedTrackUploadMode?: "cover" | "extend" | null;
+  allowMashupAction?: boolean;
+  extendSourceTracks?: ExtendSourceTrack[];
+  pendingExtendSourceTrack?: ExtendSourceTrack | null;
+  onPendingExtendSourceTrackConsumed?: () => void;
 }
 
-export const StudioPanel = (props: StudioPanelProps) => {
+export const MusicExtenderPanel = (props: FeatureCreatePanelProps) => {
   const {
     panelOpen,
     forceVisibleOnMobile = false,
     hasPlayer = false,
+    panelTitle = "Music Extender",
+    onCollapseToTracks,
     setIsAuthModalOpen,
     mode,
     setMode,
@@ -155,8 +197,6 @@ export const StudioPanel = (props: StudioPanelProps) => {
   setCustomLyrics,
     songTitle,
     setSongTitle,
-    instrumentalMode,
-    setInstrumentalMode,
     isPublished,
     styleText,
     setStyleText,
@@ -176,6 +216,12 @@ export const StudioPanel = (props: StudioPanelProps) => {
     setVocalGender,
     harmonyPalette,
     setHarmonyPalette,
+    styleWeight,
+    setStyleWeight,
+    weirdnessConstraint,
+    setWeirdnessConstraint,
+    audioWeight,
+    setAudioWeight,
     bpmMode,
     setBpmMode,
     isGenerating,
@@ -187,18 +233,31 @@ export const StudioPanel = (props: StudioPanelProps) => {
     setSelectedModel,
     selectedPersonaId = '',
     setSelectedPersonaId,
+    selectedPersonaModel = 'style_persona',
+    setSelectedPersonaModel,
+    showUploadAction = true,
+    allowedUploadIntents = ["track"],
+    forcedUploadIntent = "track",
+    forcedTrackUploadMode = "extend",
+    allowMashupAction = false,
+    pendingExtendSourceTrack = null,
+    onPendingExtendSourceTrackConsumed,
   } = props;
 
   const { user } = useAuth();
   const { credits } = useCredits();
   const { resolvedTheme } = useTheme();
   const userSelectedModelRef = React.useRef(false);
-  const simplePromptMaxLength = 400;
-  const customPromptMaxLength = 5000;
-  const styleTextMaxLength = 1000;
+  const defaultSimplePromptMaxLength = 400;
   const maxUploadDurationSeconds = 8 * 60;
+  const maxDirectUploadBytes = 100 * 1024 * 1024;
   const isCustomMode = mode === "custom";
   const effectiveModel: MusicModel = isCustomMode ? selectedModel : 'V4';
+  const normalizedEffectiveModel = String(effectiveModel).toUpperCase().replace(/\./g, '_').replace(/\+/g, 'PLUS');
+  const customPromptMaxLength = normalizedEffectiveModel === "V4" ? 3000 : 5000;
+  const styleTextMaxLength = normalizedEffectiveModel === "V4" ? 200 : 1000;
+  const titleMaxLength = 80;
+  const canUseVoicePersonaModel = normalizedEffectiveModel === "V5";
   const supportsStyleBoost = ['V4_5', 'V4_5PLUS', 'V4_5ALL'].includes(
     String(effectiveModel).toUpperCase().replace(/\./g, '_').replace(/\+/g, 'PLUS')
   );
@@ -237,10 +296,17 @@ export const StudioPanel = (props: StudioPanelProps) => {
     userSelectedModelRef.current = false;
   }, [user?.id]);
 
-  const { hasSubscription } = useSubscription();
+  React.useEffect(() => {
+    if (selectedPersonaModel !== 'voice_persona') return;
+    if (canUseVoicePersonaModel) return;
+    setSelectedPersonaModel?.('style_persona');
+  }, [selectedPersonaModel, canUseVoicePersonaModel, setSelectedPersonaModel]);
+
   const { hasPermission } = useFeaturePermissions();
+  const canUseV5Model = hasPermission('model_v5');
   const canUseMashup = hasPermission('upload_mashup_music');
   const canUsePersona = hasPermission('generate_persona');
+  const canUseEnhanceStyle = hasPermission('boost_music_style');
 
   // Pricing dialog state
   const [isPricingOpen, setIsPricingOpen] = React.useState(false);
@@ -256,6 +322,7 @@ export const StudioPanel = (props: StudioPanelProps) => {
   const [mashupPreviewTracks, setMashupPreviewTracks] = React.useState<MashupPreviewTrack[]>([]);
   const [mashupPlayingIndex, setMashupPlayingIndex] = React.useState<number | null>(null);
   const [mashupCurrentTimes, setMashupCurrentTimes] = React.useState<number[]>([]);
+  const [selectedExtendSource, setSelectedExtendSource] = React.useState<SelectedExtendSource | null>(null);
   const genrePromptAbortRef = React.useRef<AbortController | null>(null);
   const genrePromptRequestIdRef = React.useRef(0);
 
@@ -305,6 +372,13 @@ export const StudioPanel = (props: StudioPanelProps) => {
     setIsMashupConfirmOpen(false);
     clearMashupSelection();
   }, [canUseMashup, clearMashupSelection]);
+
+  React.useEffect(() => {
+    if (!enhanceStyle) return;
+    if (!supportsStyleBoost || !canUseEnhanceStyle) {
+      setEnhanceStyle(false);
+    }
+  }, [enhanceStyle, supportsStyleBoost, canUseEnhanceStyle, setEnhanceStyle]);
 
   const {
     isPersonaDialogOpen,
@@ -357,6 +431,34 @@ export const StudioPanel = (props: StudioPanelProps) => {
   // State for managing expanded categories
   const [expandedCategory, setExpandedCategory] = React.useState<StyleCategory | null>(null);
   const [expandedCategorySimple, setExpandedCategorySimple] = React.useState<StyleCategory | null>(null);
+  const [audioUploadIntent, setAudioUploadIntent] = React.useState<AudioUploadIntent | null>(null);
+  const [melodyTags, setMelodyTags] = React.useState("");
+  const [melodyNegativeTags, setMelodyNegativeTags] = React.useState("");
+  const activeUploadIntent: AudioUploadIntent = audioUploadIntent ?? "track";
+  const isExtendUploadMode = forcedTrackUploadMode === "extend";
+  const requiresTrackUpload = activeUploadIntent === "track" && !!forcedTrackUploadMode;
+  const simplePromptMaxLength = isExtendUploadMode ? customPromptMaxLength : defaultSimplePromptMaxLength;
+
+  React.useEffect(() => {
+    if (mode !== "custom") {
+      setAudioUploadIntent(null);
+    }
+  }, [mode]);
+
+  React.useEffect(() => {
+    if (mode !== "custom") return;
+    if (forcedUploadIntent === undefined) return;
+    if (audioUploadIntent !== forcedUploadIntent) {
+      setAudioUploadIntent(forcedUploadIntent);
+    }
+  }, [mode, forcedUploadIntent, audioUploadIntent]);
+
+  React.useEffect(() => {
+    if (audioUploadIntent === null || audioUploadIntent === "track") return;
+    if (enhanceStyle) {
+      setEnhanceStyle(false);
+    }
+  }, [audioUploadIntent, enhanceStyle, setEnhanceStyle]);
   
   // State for hovered instrument
   const [hoveredInstrument, setHoveredInstrument] = React.useState<string | null>(null);
@@ -370,13 +472,9 @@ export const StudioPanel = (props: StudioPanelProps) => {
   const {
     uploadFileInputRef,
     isEditAudioOpen,
-    setIsEditAudioOpen,
     pendingAudioFile,
     pendingAudioUrl,
-    pendingAudioMode,
-    updateUploadState,
     updateCurrentUploadState,
-    pendingUploadState,
     uploadCoverFile,
     uploadCoverFileName,
     uploadAudioUrl,
@@ -388,13 +486,6 @@ export const StudioPanel = (props: StudioPanelProps) => {
     uploadAudioMode,
     uploadAudioUploadUrl,
     uploadExtendStartTime,
-    readyFile,
-    readyFileName,
-    readyDuration,
-    readyAudioUrl,
-    isUploadProgressOpen,
-    uploadProgressStatus,
-    uploadProgressError,
     clearUploadCoverFile,
     updateExtendStartTime,
     resetPendingAudio,
@@ -404,25 +495,83 @@ export const StudioPanel = (props: StudioPanelProps) => {
   } = useStudioUploadWorkflow({
     mode: mode as UploadPanelMode,
   });
-  const styleBoostCredits = isCustomMode && supportsStyleBoost && enhanceStyle
+
+  React.useEffect(() => {
+    if (!forcedTrackUploadMode) return;
+    if (uploadCoverFile && activeUploadIntent === "track" && uploadAudioMode !== forcedTrackUploadMode) {
+      updateCurrentUploadState({ audioMode: forcedTrackUploadMode });
+    }
+  }, [forcedTrackUploadMode, uploadCoverFile, activeUploadIntent, uploadAudioMode, updateCurrentUploadState]);
+
+  const applyExtendSourceTrack = React.useCallback((track: ExtendSourceTrack) => {
+    const nextAudioUrl = track.audioUrl.trim();
+    if (!nextAudioUrl) {
+      toast.error("Selected track has no audio URL.");
+      return;
+    }
+
+    clearMashupSelection();
+    clearUploadCoverFile();
+
+    const normalizedDuration = Number.isFinite(track.duration) ? Math.max(0, track.duration) : 0;
+    updateCurrentUploadState({
+      coverFile: null,
+      coverFileName: track.title || "Selected Track",
+      audioUrl: nextAudioUrl,
+      audioDuration: normalizedDuration > 0 ? normalizedDuration : null,
+      audioTotalDuration: normalizedDuration > 0 ? normalizedDuration : null,
+      audioCurrentTime: 0,
+      isPlaying: false,
+      isAnalyzing: false,
+      audioMode: "extend",
+      audioUploadUrl: nextAudioUrl,
+      extendStartTime: 0,
+      readyFile: null,
+      readyFileName: null,
+      readyDuration: null,
+      readyAudioUrl: null,
+      progressOpen: false,
+      progressStatus: "ready",
+      progressError: null,
+    });
+    setAudioUploadIntent("track");
+    setSelectedExtendSource({
+      trackId: track.id,
+      audioId: track.audioId?.trim() || undefined,
+    });
+  }, [clearMashupSelection, clearUploadCoverFile, updateCurrentUploadState]);
+
+  React.useEffect(() => {
+    if (!pendingExtendSourceTrack) return;
+    applyExtendSourceTrack(pendingExtendSourceTrack);
+    onPendingExtendSourceTrackConsumed?.();
+  }, [pendingExtendSourceTrack, applyExtendSourceTrack, onPendingExtendSourceTrackConsumed]);
+
+  const isExtendContinueAtValid = !isExtendUploadMode || !isCustomMode || (
+    (uploadAudioDuration || 0) > 1 &&
+    uploadExtendStartTime > 0 &&
+    uploadExtendStartTime < (uploadAudioDuration || 0)
+  );
+  const styleBoostCredits = isCustomMode && supportsStyleBoost && canUseEnhanceStyle && enhanceStyle
     ? CLIENT_STYLE_BOOST_CREDITS
     : 0;
+  const hasTrackUploadSource = activeUploadIntent === "track" && Boolean(uploadAudioUploadUrl);
   const createCredits = mashupTracks.length === 2
     ? CLIENT_UPLOAD_AUDIO_CREDITS.mashup
-    : uploadCoverFile
-      ? CLIENT_UPLOAD_AUDIO_CREDITS[uploadAudioMode]
-      : (mode === "custom" ? CLIENT_MUSIC_CREDITS.custom + styleBoostCredits : CLIENT_MUSIC_CREDITS.simple);
+    : hasTrackUploadSource || uploadCoverFile
+      ? (activeUploadIntent === "track" ? CLIENT_UPLOAD_AUDIO_CREDITS[uploadAudioMode] : UPLOAD_ACTION_CREDITS[activeUploadIntent])
+      : mode === "custom"
+        ? (activeUploadIntent === "track" ? CLIENT_MUSIC_CREDITS.custom + styleBoostCredits : UPLOAD_ACTION_CREDITS[activeUploadIntent])
+        : CLIENT_MUSIC_CREDITS.simple;
 
   const handleModelSelect = React.useCallback((model: MusicModel) => {
-    const selectedOption = modelOptions.find((option) => option.value === model);
-
-    if (!hasSubscription && selectedOption?.requiresSubscription) {
+    if (model === 'V5' && !canUseV5Model) {
       setIsPricingOpen(true);
       return;
     }
 
     updateSelectedModel(model, { userInitiated: true });
-  }, [hasSubscription, updateSelectedModel]);
+  }, [canUseV5Model, updateSelectedModel]);
 
   const handleGenerateGenrePrompt = React.useCallback(async ({
     genreId,
@@ -570,7 +719,7 @@ export const StudioPanel = (props: StudioPanelProps) => {
         toast.error('Please enter a title before creating mashup.');
         return;
       }
-      if (!instrumentalMode && !trimmedCustomLyrics) {
+      if (!trimmedCustomLyrics) {
         toast.error('Please enter lyrics before creating mashup.');
         return;
       }
@@ -609,6 +758,9 @@ export const StudioPanel = (props: StudioPanelProps) => {
         const generationResult = await onGenerationStart?.({
           uploadUrlList,
           mode: 'mashup',
+          styleWeight: canUseEnhanceStyle ? styleWeight : undefined,
+          weirdnessConstraint: canUseEnhanceStyle ? weirdnessConstraint : undefined,
+          audioWeight: canUseEnhanceStyle ? audioWeight : undefined,
         });
         result = Boolean(generationResult);
       } catch (error) {
@@ -626,20 +778,76 @@ export const StudioPanel = (props: StudioPanelProps) => {
       return;
     }
 
-    if (uploadCoverFile) {
+    if (requiresTrackUpload && !hasTrackUploadSource) {
+      toast.error('Please upload an audio track first.');
+      return;
+    }
+
+    if (isExtendUploadMode && isCustomMode && hasTrackUploadSource && !isExtendContinueAtValid) {
+      toast.error('Please set Continue At to a value greater than 0 and less than the track duration.');
+      return;
+    }
+
+    const shouldUseUploadGeneration = (
+      (activeUploadIntent === "track" && hasTrackUploadSource) ||
+      (activeUploadIntent !== "track" && !!uploadCoverFile)
+    );
+
+    const shouldUseTrackListExtendGeneration = (
+      activeUploadIntent === "track" &&
+      uploadAudioMode === "extend" &&
+      hasTrackUploadSource &&
+      !uploadCoverFile &&
+      !!selectedExtendSource?.trackId
+    );
+
+    if (shouldUseTrackListExtendGeneration) {
+      const result = await onGenerationStart?.({
+        mode: "extend",
+        trackId: selectedExtendSource.trackId,
+        audioId: selectedExtendSource.audioId,
+        continueAt: isCustomMode ? uploadExtendStartTime : undefined,
+        styleWeight: canUseEnhanceStyle ? styleWeight : undefined,
+        weirdnessConstraint: canUseEnhanceStyle ? weirdnessConstraint : undefined,
+        audioWeight: canUseEnhanceStyle ? audioWeight : undefined,
+      });
+      if (result) {
+        clearUploadAndResetIntent();
+      }
+      return;
+    }
+
+    if (shouldUseUploadGeneration) {
       if (!uploadAudioUploadUrl) {
         toast.error("Upload URL is missing. Please save your audio again.");
         return;
       }
+
       const result = await onGenerationStart?.({
         uploadFile: uploadCoverFile,
         uploadUrl: uploadAudioUploadUrl,
-        mode: uploadAudioMode,
-        continueAt: uploadAudioMode === "extend" && isCustomMode ? uploadExtendStartTime : undefined,
+        mode: activeUploadIntent === "track"
+          ? uploadAudioMode
+          : activeUploadIntent === "vocal"
+            ? "vocal"
+            : "melody",
+        continueAt: activeUploadIntent === "track" && uploadAudioMode === "extend" && isCustomMode
+          ? uploadExtendStartTime
+          : undefined,
+        tags: activeUploadIntent === "melody" ? melodyTags : undefined,
+        negativeTags: activeUploadIntent === "melody" ? melodyNegativeTags : undefined,
+        styleWeight: canUseEnhanceStyle ? styleWeight : undefined,
+        weirdnessConstraint: canUseEnhanceStyle ? weirdnessConstraint : undefined,
+        audioWeight: canUseEnhanceStyle ? audioWeight : undefined,
       });
       if (result) {
-        clearUploadCoverFile();
+        clearUploadAndResetIntent();
       }
+      return;
+    }
+
+    if (mode === "custom" && audioUploadIntent !== null && activeUploadIntent !== "track") {
+      toast.error(`Please upload an audio file for ${UPLOAD_INTENT_LABEL[activeUploadIntent]} mode first.`);
       return;
     }
     
@@ -649,12 +857,12 @@ export const StudioPanel = (props: StudioPanelProps) => {
       return;
     }
 
-    const styleBoostRequiredCredits = mode === 'custom' && supportsStyleBoost && enhanceStyle
+    const styleBoostRequiredCredits = mode === 'custom' && supportsStyleBoost && canUseEnhanceStyle && enhanceStyle
       ? CLIENT_STYLE_BOOST_CREDITS
       : 0;
-    const requiredCredits = (mode === 'custom' 
-      ? CLIENT_MUSIC_CREDITS.custom
-      : CLIENT_MUSIC_CREDITS.simple) + styleBoostRequiredCredits;
+    const requiredCredits = mode === 'custom'
+      ? (activeUploadIntent === "track" ? CLIENT_MUSIC_CREDITS.custom + styleBoostRequiredCredits : UPLOAD_ACTION_CREDITS[activeUploadIntent])
+      : CLIENT_MUSIC_CREDITS.simple;
 
     if (credits < requiredCredits) {
       // 使用 sonner 显示积分不足提示
@@ -670,15 +878,148 @@ export const StudioPanel = (props: StudioPanelProps) => {
   };
 
 
-  const handlePromptAddAudioClick = React.useCallback(() => {
+  const clearUploadIntentSelection = React.useCallback(() => {
+    setAudioUploadIntent(forcedUploadIntent ?? null);
+  }, [forcedUploadIntent]);
+
+  const clearUploadAndResetIntent = React.useCallback(() => {
+    clearUploadCoverFile();
+    setAudioUploadIntent(null);
+    setSelectedExtendSource(null);
+  }, [clearUploadCoverFile]);
+
+  const openUploadPickerForIntent = React.useCallback((intent: AudioUploadIntent) => {
     if (!user) {
       setIsAuthModalOpen?.(true);
       return;
     }
+
+    if (mashupTracks.length === 2) {
+      toast.error('Please remove current mashup audio before adding a new one.');
+      return;
+    }
+
+    if (intent !== "track") {
+      resetPendingAudio();
+      updateCurrentUploadState({
+        progressOpen: false,
+        progressStatus: "uploading",
+        progressError: null,
+        readyFile: null,
+        readyFileName: null,
+        readyDuration: null,
+        readyAudioUrl: null,
+      });
+    } else {
+      setSelectedExtendSource(null);
+    }
+
+    setAudioUploadIntent(intent);
     uploadFileInputRef.current?.click();
-  }, [user, setIsAuthModalOpen, uploadFileInputRef]);
+  }, [
+    user,
+    setIsAuthModalOpen,
+    mashupTracks.length,
+    resetPendingAudio,
+    updateCurrentUploadState,
+    uploadFileInputRef,
+    setSelectedExtendSource,
+  ]);
+
+  const handlePromptAddAudioClick = React.useCallback(() => {
+    if (!showUploadAction) return;
+    if (!allowedUploadIntents.includes("track")) return;
+    openUploadPickerForIntent("track");
+  }, [openUploadPickerForIntent, showUploadAction, allowedUploadIntents]);
+
+  const handleAddTrackAudioClick = React.useCallback(() => {
+    if (!allowedUploadIntents.includes("track")) return;
+    openUploadPickerForIntent("track");
+  }, [openUploadPickerForIntent, allowedUploadIntents]);
+
+  const handleChooseTrackFromList = React.useCallback(() => {
+    if (typeof onCollapseToTracks === "function") {
+      onCollapseToTracks();
+      return;
+    }
+    toast("Go to Track List and click Edit -> Extend Music on a track card to select source material.");
+  }, [onCollapseToTracks]);
+
+  const handleAddVocalAudioClick = React.useCallback(() => {
+    if (!allowedUploadIntents.includes("vocal")) return;
+    openUploadPickerForIntent("vocal");
+  }, [openUploadPickerForIntent, allowedUploadIntents]);
+
+  const handleAddMelodyAudioClick = React.useCallback(() => {
+    if (!allowedUploadIntents.includes("melody")) return;
+    openUploadPickerForIntent("melody");
+  }, [openUploadPickerForIntent, allowedUploadIntents]);
+
+  const handleDirectAudioFileChange = React.useCallback(async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0] || null;
+    event.target.value = "";
+
+    if (!file) return;
+
+    if (file.size > maxDirectUploadBytes) {
+      toast.error("File size must be under 100MB.");
+      return;
+    }
+
+    if (!file.type.startsWith("audio/")) {
+      toast.error("Unsupported file type. Please upload audio.");
+      return;
+    }
+
+    clearUploadCoverFile();
+
+    const previewUrl = URL.createObjectURL(file);
+    updateCurrentUploadState({
+      coverFile: file,
+      coverFileName: file.name,
+      audioUrl: previewUrl,
+      audioDuration: null,
+      audioTotalDuration: null,
+      audioCurrentTime: 0,
+      isPlaying: false,
+      isAnalyzing: true,
+      audioMode: "cover",
+      audioUploadUrl: null,
+      extendStartTime: 0,
+      readyFile: null,
+      readyFileName: null,
+      readyDuration: null,
+      readyAudioUrl: null,
+      progressOpen: false,
+      progressStatus: "uploading",
+      progressError: null,
+    });
+
+    try {
+      const downloadUrl = await uploadAudioToServer(file);
+      updateCurrentUploadState({
+        audioUploadUrl: downloadUrl,
+        progressStatus: "ready",
+        progressError: null,
+      });
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Upload failed. Please try again.";
+      updateCurrentUploadState({
+        audioUploadUrl: null,
+        progressStatus: "error",
+        progressError: message,
+      });
+      toast.error(message);
+    }
+  }, [
+    clearUploadCoverFile,
+    maxDirectUploadBytes,
+    updateCurrentUploadState,
+    uploadAudioToServer,
+  ]);
 
   const handleMashupAudioClick = React.useCallback(() => {
+    if (!allowMashupAction) return;
     if (!user) {
       setIsAuthModalOpen?.(true);
       return;
@@ -693,7 +1034,7 @@ export const StudioPanel = (props: StudioPanelProps) => {
     }
     setMashupError(null);
     setIsMashupEditOpen(true);
-  }, [user, setIsAuthModalOpen, canUseMashup, uploadCoverFile]);
+  }, [user, setIsAuthModalOpen, canUseMashup, uploadCoverFile, allowMashupAction]);
 
   const handleOpenPersonaDialog = React.useCallback(() => {
     if (!user) {
@@ -816,18 +1157,16 @@ export const StudioPanel = (props: StudioPanelProps) => {
     clearMashupPreviewTracks,
   ]);
 
-  const uploadAudioPreview = uploadCoverFile ? (
+  const uploadAudioPreview = uploadAudioUrl ? (
     <div className="space-y-2">
-      <div className="rounded-2xl p-[1px] bg-gradient-to-br from-primary/40 via-border/50 to-primary/10">
-        <div className="relative overflow-hidden rounded-2xl bg-background p-3 shadow-sm">
-          <div className="pointer-events-none absolute inset-0 bg-gradient-to-br from-primary/10 via-transparent to-primary/5" />
-          <div className="relative flex flex-col gap-3">
+      <div className="studio-panel-card rounded-2xl p-3">
+        <div className="flex flex-col gap-3">
             <div className="flex items-center gap-4">
               <button
                 type="button"
                 onClick={handleUploadAudioPlayPause}
                 className="flex items-center justify-center h-10 w-10 rounded-full bg-primary/10 text-primary transition hover:text-primary/80 hover:bg-primary/15 p-0"
-                disabled={!uploadCoverFile || isUploadAudioAnalyzing}
+                disabled={!uploadAudioUrl || isUploadAudioAnalyzing}
               >
                 {isUploadAudioPlaying ? (
                   <Pause className="w-4 h-4 fill-current" />
@@ -838,19 +1177,26 @@ export const StudioPanel = (props: StudioPanelProps) => {
               <div className="min-w-0 flex-1 flex flex-col justify-center gap-1">
                 <div className="flex items-center gap-2 min-w-0">
                   <p className="text-sm font-semibold truncate text-foreground leading-none">
-                    {uploadCoverFileName || uploadCoverFile.name}
+                    {uploadCoverFileName || uploadCoverFile?.name || "Selected Track"}
                   </p>
-                  <span className="inline-flex items-center rounded-full bg-primary/15 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-primary/90">
-                    {uploadAudioMode === "extend" ? "Extend" : "Cover"}
-                  </span>
-                  <button
-                    type="button"
-                    onClick={clearUploadCoverFile}
-                    className="ml-auto inline-flex h-5 w-5 items-center justify-center rounded-full text-muted-foreground hover:text-foreground transition-colors p-0"
-                    title="Remove"
-                  >
-                    <X className="h-3 w-3" />
-                  </button>
+                  <div className="ml-auto flex items-center gap-1">
+                    <button
+                      type="button"
+                      onClick={() => openUploadPickerForIntent("track")}
+                      className="inline-flex h-5 w-5 items-center justify-center rounded-full text-muted-foreground hover:text-foreground transition-colors p-0"
+                      title="Replace file"
+                    >
+                      <RefreshCw className="h-3 w-3" />
+                    </button>
+                    <button
+                      type="button"
+                      onClick={clearUploadAndResetIntent}
+                      className="inline-flex h-5 w-5 items-center justify-center rounded-full text-muted-foreground hover:text-foreground transition-colors p-0"
+                      title="Remove"
+                    >
+                      <X className="h-3 w-3" />
+                    </button>
+                  </div>
                 </div>
                 <div className="flex items-center gap-2">
                   <p className="text-xs text-muted-foreground leading-none">
@@ -888,23 +1234,24 @@ export const StudioPanel = (props: StudioPanelProps) => {
                     cursorWidth={2}
                     chrome={false}
                     className="w-full h-full"
-                    showSelector={uploadAudioMode === "extend"}
+                    showSelector={activeUploadIntent === "track" && uploadAudioMode === "extend" && isCustomMode}
                     selectorOverlay={true}
                     showSelectorEndHandle={false}
                     showSelectorLabels={false}
                     selectorStart={uploadExtendStartTime}
                     selectorEnd={uploadAudioDuration || 0}
-                    onSelectorStartChange={(time) => updateExtendStartTime(time)}
+                    onSelectorStartChange={(time) => updateExtendStartTime(time, { syncPlayback: false })}
+                    onSelectorHandleRelease={() => updateExtendStartTime(uploadExtendStartTime, { syncPlayback: true })}
                   />
                 </div>
-                {uploadAudioMode === "extend" && (
-                  <div className="text-xs text-muted-foreground">
-                    Continue at {formatDuration(Math.floor(uploadExtendStartTime)) || "0:00"}
+                {activeUploadIntent === "track" && uploadAudioMode === "extend" && isCustomMode && (
+                  <div className="flex items-center justify-between gap-3 text-xs text-muted-foreground">
+                    <p className="truncate">Drag the handle to set the extension start time.</p>
+                    <p className="shrink-0">Continue at {formatDuration(Math.floor(uploadExtendStartTime)) || "0:00"}</p>
                   </div>
                 )}
               </div>
             )}
-          </div>
         </div>
       </div>
     </div>
@@ -913,9 +1260,8 @@ export const StudioPanel = (props: StudioPanelProps) => {
   const mashupAudioPreview = mashupTracks.length === 2 ? (
     <div className="space-y-2">
       {mashupTracks.map((track, index) => (
-        <div key={`${track.fileName}-${index}`} className="rounded-2xl p-[1px] bg-gradient-to-br from-primary/40 via-border/50 to-primary/10">
-          <div className="relative overflow-hidden rounded-2xl bg-background p-3 shadow-sm">
-            <div className="relative flex flex-col gap-3">
+        <div key={`${track.fileName}-${index}`} className="studio-panel-card rounded-2xl p-3">
+          <div className="flex flex-col gap-3">
               <div className="flex items-center gap-4">
                 <button
                   type="button"
@@ -1006,7 +1352,6 @@ export const StudioPanel = (props: StudioPanelProps) => {
                   className="w-full h-full"
                 />
               </div>
-            </div>
           </div>
         </div>
       ))}
@@ -1627,37 +1972,32 @@ export const StudioPanel = (props: StudioPanelProps) => {
             {styleText.length}/{styleTextMaxLength}
           </div>
           <div className="flex items-center gap-2">
-            <div className="inline-flex h-8 items-center gap-2 rounded-full bg-foreground/5 px-3 text-xs text-muted-foreground">
-              <Switch
-                checked={supportsStyleBoost ? enhanceStyle : false}
-                onCheckedChange={(checked) => {
-                  if (!supportsStyleBoost) {
-                    return;
-                  }
-                  setEnhanceStyle(checked);
-                }}
-                disabled={!supportsStyleBoost || isGenerating}
-                className="scale-75"
-                aria-label="Enhance style prompt"
-              />
-              <span className="text-xs">Enhance Style</span>
+            {activeUploadIntent === "track" && (
               <Tooltip
                 content={`Enhance style quality · ${CLIENT_STYLE_BOOST_CREDITS} credits/use`}
                 position="top"
               >
-                <button
-                  type="button"
-                  className="inline-flex h-5 w-5 items-center justify-center rounded-full text-muted-foreground/70 transition-colors hover:text-foreground"
-                  aria-label="Enhance Style info"
-                  onClick={(e) => {
-                    e.preventDefault();
-                    e.stopPropagation();
-                  }}
-                >
-                  <Info className="h-3.5 w-3.5" />
-                </button>
+                <div className="inline-flex h-8 items-center gap-2 rounded-full bg-foreground/5 px-3 text-xs text-muted-foreground">
+                  <Switch
+                    checked={supportsStyleBoost && canUseEnhanceStyle ? enhanceStyle : false}
+                    onCheckedChange={(checked) => {
+                      if (!supportsStyleBoost) {
+                        return;
+                      }
+                      if (!canUseEnhanceStyle) {
+                        setIsPricingOpen(true);
+                        return;
+                      }
+                      setEnhanceStyle(checked);
+                    }}
+                    disabled={!supportsStyleBoost || isGenerating}
+                    className="scale-75"
+                    aria-label="Enhance style prompt"
+                  />
+                  <span className="text-xs">Enhance</span>
+                </div>
               </Tooltip>
-            </div>
+            )}
             <Button
               variant="ghost"
               size="sm"
@@ -1780,6 +2120,48 @@ export const StudioPanel = (props: StudioPanelProps) => {
     </section>
   );
 
+  const melodyTagsSection = (
+    <>
+      <section className="studio-panel-card rounded-2xl p-3">
+        <h3 className="text-xs md:text-sm font-semibold mb-3 md:mb-4 flex items-center gap-2">
+          Tags
+        </h3>
+        <div>
+          <Textarea
+            placeholder="Describe the melody style tags"
+            value={melodyTags}
+            onChange={(event) => setMelodyTags(event.target.value)}
+            maxLength={styleTextMaxLength}
+            className="min-h-[120px] resize-none pl-0 pr-0 pb-2 border-0 bg-transparent focus-visible:ring-0 focus-visible:ring-offset-0"
+          />
+          <div className="mt-2 text-xs text-muted-foreground">
+            {melodyTags.length}/{styleTextMaxLength}
+          </div>
+        </div>
+      </section>
+
+      <section className="studio-panel-card rounded-2xl p-3">
+        <h3 className="text-xs md:text-sm font-semibold mb-3 md:mb-4 flex items-center gap-2">
+          Negative Tags
+        </h3>
+        <div>
+          <Textarea
+            placeholder="Describe what to avoid in the arrangement"
+            value={melodyNegativeTags}
+            onChange={(event) => setMelodyNegativeTags(event.target.value)}
+            maxLength={styleTextMaxLength}
+            className="min-h-[120px] resize-none pl-0 pr-0 pb-2 border-0 bg-transparent focus-visible:ring-0 focus-visible:ring-offset-0"
+          />
+          <div className="mt-2 text-xs text-muted-foreground">
+            {melodyNegativeTags.length}/{styleTextMaxLength}
+          </div>
+        </div>
+      </section>
+    </>
+  );
+
+  const customModeStyleSection = activeUploadIntent === "melody" ? melodyTagsSection : styleSection;
+
   return (
     <div
       className={`studio-panel-cards bg-transparent transition-all duration-300 ease-in-out ${
@@ -1794,85 +2176,68 @@ export const StudioPanel = (props: StudioPanelProps) => {
     >
       {panelOpen && (
         <>
-          {/* Header with Mode Tabs */}
+          {/* Header */}
           <div className="flex-shrink-0 px-0 pt-4 md:pt-6 pb-4">
-            <div className="flex items-center justify-between gap-2 md:gap-4">
-              {/* Mode Selector */}
-              <div
-                className="studio-panel-card inline-flex items-center rounded-2xl p-1 gap-1 flex-shrink-0"
-              >
-                <button
-                  onClick={() => setMode("simple")}
-                  className={`px-4 py-2 text-xs md:text-sm font-semibold transition-colors duration-200 rounded-2xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background ${
-                    mode === "simple"
-                      ? "bg-primary text-primary-foreground shadow-[0_1px_1px_rgba(0,0,0,0.08)]"
-                      : "text-foreground/60 hover:text-foreground hover:bg-foreground/5"
-                  }`}
-                >
-                  Simple
-                </button>
-                <button
-                  onClick={() => setMode("custom")}
-                  className={`px-4 py-2 text-xs md:text-sm font-semibold transition-colors duration-200 rounded-2xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background ${
-                    mode === "custom"
-                      ? "bg-primary text-primary-foreground shadow-[0_1px_1px_rgba(0,0,0,0.08)]"
-                      : "text-foreground/60 hover:text-foreground hover:bg-foreground/5"
-                  }`}
-                >
-                  Custom
-                </button>
+            {panelTitle && (
+              <div className="mb-3 px-1 space-y-1.5">
+                <div className="flex items-center justify-between gap-3">
+                  <h2 className="text-lg md:text-xl font-semibold tracking-tight text-foreground">
+                    {panelTitle}
+                  </h2>
+                  {mode === "custom" && (
+                    <DropdownMenu open={isModelMenuOpen} onOpenChange={setIsModelMenuOpen}>
+                      <DropdownMenuTrigger asChild>
+                        <button
+                          type="button"
+                          className="group studio-panel-card h-11 min-w-[5.75rem] px-4 rounded-2xl text-xs md:text-sm font-semibold text-foreground/80 transition-colors hover:bg-accent hover:text-accent-foreground flex items-center justify-center gap-1.5"
+                          title="Click to change model version"
+                        >
+                          <span>{modelOptions.find((opt) => opt.value === selectedModel)?.label || 'V4.5'}</span>
+                          <Triangle
+                            className={`w-2 h-2 fill-current text-foreground/70 transition-colors transition-transform group-hover:text-accent-foreground ${isModelMenuOpen ? 'rotate-180' : ''}`}
+                          />
+                        </button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent
+                        align="end"
+                        className="z-[170] w-80 max-h-[70vh] overflow-y-auto rounded-2xl bg-popover p-1.5 text-popover-foreground shadow-[0_20px_56px_rgba(0,0,0,0.18)] backdrop-blur-xl dark:shadow-[0_20px_56px_rgba(0,0,0,0.5)]"
+                      >
+                        {modelOptions.map((option) => {
+                          const isSelected = option.value === selectedModel;
+                          return (
+                            <React.Fragment key={option.value}>
+                              <DropdownMenuItem
+                                onClick={() => handleModelSelect(option.value)}
+                                className="group flex flex-col items-start gap-1 rounded-xl px-3.5 py-2.5 transition-colors hover:bg-black/5 focus:bg-black/5 data-[highlighted]:bg-black/5 dark:hover:bg-white/5 dark:focus:bg-white/5 dark:data-[highlighted]:bg-white/5"
+                              >
+                                <div className="flex w-full items-center justify-between gap-2">
+                                  <div className="flex items-center gap-2">
+                                    <span className="text-sm font-semibold text-foreground">
+                                      {option.label}
+                                    </span>
+                                  </div>
+                                  {isSelected && (
+                                    <span className="inline-flex h-4 w-4 items-center justify-center rounded-full bg-primary">
+                                      <Check className="h-2.5 w-2.5 text-primary-foreground" strokeWidth={2.5} aria-hidden="true" />
+                                    </span>
+                                  )}
+                                </div>
+                                <span className="text-xs text-muted-foreground">
+                                  {option.description}
+                                </span>
+                              </DropdownMenuItem>
+                            </React.Fragment>
+                          );
+                        })}
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+                  )}
+                </div>
+                <p className="mt-1 text-xs md:text-sm text-muted-foreground">
+                  Extend uploaded tracks while keeping the original style.
+                </p>
               </div>
-
-              {/* Model Selection Menu */}
-              {mode === "custom" && (
-                <DropdownMenu open={isModelMenuOpen} onOpenChange={setIsModelMenuOpen}>
-                  <DropdownMenuTrigger asChild>
-                    <button
-                      type="button"
-                      className="group studio-panel-card h-11 px-4 rounded-2xl text-xs md:text-sm font-semibold text-foreground/80 transition-colors hover:bg-accent hover:text-accent-foreground flex items-center gap-1.5"
-                      title="Click to change model version"
-                    >
-                      <span>{modelOptions.find((opt) => opt.value === selectedModel)?.label || 'V4.5'}</span>
-                      <Triangle
-                        className={`w-2 h-2 fill-current text-foreground/70 transition-colors transition-transform group-hover:text-accent-foreground ${isModelMenuOpen ? 'rotate-180' : ''}`}
-                      />
-                    </button>
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent
-                    align="end"
-                    className="z-[170] w-80 max-h-[70vh] overflow-y-auto rounded-2xl bg-popover p-1.5 text-popover-foreground shadow-[0_20px_56px_rgba(0,0,0,0.18)] backdrop-blur-xl dark:shadow-[0_20px_56px_rgba(0,0,0,0.5)]"
-                  >
-                    {modelOptions.map((option) => {
-                      const isSelected = option.value === selectedModel;
-                      return (
-                        <React.Fragment key={option.value}>
-                          <DropdownMenuItem
-                            onClick={() => handleModelSelect(option.value)}
-                            className="group flex flex-col items-start gap-1 rounded-xl px-3.5 py-2.5 transition-colors hover:bg-black/5 focus:bg-black/5 data-[highlighted]:bg-black/5 dark:hover:bg-white/5 dark:focus:bg-white/5 dark:data-[highlighted]:bg-white/5"
-                          >
-                            <div className="flex w-full items-center justify-between gap-2">
-                              <div className="flex items-center gap-2">
-                                <span className="text-sm font-semibold text-foreground">
-                                  {option.label}
-                                </span>
-                              </div>
-                              {isSelected && (
-                                <span className="inline-flex h-4 w-4 items-center justify-center rounded-full bg-primary">
-                                  <Check className="h-2.5 w-2.5 text-primary-foreground" strokeWidth={2.5} aria-hidden="true" />
-                                </span>
-                              )}
-                            </div>
-                            <span className="text-xs text-muted-foreground">
-                              {option.description}
-                            </span>
-                          </DropdownMenuItem>
-                        </React.Fragment>
-                      );
-                    })}
-                  </DropdownMenuContent>
-                </DropdownMenu>
-              )}
-            </div>
+            )}
           </div>
 
           {/* Main Content */}
@@ -1884,95 +2249,114 @@ export const StudioPanel = (props: StudioPanelProps) => {
               type="file"
               accept="audio/*"
               className="hidden"
-              onChange={handlePromptFileChange}
+              onChange={mode === "custom" && audioUploadIntent !== null && audioUploadIntent !== "track" ? handleDirectAudioFileChange : handlePromptFileChange}
             />
             {/* Mode Content */}
-      {mode === "simple" ? (
-        <StudioSimpleModeContent
-          instrumentalMode={instrumentalMode}
-          setInstrumentalMode={setInstrumentalMode}
-          simplePrompt={simplePrompt}
-          setSimplePrompt={setSimplePrompt}
-          simplePromptMaxLength={simplePromptMaxLength}
-          quickButtons={renderStyleQuickButtons(
-            simplePrompt,
-            setSimplePrompt,
-            expandedCategorySimple,
-            setExpandedCategorySimple,
-            ["genre"],
-            {
-              forceExpanded: "genre",
-              hideCategoryToggles: true,
-              useSelectedGenre: true,
-              usePromptTemplateOnGenre: true,
-              horizontalScroll: true,
-            }
-          )}
-          onAddAudio={handlePromptAddAudioClick}
-          onClear={() => {
-            setSimplePrompt("");
-            setSelectedGenre("");
-            setSelectedVibe("");
-            setGrooveType("");
-            setBpm([60]);
-            setBpmMode('');
-            setLeadInstrument([]);
-            setDrumKit("");
-            setBassTone("");
-            setHarmonyPalette("");
-          }}
-          leadInstruments={leadInstruments as Array<{ id: string; name: string }>}
-          drumKits={drumKits as Array<{ id: string; name: string }>}
-          onSelectLeadInstrument={(instrumentId) => {
-            setLeadInstrument([instrumentId]);
-          }}
-          onSelectDrumKit={(kitId) => {
-            setDrumKit(kitId);
-          }}
-          onPreviewLeadInstrument={(instrumentId) => {
-            const audioUrl = getInstrumentAudio(instrumentId);
-            if (audioUrl) {
-              playPreviewAudio(audioUrl, `instrument-${instrumentId}`);
-            }
-          }}
-          onPreviewDrumKit={(kitId) => {
-            const audioUrl = getDrumKitAudio(kitId);
-            if (audioUrl) {
-              playPreviewAudio(audioUrl, `drum-${kitId}`);
-            }
-          }}
-          uploadCoverFile={uploadCoverFile}
-          uploadAudioPreview={uploadAudioPreview}
-        />
-      ) : (
-        <StudioCustomModeContent
-          uploadCoverFile={uploadCoverFile}
-          uploadAudioPreview={mashupTracks.length === 2 ? mashupAudioPreview : uploadAudioPreview}
-          onAddAudio={handlePromptAddAudioClick}
-          onAddMashup={handleMashupAudioClick}
-          isMashupLoading={isMashupPreparing || isMashupSubmitting}
-          onOpenPersonaDialog={handleOpenPersonaDialog}
-          hasUploadPreview={!!uploadCoverFile || mashupTracks.length === 2}
-          hidePersonaAction={mashupTracks.length === 2}
-          selectedPersonaName={selectedPersona?.name?.trim() || null}
-          selectedPersonaId={selectedPersonaId}
-          instrumentalMode={instrumentalMode}
-          setInstrumentalMode={setInstrumentalMode}
-          customLyrics={customLyrics}
-          setCustomLyrics={setCustomLyrics}
-          customPromptMaxLength={customPromptMaxLength}
-          onGenerateLyrics={onGenerateLyrics}
-          onWriteNextLyricLine={onWriteNextLyricLine}
-          isWritingNextLyricLine={isWritingNextLyricLine}
-          onClearCustomLyrics={() => setCustomLyrics("")}
-          vocalGender={vocalGender}
-          setVocalGender={setVocalGender}
-          vocalGenders={vocalGenders as Array<{ id: string; name: string }>}
-          styleSection={styleSection}
-          songTitle={songTitle}
-          setSongTitle={setSongTitle}
-        />
-      )}
+            {mode === "simple" ? (
+              <StudioSimpleModeContent
+                showQuickButtonsSection={false}
+                simplePrompt={simplePrompt}
+                setSimplePrompt={setSimplePrompt}
+                simplePromptMaxLength={simplePromptMaxLength}
+                quickButtons={renderStyleQuickButtons(
+                  simplePrompt,
+                  setSimplePrompt,
+                  expandedCategorySimple,
+                  setExpandedCategorySimple,
+                  ["genre"],
+                  {
+                    forceExpanded: "genre",
+                    hideCategoryToggles: true,
+                    useSelectedGenre: true,
+                    usePromptTemplateOnGenre: true,
+                    horizontalScroll: true,
+                  }
+                )}
+                onAddAudio={handlePromptAddAudioClick}
+                showAddAudioAction={showUploadAction}
+                onClear={() => {
+                  setSimplePrompt("");
+                  setSelectedGenre("");
+                  setSelectedVibe("");
+                  setGrooveType("");
+                  setBpm([60]);
+                  setBpmMode('');
+                  setLeadInstrument([]);
+                  setDrumKit("");
+                  setBassTone("");
+                  setHarmonyPalette("");
+                }}
+                leadInstruments={leadInstruments as Array<{ id: string; name: string }>}
+                drumKits={drumKits as Array<{ id: string; name: string }>}
+                onSelectLeadInstrument={(instrumentId) => {
+                  setLeadInstrument([instrumentId]);
+                }}
+                onSelectDrumKit={(kitId) => {
+                  setDrumKit(kitId);
+                }}
+                onPreviewLeadInstrument={(instrumentId) => {
+                  const audioUrl = getInstrumentAudio(instrumentId);
+                  if (audioUrl) {
+                    playPreviewAudio(audioUrl, `instrument-${instrumentId}`);
+                  }
+                }}
+                onPreviewDrumKit={(kitId) => {
+                  const audioUrl = getDrumKitAudio(kitId);
+                  if (audioUrl) {
+                    playPreviewAudio(audioUrl, `drum-${kitId}`);
+                  }
+                }}
+                uploadCoverFile={uploadCoverFile}
+                uploadAudioPreview={uploadAudioPreview}
+              />
+            ) : (
+              <StudioCustomModeContent
+                uploadCoverFile={uploadCoverFile}
+                uploadAudioPreview={mashupTracks.length === 2 ? mashupAudioPreview : uploadAudioPreview}
+                uploadIntent={audioUploadIntent}
+                preferTrackUploadCard={isExtendUploadMode}
+                onAddTrack={handleAddTrackAudioClick}
+                onChooseTrackFromList={handleChooseTrackFromList}
+                onAddVocal={handleAddVocalAudioClick}
+                onAddMelody={handleAddMelodyAudioClick}
+                onClearUploadIntent={forcedUploadIntent === undefined ? clearUploadIntentSelection : undefined}
+                onAddMashup={allowMashupAction ? handleMashupAudioClick : undefined}
+                isMashupLoading={isMashupPreparing || isMashupSubmitting}
+                onOpenPersonaDialog={handleOpenPersonaDialog}
+                showAddAudioActions={showUploadAction}
+                allowedUploadIntents={allowedUploadIntents}
+                hasUploadPreview={!!uploadAudioUrl || mashupTracks.length === 2}
+                hidePersonaAction={allowMashupAction || mashupTracks.length === 2 || (audioUploadIntent !== null && activeUploadIntent !== "track")}
+                selectedPersonaName={selectedPersona?.name?.trim() || null}
+                selectedPersonaId={selectedPersonaId}
+                selectedPersonaModel={selectedPersonaModel}
+                setSelectedPersonaModel={setSelectedPersonaModel}
+                canUseVoicePersonaModel={canUseVoicePersonaModel}
+                customLyrics={customLyrics}
+                setCustomLyrics={setCustomLyrics}
+                customPromptMaxLength={customPromptMaxLength}
+                showLyricsSection={activeUploadIntent !== "melody"}
+                onGenerateLyrics={onGenerateLyrics}
+                onWriteNextLyricLine={onWriteNextLyricLine}
+                isWritingNextLyricLine={isWritingNextLyricLine}
+                onClearCustomLyrics={() => setCustomLyrics("")}
+                vocalGender={vocalGender}
+                setVocalGender={setVocalGender}
+                vocalGenders={vocalGenders as Array<{ id: string; name: string }>}
+                showVocalGenderSection={activeUploadIntent !== "melody"}
+                styleSection={customModeStyleSection}
+                songTitle={songTitle}
+                setSongTitle={setSongTitle}
+                titleMaxLength={titleMaxLength}
+                styleWeight={styleWeight}
+                setStyleWeight={(value) => { if (!canUseEnhanceStyle) { setIsPricingOpen(true); return; } setStyleWeight?.(value); }}
+                weirdnessConstraint={weirdnessConstraint}
+                setWeirdnessConstraint={(value) => { if (!canUseEnhanceStyle) { setIsPricingOpen(true); return; } setWeirdnessConstraint?.(value); }}
+                audioWeight={audioWeight}
+                setAudioWeight={(value) => { if (!canUseEnhanceStyle) { setIsPricingOpen(true); return; } setAudioWeight?.(value); }}
+                showAdvancedOptions={true}
+              />
+            )}
           </div>
 
           {/* Floating Generate Button - Bottom */}
@@ -1990,13 +2374,32 @@ export const StudioPanel = (props: StudioPanelProps) => {
               if (mode === 'simple') {
                 // Simple Mode: 只需要prompt字段
                 isDisabled = isDisabled || !simplePrompt.trim();
+                if (requiresTrackUpload) {
+                  isDisabled = isDisabled || !hasTrackUploadSource;
+                }
+              } else if (activeUploadIntent === "melody") {
+                isDisabled = isDisabled || !songTitle.trim() || !melodyTags.trim() || !uploadCoverFile;
+              } else if (activeUploadIntent === "vocal") {
+                isDisabled = isDisabled || !songTitle.trim() || !styleText.trim() || !customLyrics.trim() || !uploadCoverFile;
               } else {
-                // Custom Mode: style and title are required; prompt required when instrumental is false
-                isDisabled = isDisabled || !styleText.trim() || !songTitle.trim();
-                if (!instrumentalMode) {
-                  isDisabled = isDisabled || !customLyrics.trim();
+                // Track mode in custom: style, title, and lyrics are required
+                isDisabled = isDisabled || !styleText.trim() || !songTitle.trim() || !customLyrics.trim();
+                if (requiresTrackUpload) {
+                  isDisabled = isDisabled || !hasTrackUploadSource;
+                }
+                if (isExtendUploadMode) {
+                  isDisabled = isDisabled || !isExtendContinueAtValid;
                 }
               }
+
+              const createActionLabel = mode === "custom"
+                ? activeUploadIntent === "vocal"
+                  ? "Create Vocal"
+                  : activeUploadIntent === "melody"
+                    ? "Create Melody"
+                    : "Create"
+                : "Create";
+
               return (
                 <div className="flex">
                   <button
@@ -2019,12 +2422,13 @@ export const StudioPanel = (props: StudioPanelProps) => {
                       ) : isDisabled ? (
                         <span className="inline-flex items-center gap-1.5">
                           <Wand2 className="h-4 w-4" />
-                          <span>Create</span>
+                          <span>{createActionLabel}</span>
                         </span>
                       ) : (
                         <span className="inline-flex items-center gap-1.5">
                           <Wand2 className="h-4 w-4" />
-                          <span>{`Create (-${createCredits} Credits)`}</span>
+                          <span>{createActionLabel}</span>
+                          <span className="font-normal text-white/90">{`• cost ${createCredits} credits`}</span>
                         </span>
                       )}
                     </div>
@@ -2045,39 +2449,41 @@ export const StudioPanel = (props: StudioPanelProps) => {
         maxDuration={maxUploadDurationSeconds}
         modelLabel={modelOptions.find((option) => option.value === effectiveModel)?.label || effectiveModel}
         onSave={async (file, durationValue, title) => {
-          const nextReadyUrl = URL.createObjectURL(file);
-          updateUploadState(pendingAudioMode, {
-            readyFile: file,
-            readyFileName: title,
-            readyDuration: durationValue,
-            readyAudioUrl: nextReadyUrl,
-            progressOpen: true,
-            progressStatus: "uploading",
-            progressError: null,
-          });
-          if (pendingUploadState.readyAudioUrl) {
-            URL.revokeObjectURL(pendingUploadState.readyAudioUrl);
-          }
-          resetPendingAudio();
-
           try {
             const downloadUrl = await uploadAudioToServer(file);
-            updateUploadState(pendingAudioMode, {
+            setSelectedExtendSource(null);
+            if (uploadAudioUrl) {
+              URL.revokeObjectURL(uploadAudioUrl);
+            }
+            const nextUrl = URL.createObjectURL(file);
+            updateCurrentUploadState({
+              audioMode: "extend",
+              coverFile: file,
+              coverFileName: title || file.name || null,
+              audioUrl: nextUrl,
+              audioDuration: durationValue,
+              audioTotalDuration: durationValue,
+              audioCurrentTime: 0,
+              isPlaying: false,
+              isAnalyzing: false,
               audioUploadUrl: downloadUrl,
-              progressStatus: "ready",
+              extendStartTime: 0,
+              progressOpen: false,
+              progressStatus: "uploading",
+              progressError: null,
+              readyFile: null,
+              readyFileName: null,
+              readyDuration: null,
+              readyAudioUrl: null,
             });
           } catch (error) {
             const message = error instanceof Error ? error.message : "Upload failed. Please try again.";
-            updateUploadState(pendingAudioMode, {
-              audioUploadUrl: null,
-              progressStatus: "error",
-              progressError: message,
-            });
+            throw new Error(message);
           }
         }}
       />
 
-      <StudioPanelPersonaDialogs
+      <MusicPersonaDialogs
         isPersonaDialogOpen={isPersonaDialogOpen}
         setIsPersonaDialogOpen={setIsPersonaDialogOpen}
         isPersonaLoading={isPersonaLoading}
@@ -2110,55 +2516,6 @@ export const StudioPanel = (props: StudioPanelProps) => {
         closeCreatePersonaDialog={closeCreatePersonaDialog}
         handleCreatePersona={handleCreatePersona}
         isCreatingPersona={isCreatingPersona}
-      />
-
-      <UploadProgressDialog
-        isOpen={isUploadProgressOpen}
-        onClose={() => {
-          updateCurrentUploadState({
-            progressOpen: false,
-            progressStatus: "uploading",
-            progressError: null,
-            readyFileName: null,
-          });
-          if (readyAudioUrl) {
-            URL.revokeObjectURL(readyAudioUrl);
-            updateCurrentUploadState({ readyAudioUrl: null });
-          }
-        }}
-        fileName={readyFileName || readyFile?.name || "Audio"}
-        status={uploadProgressStatus}
-        errorMessage={uploadProgressError || undefined}
-        audioUrl={readyAudioUrl}
-        duration={readyDuration || 0}
-        onSelect={(nextMode) => {
-          if (!uploadAudioUploadUrl) {
-            toast.error("Upload failed. Please save your audio again.");
-            return;
-          }
-          if (uploadAudioUrl) {
-            URL.revokeObjectURL(uploadAudioUrl);
-          }
-          const nextUrl = readyFile ? URL.createObjectURL(readyFile) : null;
-          updateCurrentUploadState({
-            audioMode: nextMode,
-            coverFile: readyFile,
-            coverFileName: readyFileName || readyFile?.name || null,
-            audioUrl: nextUrl,
-            audioDuration: readyDuration,
-            audioTotalDuration: readyDuration,
-            audioCurrentTime: 0,
-            isPlaying: false,
-            isAnalyzing: false,
-            progressOpen: false,
-            progressStatus: "uploading",
-            readyFileName: null,
-          });
-          if (readyAudioUrl) {
-            URL.revokeObjectURL(readyAudioUrl);
-            updateCurrentUploadState({ readyAudioUrl: null });
-          }
-        }}
       />
 
       <MashupEditDialog

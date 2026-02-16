@@ -284,7 +284,7 @@ export const EditAudioDialog = ({
       onClose();
     } catch (err) {
       console.error("Failed to trim audio:", err);
-      setError("Failed to process audio. Please try again.");
+      setError(err instanceof Error ? err.message : "Failed to process audio. Please try again.");
     } finally {
       setIsSaving(false);
     }
@@ -292,7 +292,7 @@ export const EditAudioDialog = ({
 
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
-      <DialogContent className="max-w-[calc(100vw-2rem)] sm:max-w-[620px] max-h-[82vh] flex flex-col p-0 border-0 bg-background shadow-xl">
+      <DialogContent className="max-w-[calc(100vw-2rem)] sm:max-w-[620px] max-h-[82vh] flex flex-col overflow-hidden rounded-[28px] p-0 border-0 bg-background shadow-xl">
         <DialogHeader className="flex-shrink-0 px-6 pt-5 pb-3 text-left relative overflow-hidden">
           <div className="pointer-events-none absolute inset-0 bg-gradient-to-r from-primary/10 via-transparent to-primary/10" />
           <div className="flex items-center justify-between pr-8">

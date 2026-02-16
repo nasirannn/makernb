@@ -13,7 +13,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
-import { Play, Pause } from "lucide-react";
+import { Play, Pause, ChevronDown } from "lucide-react";
 import { WaveformPlayer, WaveformPlayerHandle } from "@/components/ui/waveform-player";
 import { getFeatureCredits } from '@/lib/credits-config';
 
@@ -70,6 +70,7 @@ export const ReplaceSectionDialog: React.FC<ReplaceSectionDialogProps> = ({
   const [tags, setTags] = useState('');
   const [title, setTitle] = useState('');
   const [fullLyrics, setFullLyrics] = useState('');
+  const [isFullLyricsOpen, setIsFullLyricsOpen] = useState(false);
 
   // ==================== 音频播放器状态 ====================
   const [isPlaying, setIsPlaying] = useState(false);
@@ -181,6 +182,7 @@ export const ReplaceSectionDialog: React.FC<ReplaceSectionDialogProps> = ({
       // 默认替换前10秒
       setInfillStartS(0);
       setInfillEndS(getDefaultEnd(trackDuration));
+      setIsFullLyricsOpen(false);
     }
   }, [getDefaultEnd, isOpen, trackTitle, originalStyle, trackDuration]);
 
@@ -193,6 +195,7 @@ export const ReplaceSectionDialog: React.FC<ReplaceSectionDialogProps> = ({
     setTags('');
     setTitle('');
     setFullLyrics('');
+    setIsFullLyricsOpen(false);
     setIsPlaying(false);
     setCurrentTime(0);
   }, []);
@@ -264,32 +267,26 @@ export const ReplaceSectionDialog: React.FC<ReplaceSectionDialogProps> = ({
 
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && handleClose()}>
-      <DialogContent className="max-w-[calc(100vw-2rem)] sm:max-w-[560px] max-h-[90vh] flex flex-col overflow-hidden p-0 bg-background shadow-xl">
-        <DialogHeader className="flex-shrink-0 px-6 pt-4 pb-3 text-left relative overflow-hidden">
-          <div className="pointer-events-none absolute inset-0 bg-gradient-to-r from-primary/10 via-transparent to-primary/10" />
-          <div className="flex items-center justify-between pr-8">
-            <div className="relative">
-              <div className="text-[10px] uppercase tracking-[0.28em] text-muted-foreground">
-                Replace Section
-              </div>
-              <DialogTitle className="text-xl font-semibold tracking-tight">
-                Replace Section
-              </DialogTitle>
+      <DialogContent className="studio-panel-card max-w-[calc(100vw-2rem)] sm:max-w-[620px] max-h-[90vh] flex flex-col overflow-hidden p-0 border-0 shadow-xl">
+        <DialogHeader className="flex-shrink-0 px-5 pt-4 pb-2 text-left">
+          <div className="space-y-1 pr-8">
+            <div className="text-[10px] uppercase tracking-[0.24em] text-muted-foreground">
+              Replace Section
             </div>
+            <DialogTitle className="text-xl font-semibold tracking-tight">
+              Replace Section
+            </DialogTitle>
           </div>
           <DialogDescription className="text-sm text-muted-foreground">
             Replace a section of &ldquo;{trackTitle}&rdquo; with new content
           </DialogDescription>
         </DialogHeader>
 
-        <div className="flex-1 overflow-y-auto space-y-3 px-6 py-2">
+        <div className="flex-1 overflow-y-auto space-y-3 px-5 py-3">
           {/* 音频播放器和时间选择 */}
           {audioUrl && (
-            <div className="space-y-2">
-              <div className="flex flex-col items-center gap-1.5">
-                <div className="w-full text-left text-sm font-medium text-muted-foreground">
-                  {title || trackTitle || "Untitled"}
-                </div>
+            <section className="studio-panel-card rounded-2xl p-3 space-y-3">
+              <div className="flex flex-col items-center gap-2">
                 <div className="flex w-full items-baseline justify-between gap-3">
                   <div className="text-left text-lg font-mono tracking-widest text-foreground">
                     {formatClockTime(currentTime)} / {formatClockTime(audioDuration || 0)}
@@ -299,11 +296,11 @@ export const ReplaceSectionDialog: React.FC<ReplaceSectionDialogProps> = ({
                   </div>
                 </div>
 
-                <div className="w-full flex items-center gap-4 items-stretch">
+                <div className="w-full flex items-center gap-3 items-stretch">
                   <button
                     type="button"
                     onClick={handlePlayPause}
-                    className="flex h-[68px] w-[68px] items-center justify-center rounded-full border border-primary/40 bg-transparent text-primary shadow-sm transition-colors hover:bg-white/5"
+                    className="flex h-[68px] w-[68px] items-center justify-center rounded-full bg-primary/10 text-primary shadow-sm transition-colors hover:text-primary/80 hover:bg-primary/15"
                     disabled={!audioUrl}
                   >
                     {isPlaying ? (
@@ -361,120 +358,150 @@ export const ReplaceSectionDialog: React.FC<ReplaceSectionDialogProps> = ({
               </div>
 
               {/* 时间范围手动输入 */}
-              <div className="flex items-center justify-between gap-3 rounded-md bg-muted/20 px-3 py-1.5 text-xs text-muted-foreground">
-                <span className="whitespace-nowrap">Range</span>
-                <div className="flex items-center gap-2">
-                  <Input
-                    type="number"
-                    min={0}
-                    max={Math.max(0, infillEndS - minSegmentSeconds)}
-                    step={0.01}
-                    value={infillStartS.toFixed(2)}
-                    onChange={(e) => {
-                      const value = parseFloat(e.target.value);
-                      if (!isNaN(value)) {
-                        handleStartChange(value);
-                      }
-                    }}
-                    className="w-20 h-7 text-center px-2"
-                  />
-                  <span className="text-muted-foreground/80">to</span>
-                  <Input
-                    type="number"
-                    min={infillStartS + minSegmentSeconds}
-                    max={Math.min(audioDuration, infillStartS + maxSegmentSeconds)}
-                    step={0.01}
-                    value={infillEndS.toFixed(2)}
-                    onChange={(e) => {
-                      const value = parseFloat(e.target.value);
-                      if (!isNaN(value)) {
-                        handleEndChange(value);
-                      }
-                    }}
-                    className="w-20 h-7 text-center px-2"
-                  />
-                  <span className="text-muted-foreground/80">sec</span>
+              <div className="rounded-xl bg-foreground/5 px-3 py-2">
+                <div className="flex items-center justify-between gap-3 text-xs text-muted-foreground">
+                  <span className="whitespace-nowrap font-medium">Range</span>
+                  <div className="flex items-center gap-2">
+                    <Input
+                      type="number"
+                      min={0}
+                      max={Math.max(0, infillEndS - minSegmentSeconds)}
+                      step={0.01}
+                      value={infillStartS.toFixed(2)}
+                      onChange={(e) => {
+                        const value = parseFloat(e.target.value);
+                        if (!isNaN(value)) {
+                          handleStartChange(value);
+                        }
+                      }}
+                      className="h-7 w-20 border-0 bg-background/65 px-2 text-center focus-visible:ring-0 focus-visible:ring-offset-0"
+                    />
+                    <span className="text-muted-foreground/80">to</span>
+                    <Input
+                      type="number"
+                      min={infillStartS + minSegmentSeconds}
+                      max={Math.min(audioDuration, infillStartS + maxSegmentSeconds)}
+                      step={0.01}
+                      value={infillEndS.toFixed(2)}
+                      onChange={(e) => {
+                        const value = parseFloat(e.target.value);
+                        if (!isNaN(value)) {
+                          handleEndChange(value);
+                        }
+                      }}
+                      className="h-7 w-20 border-0 bg-background/65 px-2 text-center focus-visible:ring-0 focus-visible:ring-offset-0"
+                    />
+                    <span className="text-muted-foreground/80">sec</span>
+                  </div>
+                  <span className="whitespace-nowrap text-muted-foreground/80">
+                    {selectionLength.toFixed(2)}s
+                  </span>
                 </div>
-                <span className="whitespace-nowrap text-muted-foreground/80">
-                  {selectionLength.toFixed(2)}s
-                </span>
               </div>
               {!isSelectionLengthValid && (
-                <div className="text-xs text-destructive">
+                <div className="rounded-xl bg-destructive/10 px-3 py-2 text-xs text-destructive">
                   {audioDuration < minSegmentSeconds
                     ? `Track must be at least ${minSegmentSeconds}s to replace.`
                     : `Selection must be between ${minSegmentSeconds}s and ${Math.min(maxSegmentSeconds, Math.floor(audioDuration))}s.`}
                 </div>
               )}
               {isSelectionOverHalf && (
-                <div className="text-xs text-muted-foreground">
+                <div className="rounded-xl bg-amber-500/10 px-3 py-2 text-xs text-amber-700 dark:text-amber-300">
                   Tip: keep the replacement under 50% of the track for best results.
                 </div>
               )}
-            </div>
+            </section>
           )}
 
           {/* Title */}
-          <div className="space-y-1">
-            <Label htmlFor="title">Title</Label>
+          <section className="studio-panel-card rounded-2xl p-3 space-y-2">
+            <Label htmlFor="title" className="text-xs md:text-sm font-semibold text-foreground">Title</Label>
             <Input
               id="title"
               value={title}
               onChange={(e) => setTitle(e.target.value)}
               placeholder="Enter track title"
+              className="h-11 border-0 bg-transparent px-0 focus-visible:ring-0 focus-visible:ring-offset-0"
             />
-          </div>
+          </section>
 
           {/* Tags/Style */}
-          <div className="space-y-1">
-            <Label htmlFor="tags">Style Tags</Label>
+          <section className="studio-panel-card rounded-2xl p-3 space-y-2">
+            <Label htmlFor="tags" className="text-xs md:text-sm font-semibold text-foreground">Style Tags</Label>
             <Input
               id="tags"
               value={tags}
               onChange={(e) => setTags(e.target.value)}
               placeholder="e.g., pop, acoustic, upbeat"
+              className="h-11 border-0 bg-transparent px-0 focus-visible:ring-0 focus-visible:ring-offset-0"
             />
-          </div>
+          </section>
 
           {/* Prompt */}
-          <div className="space-y-1">
-            <Label htmlFor="prompt">Prompt</Label>
+          <section className="studio-panel-card rounded-2xl p-3 space-y-2">
+            <Label htmlFor="prompt" className="text-xs md:text-sm font-semibold text-foreground">Prompt</Label>
             <Textarea
               id="prompt"
               value={prompt}
               onChange={(e) => setPrompt(e.target.value)}
               placeholder="Describe the music for this section..."
               rows={3}
+              className="min-h-[104px] resize-y border-0 bg-transparent px-0 focus-visible:ring-0 focus-visible:ring-offset-0"
             />
-          </div>
+          </section>
 
-          {/* Full Lyrics */}
-          <div className="space-y-1">
-            <Label htmlFor="fullLyrics">Full Lyrics (optional)</Label>
-            <Textarea
-              id="fullLyrics"
-              value={fullLyrics}
-              onChange={(e) => setFullLyrics(e.target.value)}
-              placeholder="Enter the full lyrics with the modified section..."
-              rows={4}
-            />
-            <p className="text-xs text-muted-foreground">
-              Provide merged lyrics to keep the replaced section aligned with the full song.
-            </p>
-          </div>
+          {/* Lyrics */}
+          <section className="studio-panel-card rounded-2xl p-3 min-h-[52px]">
+            <button
+              type="button"
+              className="flex w-full min-h-[28px] items-center justify-between gap-3 rounded-xl p-1 text-left"
+              onClick={() => setIsFullLyricsOpen((prev) => !prev)}
+              aria-expanded={isFullLyricsOpen}
+              aria-label="Toggle lyrics section"
+            >
+              <h3 className="text-xs md:text-sm font-semibold text-foreground">Lyrics</h3>
+              <span className="inline-flex items-center gap-2">
+                <span className="text-[10px] uppercase tracking-[0.14em] text-muted-foreground">Optional</span>
+                <ChevronDown
+                  className={`h-3.5 w-3.5 text-muted-foreground transition-transform ${
+                    isFullLyricsOpen ? "rotate-180" : ""
+                  }`}
+                />
+              </span>
+            </button>
+
+            {isFullLyricsOpen && (
+              <div className="mt-3 space-y-2">
+                <Label htmlFor="fullLyrics" className="text-xs font-medium text-muted-foreground">
+                  Lyrics Content
+                </Label>
+                <Textarea
+                  id="fullLyrics"
+                  value={fullLyrics}
+                  onChange={(e) => setFullLyrics(e.target.value)}
+                  placeholder="Enter the full lyrics with the modified section..."
+                  rows={4}
+                  className="min-h-[120px] resize-y border-0 bg-transparent px-0 focus-visible:ring-0 focus-visible:ring-offset-0"
+                />
+                <p className="text-xs text-muted-foreground">
+                  Provide merged lyrics to keep the replaced section aligned with the full song.
+                </p>
+              </div>
+            )}
+          </section>
 
           {insufficientCredits && (
-            <p className="text-sm text-destructive">
+            <div className="rounded-2xl bg-destructive/10 px-3 py-2 text-sm text-destructive">
               Insufficient credits. You need {cost} credits but only have {credits}.
-            </p>
+            </div>
           )}
         </div>
 
-        <DialogFooter className="flex-shrink-0 px-6 pt-3 pb-4">
+        <DialogFooter className="flex-shrink-0 px-5 pt-1 pb-4">
           <Button
             onClick={handleConfirm}
             disabled={!isFormValid || insufficientCredits || isReplacing}
-            className="w-full inline-flex items-center justify-center rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 bg-primary text-primary-foreground hover:bg-primary/90 h-10 px-4 py-2"
+            className="h-11 w-full rounded-2xl bg-primary text-primary-foreground text-sm font-semibold transition-colors hover:bg-primary/90"
           >
             {isReplacing ? (
               <>
@@ -482,7 +509,7 @@ export const ReplaceSectionDialog: React.FC<ReplaceSectionDialogProps> = ({
                 Replacing...
               </>
             ) : (
-              `Replace Section (-${cost} credits)`
+              `Replace Section • cost ${cost} credits`
             )}
           </Button>
         </DialogFooter>

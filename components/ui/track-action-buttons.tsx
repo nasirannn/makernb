@@ -8,7 +8,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { FileAudio, FileVideo, Image as ImageIcon, Music2, Star, Share2, Check, Download, MoreVertical, Mic, Trash2, Maximize2, Scissors, Pencil, ThumbsDown, ThumbsUp, FileText, ChevronDown } from "lucide-react";
+import { FileAudio, FileVideo, Image as ImageIcon, Music2, Star, Share2, Check, Download, MoreVertical, Mic, Trash2, Expand, Scissors, Pencil, ThumbsDown, ThumbsUp, FileText, ChevronDown, Users } from "lucide-react";
 import { LibraryTrack } from '@/types/track';
 import { SolidThumbsUpIcon } from '@/components/icons/solid-thumbs-up-icon';
 import { SolidThumbsDownIcon } from '@/components/icons/solid-thumbs-down-icon';
@@ -33,6 +33,7 @@ interface TrackActionButtonsProps {
   canVocalRemoval?: boolean;
   canExtendMusic?: boolean;
   canReplaceSection?: boolean;
+  canCreatePersona?: boolean;
 
   // 回调函数
   onFavoriteToggle?: () => void;
@@ -43,6 +44,7 @@ interface TrackActionButtonsProps {
   onVocalRemoval?: () => void;
   onExtendMusic?: () => void;
   onReplaceSection?: () => void;
+  onCreatePersona?: () => void;
   onDelete?: () => void;
   onPublishToggle?: () => void;
   onViewLyrics?: () => void;
@@ -66,6 +68,7 @@ export const TrackActionButtons: React.FC<TrackActionButtonsProps> = ({
   canVocalRemoval = false,
   canExtendMusic = false,
   canReplaceSection = false,
+  canCreatePersona = false,
   onFavoriteToggle,
   onShare,
   onDislikeToggle,
@@ -74,6 +77,7 @@ export const TrackActionButtons: React.FC<TrackActionButtonsProps> = ({
   onVocalRemoval,
   onExtendMusic,
   onReplaceSection,
+  onCreatePersona,
   onDelete,
   onPublishToggle,
   onViewLyrics,
@@ -91,7 +95,7 @@ export const TrackActionButtons: React.FC<TrackActionButtonsProps> = ({
   );
   
   const shouldShowMoreMenu = Boolean(onDelete || onViewLyrics || onEditMusicInfo || onDislikeToggle);
-  const shouldShowEditMenu = hasAudioUrl && (onVocalRemoval || onExtendMusic || onReplaceSection);
+  const shouldShowEditMenu = hasAudioUrl && (onVocalRemoval || onExtendMusic || onReplaceSection || onCreatePersona);
   const currentPublished = Boolean(isPublished ?? track.isPublished);
 
 
@@ -175,7 +179,7 @@ export const TrackActionButtons: React.FC<TrackActionButtonsProps> = ({
                   }}
                   className="flex items-center gap-2 cursor-pointer px-3 py-2 text-xs"
                 >
-                  <Maximize2 className="h-3.5 w-3.5" />
+                  <Expand className="h-3.5 w-3.5" />
                   <span>Extend Music</span>
                 </DropdownMenuItem>
               )}
@@ -194,6 +198,23 @@ export const TrackActionButtons: React.FC<TrackActionButtonsProps> = ({
                 >
                   <Scissors className="h-3.5 w-3.5" />
                   <span>Replace Section</span>
+                </DropdownMenuItem>
+              )}
+              {onCreatePersona && (
+                <DropdownMenuItem
+                  onClick={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    if (!canCreatePersona) {
+                      onPricingModalOpen?.();
+                      return;
+                    }
+                    onCreatePersona();
+                  }}
+                  className="flex items-center gap-2 cursor-pointer px-3 py-2 text-xs"
+                >
+                  <Users className="h-3.5 w-3.5" />
+                  <span>Persona</span>
                 </DropdownMenuItem>
               )}
             </DropdownMenuContent>
@@ -696,7 +717,7 @@ export const TrackActionButtons: React.FC<TrackActionButtonsProps> = ({
                 }}
                 className="flex items-center gap-1.5 cursor-pointer px-2.5 py-1.5 text-xs"
               >
-                <Maximize2 className="h-3.5 w-3.5" />
+                <Expand className="h-3.5 w-3.5" />
                 <span>Extend Music</span>
               </DropdownMenuItem>
             )}
@@ -715,6 +736,23 @@ export const TrackActionButtons: React.FC<TrackActionButtonsProps> = ({
               >
                 <Scissors className="h-3.5 w-3.5" />
                 <span>Replace Section</span>
+              </DropdownMenuItem>
+            )}
+            {onCreatePersona && (
+              <DropdownMenuItem
+                onClick={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  if (!canCreatePersona) {
+                    onPricingModalOpen?.();
+                    return;
+                  }
+                  onCreatePersona();
+                }}
+                className="flex items-center gap-1.5 cursor-pointer px-2.5 py-1.5 text-xs"
+              >
+                <Users className="h-3.5 w-3.5" />
+                <span>Persona</span>
               </DropdownMenuItem>
             )}
           </DropdownMenuContent>

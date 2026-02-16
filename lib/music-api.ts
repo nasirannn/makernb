@@ -14,6 +14,10 @@ export interface GenerateMusicRequest {
   styleText?: string; // 用户直接输入的style内容
   vocalGender?: string; // 人声性别偏好：'m' 或 'f'
   personaId?: string;
+  personaModel?: 'style_persona' | 'voice_persona';
+  styleWeight?: number;
+  weirdnessConstraint?: number;
+  audioWeight?: number;
   enhanceStyle?: boolean;
 }
 
@@ -305,7 +309,7 @@ class MusicApiService {
 
       // Simple Mode: 直接使用用户输入
       if (request.customPrompt && request.customPrompt.trim()) {
-        const base = request.customPrompt.trim().slice(0, 400);
+        const base = request.customPrompt.trim().slice(0, 500);
         apiParams.prompt = base;
       }
     } else {
@@ -340,11 +344,20 @@ class MusicApiService {
 
     if (request.personaId) {
       apiParams.persona_id = request.personaId;
+      apiParams.personaModel = request.personaModel || 'style_persona';
     }
-    // 权重参数 - 最大styleWeight来更强制地遵循R&B风格
-    apiParams.styleWeight = DEFAULT_STYLE_WEIGHT;
-    apiParams.weirdnessConstraint = DEFAULT_WEIRDNESS_CONSTRAINT;
-    apiParams.audioWeight = DEFAULT_AUDIO_WEIGHT;
+    const normalizeWeight = (value: unknown, fallback: number) => {
+      if (typeof value !== 'number' || !Number.isFinite(value)) {
+        return fallback;
+      }
+      const clamped = Math.max(0, Math.min(1, value));
+      return Math.round(clamped * 100) / 100;
+    };
+
+    // 权重参数：优先使用前端传入值，未传入时使用默认值
+    apiParams.styleWeight = normalizeWeight(request.styleWeight, DEFAULT_STYLE_WEIGHT);
+    apiParams.weirdnessConstraint = normalizeWeight(request.weirdnessConstraint, DEFAULT_WEIRDNESS_CONSTRAINT);
+    apiParams.audioWeight = normalizeWeight(request.audioWeight, DEFAULT_AUDIO_WEIGHT);
 
     // ⚠️ 生成任务创建接口不做自动重试，避免上游已创建成功但本地因5xx重试导致重复task
     const response = await this.fetchWithRetry(`${this.baseUrl}/api/v1/generate`, {

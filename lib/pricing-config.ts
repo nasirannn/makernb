@@ -58,8 +58,8 @@ const buildFeatureList = (tier: PricingTierCode, credits: number, billingPeriod:
   const periodLabel = billingPeriod === 'yearly' ? 'year' : 'month';
   const approxSongs = Math.max(1, Math.round(credits / 7));
   const creditsLine = `${credits.toLocaleString('en-US')} credits/${periodLabel} (approx. ${approxSongs.toLocaleString('en-US')} songs)`;
-  const lyricLine = `Create up to ${credits.toLocaleString('en-US')} lyrics with AI`;
   const downloadLine = tierMeta[tier].download;
+  const enhanceStyleLine = 'Enhance Style (V4.5 models)';
   const advancedEditingLine =
     tier === 'hobby'
       ? 'Vocal separation, Extend music, Replace section & Mashup'
@@ -71,11 +71,11 @@ const buildFeatureList = (tier: PricingTierCode, credits: number, billingPeriod:
     'AI Lyrics Generator',
     'AI Persona Generator',
     'AI Vocal Remover',
-    lyricLine,
     downloadLine,
     'Commercial License Included',
+    enhanceStyleLine,
     advancedEditingLine,
-    'Access to all models (V5, V4.5-all, V4.5+, V4.5, V4)',
+    'Access to all models (V5, V4.5+, V4.5, V4)',
     'Email customer support',
   ];
 };

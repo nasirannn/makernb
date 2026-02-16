@@ -3,6 +3,7 @@ import { flushSync } from "react-dom";
 import { supabase } from '@/lib/supabase';
 import { toast } from 'sonner';
 import { MusicModel } from '@/components/ui/model-selection-dialog';
+import { useFeaturePermissions } from '@/contexts/FeaturePermissionsContext';
 
 // ============================================================================
 // TYPES
@@ -24,6 +25,9 @@ const POLLING_CONFIG = {
 // ============================================================================
 
 export const useMusicGeneration = () => {
+  const { hasPermission } = useFeaturePermissions();
+  const canUseAdvancedOptions = hasPermission('boost_music_style');
+
   // ==================== 配置状态 ====================
   const [mode, setMode] = useState<"simple" | "custom">("simple");
   const [simplePrompt, setSimplePrompt] = useState("");
@@ -33,9 +37,9 @@ export const useMusicGeneration = () => {
   const [selectedGenre, setSelectedGenre] = useState("");
   const [selectedVibe, setSelectedVibe] = useState("");
   const [instrumentalMode, setInstrumentalMode] = useState(false);
-  const [isPublished] = useState(false);
+  const [isPublished, setIsPublished] = useState(true);
   const [selectedModel, setSelectedModel] = useState<MusicModel>('V4_5'); // Custom 默认使用 V4.5
-  const [enhanceStyle, setEnhanceStyle] = useState(true);
+  const [enhanceStyle, setEnhanceStyle] = useState(false);
 
   // 高级选项
   const [bpm, setBpm] = useState([60]);
@@ -44,9 +48,13 @@ export const useMusicGeneration = () => {
   const [drumKit, setDrumKit] = useState("");
   const [bassTone, setBassTone] = useState("");
   const [vocalStyle, setVocalStyle] = useState("");
-  const [vocalGender, setVocalGender] = useState("random");
+  const [vocalGender, setVocalGender] = useState("");
   const [harmonyPalette, setHarmonyPalette] = useState("");
   const [selectedPersonaId, setSelectedPersonaId] = useState("");
+  const [selectedPersonaModel, setSelectedPersonaModel] = useState<'style_persona' | 'voice_persona'>('style_persona');
+  const [styleWeight, setStyleWeight] = useState<number | undefined>(undefined);
+  const [weirdnessConstraint, setWeirdnessConstraint] = useState<number | undefined>(undefined);
+  const [audioWeight, setAudioWeight] = useState<number | undefined>(undefined);
 
   // ==================== 生成状态 ====================
   const [isGenerating, setIsGenerating] = useState(false);
@@ -112,7 +120,7 @@ export const useMusicGeneration = () => {
 
   const buildRequestData = () => {
     const prompt = mode === "simple" ? simplePrompt : customLyrics;
-    const requestModel: MusicModel = mode === 'simple' ? 'V4' : selectedModel;
+    const requestModel: MusicModel = selectedModel;
     const canEnhanceStyle = mode === 'custom' && ['V4_5', 'V4_5PLUS', 'V4_5ALL'].includes(requestModel as string);
     const data: Record<string, unknown> = {
       mode,
@@ -125,12 +133,25 @@ export const useMusicGeneration = () => {
       enhanceStyle: canEnhanceStyle ? enhanceStyle : false,
     };
 
-    if (vocalGender !== 'random') {
+    if (vocalGender) {
       data.vocalGender = vocalGender;
     }
 
     if (selectedPersonaId) {
       data.personaId = selectedPersonaId;
+      data.personaModel = selectedPersonaModel;
+    }
+
+    if (mode === "custom" && canUseAdvancedOptions) {
+      if (typeof styleWeight === 'number') {
+        data.styleWeight = styleWeight;
+      }
+      if (typeof weirdnessConstraint === 'number') {
+        data.weirdnessConstraint = weirdnessConstraint;
+      }
+      if (typeof audioWeight === 'number') {
+        data.audioWeight = audioWeight;
+      }
     }
 
     return data;
@@ -138,7 +159,7 @@ export const useMusicGeneration = () => {
 
 
   // 转换初始数据库tracks为前端Track格式
-  const convertInitialTracks = (initialTracks: any[]): MusicGenerationTrack[] => {
+  const convertInitialTracks = useCallback((initialTracks: any[]): MusicGenerationTrack[] => {
     return initialTracks.map((t: any) => ({
       id: t.id,
       generationId: t.generationId || '',
@@ -153,13 +174,14 @@ export const useMusicGeneration = () => {
       prompt: t.prompt || '',
       lyrics: t.lyrics || '',
       generationMode: t.generationMode || t.generation_mode,
+      musicType: t.musicType || 'generated',
       model: t.model || selectedModel,
       createdAt: t.createdAt || new Date().toISOString(),
       isGenerating: true, // 初始状态都在生成中
       isCompleted: false, // 初始状态都未完成
       isPlaceholder: false, // 使用真实ID，不是placeholder
     }));
-  };
+  }, [selectedModel]);
 
   const createPlaceholderTracks = (
     generationId: string,
@@ -184,6 +206,7 @@ export const useMusicGeneration = () => {
       prompt,
       lyrics: '',
       generationMode,
+      musicType: 'generated',
       model,
       createdAt: now,
       isGenerating: true,
@@ -218,6 +241,7 @@ export const useMusicGeneration = () => {
       prompt: t.prompt || '',
       lyrics: t.lyrics || '',
       generationMode: t.generationMode || t.generation_mode,
+      musicType: t.musicType,
         createdAt: t.createdAt || new Date().toISOString(),
         isGenerating: status === 'error' ? false : isGenerating,
         // 仅在 complete 阶段标记为已完成，避免 first 阶段提前进入 userTracks
@@ -270,7 +294,8 @@ export const useMusicGeneration = () => {
           result[matchedIndex] = {
             ...currentTrack,
             ...newTrack,
-            model: newTrack.model ?? currentTrack.model
+            model: newTrack.model ?? currentTrack.model,
+            musicType: newTrack.musicType ?? currentTrack.musicType,
           };
           hasChanges = true;
         }
@@ -476,7 +501,7 @@ export const useMusicGeneration = () => {
     const placeholderTags = mode === 'custom' ? trimmedStyle : trimmedPrompt;
     const placeholderPrompt = mode === 'custom' ? trimmedStyle : trimmedPrompt;
     const placeholderMode = mode;
-    const requestModel: MusicModel = mode === 'simple' ? 'V4' : selectedModel;
+    const requestModel: MusicModel = selectedModel;
 
     flushSync(() => {
       setGeneratedTracks(prevTracks => {
@@ -569,7 +594,7 @@ export const useMusicGeneration = () => {
     }
 
     startPolling(taskId);
-  }, [cleanup, startPolling]);
+  }, [cleanup, convertInitialTracks, startPolling]);
 
   return {
     // 配置
@@ -582,6 +607,7 @@ export const useMusicGeneration = () => {
     selectedVibe, setSelectedVibe,
     instrumentalMode, setInstrumentalMode,
     isPublished,
+    setIsPublished,
     bpm, setBpm,
     grooveType, setGrooveType,
     leadInstrument, setLeadInstrument,
@@ -591,6 +617,10 @@ export const useMusicGeneration = () => {
     vocalGender, setVocalGender,
     harmonyPalette, setHarmonyPalette,
     selectedPersonaId, setSelectedPersonaId,
+    selectedPersonaModel, setSelectedPersonaModel,
+    styleWeight, setStyleWeight,
+    weirdnessConstraint, setWeirdnessConstraint,
+    audioWeight, setAudioWeight,
     selectedModel, setSelectedModel, // 添加模型状态
     enhanceStyle, setEnhanceStyle,
 

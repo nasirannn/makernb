@@ -181,7 +181,7 @@ export const PricingPlans = ({ variant = "section", onNavigate, initialPlans }: 
               asChild
               className="mt-6 w-full rounded-full py-6 text-base font-semibold bg-foreground text-background hover:bg-foreground/90 dark:bg-white dark:text-black dark:hover:bg-white/90"
             >
-              <Link href="/studio" onClick={onNavigate}>
+              <Link href="/music-generator" onClick={onNavigate}>
                 {freeCtaLabel}
               </Link>
             </Button>

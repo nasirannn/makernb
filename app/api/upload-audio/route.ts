@@ -100,8 +100,8 @@ export async function POST(request: NextRequest) {
   const model = formData.get('model')?.toString() || 'V4';
   const instrumental = formData.get('instrumental') === 'true';
 
-  if (file.size > 40 * 1024 * 1024) {
-    return NextResponse.json({ error: 'File size must be under 40MB' }, { status: 400 });
+  if (file.size > 100 * 1024 * 1024) {
+    return NextResponse.json({ error: 'File size must be under 100MB' }, { status: 400 });
   }
 
   // 验证模型权限（V4 之外的所有模型都需要订阅）
@@ -249,6 +249,7 @@ export async function POST(request: NextRequest) {
       isCompleted: false,
       streamAudioUrl: '',
       createdAt: row.created_at || new Date().toISOString(),
+      musicType: MODE_CONFIG[mode].type,
     }));
 
     console.log(`[UPLOAD-AUDIO] ✅ Created ${initialTracks.length} placeholder tracks for taskId: ${taskId}`);

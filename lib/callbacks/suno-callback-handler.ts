@@ -148,6 +148,19 @@ const clampTitle = (value?: string | null, fallback = 'Untitled') => {
   return safe.length > 255 ? safe.slice(0, 255) : safe;
 };
 
+const UPLOAD_DERIVED_MUSIC_TYPES: MusicType[] = [
+  'upload_cover',
+  'upload_extend',
+  'upload_mashup',
+  'upload_vocal',
+  'upload_melody',
+];
+
+const isUploadDerivedMusicType = (musicType: MusicType | null | undefined) => {
+  if (!musicType) return false;
+  return UPLOAD_DERIVED_MUSIC_TYPES.includes(musicType);
+};
+
 const upsertLyrics = async (
   musicId: string,
   title: string,
@@ -311,7 +324,7 @@ async function processCallbackAsync(callback: NormalizedKieCallback, callbackId:
         };
 
         // 对于 upload 类型或用户自定义标题，保持原始标题；否则采用 text 回调标题
-        if (musicType === 'upload_cover' || musicType === 'upload_extend' || musicType === 'upload_mashup') {
+        if (isUploadDerivedMusicType(musicType)) {
           console.log(`[CALLBACK-${callbackId}] Upload type detected (${musicType}), preserving user title: ${existingTitle}`);
         } else if (!hasUserProvidedTitle) {
           updateData.title = extractedTitle;
@@ -329,11 +342,11 @@ async function processCallbackAsync(callback: NormalizedKieCallback, callbackId:
         }
 
         // 4.1.3 存储歌词到lyrics表
-        const shouldUsePromptFallback = !(musicType === 'upload_cover' || musicType === 'upload_extend' || musicType === 'upload_mashup');
+        const shouldUsePromptFallback = !(isUploadDerivedMusicType(musicType));
         const lyricsContent = primaryTrack.prompt || (shouldUsePromptFallback ? promptFallback : '') || '';
         // 对于upload类型，使用existingTitle；对于普通类型，使用extractedTitle
         const titleForLyrics = clampTitle(
-          (musicType === 'upload_cover' || musicType === 'upload_extend' || musicType === 'upload_mashup' || hasUserProvidedTitle)
+          (isUploadDerivedMusicType(musicType) || hasUserProvidedTitle)
             ? (trimmedExistingTitle || existingTitle)
             : extractedTitle
         );
@@ -360,7 +373,7 @@ async function processCallbackAsync(callback: NormalizedKieCallback, callbackId:
 
               // 决定是否更新track的title
               let trackTitle: string;
-              if (musicType === 'upload_cover' || musicType === 'upload_extend' || musicType === 'upload_mashup' || hasUserProvidedTitle) {
+              if (isUploadDerivedMusicType(musicType) || hasUserProvidedTitle) {
                 // 上传或用户自定义标题：保持原始值
                 trackTitle = existingTrack.title || trimmedExistingTitle || existingTitle || 'Untitled';
                 console.log(`[CALLBACK-${callbackId}] Preserving provided track title: ${trackTitle}`);
@@ -470,7 +483,7 @@ async function processCallbackAsync(callback: NormalizedKieCallback, callbackId:
             });
           }, 3, callbackId, 'update status to first');
 
-          if (!(musicType === 'upload_cover' || musicType === 'upload_extend' || musicType === 'upload_mashup')) {
+          if (!(isUploadDerivedMusicType(musicType))) {
             await upsertLyrics(
               musicGenerationId,
               clampTitle(finalTitle, 'Untitled'),
@@ -806,6 +819,10 @@ async function processCallbackAsync(callback: NormalizedKieCallback, callbackId:
                 creditCost = getFeatureCredits('upload_extend_music' as FeatureKey);
               } else if (musicType === 'upload_mashup') {
                 creditCost = getFeatureCredits('upload_mashup_music' as FeatureKey);
+              } else if (musicType === 'upload_vocal') {
+                creditCost = getFeatureCredits('add_vocals_music' as FeatureKey);
+              } else if (musicType === 'upload_melody') {
+                creditCost = getFeatureCredits('add_instrumental_music' as FeatureKey);
               } else if (musicType === 'extended') {
                 // 扩展音乐使用默认值，因为模型版本可能不同
                 creditCost = 12; // 默认扩展音乐积分

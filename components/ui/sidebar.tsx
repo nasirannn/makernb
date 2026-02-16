@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { SubscriptionBadge } from "@/components/ui/subscription-badge";
-import { Music, Library, Sparkles, Sun, LogOut, BookOpen, LogIn, Mic, FileText, Wand2, RefreshCw, ChevronLeft, ChevronRight, PencilLine } from "lucide-react";
+import { Music, Music2, Library, Sparkles, Sun, LogOut, BookOpen, LogIn, Split, FileText, Disc3, Wand2, RefreshCw, Expand, PanelLeftClose, PanelLeftOpen, PencilLine, Coins, Blend, AudioLines, Ellipsis } from "lucide-react";
 import { usePathname, useRouter } from "next/navigation";
 import Image from "next/image";
 import Link from "next/link";
@@ -21,6 +21,7 @@ import { Tooltip } from '@/components/ui/tooltip';
 import { ThemeModeToggle } from "@/components/ui/theme-mode-toggle";
 import { cn } from "@/lib/utils";
 import { getZIndexClass } from "@/lib/z-index";
+import { isStudioAreaPath } from "@/lib/studio-features";
 
 interface CommonSidebarProps {
   // 移除 isGenerating 参数，因为不再需要显示生成状态
@@ -72,11 +73,10 @@ export const CommonSidebar = ({
     if (!dateValue) return null;
     const parsed = new Date(dateValue);
     if (Number.isNaN(parsed.getTime())) return null;
-    return parsed.toLocaleDateString("en-CA", {
-      year: "numeric",
-      month: "2-digit",
-      day: "2-digit",
-    });
+    const year = parsed.getUTCFullYear();
+    const month = String(parsed.getUTCMonth() + 1).padStart(2, "0");
+    const day = String(parsed.getUTCDate()).padStart(2, "0");
+    return `${year}-${month}-${day}`;
   }, []);
   const billingNotice = React.useMemo(() => {
     if (!hasSubscription) return null;
@@ -108,7 +108,7 @@ const aiMusicToolsDropdown = [
     href: "/vocal-remover",
     label: "Vocal Remover",
     description: "Separate vocals from music",
-    icon: <Mic className="h-4 w-4" />
+    icon: <Split className="h-4 w-4" />
   },
   {
     href: "/lyrics-generator",
@@ -178,8 +178,12 @@ const aiMusicToolsDropdown = [
     };
   }, [dropdownTimeout]);
 
-  const workspaceNavItems: SidebarNavItem[] = React.useMemo(() => ([
-    { label: "Studio", href: "/studio", icon: Music },
+  const studioFeatureNavItems: SidebarNavItem[] = React.useMemo(() => ([
+    { label: "Music Generator", href: "/music-generator", icon: Music2 },
+    { label: "Music Extender", href: "/music-extender", icon: Expand },
+    { label: "Music Cover", href: "/music-cover", icon: Disc3 },
+    { label: "Mashup", href: "/mashup", icon: Blend },
+    { label: "Add Track", href: "/add-track", icon: AudioLines },
     { label: "Library", href: "/library", icon: Library }
   ]), []);
 
@@ -189,7 +193,7 @@ const aiMusicToolsDropdown = [
   ]), []);
 
   const aiToolNavItems: SidebarNavItem[] = React.useMemo(() => ([
-    { label: "Vocal Remover", href: "/vocal-remover", icon: Mic },
+    { label: "Vocal Remover", href: "/vocal-remover", icon: Split },
     { label: "Lyrics Generator", href: "/lyrics-generator", icon: FileText }
   ]), []);
 
@@ -290,7 +294,7 @@ const aiMusicToolsDropdown = [
   return (
     <>
       <div
-        className={`hidden md:flex fixed left-0 top-0 bottom-0 ${getZIndexClass('SIDEBAR')} h-screen flex-col transition-[width] duration-500 ${
+        className={`hidden md:flex fixed left-0 top-0 bottom-0 ${getZIndexClass('SIDEBAR')} h-screen flex-col ${
           isExpanded ? 'w-56' : 'w-[72px]'
         }`}
       >
@@ -316,7 +320,7 @@ const aiMusicToolsDropdown = [
                     size="sm"
                     className="w-8 h-8 p-0 flex items-center justify-center rounded-xl text-foreground/60 hover:bg-black/5 hover:text-foreground"
                   >
-                    <ChevronLeft className="h-4 w-4" />
+                    <PanelLeftClose className="h-4 w-4" />
                   </Button>
                 </>
               ) : (
@@ -337,7 +341,7 @@ const aiMusicToolsDropdown = [
                       />
                     </span>
                     <span className="absolute inset-0 flex items-center justify-center opacity-0 transition-opacity duration-150 group-hover:opacity-100 group-focus:opacity-100">
-                      <ChevronRight className="h-5 w-5" />
+                      <PanelLeftOpen className="h-5 w-5" />
                     </span>
                     <span className="sr-only">Expand sidebar</span>
                   </Button>
@@ -345,7 +349,7 @@ const aiMusicToolsDropdown = [
               )}
             </div>
 
-            <div className={`${isExpanded ? 'px-4 pt-2 pb-2' : 'px-2 pt-2 pb-2'} flex flex-col gap-3`}>
+            <div className={`${isExpanded ? 'px-4 pt-1 pb-1' : 'px-2 pt-1 pb-1'} flex flex-col gap-2`}>
               {user ? (
                 <>
                   {isExpanded ? (
@@ -354,9 +358,9 @@ const aiMusicToolsDropdown = [
                         onClick={() => setUserMenuOpen(!userMenuOpen)}
                         variant="ghost"
                         size="sm"
-                        className="w-full h-16 rounded-2xl bg-transparent hover:bg-muted/60 flex items-center gap-3 px-4"
+                        className="w-full h-14 rounded-2xl bg-transparent hover:bg-muted/60 flex items-center gap-3 px-4"
                       >
-                        <Avatar className="w-8 h-8 flex-shrink-0">
+                        <Avatar className="w-9 h-9 flex-shrink-0">
                           <AvatarImage
                             src={user.user_metadata?.avatar_url || user.user_metadata?.picture}
                             alt="User Avatar"
@@ -366,22 +370,17 @@ const aiMusicToolsDropdown = [
                              user.email?.charAt(0).toUpperCase()}
                           </AvatarFallback>
                         </Avatar>
-                        <div className="flex-1 text-left min-w-0">
-                          <div className="flex items-center justify-between gap-2 mb-1">
-                            <div className="text-sm font-semibold text-foreground truncate flex-1">
+                        <div className="flex-1 min-w-0 text-left flex items-center justify-between gap-2">
+                          <div className="min-w-0">
+                            <div className="text-sm font-semibold text-foreground truncate">
                               {displayName || user.email}
                             </div>
+                            <div className="mt-0.5 text-[10px] font-semibold tracking-normal text-muted-foreground truncate">
+                              {tierName}
+                            </div>
                           </div>
-                          <div className="text-xs text-muted-foreground truncate">
-                            {tierName}
-                          </div>
+                          <Ellipsis className="h-4 w-4 flex-shrink-0 text-foreground/45" aria-hidden="true" />
                         </div>
-                        <ChevronRight
-                          className={cn(
-                            "h-4 w-4 text-foreground/40 flex-shrink-0 transition-transform duration-200",
-                            userMenuOpen ? "rotate-90" : ""
-                          )}
-                        />
                       </Button>
 
                       {userMenuOpen && (
@@ -414,7 +413,7 @@ const aiMusicToolsDropdown = [
                           <div className="w-full flex items-center justify-between gap-3 rounded-xl px-3 py-2">
                             <div className="flex items-center gap-3">
                               <div className="flex-shrink-0 h-8 w-8 rounded-lg flex items-center justify-center text-primary">
-                                <Sparkles className="h-3.5 w-3.5" />
+                                <Coins className="h-3.5 w-3.5" />
                               </div>
                               <span className="text-sm font-medium text-foreground">Credits</span>
                             </div>
@@ -451,10 +450,10 @@ const aiMusicToolsDropdown = [
                       )}
                     </div>
                   ) : (
-                    <div className="relative user-menu-container z-[40] flex h-16 items-center justify-center">
+                    <div className="relative user-menu-container z-[40] flex h-14 items-center justify-center">
                       <Avatar
                         onClick={() => setUserMenuOpen(!userMenuOpen)}
-                        className="w-8 h-8 cursor-pointer"
+                        className="w-9 h-9 cursor-pointer"
                       >
                         <AvatarImage
                           src={user.user_metadata?.avatar_url || user.user_metadata?.picture}
@@ -494,7 +493,7 @@ const aiMusicToolsDropdown = [
                           <div className="w-full flex items-center justify-between gap-3 rounded-xl px-3 py-2">
                             <div className="flex items-center gap-3">
                               <div className="flex-shrink-0 h-8 w-8 rounded-lg flex items-center justify-center text-primary">
-                                <Sparkles className="h-3.5 w-3.5" />
+                                <Coins className="h-3.5 w-3.5" />
                               </div>
                               <span className="text-sm font-medium text-foreground">Credits</span>
                             </div>
@@ -565,7 +564,7 @@ const aiMusicToolsDropdown = [
             <div className={`flex-1 overflow-y-auto overflow-x-visible ${isExpanded ? 'px-4 pt-0' : 'px-2 pt-0'} pb-6`}>
               <div className={`rounded-[28px] ${isExpanded ? 'p-3' : 'p-2'} ${isExpanded ? '' : 'flex flex-col items-center'}`}>
                 <div className={`flex flex-col ${isExpanded ? 'gap-2' : 'gap-3 items-center'}`}>
-                  {workspaceNavItems.map(renderNavButton)}
+                  {studioFeatureNavItems.map(renderNavButton)}
                   {aiToolNavItems.map(renderNavButton)}
                   {exploreNavItems.map(renderNavButton)}
                 </div>
@@ -600,7 +599,7 @@ const aiMusicToolsDropdown = [
                       <div className="flex min-h-8 items-center text-foreground">
                         <div className="flex items-center gap-2.5">
                           <span className="inline-flex h-8 w-8 items-center justify-center rounded-lg text-foreground/60">
-                            <Sparkles className="h-4 w-4" />
+                            <Coins className="h-4 w-4" />
                           </span>
                           <span className="text-sm font-medium leading-none text-foreground/65">
                             Credits
@@ -747,10 +746,10 @@ const aiMusicToolsDropdown = [
         <div className="flex items-center justify-around py-2">
           {/* Studio Button */}
           <Button
-            onClick={() => router.push('/studio')}
+            onClick={() => router.push('/music-generator')}
             variant="ghost"
             size="sm"
-            className={`h-12 w-12 flex items-center justify-center hover:bg-muted/50 transition-all duration-300 rounded-lg ${isActive('/studio') ? 'bg-primary/20 text-primary shadow-sm' : 'text-muted-foreground'}`}
+            className={`h-12 w-12 flex items-center justify-center hover:bg-muted/50 transition-all duration-300 rounded-lg ${isStudioAreaPath(pathname) ? 'bg-primary/20 text-primary shadow-sm' : 'text-muted-foreground'}`}
             id="mobile-studio-nav"
           >
             <Music className="h-7 w-7" />

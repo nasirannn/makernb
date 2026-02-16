@@ -268,6 +268,41 @@ export const useStudioPersonaManager = ({
     setIsCreatePersonaDialogOpen(true);
   }, [selectMusicOptions, getPersonaTrackUnavailableReason]);
 
+  const openCreatePersonaDialogWithFallback = React.useCallback((
+    trackId: string,
+    fallbackTrack?: Partial<PersonaTrackOption>
+  ) => {
+    const existingTrack = selectMusicOptions.find((item) => item.id === trackId);
+    const normalizedFallbackTrack: PersonaTrackOption | null = fallbackTrack
+      ? {
+          id: trackId,
+          title: fallbackTrack.title ?? 'Untitled Track',
+          duration: typeof fallbackTrack.duration === 'number' ? fallbackTrack.duration : Number(fallbackTrack.duration || 0),
+          createdAt: fallbackTrack.createdAt || '',
+          audioId: fallbackTrack.audioId ?? null,
+          coverR2Url: fallbackTrack.coverR2Url ?? null,
+          hasPersona: Boolean(fallbackTrack.hasPersona),
+          personaId: fallbackTrack.personaId ?? null,
+        }
+      : null;
+
+    const resolvedTrack = existingTrack || normalizedFallbackTrack;
+    const unavailableReason = getPersonaTrackUnavailableReason(resolvedTrack);
+    if (unavailableReason) {
+      toast.error(unavailableReason);
+      return;
+    }
+
+    if (!existingTrack && normalizedFallbackTrack) {
+      setSelectMusicOptions((prev) => [normalizedFallbackTrack, ...prev]);
+    }
+
+    setSelectedMusicTrackId(trackId);
+    setCreatePersonaName(resolvedTrack?.title?.trim() || '');
+    setCreatePersonaDescription('');
+    setIsCreatePersonaDialogOpen(true);
+  }, [selectMusicOptions, getPersonaTrackUnavailableReason]);
+
   const closeCreatePersonaDialog = React.useCallback(() => {
     if (isCreatingPersona) {
       return;
@@ -417,6 +452,7 @@ export const useStudioPersonaManager = ({
     closeCreatePersonaDialog,
     handleCreatePersona,
     isCreatingPersona,
+    openCreatePersonaDialog: openCreatePersonaDialogWithFallback,
 
     getPersonaTrackUnavailableReason,
     formatTrackCreatedAt,
@@ -424,4 +460,3 @@ export const useStudioPersonaManager = ({
     handleDeletePersona,
   };
 };
-

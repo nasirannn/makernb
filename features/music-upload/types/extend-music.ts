@@ -54,6 +54,7 @@ export interface ExtendMusicTask {
 // 扩展音乐 API 请求体
 export interface ExtendMusicAPIRequest {
   trackId: string; // 要扩展的曲目 ID
+  audioId?: string; // 可选：前端显式传入的音频ID（suno_track_id）
   model: ExtendMusicModel;
   defaultParamFlag: boolean;
 

@@ -177,13 +177,13 @@ export const ExtendMusicDialog: React.FC<ExtendMusicDialogProps> = ({
     }
   };
 
-  const handleSeek = (time: number) => {
+  const handleSeek = useCallback((time: number) => {
     if (!audioRef.current) return;
     const clamped = clampContinueAt(time);
     audioRef.current.currentTime = clamped;
     setCurrentTime(clamped);
     setContinueAt(clamped);
-  };
+  }, [clampContinueAt]);
 
   const commitContinueAtInput = useCallback(() => {
     const raw = continueAtInput.trim();
@@ -351,9 +351,8 @@ export const ExtendMusicDialog: React.FC<ExtendMusicDialogProps> = ({
               <div className="space-y-3">
                 {audioUrl ? (
                   <div className="space-y-3">
-                    <div className="relative overflow-hidden rounded-2xl bg-background p-3 shadow-sm">
-                      <div className="pointer-events-none absolute inset-0 bg-gradient-to-br from-primary/10 via-transparent to-primary/5" />
-                      <div className="relative flex flex-col gap-3">
+                    <div className="overflow-hidden rounded-2xl bg-background p-3 shadow-sm">
+                      <div className="flex flex-col gap-3">
                         <div className="flex items-center gap-3">
                           <button
                             type="button"
@@ -385,7 +384,7 @@ export const ExtendMusicDialog: React.FC<ExtendMusicDialogProps> = ({
                             backend="MediaElement"
                             waveHeight={54}
                             cursorWidth={2}
-                            className="rounded-lg bg-gradient-to-br from-primary/10 via-white/5 to-transparent"
+                            className="rounded-lg bg-background"
                             showSelector
                             selectorOverlay
                             showSelectorEndHandle={false}
@@ -669,7 +668,7 @@ export const ExtendMusicDialog: React.FC<ExtendMusicDialogProps> = ({
                 </div>
               </div>
             ) : (
-              `Extend (-${requiredCredits} credits)`
+              `Extend • cost ${requiredCredits} credits`
             )}
           </Button>
         </DialogFooter>

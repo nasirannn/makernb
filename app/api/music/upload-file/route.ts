@@ -21,8 +21,8 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'Unsupported file type' }, { status: 400 });
   }
 
-  if (file.size > 40 * 1024 * 1024) {
-    return NextResponse.json({ error: 'File size must be under 40MB' }, { status: 400 });
+  if (file.size > 100 * 1024 * 1024) {
+    return NextResponse.json({ error: 'File size must be under 100MB' }, { status: 400 });
   }
 
   try {

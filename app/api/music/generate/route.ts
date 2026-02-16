@@ -5,6 +5,7 @@ import { createGenerationError } from '@/lib/generation-errors-db';
 import { consumeUserCredit } from '@/lib/user-db';
 import { getUserInfoFromRequest } from '@/lib/auth';
 import { getFeatureCredits, getMusicCredits } from '@/lib/credits-config';
+import { hasFeaturePermission } from '@/lib/feature-permissions';
 
 export const dynamic = 'force-dynamic';
 
@@ -18,6 +19,31 @@ function normalizeModelName(model: string): string {
 
 function canUseStyleBoost(model: string): boolean {
   return STYLE_BOOST_SUPPORTED_MODELS.has(normalizeModelName(model));
+}
+
+function parseBoundedWeight(
+  rawValue: unknown,
+  fieldName: string
+): { value: number | undefined; error: string | null } {
+  if (rawValue === undefined || rawValue === null || rawValue === '') {
+    return { value: undefined, error: null };
+  }
+
+  const parsed = typeof rawValue === 'number' ? rawValue : Number(rawValue);
+  if (!Number.isFinite(parsed)) {
+    return { value: undefined, error: `${fieldName} must be a number.` };
+  }
+
+  if (parsed < 0 || parsed > 1) {
+    return { value: undefined, error: `${fieldName} must be between 0 and 1.` };
+  }
+
+  const scaled = parsed * 100;
+  if (Math.abs(Math.round(scaled) - scaled) > 1e-8) {
+    return { value: undefined, error: `${fieldName} must be a multiple of 0.01.` };
+  }
+
+  return { value: Math.round(scaled) / 100, error: null };
 }
 
 function cleanupGenerateIdempotencyCache() {
@@ -70,9 +96,14 @@ export async function POST(request: NextRequest) {
       instrumentalMode,
       songTitle,
       styleText,
+      isPublished: rawIsPublished = true,
       vocalGender,
       genre,
       personaId,
+      personaModel: rawPersonaModel,
+      styleWeight: rawStyleWeight,
+      weirdnessConstraint: rawWeirdnessConstraint,
+      audioWeight: rawAudioWeight,
       model: requestedModel = 'V4', // 默认使用 V4
       enhanceStyle: requestedEnhanceStyle = false,
     } = requestData;
@@ -103,13 +134,85 @@ export async function POST(request: NextRequest) {
       }
     };
 
-    const modelVersion = mode === 'simple' ? 'V4' : requestedModel;
+    const modelVersion = requestedModel;
+    const normalizedModelVersion = normalizeModelName(modelVersion);
+    const personaModel: 'style_persona' | 'voice_persona' =
+      rawPersonaModel === 'voice_persona' && normalizedModelVersion === 'V5'
+      ? 'voice_persona'
+      : 'style_persona';
     const limits = getModelLimits(modelVersion);
     const trimmedPrompt = customPrompt?.trim() || '';
     const trimmedStyle = styleText?.trim() || '';
     const trimmedTitle = songTitle?.trim() || '';
-    const shouldAttemptStyleBoost = mode === 'custom' && requestedEnhanceStyle === true && canUseStyleBoost(modelVersion);
-    const promptLimit = mode === 'simple' ? 400 : limits.prompt;
+    const parsedStyleWeight = parseBoundedWeight(rawStyleWeight, 'styleWeight');
+    const parsedWeirdnessConstraint = parseBoundedWeight(rawWeirdnessConstraint, 'weirdnessConstraint');
+    const parsedAudioWeight = parseBoundedWeight(rawAudioWeight, 'audioWeight');
+
+    const weightValidationError =
+      parsedStyleWeight.error ||
+      parsedWeirdnessConstraint.error ||
+      parsedAudioWeight.error;
+
+    if (weightValidationError) {
+      return NextResponse.json(
+        {
+          error: 'Invalid advanced option',
+          message: weightValidationError,
+          success: false,
+        },
+        { status: 400 }
+      );
+    }
+
+    const styleWeight = parsedStyleWeight.value;
+    const weirdnessConstraint = parsedWeirdnessConstraint.value;
+    const audioWeight = parsedAudioWeight.value;
+    const hasAdvancedWeightsRequested = [rawStyleWeight, rawWeirdnessConstraint, rawAudioWeight]
+      .some((value) => value !== undefined && value !== null && value !== '');
+
+    if (hasAdvancedWeightsRequested) {
+      const canUseAdvancedOptions = await hasFeaturePermission(userId, 'boost_music_style');
+      if (!canUseAdvancedOptions) {
+        return NextResponse.json(
+          {
+            error: 'Advanced options require an active subscription (Starter or Hobby).',
+            success: false,
+          },
+          { status: 403 }
+        );
+      }
+    }
+
+    const requestedStyleBoost = mode === 'custom' && requestedEnhanceStyle === true && canUseStyleBoost(modelVersion);
+    const canUseStyleBoostFeature = requestedStyleBoost
+      ? await hasFeaturePermission(userId, 'boost_music_style')
+      : false;
+    const shouldAttemptStyleBoost = requestedStyleBoost && canUseStyleBoostFeature;
+    const requestedIsPublished = typeof rawIsPublished === 'boolean'
+      ? rawIsPublished
+      : rawIsPublished === 'false'
+        ? false
+        : true;
+
+    if (requestedStyleBoost && !canUseStyleBoostFeature) {
+      console.log(`[MUSIC-GEN-${requestId}] Style boost requested but permission denied for user ${userId}`);
+    }
+
+    if (!requestedIsPublished) {
+      const canControlPublicVisibility = await hasFeaturePermission(userId, 'control_public_visibility');
+      if (!canControlPublicVisibility) {
+        return NextResponse.json(
+          {
+            error: 'Public visibility control requires an active subscription (Starter or Hobby).',
+            success: false,
+          },
+          { status: 403 }
+        );
+      }
+    }
+
+    const isPublished = requestedIsPublished;
+    const promptLimit = mode === 'simple' ? 500 : limits.prompt;
 
     if (mode === 'simple' && !trimmedPrompt) {
       return NextResponse.json(
@@ -295,6 +398,10 @@ export async function POST(request: NextRequest) {
       styleText: effectiveStyleText,
       vocalGender,
       personaId,
+      personaModel,
+      styleWeight,
+      weirdnessConstraint,
+      audioWeight,
       enhanceStyle: shouldAttemptStyleBoost,
       model: modelVersion // 添加模型参数
     };
@@ -356,8 +463,6 @@ export async function POST(request: NextRequest) {
         }
 
         // 步骤3: 创建空的tracks记录并返回初始数据
-        const isPublished = false; // 默认设置为私有状态
-
         // 创建两个空的track记录
         const tracksResult = await query(
           `INSERT INTO tracks (music_id, is_published, cover_image_url, suno_track_id)
@@ -367,7 +472,7 @@ export async function POST(request: NextRequest) {
         );
 
         // 构建初始 tracks 数据返回给前端
-        const initialTracks = tracksResult.rows.map((row: any, index: number) => ({
+        const initialTracks = tracksResult.rows.map((row: any) => ({
           id: row.id,
           generationId: pendingGeneration.id,
           suno_track_id: row.suno_track_id || null, // 包含suno_track_id用于匹配
@@ -384,7 +489,8 @@ export async function POST(request: NextRequest) {
           isCompleted: false,
           streamAudioUrl: '',
           createdAt: row.created_at || new Date().toISOString(), // 使用数据库的创建时间
-          model: modelVersion
+          model: modelVersion,
+          musicType: 'generated',
         }));
 
         // 将初始 tracks 添加到响应中

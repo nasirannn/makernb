@@ -13,6 +13,7 @@ import { Button } from "@/components/ui/button";
 import { AudioLines, Loader2, Mic, Music, Download, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { WaveformPlayer } from "@/components/ui/waveform-player";
+import { CLIENT_VOCAL_SEPARATION_CREDITS } from "@/lib/credits-config";
 
 export interface VocalRemovalProgressDialogProps {
   isOpen: boolean;
@@ -56,6 +57,7 @@ export const VocalRemovalProgressDialog: React.FC<VocalRemovalProgressDialogProp
   const canTriggerAction = status !== 'checking' && status !== 'processing';
   const hasActionHandler = status === 'completed' ? !!onReSeparate : !!onStartSeparation;
   const actionDisabled = !canTriggerAction || !hasActionHandler;
+  const creditCost = CLIENT_VOCAL_SEPARATION_CREDITS.studio;
   const handleAction = () => {
     if (status === 'completed') {
       onReSeparate?.();
@@ -130,57 +132,54 @@ export const VocalRemovalProgressDialog: React.FC<VocalRemovalProgressDialogProp
       }
     }}>
       <DialogContent className={cn(
-        "max-w-[calc(100vw-2rem)] sm:max-w-[760px] max-h-[84vh] flex flex-col p-0 bg-background shadow-xl"
+        "studio-panel-card max-w-[calc(100vw-2rem)] sm:max-w-[760px] max-h-[84vh] flex flex-col overflow-hidden p-0 border-0 shadow-xl"
       )} onInteractOutside={(e) => {
         if (!canClose) {
           e.preventDefault();
         }
       }}>
-        <DialogHeader className="flex-shrink-0 px-6 pt-5 pb-3 text-left relative overflow-hidden">
-          <div className="pointer-events-none absolute inset-0 bg-gradient-to-r from-primary/10 via-transparent to-primary/10" />
-          <div className="flex items-center justify-between relative z-[1]">
-            <div>
-              <div className="text-[10px] uppercase tracking-[0.28em] text-muted-foreground">
-                Vocal Separation
-              </div>
-              <DialogTitle className="mt-1 flex items-center gap-2 text-xl font-semibold tracking-tight">
-                <span>Vocal Separation</span>
-              </DialogTitle>
-              <DialogDescription className="mt-1">
-                Saparate track into vocal and instrumental.
-              </DialogDescription>
+        <DialogHeader className="flex-shrink-0 px-5 pt-4 pb-2 text-left">
+          <div className="space-y-1 pr-8">
+            <div className="text-[10px] uppercase tracking-[0.24em] text-muted-foreground">
+              Vocal Separation
             </div>
+            <DialogTitle className="text-xl font-semibold tracking-tight">
+              Vocal Separation
+            </DialogTitle>
           </div>
+          <DialogDescription className="text-sm text-muted-foreground">
+            Separate track into vocal and instrumental.
+          </DialogDescription>
         </DialogHeader>
 
-        <div className="flex-1 px-5 py-3 space-y-3 overflow-y-auto">
+        <div className="flex-1 overflow-y-auto space-y-3 px-5 py-3">
           {/* No existing result placeholder */}
           {status === 'ready' && (
-            <div className="flex flex-col items-center justify-center py-8 text-center">
-              <div className="mb-4">
+            <section className="studio-panel-card rounded-2xl p-6 text-center">
+              <div className="mb-4 flex justify-center">
                 <AudioLines className="h-12 w-12 text-muted-foreground" />
               </div>
               <p className="text-base font-medium text-foreground">No separation results yet</p>
               <p className="mt-1 text-sm text-muted-foreground">
                 Start vocal separation to generate vocal and instrumental tracks.
               </p>
-            </div>
+            </section>
           )}
 
           {/* Checking placeholder (no progress bar) */}
           {status === 'checking' && (
-            <div className="flex flex-col items-center justify-center py-8 text-center">
-              <div className="mb-4">
+            <section className="studio-panel-card rounded-2xl p-6 text-center">
+              <div className="mb-4 flex justify-center">
                 <Loader2 className="h-12 w-12 text-primary animate-spin" />
               </div>
               <p className="text-base font-medium text-foreground">Vocal Separation</p>
               <p className="mt-1 text-sm text-muted-foreground">Checking existing results...</p>
-            </div>
+            </section>
           )}
 
           {/* processing/error 时显示进度条 */}
           {status !== 'completed' && status !== 'ready' && status !== 'checking' && (
-            <>
+            <section className="studio-panel-card rounded-2xl p-3 space-y-3">
               {/* 进度条 */}
               <div className="space-y-2">
                 <div className="flex items-center justify-between text-sm">
@@ -198,11 +197,11 @@ export const VocalRemovalProgressDialog: React.FC<VocalRemovalProgressDialogProp
 
               {/* 错误信息 */}
               {status === 'error' && errorMessage && (
-                <div className="rounded-lg bg-red-50 dark:bg-red-950/20 p-3 text-sm text-red-600 dark:text-red-400">
+                <div className="rounded-xl bg-destructive/10 p-3 text-sm text-destructive">
                   {errorMessage}
                 </div>
               )}
-            </>
+            </section>
           )}
 
           {/* 成功时显示音频 */}
@@ -210,10 +209,10 @@ export const VocalRemovalProgressDialog: React.FC<VocalRemovalProgressDialogProp
             <div className="space-y-3">
               {/* Vocal Track */}
               {vocalUrl && (
-                <div className="space-y-2.5 rounded-xl p-3">
+                <section className="studio-panel-card space-y-2.5 rounded-2xl p-3">
                   <div className="flex items-center justify-between gap-3">
                     <div className="flex items-center gap-2">
-                      <span className="inline-flex h-9 w-9 items-center justify-center rounded-lg text-primary">
+                      <span className="inline-flex h-9 w-9 items-center justify-center rounded-lg bg-primary/10 text-primary">
                         <Mic className="h-4 w-4" />
                       </span>
                       <div className="min-w-0">
@@ -224,7 +223,7 @@ export const VocalRemovalProgressDialog: React.FC<VocalRemovalProgressDialogProp
                       variant="ghost"
                       size="sm"
                       disabled={hasVocalsError}
-                      className="h-8 gap-1"
+                      className="studio-panel-card h-8 gap-1 rounded-full px-3 text-foreground/70 transition-colors hover:bg-foreground/10 hover:text-foreground"
                       onClick={() => !hasVocalsError && window.open(vocalUrl, '_blank')}
                     >
                       <Download className="h-4 w-4" />
@@ -247,15 +246,15 @@ export const VocalRemovalProgressDialog: React.FC<VocalRemovalProgressDialogProp
                   {hasVocalsError && (
                     <p className="text-xs text-red-500">Failed to load vocal track.</p>
                   )}
-                </div>
+                </section>
               )}
 
               {/* Instrumental Track */}
               {instrumentalUrl && (
-                <div className="space-y-2.5 rounded-xl p-3">
+                <section className="studio-panel-card space-y-2.5 rounded-2xl p-3">
                   <div className="flex items-center justify-between gap-3">
                     <div className="flex items-center gap-2">
-                      <span className="inline-flex h-9 w-9 items-center justify-center rounded-lg text-primary">
+                      <span className="inline-flex h-9 w-9 items-center justify-center rounded-lg bg-primary/10 text-primary">
                         <Music className="h-4 w-4" />
                       </span>
                       <div className="min-w-0">
@@ -266,7 +265,7 @@ export const VocalRemovalProgressDialog: React.FC<VocalRemovalProgressDialogProp
                       variant="ghost"
                       size="sm"
                       disabled={hasInstrumentalError}
-                      className="h-8 gap-1"
+                      className="studio-panel-card h-8 gap-1 rounded-full px-3 text-foreground/70 transition-colors hover:bg-foreground/10 hover:text-foreground"
                       onClick={() => !hasInstrumentalError && window.open(instrumentalUrl, '_blank')}
                     >
                       <Download className="h-4 w-4" />
@@ -289,23 +288,27 @@ export const VocalRemovalProgressDialog: React.FC<VocalRemovalProgressDialogProp
                   {hasInstrumentalError && (
                     <p className="text-xs text-red-500">Failed to load instrumental track.</p>
                   )}
-                </div>
+                </section>
               )}
             </div>
           )}
 
           {/* 成功但没有音频 URL 时显示成功信息 */}
           {status === 'completed' && !vocalUrl && !instrumentalUrl && (
-            <div className="rounded-lg bg-green-50 dark:bg-green-950/20 p-3 text-sm text-green-600 dark:text-green-400">
+            <div className="rounded-xl bg-emerald-500/10 p-3 text-sm text-emerald-700 dark:text-emerald-300">
               Your track has been successfully processed.
             </div>
           )}
         </div>
 
         {/* 底部操作区 */}
-        <div className="flex-shrink-0 px-6 pb-4 pt-2">
-          <Button onClick={handleAction} className="w-full" disabled={actionDisabled || !canClose}>
-            Saparate
+        <div className="flex-shrink-0 px-5 pt-1 pb-4">
+          <Button
+            onClick={handleAction}
+            className="h-11 w-full rounded-2xl text-sm font-semibold"
+            disabled={actionDisabled || !canClose}
+          >
+            Start Separate • cost {creditCost} credits
           </Button>
         </div>
       </DialogContent>

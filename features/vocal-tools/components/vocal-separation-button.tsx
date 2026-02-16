@@ -2,7 +2,7 @@
 
 import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogTrigger } from '@/components/ui/dialog';
 import { VocalSeparationPanel } from '@/features/vocal-tools/components/vocal-separation-panel';
 import { Mic, Loader2 } from 'lucide-react';
 
@@ -44,13 +44,7 @@ export const VocalSeparationButton: React.FC<VocalSeparationButtonProps> = ({
           Vocal Separation
         </Button>
       </DialogTrigger>
-      <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
-        <DialogHeader>
-          <DialogTitle>AI Vocal Separation</DialogTitle>
-          <DialogDescription>
-            Use advanced AI to split vocals and instrumental tracks.
-          </DialogDescription>
-        </DialogHeader>
+      <DialogContent className="studio-panel-card max-w-4xl max-h-[90vh] overflow-y-auto border-0 p-5 shadow-xl">
         <VocalSeparationPanel
           trackId={trackId}
           audioId={audioId}

@@ -113,6 +113,7 @@ export const useExtendMusic = (
         genre: t.genre,
         prompt: t.prompt || '',
         lyrics: t.lyrics || '',
+        musicType: t.musicType || 'extended',
         createdAt: t.createdAt || new Date().toISOString(),
         isGenerating,
         isCompleted: status === 'complete',
@@ -409,6 +410,7 @@ export const useExtendMusic = (
       tags: t.tags || '',
       genre: t.genre || '',
       lyrics: t.lyrics || '',
+      musicType: t.musicType || 'extended',
       createdAt: t.createdAt || new Date().toISOString(),
       isGenerating: true, // 初始状态都在生成中
       isCompleted: false, // 初始状态都未完成

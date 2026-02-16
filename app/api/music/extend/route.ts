@@ -84,6 +84,7 @@ export async function POST(request: NextRequest) {
     const body: ExtendMusicAPIRequest = await request.json();
     const {
       trackId,
+      audioId,
       model,
       defaultParamFlag,
       prompt,
@@ -99,6 +100,7 @@ export async function POST(request: NextRequest) {
 
     console.log(`[EXTEND-MUSIC-${requestId}] Request params:`, {
       trackId,
+      hasAudioId: !!audioId,
       model,
       defaultParamFlag,
       hasPrompt: !!prompt,
@@ -169,10 +171,10 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    if (!originalTrack.sunoTrackId) {
-      console.error(`[EXTEND-MUSIC-${requestId}] Track does not have suno_track_id: ${trackId}`);
+    if (!originalTrack.sunoTrackId && !audioId) {
+      console.error(`[EXTEND-MUSIC-${requestId}] Track does not have suno_track_id and request has no audioId: ${trackId}`);
       return NextResponse.json(
-        { success: false, error: 'Track does not have suno_track_id, cannot extend' },
+        { success: false, error: 'Track does not have suno_track_id, and audioId is missing' },
         { status: 400 }
       );
     }
@@ -183,6 +185,15 @@ export async function POST(request: NextRequest) {
       sunoTrackId: originalTrack.sunoTrackId,
       title: originalTrack.title,
     });
+
+    const resolvedAudioId = (audioId || originalTrack.sunoTrackId || '').trim();
+    if (!resolvedAudioId) {
+      console.error(`[EXTEND-MUSIC-${requestId}] Missing audio_id: neither request audioId nor track suno_track_id is available`);
+      return NextResponse.json(
+        { success: false, error: 'audioId is required for extend generation' },
+        { status: 400 }
+      );
+    }
 
     // 4.5. 检查权限
     const hasPermission = await hasFeaturePermission(userId, 'extend_music');
@@ -245,7 +256,7 @@ export async function POST(request: NextRequest) {
 
     // 8. 构建 KIE API 请求参数
     const kieParams: KIEExtendMusicRequest = {
-      audio_id: originalTrack.sunoTrackId,
+      audio_id: resolvedAudioId,
       model,
       default_param_flag: defaultParamFlag,
       callBackUrl: `${process.env.CallBackURL}/api/callbacks/extend-music`,
@@ -268,6 +279,7 @@ export async function POST(request: NextRequest) {
     // 9. 调用 KIE API
     console.log(`[EXTEND-MUSIC-${requestId}] Calling KIE API with params:`, {
       audio_id: kieParams.audio_id,
+      audio_id_source: audioId ? 'request.audioId' : 'track.suno_track_id',
       model: kieParams.model,
       default_param_flag: kieParams.default_param_flag,
       has_custom_params: !!kieParams.default_param_flag,
@@ -395,7 +407,7 @@ export async function POST(request: NextRequest) {
       );
 
       // 构建初始 tracks 数据返回给前端
-      const initialTracks = tracksResult.rows.map((row: any, index: number) => ({
+      const initialTracks = tracksResult.rows.map((row: any) => ({
         id: row.id,
         generationId: musicId,
         suno_track_id: row.suno_track_id || null,
@@ -415,6 +427,7 @@ export async function POST(request: NextRequest) {
         originalTrackId: originalTrack.trackId, // 设置原歌曲ID，用于分组
         originalTrackTitle: originalTrack.title, // 原歌曲标题
         sourceType: 'extended', // 来源类型
+        musicType: 'extended',
       }));
 
       console.log(`[EXTEND-MUSIC-${requestId}] ✅ Created ${initialTracks.length} placeholder tracks`);

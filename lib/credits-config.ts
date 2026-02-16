@@ -83,6 +83,18 @@ export const FEATURE_CREDITS_CONFIG: Record<string, FeatureConfig> = {
     enabled: true,
     description: '上传两首音频生成 Mashup 版本'
   },
+  add_vocals_music: {
+    name: 'Add Vocals Music',
+    credits: 12,
+    enabled: true,
+    description: '为上传音频添加 AI 人声'
+  },
+  add_instrumental_music: {
+    name: 'Add Instrumental Music',
+    credits: 12,
+    enabled: true,
+    description: '为上传音频添加伴奏'
+  },
   extend_music: {
     name: 'Extend Music',
     credits: 12, // 默认值，实际值根据模型版本而定
@@ -305,6 +317,8 @@ export const CLIENT_UPLOAD_AUDIO_CREDITS = {
   cover: FEATURE_CREDITS_CONFIG.upload_cover_music.credits,
   extend: FEATURE_CREDITS_CONFIG.upload_extend_music.credits,
   mashup: FEATURE_CREDITS_CONFIG.upload_mashup_music.credits,
+  vocal: FEATURE_CREDITS_CONFIG.add_vocals_music.credits,
+  melody: FEATURE_CREDITS_CONFIG.add_instrumental_music.credits,
 } as const;
 
 /**

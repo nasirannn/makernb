@@ -1,48 +1,12 @@
+import {
+  Blend,
+  Disc3,
+  Expand,
+  Mic,
+  Music,
+  Music2,
+} from "lucide-react";
 import { cn } from "@/lib/utils";
-
-const PenIcon = ({ className }: { className?: string }) => (
-  <svg viewBox="0 0 24 24" fill="none" className={className} aria-hidden="true">
-    <path d="M4 20h4l10-10-4-4L4 16v4z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-    <path d="M14 6l4 4" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-  </svg>
-);
-
-const EditIcon = ({ className }: { className?: string }) => (
-  <svg viewBox="0 0 24 24" fill="none" className={className} aria-hidden="true">
-    <path d="M4 20h16" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
-    <path d="M6 14l8-8 4 4-8 8H6v-4z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-  </svg>
-);
-
-const ExtendIcon = ({ className }: { className?: string }) => (
-  <svg viewBox="0 0 24 24" fill="none" className={className} aria-hidden="true">
-    <path d="M5 12h14" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
-    <path d="M14 7l5 5-5 5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-  </svg>
-);
-
-const CoverIcon = ({ className }: { className?: string }) => (
-  <svg viewBox="0 0 24 24" fill="none" className={className} aria-hidden="true">
-    <rect x="4" y="4" width="16" height="16" rx="3" stroke="currentColor" strokeWidth="2" />
-    <path d="M9 15a3 3 0 1 0 0-6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
-  </svg>
-);
-
-const UploadIcon = ({ className }: { className?: string }) => (
-  <svg viewBox="0 0 24 24" fill="none" className={className} aria-hidden="true">
-    <path d="M12 16V6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
-    <path d="M8 10l4-4 4 4" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-    <path d="M4 18h16" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
-  </svg>
-);
-
-const VocalIcon = ({ className }: { className?: string }) => (
-  <svg viewBox="0 0 24 24" fill="none" className={className} aria-hidden="true">
-    <path d="M12 3a3 3 0 0 1 3 3v5a3 3 0 0 1-6 0V6a3 3 0 0 1 3-3z" stroke="currentColor" strokeWidth="2" />
-    <path d="M5 12a7 7 0 0 0 14 0" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
-    <path d="M12 19v2" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
-  </svg>
-);
 
 interface FeaturesProps {
   icon: React.ComponentType<{ className?: string }>;
@@ -93,46 +57,46 @@ function FeatureIconBadge({
 
 const featureList: FeaturesProps[] = [
   {
-    icon: PenIcon,
-    title: "Text/Lyrics to Song",
+    icon: Music2,
+    title: "Music Generator",
     description:
-      "Describe the vibe in a sentence or paste full lyrics. The model turns your words into a track with matching melody, rhythm, and tone.",
+      "Start from a short description or full lyrics, then generate complete songs with your selected model, style, and structure.",
     accent: "violet",
     featured: true,
   },
   {
-    icon: EditIcon,
-    title: "Edit Song",
+    icon: Expand,
+    title: "Music Extender",
     description:
-      "Need a new verse or hook? Select a section, change the lyrics or style, and regenerate just that part. Merge it seamlessly into the song.",
-    accent: "pink",
-  },
-  {
-    icon: ExtendIcon,
-    title: "Extend Song",
-    description:
-      "Make a track longer without losing its feel. Choose where to start and generate a natural continuation that fits the existing groove.",
+      "Upload an existing track and continue it naturally. Extend intros, verses, or endings while preserving the original vibe.",
     accent: "amber",
   },
   {
-    icon: CoverIcon,
-    title: "Song Cover",
+    icon: Disc3,
+    title: "Music Cover",
     description:
-      "Reimagine your song in a new style while keeping the lyrics intact. Generate a fresh version with a different musical character.",
+      "Re-create a song in a new style and vocal character. Keep the core composition while changing the overall sound direction.",
     accent: "emerald",
   },
   {
-    icon: UploadIcon,
-    title: "Upload Audio",
+    icon: Blend,
+    title: "Mashup",
     description:
-      "Upload a clip and use it as a creative anchor. Build extensions or covers that reference the original melody and texture.",
+      "Blend two audio sources into one coherent output. Combine arrangements and textures to prototype unique hybrid tracks quickly.",
+    accent: "pink",
+  },
+  {
+    icon: Mic,
+    title: "Add Vocal",
+    description:
+      "Upload your track and add an AI vocal layer that sits on the existing arrangement while keeping timing and feel aligned.",
     accent: "blue",
   },
   {
-    icon: VocalIcon,
-    title: "Vocal Removal",
+    icon: Music,
+    title: "Add Melody",
     description:
-      "Split vocals and instrumentals for cleaner edits, remixes, or exports. Keep full control over each stem.",
+      "Inject fresh melodic ideas over your audio to create new hooks, motifs, and lead lines without rebuilding the full track.",
     accent: "cyan",
   },
 ];
@@ -145,10 +109,10 @@ export const FeaturesSection = () => {
           <div className="mb-12 text-center">
             <p className="text-primary text-lg font-medium mb-2 tracking-wider">Features</p>
             <h2 className="text-3xl md:text-4xl font-bold tracking-tight mb-4">
-              Powerful AI music creation, built for iteration
+              Six core workflows, one studio
             </h2>
             <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
-              Turn a spark into a finished R&amp;B track — then refine vocals, structure, and sound without breaking the vibe.
+              Go from idea to production-ready variations with a focused set of generation, transformation, and remix workflows.
             </p>
           </div>
 

@@ -29,6 +29,7 @@ interface TrackItemProps {
   canVocalRemoval?: boolean;
   canExtendMusic?: boolean;
   canReplaceSection?: boolean;
+  canCreatePersona?: boolean;
 
   // 回调函数
   onSelect?: () => void;
@@ -41,6 +42,7 @@ interface TrackItemProps {
   onVocalRemoval?: () => void;
   onExtendMusic?: () => void;
   onReplaceSection?: () => void;
+  onCreatePersona?: () => void;
   onDelete?: () => void;
   onPublishToggle?: () => void;
   onPreviewLyrics?: () => void;
@@ -65,6 +67,7 @@ export const TrackItem: React.FC<TrackItemProps> = ({
   canVocalRemoval = false,
   canExtendMusic = false,
   canReplaceSection = false,
+  canCreatePersona = false,
   onSelect,
   onPlayPause,
   onFavoriteToggle,
@@ -75,6 +78,7 @@ export const TrackItem: React.FC<TrackItemProps> = ({
   onVocalRemoval,
   onExtendMusic,
   onReplaceSection,
+  onCreatePersona,
   onDelete,
   onPublishToggle,
   onPreviewLyrics,
@@ -150,7 +154,7 @@ export const TrackItem: React.FC<TrackItemProps> = ({
 
   const containerClassName =
     variant === 'studio'
-      ? `relative flex items-center ${gapClass} ${paddingClass} w-full transition-all duration-150 group rounded-2xl`
+      ? `relative flex items-start ${gapClass} ${paddingClass} w-full transition-all duration-150 group rounded-2xl`
       : `relative flex items-center ${gapClass} ${paddingClass} w-full transition-all duration-200 group rounded-2xl border`;
   
   return (
@@ -197,7 +201,7 @@ export const TrackItem: React.FC<TrackItemProps> = ({
       />
       
       {/* Track Info */}
-      <div className={`flex-1 min-w-0 flex items-center ${gapClass} ${infoHeightClass}`}>
+      <div className={`flex-1 min-w-0 flex ${variant === 'studio' ? 'items-start' : 'items-center'} ${gapClass} ${infoHeightClass}`}>
         <div className={`flex-1 min-w-0 flex ${variant === 'studio' ? 'h-full items-stretch' : 'items-center min-h-16'}`}>
           <div className={`w-full ${variant === 'studio' ? 'h-full' : ''}`}>
             <TrackInfo
@@ -219,7 +223,7 @@ export const TrackItem: React.FC<TrackItemProps> = ({
               renderTagsAsText={shouldRenderTagsAsPlainText}
               footerActions={
                 variant === 'studio' && !isError ? (
-                  <div className="flex h-8 items-center gap-1.5 text-xs">
+                  <div className="flex h-8 items-center gap-1 text-xs">
                     {onFavoriteToggle && (
                       <button
                         type="button"
@@ -228,15 +232,15 @@ export const TrackItem: React.FC<TrackItemProps> = ({
                           e.stopPropagation();
                           onFavoriteToggle();
                         }}
-                        className={`inline-flex h-8 w-8 items-center justify-center rounded-full bg-foreground/5 text-xs font-semibold transition-colors dark:bg-white/4 dark:hover:bg-white/8 ${
+                        className={`inline-flex h-7 w-7 items-center justify-center rounded-full bg-foreground/5 text-foreground/45 text-xs font-semibold transition-colors dark:bg-white/4 dark:hover:bg-white/8 ${
                           track.isFavorited
-                            ? 'text-red-500 hover:text-red-500 hover:bg-foreground/10 dark:hover:bg-white/8'
-                            : 'text-foreground/80 hover:text-foreground hover:bg-foreground/10 dark:hover:bg-white/8'
+                            ? 'group-hover:text-red-500 group-hover:hover:text-red-500 hover:bg-foreground/10 dark:hover:bg-white/8'
+                            : 'group-hover:text-foreground/80 group-hover:hover:text-foreground hover:bg-foreground/10 dark:hover:bg-white/8'
                         }`}
                         aria-label={track.isFavorited ? 'Remove from library' : 'Add to library'}
                         title={track.isFavorited ? 'Remove from library' : 'Add to library'}
                       >
-                        <Star className={`h-3.5 w-3.5 ${track.isFavorited ? 'fill-current' : ''}`} />
+                        <Star className={`h-3 w-3 ${track.isFavorited ? 'fill-current' : ''}`} />
                       </button>
                     )}
 
@@ -248,15 +252,15 @@ export const TrackItem: React.FC<TrackItemProps> = ({
                           e.stopPropagation();
                           onShare();
                         }}
-                        className={`inline-flex h-8 w-8 items-center justify-center rounded-full bg-foreground/5 text-xs font-semibold transition-colors dark:bg-white/4 dark:hover:bg-white/8 ${
+                        className={`inline-flex h-7 w-7 items-center justify-center rounded-full bg-foreground/5 text-foreground/45 text-xs font-semibold transition-colors dark:bg-white/4 dark:hover:bg-white/8 ${
                           isCopied
-                            ? 'text-green-500 hover:text-green-500 hover:bg-foreground/10 dark:hover:bg-white/8'
-                            : 'text-foreground/80 hover:text-foreground hover:bg-foreground/10 dark:hover:bg-white/8'
+                            ? 'group-hover:text-green-500 group-hover:hover:text-green-500 hover:bg-foreground/10 dark:hover:bg-white/8'
+                            : 'group-hover:text-foreground/80 group-hover:hover:text-foreground hover:bg-foreground/10 dark:hover:bg-white/8'
                         }`}
                         aria-label={isCopied ? 'Link copied' : 'Share track'}
                         title={isCopied ? 'Link copied' : 'Share track'}
                       >
-                        {isCopied ? <Check className="h-3.5 w-3.5" /> : <Share2 className="h-3.5 w-3.5" />}
+                        {isCopied ? <Check className="h-3 w-3" /> : <Share2 className="h-3 w-3" />}
                       </button>
                     )}
 
@@ -268,18 +272,18 @@ export const TrackItem: React.FC<TrackItemProps> = ({
                           e.stopPropagation();
                           onLikeToggle();
                         }}
-                        className={`inline-flex h-8 w-8 items-center justify-center rounded-full bg-foreground/5 text-xs font-semibold transition-colors dark:bg-white/4 dark:hover:bg-white/8 ${
+                        className={`inline-flex h-7 w-7 items-center justify-center rounded-full bg-foreground/5 text-foreground/45 text-xs font-semibold transition-colors dark:bg-white/4 dark:hover:bg-white/8 ${
                           track.isLiked
-                            ? 'text-pink-500 hover:text-pink-500 hover:bg-foreground/10 dark:hover:bg-white/8'
-                            : 'text-foreground/80 hover:text-foreground hover:bg-foreground/10 dark:hover:bg-white/8'
+                            ? 'group-hover:text-pink-500 group-hover:hover:text-pink-500 hover:bg-foreground/10 dark:hover:bg-white/8'
+                            : 'group-hover:text-foreground/80 group-hover:hover:text-foreground hover:bg-foreground/10 dark:hover:bg-white/8'
                         }`}
                         aria-label={track.isLiked ? 'Unlike track' : 'Like track'}
                         title={track.isLiked ? 'Unlike track' : 'Like track'}
                       >
                         {track.isLiked ? (
-                          <SolidThumbsUpIcon className="h-3.5 w-3.5 fill-current" />
+                          <SolidThumbsUpIcon className="h-3 w-3 fill-current" />
                         ) : (
-                          <ThumbsUp className="h-3.5 w-3.5" />
+                          <ThumbsUp className="h-3 w-3" />
                         )}
                       </button>
                     )}
@@ -304,6 +308,7 @@ export const TrackItem: React.FC<TrackItemProps> = ({
                         canVocalRemoval={canVocalRemoval}
                         canExtendMusic={canExtendMusic}
                         canReplaceSection={canReplaceSection}
+                        canCreatePersona={canCreatePersona}
                         onFavoriteToggle={undefined}
                         onShare={onShare}
                         onDislikeToggle={onDislikeToggle}
@@ -311,6 +316,7 @@ export const TrackItem: React.FC<TrackItemProps> = ({
                         onVocalRemoval={onVocalRemoval}
                         onExtendMusic={onExtendMusic}
                         onReplaceSection={onReplaceSection}
+                        onCreatePersona={onCreatePersona}
                         onDelete={onDelete}
                         onPublishToggle={onPublishToggle}
                         isPublished={track.isPublished ?? false}
@@ -361,6 +367,7 @@ export const TrackItem: React.FC<TrackItemProps> = ({
             canVocalRemoval={canVocalRemoval}
             canExtendMusic={canExtendMusic}
             canReplaceSection={canReplaceSection}
+            canCreatePersona={canCreatePersona}
             onFavoriteToggle={undefined}
             onShare={onShare}
             onLikeToggle={onLikeToggle}
@@ -369,6 +376,7 @@ export const TrackItem: React.FC<TrackItemProps> = ({
             onVocalRemoval={onVocalRemoval}
             onExtendMusic={onExtendMusic}
             onReplaceSection={onReplaceSection}
+            onCreatePersona={onCreatePersona}
             onDelete={onDelete}
             onPublishToggle={onPublishToggle}
             isPublished={track.isPublished ?? false}

@@ -1,7 +1,6 @@
 "use client";
 
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
-import { FEATURE_CREDITS_CONFIG, MUSIC_GENERATION_CONFIG } from "@/lib/credits-config";
 import { PricingPlans } from "@/components/pricing/pricing-plans";
 import type { PricingPlan } from "@/lib/pricing-config";
 
@@ -10,63 +9,6 @@ interface PricingSectionProps {
 }
 
 export const PricingSection = ({ initialPlans }: PricingSectionProps) => {
-  const creditsUsageRows = [
-    {
-      feature: "AI Music Generator (Simple Mode)",
-      credits: MUSIC_GENERATION_CONFIG.simple.credits,
-      note: "Model V4",
-    },
-    {
-      feature: "AI Music Generator (Custom Mode)",
-      credits: MUSIC_GENERATION_CONFIG.custom.credits,
-      note: "Model V4.5",
-    },
-    {
-      feature: FEATURE_CREDITS_CONFIG.generate_lyrics.name,
-      credits: FEATURE_CREDITS_CONFIG.generate_lyrics.credits,
-      note: "Per request",
-    },
-    {
-      feature: FEATURE_CREDITS_CONFIG.convert_to_wav.name,
-      credits: FEATURE_CREDITS_CONFIG.convert_to_wav.credits,
-      note: "Per export",
-    },
-    {
-      feature: "Vocal Separation (Local file)",
-      credits: FEATURE_CREDITS_CONFIG.separate_vocals_from_music_local.credits,
-      note: "Per track",
-    },
-    {
-      feature: "Vocal Separation (Studio track)",
-      credits: FEATURE_CREDITS_CONFIG.separate_vocals_from_music_studio.credits,
-      note: "Per track",
-    },
-    {
-      feature: FEATURE_CREDITS_CONFIG.upload_cover_music.name,
-      credits: FEATURE_CREDITS_CONFIG.upload_cover_music.credits,
-      note: "Upload audio",
-    },
-    {
-      feature: FEATURE_CREDITS_CONFIG.upload_extend_music.name,
-      credits: FEATURE_CREDITS_CONFIG.upload_extend_music.credits,
-      note: "Upload audio",
-    },
-    {
-      feature: FEATURE_CREDITS_CONFIG.upload_mashup_music.name,
-      credits: FEATURE_CREDITS_CONFIG.upload_mashup_music.credits,
-      note: "Upload 2 audios",
-    },
-    {
-      feature: FEATURE_CREDITS_CONFIG.extend_music.name,
-      credits: FEATURE_CREDITS_CONFIG.extend_music.credits,
-      note: "Per extend",
-    },
-    {
-      feature: FEATURE_CREDITS_CONFIG.replace_section.name,
-      credits: FEATURE_CREDITS_CONFIG.replace_section.credits,
-      note: "Per edit",
-    },
-  ] as const;
   const faqItems = [
     {
       question: "Can I try MakeRNB for free?",
@@ -76,7 +18,7 @@ export const PricingSection = ({ initialPlans }: PricingSectionProps) => {
     {
       question: "How do credits work?",
       answer:
-        "Every action uses credits. The table below shows the credits required for each feature.",
+        "Every action uses credits. The amount depends on the feature you use.",
     },
     {
       question: "Can I cancel anytime?",
@@ -149,40 +91,6 @@ export const PricingSection = ({ initialPlans }: PricingSectionProps) => {
                 </AccordionItem>
               ))}
             </Accordion>
-          </div>
-
-          <div className="mx-auto max-w-4xl">
-            <div className="text-center mb-8">
-              <h3 className="text-lg text-primary text-center mb-2 tracking-wider">
-                Credits
-              </h3>
-              <h4 className="text-3xl md:text-4xl text-center font-bold mb-4">
-                Credits usage by feature
-              </h4>
-              <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
-                Each action consumes credits. Values reflect the current system configuration.
-              </p>
-            </div>
-            <div className="overflow-x-auto rounded-2xl border border-slate-200/70 dark:border-white/10">
-              <table className="min-w-full text-sm">
-                <thead className="bg-foreground/5">
-                  <tr className="border-b border-slate-200/60 dark:border-white/10 text-left text-xs uppercase tracking-[0.2em] text-muted-foreground">
-                    <th className="py-3 px-4 font-semibold">Feature</th>
-                    <th className="py-3 px-4 font-semibold">Credits</th>
-                    <th className="py-3 px-4 font-semibold">Notes</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {creditsUsageRows.map((row) => (
-                    <tr key={row.feature} className="border-b border-slate-200/60 dark:border-white/10 last:border-0">
-                      <td className="py-4 px-4 font-medium text-foreground/90">{row.feature}</td>
-                      <td className="py-4 px-4 font-semibold text-foreground">{row.credits}</td>
-                      <td className="py-4 px-4 text-muted-foreground">{row.note}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
           </div>
         </div>
 
