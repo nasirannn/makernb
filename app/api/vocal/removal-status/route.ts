@@ -4,6 +4,20 @@ import { getVocalRemovalByTaskId, getVocalRemovalsByTrackId } from '@/features/v
 
 export const dynamic = 'force-dynamic';
 
+const parseStemsData = (value: unknown): Record<string, string> | null => {
+  if (!value) return null;
+  if (typeof value === 'object') return value as Record<string, string>;
+  if (typeof value === 'string') {
+    try {
+      const parsed = JSON.parse(value);
+      return parsed && typeof parsed === 'object' ? (parsed as Record<string, string>) : null;
+    } catch {
+      return null;
+    }
+  }
+  return null;
+};
+
 /**
  * 查询人声移除状态
  * GET /api/vocal/removal-status?taskId=xxx 或 ?trackId=xxx
@@ -47,15 +61,18 @@ export async function GET(request: NextRequest) {
       // 优先使用 R2 URL，如果没有则使用临时 URL
       const vocalUrl = removal.r2_vocal_url || removal.vocal_url;
       const instrumentalUrl = removal.r2_instrumental_url || removal.instrumental_url;
+      const stemsData = parseStemsData(removal.stems_data);
 
       return NextResponse.json({
         success: true,
         data: {
           id: removal.id,
           taskId: removal.task_id,
+          separationType: removal.separation_type || 'separate_vocal',
           status: removal.status,
           vocalUrl,
           instrumentalUrl,
+          stemsData,
           trackId: removal.track_id,
           createdAt: removal.created_at,
           updatedAt: removal.updated_at
@@ -79,13 +96,16 @@ export async function GET(request: NextRequest) {
           // 优先使用 R2 URL，如果没有则使用临时 URL
           const vocalUrl = removal.r2_vocal_url || removal.vocal_url;
           const instrumentalUrl = removal.r2_instrumental_url || removal.instrumental_url;
+          const stemsData = parseStemsData(removal.stems_data);
           
           return {
             id: removal.id,
             taskId: removal.task_id,
+            separationType: removal.separation_type || 'separate_vocal',
             status: removal.status,
             vocalUrl,
             instrumentalUrl,
+            stemsData,
             trackId: removal.track_id,
             createdAt: removal.created_at,
             updatedAt: removal.updated_at

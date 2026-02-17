@@ -10,7 +10,6 @@ export type ExtendMusicModel = 'V5' | 'V4_5PLUS' | 'V4_5' | 'V4' | 'V4_5ALL';
 // 扩展音乐请求参数
 export interface ExtendMusicParams {
   model: ExtendMusicModel;
-  defaultParamFlag: boolean;
   // 自定义模式必填参数
   prompt?: string;
   style?: string;
@@ -56,7 +55,6 @@ export interface ExtendMusicAPIRequest {
   trackId: string; // 要扩展的曲目 ID
   audioId?: string; // 可选：前端显式传入的音频ID（suno_track_id）
   model: ExtendMusicModel;
-  defaultParamFlag: boolean;
 
   // 自定义模式参数（可选）
   prompt?: string;

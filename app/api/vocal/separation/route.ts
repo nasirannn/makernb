@@ -27,8 +27,6 @@ const buildResponseDataFromRecord = (record: any) => {
   if (record.status === 'completed') {
     if (record.vocal_audio_url) responseData.vocalUrl = record.vocal_audio_url;
     if (record.instrumental_audio_url) responseData.instrumentalUrl = record.instrumental_audio_url;
-  } else if (record.status === 'error') {
-    if (record.error_message) responseData.errorMessage = record.error_message;
   }
 
   return responseData;

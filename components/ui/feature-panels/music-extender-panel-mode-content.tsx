@@ -2,7 +2,7 @@
 
 import React from "react";
 import Image from "next/image";
-import { ChevronDown, ChevronRight, Disc3, FileAudio, Info, Mic, Music2, Play, SlidersHorizontal, Trash2, UploadCloud, Users, Wand2, Tag, Sparkles } from "lucide-react";
+import { ChevronDown, ChevronRight, Disc3, FileMusic, Info, Mic, Music2, Play, SlidersHorizontal, Trash2, UploadCloud, Users, Wand2, Tag, Sparkles } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -13,6 +13,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Input } from "@/components/ui/input";
+import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
 import { getDrumKitIcon, getInstrumentIcon } from "@/lib/music-resources";
 
@@ -93,16 +94,12 @@ export const StudioSimpleModeContent: React.FC<StudioSimpleModeContentProps> = (
                 value={simplePrompt}
                 onChange={(e) => setSimplePrompt(e.target.value)}
                 maxLength={simplePromptMaxLength}
-                className="min-h-[180px] md:min-h-[200px] resize-none pl-0 pr-0 pb-2 border-0 bg-transparent focus-visible:ring-0 focus-visible:ring-offset-0"
+                className="min-h-[180px] md:min-h-[200px] resize-none pl-0 pt-2 pr-0 pb-2 border-0 bg-transparent focus-visible:ring-0 focus-visible:ring-offset-0"
               />
             </div>
 
             {showQuickButtonsSection && (
               <div className="space-y-2">
-                <div className="border-t border-dashed border-slate-300/35 dark:border-slate-700/25 pt-2" aria-hidden="true" />
-                <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-muted-foreground/80">
-                  Style Presets
-                </p>
                 {quickButtons}
               </div>
             )}
@@ -281,6 +278,9 @@ interface StudioCustomModeContentProps {
   selectedPersonaModel: 'style_persona' | 'voice_persona';
   setSelectedPersonaModel?: (model: 'style_persona' | 'voice_persona') => void;
   canUseVoicePersonaModel?: boolean;
+  instrumentalMode: boolean;
+  setInstrumentalMode: (mode: boolean) => void;
+  showInstrumentalToggle?: boolean;
   customLyrics: string;
   setCustomLyrics: (lyrics: string) => void;
   customPromptMaxLength: number;
@@ -328,6 +328,9 @@ export const StudioCustomModeContent: React.FC<StudioCustomModeContentProps> = (
   selectedPersonaModel,
   setSelectedPersonaModel,
   canUseVoicePersonaModel = false,
+  instrumentalMode,
+  setInstrumentalMode,
+  showInstrumentalToggle = true,
   customLyrics,
   setCustomLyrics,
   customPromptMaxLength,
@@ -380,7 +383,7 @@ export const StudioCustomModeContent: React.FC<StudioCustomModeContentProps> = (
 
   const actionCount = actionOrder.length;
   const showLyrics = showLyricsSection;
-  const showVocalGender = showVocalGenderSection;
+  const showVocalGender = showVocalGenderSection && !instrumentalMode;
   const hasExplicitUploadIntent = uploadIntent !== null;
   const uploadIntentLabel = uploadIntent === "vocal"
     ? "Vocal"
@@ -448,9 +451,9 @@ ${tag}
                 Source Material
               </h3>
 
-              <div className="w-full h-[160px] rounded-2xl border border-dashed border-border/25 bg-background/20 px-4 py-8 text-center transition-colors">
+              <div className="w-full h-[160px] rounded-2xl border border-dashed border-slate-300/35 dark:border-slate-700/25 bg-background/20 px-4 py-8 text-center transition-colors">
                 <span className="mx-auto mb-3 inline-flex h-10 w-10 items-center justify-center text-muted-foreground">
-                  <FileAudio className="h-6 w-6" strokeWidth={2} />
+                  <FileMusic className="h-6 w-6" strokeWidth={2} />
                 </span>
                 <span className="block text-sm md:text-base font-semibold text-foreground leading-tight">
                   Choose Source
@@ -459,7 +462,7 @@ ${tag}
                   <button
                     type="button"
                     onClick={onAddTrack}
-                    className="text-xs text-primary underline underline-offset-2 decoration-primary/70 transition-opacity hover:opacity-85"
+                    className="text-xs text-primary transition-opacity hover:opacity-85"
                     title="Upload from local file"
                   >
                     Upload from local file
@@ -468,7 +471,7 @@ ${tag}
                   <button
                     type="button"
                     onClick={onChooseTrackFromList}
-                    className="text-xs text-primary underline underline-offset-2 decoration-primary/70 transition-opacity hover:opacity-85"
+                    className="text-xs text-primary transition-opacity hover:opacity-85"
                     title="Edit from track list"
                   >
                     Edit from track list
@@ -565,83 +568,100 @@ ${tag}
               <h3 className="text-xs md:text-sm font-semibold flex items-center gap-2">
                 Lyrics
               </h3>
-              <Button
-                variant="ghost"
-                size="sm"
-                className="inline-flex h-8 items-center gap-1.5 rounded-full bg-foreground/5 px-3 text-xs font-semibold text-foreground/70 transition-colors hover:bg-foreground/10 hover:text-foreground"
-                title="Generate lyrics with AI"
-                onClick={onGenerateLyrics}
-              >
-                <Wand2 className="h-3.5 w-3.5" />
-                <span className="text-xs font-medium">Auto Generate</span>
-              </Button>
-            </div>
-            <div className="space-y-3">
-              <div className="relative">
-                <Textarea
-                  placeholder="Write your song lyrics here..."
-                  value={customLyrics}
-                  onChange={(e) => setCustomLyrics(e.target.value)}
-                  maxLength={customPromptMaxLength}
-                  className="min-h-[136px] md:min-h-[160px] resize-y pl-0 pt-3 pr-0 pb-6 border-0 bg-transparent focus-visible:ring-0 focus-visible:ring-offset-0"
-                />
-              </div>
-              <div className="flex items-center justify-between">
-                <div className="text-xs text-muted-foreground">
-                  {customLyrics.length}/{customPromptMaxLength}
-                </div>
+              {showInstrumentalToggle && (
                 <div className="flex items-center gap-2">
-                  <DropdownMenu>
-                    <DropdownMenuTrigger asChild>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        title="Lyrics Tags"
-                        aria-label="Lyrics Tags"
-                        className="h-8 w-8 rounded-full bg-foreground/5 p-0 text-foreground/70 transition-colors hover:bg-foreground/10 hover:text-foreground"
-                      >
-                        <Tag className="h-3.5 w-3.5" />
-                      </Button>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent align="end" className="min-w-[156px] p-1.5">
-                      {LYRICS_TAG_OPTIONS.map((option) => (
-                        <DropdownMenuItem
-                          key={option.value}
-                          onClick={() => handleInsertLyricsTag(option.value)}
-                          className="cursor-pointer px-2.5 py-1.5 text-xs"
+                  <Switch
+                    checked={instrumentalMode}
+                    onCheckedChange={setInstrumentalMode}
+                    className="scale-75"
+                  />
+                  <span className="text-xs text-muted-foreground">Instrumental</span>
+                </div>
+              )}
+            </div>
+            {instrumentalMode ? (
+              <div className="rounded-xl bg-foreground/5 px-3 py-2 text-xs text-muted-foreground">
+                Instrumental mode is enabled. Lyrics are optional.
+              </div>
+            ) : (
+              <div className="space-y-3">
+                <div className="relative">
+                  <Textarea
+                    placeholder="Write your song lyrics here..."
+                    value={customLyrics}
+                    onChange={(e) => setCustomLyrics(e.target.value)}
+                    maxLength={customPromptMaxLength}
+                    className="min-h-[136px] md:min-h-[160px] resize-y pl-0 pt-2 pr-0 pb-2 border-0 bg-transparent focus-visible:ring-0 focus-visible:ring-offset-0"
+                  />
+                </div>
+                <div className="flex items-center justify-between">
+                  <div className="text-xs text-muted-foreground">
+                    {customLyrics.length}/{customPromptMaxLength}
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="inline-flex h-8 items-center gap-1.5 rounded-full bg-foreground/5 px-3 text-xs font-semibold text-foreground/70 transition-colors hover:bg-foreground/10 hover:text-foreground"
+                      title="Generate lyrics with AI"
+                      onClick={onGenerateLyrics}
+                    >
+                      <Wand2 className="h-3.5 w-3.5" />
+                      <span className="text-xs font-medium">Auto Generate</span>
+                    </Button>
+
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          title="Lyrics Tags"
+                          aria-label="Lyrics Tags"
+                          className="h-8 w-8 rounded-full bg-foreground/5 p-0 text-foreground/70 transition-colors hover:bg-foreground/10 hover:text-foreground"
                         >
-                          {option.label}
-                        </DropdownMenuItem>
-                      ))}
-                    </DropdownMenuContent>
-                  </DropdownMenu>
+                          <Tag className="h-3.5 w-3.5" />
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end" className="min-w-[156px] p-1.5">
+                        {LYRICS_TAG_OPTIONS.map((option) => (
+                          <DropdownMenuItem
+                            key={option.value}
+                            onClick={() => handleInsertLyricsTag(option.value)}
+                            className="cursor-pointer px-2.5 py-1.5 text-xs"
+                          >
+                            {option.label}
+                          </DropdownMenuItem>
+                        ))}
+                      </DropdownMenuContent>
+                    </DropdownMenu>
 
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    title={isWritingNextLyricLine ? "Writing next line" : "Write Next Line"}
-                    aria-label={isWritingNextLyricLine ? "Writing next line" : "Write Next Line"}
-                    className="h-8 w-8 rounded-full bg-foreground/5 p-0 text-foreground/70 transition-colors hover:bg-foreground/10 hover:text-foreground disabled:opacity-50 disabled:cursor-not-allowed"
-                    onClick={onWriteNextLyricLine}
-                    disabled={isWritingNextLyricLine || !customLyrics.trim()}
-                  >
-                    <Sparkles className="h-3.5 w-3.5" />
-                  </Button>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      title={isWritingNextLyricLine ? "Writing next line" : "Write Next Line"}
+                      aria-label={isWritingNextLyricLine ? "Writing next line" : "Write Next Line"}
+                      className="h-8 w-8 rounded-full bg-foreground/5 p-0 text-foreground/70 transition-colors hover:bg-foreground/10 hover:text-foreground disabled:opacity-50 disabled:cursor-not-allowed"
+                      onClick={onWriteNextLyricLine}
+                      disabled={isWritingNextLyricLine || !customLyrics.trim()}
+                    >
+                      <Sparkles className="h-3.5 w-3.5" />
+                    </Button>
 
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    title="Clear Lyrics"
-                    aria-label="Clear Lyrics"
-                    className="h-8 w-8 rounded-full bg-foreground/5 p-0 text-foreground/70 transition-colors hover:bg-foreground/10 hover:text-foreground disabled:opacity-50 disabled:cursor-not-allowed"
-                    onClick={onClearCustomLyrics}
-                    disabled={!customLyrics.trim()}
-                  >
-                    <Trash2 className="h-3.5 w-3.5" />
-                  </Button>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      title="Clear Lyrics"
+                      aria-label="Clear Lyrics"
+                      className="h-8 w-8 rounded-full bg-foreground/5 p-0 text-foreground/70 transition-colors hover:bg-foreground/10 hover:text-foreground disabled:opacity-50 disabled:cursor-not-allowed"
+                      onClick={onClearCustomLyrics}
+                      disabled={!customLyrics.trim()}
+                    >
+                      <Trash2 className="h-3.5 w-3.5" />
+                    </Button>
+                  </div>
                 </div>
               </div>
-            </div>
+            )}
           </section>
         )}
 

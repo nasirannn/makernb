@@ -263,6 +263,63 @@ export interface UpdateTrackMp4GenerationData {
 }
 
 // ============================================================================
+// MIDI 生成相关类型定义
+// ============================================================================
+
+export interface MidiNote {
+  pitch: number;
+  start: number | string;
+  end: number | string;
+  velocity: number;
+}
+
+export interface MidiInstrument {
+  name: string;
+  notes: MidiNote[];
+}
+
+export interface MidiGenerationData {
+  state?: string;
+  instruments?: MidiInstrument[];
+}
+
+/**
+ * MIDI 生成记录接口
+ * 用于存储从分离音频生成 MIDI 的任务记录
+ */
+export interface TrackMidiGeneration {
+  id: string;
+  trackId: string; // 关联的 track ID（兼容旧字段名 track_id）
+  separationTaskId: string; // 分离任务 taskId（兼容旧字段名 separation_task_id）
+  sourceAudioId: string | null; // 可选：指定分离轨道 audioId（兼容旧字段名 source_audio_id）
+  taskId: string; // MIDI 任务 taskId（兼容旧字段名 task_id）
+  midiData: MidiGenerationData | null; // MIDI 回调结果（兼容旧字段名 midi_data）
+  status: 'generating' | 'completed' | 'error' | 'expired';
+  createdAt: string; // 创建时间（兼容旧字段名 created_at）
+  updatedAt: string; // 更新时间（兼容旧字段名 updated_at）
+}
+
+/**
+ * 创建 MIDI 生成记录的数据接口
+ */
+export interface CreateTrackMidiGenerationData {
+  trackId: string; // 关联的 track ID（兼容旧字段名 track_id）
+  separationTaskId: string; // 分离任务 taskId（兼容旧字段名 separation_task_id）
+  sourceAudioId?: string | null; // 指定分离轨道 audioId（兼容旧字段名 source_audio_id）
+  taskId: string; // MIDI 任务 taskId（兼容旧字段名 task_id）
+  midiData?: MidiGenerationData | null; // MIDI 数据（兼容旧字段名 midi_data）
+  status?: 'generating' | 'completed' | 'error' | 'expired';
+}
+
+/**
+ * 更新 MIDI 生成记录的数据接口
+ */
+export interface UpdateTrackMidiGenerationData {
+  midiData?: MidiGenerationData | null; // MIDI 数据（兼容旧字段名 midi_data）
+  status?: 'generating' | 'completed' | 'error' | 'expired';
+}
+
+// ============================================================================
 // Persona 相关类型定义
 // ============================================================================
 

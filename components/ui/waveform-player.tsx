@@ -55,6 +55,8 @@ interface WaveformPlayerProps {
   onSelectorEndChange?: (time: number) => void;
   /** 手柄拖拽结束回调 */
   onSelectorHandleRelease?: (handle: "start" | "end") => void;
+  /** 手柄拖拽结束后自动定位到哪个手柄，默认 both */
+  seekOnSelectorHandleRelease?: "both" | "start" | "end" | "none";
   /** 是否显示手柄时间标签 */
   showSelectorLabels?: boolean;
   /** 音频总时长（用于选择器） */
@@ -107,6 +109,7 @@ export const WaveformPlayer = React.forwardRef<WaveformPlayerHandle, WaveformPla
   onSelectorStartChange,
   onSelectorEndChange,
   onSelectorHandleRelease,
+  seekOnSelectorHandleRelease = "both",
   showSelectorLabels = false,
   audioDuration: propAudioDuration
 }, ref) => {
@@ -517,11 +520,15 @@ export const WaveformPlayer = React.forwardRef<WaveformPlayerHandle, WaveformPla
     const handleMouseUp = () => {
       if (isDraggingStart) {
         onSelectorHandleRelease?.("start");
-        seekToTime(selectorStart);
+        if (seekOnSelectorHandleRelease === "both" || seekOnSelectorHandleRelease === "start") {
+          seekToTime(selectorStart);
+        }
       }
       if (isDraggingEnd) {
         onSelectorHandleRelease?.("end");
-        seekToTime(selectorEnd);
+        if (seekOnSelectorHandleRelease === "both" || seekOnSelectorHandleRelease === "end") {
+          seekToTime(selectorEnd);
+        }
       }
       setIsDraggingStart(false);
       setIsDraggingEnd(false);
@@ -545,6 +552,7 @@ export const WaveformPlayer = React.forwardRef<WaveformPlayerHandle, WaveformPla
     onSelectorStartChange,
     onSelectorEndChange,
     onSelectorHandleRelease,
+    seekOnSelectorHandleRelease,
     seekToTime,
   ]);
 

@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { softDeleteVocalSeparation } from '@/features/vocal-tools/lib/vocal-separation-db';
+import { deleteVocalSeparation } from '@/features/vocal-tools/lib/vocal-separation-db';
 import { getUserIdFromRequest } from '@/lib/auth';
 
 export const dynamic = 'force-dynamic';
@@ -37,8 +37,8 @@ export async function DELETE(
       );
     }
 
-    // 软删除人声分离记录
-    const success = await softDeleteVocalSeparation(separationId, userId);
+    // 删除人声分离记录
+    const success = await deleteVocalSeparation(separationId, userId);
 
     if (!success) {
       console.log(`[DELETE-VOCAL-SEPARATION-${requestId}] Separation not found or access denied`);

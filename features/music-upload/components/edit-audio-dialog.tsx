@@ -297,9 +297,6 @@ export const EditAudioDialog = ({
           <div className="pointer-events-none absolute inset-0 bg-gradient-to-r from-primary/10 via-transparent to-primary/10" />
           <div className="flex items-center justify-between pr-8">
             <div className="relative">
-              <div className="text-[10px] uppercase tracking-[0.28em] text-muted-foreground">
-                Upload Audio
-              </div>
               <DialogTitle className="text-xl font-semibold tracking-tight">
                 Edit Audio
               </DialogTitle>
@@ -415,9 +412,9 @@ export const EditAudioDialog = ({
 
         <div className="flex-shrink-0 px-6 pb-6 flex items-center justify-end gap-3">
           <Button
-            variant="outline"
+            variant="ghost"
             onClick={onClose}
-            className="w-full sm:w-auto h-10 rounded-lg bg-muted/70 text-foreground hover:bg-muted"
+            className="w-full sm:w-auto h-10 rounded-lg border-0 bg-foreground/5 text-foreground/75 transition-colors hover:bg-foreground/10 hover:text-foreground"
           >
             Cancel
           </Button>

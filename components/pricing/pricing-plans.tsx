@@ -28,7 +28,7 @@ const variantConfig: Record<PricingVariant, { grid: string; freeCard: string; to
     freeDescription: "Creating with daily credits.",
   },
   modal: {
-    grid: "grid gap-6 md:grid-cols-3",
+    grid: "mt-6 grid gap-6 md:grid-cols-3",
     freeCard: "",
     toggle: "mt-4 flex justify-center",
     toggleInner: "border border-foreground/10",
@@ -97,49 +97,56 @@ export const PricingPlans = ({ variant = "section", onNavigate, initialPlans }: 
         ? "Continue"
         : "Start Free";
 
+  const yearlySavingsBadge = useMemo(() => {
+    if (!yearlySavingsLabel) return "Best Value";
+    const match = yearlySavingsLabel.match(/(\d+)/);
+    if (!match) return yearlySavingsLabel;
+    return `${match[1]}% OFF`;
+  }, [yearlySavingsLabel]);
+
   return (
     <>
       <div className={toggle}>
-        <div
-          className={cn(
-            "inline-flex items-center rounded-full bg-background/80 shadow-[0_1px_2px_rgba(0,0,0,0.08)] backdrop-blur-sm p-1 gap-1",
-            toggleInner
+        <div className={cn("relative w-full", variant === "modal" ? "max-w-[19rem]" : "max-w-[22rem]")}>
+          {yearlySavingsLabel && (
+            <span className="pointer-events-none absolute -top-2 right-2.5 z-10 inline-flex items-center rounded-md bg-gradient-to-r from-cyan-400 via-sky-400 to-indigo-400 px-2 py-0.5 text-[10px] font-semibold tracking-wide text-slate-950 shadow-[0_6px_14px_rgba(56,189,248,0.32)]">
+              {yearlySavingsBadge}
+            </span>
           )}
-        >
-          <button
-            onClick={() => setBillingPeriod("yearly")}
+
+          <div
             className={cn(
-              "px-5 py-2 text-sm font-semibold transition-colors duration-200 rounded-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background",
-              billingPeriod === "yearly"
-                ? "bg-primary text-primary-foreground shadow-[0_1px_1px_rgba(0,0,0,0.08)]"
-                : "text-foreground/60 hover:text-foreground hover:bg-foreground/5"
+              "relative grid grid-cols-2 items-center rounded-[1.45rem] p-[3px] bg-[linear-gradient(180deg,rgba(255,255,255,0.08),rgba(255,255,255,0.02))] shadow-[0_10px_24px_rgba(0,0,0,0.22)] backdrop-blur-md",
+              "dark:bg-[linear-gradient(180deg,rgba(255,255,255,0.08),rgba(255,255,255,0.015))]",
+              toggleInner
             )}
           >
-            <div className="flex items-center gap-2">
-              <span>Yearly</span>
-              <span
-                className={cn(
-                  "inline-flex items-center rounded-full px-2 py-0.5 text-xs font-semibold transition-colors duration-200",
-                  billingPeriod === "yearly"
-                    ? "bg-primary-foreground/20 text-primary-foreground"
-                    : "bg-foreground/5 text-foreground/70 dark:bg-white/10 dark:text-foreground/75"
-                )}
-              >
-                {yearlySavingsLabel ?? "Best value"}
-              </span>
-            </div>
-          </button>
-          <button
-            onClick={() => setBillingPeriod("monthly")}
-            className={cn(
-              "px-5 py-2 text-sm font-semibold transition-colors duration-200 rounded-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background",
-              billingPeriod === "monthly"
-                ? "bg-primary text-primary-foreground shadow-[0_1px_1px_rgba(0,0,0,0.08)]"
-                : "text-foreground/60 hover:text-foreground hover:bg-foreground/5"
-            )}
-          >
-            Monthly
-          </button>
+            <button
+              onClick={() => setBillingPeriod("monthly")}
+              className={cn(
+                "relative z-[1] h-[44px] rounded-[1.15rem] px-3.5 text-[0.88rem] md:text-[0.95rem] font-semibold transition-colors duration-200",
+                "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background",
+                billingPeriod === "monthly"
+                  ? "bg-background text-foreground shadow-[0_7px_16px_rgba(0,0,0,0.22)]"
+                  : "text-foreground/70 hover:text-foreground"
+              )}
+            >
+              Bill Monthly
+            </button>
+
+            <button
+              onClick={() => setBillingPeriod("yearly")}
+              className={cn(
+                "relative z-[1] h-[44px] rounded-[1.15rem] px-3.5 text-[0.88rem] md:text-[0.95rem] font-semibold transition-colors duration-200",
+                "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background",
+                billingPeriod === "yearly"
+                  ? "bg-background text-foreground shadow-[0_7px_16px_rgba(0,0,0,0.22)]"
+                  : "text-foreground/70 hover:text-foreground"
+              )}
+            >
+              Bill Yearly
+            </button>
+          </div>
         </div>
       </div>
 
@@ -161,15 +168,12 @@ export const PricingPlans = ({ variant = "section", onNavigate, initialPlans }: 
                 {FREE_FEATURES.map((feature) => (
                   <li
                     key={feature.label}
-                    className={cn(
-                      "flex items-start gap-3 text-sm",
-                      feature.enabled ? "text-foreground/90" : "text-muted-foreground/75"
-                    )}
+                    className="flex items-start gap-3 text-sm text-foreground/90"
                   >
                     {feature.enabled ? (
                       <Check className="mt-1 h-5 w-5 flex-shrink-0 text-foreground/80" />
                     ) : (
-                      <X className="mt-1 h-5 w-5 flex-shrink-0 text-muted-foreground/60" />
+                      <X className="mt-1 h-5 w-5 flex-shrink-0 text-rose-500 dark:text-rose-400" />
                     )}
                     <span className="leading-relaxed">{feature.label}</span>
                   </li>
@@ -194,7 +198,7 @@ export const PricingPlans = ({ variant = "section", onNavigate, initialPlans }: 
           const isCurrentPlan =
             hasSubscription &&
             (activeProductId ? activeProductId === plan.productId : tierCode === planTier);
-          const showPopular = Boolean(plan.popular);
+          const showPopular = Boolean(plan.popular) && !isHobby;
           const activePlan = activeProductId
             ? allPlans.find((active) => active.productId === activeProductId)
             : null;
@@ -215,12 +219,26 @@ export const PricingPlans = ({ variant = "section", onNavigate, initialPlans }: 
             <div
               key={plan.id}
               className={cn(
-                "relative overflow-hidden rounded-3xl p-6 md:p-7 border-2 border-transparent",
-                plan.popular ? "app-card" : "app-card-muted",
-                isHobby && "border-primary/50",
+                "relative overflow-hidden rounded-3xl p-6 md:p-7 border",
+                isHobby
+                  ? "border-cyan-300/35 bg-[linear-gradient(165deg,#0c1529_0%,#0a1020_45%,#071022_100%)] shadow-[0_26px_70px_rgba(8,18,38,0.62)]"
+                  : "border-transparent",
+                !isHobby && (plan.popular ? "app-card" : "app-card-muted"),
                 "transition-transform duration-200 hover:-translate-y-1"
               )}
             >
+              {isHobby && (
+                <>
+                  <div
+                    aria-hidden="true"
+                    className="pointer-events-none absolute inset-0 opacity-80 bg-[radial-gradient(700px_280px_at_10%_-6%,rgba(56,189,248,0.34),transparent_62%)]"
+                  />
+                  <div
+                    aria-hidden="true"
+                    className="pointer-events-none absolute inset-0 opacity-70 bg-[radial-gradient(540px_240px_at_92%_0%,rgba(99,102,241,0.28),transparent_62%)]"
+                  />
+                </>
+              )}
               {showPopular && (
                 <div
                   aria-hidden="true"
@@ -228,7 +246,14 @@ export const PricingPlans = ({ variant = "section", onNavigate, initialPlans }: 
                 />
               )}
               {showPopular && (
-                <div className="absolute -right-1 -top-1 rounded-bl-[28px] rounded-tr-[28px] bg-primary px-5 py-2 text-[11px] font-semibold text-primary-foreground shadow-[0_12px_32px_hsl(var(--primary)/0.35)]">
+                <div
+                  className={cn(
+                    "absolute -right-1 -top-1 rounded-bl-[28px] rounded-tr-[28px] px-5 py-2 text-[11px] font-semibold",
+                    isHobby
+                      ? "bg-cyan-300 text-slate-950 shadow-[0_12px_30px_rgba(56,189,248,0.42)]"
+                      : "bg-primary text-primary-foreground shadow-[0_12px_32px_hsl(var(--primary)/0.35)]"
+                  )}
+                >
                   Most Popular
                 </div>
               )}
@@ -236,25 +261,39 @@ export const PricingPlans = ({ variant = "section", onNavigate, initialPlans }: 
               <div className="relative flex flex-col h-full">
                 <div className="min-w-0">
                   <div className="flex items-center gap-2">
-                    <div className="text-xl font-semibold tracking-tight">{plan.name}</div>
+                    <div className={cn("text-xl font-semibold tracking-tight", isHobby ? "text-white" : "")}>
+                      {plan.name}
+                    </div>
                     {isCurrentPlan && (
-                      <span className="inline-flex items-center rounded-full bg-foreground/10 px-2.5 py-1 text-[11px] font-semibold text-foreground/70">
+                      <span
+                        className={cn(
+                          "inline-flex items-center rounded-full px-2.5 py-1 text-[11px] font-semibold",
+                          isHobby
+                            ? "bg-white/10 text-white/80 ring-1 ring-white/10"
+                            : "bg-foreground/10 text-foreground/70"
+                        )}
+                      >
                         Current plan
                       </span>
                     )}
                   </div>
 
                   <div className="mt-4 flex items-end gap-3">
-                    <div className="text-6xl md:text-7xl font-black tracking-tight tabular-nums text-foreground">
+                    <div className={cn("text-6xl md:text-7xl font-black tracking-tight tabular-nums", isHobby ? "text-white" : "text-foreground")}>
                       <span className="mr-1">$</span>
                       {formatUsdAmount(plan.price)}
                     </div>
-                    <div className="pb-2 text-sm md:text-base font-medium tracking-tight text-muted-foreground/70">
+                    <div
+                      className={cn(
+                        "pb-2 text-sm md:text-base font-medium tracking-tight",
+                        isHobby ? "text-cyan-100/90" : "text-muted-foreground/70"
+                      )}
+                    >
                       month
                     </div>
                   </div>
 
-                  <div className="mt-2 text-sm text-muted-foreground/70">
+                  <div className={cn("mt-2 text-sm", isHobby ? "text-slate-200/80" : "text-muted-foreground/70")}>
                     {billingPeriod === "yearly" ? (
                       <>
                         {"$"}
@@ -332,24 +371,43 @@ export const PricingPlans = ({ variant = "section", onNavigate, initialPlans }: 
                         {orderedFeatures.map((feature, index) => (
                           <li
                             key={index}
-                            className="flex items-start gap-3 text-sm text-foreground/90"
+                            className={cn(
+                              "flex items-start gap-3 text-sm",
+                              isHobby ? "text-slate-100/90" : "text-foreground/90"
+                            )}
                           >
                             <Check
                               className={cn(
                                 "mt-1 h-5 w-5 flex-shrink-0",
-                                isHobby ? "text-emerald-500" : "text-foreground/80"
+                                isHobby ? "text-cyan-300" : "text-foreground/80"
                               )}
                             />
                             {feature === "Commercial License Included" ? (
                               <Link
                                 href="/license"
                                 onClick={onNavigate}
-                                className="leading-relaxed underline underline-offset-4 decoration-foreground/20 transition-colors hover:decoration-foreground/50"
+                                className={cn(
+                                  "leading-relaxed underline underline-offset-4 transition-colors",
+                                  isHobby
+                                    ? "decoration-cyan-300/45 hover:decoration-cyan-200/80"
+                                    : "decoration-foreground/20 hover:decoration-foreground/50"
+                                )}
                               >
                                 {feature}
                               </Link>
                             ) : (
-                              <span className="leading-relaxed">{feature}</span>
+                              <span
+                                className={cn(
+                                  "leading-relaxed",
+                                  isHobby &&
+                                    (index <= 2 ||
+                                      feature.includes("Access to all models") ||
+                                      feature.includes("Commercial License")) &&
+                                    "font-semibold text-cyan-100"
+                                )}
+                              >
+                                {feature}
+                              </span>
                             )}
                           </li>
                         ))}
@@ -361,9 +419,11 @@ export const PricingPlans = ({ variant = "section", onNavigate, initialPlans }: 
                 <Button
                   className={cn(
                     "mt-6 w-full rounded-full py-6 text-base font-semibold",
-                    plan.popular
-                      ? "bg-primary text-primary-foreground hover:bg-primary/90"
-                      : "bg-foreground text-background hover:bg-foreground/90 dark:bg-white dark:text-black dark:hover:bg-white/90"
+                    isHobby
+                      ? "bg-gradient-to-r from-cyan-300 via-sky-300 to-indigo-300 text-slate-950 shadow-[0_0_0_1px_rgba(255,255,255,0.2)_inset,0_14px_36px_rgba(56,189,248,0.38)] hover:from-cyan-200 hover:via-sky-200 hover:to-indigo-200"
+                      : plan.popular
+                        ? "bg-primary text-primary-foreground hover:bg-primary/90"
+                        : "bg-foreground text-background hover:bg-foreground/90 dark:bg-white dark:text-black dark:hover:bg-white/90"
                   )}
                   variant="default"
                   onClick={() => {

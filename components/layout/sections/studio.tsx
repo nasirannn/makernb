@@ -1,7 +1,6 @@
 "use client";
 
 import React, { useState, useEffect, useRef, Suspense } from "react";
-import { flushSync } from "react-dom";
 import { useRouter } from "next/navigation";
 
 // Custom Hooks
@@ -10,8 +9,17 @@ import { useLyricsGeneration } from "@/features/lyrics-cover/hooks/use-lyrics-ge
 import { useExtendMusic } from "@/features/music-upload/hooks/use-extend-music";
 import { useAuth } from "@/contexts/AuthContext";
 import { useCredits } from "@/contexts/CreditsContext";
-import { useFeaturePermissions } from "@/contexts/FeaturePermissionsContext";
 import { useAudioPlayer } from "@/hooks/use-audio-player";
+import {
+    useStudioGenerationActions,
+    type GenerationStartOptions,
+} from "@/hooks/use-studio-generation-actions";
+import { useStudioTrackDownload } from "@/hooks/use-studio-track-download";
+import { useStudioInlineTrackPanel } from "@/hooks/use-studio-inline-track-panel";
+import { useStudioTrackPlayback } from "@/hooks/use-studio-track-playback";
+import { useStudioUploadCoverAction } from "@/hooks/use-studio-upload-cover-action";
+import { useStudioTrackActions } from "@/hooks/use-studio-track-actions";
+import { useStudioUserTracks } from "@/hooks/use-studio-user-tracks";
 import { getAudioService } from "@/lib/audio-service";
 import { useTrackGenerationMonitor } from "@/features/music-generation/hooks/use-track-generation-monitor";
 import { getEventBus, TRACK_EVENTS } from "@/lib/event-bus";
@@ -47,7 +55,6 @@ import { LoadingDots } from "@/components/ui/loading-dots";
 import { Music, Wand2, ChevronLeft } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 import { toast } from "sonner";
-import { type MusicType } from "@/types/music";
 import type { ExtendSourceTrack } from "@/types/extend-track-source";
 import type { FeatureCreatePanelProps } from "@/components/ui/feature-panels/music-generator-panel";
 import {
@@ -79,16 +86,6 @@ type StudioContentProps = {
     lockPanelMode: boolean;
 };
 
-const DEFAULT_FEATURE_MODES: Record<StudioFeatureKey, "simple" | "custom"> = {
-    "music-generator": "simple",
-    "music-extender": "custom",
-    "music-cover": "custom",
-    "mashup": "custom",
-    "add-track": "custom",
-    "add-vocal": "custom",
-    "add-melody": "custom",
-};
-
 const StudioContent = ({ feature, FeaturePanel, panelMode, lockPanelMode }: StudioContentProps) => {
     // Router 和 Search Params
     const router = useRouter();
@@ -112,40 +109,17 @@ const StudioContent = ({ feature, FeaturePanel, panelMode, lockPanelMode }: Stud
     const [trackToDelete, setTrackToDelete] = useState<any>(null);
     const [generationConfirmOpen, setGenerationConfirmOpen] = useState(false);
     const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
-    const [isFetchingUserTracks, setIsFetchingUserTracks] = useState(true);
     const [userMenuOpen, setUserMenuOpen] = useState(false);
     const [isWritingNextLyricLine, setIsWritingNextLyricLine] = useState(false);
     
-    // WAV 下载进度弹窗状态
-    const [wavDownloadDialogOpen, setWavDownloadDialogOpen] = useState(false);
-    const [wavDownloadProgress, setWavDownloadProgress] = useState(0);
-    const [wavDownloadStatus, setWavDownloadStatus] = useState<'preparing' | 'generating' | 'downloading' | 'completed' | 'error'>('preparing');
-    const [wavDownloadStatusText, setWavDownloadStatusText] = useState<string>('');
-    const [wavDownloadErrorMessage, setWavDownloadErrorMessage] = useState<string>('');
-    const [wavDownloadTrackTitle, setWavDownloadTrackTitle] = useState<string>('');
-    const [mp4DialogOpen, setMp4DialogOpen] = useState(false);
-    const [pendingMp4Track, setPendingMp4Track] = useState<any>(null);
-    const [pendingMp4Music, setPendingMp4Music] = useState<any>(null);
-    const [mp4Author, setMp4Author] = useState('');
-    const [mp4DomainName, setMp4DomainName] = useState('');
-
     // 本地状态管理 - 替换zustand store
-    const [userTracks, setUserTracks] = useState<any[]>([]);
-    const [userTracksOffset, setUserTracksOffset] = useState(0);
-    const [hasMoreUserTracks, setHasMoreUserTracks] = useState(true);
-    const [isFetchingMoreUserTracks, setIsFetchingMoreUserTracks] = useState(false);
-    const [userTracksSummary, setUserTracksSummary] = useState<{ totalTracks: number; totalDuration: number }>({
-        totalTracks: 0,
-        totalDuration: 0,
-    });
     const [selectedStudioTrack, setSelectedStudioTrack] = useState<StudioTrack | null>(null);
     const [panelOpen, setPanelOpen] = useState(true);
     const [pendingExtendSourceTrack, setPendingExtendSourceTrack] = useState<ExtendSourceTrack | null>(null);
     const [lyricsPanelOpen, setLyricsPanelOpen] = useState(false);
     const [sidebarWidth, setSidebarWidth] = useState(72);
     const sidebarOffsetRef = React.useRef(sidebarWidth);
-    const [featureModes, setFeatureModes] = useState<Record<StudioFeatureKey, "simple" | "custom">>(DEFAULT_FEATURE_MODES);
-    const previousFeatureRef = React.useRef<StudioFeatureKey | null>(null);
+    const [musicGeneratorMode, setMusicGeneratorMode] = useState<"simple" | "custom">("simple");
 
     const normalizeDuration = React.useCallback((value: unknown) => {
         const parsed = typeof value === 'string' ? parseFloat(value) : value;
@@ -187,7 +161,6 @@ const StudioContent = ({ feature, FeaturePanel, panelMode, lockPanelMode }: Stud
 
     // Destructure from hook
     const {
-        mode, setMode,
         selectedGenre, setSelectedGenre,
         selectedVibe, setSelectedVibe,
         simplePrompt, setSimplePrompt,
@@ -212,6 +185,36 @@ const StudioContent = ({ feature, FeaturePanel, panelMode, lockPanelMode }: Stud
         enhanceStyle, setEnhanceStyle,
         trackExistingTask,
     } = musicGeneration;
+
+    const activeFeatureMode = React.useMemo<"simple" | "custom">(() => {
+        if (feature === "music-generator" && !lockPanelMode) {
+            return musicGeneratorMode;
+        }
+        return panelMode;
+    }, [feature, lockPanelMode, musicGeneratorMode, panelMode]);
+
+    const setActiveFeatureMode = React.useCallback((nextMode: "simple" | "custom") => {
+        if (feature !== "music-generator" || lockPanelMode) {
+            return;
+        }
+        setMusicGeneratorMode(nextMode);
+    }, [feature, lockPanelMode]);
+
+    const {
+        userTracks,
+        setUserTracks,
+        userTracksSummary,
+        setUserTracksSummary,
+        hasMoreUserTracks,
+        isFetchingMoreUserTracks,
+        isFetchingUserTracks,
+        handleLoadMoreUserTracks,
+        fetchUserTracksByMode,
+    } = useStudioUserTracks({
+        userId: user?.id,
+        isAuthLoading,
+        pageSize: USER_TRACKS_PAGE_SIZE,
+    });
 
     React.useEffect(() => {
         const updateSidebarOffset = () => {
@@ -271,7 +274,7 @@ const StudioContent = ({ feature, FeaturePanel, panelMode, lockPanelMode }: Stud
                 )
             }))
         );
-    }, []);
+    }, [setUserTracks]);
 
     // 统一的Track对象创建函数
     const createTrackObject = React.useCallback((
@@ -415,264 +418,54 @@ const StudioContent = ({ feature, FeaturePanel, panelMode, lockPanelMode }: Stud
         }));
     }, [allTracks]);
 
-    const playableTracks = React.useMemo(() => {
-        return allTracks;
-    }, [allTracks]);
+    const {
+        handleDownload,
+        wavDownloadDialogOpen,
+        wavDownloadProgress,
+        wavDownloadStatus,
+        wavDownloadStatusText,
+        wavDownloadErrorMessage,
+        wavDownloadTrackTitle,
+        closeWavDownloadDialog,
+        mp4DialogOpen,
+        handleMp4DialogOpenChange,
+        mp4Author,
+        mp4DomainName,
+        setMp4Author,
+        setMp4DomainName,
+        handleMp4Generate,
+    } = useStudioTrackDownload({
+        user,
+    });
 
-    // ==================== 播放歌曲核心函数 ====================
-    const playTrackById = React.useCallback(async (trackId: string) => {
-        try {
-            // 首先查找本地track信息
-            let localTrack = allTracks.find(track => track.id === trackId);
-
-            // 如果在本地找不到，可能是新创建的延长音乐track，尝试从数据库获取
-            if (!localTrack || !localTrack.audioUrl) {
-                console.log('Track not found in local cache, fetching from server:', trackId);
-                
-                try {
-                    // 获取当前会话
-                    const { data: { session } } = await supabase.auth.getSession();
-                    
-                    const response = await fetch(`/api/track-info/${trackId}`, {
-                        headers: {
-                            'Authorization': `Bearer ${session?.access_token}`,
-                        },
-                    });
-                    
-                    if (response.ok) {
-                        const trackData = await response.json();
-                        if (trackData.success && trackData.track) {
-                            const track = trackData.track;
-                            localTrack = createTrackObject(
-                                track.id,
-                                track.musicId,
-                                track.title,
-                                track.audioUrl,
-                                track.duration,
-                                track.coverR2Url,
-                                track.tags,
-                                track.genre,
-                                track.lyrics,
-                                track.isFavorited || false,
-                                track.isLiked || false,
-                                track.isDisliked || false,
-                            track.streamAudioUrl,
-                            track.createdAt,
-                            track.generationMode,
-                            track.sunoTrackId ?? track.suno_track_id ?? null
-                            );
-                            console.log('Successfully fetched track from server:', localTrack);
-                        }
-                    }
-                } catch (fetchError) {
-                    console.error('Failed to fetch track from server:', fetchError);
-                }
-            }
-            
-            // 最终检查
-            if (!localTrack || !localTrack.audioUrl) {
-                console.warn('Track not found or no audio URL:', trackId);
-                return;
-            }
-            
-            // 使用新的音频播放器播放
-            await player.playTrack({
-                id: localTrack.id,
-                title: localTrack.title,
-                audioUrl: localTrack.audioUrl,
-                streamAudioUrl: localTrack.streamAudioUrl,
-                duration: localTrack.duration,
-                genre: localTrack.genre,
-                lyrics: localTrack.lyrics,
-                tags: localTrack.tags,
-                generationId: localTrack.generationId,
-                isFavorited: localTrack.isFavorited,
-                isLiked: localTrack.isLiked,
-                isDisliked: localTrack.isDisliked,
-                coverImage: localTrack.coverImage,
-                coverR2Url: localTrack.coverR2Url,
-            });
-            
-        } catch (error) {
-            console.error('Error playing track:', error);
-        }
-    }, [allTracks, player, createTrackObject]);
-
-    // ==================== 上一首/下一首函数 ====================
-    const handlePrevious = React.useCallback(() => {
-        if (!player.currentTrack || playableTracks.length === 0) return;
-        
-        const currentIndex = playableTracks.findIndex(track => track.id === player.currentTrack?.id);
-        if (currentIndex === -1) return;
-        
-        const prevIndex = currentIndex > 0 ? currentIndex - 1 : playableTracks.length - 1;
-        const prevTrack = playableTracks[prevIndex];
-        
-        if (prevTrack) {
-            playTrackById(prevTrack.id);
-            // 更新选中状态
-            setSelectedStudioTrack(prevTrack);
-            setLyricsPanelOpen(true);
-        }
-    }, [player, playableTracks, playTrackById]);
-
-    const handleNext = React.useCallback(() => {
-        if (!player.currentTrack || playableTracks.length === 0) return;
-        
-        const currentIndex = playableTracks.findIndex(track => track.id === player.currentTrack?.id);
-        if (currentIndex === -1) return;
-        
-        const nextIndex = currentIndex < playableTracks.length - 1 ? currentIndex + 1 : 0;
-        const nextTrack = playableTracks[nextIndex];
-        
-        if (nextTrack) {
-            playTrackById(nextTrack.id);
-            // 更新选中状态
-            setSelectedStudioTrack(nextTrack);
-            setLyricsPanelOpen(true);
-        }
-    }, [player, playableTracks, playTrackById]);
-
-    // 获取用户 tracks
-    const fetchUserTracks = React.useCallback(async (options?: { mode?: 'reset' | 'append' | 'merge' }) => {
-        const mode = options?.mode ?? 'reset';
-        const isAppend = mode === 'append';
-        const isMerge = mode === 'merge';
-
-        if (!user?.id) {
-            setUserTracks([]);
-            setUserTracksOffset(0);
-            setHasMoreUserTracks(false);
-            setIsFetchingUserTracks(false);
-            setIsFetchingMoreUserTracks(false);
-            setUserTracksSummary({ totalTracks: 0, totalDuration: 0 });
-            return;
-        }
-
-        if (isAppend && (isFetchingMoreUserTracks || isFetchingUserTracks || !hasMoreUserTracks)) {
-            return;
-        }
-
-        if (isAppend) {
-            setIsFetchingMoreUserTracks(true);
-        } else {
-            setIsFetchingUserTracks(true);
-        }
-
-        try {
-            // 获取当前session的access token
-            const { data: { session } } = await supabase.auth.getSession();
-            
-            // 添加时间戳参数强制刷新缓存
-            const timestamp = Date.now();
-            const offset = isAppend ? userTracksOffset : 0;
-            const response = await fetch(`/api/user-music/${user.id}?limit=${USER_TRACKS_PAGE_SIZE}&offset=${offset}&_t=${timestamp}`, {
-                headers: {
-                    'Authorization': `Bearer ${session?.access_token}`,
-                    'Cache-Control': 'no-cache'
-                }
-            });
-            if (response.ok) {
-                const data = await response.json();
-                const tracks = (Array.isArray(data.data?.music) ? data.data.music : []) as any[];
-                const totalTracks = Number(data.data?.totalTracks ?? 0);
-                const totalDuration = Number(data.data?.totalDuration ?? 0);
-
-                setUserTracks(prevTracks => {
-                    if (isAppend) {
-                        const existingIds = new Set(prevTracks.map((track: any) => track.id));
-                        const merged = [...prevTracks];
-                        tracks.forEach((track: any) => {
-                            if (!existingIds.has(track.id)) {
-                                merged.push(track);
-                            }
-                        });
-                        return merged;
-                    }
-
-                    if (isMerge) {
-                        const incomingIds = new Set(tracks.map((track: any) => track.id));
-                        const merged = [...tracks];
-                        prevTracks.forEach((track: any) => {
-                            if (!incomingIds.has(track.id)) {
-                                merged.push(track);
-                            }
-                        });
-                        return merged;
-                    }
-
-                    return tracks;
-                });
-
-                if (Number.isFinite(totalTracks) && Number.isFinite(totalDuration)) {
-                    setUserTracksSummary({
-                        totalTracks,
-                        totalDuration,
-                    });
-                }
-
-                if (isAppend) {
-                    setUserTracksOffset(prevOffset => prevOffset + tracks.length);
-                } else if (isMerge) {
-                    setUserTracksOffset(prevOffset => (prevOffset === 0 ? tracks.length : prevOffset));
-                } else {
-                    setUserTracksOffset(tracks.length);
-                }
-
-                if (!isMerge) {
-                    setHasMoreUserTracks(tracks.length === USER_TRACKS_PAGE_SIZE);
-                }
-            } else {
-                console.error('Failed to fetch user tracks:', response.status, response.statusText);
-                if (!isAppend) {
-                    setUserTracks([]);
-                }
-            }
-        } catch (error) {
-            console.error('Error fetching user tracks:', error);
-        } finally {
-            if (isAppend) {
-                setIsFetchingMoreUserTracks(false);
-            } else {
-                setIsFetchingUserTracks(false);
-            }
-        }
-    }, [user?.id, userTracksOffset, isFetchingMoreUserTracks, isFetchingUserTracks, hasMoreUserTracks]);
-
-    // 使用 ref 存储 fetchUserTracks，供 useExtendMusic 使用
-    const fetchUserTracksRef = React.useRef(fetchUserTracks);
-    React.useEffect(() => {
-        fetchUserTracksRef.current = fetchUserTracks;
-    }, [fetchUserTracks]);
-
-    const handleLoadMoreUserTracks = React.useCallback(() => {
-        fetchUserTracks({ mode: 'append' });
-    }, [fetchUserTracks]);
+    const {
+        playTrackById,
+        handlePrevious,
+        handleNext,
+        handleTrackSelect,
+        handleInlineTrackPreview,
+        handleUserTrackSelect,
+        handleUserTrackPlay,
+        handleGeneratedTrackSelect,
+        handlePlayerLyricsToggle,
+    } = useStudioTrackPlayback({
+        allTracks,
+        generatedTracks,
+        findTrackAndMusic,
+        createTrackObject,
+        player,
+        selectedStudioTrack,
+        lyricsPanelOpen,
+        setSelectedStudioTrack,
+        setLyricsPanelOpen,
+    });
 
     // 传递 updateTracks 回调给 useExtendMusic，直接更新 generatedTracks
     // 延长音乐完成时，刷新 userTracks（数据已写入数据库）
     const extendMusic = useExtendMusic(
         updateTracks,
-        () => fetchUserTracksRef.current({ mode: 'merge' })
+        () => fetchUserTracksByMode('merge')
     );
-
-    // 初始化时获取用户 tracks 或使用模拟数据
-    useEffect(() => {
-        if (isAuthLoading) return;
-        if (user?.id) {
-            setUserTracks([]);
-            setUserTracksOffset(0);
-            setHasMoreUserTracks(true);
-            fetchUserTracksRef.current({ mode: 'reset' });
-        } else {
-            setUserTracks([]);
-            setUserTracksOffset(0);
-            setHasMoreUserTracks(false);
-            setIsFetchingMoreUserTracks(false);
-            setIsFetchingUserTracks(false);
-            setUserTracksSummary({ totalTracks: 0, totalDuration: 0 });
-        }
-    }, [user?.id, isAuthLoading]);
 
     // 监听状态机变化，当歌曲生成完成时更新播放器duration
     useEffect(() => {
@@ -727,7 +520,7 @@ const StudioContent = ({ feature, FeaturePanel, panelMode, lockPanelMode }: Stud
         return () => {
             eventBus.off(TRACK_EVENTS.DELETED, handleTrackDeleted);
         };
-    }, [updateTracks, selectedStudioTrack]);
+    }, [updateTracks, selectedStudioTrack, setUserTracks]);
 
     // Lyrics generation
     const {
@@ -749,14 +542,15 @@ const StudioContent = ({ feature, FeaturePanel, panelMode, lockPanelMode }: Stud
         try {
             await musicGeneration.handleGenerate(
                 refreshCredits, 
-                () => setGenerationConfirmOpen(true)
+                () => setGenerationConfirmOpen(true),
+                { modeOverride: activeFeatureMode }
             );
             return true;
         } catch (error) {
             console.error('Generation failed:', error);
             return false;
         }
-    }, [user?.id, musicGeneration, refreshCredits]);
+    }, [activeFeatureMode, user?.id, musicGeneration, refreshCredits]);
 
     // Handle generation start - remove library loading
     const getModelLimits = React.useCallback((model: string) => {
@@ -773,233 +567,15 @@ const StudioContent = ({ feature, FeaturePanel, panelMode, lockPanelMode }: Stud
         }
     }, []);
 
-    const handleUploadCover = React.useCallback(async (options?: {
-        uploadFile?: File | null;
-        uploadUrl?: string | null;
-        mode?: "cover" | "extend";
-        continueAt?: number;
-        isPublished?: boolean;
-        styleWeight?: number;
-        weirdnessConstraint?: number;
-        audioWeight?: number;
-    }) => {
-        if (!user?.id) {
-            setIsAuthModalOpen(true);
-            return false;
-        }
-
-        const trimmedSimplePrompt = simplePrompt.trim();
-        const trimmedCustomLyrics = customLyrics.trim();
-        const trimmedStyle = styleText.trim();
-        const trimmedTitle = songTitle.trim();
-        const isSimpleMode = mode === "simple";
-        const isCustomMode = mode === "custom";
-        const effectiveModel = isCustomMode ? selectedModel : 'V4';
-        const forceInstrumentalFalseForUpload = feature === "music-extender" || feature === "music-cover";
-        const effectiveUploadInstrumental = forceInstrumentalFalseForUpload
-            ? false
-            : (isCustomMode ? instrumentalMode : false);
-
-        if (isSimpleMode && !trimmedSimplePrompt) {
-            toast.error("Please enter a prompt.");
-            return false;
-        }
-
-        if (isCustomMode) {
-            if (!trimmedStyle) {
-                toast.error("Please enter a style.");
-                return false;
-            }
-            if (!trimmedTitle) {
-                toast.error("Please enter a title.");
-                return false;
-            }
-            if (!effectiveUploadInstrumental && !trimmedCustomLyrics) {
-                toast.error("Please enter lyrics.");
-                return false;
-            }
-        }
-
-        const uploadFile = options?.uploadFile ?? null;
-        const uploadUrl = options?.uploadUrl ?? null;
-        const continueAt = options?.continueAt ?? 0;
-        if (!uploadUrl) {
-            toast.error("Upload URL is required. Please upload your audio first.");
-            return false;
-        }
-
-        if (options?.mode === "extend" && isCustomMode && continueAt <= 0) {
-            toast.error("Start time must be greater than 0s.");
-            return false;
-        }
-
-        setSelectedStudioTrack(null);
-
-        const placeholderGenerationId = `pending_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
-        const placeholderTags = isCustomMode ? trimmedStyle : trimmedSimplePrompt;
-        const placeholderPrompt = isCustomMode ? trimmedStyle : trimmedSimplePrompt;
-        const placeholderTitle = trimmedTitle || (uploadFile?.name ? uploadFile.name.replace(/\.[^/.]+$/, "") : "Untitled Track");
-        const generationMode = isCustomMode ? 'custom' : 'simple';
-        const placeholderMusicType: MusicType = options?.mode === 'extend' ? 'upload_extend' : 'upload_cover';
-
-        flushSync(() => {
-            updateTracks((prevTracks) => ([
-                {
-                    id: `${placeholderGenerationId}_placeholder_0`,
-                    generationId: placeholderGenerationId,
-                    sunoTrackId: null,
-                    title: placeholderTitle,
-                    audioUrl: '',
-                    streamAudioUrl: '',
-                    duration: undefined,
-                    coverImage: undefined,
-                    tags: placeholderTags,
-                    genre: '',
-                    prompt: placeholderPrompt,
-                    lyrics: '',
-                    model: effectiveModel,
-                    createdAt: new Date().toISOString(),
-                    isGenerating: true,
-                    isCompleted: false,
-                    isPlaceholder: true,
-                    generationMode,
-                    musicType: placeholderMusicType,
-                },
-                {
-                    id: `${placeholderGenerationId}_placeholder_1`,
-                    generationId: placeholderGenerationId,
-                    sunoTrackId: null,
-                    title: placeholderTitle,
-                    audioUrl: '',
-                    streamAudioUrl: '',
-                    duration: undefined,
-                    coverImage: undefined,
-                    tags: placeholderTags,
-                    genre: '',
-                    prompt: placeholderPrompt,
-                    lyrics: '',
-                    model: effectiveModel,
-                    createdAt: new Date().toISOString(),
-                    isGenerating: true,
-                    isCompleted: false,
-                    isPlaceholder: true,
-                    generationMode,
-                    musicType: placeholderMusicType,
-                },
-                ...prevTracks
-            ]));
-        });
-
-        try {
-            const { data: { session } } = await supabase.auth.getSession();
-
-            if (!session?.access_token) {
-                updateTracks(prevTracks =>
-                    prevTracks.filter(track => !(track.isPlaceholder && track.generationId === placeholderGenerationId))
-                );
-                throw new Error("Authentication expired. Please sign in again.");
-            }
-
-            const formData = new FormData();
-            const limits = getModelLimits(effectiveModel);
-            const uploadMode = options?.mode === "extend" ? "extend" : "cover";
-            const requestedIsPublished = options?.isPublished ?? isPublished;
-            formData.append("mode", uploadMode);
-            formData.append("uploadUrl", uploadUrl);
-            if (uploadMode === "extend") {
-                formData.append("defaultParamFlag", isCustomMode ? "true" : "false");
-            } else {
-                formData.append("customMode", isCustomMode ? "true" : "false");
-                formData.append("isPublished", requestedIsPublished ? "true" : "false");
-            }
-            formData.append("instrumental", effectiveUploadInstrumental ? "true" : "false");
-            formData.append("model", effectiveModel);
-            if (uploadMode === "extend" && isCustomMode) {
-                formData.append("continueAt", continueAt.toString());
-            }
-
-            if (isCustomMode) {
-                if (trimmedStyle) {
-                    formData.append("style", trimmedStyle.slice(0, limits.style));
-                }
-                if (trimmedTitle) {
-                    formData.append("title", trimmedTitle.slice(0, limits.title));
-                }
-                if (!effectiveUploadInstrumental && trimmedCustomLyrics) {
-                    formData.append("prompt", trimmedCustomLyrics.slice(0, limits.prompt));
-                }
-
-                if (selectedPersonaId) {
-                    formData.append("personaId", selectedPersonaId);
-                    formData.append("personaModel", selectedPersonaModel);
-                }
-                if (typeof options?.styleWeight === "number") {
-                    formData.append("styleWeight", options.styleWeight.toString());
-                }
-                if (typeof options?.weirdnessConstraint === "number") {
-                    formData.append("weirdnessConstraint", options.weirdnessConstraint.toString());
-                }
-                if (typeof options?.audioWeight === "number") {
-                    formData.append("audioWeight", options.audioWeight.toString());
-                }
-            } else if (trimmedSimplePrompt) {
-                const maxSimplePrompt = uploadMode === "extend" ? limits.prompt : 500;
-                formData.append("prompt", trimmedSimplePrompt.slice(0, maxSimplePrompt));
-            }
-
-            const response = await fetch("/api/music/upload", {
-                method: "POST",
-                headers: {
-                    Authorization: `Bearer ${session.access_token}`,
-                },
-                body: formData,
-            });
-
-            const result = await response.json();
-            if (!response.ok || !result?.success) {
-                updateTracks(prevTracks =>
-                    prevTracks.filter(track => !(track.isPlaceholder && track.generationId === placeholderGenerationId))
-                );
-                if (response.status === 402) {
-                    toast.error(result?.error || "Insufficient credits. Please top up credits.");
-                } else {
-                    toast.error(result?.error || "Upload failed. Please try again.");
-                }
-                return false;
-            }
-
-            const taskId = result?.data?.taskId;
-            const initialTracks = result?.data?.initialTracks;
-
-            if (taskId) {
-                updateTracks(prevTracks =>
-                    prevTracks.filter(track => !(track.isPlaceholder && track.generationId === placeholderGenerationId))
-                );
-                musicGeneration.trackExistingTask(taskId, initialTracks);
-                setGenerationConfirmOpen(true);
-            }
-
-            await refreshCredits?.();
-            return true;
-        } catch (error) {
-            console.error("Upload audio error:", error);
-            updateTracks(prevTracks =>
-                prevTracks.filter(track => !(track.isPlaceholder && track.generationId === placeholderGenerationId))
-            );
-            const message =
-                error instanceof Error ? error.message : "Upload failed. Please try again.";
-            toast.error(message);
-            return false;
-        }
-    }, [
-        user?.id,
+    const handleUploadCover = useStudioUploadCoverAction({
+        userId: user?.id,
         simplePrompt,
         customLyrics,
         styleText,
         songTitle,
         instrumentalMode,
         feature,
-        mode,
+        activeFeatureMode,
         selectedModel,
         selectedPersonaId,
         selectedPersonaModel,
@@ -1007,373 +583,42 @@ const StudioContent = ({ feature, FeaturePanel, panelMode, lockPanelMode }: Stud
         getModelLimits,
         refreshCredits,
         updateTracks,
-        musicGeneration,
+        trackExistingTask,
         setIsAuthModalOpen,
-        setSelectedStudioTrack,
-    ]);
+        clearSelectedStudioTrack: () => setSelectedStudioTrack(null),
+        openGenerationConfirm: () => setGenerationConfirmOpen(true),
+    });
 
-    const handleGenerationStart = React.useCallback(async (options?: {
-        uploadFile?: File | null;
-        uploadUrl?: string | null;
-        trackId?: string;
-        audioId?: string;
-        uploadUrlList?: string[];
-        mode?: "cover" | "extend" | "mashup" | "vocal" | "melody";
-        continueAt?: number;
-        isPublished?: boolean;
-        tags?: string;
-        negativeTags?: string;
-        styleWeight?: number;
-        weirdnessConstraint?: number;
-        audioWeight?: number;
-    }) => {
+    const {
+        handleMashupGenerationStart,
+        handleUploadTransformGenerationStart,
+        handleExtendGenerationStart,
+    } = useStudioGenerationActions({
+        userId: user?.id,
+        customLyrics,
+        styleText,
+        songTitle,
+        selectedModel,
+        selectedPersonaId,
+        vocalGender,
+        getModelLimits,
+        refreshCredits,
+        trackExistingTask,
+        setIsAuthModalOpen,
+        openGenerationConfirm: () => setGenerationConfirmOpen(true),
+    });
+
+    const handleGenerationStart = React.useCallback(async (options?: GenerationStartOptions) => {
         if (options?.mode === 'mashup') {
-            if (!user?.id) {
-                setIsAuthModalOpen(true);
-                return false;
-            }
-
-            const uploadUrlList = (options?.uploadUrlList || []).map((url) => url.trim()).filter(Boolean);
-            if (uploadUrlList.length !== 2) {
-                toast.error('Please provide exactly 2 uploaded audio URLs for mashup.');
-                return false;
-            }
-
-            const trimmedCustomLyrics = customLyrics.trim();
-            const trimmedStyle = styleText.trim();
-            const trimmedTitle = songTitle.trim();
-
-            if (!trimmedStyle) {
-                toast.error('Please enter a style.');
-                return false;
-            }
-            if (!trimmedTitle) {
-                toast.error('Please enter a title.');
-                return false;
-            }
-            if (!trimmedCustomLyrics) {
-                toast.error('Please enter lyrics.');
-                return false;
-            }
-
-            const modelLimits = getModelLimits(selectedModel);
-
-            try {
-                const { data: { session } } = await supabase.auth.getSession();
-
-                if (!session?.access_token) {
-                    throw new Error('Authentication expired. Please sign in again.');
-                }
-
-                const formData = new FormData();
-                formData.append('uploadUrlList', uploadUrlList.join(','));
-                formData.append('customMode', 'true');
-                formData.append('model', selectedModel);
-                formData.append('title', trimmedTitle.slice(0, modelLimits.title));
-                formData.append('style', trimmedStyle.slice(0, modelLimits.style));
-                formData.append('prompt', trimmedCustomLyrics.slice(0, modelLimits.prompt));
-                if (vocalGender) {
-                    formData.append('vocalGender', vocalGender);
-                }
-                if (typeof options?.styleWeight === 'number') {
-                    formData.append('styleWeight', options.styleWeight.toString());
-                }
-                if (typeof options?.weirdnessConstraint === 'number') {
-                    formData.append('weirdnessConstraint', options.weirdnessConstraint.toString());
-                }
-                if (typeof options?.audioWeight === 'number') {
-                    formData.append('audioWeight', options.audioWeight.toString());
-                }
-
-                const response = await fetch('/api/music/mashup', {
-                    method: 'POST',
-                    headers: {
-                        Authorization: `Bearer ${session.access_token}`,
-                    },
-                    body: formData,
-                });
-
-                const result = await response.json().catch(() => ({}));
-
-                if (!response.ok || !result?.success) {
-                    if (response.status === 402) {
-                        toast.error(result?.error || 'Insufficient credits. Please top up credits.');
-                    } else {
-                        toast.error(result?.error || 'Mashup generation failed. Please try again.');
-                    }
-                    return false;
-                }
-
-                const taskId = result?.data?.taskId;
-                const initialTracks = result?.data?.initialTracks;
-
-                if (!taskId) {
-                    toast.error('Mashup task ID is missing. Please try again.');
-                    return false;
-                }
-
-                musicGeneration.trackExistingTask(taskId, initialTracks);
-                setGenerationConfirmOpen(true);
-                await refreshCredits?.();
-                return true;
-            } catch (error) {
-                console.error('Mashup generation failed:', error);
-                const message = error instanceof Error ? error.message : 'Mashup generation failed. Please try again.';
-                toast.error(message);
-                return false;
-            }
+            return await handleMashupGenerationStart(options);
         }
 
         if (options?.mode === 'vocal' || options?.mode === 'melody') {
-            if (!user?.id) {
-                setIsAuthModalOpen(true);
-                return false;
-            }
-
-            const uploadUrl = options?.uploadUrl?.trim() || '';
-            if (!uploadUrl) {
-                toast.error('Please upload audio first.');
-                return false;
-            }
-
-            const trimmedTitle = songTitle.trim();
-            if (!trimmedTitle) {
-                toast.error('Please enter a title.');
-                return false;
-            }
-
-            const uploadModel = selectedModel === 'V5' || selectedModel === 'V4_5PLUS'
-                ? selectedModel
-                : 'V4_5PLUS';
-            const modelLimits = getModelLimits(uploadModel);
-
-            if (options.mode === 'vocal') {
-                const trimmedStyle = styleText.trim();
-                const trimmedCustomLyrics = customLyrics.trim();
-
-                if (!trimmedStyle) {
-                    toast.error('Please enter a style.');
-                    return false;
-                }
-                if (!trimmedCustomLyrics) {
-                    toast.error('Please enter lyrics.');
-                    return false;
-                }
-            } else {
-                const trimmedTags = options?.tags?.trim() || '';
-                if (!trimmedTags) {
-                    toast.error('Please enter tags for melody mode.');
-                    return false;
-                }
-            }
-
-            try {
-                const { data: { session } } = await supabase.auth.getSession();
-
-                if (!session?.access_token) {
-                    throw new Error('Authentication expired. Please sign in again.');
-                }
-
-                const formData = new FormData();
-                formData.append('mode', options.mode);
-                formData.append('uploadUrl', uploadUrl);
-                formData.append('model', uploadModel);
-                formData.append('title', trimmedTitle.slice(0, modelLimits.title));
-
-                if (options.mode === 'vocal') {
-                    const trimmedStyle = styleText.trim();
-                    const trimmedCustomLyrics = customLyrics.trim();
-                    formData.append('style', trimmedStyle.slice(0, modelLimits.style));
-                    formData.append('prompt', trimmedCustomLyrics.slice(0, modelLimits.prompt));
-
-                    if (vocalGender) {
-                        formData.append('vocalGender', vocalGender);
-                    }
-                } else {
-                    const trimmedTags = options?.tags?.trim() || '';
-                    const trimmedNegativeTags = options?.negativeTags?.trim() || '';
-                    formData.append('tags', trimmedTags.slice(0, modelLimits.style));
-                    if (trimmedNegativeTags) {
-                        formData.append('negativeTags', trimmedNegativeTags.slice(0, modelLimits.style));
-                    }
-                }
-
-                if (typeof options?.styleWeight === 'number') {
-                    formData.append('styleWeight', options.styleWeight.toString());
-                }
-                if (typeof options?.weirdnessConstraint === 'number') {
-                    formData.append('weirdnessConstraint', options.weirdnessConstraint.toString());
-                }
-                if (typeof options?.audioWeight === 'number') {
-                    formData.append('audioWeight', options.audioWeight.toString());
-                }
-
-                const response = await fetch('/api/music/upload', {
-                    method: 'POST',
-                    headers: {
-                        Authorization: 'Bearer ' + session.access_token,
-                    },
-                    body: formData,
-                });
-
-                const result = await response.json().catch(() => ({}));
-
-                if (!response.ok || !result?.success) {
-                    if (response.status === 402) {
-                        toast.error(result?.error || 'Insufficient credits. Please top up credits.');
-                    } else {
-                        toast.error(result?.error || 'Upload generation failed. Please try again.');
-                    }
-                    return false;
-                }
-
-                const taskId = result?.data?.taskId;
-                const initialTracks = result?.data?.initialTracks;
-
-                if (!taskId) {
-                    toast.error('Task ID is missing. Please try again.');
-                    return false;
-                }
-
-                musicGeneration.trackExistingTask(taskId, initialTracks);
-                setGenerationConfirmOpen(true);
-                await refreshCredits?.();
-                return true;
-            } catch (error) {
-                console.error('Upload transform generation failed:', error);
-                const message = error instanceof Error ? error.message : 'Upload generation failed. Please try again.';
-                toast.error(message);
-                return false;
-            }
+            return await handleUploadTransformGenerationStart(options);
         }
 
         if (options?.mode === 'extend' && options?.trackId) {
-            if (!user?.id) {
-                setIsAuthModalOpen(true);
-                return false;
-            }
-
-            const trackId = options.trackId.trim();
-            const audioId = options?.audioId?.trim() || '';
-            if (!trackId) {
-                toast.error('Track ID is required.');
-                return false;
-            }
-
-            const trimmedSimplePrompt = simplePrompt.trim();
-            const trimmedCustomLyrics = customLyrics.trim();
-            const trimmedStyle = styleText.trim();
-            const trimmedTitle = songTitle.trim();
-            const isSimpleMode = mode === "simple";
-            const isCustomMode = mode === "custom";
-            const effectiveModel = isCustomMode ? selectedModel : 'V4';
-            const limits = getModelLimits(effectiveModel);
-            const continueAt = options?.continueAt ?? 0;
-
-            if (isSimpleMode && !trimmedSimplePrompt) {
-                toast.error("Please enter a prompt.");
-                return false;
-            }
-
-            if (isCustomMode) {
-                if (!trimmedStyle) {
-                    toast.error("Please enter a style.");
-                    return false;
-                }
-                if (!trimmedTitle) {
-                    toast.error("Please enter a title.");
-                    return false;
-                }
-                if (!trimmedCustomLyrics) {
-                    toast.error("Please enter lyrics.");
-                    return false;
-                }
-                if (continueAt <= 0) {
-                    toast.error("Start time must be greater than 0s.");
-                    return false;
-                }
-            }
-
-            try {
-                const { data: { session } } = await supabase.auth.getSession();
-
-                if (!session?.access_token) {
-                    throw new Error('Authentication expired. Please sign in again.');
-                }
-
-                const requestBody: Record<string, unknown> = {
-                    trackId,
-                    model: effectiveModel,
-                    defaultParamFlag: isCustomMode,
-                };
-
-                if (audioId) {
-                    requestBody.audioId = audioId;
-                }
-
-                if (isCustomMode) {
-                    requestBody.prompt = trimmedCustomLyrics.slice(0, limits.prompt);
-                    requestBody.style = trimmedStyle.slice(0, limits.style);
-                    requestBody.title = trimmedTitle.slice(0, limits.title);
-                    requestBody.continueAt = continueAt;
-                    if (vocalGender) {
-                        requestBody.vocalGender = vocalGender;
-                    }
-                    if (selectedPersonaId) {
-                        requestBody.personaId = selectedPersonaId;
-                    }
-                } else {
-                    requestBody.prompt = trimmedSimplePrompt.slice(0, limits.prompt);
-                }
-
-                if (typeof options?.styleWeight === "number") {
-                    requestBody.styleWeight = options.styleWeight;
-                }
-                if (typeof options?.weirdnessConstraint === "number") {
-                    requestBody.weirdnessConstraint = options.weirdnessConstraint;
-                }
-                if (typeof options?.audioWeight === "number") {
-                    requestBody.audioWeight = options.audioWeight;
-                }
-
-                const response = await fetch('/api/music/extend', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        Authorization: `Bearer ${session.access_token}`,
-                    },
-                    body: JSON.stringify(requestBody),
-                });
-
-                const result = await response.json().catch(() => ({}));
-
-                if (!response.ok || !result?.success) {
-                    if (response.status === 402) {
-                        toast.error(result?.error || 'Insufficient credits. Please top up credits.');
-                    } else {
-                        toast.error(result?.error || 'Extend generation failed. Please try again.');
-                    }
-                    return false;
-                }
-
-                const taskId = result?.data?.taskId;
-                const initialTracks = result?.data?.initialTracks;
-
-                if (!taskId) {
-                    toast.error('Extend task ID is missing. Please try again.');
-                    return false;
-                }
-
-                musicGeneration.trackExistingTask(taskId, initialTracks);
-                setGenerationConfirmOpen(true);
-                await refreshCredits?.();
-                return true;
-            } catch (error) {
-                console.error('Extend generation failed:', error);
-                const message = error instanceof Error ? error.message : 'Extend generation failed. Please try again.';
-                toast.error(message);
-                return false;
-            }
+            return await handleExtendGenerationStart(options);
         }
 
         if (options?.uploadFile || options?.uploadUrl) {
@@ -1390,21 +635,11 @@ const StudioContent = ({ feature, FeaturePanel, panelMode, lockPanelMode }: Stud
         }
         return await handleGenerate();
     }, [
-        user?.id,
-        simplePrompt,
-        mode,
-        customLyrics,
-        styleText,
-        songTitle,
-        selectedModel,
-        selectedPersonaId,
-        vocalGender,
-        getModelLimits,
-        refreshCredits,
-        handleGenerate,
+        handleMashupGenerationStart,
+        handleUploadTransformGenerationStart,
+        handleExtendGenerationStart,
         handleUploadCover,
-        musicGeneration,
-        setIsAuthModalOpen,
+        handleGenerate,
     ]);
 
     // 移除自动关闭逻辑，让用户手动关闭确认弹窗
@@ -1480,783 +715,33 @@ const StudioContent = ({ feature, FeaturePanel, panelMode, lockPanelMode }: Stud
         }
     }, [user?.id, customLyrics, setCustomLyrics, setIsAuthModalOpen]);
 
-    // ==================== 歌曲选择处理函数 ====================
-    // 通用的 track 选择处理函数
-    const handleTrackSelect = React.useCallback((
-        track: any, 
-        music: any, 
-        options: { autoPlay?: boolean } = {}
-    ) => {
-        const { autoPlay = true } = options;
-        
-        // 如果点击的是当前播放的歌曲
-        if (player.currentTrack?.id === track.id) {
-            // 设置选中的track（用于歌词面板和选中状态显示）
-                const selectedTrack = createTrackObject(
-                    track.id,
-                    music.id,
-                    track.title || music.title || 'Untitled Track',
-                    track.audioUrl || '',
-                    track.duration,
-                    track.coverR2Url || track.coverImage,
-                    music.tags,
-                    music.genre,
-                    track.lyrics || music.lyrics,
-                    track.isFavorited || false,
-                    track.isLiked || false,
-                    track.isDisliked || false,
-                    track.streamAudioUrl || '',
-                    track.createdAt || music.createdAt || new Date().toISOString(),
-                    music.generationMode
-                );
-            setSelectedStudioTrack(selectedTrack);
-            setLyricsPanelOpen(true);
-            
-            // 如果是 autoPlay 模式（点击了播放/暂停按钮），则切换播放状态
-            if (autoPlay) {
-                togglePlayPause();
-            }
-            return;
-        }
-        
-        // 设置选中的track（用于歌词面板和选中状态显示）
-        const selectedTrack = createTrackObject(
-            track.id,
-            music.id,
-            track.title || music.title || 'Untitled Track',
-            track.audioUrl || track.audio_url || '', // 优先使用 audioUrl，兼容旧数据
-            track.duration,
-            track.coverR2Url || track.cover_r2_url || track.coverImage,
-            music.tags,
-            music.genre,
-            track.lyrics || music.lyrics,
-            track.isFavorited ?? track.is_favorited ?? false,
-            track.isLiked ?? track.is_liked ?? false,
-            track.isDisliked ?? track.is_disliked ?? false,
-            track.streamAudioUrl || track.stream_audio_url,
-            track.createdAt || music.createdAt || new Date().toISOString(),
-            music.generationMode
-        );
-        setSelectedStudioTrack(selectedTrack);
-        setLyricsPanelOpen(true);
-        
-        // 播放新歌曲
-        if (autoPlay) {
-            playTrackById(track.id);
-        }
-        
-        // 歌词面板始终显示，无需手动控制
-    }, [player, togglePlayPause, playTrackById, createTrackObject]);
-
-    const handleInlineTrackPreview = React.useCallback((track: any) => {
-        if (!track) return;
-        const normalized = createTrackObject(
-            track.id,
-            track.generationId || track.musicGeneration?.id || track.musicId || '',
-            track.title || track.musicTitle || 'Untitled Track',
-            track.audioUrl || track.audio_url || '',
-            typeof track.duration === 'string' ? parseFloat(track.duration) : (track.duration || 0),
-            track.coverR2Url || track.coverImage,
-            track.tags || track.musicTags || '',
-            track.genre || track.musicGenre || '',
-            track.lyrics || track.musicGeneration?.lyricsContent || '',
-            track.isFavorited ?? false,
-            track.isLiked ?? false,
-            track.isDisliked ?? false,
-            track.streamAudioUrl || '',
-            track.createdAt || track.musicGeneration?.createdAt || new Date().toISOString(),
-            track.musicGeneration?.generationMode
-        );
-        setSelectedStudioTrack(normalized);
-        setLyricsPanelOpen(true);
-    }, [createTrackObject]);
-
-    // ==================== 下载和收藏处理函数 ====================
-    // 辅助函数：下载文件
-    const downloadFile = React.useCallback((blob: Blob, filename: string, format: string) => {
-        const blobUrl = window.URL.createObjectURL(blob);
-        const link = document.createElement('a');
-        link.href = blobUrl;
-        link.download = `${filename}.${format}`;
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
-        window.URL.revokeObjectURL(blobUrl);
-    }, []);
-
-    // WAV下载轮询函数
-    const handleWavDownloadWithPolling = React.useCallback(async (
-        track: any,
-        music: any,
-        accessToken: string
-    ) => {
-        const POLL_INTERVAL = 3000; // 每3秒轮询一次
-        const MAX_POLL_TIME = 180000; // 最大轮询时间：3分钟
-        const startTime = Date.now();
-        let lastProgress = 0;
-
-        // 初始化弹窗状态
-        setWavDownloadDialogOpen(true);
-        setWavDownloadProgress(0);
-        setWavDownloadStatus('preparing');
-        setWavDownloadStatusText('Preparing download...');
-        setWavDownloadErrorMessage('');
-        setWavDownloadTrackTitle(track.title || music.title || 'Track');
-
-        // 计算进度百分比
-        const calculateProgress = (hasWavUrl: boolean, elapsedTime: number): number => {
-            // 基于状态和时间计算进度
-            if (hasWavUrl) {
-                // 回调已收到，WAV URL 存在，进度在 70-90% 之间
-                const baseProgress = 70;
-                const timeBasedProgress = Math.min(20, (elapsedTime / MAX_POLL_TIME) * 20);
-                return Math.min(90, baseProgress + timeBasedProgress);
-            } else {
-                // 还在等待回调，进度在 10-50% 之间
-                const baseProgress = 10;
-                const timeBasedProgress = Math.min(40, (elapsedTime / MAX_POLL_TIME) * 40);
-                return Math.min(50, baseProgress + timeBasedProgress);
-            }
-        };
-
-        const pollForWav = async (): Promise<void> => {
-            try {
-                const response = await fetch(`/api/download-track?trackId=${track.id}&format=wav`, {
-                    headers: {
-                        'Authorization': `Bearer ${accessToken}`
-                    }
-                });
-                
-                const elapsedTime = Date.now() - startTime;
-                
-                // 检查是否超时
-                if (elapsedTime > MAX_POLL_TIME) {
-                    setWavDownloadStatus('error');
-                    setWavDownloadStatusText('Download timeout');
-                    setWavDownloadErrorMessage('WAV conversion is taking longer than expected. Please try again later.');
-                    return;
-                }
-
-                if (response.status === 202) {
-                    // WAV正在生成中，继续轮询
-                    const data = await response.json();
-                    if (data.status === 'generating') {
-                        // 根据状态计算进度
-                        const progress = calculateProgress(data.hasWavUrl || false, elapsedTime);
-                        lastProgress = Math.max(lastProgress, progress); // 确保进度不会倒退
-                        
-                        // 更新弹窗状态
-                        const statusText = data.hasWavUrl 
-                            ? 'Processing WAV file...' 
-                            : 'Waiting for conversion...';
-                        
-                        setWavDownloadProgress(lastProgress);
-                        setWavDownloadStatus(data.hasWavUrl ? 'generating' : 'preparing');
-                        setWavDownloadStatusText(statusText);
-                        
-                        // 继续轮询
-                        setTimeout(pollForWav, POLL_INTERVAL);
-                        return;
-                    } else {
-                        throw new Error(data.error || data.message || 'WAV generation failed');
-                    }
-                } else if (response.status === 200) {
-                    // WAV已准备好，更新状态为下载中
-                    setWavDownloadProgress(95);
-                    setWavDownloadStatus('downloading');
-                    setWavDownloadStatusText('Preparing file for download');
-                    
-                    // WAV已准备好，检查响应类型
-                    const contentType = response.headers.get('content-type');
-                    
-                    if (contentType?.includes('application/json')) {
-                        // 可能是fallback模式或错误
-                        const data = await response.json();
-                        if (data.fallback && data.wavUrl) {
-                            // Fallback模式：直接下载原始URL
-                            const wavResponse = await fetch(data.wavUrl);
-                            if (!wavResponse.ok) {
-                                throw new Error(`Failed to fetch WAV: ${wavResponse.status}`);
-                            }
-                            const blob = await wavResponse.blob();
-                            downloadFile(blob, track.title || music.title || 'track', 'wav');
-                            
-                            // 更新为完成状态
-                            setWavDownloadProgress(100);
-                            setWavDownloadStatus('completed');
-                            setWavDownloadStatusText('Download completed!');
-                        } else {
-                            throw new Error(data.error || 'Download failed');
-                        }
-                    } else {
-                        // 正常模式：直接获取WAV文件
-                        const blob = await response.blob();
-                        downloadFile(blob, track.title || music.title || 'track', 'wav');
-                        
-                        // 更新为完成状态
-                        setWavDownloadProgress(100);
-                        setWavDownloadStatus('completed');
-                        setWavDownloadStatusText('Download completed!');
-                    }
-                } else {
-                    // 其他错误状态
-                    const errorData = await response.json().catch(() => ({}));
-                    throw new Error(errorData.message || errorData.error || `HTTP error! status: ${response.status}`);
-                }
-            } catch (error) {
-                console.error('WAV download polling error:', error);
-                setWavDownloadStatus('error');
-                setWavDownloadStatusText('Download failed');
-                setWavDownloadErrorMessage(error instanceof Error ? error.message : 'Unable to download WAV file');
-            }
-        };
-
-        // 开始首次请求
-        await pollForWav();
-    }, [downloadFile]);
-
-    const handleDownload = React.useCallback(async (
-        track: any,
-        music: any,
-        format: 'mp3' | 'wav' | 'mp4' | 'cover' = 'mp3',
-        options?: {
-            skipPrompt?: boolean;
-            author?: string;
-            domainName?: string;
-        }
-    ) => {
-        if (!track.id) {
-            toast.error('Track ID is required');
-            return;
-        }
-
-        if (format === 'mp4' && !options?.skipPrompt) {
-            setPendingMp4Track(track);
-            setPendingMp4Music(music);
-            if (!mp4Author.trim()) {
-                const defaultAuthor =
-                    user?.user_metadata?.nickname ||
-                    user?.user_metadata?.full_name ||
-                    user?.user_metadata?.name ||
-                    user?.email?.split('@')[0] ||
-                    '';
-                if (defaultAuthor) {
-                    setMp4Author(defaultAuthor.slice(0, 50));
-                }
-            }
-            setMp4DialogOpen(true);
-            return;
-        }
-
-        // 注意：权限检查现在在按钮层面完成，这里只处理实际下载逻辑
-        // 后端API仍然会验证权限作为双重保险
-
-        try {
-            // 获取Supabase session token
-            const { data: { session } } = await supabase.auth.getSession();
-            
-            if (!session?.access_token) {
-                toast.error('Authentication required', {
-                    description: 'Please log in to download tracks'
-                });
-                return;
-            }
-
-        // Cover格式：通过后端API代理下载，确保权限校验与CORS安全
-            if (format === 'cover') {
-            try {
-                const apiUrl = `/api/download-cover?trackId=${encodeURIComponent(track.id)}`;
-                const coverResponse = await fetch(apiUrl, {
-                    method: 'GET',
-                    headers: {
-                        Authorization: `Bearer ${session.access_token}`,
-                    },
-                    cache: 'no-store',
-                });
-                if (!coverResponse.ok) {
-                    const text = await coverResponse.text().catch(() => '');
-                    throw new Error(text || `Failed to download cover: ${coverResponse.status}`);
-                }
-                const blob = await coverResponse.blob();
-                const contentType = coverResponse.headers.get('content-type') || '';
-                const lowerType = contentType.toLowerCase();
-                let ext = 'png';
-                if (lowerType.includes('jpeg') || lowerType.includes('jpg')) {
-                    ext = 'jpg';
-                } else if (lowerType.includes('png')) {
-                    ext = 'png';
-                } else if (lowerType.includes('webp')) {
-                    ext = 'webp';
-                } else if (lowerType.includes('gif')) {
-                    ext = 'gif';
-                } else if (lowerType.includes('bmp')) {
-                    ext = 'bmp';
-                } else if (lowerType.includes('tiff')) {
-                    ext = 'tiff';
-                }
-                downloadFile(blob, track.title || music.title || 'cover', ext);
-            } catch (error) {
-                console.error('Cover download error:', error);
-                toast.error('Download failed', {
-                    description: error instanceof Error ? error.message : 'Unable to download cover image'
-                });
-            }
-            return;
-            }
-
-            // WAV格式：统一通过下载 API 处理（API 会查询 track_wav_conversions 表）
-            if (format === 'wav') {
-                await handleWavDownloadWithPolling(track, music, session.access_token);
-                return;
-            }
-
-            // MP4格式：通过下载API处理（轮询等待生成完成）
-            if (format === 'mp4') {
-                const POLL_INTERVAL = 3000;
-                const MAX_POLL_TIME = 180000;
-                const startTime = Date.now();
-                const mp4ToastId = toast.loading('Generating MP4 video...', {
-                    description: 'This may take 1-3 minutes. You can continue using Studio.',
-                });
-
-                const mp4Params = new URLSearchParams({
-                    trackId: track.id,
-                    format: 'mp4',
-                });
-
-                if (options?.author?.trim()) {
-                    mp4Params.set('author', options.author.trim().slice(0, 50));
-                }
-
-                if (options?.domainName?.trim()) {
-                    mp4Params.set('domainName', options.domainName.trim().slice(0, 50));
-                }
-
-                const mp4RequestUrl = `/api/download-track?${mp4Params.toString()}`;
-
-                const pollForMp4 = async (): Promise<void> => {
-                    const response = await fetch(mp4RequestUrl, {
-                        headers: {
-                            'Authorization': `Bearer ${session.access_token}`
-                        }
-                    });
-
-                    const elapsedTime = Date.now() - startTime;
-                    if (elapsedTime > MAX_POLL_TIME) {
-                        throw new Error('MP4 generation timeout');
-                    }
-
-                    if (response.status === 202) {
-                        const data = await response.json();
-                        if (data.status === 'generating') {
-                            await new Promise((resolve) => setTimeout(resolve, POLL_INTERVAL));
-                            return pollForMp4();
-                        }
-                        throw new Error(data.error || data.message || 'MP4 generation failed');
-                    }
-
-                    if (!response.ok) {
-                        const errorData = await response.json().catch(() => ({}));
-                        throw new Error(errorData.message || errorData.error || `HTTP error! status: ${response.status}`);
-                    }
-
-                    const contentType = response.headers.get('content-type');
-                    if (contentType?.includes('application/json')) {
-                        const data = await response.json();
-                        if (data.fallback && data.videoUrl) {
-                            const videoResponse = await fetch(data.videoUrl);
-                            if (!videoResponse.ok) {
-                                throw new Error(`Failed to fetch MP4: ${videoResponse.status}`);
-                            }
-                            const blob = await videoResponse.blob();
-                            downloadFile(blob, track.title || music.title || 'track', 'mp4');
-                            return;
-                        }
-                        throw new Error(data.error || 'Download failed');
-                    }
-
-                    const blob = await response.blob();
-                    downloadFile(blob, track.title || music.title || 'track', 'mp4');
-                };
-
-                try {
-                    await pollForMp4();
-                    toast.success('MP4 download started!', {
-                        id: mp4ToastId,
-                        description: `${track.title || music.title || 'track'}.mp4`,
-                    });
-                } catch (error) {
-                    console.error('MP4 download error:', error);
-                    toast.error('MP4 download failed', {
-                        id: mp4ToastId,
-                        description: error instanceof Error ? error.message : 'Unable to download MP4 file',
-                    });
-                }
-                return;
-            }
-
-            // MP3格式：直接检查 track.audioUrl 字段
-            const audioUrl = track.audioUrl;
-            
-            // 严格检查：必须是字符串且不为空
-            const hasAudioUrl = audioUrl && typeof audioUrl === 'string' && audioUrl.trim() !== '';
-            
-            if (hasAudioUrl) {
-                // 直接下载，不显示任何toast
-                try {
-                    const audioResponse = await fetch(audioUrl, {
-                        headers: {
-                            'User-Agent': 'Mozilla/5.0 (compatible; MakernbBot/1.0)',
-                        },
-                    });
-
-                    if (!audioResponse.ok) {
-                        throw new Error(`Failed to fetch MP3: ${audioResponse.status}`);
-                    }
-
-                    const blob = await audioResponse.blob();
-                    downloadFile(blob, track.title || music.title || 'track', 'mp3');
-                    return;
-                } catch (error) {
-                    console.error('[DOWNLOAD] Error downloading MP3 from audio URL:', error);
-                    // 如果直接下载失败，继续走API流程
-                }
-            }
-
-            // 如果 audioUrl 不存在或下载失败，使用API下载（后端会验证权限）
-            const response = await fetch(`/api/download-track?trackId=${track.id}&format=mp3`, {
-                headers: {
-                    'Authorization': `Bearer ${session.access_token}`
-                }
-            });
-            
-            if (!response.ok) {
-                const errorData = await response.json().catch(() => ({}));
-                throw new Error(errorData.message || errorData.error || `HTTP error! status: ${response.status}`);
-            }
-
-            // 检查是否是 fallback 模式（返回 JSON 包含 audioUrl）
-            const contentType = response.headers.get('content-type');
-            if (contentType?.includes('application/json')) {
-                const data = await response.json();
-                if (data.fallback && data.audioUrl) {
-                    // Fallback 模式：直接下载原始URL
-                    const audioResponse = await fetch(data.audioUrl);
-                    if (!audioResponse.ok) {
-                        throw new Error(`Failed to fetch audio: ${audioResponse.status}`);
-                    }
-                    const blob = await audioResponse.blob();
-                    downloadFile(blob, track.title || music.title || 'track', 'mp3');
-                } else {
-                    throw new Error(data.error || 'Download failed');
-                }
-            } else {
-                // 正常模式：直接获取音频文件
-                const blob = await response.blob();
-                downloadFile(blob, track.title || music.title || 'track', 'mp3');
-            }
-        } catch (error) {
-            console.error('Download error:', error);
-            // 不显示toast，直接静默失败
-        }
-    }, [downloadFile, handleWavDownloadWithPolling, mp4Author, user]);
-
-    const handleFavoriteToggle = React.useCallback(async (track: any, music: any) => {
-        if (!user?.id) {
-            toast('Please log in to favorite tracks');
-            return;
-        }
-
-        try {
-            const { data: { session } } = await supabase.auth.getSession();
-            
-            const response = await fetch('/api/favorites/toggle', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${session?.access_token}`,
-                },
-                body: JSON.stringify({
-                    trackId: track.id
-                })
-            });
-
-            if (!response.ok) {
-                throw new Error('Failed to toggle favorite');
-            }
-
-            const data = await response.json();
-            
-            if (!data.success) {
-                throw new Error(data.error || 'Failed to toggle favorite');
-            }
-            
-            // 更新本地状态
-            updateTrack(track.id, (t) => ({ ...t, isFavorited: data.isFavorited }));
-
-            // 更新selectedStudioTrack状态，使用函数式更新避免依赖
-            setSelectedStudioTrack(prev => {
-                if (prev?.id === track.id) {
-                    return {
-                        ...prev,
-                        isFavorited: data.isFavorited
-                    } as StudioTrack;
-                }
-                return prev;
-            });
-
-            // 显示toast提示
-            if (data.isFavorited) {
-                toast.success('Added to favorites!', {
-                    description: `"${music.title}" has been added to library.`
-                });
-            } else {
-                toast.success('Removed from favorites', {
-                    description: `"${music.title}" has been removed from library.`
-                });
-            }
-        } catch (error) {
-            console.error('Error toggling favorite:', error);
-            toast.error('Failed to update favorite status');
-        }
-    }, [user?.id, updateTrack]);
-
-    const handleLikeToggle = React.useCallback(async (track: any, _music: any) => {
-        if (!user?.id) {
-            setIsAuthModalOpen(true);
-            return;
-        }
-
-        try {
-            const { data: { session } } = await supabase.auth.getSession();
-
-            const response = await fetch('/api/likes/toggle', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${session?.access_token}`,
-                },
-                body: JSON.stringify({
-                    trackId: track.id
-                })
-            });
-
-            if (!response.ok) {
-                throw new Error('Failed to toggle like');
-            }
-
-            const data = await response.json();
-            if (!data.success) {
-                throw new Error(data.error || 'Failed to toggle like');
-            }
-
-            updateTrack(track.id, (t) => ({ ...t, isLiked: data.isLiked, isDisliked: data.isDisliked ?? false }));
-            updateTracks((prevTracks) =>
-                prevTracks.map((t) =>
-                    t.id === track.id
-                        ? { ...t, isLiked: data.isLiked, isDisliked: data.isDisliked ?? false }
-                        : t
-                )
-            );
-
-            setSelectedStudioTrack(prev => {
-                if (prev?.id === track.id) {
-                    return {
-                        ...prev,
-                        isLiked: data.isLiked,
-                        isDisliked: data.isDisliked ?? false
-                    } as StudioTrack;
-                }
-                return prev;
-            });
-
-        } catch (error) {
-            console.error('Error toggling like:', error);
-        }
-    }, [setIsAuthModalOpen, updateTrack, updateTracks, user?.id]);
-
-    const handleDislikeToggle = React.useCallback(async (track: any, _music: any) => {
-        if (!user?.id) {
-            setIsAuthModalOpen(true);
-            return;
-        }
-
-        try {
-            const { data: { session } } = await supabase.auth.getSession();
-
-            const response = await fetch('/api/dislikes/toggle', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${session?.access_token}`,
-                },
-                body: JSON.stringify({
-                    trackId: track.id
-                })
-            });
-
-            if (!response.ok) {
-                throw new Error('Failed to toggle dislike');
-            }
-
-            const data = await response.json();
-            if (!data.success) {
-                throw new Error(data.error || 'Failed to toggle dislike');
-            }
-
-            updateTrack(track.id, (t) => ({ ...t, isDisliked: data.isDisliked, isLiked: data.isLiked ?? false }));
-            updateTracks((prevTracks) =>
-                prevTracks.map((t) =>
-                    t.id === track.id
-                        ? { ...t, isDisliked: data.isDisliked, isLiked: data.isLiked ?? false }
-                        : t
-                )
-            );
-
-            setSelectedStudioTrack(prev => {
-                if (prev?.id === track.id) {
-                    return {
-                        ...prev,
-                        isDisliked: data.isDisliked,
-                        isLiked: data.isLiked ?? false
-                    } as StudioTrack;
-                }
-                return prev;
-            });
-
-        } catch (error) {
-            console.error('Error toggling dislike:', error);
-        }
-    }, [setIsAuthModalOpen, updateTrack, updateTracks, user?.id]);
-
-    // ==================== 歌曲列表删除处理函数 ====================
-    const handleTrackDelete = React.useCallback((track: any, music: any) => {
-        // 设置要删除的track并打开确认对话框
-        setTrackToDelete(track);
-        setDeleteDialogOpen(true);
-    }, []);
-
-    const handleEditTitle = React.useCallback(async (trackId: string, newTitle: string) => {
-        try {
-            const response = await fetch('/api/update-track-title', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ trackId, title: newTitle })
-            });
-
-            if (!response.ok) {
-                throw new Error('Failed to update title');
-            }
-
-            // 更新本地状态 - 更新特定track的title而不是generation的title
-            updateTrack(trackId, (t) => ({ ...t, title: newTitle }));
-
-            // 如果当前选中的 track 被编辑了，更新 selectedStudioTrack
-            if (selectedStudioTrack?.id === trackId) {
-                setSelectedStudioTrack({
-                    ...selectedStudioTrack,
-                    title: newTitle
-                });
-            }
-
-            toast.success('Title updated successfully');
-        } catch (error) {
-            console.error('Error updating title:', error);
-            toast.error('Failed to update title');
-        }
-    }, [updateTrack, selectedStudioTrack]);
-
-    const handleEditMusicInfo = React.useCallback(async (trackId: string, data: { title: string; coverImageUrl?: string }) => {
-        try {
-            // Ensure we include a valid Supabase access token for auth-protected APIs
-            const { data: { session } } = await supabase.auth.getSession();
-            if (!session?.access_token) {
-                toast.error('Please log in to update music info');
-                return;
-            }
-
-            const response = await fetch('/api/update-track-info', {
-                method: 'POST',
-                headers: { 
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${session.access_token}`
-                },
-                body: JSON.stringify({ 
-                    trackId, 
-                    title: data.title,
-                    coverImageUrl: data.coverImageUrl 
-                })
-            });
-
-            if (!response.ok) {
-                const errorData = await response.json();
-                throw new Error(errorData.error || 'Failed to update music info');
-            }
-
-            const result = await response.json();
-
-            // 更新本地状态
-            updateTrack(trackId, (t) => ({ 
-                ...t, 
-                title: result.data?.title || data.title,
-                coverImage: result.data?.coverImageUrl || t.coverImage,
-                coverR2Url: result.data?.coverImageUrl || t.coverR2Url
-            }));
-
-            // 如果当前选中的 track 被编辑了，更新 selectedStudioTrack
-            if (selectedStudioTrack?.id === trackId) {
-                setSelectedStudioTrack({
-                    ...selectedStudioTrack,
-                    title: result.data?.title || data.title,
-                    coverImage: result.data?.coverImageUrl || selectedStudioTrack.coverImage,
-                    coverR2Url: result.data?.coverImageUrl || selectedStudioTrack.coverR2Url
-                });
-            }
-
-            toast.success('Music info updated successfully');
-        } catch (error) {
-            console.error('Error updating music info:', error);
-            toast.error(error instanceof Error ? error.message : 'Failed to update music info');
-        }
-    }, [updateTrack, selectedStudioTrack]);
-
-    const handleDeleteTrack = React.useCallback(async (trackId: string) => {
-        try {
-            const response = await fetch('/api/delete-track', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ trackId })
-            });
-
-            if (!response.ok) {
-                throw new Error('Failed to delete track');
-            }
-
-            const removedTrack = userTracks
-                .flatMap(generation => generation.allTracks || [])
-                .find((track: any) => track.id === trackId);
-            const removedDuration = normalizeDuration(removedTrack?.duration);
-
-            // 从本地状态中移除
-            const updatedUserTracks = userTracks.map(generation => ({
-                ...generation,
-                allTracks: generation.allTracks.filter((t: any) => t.id !== trackId)
-            })).filter(generation => generation.allTracks.length > 0);
-            
-            setUserTracks(updatedUserTracks);
-            if (removedTrack) {
-                setUserTracksSummary(prev => ({
-                    totalTracks: Math.max(0, prev.totalTracks - 1),
-                    totalDuration: Math.max(0, prev.totalDuration - removedDuration),
-                }));
-            }
-
-            toast.success('Track deleted successfully');
-        } catch (error) {
-            console.error('Error deleting track:', error);
-            toast.error('Failed to delete track');
-        }
-    }, [userTracks, normalizeDuration]);
+    const {
+        handleFavoriteToggle,
+        handleLikeToggle,
+        handleDislikeToggle,
+        handleEditTitle,
+        handleEditMusicInfo,
+        openDeleteDialogForTrack,
+        handleDeleteConfirm,
+    } = useStudioTrackActions({
+        userId: user?.id,
+        userTracks,
+        selectedStudioTrack,
+        trackToDelete,
+        normalizeDuration,
+        updateTrack,
+        updateTracks,
+        setUserTracks,
+        setUserTracksSummary,
+        setSelectedStudioTrack,
+        setTrackToDelete,
+        setDeleteDialogOpen,
+        setIsAuthModalOpen,
+    });
+
+    const handleTrackDelete = React.useCallback((track: any, _music: any) => {
+        openDeleteDialogForTrack(track);
+    }, [openDeleteDialogForTrack]);
 
     // ==================== 实时更新用户歌曲列表 ====================
     // 使用 ref 记录已处理的歌曲，防止重复添加
@@ -2314,7 +799,7 @@ const StudioContent = ({ feature, FeaturePanel, panelMode, lockPanelMode }: Stud
             
             return [newUserTrack, ...prevTracks];
         });
-    }, [updateTracks]); // 🔧 移除 generatedTracks 依赖，避免不必要的重新创建
+    }, [updateTracks, setUserTracks]); // 🔧 移除 generatedTracks 依赖，避免不必要的重新创建
 
 
     // ==================== 使用 Track Generation Monitor Hook ====================
@@ -2333,7 +818,7 @@ const StudioContent = ({ feature, FeaturePanel, panelMode, lockPanelMode }: Stud
 
             // 🔧 刷新 userTracks，确保上传任务完成后同步到列表
             if (user?.id) {
-                await fetchUserTracksRef.current({ mode: 'merge' });
+                await fetchUserTracksByMode('merge');
             }
 
             // 🔧 延迟清理，确保所有回调都已完成
@@ -2353,135 +838,21 @@ const StudioContent = ({ feature, FeaturePanel, panelMode, lockPanelMode }: Stud
         [generatedTracks]
     );
 
-    const inlineTrackDetails = React.useMemo(() => {
-        if (!selectedStudioTrack) return null;
-
-        const base = {
-            id: selectedStudioTrack.id,
-            title: selectedStudioTrack.title || 'Untitled Track',
-            tags: selectedStudioTrack.tags || '',
-            lyrics: selectedStudioTrack.lyrics || '',
-            coverImage: selectedStudioTrack.coverImage || null,
-            createdAt: selectedStudioTrack.createdAt || new Date().toISOString(),
-            duration: selectedStudioTrack.duration ? selectedStudioTrack.duration.toString() : undefined,
-            isLiked: selectedStudioTrack.isLiked ?? false,
-            isDisliked: selectedStudioTrack.isDisliked ?? false,
-            status: (selectedStudioTrack as any).status || (selectedStudioTrack as any).musicStatus || '',
-            isGenerating: Boolean((selectedStudioTrack as any).isGenerating),
-            isCompleted: Boolean((selectedStudioTrack as any).isCompleted),
-            audioUrl: selectedStudioTrack.audioUrl || '',
-        };
-
-        const { track: userTrack, music } = findTrackAndMusic(selectedStudioTrack.id);
-        if (userTrack && music) {
-            return {
-                ...base,
-                title: userTrack.title || music.title || base.title,
-                tags: music.tags || base.tags,
-                lyrics: userTrack.lyrics || music.lyrics || base.lyrics,
-                coverImage: userTrack.coverR2Url || base.coverImage,
-                createdAt: music.createdAt || base.createdAt,
-                duration: userTrack.duration
-                    ? userTrack.duration.toString()
-                    : base.duration,
-                isLiked: userTrack.isLiked ?? base.isLiked,
-                isDisliked: userTrack.isDisliked ?? base.isDisliked,
-                status: music.status || base.status,
-                isGenerating: (music.status || '').toLowerCase() === 'generating',
-                isCompleted: (music.status || '').toLowerCase() === 'complete' || (music.status || '').toLowerCase() === 'completed',
-                audioUrl: userTrack.audioUrl || base.audioUrl,
-            };
-        }
-
-        const generated = generatedTracks.find(t => t.id === selectedStudioTrack.id);
-        if (generated) {
-            return {
-                ...base,
-                title: generated.title || base.title,
-                tags: generated.tags || base.tags,
-                lyrics: generated.lyrics || base.lyrics,
-                coverImage: generated.coverImage || base.coverImage,
-                createdAt: generated.createdAt || base.createdAt,
-                duration: generated.duration ? generated.duration.toString() : base.duration,
-                isLiked: generated.isLiked ?? base.isLiked,
-                isDisliked: generated.isDisliked ?? base.isDisliked,
-                status: (generated as any).status || (generated as any).musicStatus || base.status,
-                isGenerating: Boolean((generated as any).isGenerating),
-                isCompleted: Boolean((generated as any).isCompleted),
-                audioUrl: generated.audioUrl || base.audioUrl,
-            };
-        }
-
-        return base;
-    }, [selectedStudioTrack, findTrackAndMusic, generatedTracks]);
+    const {
+        inlineTrackDetails,
+        isInlineTrackPlaying,
+        showInlinePanel,
+    } = useStudioInlineTrackPanel({
+        selectedStudioTrack,
+        generatedTracks,
+        findTrackAndMusic,
+        playerCurrentTrackId: player.currentTrack?.id,
+        playerIsPlaying: player.isPlaying,
+        lyricsPanelOpen,
+        setLyricsPanelOpen,
+    });
 
     const isInitialUserTracksLoading = isFetchingUserTracks && userTracks.length === 0;
-
-    const isInlineTrackPlaying = !!(selectedStudioTrack && player.currentTrack?.id === selectedStudioTrack.id && player.isPlaying);
-    const showInlinePanel = Boolean(selectedStudioTrack) && lyricsPanelOpen;
-
-    React.useEffect(() => {
-        if (!showInlinePanel) return;
-
-        const handleEscapeClose = (event: KeyboardEvent) => {
-            if (event.key === 'Escape') {
-                setLyricsPanelOpen(false);
-            }
-        };
-
-        window.addEventListener('keydown', handleEscapeClose);
-        return () => window.removeEventListener('keydown', handleEscapeClose);
-    }, [showInlinePanel]);
-
-    const handleInlinePanelPlay = React.useCallback(() => {
-        if (!selectedStudioTrack) return;
-
-        if (player.currentTrack?.id === selectedStudioTrack.id) {
-            togglePlayPause();
-        } else {
-            playTrackById(selectedStudioTrack.id);
-        }
-    }, [selectedStudioTrack, togglePlayPause, playTrackById, player]);
-
-    // ==================== 导航处理函数 ====================
-    // 处理歌曲选择 - 跳转详情页
-    const handleViewTrackDetail = React.useCallback((trackId: string) => {
-        router.push(`/track/${trackId}`);
-    }, [router]);
-
-    // 用户歌曲选择（点击即播放并展示详情）
-    const handleUserTrackSelect = React.useCallback((trackId: string) => {
-        const shouldAutoPlay = !(player.currentTrack?.id === trackId && player.isPlaying);
-        const { track: found, music } = findTrackAndMusic(trackId);
-        if (found && music) {
-            handleTrackSelect(found, music, { autoPlay: shouldAutoPlay });
-            return;
-        }
-
-        const fallbackTrack = allTracks.find(track => track.id === trackId);
-        if (fallbackTrack) {
-            handleTrackSelect(fallbackTrack, fallbackTrack, { autoPlay: shouldAutoPlay });
-        }
-    }, [findTrackAndMusic, handleTrackSelect, allTracks, player.currentTrack?.id, player.isPlaying]);
-
-    // 用户歌曲播放（点击播放按钮时直接播放）
-    const handleUserTrackPlay = React.useCallback((track: any, music: any) => {
-        if (!track) return;
-        if (player.currentTrack?.id === track.id) {
-            togglePlayPause();
-            return;
-        }
-        playTrackById(track.id);
-    }, [player, togglePlayPause, playTrackById]);
-    
-    // 生成的歌曲选择（点击即播放并展示详情）
-    const handleGeneratedTrackSelect = React.useCallback((trackId: string) => {
-        const track = generatedTracks.find(t => t.id === trackId);
-        if (track) {
-            const shouldAutoPlay = !(player.currentTrack?.id === trackId && player.isPlaying);
-            handleTrackSelect(track, track, { autoPlay: shouldAutoPlay });
-        }
-    }, [generatedTracks, handleTrackSelect, player.currentTrack?.id, player.isPlaying]);
 
     const handleExtendTrackSelect = React.useCallback((track: ExtendSourceTrack) => {
         if (!track?.audioUrl) return;
@@ -2516,8 +887,8 @@ const StudioContent = ({ feature, FeaturePanel, panelMode, lockPanelMode }: Stud
 
     // ==================== 通用 Props ====================
     const featurePanelProps = React.useMemo<StudioFeaturePanelStateProps>(() => ({
-        mode,
-        setMode,
+        mode: activeFeatureMode,
+        setMode: setActiveFeatureMode,
         selectedGenre,
         setSelectedGenre,
         selectedVibe,
@@ -2575,7 +946,7 @@ const StudioContent = ({ feature, FeaturePanel, panelMode, lockPanelMode }: Stud
         pendingExtendSourceTrack,
         onPendingExtendSourceTrackConsumed: handlePendingExtendSourceTrackConsumed,
     }), [
-        mode, setMode, selectedGenre, setSelectedGenre, selectedVibe, setSelectedVibe,
+        activeFeatureMode, setActiveFeatureMode, selectedGenre, setSelectedGenre, selectedVibe, setSelectedVibe,
         simplePrompt, setSimplePrompt, customLyrics, setCustomLyrics, songTitle, setSongTitle, instrumentalMode, setInstrumentalMode,
         isPublished, setIsPublished, styleText, setStyleText, bpm, setBpm, grooveType, setGrooveType,
         leadInstrument, setLeadInstrument, drumKit, setDrumKit, bassTone, setBassTone,
@@ -2588,62 +959,6 @@ const StudioContent = ({ feature, FeaturePanel, panelMode, lockPanelMode }: Stud
         isWritingNextLyricLine,
         isAuthModalOpen, setIsAuthModalOpen, selectedModel, setSelectedModel
     ]);
-
-    React.useEffect(() => {
-        const featureChanged = previousFeatureRef.current !== feature;
-        const targetMode = lockPanelMode
-            ? panelMode
-            : (featureModes[feature] ?? DEFAULT_FEATURE_MODES[feature]);
-
-        if ((featureChanged || lockPanelMode) && mode !== targetMode) {
-            setMode(targetMode);
-        }
-
-        previousFeatureRef.current = feature;
-    }, [feature, featureModes, lockPanelMode, mode, panelMode, setMode]);
-
-    React.useEffect(() => {
-        if (lockPanelMode) return;
-        setFeatureModes((prev) => {
-            if (prev[feature] === mode) return prev;
-            return { ...prev, [feature]: mode };
-        });
-    }, [feature, lockPanelMode, mode]);
-
-    const handlePlayerLyricsToggle = React.useCallback(() => {
-        const playerTrack = player.currentTrack as any;
-        if (!playerTrack?.id) return;
-
-        if (!lyricsPanelOpen || selectedStudioTrack?.id !== playerTrack.id) {
-            const matchedTrack = allTracks.find((track) => track.id === playerTrack.id);
-
-            if (matchedTrack) {
-                setSelectedStudioTrack(matchedTrack);
-            } else {
-                setSelectedStudioTrack(
-                    createTrackObject(
-                        playerTrack.id,
-                        playerTrack.generationId || '',
-                        playerTrack.title || 'Untitled Track',
-                        playerTrack.audioUrl || '',
-                        Number(playerTrack.duration || player.duration || 0),
-                        playerTrack.coverR2Url || playerTrack.coverImage,
-                        playerTrack.tags || '',
-                        playerTrack.genre || '',
-                        playerTrack.lyrics || '',
-                        playerTrack.isFavorited ?? false,
-                        playerTrack.isLiked ?? false,
-                        playerTrack.isDisliked ?? false,
-                        playerTrack.streamAudioUrl || '',
-                        new Date().toISOString(),
-                        ''
-                    )
-                );
-            }
-        }
-
-        setLyricsPanelOpen((prev) => !prev);
-    }, [player.currentTrack, player.duration, lyricsPanelOpen, selectedStudioTrack?.id, allTracks, createTrackObject]);
 
     // MusicPlayer 通用 props
     // ✅ 直接创建对象，不缓存，因为 player 使用 getter 模式
@@ -2681,109 +996,9 @@ const StudioContent = ({ feature, FeaturePanel, panelMode, lockPanelMode }: Stud
     };
 
     // Delete handlers
-    const handleDeleteClick = (track: any) => {
-        setTrackToDelete(track);
-        setDeleteDialogOpen(true);
-    };
-
-    const handleDeleteConfirm = async () => {
-        if (!trackToDelete) return;
-
-        try {
-            // 获取当前session的access token
-            const { data: { session } } = await supabase.auth.getSession();
-
-            if (!session?.access_token) {
-                toast('Authentication required. Please log in again.');
-                return;
-            }
-
-            let response;
-
-            // 判断删除场景：
-            // 1. 如果是错误状态的generation（没有有效的tracks），删除整个generation
-            // 2. 如果是正常的track，删除单个track
-            if (trackToDelete.isError || !trackToDelete.id || trackToDelete.id.startsWith('error-')) {
-                // 场景1：删除错误的music_generation
-                response = await fetch(`/api/delete-music-generation?id=${trackToDelete.generationId}`, {
-                    method: 'DELETE',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'Authorization': `Bearer ${session.access_token}`,
-                    },
-                });
-            } else {
-                // 场景2：删除单个track
-                response = await fetch(`/api/delete-track/${trackToDelete.id}`, {
-                    method: 'DELETE',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'Authorization': `Bearer ${session.access_token}`,
-                    },
-                });
-            }
-
-            const data = await response.json();
-
-            if (data.success) {
-                if (trackToDelete.isError || !trackToDelete.id || trackToDelete.id.startsWith('error-')) {
-                    // 场景1：删除错误的generation，从tracks中移除
-                    // 🔧 使用函数式更新，避免闭包陷阱
-                    updateTracks((prevTracks) => 
-                        prevTracks.filter(track => track.generationId !== trackToDelete.generationId)
-                    );
-                } else {
-                    // 场景2：删除单个track，从tracks中移除
-                    // 🔧 使用函数式更新，避免闭包陷阱
-                    updateTracks((prevTracks) => 
-                        prevTracks.filter(track => track.id !== trackToDelete.id)
-                    );
-
-                    // 同时从userTracks中更新（如果存在）
-                    const updatedUserTracks = userTracks.map(generation => ({
-                        ...generation,
-                        allTracks: generation.allTracks.map((t: any) =>
-                            t.id === trackToDelete.id
-                                ? { ...t, isDeleted: true }
-                                : t
-                        )
-                    }));
-                    setUserTracks(updatedUserTracks);
-                    setUserTracksSummary(prev => ({
-                        totalTracks: Math.max(0, prev.totalTracks - 1),
-                        totalDuration: Math.max(0, prev.totalDuration - normalizeDuration(trackToDelete.duration)),
-                    }));
-
-                    // 发送删除事件到 EventBus
-                    if (typeof window !== 'undefined') {
-                        const eventBus = getEventBus();
-                        eventBus.emit(TRACK_EVENTS.DELETED, {
-                            trackId: trackToDelete.id
-                        });
-                    }
-                }
-
-                // If the deleted track is currently playing, stop playback
-                // 现在通过 EventBus 自动处理，AudioPlayer 会监听 TRACK_EVENTS.DELETED 事件并自动停止播放
-
-                // If the deleted track is selected for lyrics, close lyrics panel
-                if (selectedStudioTrack?.id === trackToDelete.id ||
-                    selectedStudioTrack?.generationId === trackToDelete.generationId) {
-                    setSelectedStudioTrack(null);
-                }
-
-                toast.success('Track deleted successfully');
-            } else {
-                toast(data.error || 'Failed to delete track');
-            }
-        } catch (error) {
-            console.error('Error deleting track:', error);
-            toast('Failed to delete track, please try again');
-        } finally {
-            setDeleteDialogOpen(false);
-            setTrackToDelete(null);
-        }
-    };
+    const handleDeleteClick = React.useCallback((track: any) => {
+        openDeleteDialogForTrack(track);
+    }, [openDeleteDialogForTrack]);
 
     const studioMainLayout = (
         <section
@@ -3023,7 +1238,7 @@ const StudioContent = ({ feature, FeaturePanel, panelMode, lockPanelMode }: Stud
                         </AlertDialogDescription>
                     </AlertDialogHeader>
                     <AlertDialogFooter className="flex flex-col sm:flex-row items-center justify-center gap-2 sm:gap-3">
-                        <AlertDialogCancel className="w-full sm:w-auto text-foreground hover:text-foreground dark:hover:text-accent-foreground">
+                        <AlertDialogCancel className="w-full sm:w-auto">
                             Cancel
                         </AlertDialogCancel>
                         <AlertDialogAction
@@ -3049,15 +1264,7 @@ const StudioContent = ({ feature, FeaturePanel, panelMode, lockPanelMode }: Stud
             {/* WAV Download Progress Dialog */}
             <DownloadProgressDialog
                 isOpen={wavDownloadDialogOpen}
-                onClose={() => {
-                    setWavDownloadDialogOpen(false);
-                    // 重置状态
-                    setWavDownloadProgress(0);
-                    setWavDownloadStatus('preparing');
-                    setWavDownloadStatusText('');
-                    setWavDownloadErrorMessage('');
-                    setWavDownloadTrackTitle('');
-                }}
+                onClose={closeWavDownloadDialog}
                 trackTitle={wavDownloadTrackTitle}
                 progress={wavDownloadProgress}
                 status={wavDownloadStatus}
@@ -3067,38 +1274,12 @@ const StudioContent = ({ feature, FeaturePanel, panelMode, lockPanelMode }: Stud
 
             <Mp4BrandingDialog
                 open={mp4DialogOpen}
-                onOpenChange={(open) => {
-                    setMp4DialogOpen(open);
-                    if (!open) {
-                        setPendingMp4Track(null);
-                        setPendingMp4Music(null);
-                    }
-                }}
+                onOpenChange={handleMp4DialogOpenChange}
                 author={mp4Author}
                 domainName={mp4DomainName}
                 onAuthorChange={setMp4Author}
                 onDomainNameChange={setMp4DomainName}
-                onGenerate={() => {
-                    if (!pendingMp4Track) {
-                        setMp4DialogOpen(false);
-                        return;
-                    }
-
-                    const selectedTrack = pendingMp4Track;
-                    const selectedMusic = pendingMp4Music;
-                    const authorValue = mp4Author.trim();
-                    const domainValue = mp4DomainName.trim();
-
-                    setMp4DialogOpen(false);
-                    setPendingMp4Track(null);
-                    setPendingMp4Music(null);
-
-                    handleDownload(selectedTrack, selectedMusic, 'mp4', {
-                        skipPrompt: true,
-                        author: authorValue || undefined,
-                        domainName: domainValue || undefined,
-                    });
-                }}
+                onGenerate={handleMp4Generate}
             />
         </>
     );

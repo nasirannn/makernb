@@ -8,7 +8,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { FileAudio, FileVideo, Image as ImageIcon, Music2, Star, Share2, Check, Download, MoreVertical, Mic, Trash2, Expand, Scissors, Pencil, ThumbsDown, ThumbsUp, FileText, ChevronDown, Users, Send } from "lucide-react";
+import { FileAudio, FileVideo, Image as ImageIcon, Music2, Star, Share2, Check, Download, MoreVertical, Trash2, Expand, Scissors, Pencil, ThumbsDown, ThumbsUp, FileText, ChevronDown, Users, Send, Split, Layers } from "lucide-react";
 import { LibraryTrack } from '@/types/track';
 import { SolidThumbsUpIcon } from '@/components/icons/solid-thumbs-up-icon';
 import { SolidThumbsDownIcon } from '@/components/icons/solid-thumbs-down-icon';
@@ -31,6 +31,8 @@ interface TrackActionButtonsProps {
   canDownloadMP4?: boolean;
   canDownloadCover?: boolean;
   canVocalRemoval?: boolean;
+  canSplitStem?: boolean;
+  canGenerateMidi?: boolean;
   canExtendMusic?: boolean;
   canReplaceSection?: boolean;
   canCreatePersona?: boolean;
@@ -42,6 +44,8 @@ interface TrackActionButtonsProps {
   onLikeToggle?: () => void;
   onDownload?: (format: 'mp3' | 'wav' | 'mp4' | 'cover') => void;
   onVocalRemoval?: () => void;
+  onSplitStem?: () => void;
+  onGenerateMidi?: () => void;
   onExtendMusic?: () => void;
   onReplaceSection?: () => void;
   onCreatePersona?: () => void;
@@ -66,6 +70,8 @@ export const TrackActionButtons: React.FC<TrackActionButtonsProps> = ({
   canDownloadMP4 = false,
   canDownloadCover = false,
   canVocalRemoval = false,
+  canSplitStem = false,
+  canGenerateMidi = false,
   canExtendMusic = false,
   canReplaceSection = false,
   canCreatePersona = false,
@@ -75,6 +81,8 @@ export const TrackActionButtons: React.FC<TrackActionButtonsProps> = ({
   onLikeToggle,
   onDownload,
   onVocalRemoval,
+  onSplitStem,
+  onGenerateMidi,
   onExtendMusic,
   onReplaceSection,
   onCreatePersona,
@@ -95,8 +103,14 @@ export const TrackActionButtons: React.FC<TrackActionButtonsProps> = ({
   );
   
   const shouldShowMoreMenu = Boolean(onDelete || onViewLyrics || onEditMusicInfo || onDislikeToggle || onPublishToggle);
-  const shouldShowEditMenu = hasAudioUrl && (onVocalRemoval || onExtendMusic || onReplaceSection || onCreatePersona);
+  const shouldShowEditMenu = hasAudioUrl && (onVocalRemoval || onSplitStem || onGenerateMidi || onExtendMusic || onReplaceSection || onCreatePersona);
   const currentPublished = Boolean(isPublished ?? track.isPublished);
+  const desktopNeutralTextButtonClass =
+    "h-8 rounded-full px-3 text-xs font-semibold bg-foreground/5 text-foreground/45 transition-colors hover:bg-foreground/10 group-hover:text-foreground/80 group-hover:hover:text-foreground data-[state=open]:text-foreground dark:bg-white/4 dark:hover:bg-white/8";
+  const desktopNeutralIconButtonClass =
+    "h-8 w-8 rounded-full text-xs font-semibold bg-foreground/5 text-foreground/45 transition-colors hover:bg-foreground/10 group-hover:text-foreground/80 group-hover:hover:text-foreground data-[state=open]:text-foreground dark:bg-white/4 dark:hover:bg-white/8";
+  const mobileNeutralIconButtonClass =
+    "h-8 w-8 inline-flex items-center justify-center rounded-full text-xs font-semibold bg-foreground/5 text-foreground/45 transition-colors hover:bg-foreground/10 hover:text-foreground/80 dark:bg-white/4 dark:hover:bg-white/8";
 
 
   // 桌面端按钮
@@ -109,7 +123,7 @@ export const TrackActionButtons: React.FC<TrackActionButtonsProps> = ({
               <Button
                 variant="ghost"
                 size="sm"
-                className="h-8 rounded-full px-3 text-xs font-semibold bg-foreground/5 text-foreground/80 hover:text-foreground hover:bg-foreground/10 transition-all duration-150 dark:bg-white/4 dark:hover:bg-white/8"
+                className={desktopNeutralTextButtonClass}
                 onClick={(e) => {
                   e.preventDefault();
                   e.stopPropagation();
@@ -142,9 +156,43 @@ export const TrackActionButtons: React.FC<TrackActionButtonsProps> = ({
                   }`}
                 >
                   <div className="flex items-center gap-1.5">
-                    <Mic className="h-3.5 w-3.5" />
+                    <Split className="h-3.5 w-3.5" />
                     <span>Vocal Separation</span>
                   </div>
+                </DropdownMenuItem>
+              )}
+              {onSplitStem && (
+                <DropdownMenuItem
+                  onClick={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    if (!canSplitStem) {
+                      onPricingModalOpen?.();
+                      return;
+                    }
+                    onSplitStem();
+                  }}
+                  className="flex items-center gap-2 cursor-pointer px-3 py-2 text-xs"
+                >
+                  <Layers className="h-3.5 w-3.5" />
+                  <span>Split Stem</span>
+                </DropdownMenuItem>
+              )}
+              {onGenerateMidi && (
+                <DropdownMenuItem
+                  onClick={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    if (!canGenerateMidi) {
+                      onPricingModalOpen?.();
+                      return;
+                    }
+                    onGenerateMidi();
+                  }}
+                  className="flex items-center gap-2 cursor-pointer px-3 py-2 text-xs"
+                >
+                  <FileAudio className="h-3.5 w-3.5" />
+                  <span>Generate MIDI</span>
                 </DropdownMenuItem>
               )}
               {onExtendMusic && (
@@ -209,7 +257,7 @@ export const TrackActionButtons: React.FC<TrackActionButtonsProps> = ({
               <Button
                 variant="ghost"
                 size="sm"
-                className="h-8 w-8 rounded-full text-xs font-semibold bg-foreground/5 text-foreground/80 hover:text-foreground hover:bg-foreground/10 transition-all duration-150 dark:bg-white/4 dark:hover:bg-white/8"
+                className={desktopNeutralIconButtonClass}
                 onClick={(e) => {
                   e.preventDefault();
                   e.stopPropagation();
@@ -312,7 +360,7 @@ export const TrackActionButtons: React.FC<TrackActionButtonsProps> = ({
               <Button
                 variant="ghost"
                 size="sm"
-                className="h-8 w-8 rounded-full text-xs font-semibold bg-foreground/5 text-foreground/80 hover:text-foreground hover:bg-foreground/10 dark:bg-white/4 dark:hover:bg-white/8"
+                className={desktopNeutralIconButtonClass}
                 onClick={(e) => {
                   e.preventDefault();
                   e.stopPropagation();
@@ -478,7 +526,7 @@ export const TrackActionButtons: React.FC<TrackActionButtonsProps> = ({
                 e.preventDefault();
                 e.stopPropagation();
               }}
-              className="h-8 w-8 inline-flex items-center justify-center rounded-full text-xs font-semibold bg-foreground/5 text-foreground/80 hover:text-foreground hover:bg-foreground/10 transition-colors dark:bg-white/4 dark:hover:bg-white/8"
+              className={mobileNeutralIconButtonClass}
               aria-label="Download track"
             >
               <Download className="h-3.5 w-3.5" />
@@ -576,7 +624,7 @@ export const TrackActionButtons: React.FC<TrackActionButtonsProps> = ({
                 e.preventDefault();
                 e.stopPropagation();
               }}
-              className="h-8 w-8 inline-flex items-center justify-center rounded-full text-xs font-semibold bg-foreground/5 text-foreground/80 hover:text-foreground hover:bg-foreground/10 transition-colors dark:bg-white/4 dark:hover:bg-white/8"
+              className={mobileNeutralIconButtonClass}
               aria-label="More options"
             >
               <MoreVertical className="h-3.5 w-3.5" />
@@ -671,7 +719,7 @@ export const TrackActionButtons: React.FC<TrackActionButtonsProps> = ({
                 e.preventDefault();
                 e.stopPropagation();
               }}
-              className="h-8 w-8 inline-flex items-center justify-center rounded-full text-xs font-semibold bg-foreground/5 text-foreground/80 hover:text-foreground hover:bg-foreground/10 transition-colors dark:bg-white/4 dark:hover:bg-white/8"
+              className={mobileNeutralIconButtonClass}
               aria-label="Edit options"
               title="Edit options"
             >
@@ -697,9 +745,43 @@ export const TrackActionButtons: React.FC<TrackActionButtonsProps> = ({
                 }`}
               >
                 <div className="flex items-center gap-1.5">
-                  <Mic className="h-3.5 w-3.5" />
+                  <Split className="h-3.5 w-3.5" />
                   <span>Vocal Separation</span>
                 </div>
+              </DropdownMenuItem>
+            )}
+            {onSplitStem && (
+              <DropdownMenuItem
+                onClick={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  if (!canSplitStem) {
+                    onPricingModalOpen?.();
+                    return;
+                  }
+                  onSplitStem();
+                }}
+                className="flex items-center gap-1.5 cursor-pointer px-2.5 py-1.5 text-xs"
+              >
+                <Layers className="h-3.5 w-3.5" />
+                <span>Split Stem</span>
+              </DropdownMenuItem>
+            )}
+            {onGenerateMidi && (
+              <DropdownMenuItem
+                onClick={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  if (!canGenerateMidi) {
+                    onPricingModalOpen?.();
+                    return;
+                  }
+                  onGenerateMidi();
+                }}
+                className="flex items-center gap-1.5 cursor-pointer px-2.5 py-1.5 text-xs"
+              >
+                <FileAudio className="h-3.5 w-3.5" />
+                <span>Generate MIDI</span>
               </DropdownMenuItem>
             )}
             {onExtendMusic && (

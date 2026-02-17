@@ -119,7 +119,6 @@ export const getLatestVocalSeparationByOriginalAudioUrl = async (
        FROM vocal_separations
        WHERE user_id = $1::uuid
          AND original_audio_url = $2
-         AND (is_deleted IS NULL OR is_deleted = FALSE)
        ORDER BY updated_at DESC NULLS LAST, created_at DESC
        LIMIT 1`,
       [userId, originalAudioUrl]
@@ -181,73 +180,48 @@ export const getUserVocalSeparations = async (
 };
 
 /**
- * Soft deletes a vocal separation record
+ * Deletes a vocal separation record
  */
-export const softDeleteVocalSeparation = async (separationId: string, userId: string): Promise<boolean> => {
+export const deleteVocalSeparation = async (separationId: string, userId: string): Promise<boolean> => {
   try {
     validateRequiredParams({ separationId, userId }, ['separationId', 'userId']);
 
     const result = await query(
-      `UPDATE vocal_separations
-       SET is_deleted = TRUE, updated_at = NOW()
-       WHERE id = $1 AND user_id = $2::uuid AND (is_deleted IS NULL OR is_deleted = FALSE)
+      `DELETE FROM vocal_separations
+       WHERE id = $1 AND user_id = $2::uuid
        RETURNING id`,
       [separationId, userId]
     );
 
     return result.rows.length > 0;
   } catch (error) {
-    console.error('Error soft deleting vocal separation:', error);
+    console.error('Error deleting vocal separation:', error);
     throw error;
   }
 };
 
 /**
- * Gets vocal separation by ID with track info
+ * Gets vocal separation by ID
  */
 export const getVocalSeparationById = async (
   separationId: string,
   userId: string
-): Promise<VocalSeparationWithTrack | null> => {
+): Promise<VocalSeparation | null> => {
   try {
     validateRequiredParams({ separationId, userId }, ['separationId', 'userId']);
 
-    const result = await query(`
-      SELECT 
-        vs.*,
-        mt.id as track_id,
-        mt.title as track_title,
-        mt.audio_url as track_audio_url,
-        mt.duration as track_duration
-      FROM vocal_separations vs
-      LEFT JOIN tracks mt ON vs.original_track_id = mt.id
-        AND (mt.is_deleted IS NULL OR mt.is_deleted = FALSE)
-      WHERE vs.id = $1 AND vs.user_id = $2::uuid AND (vs.is_deleted IS NULL OR vs.is_deleted = FALSE)
-    `, [separationId, userId]);
+    const result = await query(
+      `SELECT *
+       FROM vocal_separations
+       WHERE id = $1 AND user_id = $2::uuid`,
+      [separationId, userId]
+    );
 
     if (result.rows.length === 0) {
       return null;
     }
 
-    const row = result.rows[0];
-    return {
-      id: row.id,
-      user_id: row.user_id,
-      prediction_id: row.prediction_id,
-      status: row.status,
-      original_audio_url: row.original_audio_url,
-      vocal_audio_url: row.vocal_audio_url,
-      instrumental_audio_url: row.instrumental_audio_url,
-      created_at: row.created_at,
-      updated_at: row.updated_at,
-      original_filename: row.original_filename,
-      original_track: row.track_id ? {
-        id: row.track_id,
-        title: row.track_title,
-        audio_url: row.track_audio_url,
-        duration: row.track_duration
-      } : undefined
-    };
+    return result.rows[0];
   } catch (error) {
     console.error('Error getting vocal separation by ID:', error);
     throw error;
@@ -259,15 +233,13 @@ export const getVocalSeparationById = async (
  */
 export const getAllVocalSeparationAudioUrls = async (): Promise<string[]> => {
   try {
-    const result = await query(`
-      SELECT 
+    const result = await query(
+      `SELECT
         COALESCE(original_audio_url, '') as original_audio_url,
         COALESCE(vocal_audio_url, '') as vocal_audio_url,
-        COALESCE(instrumental_audio_url, '') as instrumental_audio_url,
-        stems_data
-      FROM vocal_separations
-      WHERE (is_deleted IS NULL OR is_deleted = FALSE)
-    `);
+        COALESCE(instrumental_audio_url, '') as instrumental_audio_url
+      FROM vocal_separations`
+    );
 
     const urls: string[] = [];
     
@@ -275,22 +247,6 @@ export const getAllVocalSeparationAudioUrls = async (): Promise<string[]> => {
       if (row.original_audio_url) urls.push(row.original_audio_url);
       if (row.vocal_audio_url) urls.push(row.vocal_audio_url);
       if (row.instrumental_audio_url) urls.push(row.instrumental_audio_url);
-      
-      // 处理stems_data中的URL
-      if (row.stems_data) {
-        try {
-          const stems = JSON.parse(row.stems_data);
-          if (stems && typeof stems === 'object') {
-            Object.values(stems).forEach((stem: any) => {
-              if (stem && typeof stem === 'object' && stem.url) {
-                urls.push(stem.url);
-              }
-            });
-          }
-        } catch (e) {
-          console.warn('Failed to parse stems_data:', e);
-        }
-      }
     });
 
     return urls.filter(url => url && url.trim() !== '');

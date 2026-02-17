@@ -117,6 +117,8 @@ export const TrackInfo: React.FC<TrackInfoProps> = ({
     return model.replace('_', '.');
   }, [model]);
 
+  const modelBadgeClass = 'inline-flex items-center rounded-sm border border-white/45 dark:border-white/10 bg-gradient-to-r from-cyan-300 via-sky-300 to-indigo-300 px-2 py-0.5 text-[10px] font-semibold leading-none text-slate-950 shadow-[0_6px_14px_rgba(56,189,248,0.18)]';
+
   const displayTitle = React.useMemo(() => {
     if (isError) return 'Generation Failed';
     return title || 'Untitled Track';
@@ -128,14 +130,14 @@ export const TrackInfo: React.FC<TrackInfoProps> = ({
         <div className={`flex min-h-0 min-w-0 flex-1 flex-col ${contentLayoutClass} ${contentPaddingClass}`}>
           <div className={`flex ${titleRowClass}`}>
             <div className={`flex min-w-0 flex-1 items-center ${titleMainGapClass}`}>
-              <h3 className={`min-w-0 flex-shrink truncate font-semibold leading-none ${titleSizeClass} ${
+              <h3 className={`min-w-0 flex-shrink truncate font-semibold leading-tight ${titleSizeClass} ${
                 isSelected ? 'text-primary' : 'text-foreground'
               }`}>
                 {displayTitle}
               </h3>
 
               {modelLabel && modelPlacement === 'title' && (
-                <span className="inline-flex items-center rounded-sm bg-accent px-1 py-0.5 text-[10px] font-medium text-accent-foreground">
+                <span className={modelBadgeClass}>
                   {modelLabel}
                 </span>
               )}
@@ -186,7 +188,7 @@ export const TrackInfo: React.FC<TrackInfoProps> = ({
                 )}
 
                 {modelLabel && modelPlacement === 'meta' && (
-                  <span className="inline-flex items-center rounded-sm bg-accent px-1 py-0.5 text-[10px] font-medium text-accent-foreground">
+                  <span className={modelBadgeClass}>
                     {modelLabel}
                   </span>
                 )}

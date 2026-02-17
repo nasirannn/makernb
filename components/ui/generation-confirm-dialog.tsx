@@ -25,25 +25,25 @@ export const GenerationConfirmDialog = React.memo(({
 }: GenerationConfirmDialogProps) => {
   return (
     <AlertDialog open={isOpen} onOpenChange={onClose}>
-      <AlertDialogContent className="max-w-[calc(100vw-2rem)] sm:max-w-[420px] p-0 border border-border/60 dark:border-transparent bg-background shadow-xl">
-        <AlertDialogHeader className="px-6 pt-6 pb-4">
-          <div className="flex items-center gap-2 mb-2">
+      <AlertDialogContent className="studio-panel-card max-w-[calc(100vw-2rem)] sm:max-w-[520px] p-0 border-0 shadow-xl">
+        <AlertDialogHeader className="flex-shrink-0 px-5 pt-4 pb-2 text-left">
+          <div className="mb-1.5 flex items-center gap-2">
             <div className="w-2 h-2 bg-primary rounded-full animate-pulse"></div>
             <div className="w-2 h-2 bg-primary/70 rounded-full animate-pulse" style={{ animationDelay: '0.3s' }}></div>
             <div className="w-2 h-2 bg-primary/50 rounded-full animate-pulse" style={{ animationDelay: '0.6s' }}></div>
           </div>
-          <AlertDialogTitle className="text-lg font-semibold text-foreground">
+          <AlertDialogTitle className="text-xl font-semibold tracking-tight text-foreground">
             Music Generation Started
           </AlertDialogTitle>
-          <AlertDialogDescription className="text-sm text-muted-foreground mt-1">
+          <AlertDialogDescription className="text-sm text-muted-foreground">
             Your music is being generated. You can preview it in about 30 ~ 60 seconds.
           </AlertDialogDescription>
         </AlertDialogHeader>
 
-        <div className="px-6 pb-6 pt-4">
+        <div className="px-5 pb-5 pt-3">
           <Button
             onClick={onClose}
-            className="w-full h-11 bg-primary hover:bg-primary/90 text-primary-foreground text-sm font-medium"
+            className="h-11 w-full rounded-xl bg-primary text-sm font-medium text-primary-foreground hover:bg-primary/90"
           >
             Got it
           </Button>

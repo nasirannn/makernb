@@ -556,7 +556,7 @@ export const MashupEditDialog = ({
                           openFilePicker(index);
                         }
                       }}
-                      className="rounded-2xl border border-dashed border-border/35 min-h-[180px] px-4 py-7 text-center cursor-pointer transition-colors hover:border-primary/30 flex flex-col items-center justify-center focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+                      className="rounded-2xl border border-dashed border-slate-300/35 dark:border-slate-700/25 min-h-[180px] px-4 py-7 text-center cursor-pointer transition-colors hover:border-primary/30 flex flex-col items-center justify-center focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background"
                     >
                       <div className="mx-auto mb-2 inline-flex h-10 w-10 items-center justify-center rounded-full bg-primary/10 text-primary">
                         <UploadCloud className="h-5 w-5" />
@@ -581,9 +581,9 @@ export const MashupEditDialog = ({
 
         <div className="flex-shrink-0 px-6 pb-6 flex items-center justify-end gap-3">
           <Button
-            variant="outline"
+            variant="ghost"
             onClick={onClose}
-            className="w-full sm:w-auto h-10 rounded-lg bg-muted/70 text-foreground hover:bg-muted"
+            className="w-full sm:w-auto h-10 rounded-lg border-0 bg-foreground/5 text-foreground/75 transition-colors hover:bg-foreground/10 hover:text-foreground"
             disabled={isSaving}
           >
             Cancel

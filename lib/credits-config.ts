@@ -47,6 +47,12 @@ export const FEATURE_CREDITS_CONFIG: Record<string, FeatureConfig> = {
     enabled: true,
     description: '将音乐转换为MP4视频'
   },
+  generate_midi: {
+    name: 'Generate MIDI',
+    credits: 0,
+    enabled: true,
+    description: '从分离音频生成 MIDI 数据'
+  },
   generate_persona: {
     name: 'Generate Persona',
     credits: 2,
@@ -64,6 +70,12 @@ export const FEATURE_CREDITS_CONFIG: Record<string, FeatureConfig> = {
     credits: 10,
     enabled: true,
     description: '从Studio曲目分离人声'
+  },
+  split_stem_from_music_studio: {
+    name: 'Split Stem from Music (Studio Track)',
+    credits: 50,
+    enabled: true,
+    description: '从Studio曲目分离多轨 Stem'
   },
   upload_cover_music: {
     name: 'Upload Cover Music',

@@ -59,19 +59,20 @@ const buildFeatureList = (tier: PricingTierCode, credits: number, billingPeriod:
   const approxSongs = Math.max(1, Math.round(credits / 7));
   const creditsLine = `${credits.toLocaleString('en-US')} credits/${periodLabel} (approx. ${approxSongs.toLocaleString('en-US')} songs)`;
   const downloadLine = tierMeta[tier].download;
-  const enhanceStyleLine = 'Enhance Style (V4.5 models)';
+  const enhanceStyleLine = 'Enhance Style';
   const advancedEditingLine =
     tier === 'hobby'
-      ? 'Vocal separation, Extend music, Replace section & Mashup'
-      : 'Vocal separation, Extend music & Replace section';
+      ? 'Vocal Separation, Split Stem, Generate MIDI, Extend Music, Replace Section & Mashup'
+      : 'Vocal Separation, Extend Music & Replace Section';
 
   return [
     creditsLine,
     'AI Music Generator',
     'AI Lyrics Generator',
     'AI Persona Generator',
-    'AI Vocal Remover',
+    'AI Vocal Separation',
     downloadLine,
+    'Public Visibility Control (Public / Private)',
     'Commercial License Included',
     enhanceStyleLine,
     advancedEditingLine,

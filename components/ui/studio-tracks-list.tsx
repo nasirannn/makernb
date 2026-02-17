@@ -7,13 +7,15 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { Skeleton } from '@/components/ui/skeleton';
 import { supabase } from "@/lib/supabase";
 import { toast } from 'sonner';
-import { LibraryTrack } from '@/types/track';
+import type { LibraryTrack, MidiGenerationData } from '@/types/track';
 import { useAudioPlayingState } from "@/hooks/use-audio-playing-state";
 import { useFeaturePermissions } from "@/contexts/FeaturePermissionsContext";
 import { usePricingModal } from "@/contexts/PricingModalContext";
 import { VocalRemovalProgressDialog } from '@/features/vocal-tools/components/vocal-removal-progress-dialog';
+import { SplitStemProgressDialog } from '@/features/vocal-tools/components/split-stem-progress-dialog';
+import { MidiResultDialog } from '@/features/vocal-tools/components/midi-result-dialog';
 import { ReplaceSectionDialog, ReplaceSectionParams } from '@/features/music-upload/components/replace-section-dialog';
-import { CLIENT_VOCAL_SEPARATION_CREDITS } from '@/lib/credits-config';
+import { CLIENT_FEATURE_CREDITS, CLIENT_VOCAL_SEPARATION_CREDITS } from '@/lib/credits-config';
 import { useVocalRemovalManager } from '@/features/vocal-tools/hooks/use-vocal-removal-manager';
 import { TrackItem } from './track-item';
 import { formatDurationInMinutes } from '@/lib/format-utils';
@@ -96,6 +98,14 @@ type TrackTypeFilter =
   | "add-melody"
   | "disliked";
 
+type MidiTrackState = {
+  status: 'idle' | 'checking' | 'generating' | 'completed' | 'error';
+  taskId?: string;
+  instrumentsCount?: number;
+  midiData?: MidiGenerationData | null;
+  errorMessage?: string;
+};
+
 const TRACK_TYPE_FILTER_OPTIONS: Array<{
   value: TrackTypeFilter;
   label: string;
@@ -103,12 +113,12 @@ const TRACK_TYPE_FILTER_OPTIONS: Array<{
   icon: React.ElementType;
 }> = [
   { value: "all", label: "All", musicTypes: [], icon: Filter },
-  { value: "music-generator", label: "Generator", musicTypes: ["generated"], icon: Music2 },
-  { value: "music-extender", label: "Extender", musicTypes: ["upload_extend", "extended"], icon: Expand },
-  { value: "music-cover", label: "Cover", musicTypes: ["upload_cover"], icon: Disc3 },
+  { value: "music-generator", label: "Music Generator", musicTypes: ["generated"], icon: Music2 },
+  { value: "music-extender", label: "Music Extender", musicTypes: ["upload_extend", "extended"], icon: Expand },
+  { value: "music-cover", label: "Music Cover", musicTypes: ["upload_cover"], icon: Disc3 },
   { value: "mashup", label: "Mashup", musicTypes: ["upload_mashup"], icon: Blend },
-  { value: "add-vocal", label: "Vocal", musicTypes: ["upload_vocal"], icon: Mic },
-  { value: "add-melody", label: "Melody", musicTypes: ["upload_melody"], icon: Music },
+  { value: "add-vocal", label: "Add Vocal", musicTypes: ["upload_vocal"], icon: Mic },
+  { value: "add-melody", label: "Add Melody", musicTypes: ["upload_melody"], icon: Music },
   { value: "disliked", label: "Disliked", musicTypes: [], icon: ThumbsDown },
 ];
 
@@ -174,6 +184,8 @@ export const StudioTracksList: React.FC<StudioTracksListProps> = React.memo(func
   const canDownloadMP4 = hasPermission('download_mp4_track');
   const canDownloadCover = hasPermission('download_cover_track');
   const canVocalRemoval = hasPermission('vocal_removal_studio');
+  const canSplitStem = hasPermission('split_stem_from_music_studio');
+  const canGenerateMidi = hasPermission('generate_midi');
   const canExtendMusic = hasPermission('extend_music');
   const canReplaceSection = hasPermission('replace_section');
   const canCreatePersona = hasPermission('generate_persona');
@@ -192,6 +204,8 @@ export const StudioTracksList: React.FC<StudioTracksListProps> = React.memo(func
   
   // Vocal Removal 管理
   const vocalRemovalManager = useVocalRemovalManager();
+  const [midiTrackStates, setMidiTrackStates] = useState<Map<string, MidiTrackState>>(new Map());
+  const midiPollingTimersRef = React.useRef<Map<string, ReturnType<typeof setInterval>>>(new Map());
   
   // Extend Music 函数（从父组件传递，确保使用同一个 hook 实例）
   // 使用 useMemo 稳定值，避免每次渲染创建新函数
@@ -200,10 +214,41 @@ export const StudioTracksList: React.FC<StudioTracksListProps> = React.memo(func
     [extendMusicStartPolling]
   );
   
-  // Vocal Removal 弹窗状态（统一结果弹窗：checking -> ready -> processing -> completed/error）
-  const [showVocalRemovalProgressDialog, setShowVocalRemovalProgressDialog] = useState(false);
+  // Track processing 弹窗状态（checking -> ready -> processing -> completed/error）
+  const [showTrackProcessingDialog, setShowTrackProcessingDialog] = useState(false);
+  const [showMidiResultDialog, setShowMidiResultDialog] = useState(false);
   const [currentProcessingTrackId, setCurrentProcessingTrackId] = useState<string | null>(null);
   const [currentProcessingTrackTitle, setCurrentProcessingTrackTitle] = useState<string>('');
+  const [currentProcessingFeatureMode, setCurrentProcessingFeatureMode] = useState<'separate_vocal' | 'split_stem'>('separate_vocal');
+
+  const getMidiTrackState = useCallback((trackId: string): MidiTrackState => {
+    return midiTrackStates.get(trackId) || { status: 'idle' };
+  }, [midiTrackStates]);
+
+  const updateMidiTrackState = useCallback((trackId: string, updates: Partial<MidiTrackState>) => {
+    setMidiTrackStates((prev) => {
+      const next = new Map(prev);
+      const current = next.get(trackId) || { status: 'idle' as const };
+      next.set(trackId, { ...current, ...updates });
+      return next;
+    });
+  }, []);
+
+  const clearMidiPollingForTrack = useCallback((trackId: string) => {
+    const pollingTimer = midiPollingTimersRef.current.get(trackId);
+    if (pollingTimer) {
+      clearInterval(pollingTimer);
+      midiPollingTimersRef.current.delete(trackId);
+    }
+  }, []);
+
+  useEffect(() => {
+    const pollingTimers = midiPollingTimersRef.current;
+    return () => {
+      pollingTimers.forEach((timerId) => clearInterval(timerId));
+      pollingTimers.clear();
+    };
+  }, []);
 
   // Replace Section 弹窗状态
   const [showReplaceSectionDialog, setShowReplaceSectionDialog] = useState(false);
@@ -312,8 +357,6 @@ export const StudioTracksList: React.FC<StudioTracksListProps> = React.memo(func
     return visibleTracks.filter(track => {
       if (track.title?.toLowerCase().includes(query)) return true;
       if (track.musicTitle?.toLowerCase().includes(query)) return true;
-      if (track.tags?.toLowerCase().includes(query)) return true;
-      if (track.musicTags?.toLowerCase().includes(query)) return true;
       return false;
     });
   }, [searchQuery, hasActiveTypeFilter, selectedTypeFilter, selectedTypeFilterMusicTypes]);
@@ -804,11 +847,117 @@ export const StudioTracksList: React.FC<StudioTracksListProps> = React.memo(func
     }
   }, [pendingReplaceSectionTrackId, startExtendMusicPolling, refreshCredits]);
 
-  // 处理 Vocal Removal：点击即打开结果弹窗，查询/启动都在弹窗内完成
-  const handleVocalRemoval = useCallback(async (trackId: string) => {
-    const track = findTrackById(trackId);
-    if (track?.musicGeneration?.isInstrumental) {
-      toast.error('Instrumental tracks cannot be processed for vocal removal');
+  const startMidiStatusPolling = useCallback(async (trackId: string, taskId: string) => {
+    const POLL_INTERVAL = 3000;
+    const MAX_POLL_DURATION = 5 * 60 * 1000;
+
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session?.access_token) {
+      updateMidiTrackState(trackId, {
+        status: 'error',
+        taskId,
+        midiData: undefined,
+        errorMessage: 'Authentication required. Please sign in again.',
+      });
+      return;
+    }
+
+    const accessToken = session.access_token;
+    const startedAt = Date.now();
+    let requestInFlight = false;
+
+    clearMidiPollingForTrack(trackId);
+
+    const pollOnce = async () => {
+      if (requestInFlight) return;
+      requestInFlight = true;
+
+      try {
+        if (Date.now() - startedAt > MAX_POLL_DURATION) {
+          clearMidiPollingForTrack(trackId);
+          updateMidiTrackState(trackId, {
+            status: 'error',
+            taskId,
+            midiData: undefined,
+            errorMessage: 'MIDI generation timeout. Please try again.',
+          });
+          return;
+        }
+
+        const response = await fetch(`/api/midi-status?taskId=${encodeURIComponent(taskId)}`, {
+          headers: {
+            'Authorization': `Bearer ${accessToken}`,
+          },
+        });
+
+        if (!response.ok) {
+          return;
+        }
+
+        const result = await response.json();
+        if (!result?.success || !result?.data) {
+          return;
+        }
+
+        const midiStatus = result.data.status as string;
+
+        if (midiStatus === 'completed') {
+          clearMidiPollingForTrack(trackId);
+          const instrumentsCount = Array.isArray(result.data?.midiData?.instruments)
+            ? result.data.midiData.instruments.length
+            : 0;
+
+          updateMidiTrackState(trackId, {
+            status: 'completed',
+            taskId,
+            instrumentsCount,
+            midiData: result.data?.midiData || null,
+            errorMessage: undefined,
+          });
+
+          if (refreshCredits) {
+            await refreshCredits();
+          }
+          toast.success('MIDI is ready.');
+          return;
+        }
+
+        if (midiStatus === 'error' || midiStatus === 'expired') {
+          clearMidiPollingForTrack(trackId);
+          updateMidiTrackState(trackId, {
+            status: 'error',
+            taskId,
+            midiData: undefined,
+            errorMessage: 'MIDI generation failed. Please retry.',
+          });
+          return;
+        }
+
+        updateMidiTrackState(trackId, {
+          status: 'generating',
+          taskId,
+          midiData: undefined,
+          errorMessage: undefined,
+        });
+      } catch (error) {
+        console.error('MIDI status polling error:', error);
+      } finally {
+        requestInFlight = false;
+      }
+    };
+
+    const timerId = setInterval(pollOnce, POLL_INTERVAL);
+    midiPollingTimersRef.current.set(trackId, timerId);
+    await pollOnce();
+  }, [clearMidiPollingForTrack, refreshCredits, updateMidiTrackState]);
+
+  const handleGenerateMidi = useCallback(async (
+    trackId: string,
+    options?: { separationTaskId?: string }
+  ) => {
+    const midiCreditCost = CLIENT_FEATURE_CREDITS.generate_midi.credits;
+    if ((credits ?? 0) < midiCreditCost) {
+      openPricingModal();
       return;
     }
 
@@ -818,18 +967,136 @@ export const StudioTracksList: React.FC<StudioTracksListProps> = React.memo(func
         toast.error('Authentication required');
         return;
       }
-      
+
+      updateMidiTrackState(trackId, {
+        status: 'generating',
+        taskId: undefined,
+        instrumentsCount: undefined,
+        midiData: undefined,
+        errorMessage: undefined,
+      });
+
+      const response = await fetch('/api/generate-midi', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${session.access_token}`,
+        },
+        body: JSON.stringify({
+          trackId,
+          separationTaskId: options?.separationTaskId,
+        }),
+      });
+
+      const result = await response.json().catch(() => null);
+
+      if (!response.ok || !result?.success) {
+        const errorMessage = result?.error || result?.message || 'Failed to start MIDI generation';
+
+        if (response.status === 402 || result?.insufficientCredits) {
+          if (refreshCredits) {
+            await refreshCredits();
+          }
+          openPricingModal();
+        }
+
+        updateMidiTrackState(trackId, {
+          status: 'error',
+          midiData: undefined,
+          errorMessage,
+        });
+
+        toast.error(errorMessage);
+        return;
+      }
+
+      const generatedTaskId = typeof result.data?.taskId === 'string' ? result.data.taskId : undefined;
+
+      if (result.data?.status === 'completed' && result.data?.midiData) {
+        const instrumentsCount = Array.isArray(result.data.midiData?.instruments)
+          ? result.data.midiData.instruments.length
+          : 0;
+
+        updateMidiTrackState(trackId, {
+          status: 'completed',
+          taskId: generatedTaskId,
+          instrumentsCount,
+          midiData: result.data.midiData,
+          errorMessage: undefined,
+        });
+        toast.success('MIDI is ready.');
+        return;
+      }
+
+      if (!generatedTaskId) {
+        updateMidiTrackState(trackId, {
+          status: 'error',
+          midiData: undefined,
+          errorMessage: 'Missing MIDI task id from API response.',
+        });
+        toast.error('Failed to start MIDI generation');
+        return;
+      }
+
+      updateMidiTrackState(trackId, {
+        status: 'generating',
+        taskId: generatedTaskId,
+        midiData: undefined,
+        errorMessage: undefined,
+      });
+
+      toast.success('MIDI generation started.');
+      await startMidiStatusPolling(trackId, generatedTaskId);
+    } catch (error) {
+      console.error('Generate MIDI error:', error);
+      const errorMessage = error instanceof Error ? error.message : 'Failed to generate MIDI';
+      updateMidiTrackState(trackId, {
+        status: 'error',
+        midiData: undefined,
+        errorMessage,
+      });
+      toast.error(errorMessage);
+    }
+  }, [credits, openPricingModal, refreshCredits, startMidiStatusPolling, updateMidiTrackState]);
+
+  const openRemovalDialogForMode = useCallback(async (
+    trackId: string,
+    mode: 'separate_vocal' | 'split_stem'
+  ) => {
+    const track = findTrackById(trackId);
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session?.access_token) {
+        toast.error('Authentication required');
+        return;
+      }
+
       const trackTitle = track?.title || 'Unknown Track';
       setCurrentProcessingTrackId(trackId);
       setCurrentProcessingTrackTitle(trackTitle);
-      setShowVocalRemovalProgressDialog(true);
+      setCurrentProcessingFeatureMode(mode);
+      setShowTrackProcessingDialog(true);
+      setShowMidiResultDialog(false);
       vocalRemovalManager.updateTrackState(trackId, {
         status: 'checking',
         progress: 0,
         errorMessage: undefined,
+        taskId: undefined,
         vocalUrl: undefined,
         instrumentalUrl: undefined,
+        separationType: mode,
+        stemsData: null,
       });
+
+      if (mode === 'split_stem') {
+        updateMidiTrackState(trackId, {
+          status: 'idle',
+          taskId: undefined,
+          instrumentsCount: undefined,
+          midiData: undefined,
+          errorMessage: undefined,
+        });
+      }
 
       const statusResponse = await fetch(`/api/vocal/removal-status?trackId=${trackId}`, {
         headers: {
@@ -843,8 +1110,44 @@ export const StudioTracksList: React.FC<StudioTracksListProps> = React.memo(func
       if (statusResponse.ok) {
         const statusResult = await statusResponse.json();
         if (statusResult.success && statusResult.data && Array.isArray(statusResult.data) && statusResult.data.length > 0) {
-          completedRemoval = statusResult.data.find((r: any) => r.status === 'completed' && (r.vocalUrl || r.instrumentalUrl));
-          processingRemoval = statusResult.data.find((r: any) => r.status === 'processing' && r.taskId);
+          if (mode === 'split_stem') {
+            completedRemoval =
+              statusResult.data.find(
+                (r: any) =>
+                  r.status === 'completed' &&
+                  r.separationType === 'split_stem' &&
+                  r.stemsData &&
+                  Object.keys(r.stemsData).length > 0
+              ) || null;
+            processingRemoval =
+              statusResult.data.find(
+                (r: any) =>
+                  r.status === 'processing' &&
+                  r.taskId &&
+                  r.separationType === 'split_stem'
+              ) || null;
+          } else {
+            completedRemoval =
+              statusResult.data.find(
+                (r: any) =>
+                  r.status === 'completed' &&
+                  r.separationType !== 'split_stem' &&
+                  (r.vocalUrl || r.instrumentalUrl)
+              ) ||
+              statusResult.data.find(
+                (r: any) =>
+                  r.status === 'completed' &&
+                  (r.vocalUrl || r.instrumentalUrl)
+              ) ||
+              null;
+            processingRemoval =
+              statusResult.data.find(
+                (r: any) =>
+                  r.status === 'processing' &&
+                  r.taskId &&
+                  r.separationType !== 'split_stem'
+              ) || null;
+          }
         }
       }
 
@@ -852,8 +1155,11 @@ export const StudioTracksList: React.FC<StudioTracksListProps> = React.memo(func
         vocalRemovalManager.updateTrackState(trackId, {
           status: 'completed',
           progress: 100,
-          vocalUrl: completedRemoval?.vocalUrl,
-          instrumentalUrl: completedRemoval?.instrumentalUrl,
+          taskId: completedRemoval.taskId,
+          vocalUrl: mode === 'separate_vocal' ? completedRemoval.vocalUrl : undefined,
+          instrumentalUrl: mode === 'separate_vocal' ? completedRemoval.instrumentalUrl : undefined,
+          separationType: mode,
+          stemsData: mode === 'split_stem' ? (completedRemoval.stemsData || null) : null,
         });
         return;
       }
@@ -863,15 +1169,23 @@ export const StudioTracksList: React.FC<StudioTracksListProps> = React.memo(func
           status: 'processing',
           progress: 10,
           taskId: processingRemoval.taskId,
+          vocalUrl: mode === 'separate_vocal' ? processingRemoval.vocalUrl : undefined,
+          instrumentalUrl: mode === 'separate_vocal' ? processingRemoval.instrumentalUrl : undefined,
+          separationType: mode,
+          stemsData: mode === 'split_stem' ? (processingRemoval.stemsData || null) : null,
         });
         vocalRemovalManager.startPolling(trackId, processingRemoval.taskId);
         return;
       }
 
-      // 没有任何记录：在同一个弹窗里展示“开始分离”
       vocalRemovalManager.updateTrackState(trackId, {
         status: 'ready',
         progress: 0,
+        taskId: undefined,
+        vocalUrl: undefined,
+        instrumentalUrl: undefined,
+        separationType: mode,
+        stemsData: null,
       });
     } catch (error) {
       console.error('Vocal removal error:', error);
@@ -881,10 +1195,200 @@ export const StudioTracksList: React.FC<StudioTracksListProps> = React.memo(func
         errorMessage: error instanceof Error ? error.message : 'Failed to check separation status',
       });
     }
-  }, [findTrackById, vocalRemovalManager]);
+  }, [findTrackById, updateMidiTrackState, vocalRemovalManager]);
+
+  const handleMidiAction = useCallback(async (trackId: string) => {
+    if (!canGenerateMidi) {
+      openPricingModal();
+      return;
+    }
+
+    const track = findTrackById(trackId);
+    const trackTitle = track?.title || 'Unknown Track';
+
+    try {
+      clearMidiPollingForTrack(trackId);
+      setCurrentProcessingTrackId(trackId);
+      setCurrentProcessingTrackTitle(trackTitle);
+      setCurrentProcessingFeatureMode('split_stem');
+      setShowTrackProcessingDialog(false);
+      setShowMidiResultDialog(true);
+      updateMidiTrackState(trackId, {
+        status: 'checking',
+        taskId: undefined,
+        instrumentsCount: undefined,
+        midiData: undefined,
+        errorMessage: undefined,
+      });
+
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session?.access_token) {
+        updateMidiTrackState(trackId, {
+          status: 'error',
+          errorMessage: 'Authentication required',
+        });
+        toast.error('Authentication required');
+        return;
+      }
+
+      const accessToken = session.access_token;
+
+      const splitStemStatusResponse = await fetch(
+        `/api/vocal/removal-status?trackId=${encodeURIComponent(trackId)}`,
+        {
+          headers: {
+            'Authorization': `Bearer ${accessToken}`,
+          },
+        }
+      );
+
+      if (!splitStemStatusResponse.ok) {
+        updateMidiTrackState(trackId, {
+          status: 'error',
+          errorMessage: 'Failed to check Split Stem status.',
+        });
+        toast.error('Failed to check Split Stem status.');
+        return;
+      }
+
+      const splitStemStatusResult = await splitStemStatusResponse.json();
+      const splitStemRecords = Array.isArray(splitStemStatusResult?.data)
+        ? splitStemStatusResult.data
+        : [];
+
+      const completedSplitStem = splitStemRecords.find(
+        (record: any) =>
+          record.status === 'completed' &&
+          record.separationType === 'split_stem' &&
+          record.stemsData &&
+          Object.keys(record.stemsData).length > 0
+      );
+
+      if (!completedSplitStem) {
+        setShowMidiResultDialog(false);
+        updateMidiTrackState(trackId, {
+          status: 'idle',
+          taskId: undefined,
+          instrumentsCount: undefined,
+          midiData: undefined,
+          errorMessage: undefined,
+        });
+        toast.info('Split Stem is required before generating MIDI.');
+        await openRemovalDialogForMode(trackId, 'split_stem');
+        return;
+      }
+
+      vocalRemovalManager.updateTrackState(trackId, {
+        status: 'completed',
+        progress: 100,
+        taskId: completedSplitStem.taskId,
+        separationType: 'split_stem',
+        stemsData: completedSplitStem.stemsData || null,
+        vocalUrl: undefined,
+        instrumentalUrl: undefined,
+        errorMessage: undefined,
+      });
+
+      const midiStatusResponse = await fetch(`/api/midi-status?trackId=${encodeURIComponent(trackId)}`, {
+        headers: {
+          'Authorization': `Bearer ${accessToken}`,
+        },
+      });
+
+      if (!midiStatusResponse.ok) {
+        updateMidiTrackState(trackId, {
+          status: 'error',
+          errorMessage: 'Failed to check MIDI status.',
+        });
+        toast.error('Failed to check MIDI status.');
+        return;
+      }
+
+      const midiStatusResult = await midiStatusResponse.json();
+      const midiRecords = Array.isArray(midiStatusResult?.data) ? midiStatusResult.data : [];
+
+      const completedMidiRecord = midiRecords.find(
+        (record: any) => record.status === 'completed' && record.midiData
+      );
+
+      if (completedMidiRecord) {
+        const midiData = completedMidiRecord.midiData;
+        const instrumentsCount = Array.isArray(midiData?.instruments) ? midiData.instruments.length : 0;
+
+        clearMidiPollingForTrack(trackId);
+        updateMidiTrackState(trackId, {
+          status: 'completed',
+          taskId: completedMidiRecord.taskId,
+          instrumentsCount,
+          midiData,
+          errorMessage: undefined,
+        });
+        return;
+      }
+
+      const generatingMidiRecord = midiRecords.find(
+        (record: any) =>
+          record.status === 'generating' &&
+          typeof record.taskId === 'string' &&
+          record.taskId.trim().length > 0
+      );
+
+      if (generatingMidiRecord) {
+        clearMidiPollingForTrack(trackId);
+        updateMidiTrackState(trackId, {
+          status: 'generating',
+          taskId: generatingMidiRecord.taskId,
+          instrumentsCount: undefined,
+          midiData: undefined,
+          errorMessage: undefined,
+        });
+        await startMidiStatusPolling(trackId, generatingMidiRecord.taskId);
+        return;
+      }
+
+      await handleGenerateMidi(trackId, {
+        separationTaskId: completedSplitStem.taskId,
+      });
+    } catch (error) {
+      console.error('MIDI action error:', error);
+      toast.error(error instanceof Error ? error.message : 'Failed to prepare MIDI action');
+    }
+  }, [
+    canGenerateMidi,
+    clearMidiPollingForTrack,
+    findTrackById,
+    handleGenerateMidi,
+    openPricingModal,
+    openRemovalDialogForMode,
+    startMidiStatusPolling,
+    updateMidiTrackState,
+    vocalRemovalManager,
+  ]);
+
+  // 处理 Vocal Removal：仅 separate_vocal 模式
+  const handleVocalRemoval = useCallback(async (trackId: string) => {
+    const track = findTrackById(trackId);
+    if (track?.musicGeneration?.isInstrumental) {
+      toast.error('Instrumental tracks cannot be processed for vocal removal');
+      return;
+    }
+    await openRemovalDialogForMode(trackId, 'separate_vocal');
+  }, [findTrackById, openRemovalDialogForMode]);
+
+  // 处理 Split Stem：独立入口
+  const handleSplitStem = useCallback(async (trackId: string) => {
+    if (!canSplitStem) {
+      openPricingModal();
+      return;
+    }
+    await openRemovalDialogForMode(trackId, 'split_stem');
+  }, [canSplitStem, openPricingModal, openRemovalDialogForMode]);
 
   // 开始 Vocal Removal 处理
-  const startVocalRemovalProcess = useCallback(async (trackId: string, options?: { force?: boolean }) => {
+  const startVocalRemovalProcess = useCallback(async (
+    trackId: string,
+    options?: { force?: boolean; type?: 'separate_vocal' | 'split_stem' }
+  ) => {
     try {
       const { data: { session } } = await supabase.auth.getSession();
       if (!session?.access_token) {
@@ -894,15 +1398,32 @@ export const StudioTracksList: React.FC<StudioTracksListProps> = React.memo(func
       
       const track = findTrackById(trackId);
       const trackTitle = track?.title || 'Unknown Track';
+      const requestedMode: 'separate_vocal' | 'split_stem' = options?.type === 'split_stem' ? 'split_stem' : 'separate_vocal';
       
       setCurrentProcessingTrackId(trackId);
       setCurrentProcessingTrackTitle(trackTitle);
-      setShowVocalRemovalProgressDialog(true);
+      setCurrentProcessingFeatureMode(requestedMode);
+      setShowTrackProcessingDialog(true);
+      setShowMidiResultDialog(false);
+
+      updateMidiTrackState(trackId, {
+        status: 'idle',
+        taskId: undefined,
+        instrumentsCount: undefined,
+        midiData: undefined,
+        errorMessage: undefined,
+      });
+      clearMidiPollingForTrack(trackId);
       
       vocalRemovalManager.updateTrackState(trackId, {
         status: 'processing',
         progress: 0,
         errorMessage: undefined,
+        taskId: undefined,
+        vocalUrl: undefined,
+        instrumentalUrl: undefined,
+        separationType: requestedMode,
+        stemsData: null,
       });
 
       const response = await fetch('/api/vocal/removal', {
@@ -913,18 +1434,40 @@ export const StudioTracksList: React.FC<StudioTracksListProps> = React.memo(func
         },
         body: JSON.stringify({
           trackId,
-          type: 'separate_vocal',
+          type: requestedMode,
           force: !!options?.force,
         }),
       });
 
       if (!response.ok) {
         let errorMessage = 'Failed to start vocal removal';
+        let errorData: any = null;
         try {
-          const errorData = await response.json();
+          errorData = await response.json();
           errorMessage = errorData.error || errorData.message || errorMessage;
         } catch (e) {
           errorMessage = response.statusText || errorMessage;
+        }
+
+        const isPermissionDenied = response.status === 403 && (
+          errorData?.error === 'Permission denied' ||
+          (typeof errorData?.message === 'string' &&
+            errorData.message.toLowerCase().includes('hobby plan'))
+        );
+
+        if (isPermissionDenied) {
+          vocalRemovalManager.updateTrackState(trackId, {
+            status: 'ready',
+            progress: 0,
+            errorMessage: undefined,
+            separationType: requestedMode,
+          });
+          setShowTrackProcessingDialog(false);
+          setCurrentProcessingTrackId(null);
+          setCurrentProcessingTrackTitle('');
+          setCurrentProcessingFeatureMode('separate_vocal');
+          openPricingModal();
+          return;
         }
         
         vocalRemovalManager.updateTrackState(trackId, {
@@ -946,6 +1489,8 @@ export const StudioTracksList: React.FC<StudioTracksListProps> = React.memo(func
             taskId: result.data.taskId,
             vocalUrl: result.data.vocalUrl,
             instrumentalUrl: result.data.instrumentalUrl,
+            separationType: result.data.type || requestedMode,
+            stemsData: result.data.stemsData || null,
           });
           return;
         }
@@ -955,6 +1500,8 @@ export const StudioTracksList: React.FC<StudioTracksListProps> = React.memo(func
         vocalRemovalManager.updateTrackState(trackId, {
           status: 'processing',
           taskId,
+          separationType: result.data.type || requestedMode,
+          stemsData: null,
         });
         
         // 开始轮询
@@ -976,7 +1523,7 @@ export const StudioTracksList: React.FC<StudioTracksListProps> = React.memo(func
         errorMessage,
       });
     }
-  }, [findTrackById, vocalRemovalManager]);
+  }, [clearMidiPollingForTrack, findTrackById, openPricingModal, updateMidiTrackState, vocalRemovalManager]);
 
   // 渲染空状态
   const showEmptyState = !isLoading && (!userTracks || userTracks.length === 0 || allTracks.length === 0) 
@@ -984,6 +1531,12 @@ export const StudioTracksList: React.FC<StudioTracksListProps> = React.memo(func
 
   const shouldShowLoadMore = Boolean(onLoadMore) && !searchQuery.trim() && hasMore;
   const shouldShowNoResults = currentTracks.length === 0 && (Boolean(searchQuery.trim()) || hasActiveTypeFilter);
+  const currentVocalRemovalState = currentProcessingTrackId
+    ? vocalRemovalManager.getTrackState(currentProcessingTrackId)
+    : null;
+  const currentMidiTrackState: MidiTrackState = currentProcessingTrackId
+    ? getMidiTrackState(currentProcessingTrackId)
+    : { status: 'idle' };
 
   React.useEffect(() => {
     if (!shouldShowLoadMore || !loadMoreTriggerRef.current || !scrollContainerRef.current) return;
@@ -1046,7 +1599,7 @@ export const StudioTracksList: React.FC<StudioTracksListProps> = React.memo(func
             <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-foreground/55" />
             <input
               type="text"
-              placeholder="Enter title and tags"
+              placeholder="Search by song title"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               className="w-full h-full rounded-2xl bg-transparent pl-11 pr-10 text-sm text-foreground placeholder:text-foreground/40 transition-colors focus:bg-transparent focus:outline-none border-0"
@@ -1065,7 +1618,7 @@ export const StudioTracksList: React.FC<StudioTracksListProps> = React.memo(func
             <DropdownMenuTrigger asChild>
               <button
                 type="button"
-                className="inline-flex h-11 min-w-[130px] items-center justify-center gap-1.5 rounded-2xl bg-foreground/5 px-3 text-xs font-semibold text-foreground shadow-[0_1px_2px_rgba(0,0,0,0.06)] transition-colors hover:bg-foreground/10 dark:bg-white/10"
+                className="inline-flex studio-panel-card h-11 min-w-[130px] items-center justify-center gap-1.5 rounded-2xl px-3 text-xs font-semibold text-foreground/80 transition-colors hover:bg-accent hover:text-accent-foreground"
                 aria-label="Filter tracks by type"
                 title="Filter tracks by type"
               >
@@ -1073,7 +1626,7 @@ export const StudioTracksList: React.FC<StudioTracksListProps> = React.memo(func
                 <span className="truncate">{selectedTypeFilterOption.label}</span>
               </button>
             </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="w-44">
+            <DropdownMenuContent align="end" className="w-56">
               {TRACK_TYPE_FILTER_OPTIONS.map((option) => {
                 const isSelected = option.value === selectedTypeFilter;
                 return (
@@ -1103,10 +1656,10 @@ export const StudioTracksList: React.FC<StudioTracksListProps> = React.memo(func
           <button
             type="button"
             onClick={() => setCreatedAtSortOrder((prev) => (prev === 'desc' ? 'asc' : 'desc'))}
-            className={`inline-flex h-11 w-[108px] items-center justify-center gap-1.5 rounded-2xl bg-foreground/5 px-3 text-xs font-semibold shadow-[0_1px_2px_rgba(0,0,0,0.06)] transition-colors hover:bg-foreground/10 dark:bg-white/10 ${
+            className={`inline-flex studio-panel-card h-11 w-[108px] items-center justify-center gap-1.5 rounded-2xl px-3 text-xs font-semibold transition-colors hover:bg-accent hover:text-accent-foreground ${
               createdAtSortOrder === 'desc'
                 ? 'text-foreground'
-                : 'text-foreground/80 hover:text-foreground'
+                : 'text-foreground/80'
             }`}
             aria-label={createdAtSortOrder === 'desc' ? 'Sort by newest first' : 'Sort by oldest first'}
             title={createdAtSortOrder === 'desc' ? 'Sorted: Newest first' : 'Sorted: Oldest first'}
@@ -1171,6 +1724,8 @@ export const StudioTracksList: React.FC<StudioTracksListProps> = React.memo(func
                             canDownloadMP4={canDownloadMP4}
                             canDownloadCover={canDownloadCover}
                             canVocalRemoval={canVocalRemoval}
+                            canSplitStem={canSplitStem}
+                            canGenerateMidi={canGenerateMidi}
                             canExtendMusic={canExtendMusic}
                             canReplaceSection={canReplaceSection}
                             canCreatePersona={canCreatePersona}
@@ -1190,6 +1745,8 @@ export const StudioTracksList: React.FC<StudioTracksListProps> = React.memo(func
                             onLikeToggle={onLikeToggle ? () => handleLikeToggle(track) : undefined}
                             onDownload={onDownload ? (format) => handleDownload(track, track.musicGeneration, format) : undefined}
                             onVocalRemoval={() => handleVocalRemoval(track.id)}
+                            onSplitStem={() => handleSplitStem(track.id)}
+                            onGenerateMidi={() => handleMidiAction(track.id)}
                             onExtendMusic={() => handleExtendMusic(track.id)}
                             onReplaceSection={() => handleReplaceSection(track.id)}
                             onCreatePersona={() => handleCreatePersonaFromTrack(track)}
@@ -1310,36 +1867,99 @@ export const StudioTracksList: React.FC<StudioTracksListProps> = React.memo(func
         isCreatingPersona={isCreatingPersona}
       />
 
-      {/* Vocal Removal 进度弹窗 */}
-      {currentProcessingTrackId && (
+      {currentProcessingTrackId && currentProcessingFeatureMode === 'separate_vocal' && (
         <VocalRemovalProgressDialog
-          isOpen={showVocalRemovalProgressDialog}
+          isOpen={showTrackProcessingDialog}
           onClose={() => {
-            setShowVocalRemovalProgressDialog(false);
-            const status = vocalRemovalManager.getTrackState(currentProcessingTrackId).status;
+            setShowTrackProcessingDialog(false);
+            const status = currentVocalRemovalState?.status;
             if (status === 'completed' || status === 'error' || status === 'ready') {
               setCurrentProcessingTrackId(null);
               setCurrentProcessingTrackTitle('');
+              setCurrentProcessingFeatureMode('separate_vocal');
             }
           }}
-          onReSeparate={() => startVocalRemovalProcess(currentProcessingTrackId, { force: true })}
+          onReSeparate={() => startVocalRemovalProcess(currentProcessingTrackId, {
+            force: true,
+            type: 'separate_vocal',
+          })}
           onStartSeparation={() => {
             if ((credits ?? 0) < CLIENT_VOCAL_SEPARATION_CREDITS.studio) {
               openPricingModal();
               return;
             }
-            startVocalRemovalProcess(currentProcessingTrackId);
+            startVocalRemovalProcess(currentProcessingTrackId, { type: 'separate_vocal' });
           }}
           trackTitle={currentProcessingTrackTitle}
-          progress={vocalRemovalManager.getTrackState(currentProcessingTrackId).progress || 0}
-          status={vocalRemovalManager.getTrackState(currentProcessingTrackId).status || 'checking'}
+          progress={currentVocalRemovalState?.progress || 0}
+          status={currentVocalRemovalState?.status || 'checking'}
           errorMessage={
-            vocalRemovalManager.getTrackState(currentProcessingTrackId).status === 'error'
-              ? vocalRemovalManager.getTrackState(currentProcessingTrackId).errorMessage || 'Vocal removal failed. Please try again.'
+            currentVocalRemovalState?.status === 'error'
+              ? currentVocalRemovalState?.errorMessage || 'Vocal separation failed. Please try again.'
               : undefined
           }
-          vocalUrl={vocalRemovalManager.getTrackState(currentProcessingTrackId).vocalUrl}
-          instrumentalUrl={vocalRemovalManager.getTrackState(currentProcessingTrackId).instrumentalUrl}
+          vocalUrl={currentVocalRemovalState?.vocalUrl}
+          instrumentalUrl={currentVocalRemovalState?.instrumentalUrl}
+        />
+      )}
+
+      {currentProcessingTrackId && currentProcessingFeatureMode === 'split_stem' && (
+        <SplitStemProgressDialog
+          isOpen={showTrackProcessingDialog}
+          onClose={() => {
+            setShowTrackProcessingDialog(false);
+            const status = currentVocalRemovalState?.status;
+            if (status === 'completed' || status === 'error' || status === 'ready') {
+              setCurrentProcessingTrackId(null);
+              setCurrentProcessingTrackTitle('');
+              setCurrentProcessingFeatureMode('separate_vocal');
+            }
+          }}
+          onStartSplitStem={() => {
+            if ((credits ?? 0) < CLIENT_FEATURE_CREDITS.split_stem_from_music_studio.credits) {
+              openPricingModal();
+              return;
+            }
+            startVocalRemovalProcess(currentProcessingTrackId, { force: true, type: 'split_stem' });
+          }}
+          onReSplitStem={() => {
+            if ((credits ?? 0) < CLIENT_FEATURE_CREDITS.split_stem_from_music_studio.credits) {
+              openPricingModal();
+              return;
+            }
+            startVocalRemovalProcess(currentProcessingTrackId, { force: true, type: 'split_stem' });
+          }}
+          trackTitle={currentProcessingTrackTitle}
+          progress={currentVocalRemovalState?.progress || 0}
+          status={currentVocalRemovalState?.status || 'checking'}
+          errorMessage={
+            currentVocalRemovalState?.status === 'error'
+              ? currentVocalRemovalState?.errorMessage || 'Split stem failed. Please try again.'
+              : undefined
+          }
+          stemsData={currentVocalRemovalState?.stemsData}
+        />
+      )}
+
+      {currentProcessingTrackId && (
+        <MidiResultDialog
+          isOpen={showMidiResultDialog}
+          onClose={() => {
+            setShowMidiResultDialog(false);
+            if (!showTrackProcessingDialog) {
+              const status = currentVocalRemovalState?.status;
+              if (status === 'completed' || status === 'error' || status === 'ready') {
+                setCurrentProcessingTrackId(null);
+                setCurrentProcessingTrackTitle('');
+                setCurrentProcessingFeatureMode('separate_vocal');
+              }
+            }
+          }}
+          trackTitle={currentProcessingTrackTitle}
+          midiStatus={currentMidiTrackState.status}
+          midiErrorMessage={currentMidiTrackState.errorMessage}
+          midiInstrumentsCount={currentMidiTrackState.instrumentsCount}
+          midiData={currentMidiTrackState.midiData}
         />
       )}
 
@@ -1377,7 +1997,7 @@ export const StudioTracksList: React.FC<StudioTracksListProps> = React.memo(func
                 setDeleteDialogOpen(false);
                 setTrackToDelete(null);
               }}
-              className="w-full sm:w-[160px] h-10 rounded-lg bg-muted/70 text-foreground hover:bg-muted hover:text-foreground dark:hover:bg-muted dark:hover:text-foreground"
+              className="w-full sm:w-[160px] h-10 rounded-lg"
             >
               Cancel
             </AlertDialogCancel>

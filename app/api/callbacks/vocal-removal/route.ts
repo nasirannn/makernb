@@ -9,8 +9,97 @@ import { handleKieApiErrorByCode, TaskTypeConfig } from '@/lib/kie-api-error-han
 // 强制动态渲染
 export const dynamic = 'force-dynamic';
 
+type VocalSeparationType = 'separate_vocal' | 'split_stem';
+
 // 幂等处理 - 避免重复处理同一回调
 const processedVocalRemovalTasks = new Set<string>();
+
+const getStringValue = (value: unknown): string | undefined => {
+  return typeof value === 'string' && value.trim().length > 0 ? value : undefined;
+};
+
+const pickUrlFromObject = (obj: any, keys: string[]): string | undefined => {
+  if (!obj || typeof obj !== 'object') return undefined;
+  for (const key of keys) {
+    const value = getStringValue(obj[key]);
+    if (value) return value;
+  }
+  return undefined;
+};
+
+const toStemKey = (rawKey: string): string => rawKey.replace(/_url$/i, '').trim();
+
+const extractStemDataFromInfo = (info: any): Record<string, string> => {
+  const result: Record<string, string> = {};
+  if (!info || typeof info !== 'object') return result;
+
+  Object.entries(info).forEach(([key, value]) => {
+    const url = getStringValue(value);
+    if (!url) return;
+    if (!key.endsWith('_url')) return;
+    if (key === 'origin_url') return;
+
+    const stemKey = toStemKey(key);
+    if (stemKey) {
+      result[stemKey] = url;
+    }
+  });
+
+  return result;
+};
+
+const parseSplitStemType = (stemData: Record<string, string>): VocalSeparationType => {
+  const splitStemSpecificKeys = [
+    'backing_vocals',
+    'drums',
+    'bass',
+    'guitar',
+    'keyboard',
+    'percussion',
+    'strings',
+    'synth',
+    'fx',
+    'brass',
+    'woodwinds',
+  ];
+
+  return splitStemSpecificKeys.some((key) => !!stemData[key]) ? 'split_stem' : 'separate_vocal';
+};
+
+const extractVocalRemovalData = (
+  data: any,
+  existingType?: VocalSeparationType
+): {
+  vocalUrl?: string;
+  instrumentalUrl?: string;
+  originUrl?: string;
+  stemData: Record<string, string>;
+  separationType: VocalSeparationType;
+} => {
+  const vocalRemovalInfo = data?.vocal_removal_info || data?.vocal_separation_info || data?.separation_info;
+  const stemData = extractStemDataFromInfo(vocalRemovalInfo);
+
+  const vocalUrl = pickUrlFromObject(vocalRemovalInfo, ['vocal_url', 'vocalUrl', 'vocals_url', 'vocalsUrl']) || stemData.vocal;
+  let instrumentalUrl = pickUrlFromObject(vocalRemovalInfo, [
+    'instrumental_url',
+    'instrumentalUrl',
+    'accompaniment_url',
+    'accompanimentUrl',
+    'music_url',
+    'musicUrl',
+  ]);
+  if (!instrumentalUrl) {
+    instrumentalUrl = stemData.instrumental || stemData.accompaniment;
+  }
+  const originUrl = pickUrlFromObject(vocalRemovalInfo, ['origin_url', 'originUrl']);
+
+  const separationType =
+    existingType === 'split_stem' || parseSplitStemType(stemData) === 'split_stem'
+      ? 'split_stem'
+      : 'separate_vocal';
+
+  return { vocalUrl, instrumentalUrl, originUrl, stemData, separationType };
+};
 
 /**
  * 处理人声移除回调
@@ -103,57 +192,35 @@ async function processVocalRemovalCallbackAsync(callbackData: any, callbackId: s
 
     // 处理不同的状态码
     if (code === 200) {
-      // 成功：更新 URL 和状态
-      // 根据 KIE API 文档，separate_vocal 类型的回调数据结构为：
-      // {
-      //   "code": 200,
-      //   "msg": "vocal Removal generated successfully.",
-      //   "data": {
-      //     "task_id": "...",
-      //     "vocal_removal_info": {
-      //       "instrumental_url": "...",
-      //       "origin_url": "",
-      //       "vocal_url": "..."
-      //     }
-      //   }
-      // }
-      const vocalRemovalInfo = data?.vocal_removal_info;
-      if (!vocalRemovalInfo) {
-        console.error(`[VOCAL-REMOVAL-CALLBACK-${callbackId}] Missing vocal_removal_info in callback data`);
-        await updateVocalRemovalByTaskId(taskId, {
-          status: 'error'
-        });
-        return;
-      }
-
-      // 提取 separate_vocal 类型的字段
-      const vocalUrl = vocalRemovalInfo?.vocal_url;
-      const instrumentalUrl = vocalRemovalInfo?.instrumental_url;
-      const originUrl = vocalRemovalInfo?.origin_url; // 原始音频URL（可选）
+      // 成功：更新 URL 和状态（兼容 separate_vocal / split_stem 回调结构）
+      const { vocalUrl, instrumentalUrl, originUrl, stemData, separationType } = extractVocalRemovalData(
+        data,
+        removal.separation_type
+      );
 
       console.log(`[VOCAL-REMOVAL-CALLBACK-${callbackId}] Success callback data:`, {
         taskId,
+        separationType,
         vocalUrl,
         instrumentalUrl,
+        stemKeys: Object.keys(stemData),
         originUrl,
         fullData: JSON.stringify(data, null, 2)
       });
 
-      // 验证：至少需要有一个URL（vocal_url 或 instrumental_url）
+      // split_stem 可能不存在可直接映射的 vocal/instrumental URL，允许空 URL 但任务仍记为 completed
       if (!vocalUrl && !instrumentalUrl) {
-        console.error(`[VOCAL-REMOVAL-CALLBACK-${callbackId}] Missing vocal_url and instrumental_url in success callback`);
-        await updateVocalRemovalByTaskId(taskId, {
-          status: 'error'
-        });
-        return;
+        console.warn(`[VOCAL-REMOVAL-CALLBACK-${callbackId}] No direct vocal/instrumental URL found, marking task as completed`);
       }
 
       try {
         // 第一步：立即更新数据库记录（存储临时 URL）
         await updateVocalRemovalByTaskId(taskId, {
           status: 'completed',
-          vocal_url: vocalUrl || null,
-          instrumental_url: instrumentalUrl || null
+          separation_type: separationType,
+          vocal_url: vocalUrl || undefined,
+          instrumental_url: instrumentalUrl || undefined,
+          stems_data: Object.keys(stemData).length > 0 ? stemData : null
         });
 
         console.log(`[VOCAL-REMOVAL-CALLBACK-${callbackId}] Successfully updated vocal removal record for taskId: ${taskId}`);
@@ -213,16 +280,21 @@ async function processVocalRemovalCallbackAsync(callbackData: any, callbackId: s
           });
         }
 
-        // 扣除积分（任务成功即可扣除，不等待R2上传）
+        // 扣除积分（任务成功即可扣除，不等待 R2 上传）
         try {
-          const creditCost = getFeatureCredits('separate_vocals_from_music_studio');
+          const creditFeatureKey: 'split_stem_from_music_studio' | 'separate_vocals_from_music_studio' =
+            separationType === 'split_stem'
+              ? 'split_stem_from_music_studio'
+              : 'separate_vocals_from_music_studio';
+          const creditCost = getFeatureCredits(creditFeatureKey);
+          const creditDescription = separationType === 'split_stem' ? 'Split stem' : 'Vocal removal';
           
           await addUserCredits(
             removal.user_id,
             -creditCost,
-            'Vocal removal',
+            creditDescription,
             taskId,
-            'separate_vocals_from_music_studio'
+            creditFeatureKey
           );
 
           console.log(`[VOCAL-REMOVAL-CALLBACK-${callbackId}] Deducted ${creditCost} credits from user ${removal.user_id}`);
@@ -333,19 +405,25 @@ async function handleVocalRemovalError(
   taskId: string,
   callbackId: string
 ): Promise<void> {
+  const removal = await getVocalRemovalByTaskId(taskId);
+  const isSplitStem = removal?.separation_type === 'split_stem';
+  const featureKey: 'split_stem_from_music_studio' | 'separate_vocals_from_music_studio' = isSplitStem
+    ? 'split_stem_from_music_studio'
+    : 'separate_vocals_from_music_studio';
+  const descriptionKeywords = isSplitStem
+    ? ['Split stem', 'Split Stem', 'split_stem']
+    : ['Vocal removal', 'Vocal Removal', 'separate_vocals'];
+
   // 创建任务配置
   const taskConfig: TaskTypeConfig = {
-    featureKey: 'separate_vocals_from_music_studio',
-    descriptionKeywords: ['Vocal removal', 'Vocal Removal', 'separate_vocals'],
+    featureKey,
+    descriptionKeywords,
     updateStatus: async (taskId: string, status: { status: string }) => {
       await updateVocalRemovalByTaskId(taskId, {
         status: status.status as 'error' | 'processing' | 'completed'
       });
     },
-    getUserId: async (taskId: string) => {
-      const removal = await getVocalRemovalByTaskId(taskId);
-      return removal?.user_id || null;
-    },
+    getUserId: async () => removal?.user_id || null,
   };
 
   await handleKieApiErrorByCode(code, msg, taskId, callbackId, taskConfig);

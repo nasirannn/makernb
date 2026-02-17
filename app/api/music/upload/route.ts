@@ -239,6 +239,7 @@ export async function POST(request: NextRequest) {
   }
 
   const mode = modeValue;
+  const isExtendUploadMode = mode === 'extend';
   const file = formData.get('file');
   const uploadUrl = formData.get('uploadUrl')?.toString().trim() || '';
   const hasUploadUrl = uploadUrl.length > 0;
@@ -252,7 +253,7 @@ export async function POST(request: NextRequest) {
   }
 
   const defaultParamFlagValue = formData.get('defaultParamFlag') ?? formData.get('customMode');
-  const defaultParamFlag = defaultParamFlagValue === 'true';
+  const defaultParamFlag = isExtendUploadMode ? true : defaultParamFlagValue === 'true';
   const requestedModel = formData.get('model')?.toString() || 'V4';
   const model = resolveModelForMode(mode, requestedModel, defaultParamFlag);
   const limits = getModelLimits(model);
@@ -267,9 +268,7 @@ export async function POST(request: NextRequest) {
   const style = formData.get('style')?.toString().trim().slice(0, limits.style) || '';
   const promptInput = formData.get('prompt')?.toString().trim() || formData.get('lyrics')?.toString().trim() || '';
   const promptLimit = isLegacyUploadMode(mode)
-    ? (!defaultParamFlag
-      ? (mode === 'extend' ? limits.prompt : 500)
-      : limits.prompt)
+    ? (defaultParamFlag ? limits.prompt : 500)
     : limits.prompt;
   const prompt = promptInput.slice(0, promptLimit) || '';
   const tags = formData.get('tags')?.toString().trim().slice(0, limits.style) || '';
@@ -327,7 +326,7 @@ export async function POST(request: NextRequest) {
   }
 
   if (isLegacyUploadMode(mode)) {
-    if (!defaultParamFlag && !prompt) {
+    if (mode === 'cover' && !defaultParamFlag && !prompt) {
       return NextResponse.json({ error: 'Prompt is required' }, { status: 400 });
     }
 
@@ -343,7 +342,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: customError }, { status: 400 });
     }
 
-    if (mode === 'extend' && defaultParamFlag && continueAt <= 0) {
+    if (isExtendUploadMode && continueAt <= 0) {
       return NextResponse.json({ error: 'continueAt must be greater than 0' }, { status: 400 });
     }
   }
@@ -444,7 +443,7 @@ export async function POST(request: NextRequest) {
       model,
       callBackUrl: callbackUrl,
       instrumental,
-      continueAt: mode === 'extend' && defaultParamFlag ? continueAt : undefined,
+      continueAt: isExtendUploadMode ? continueAt : undefined,
       vocalGender,
       styleWeight,
       weirdnessConstraint,

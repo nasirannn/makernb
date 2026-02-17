@@ -166,9 +166,9 @@ export const MashupUploadConfirmDialog = ({
 
         <div className="flex-shrink-0 px-6 pb-6 flex items-center justify-end gap-3">
           <Button
-            variant="outline"
+            variant="ghost"
             onClick={onClose}
-            className="w-full sm:w-auto h-10 rounded-lg bg-muted/70 text-foreground hover:bg-muted"
+            className="w-full sm:w-auto h-10 rounded-lg border-0 bg-foreground/5 text-foreground/75 transition-colors hover:bg-foreground/10 hover:text-foreground"
             disabled={isConfirming}
           >
             Cancel

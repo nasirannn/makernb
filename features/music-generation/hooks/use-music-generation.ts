@@ -29,7 +29,6 @@ export const useMusicGeneration = () => {
   const canUseAdvancedOptions = hasPermission('boost_music_style');
 
   // ==================== 配置状态 ====================
-  const [mode, setMode] = useState<"simple" | "custom">("simple");
   const [simplePrompt, setSimplePrompt] = useState("");
   const [customLyrics, setCustomLyrics] = useState("");
   const [songTitle, setSongTitle] = useState("");
@@ -109,8 +108,8 @@ export const useMusicGeneration = () => {
 
   // ==================== 辅助函数 ====================
 
-  const validateInputs = (): boolean => {
-    if (mode === "simple" && !simplePrompt?.trim()) {
+  const validateInputs = (modeValue: "simple" | "custom"): boolean => {
+    if (modeValue === "simple" && !simplePrompt?.trim()) {
       toast.error("Please enter a prompt");
       return false;
     }
@@ -118,12 +117,12 @@ export const useMusicGeneration = () => {
     return true;
   };
 
-  const buildRequestData = () => {
-    const prompt = mode === "simple" ? simplePrompt : customLyrics;
+  const buildRequestData = (modeValue: "simple" | "custom") => {
+    const prompt = modeValue === "simple" ? simplePrompt : customLyrics;
     const requestModel: MusicModel = selectedModel;
-    const canEnhanceStyle = mode === 'custom' && ['V4_5', 'V4_5PLUS', 'V4_5ALL'].includes(requestModel as string);
+    const canEnhanceStyle = modeValue === 'custom' && ['V4_5', 'V4_5PLUS', 'V4_5ALL'].includes(requestModel as string);
     const data: Record<string, unknown> = {
-      mode,
+      mode: modeValue,
       customPrompt: prompt,
       instrumentalMode,
       songTitle,
@@ -142,7 +141,7 @@ export const useMusicGeneration = () => {
       data.personaModel = selectedPersonaModel;
     }
 
-    if (mode === "custom" && canUseAdvancedOptions) {
+    if (modeValue === "custom" && canUseAdvancedOptions) {
       if (typeof styleWeight === 'number') {
         data.styleWeight = styleWeight;
       }
@@ -483,9 +482,13 @@ export const useMusicGeneration = () => {
   // ==================== 生成歌曲 ====================
   const handleGenerate = async (
     refreshCredits?: () => Promise<void>,
-    onApiSuccess?: () => void
+    onApiSuccess?: () => void,
+    options?: {
+      modeOverride?: "simple" | "custom";
+    }
   ) => {
-    if (!validateInputs()) {
+    const effectiveMode = options?.modeOverride ?? "simple";
+    if (!validateInputs(effectiveMode)) {
       throw new Error('Input validation failed');
     }
 
@@ -494,13 +497,13 @@ export const useMusicGeneration = () => {
     
     setIsGenerating(true);
 
-    const trimmedPrompt = mode === 'simple' ? simplePrompt.trim() : customLyrics.trim();
+    const trimmedPrompt = effectiveMode === 'simple' ? simplePrompt.trim() : customLyrics.trim();
     const trimmedStyle = styleText.trim();
     const trimmedTitle = songTitle.trim();
     const placeholderGenerationId = `pending_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
-    const placeholderTags = mode === 'custom' ? trimmedStyle : trimmedPrompt;
-    const placeholderPrompt = mode === 'custom' ? trimmedStyle : trimmedPrompt;
-    const placeholderMode = mode;
+    const placeholderTags = effectiveMode === 'custom' ? trimmedStyle : trimmedPrompt;
+    const placeholderPrompt = effectiveMode === 'custom' ? trimmedStyle : trimmedPrompt;
+    const placeholderMode = effectiveMode;
     const requestModel: MusicModel = selectedModel;
 
     flushSync(() => {
@@ -530,7 +533,7 @@ export const useMusicGeneration = () => {
           'Authorization': `Bearer ${session.access_token}`,
           'X-Idempotency-Key': placeholderGenerationId,
         },
-        body: JSON.stringify(buildRequestData()),
+        body: JSON.stringify(buildRequestData(effectiveMode)),
       });
 
       if (!response.ok) {
@@ -598,7 +601,6 @@ export const useMusicGeneration = () => {
 
   return {
     // 配置
-    mode, setMode,
     simplePrompt, setSimplePrompt,
     customLyrics, setCustomLyrics,
     songTitle, setSongTitle,

@@ -57,8 +57,8 @@ const studioDropdown: DropdownItemProps[] = [
 
 const aiMusicToolsDropdown: DropdownItemProps[] = [
   {
-    href: "/vocal-remover",
-    label: "Vocal Remover",
+    href: "/vocal-separation",
+    label: "Vocal Separation",
   },
   {
     href: "/lyrics-generator",
@@ -257,7 +257,7 @@ export const Navbar = ({ credits = null }: NavbarProps) => {
               href === "/explore" ? pathname.startsWith("/explore") :
               hasDropdown && dropdownKey === "studio" ? isStudioAreaPath(pathname) :
               href === "/library" ? pathname.startsWith("/library") :
-              hasDropdown && dropdownKey === "ai" ? (pathname.startsWith("/vocal-remover") || pathname.startsWith("/lyrics-generator")) :
+              hasDropdown && dropdownKey === "ai" ? (pathname.startsWith("/vocal-separation") || pathname.startsWith("/lyrics-generator")) :
               pathname === href;
             
             if (hasDropdown && dropdownItems && dropdownKey) {
@@ -457,7 +457,7 @@ export const Navbar = ({ credits = null }: NavbarProps) => {
                                  (href === "/explore" && pathname.startsWith("/explore")) ||
                                  (hasDropdown && dropdownKey === "studio" && isStudioAreaPath(pathname)) ||
                                  (href === "/library" && pathname.startsWith("/library")) ||
-                                 (hasDropdown && dropdownKey === "ai" && (pathname.startsWith("/vocal-remover") || pathname.startsWith("/lyrics-generator")));
+                                 (hasDropdown && dropdownKey === "ai" && (pathname.startsWith("/vocal-separation") || pathname.startsWith("/lyrics-generator")));
                   
                   if (hasDropdown && dropdownItems && dropdownKey) {
                     const isMobileDropdownOpen = openMobileDropdown === dropdownKey;

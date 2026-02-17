@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect, useRef, useCallback } from 'react';
+import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import {
   Dialog,
   DialogContent,
@@ -155,6 +155,17 @@ export const ReplaceSectionDialog: React.FC<ReplaceSectionDialogProps> = ({
     [audioDuration, infillStartS, maxSegmentSeconds, minSegmentSeconds]
   );
 
+  const toHandlePercent = useCallback(
+    (value: number) => {
+      if (!Number.isFinite(audioDuration) || audioDuration <= 0) return 0;
+      return Math.max(0, Math.min(100, (value / audioDuration) * 100));
+    },
+    [audioDuration]
+  );
+
+  const selectorStartPercent = useMemo(() => toHandlePercent(infillStartS), [toHandlePercent, infillStartS]);
+  const selectorEndPercent = useMemo(() => toHandlePercent(infillEndS), [toHandlePercent, infillEndS]);
+
   // 播放/暂停切换
   const handlePlayPause = useCallback(() => {
     if (isPlaying) {
@@ -267,40 +278,37 @@ export const ReplaceSectionDialog: React.FC<ReplaceSectionDialogProps> = ({
 
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && handleClose()}>
-      <DialogContent className="studio-panel-card max-w-[calc(100vw-2rem)] sm:max-w-[620px] max-h-[90vh] flex flex-col overflow-hidden p-0 border-0 shadow-xl">
-        <DialogHeader className="flex-shrink-0 px-5 pt-4 pb-2 text-left">
-          <div className="space-y-1 pr-8">
-            <div className="text-[10px] uppercase tracking-[0.24em] text-muted-foreground">
-              Replace Section
-            </div>
+        <DialogContent className="studio-panel-card max-w-[calc(100vw-2rem)] sm:max-w-[620px] max-h-[90vh] flex flex-col overflow-hidden p-0 border-0 shadow-xl">
+          <DialogHeader className="flex-shrink-0 px-5 pt-4 pb-2 text-left">
+          <div className="pr-8">
             <DialogTitle className="text-xl font-semibold tracking-tight">
               Replace Section
             </DialogTitle>
           </div>
           <DialogDescription className="text-sm text-muted-foreground">
-            Replace a section of &ldquo;{trackTitle}&rdquo; with new content
+            Replace a selected part of the track. Selection must be 6–60 seconds.
           </DialogDescription>
         </DialogHeader>
 
         <div className="flex-1 overflow-y-auto space-y-3 px-5 py-3">
           {/* 音频播放器和时间选择 */}
           {audioUrl && (
-            <section className="studio-panel-card rounded-2xl p-3 space-y-3">
+            <section className="space-y-3">
               <div className="flex flex-col items-center gap-2">
-                <div className="flex w-full items-baseline justify-between gap-3">
-                  <div className="text-left text-lg font-mono tracking-widest text-foreground">
-                    {formatClockTime(currentTime)} / {formatClockTime(audioDuration || 0)}
+                <div className="grid w-full grid-cols-[minmax(0,1fr)_auto] items-center gap-x-3 gap-y-1">
+                  <div className="truncate text-left text-sm font-semibold leading-tight tracking-tight text-foreground">
+                    {trackTitle}
                   </div>
-                  <div className="text-sm text-muted-foreground">
-                    Selection must be 6–60 seconds.
+                  <div className="tabular-nums whitespace-nowrap text-right text-sm text-muted-foreground">
+                    {formatClockTime(currentTime)} / {formatClockTime(audioDuration || 0)}
                   </div>
                 </div>
 
-                <div className="w-full flex items-center gap-3 items-stretch">
+                <div className="w-full flex items-start gap-3 pb-6">
                   <button
                     type="button"
                     onClick={handlePlayPause}
-                    className="flex h-[68px] w-[68px] items-center justify-center rounded-full bg-primary/10 text-primary shadow-sm transition-colors hover:text-primary/80 hover:bg-primary/15"
+                    className="inline-flex h-[68px] w-[68px] items-center justify-center rounded-full border border-primary bg-primary text-primary-foreground shadow-[0_14px_32px_rgba(0,0,0,0.22)] transition-transform active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50 focus-visible:ring-offset-2 focus-visible:ring-offset-background disabled:cursor-not-allowed disabled:opacity-50"
                     disabled={!audioUrl}
                   >
                     {isPlaying ? (
@@ -310,7 +318,7 @@ export const ReplaceSectionDialog: React.FC<ReplaceSectionDialogProps> = ({
                     )}
                   </button>
 
-                  <div className="flex-1 h-[68px]">
+                  <div className="relative flex-1 h-[68px]">
                     <WaveformPlayer
                       ref={waveformRef}
                       audioUrl={audioUrl}
@@ -337,6 +345,7 @@ export const ReplaceSectionDialog: React.FC<ReplaceSectionDialogProps> = ({
                       showSelector={true}
                       selectorOverlay={true}
                       showSelectorLabels={false}
+                      seekOnSelectorHandleRelease="start"
                       selectorStart={infillStartS}
                       selectorEnd={infillEndS}
                       onSelectorStartChange={handleStartChange}
@@ -353,49 +362,21 @@ export const ReplaceSectionDialog: React.FC<ReplaceSectionDialogProps> = ({
                       audioDuration={audioDuration}
                       backend="MediaElement"
                     />
+                    <div className="pointer-events-none absolute inset-x-0 top-full mt-1 h-4">
+                      <span
+                        className="absolute -translate-x-1/2 rounded-md bg-background/85 px-1.5 py-0.5 text-[10px] font-medium leading-none text-foreground/80 shadow-sm"
+                        style={{ left: `${selectorStartPercent}%` }}
+                      >
+                        {infillStartS.toFixed(2)}s
+                      </span>
+                      <span
+                        className="absolute -translate-x-1/2 rounded-md bg-background/85 px-1.5 py-0.5 text-[10px] font-medium leading-none text-foreground/80 shadow-sm"
+                        style={{ left: `${selectorEndPercent}%` }}
+                      >
+                        {infillEndS.toFixed(2)}s
+                      </span>
+                    </div>
                   </div>
-                </div>
-              </div>
-
-              {/* 时间范围手动输入 */}
-              <div className="rounded-xl bg-foreground/5 px-3 py-2">
-                <div className="flex items-center justify-between gap-3 text-xs text-muted-foreground">
-                  <span className="whitespace-nowrap font-medium">Range</span>
-                  <div className="flex items-center gap-2">
-                    <Input
-                      type="number"
-                      min={0}
-                      max={Math.max(0, infillEndS - minSegmentSeconds)}
-                      step={0.01}
-                      value={infillStartS.toFixed(2)}
-                      onChange={(e) => {
-                        const value = parseFloat(e.target.value);
-                        if (!isNaN(value)) {
-                          handleStartChange(value);
-                        }
-                      }}
-                      className="h-7 w-20 border-0 bg-background/65 px-2 text-center focus-visible:ring-0 focus-visible:ring-offset-0"
-                    />
-                    <span className="text-muted-foreground/80">to</span>
-                    <Input
-                      type="number"
-                      min={infillStartS + minSegmentSeconds}
-                      max={Math.min(audioDuration, infillStartS + maxSegmentSeconds)}
-                      step={0.01}
-                      value={infillEndS.toFixed(2)}
-                      onChange={(e) => {
-                        const value = parseFloat(e.target.value);
-                        if (!isNaN(value)) {
-                          handleEndChange(value);
-                        }
-                      }}
-                      className="h-7 w-20 border-0 bg-background/65 px-2 text-center focus-visible:ring-0 focus-visible:ring-offset-0"
-                    />
-                    <span className="text-muted-foreground/80">sec</span>
-                  </div>
-                  <span className="whitespace-nowrap text-muted-foreground/80">
-                    {selectionLength.toFixed(2)}s
-                  </span>
                 </div>
               </div>
               {!isSelectionLengthValid && (

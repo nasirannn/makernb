@@ -27,6 +27,8 @@ interface TrackItemProps {
   canDownloadMP4?: boolean;
   canDownloadCover?: boolean;
   canVocalRemoval?: boolean;
+  canSplitStem?: boolean;
+  canGenerateMidi?: boolean;
   canExtendMusic?: boolean;
   canReplaceSection?: boolean;
   canCreatePersona?: boolean;
@@ -40,6 +42,8 @@ interface TrackItemProps {
   onShare?: () => void;
   onDownload?: (format: 'mp3' | 'wav' | 'mp4' | 'cover') => void;
   onVocalRemoval?: () => void;
+  onSplitStem?: () => void;
+  onGenerateMidi?: () => void;
   onExtendMusic?: () => void;
   onReplaceSection?: () => void;
   onCreatePersona?: () => void;
@@ -65,6 +69,8 @@ export const TrackItem: React.FC<TrackItemProps> = ({
   canDownloadMP4 = false,
   canDownloadCover = false,
   canVocalRemoval = false,
+  canSplitStem = false,
+  canGenerateMidi = false,
   canExtendMusic = false,
   canReplaceSection = false,
   canCreatePersona = false,
@@ -76,6 +82,8 @@ export const TrackItem: React.FC<TrackItemProps> = ({
   onShare,
   onDownload,
   onVocalRemoval,
+  onSplitStem,
+  onGenerateMidi,
   onExtendMusic,
   onReplaceSection,
   onCreatePersona,
@@ -234,7 +242,7 @@ export const TrackItem: React.FC<TrackItemProps> = ({
                         }}
                         className={`inline-flex h-7 w-7 items-center justify-center rounded-full bg-foreground/5 text-foreground/45 text-xs font-semibold transition-colors dark:bg-white/4 dark:hover:bg-white/8 ${
                           track.isFavorited
-                            ? 'group-hover:text-red-500 group-hover:hover:text-red-500 hover:bg-foreground/10 dark:hover:bg-white/8'
+                            ? 'text-red-500 hover:text-red-500 hover:bg-foreground/10 dark:hover:bg-white/8'
                             : 'group-hover:text-foreground/80 group-hover:hover:text-foreground hover:bg-foreground/10 dark:hover:bg-white/8'
                         }`}
                         aria-label={track.isFavorited ? 'Remove from library' : 'Add to library'}
@@ -306,6 +314,8 @@ export const TrackItem: React.FC<TrackItemProps> = ({
                         canDownloadMP4={canDownloadMP4}
                         canDownloadCover={canDownloadCover}
                         canVocalRemoval={canVocalRemoval}
+                        canSplitStem={canSplitStem}
+                        canGenerateMidi={canGenerateMidi}
                         canExtendMusic={canExtendMusic}
                         canReplaceSection={canReplaceSection}
                         canCreatePersona={canCreatePersona}
@@ -314,6 +324,8 @@ export const TrackItem: React.FC<TrackItemProps> = ({
                         onDislikeToggle={onDislikeToggle}
                         onDownload={onDownload}
                         onVocalRemoval={onVocalRemoval}
+                        onSplitStem={onSplitStem}
+                        onGenerateMidi={onGenerateMidi}
                         onExtendMusic={onExtendMusic}
                         onReplaceSection={onReplaceSection}
                         onCreatePersona={onCreatePersona}
@@ -365,6 +377,8 @@ export const TrackItem: React.FC<TrackItemProps> = ({
             canDownloadMP4={canDownloadMP4}
             canDownloadCover={canDownloadCover}
             canVocalRemoval={canVocalRemoval}
+            canSplitStem={canSplitStem}
+            canGenerateMidi={canGenerateMidi}
             canExtendMusic={canExtendMusic}
             canReplaceSection={canReplaceSection}
             canCreatePersona={canCreatePersona}
@@ -374,6 +388,8 @@ export const TrackItem: React.FC<TrackItemProps> = ({
             onDislikeToggle={onDislikeToggle}
             onDownload={onDownload}
             onVocalRemoval={onVocalRemoval}
+            onSplitStem={onSplitStem}
+            onGenerateMidi={onGenerateMidi}
             onExtendMusic={onExtendMusic}
             onReplaceSection={onReplaceSection}
             onCreatePersona={onCreatePersona}

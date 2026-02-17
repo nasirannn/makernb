@@ -12,8 +12,7 @@ export const dynamic = 'force-dynamic';
 /**
  * 创建人声移除任务（Studio专用）
  * POST /api/vocal/removal
- * Body: { trackId: string }
- * 只支持 separate_vocal 类型
+ * Body: { trackId: string, type?: 'separate_vocal' | 'split_stem', force?: boolean }
  */
 export async function POST(request: NextRequest) {
   try {
@@ -27,7 +26,13 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json();
-    const { trackId, force } = body as { trackId?: string; force?: boolean };
+    const { trackId, force, type } = body as {
+      trackId?: string;
+      force?: boolean;
+      type?: 'separate_vocal' | 'split_stem';
+    };
+    const separationType: 'separate_vocal' | 'split_stem' = type === 'split_stem' ? 'split_stem' : 'separate_vocal';
+    const shouldUseCache = !force && separationType === 'separate_vocal';
 
     if (!trackId) {
       return NextResponse.json(
@@ -37,7 +42,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Cache hit: return latest completed (or processing) result for this track.
-    if (!force) {
+    if (shouldUseCache) {
       const existing = await getVocalRemovalsByTrackId(trackId, userId);
       const reusableCompleted = existing.find(r => {
         const vocalUrl = r.r2_vocal_url || r.vocal_url;
@@ -86,9 +91,6 @@ export async function POST(request: NextRequest) {
         );
       }
     }
-
-    // 固定使用 separate_vocal 类型
-    const type = 'separate_vocal';
 
     // 查询 track 信息以获取 audio_id、music_id 和原始音乐生成任务的 task_id
     const trackResult = await query(
@@ -142,20 +144,32 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // 检查权限
-    const hasPermission = await hasFeaturePermission(userId, 'vocal_removal_studio');
+    // 检查权限：
+    // - separate_vocal: vocal_removal_studio
+    // - split_stem: split_stem_from_music_studio（仅订阅层级开放）
+    const permissionFeatureCode = separationType === 'split_stem'
+      ? 'split_stem_from_music_studio'
+      : 'vocal_removal_studio';
+    const hasPermission = await hasFeaturePermission(userId, permissionFeatureCode);
     if (!hasPermission) {
+      const permissionMessage = separationType === 'split_stem'
+        ? 'Split Stem is available for Hobby plan only'
+        : 'You do not have permission to use vocal removal in Studio';
       return NextResponse.json(
         { 
           error: 'Permission denied',
-          message: 'You do not have permission to use vocal removal in Studio'
+          message: permissionMessage
         },
         { status: 403 }
       );
     }
 
-    // 检查积分
-    const creditCost = getFeatureCredits('separate_vocals_from_music_studio');
+    // 检查积分（split_stem 与 separate_vocal 使用不同的计费项）
+    const creditFeatureKey: 'split_stem_from_music_studio' | 'separate_vocals_from_music_studio' =
+      separationType === 'split_stem'
+        ? 'split_stem_from_music_studio'
+        : 'separate_vocals_from_music_studio';
+    const creditCost = getFeatureCredits(creditFeatureKey);
     const userCredits = await getUserCredits(userId);
     
     if (!userCredits || userCredits.credits < creditCost) {
@@ -187,7 +201,7 @@ export async function POST(request: NextRequest) {
     const apiResponse = await musicApi.generateVocalSeparation({
       taskId: track.music_task_id, // 使用原始音乐生成任务的 task_id
       audioId: track.audio_id,     // 使用 suno_track_id 作为 audioId
-      type,
+      type: separationType,
       callBackUrl: callbackUrl
     });
 
@@ -205,6 +219,7 @@ export async function POST(request: NextRequest) {
       music_id: track.music_id,
       task_id: apiResponse.data?.taskId || `vocal_removal_${Date.now()}_${Math.random().toString(36).substring(2, 11)}`,
       audio_id: track.audio_id,
+      separation_type: separationType,
       status: 'processing'
     });
 
@@ -215,6 +230,7 @@ export async function POST(request: NextRequest) {
         taskId: vocalRemoval.task_id,
         status: vocalRemoval.status,
         trackId: vocalRemoval.track_id,
+        type: separationType,
         message: 'Vocal removal started successfully'
       }
     }, { status: 200 });

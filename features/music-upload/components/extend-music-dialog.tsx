@@ -21,7 +21,6 @@ import { WaveformPlayer } from "@/components/ui/waveform-player";
 
 export interface ExtendMusicParams {
   model: ExtendMusicModel;
-  defaultParamFlag: boolean;
   prompt?: string;
   style?: string;
   title?: string;
@@ -266,7 +265,6 @@ export const ExtendMusicDialog: React.FC<ExtendMusicDialogProps> = ({
     try {
       const params: ExtendMusicParams = {
         model: selectedModel,
-        defaultParamFlag: true,
         prompt,
         style,
         title,

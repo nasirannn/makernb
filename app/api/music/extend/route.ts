@@ -86,7 +86,6 @@ export async function POST(request: NextRequest) {
       trackId,
       audioId,
       model,
-      defaultParamFlag,
       prompt,
       style,
       title,
@@ -102,7 +101,7 @@ export async function POST(request: NextRequest) {
       trackId,
       hasAudioId: !!audioId,
       model,
-      defaultParamFlag,
+      defaultParamFlag: true,
       hasPrompt: !!prompt,
       hasStyle: !!style,
       hasTitle: !!title,
@@ -127,18 +126,15 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // 自定义模式参数验证（文档语义：defaultParamFlag=true 表示自定义模式）
-    if (defaultParamFlag) {
-      if (!prompt || !style || !title || continueAt === undefined) {
-        console.log(`[EXTEND-MUSIC-${requestId}] Validation failed: Custom mode requires prompt, style, title, and continueAt`);
-        return NextResponse.json(
-          { 
-            success: false, 
-            error: 'Custom mode requires prompt, style, title, and continueAt' 
-          },
-          { status: 400 }
-        );
-      }
+    if (!prompt || !style || !title || continueAt === undefined || continueAt <= 0) {
+      console.log(`[EXTEND-MUSIC-${requestId}] Validation failed: Extend requires prompt, style, title, and continueAt`);
+      return NextResponse.json(
+        {
+          success: false,
+          error: 'Extend requires prompt, style, title, and continueAt',
+        },
+        { status: 400 }
+      );
     }
 
     console.log(`[EXTEND-MUSIC-${requestId}] Parameters validated successfully`);
@@ -258,23 +254,20 @@ export async function POST(request: NextRequest) {
     const kieParams: KIEExtendMusicRequest = {
       audio_id: resolvedAudioId,
       model,
-      default_param_flag: defaultParamFlag,
+      default_param_flag: true,
       callBackUrl: `${process.env.CallBackURL}/api/callbacks/extend-music`,
     };
 
-    // 添加自定义参数（仅自定义模式）
-    if (defaultParamFlag) {
-      kieParams.prompt = prompt;
-      kieParams.style = style;
-      kieParams.title = title;
-      kieParams.continue_at = continueAt;
-      kieParams.negative_tags = DEFAULT_NEGATIVE_TAGS;
-      if (vocalGender) kieParams.vocal_gender = vocalGender;
-      if (styleWeight !== undefined && styleWeight !== 0.65) kieParams.style_weight = styleWeight;
-      if (weirdnessConstraint !== undefined && weirdnessConstraint !== 0.65) kieParams.weirdness_constraint = weirdnessConstraint;
-      if (audioWeight !== undefined && audioWeight !== 0.65) kieParams.audio_weight = audioWeight;
-      if (personaId) kieParams.persona_id = personaId;
-    }
+    kieParams.prompt = prompt;
+    kieParams.style = style;
+    kieParams.title = title;
+    kieParams.continue_at = continueAt;
+    kieParams.negative_tags = DEFAULT_NEGATIVE_TAGS;
+    if (vocalGender) kieParams.vocal_gender = vocalGender;
+    if (styleWeight !== undefined && styleWeight !== 0.65) kieParams.style_weight = styleWeight;
+    if (weirdnessConstraint !== undefined && weirdnessConstraint !== 0.65) kieParams.weirdness_constraint = weirdnessConstraint;
+    if (audioWeight !== undefined && audioWeight !== 0.65) kieParams.audio_weight = audioWeight;
+    if (personaId) kieParams.persona_id = personaId;
 
     // 9. 调用 KIE API
     console.log(`[EXTEND-MUSIC-${requestId}] Calling KIE API with params:`, {
@@ -282,7 +275,7 @@ export async function POST(request: NextRequest) {
       audio_id_source: audioId ? 'request.audioId' : 'track.suno_track_id',
       model: kieParams.model,
       default_param_flag: kieParams.default_param_flag,
-      has_custom_params: !!kieParams.default_param_flag,
+      has_custom_params: true,
     });
 
     let kieResponse: KIEExtendMusicResponse;
@@ -338,18 +331,10 @@ export async function POST(request: NextRequest) {
     console.log(`[EXTEND-MUSIC-${requestId}] KIE API task created: taskId=${taskId}`);
 
     // 11. 在数据库中创建扩展任务记录
-    const extendTitle = defaultParamFlag
-      ? title!
-      : `${originalTrack.title} (Extended)`;
-
-    const extendStyle = defaultParamFlag
-      ? style!
-      : originalTrack.tags;
-    const extendPrompt = defaultParamFlag
-      ? prompt!
-      : `Extended from: ${originalTrack.title}`;
+    const extendTitle = title;
+    const extendStyle = style;
     const promptForDb = extendStyle;
-    const generationMode = defaultParamFlag ? 'custom' : 'simple';
+    const generationMode = 'custom';
 
     try {
       console.log(`[EXTEND-MUSIC-${requestId}] Creating extend music task in database`);
@@ -373,7 +358,7 @@ export async function POST(request: NextRequest) {
         title: extendTitle,
       });
 
-      if (defaultParamFlag && prompt && prompt.trim().length > 0) {
+      if (prompt && prompt.trim().length > 0) {
         try {
           const { query } = await import('@/lib/db-query-builder');
           const existingLyrics = await query(

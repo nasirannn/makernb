@@ -266,7 +266,7 @@ export function EditNicknameDialog({ open, onOpenChange, initialValue = "" }: Ed
                 type="button"
                 variant="ghost"
                 onClick={() => onOpenChange(false)}
-                className="h-11 w-full rounded-2xl text-foreground/75 transition-colors hover:bg-foreground/10 hover:text-foreground sm:w-auto"
+                className="h-11 w-full rounded-2xl border-0 bg-foreground/5 text-foreground/75 transition-colors hover:bg-foreground/10 hover:text-foreground sm:w-auto"
               >
                 Cancel
               </Button>

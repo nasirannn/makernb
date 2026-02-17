@@ -1444,7 +1444,7 @@ export const LibraryPanel = ({
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter className="mt-3 flex-col sm:flex-row gap-2 sm:gap-0">
-            <AlertDialogCancel className="w-full sm:w-auto text-foreground hover:text-foreground dark:hover:text-foreground hover:bg-muted dark:hover:bg-muted">
+            <AlertDialogCancel className="w-full sm:w-auto">
               Cancel
             </AlertDialogCancel>
             <AlertDialogAction 

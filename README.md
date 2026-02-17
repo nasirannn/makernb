@@ -14,7 +14,7 @@
 - **🔍 Explore Community** - Discover and listen to community-created music
 - **💾 Download & Save** - Easily save and share your favorite tracks
 - **📱 Responsive Design** - Seamlessly works on desktop and mobile devices
-- **🎤 Vocal Remover Studio** - Professional vocal and instrumental separation
+- **🎤 Vocal Separation Studio** - Professional vocal and instrumental separation
 - **✂️ Audio Editing** - Upload audio and replace music sections
 
 ## 🚀 Quick Start

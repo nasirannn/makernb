@@ -8,6 +8,8 @@ export interface VocalRemovalState {
   errorMessage?: string;
   vocalUrl?: string;
   instrumentalUrl?: string;
+  separationType?: 'separate_vocal' | 'split_stem';
+  stemsData?: Record<string, string> | null;
 }
 
 export const useVocalRemovalManager = () => {
@@ -58,18 +60,52 @@ export const useVocalRemovalManager = () => {
 
       const result = await response.json();
       if (result.success && result.data && Array.isArray(result.data) && result.data.length > 0) {
-        // 查找最新的记录（优先 completed，其次是 processing，最后是 error）
-        const removals = result.data;
-        const latestRemoval = removals.sort((a: any, b: any) => {
-          const statusPriority = { completed: 3, processing: 2, error: 1 };
-          return statusPriority[b.status as keyof typeof statusPriority] - statusPriority[a.status as keyof typeof statusPriority];
-        })[0];
-        
+        const removals = result.data as any[];
+        const completedSeparateRemoval =
+          removals.find(
+            (r: any) =>
+              r.status === 'completed' &&
+              r.separationType !== 'split_stem' &&
+              (r.vocalUrl || r.instrumentalUrl)
+          ) ||
+          removals.find(
+            (r: any) =>
+              r.status === 'completed' &&
+              (r.vocalUrl || r.instrumentalUrl)
+          ) ||
+          null;
+        const completedSplitStemRemoval =
+          removals.find(
+            (r: any) =>
+              r.status === 'completed' &&
+              r.separationType === 'split_stem' &&
+              r.stemsData &&
+              Object.keys(r.stemsData).length > 0
+          ) ||
+          null;
+        const latestProcessingRemoval =
+          removals.find((r: any) => r.status === 'processing' && r.taskId) || null;
+        const latestErrorRemoval = removals.find((r: any) => r.status === 'error') || null;
+
+        const mergedStatus =
+          completedSeparateRemoval || completedSplitStemRemoval
+            ? 'completed'
+            : latestProcessingRemoval
+              ? 'processing'
+              : latestErrorRemoval
+                ? 'error'
+                : undefined;
+
         updateTrackState(trackId, {
-          status: latestRemoval.status,
-          taskId: latestRemoval.taskId,
-          vocalUrl: latestRemoval.vocalUrl,
-          instrumentalUrl: latestRemoval.instrumentalUrl,
+          status: mergedStatus,
+          taskId:
+            completedSplitStemRemoval?.taskId ||
+            completedSeparateRemoval?.taskId ||
+            latestProcessingRemoval?.taskId,
+          vocalUrl: completedSeparateRemoval?.vocalUrl,
+          instrumentalUrl: completedSeparateRemoval?.instrumentalUrl,
+          separationType: completedSplitStemRemoval ? 'split_stem' : (completedSeparateRemoval?.separationType || latestProcessingRemoval?.separationType),
+          stemsData: completedSplitStemRemoval?.stemsData || latestProcessingRemoval?.stemsData || null,
         });
       } else {
         // 如果没有记录，清除状态
@@ -143,20 +179,32 @@ export const useVocalRemovalManager = () => {
         const result = await response.json();
 
         if (result.success && result.data) {
-          const { status, vocalUrl, instrumentalUrl, accompanimentUrl } = result.data;
-          const hasResults = !!(vocalUrl || instrumentalUrl || accompanimentUrl);
+          const { status, vocalUrl, instrumentalUrl, accompanimentUrl, separationType, stemsData } = result.data;
+          const hasResults = !!(vocalUrl || instrumentalUrl || accompanimentUrl || (stemsData && Object.keys(stemsData).length > 0));
           
           const progress = calculateProgress(elapsed, hasResults);
-          updateTrackState(trackId, { progress });
+          updateTrackState(trackId, {
+            progress,
+            separationType,
+            stemsData: stemsData || null,
+          });
 
           if (status === 'completed') {
             clearInterval(pollInterval);
-            updateTrackState(trackId, {
+            const completedUpdates: Partial<VocalRemovalState> = {
               status: 'completed',
               progress: 100,
-              vocalUrl,
-              instrumentalUrl,
-            });
+              taskId,
+              separationType,
+              stemsData: stemsData || null,
+            };
+
+            if (separationType !== 'split_stem') {
+              completedUpdates.vocalUrl = vocalUrl;
+              completedUpdates.instrumentalUrl = instrumentalUrl;
+            }
+
+            updateTrackState(trackId, completedUpdates);
             onComplete?.({ vocalUrl, instrumentalUrl });
           } else if (status === 'error') {
             clearInterval(pollInterval);

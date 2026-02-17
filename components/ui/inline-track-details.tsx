@@ -4,6 +4,7 @@ import React from "react";
 import Image from "next/image";
 import { CassetteTape } from "@/components/ui/cassette-tape";
 import { Copy, X } from "lucide-react";
+import { toast } from "sonner";
 import { supabase } from "@/lib/supabase";
 
 interface InlineTrackDetails {
@@ -58,8 +59,9 @@ export const InlineTrackDetailsPanel: React.FC<InlineTrackDetailsPanelProps> = (
   }, [track?.tags]);
 
   const primaryTag = tags[0] ?? "";
-  const isPrimaryTagTruncated = primaryTag.length > 30;
-  const visiblePrimaryTag = isPrimaryTagTruncated ? `${primaryTag.slice(0, 30)}...` : primaryTag;
+  const hasMoreTags = tags.length > 1;
+  const isPrimaryTagTruncated = primaryTag.length > 20;
+  const visiblePrimaryTag = isPrimaryTagTruncated ? `${primaryTag.slice(0, 20)}...` : primaryTag;
   const allTagsText = React.useMemo(() => {
     if (track?.tags?.trim()) {
       return track.tags.trim();
@@ -73,8 +75,10 @@ export const InlineTrackDetailsPanel: React.FC<InlineTrackDetailsPanelProps> = (
     }
     try {
       await navigator.clipboard.writeText(allTagsText);
+      toast.success("All tags copied");
     } catch (error) {
       console.error("Failed to copy tags:", error);
+      toast.error("Failed to copy tags");
     }
   }, [allTagsText]);
 
@@ -340,10 +344,23 @@ export const InlineTrackDetailsPanel: React.FC<InlineTrackDetailsPanelProps> = (
 
             {primaryTag && (
               <div className="flex items-center gap-1.5">
-                <span className="inline-flex items-center rounded-full bg-black/30 px-2 py-0.5 text-[10px] font-medium text-white/75 backdrop-blur-sm">
+                <span
+                  className="inline-flex items-center rounded-full bg-black/30 px-2 py-0.5 text-[10px] font-medium text-white/75 backdrop-blur-sm"
+                  title={primaryTag}
+                >
                   {visiblePrimaryTag}
                 </span>
-                {isPrimaryTagTruncated && (
+
+                {hasMoreTags && (
+                  <span
+                    className="inline-flex items-center rounded-full bg-black/30 px-1.5 py-0.5 text-[10px] font-medium text-white/70 backdrop-blur-sm"
+                    title={allTagsText}
+                  >
+                    ...
+                  </span>
+                )}
+
+                {allTagsText && (
                   <button
                     type="button"
                     onClick={() => {

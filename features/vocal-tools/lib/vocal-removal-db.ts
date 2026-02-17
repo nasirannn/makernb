@@ -12,9 +12,11 @@ export interface VocalRemoval {
   music_id?: string;
   task_id: string; // KIE API任务ID
   audio_id: string; // Original audio's audioId
+  separation_type?: 'separate_vocal' | 'split_stem';
   status: 'processing' | 'completed' | 'error';
   vocal_url?: string; // 临时 URL (from KIE API)
   instrumental_url?: string; // 临时 URL (from KIE API, renamed from accompaniment_url)
+  stems_data?: Record<string, string> | null; // split_stem 的多轨 URL
   r2_vocal_url?: string; // R2 持久化 URL
   r2_instrumental_url?: string; // R2 持久化 URL
   created_at: string;
@@ -26,9 +28,11 @@ export interface CreateVocalRemovalData {
   music_id?: string;
   task_id: string;
   audio_id: string;
+  separation_type?: 'separate_vocal' | 'split_stem';
   status?: 'processing' | 'completed' | 'error';
   vocal_url?: string;
   instrumental_url?: string;
+  stems_data?: Record<string, string> | null;
   r2_vocal_url?: string;
   r2_instrumental_url?: string;
 }
@@ -40,9 +44,11 @@ export interface VocalRemovalWithTrack {
   music_id?: string;
   task_id: string;
   audio_id: string;
+  separation_type?: 'separate_vocal' | 'split_stem';
   status: 'processing' | 'completed' | 'error';
   vocal_url?: string; // 临时 URL (from KIE API)
   instrumental_url?: string; // 临时 URL (from KIE API)
+  stems_data?: Record<string, string> | null;
   r2_vocal_url?: string; // R2 持久化 URL
   r2_instrumental_url?: string; // R2 持久化 URL
   created_at: string;
@@ -72,9 +78,9 @@ export const createVocalRemoval = async (
 
     const result = await query(
       `INSERT INTO vocal_removals (
-        user_id, track_id, music_id, task_id, audio_id, status, 
-        vocal_url, instrumental_url, r2_vocal_url, r2_instrumental_url
-      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
+        user_id, track_id, music_id, task_id, audio_id, separation_type, status, 
+        vocal_url, instrumental_url, stems_data, r2_vocal_url, r2_instrumental_url
+      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10::jsonb, $11, $12)
       RETURNING *`,
       [
         userId,
@@ -82,9 +88,11 @@ export const createVocalRemoval = async (
         data.music_id || null,
         data.task_id,
         data.audio_id,
+        data.separation_type || 'separate_vocal',
         data.status || 'processing',
         data.vocal_url || null,
         data.instrumental_url || null,
+        data.stems_data ? JSON.stringify(data.stems_data) : null,
         data.r2_vocal_url || null,
         data.r2_instrumental_url || null
       ]
@@ -244,6 +252,8 @@ export const getVocalRemovalById = async (
       status: row.status,
       vocal_url: row.vocal_url,
       instrumental_url: row.instrumental_url,
+      stems_data: row.stems_data,
+      separation_type: row.separation_type,
       r2_vocal_url: row.r2_vocal_url,
       r2_instrumental_url: row.r2_instrumental_url,
       created_at: row.created_at,
@@ -291,6 +301,7 @@ export const getAllVocalRemovalAudioUrls = async (): Promise<string[]> => {
       SELECT 
         COALESCE(vocal_url, '') as vocal_url,
         COALESCE(instrumental_url, '') as instrumental_url,
+        stems_data,
         COALESCE(r2_vocal_url, '') as r2_vocal_url,
         COALESCE(r2_instrumental_url, '') as r2_instrumental_url
       FROM vocal_removals
@@ -305,6 +316,15 @@ export const getAllVocalRemovalAudioUrls = async (): Promise<string[]> => {
       
       if (row.r2_instrumental_url) urls.push(row.r2_instrumental_url);
       else if (row.instrumental_url) urls.push(row.instrumental_url);
+
+      // split_stem 多轨 URL
+      if (row.stems_data && typeof row.stems_data === 'object') {
+        Object.values(row.stems_data).forEach((url) => {
+          if (typeof url === 'string' && url.trim()) {
+            urls.push(url);
+          }
+        });
+      }
     });
 
     return urls.filter(url => url && url.trim() !== '');

@@ -213,6 +213,7 @@
     bottom: 0;
     border-radius: inherit;
     padding: 1px;
+    z-index: 2;
     background: linear-gradient(
       90deg,
       transparent 0%,
@@ -223,10 +224,15 @@
     );
     background-size: 200% 100%;
     animation: border-marquee 6s linear infinite;
+    pointer-events: none;
     mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
     mask-composite: xor;
     -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
     -webkit-mask-composite: xor;
+  }
+
+  .animate-border-marquee-slow::before {
+    animation-duration: 12s;
   }
 
   /* Custom Shadow Utilities */

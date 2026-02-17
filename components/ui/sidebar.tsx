@@ -105,8 +105,8 @@ export const CommonSidebar = ({
   // AI Music Tools dropdown items
 const aiMusicToolsDropdown = [
   {
-    href: "/vocal-remover",
-    label: "Vocal Remover",
+    href: "/vocal-separation",
+    label: "Vocal Separation",
     description: "Separate vocals from music",
     icon: <Split className="h-4 w-4" />
   },
@@ -193,7 +193,7 @@ const aiMusicToolsDropdown = [
   ]), []);
 
   const aiToolNavItems: SidebarNavItem[] = React.useMemo(() => ([
-    { label: "Vocal Remover", href: "/vocal-remover", icon: Split },
+    { label: "Vocal Separation", href: "/vocal-separation", icon: Split },
     { label: "Lyrics Generator", href: "/lyrics-generator", icon: FileText }
   ]), []);
 
@@ -772,7 +772,7 @@ const aiMusicToolsDropdown = [
               variant="ghost"
               size="sm"
               className={`h-12 w-12 flex items-center justify-center hover:bg-muted/50 transition-all duration-300 rounded-lg ${
-                isActive('/vocal-remover') || isActive('/lyrics-generator')
+                isActive('/vocal-separation') || isActive('/lyrics-generator')
                   ? 'bg-primary/20 text-primary shadow-sm'
                   : 'text-muted-foreground'
               }`}

@@ -250,9 +250,9 @@ export const UploadProgressDialog = ({
             <div className="grid grid-cols-2 gap-3">
               <Button
                 type="button"
-                variant="outline"
+                variant="ghost"
                 onClick={onClose}
-                className="h-11"
+                className="h-11 border-0 bg-foreground/5 text-foreground/75 transition-colors hover:bg-foreground/10 hover:text-foreground"
               >
                 Cancel
               </Button>

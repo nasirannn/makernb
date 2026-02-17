@@ -2,7 +2,7 @@
 
 import React from "react";
 import Image from "next/image";
-import { Check, Info, MoreHorizontal, Music, Plus, Users } from "lucide-react";
+import { Check, MoreHorizontal, Music, Plus, Users } from "lucide-react";
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
@@ -251,7 +251,7 @@ export const MusicPersonaDialogs: React.FC<MusicPersonaDialogsProps> = ({
               type="button"
               variant="ghost"
               onClick={() => setIsPersonaDialogOpen(false)}
-              className="h-11 rounded-2xl px-4 text-foreground/75 transition-colors hover:bg-foreground/10 hover:text-foreground"
+              className="h-11 rounded-2xl border-0 bg-foreground/5 px-4 text-foreground/75 transition-colors hover:bg-foreground/10 hover:text-foreground"
             >
               Cancel
             </Button>
@@ -407,7 +407,7 @@ export const MusicPersonaDialogs: React.FC<MusicPersonaDialogsProps> = ({
                 type="button"
                 variant="ghost"
                 onClick={closeSelectMusicDialog}
-                className="h-11 rounded-2xl px-4 text-foreground/75 transition-colors hover:bg-foreground/10 hover:text-foreground"
+                className="h-11 rounded-2xl border-0 bg-foreground/5 px-4 text-foreground/75 transition-colors hover:bg-foreground/10 hover:text-foreground"
               >
                 Cancel
               </Button>
@@ -439,7 +439,7 @@ export const MusicPersonaDialogs: React.FC<MusicPersonaDialogsProps> = ({
 
           <div className="flex-1 space-y-3 overflow-y-auto px-5 py-3">
             {selectedMusicTrack ? (
-              <section className="studio-panel-card rounded-2xl p-3">
+              <section className="px-1">
                 <div className="flex items-center gap-3">
                   <div className="relative h-10 w-10 shrink-0 overflow-hidden rounded-md bg-foreground/10">
                     {selectedMusicTrack.coverR2Url ? (
@@ -473,14 +473,6 @@ export const MusicPersonaDialogs: React.FC<MusicPersonaDialogsProps> = ({
                 <Label htmlFor="create-persona-name" className="text-xs md:text-sm font-semibold text-foreground">
                   Name
                 </Label>
-                <button
-                  type="button"
-                  aria-label="Name field information"
-                  title="A descriptive name that captures the essence of the musical style or character"
-                  className="inline-flex h-7 w-7 cursor-help items-center justify-center rounded-full text-muted-foreground transition-colors duration-200 hover:text-foreground"
-                >
-                  <Info className="h-3.5 w-3.5" />
-                </button>
               </div>
               <Input
                 id="create-persona-name"
@@ -498,14 +490,6 @@ export const MusicPersonaDialogs: React.FC<MusicPersonaDialogsProps> = ({
                 <Label htmlFor="create-persona-description" className="text-xs md:text-sm font-semibold text-foreground">
                   Description
                 </Label>
-                <button
-                  type="button"
-                  aria-label="Description field information"
-                  title="Detailed description of the Persona's musical characteristics, style, and personality. Be specific about genre, mood, instrumentation, and vocal qualities."
-                  className="inline-flex h-7 w-7 cursor-help items-center justify-center rounded-full text-muted-foreground transition-colors duration-200 hover:text-foreground"
-                >
-                  <Info className="h-3.5 w-3.5" />
-                </button>
               </div>
               <Textarea
                 id="create-persona-description"
@@ -526,7 +510,7 @@ export const MusicPersonaDialogs: React.FC<MusicPersonaDialogsProps> = ({
               type="button"
               variant="ghost"
               onClick={closeCreatePersonaDialog}
-              className="h-11 rounded-2xl px-4 text-foreground/75 transition-colors hover:bg-foreground/10 hover:text-foreground"
+              className="h-11 rounded-2xl border-0 bg-foreground/5 px-4 text-foreground/75 transition-colors hover:bg-foreground/10 hover:text-foreground"
               disabled={isCreatingPersona}
             >
               Cancel

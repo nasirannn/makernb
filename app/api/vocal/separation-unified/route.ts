@@ -5,6 +5,20 @@ import { getUserIdFromRequest } from '@/lib/auth';
 
 export const dynamic = 'force-dynamic';
 
+const parseStemsData = (value: unknown): Record<string, string> | null => {
+  if (!value) return null;
+  if (typeof value === 'object') return value as Record<string, string>;
+  if (typeof value === 'string') {
+    try {
+      const parsed = JSON.parse(value);
+      return parsed && typeof parsed === 'object' ? (parsed as Record<string, string>) : null;
+    } catch {
+      return null;
+    }
+  }
+  return null;
+};
+
 /**
  * 统一获取用户的所有人声分离记录（包括两种来源）
  * GET /api/vocal/separation-unified?limit=20&offset=0
@@ -64,15 +78,18 @@ export async function GET(request: NextRequest) {
         // 优先使用 R2 URL，如果没有则使用临时 URL
         const vocalUrl = removal.r2_vocal_url || removal.vocal_url;
         const instrumentalUrl = removal.r2_instrumental_url || removal.instrumental_url;
+        const stemsData = parseStemsData(removal.stems_data);
         
         return {
           id: removal.id,
           source: 'kie' as const,
           predictionId: removal.task_id, // 映射数据库字段为 JavaScript 字段名
+          separationType: removal.separation_type || 'separate_vocal',
           status: removal.status,
           originalFilename: removal.track_id ? `Track ${removal.track_id.substring(0, 8)}...` : 'Studio Track',
           vocalUrl, // 映射数据库字段为 JavaScript 字段名
           instrumentalUrl, // 映射数据库字段为 JavaScript 字段名
+          stemsData,
           errorMessage: removal.status === 'error' ? 'Vocal removal failed' : undefined,
           createdAt: removal.created_at, // 映射数据库字段为 JavaScript 字段名
           updatedAt: removal.updated_at, // 映射数据库字段为 JavaScript 字段名
@@ -115,4 +132,3 @@ export async function GET(request: NextRequest) {
     );
   }
 }
-

@@ -24,9 +24,9 @@
     <priority>0.8</priority>
   </url>
   
-  <!-- Vocal Remover -->
+  <!-- Vocal Separation -->
   <url>
-    <loc>https://makernb.com/vocal-remover/</loc>
+    <loc>https://makernb.com/vocal-separation/</loc>
     <lastmod>2025-01-27</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.7</priority>

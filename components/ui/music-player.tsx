@@ -56,9 +56,8 @@ function PlayerProgressRail({
   return (
     <div
       className={cn(
-        "group relative h-2 w-full cursor-pointer overflow-hidden rounded-full",
+        "group relative h-1 w-full cursor-pointer overflow-hidden rounded-full",
         "bg-gradient-to-r from-foreground/10 via-foreground/15 to-foreground/10",
-        "ring-1 ring-black/10 dark:ring-white/10",
         className
       )}
       role="slider"
@@ -90,10 +89,10 @@ function PlayerProgressRail({
       />
       <div
         className={cn(
-          "absolute top-1/2 h-2 w-2 -translate-y-1/2 rounded-full bg-primary shadow-[0_0_0_2px_rgba(255,255,255,0.8)] dark:shadow-[0_0_0_2px_rgba(0,0,0,0.5)]",
+          "absolute top-1/2 h-1 w-1 -translate-y-1/2 rounded-full bg-primary shadow-[0_0_0_1px_rgba(255,255,255,0.75)] dark:shadow-[0_0_0_1px_rgba(0,0,0,0.5)]",
           "opacity-0 transition-opacity duration-200 group-hover:opacity-100"
         )}
-        style={{ left: `calc(${progressPercentage}% - 4px)` }}
+        style={{ left: `calc(${progressPercentage}% - 2px)` }}
       />
     </div>
   );

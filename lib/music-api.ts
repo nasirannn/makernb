@@ -68,7 +68,7 @@ export interface CoverApiResponse {
 export interface VocalSeparationRequest {
   taskId: string; // 原始音乐任务的ID
   audioId: string; // 要进行人声分离处理的特定音频轨道ID
-  type: 'separate_vocal' | 'split_stem'; // 分离类型（当前项目只使用 separate_vocal）
+  type: 'separate_vocal' | 'split_stem'; // 分离类型
   callBackUrl?: string; // 回调URL
 }
 
@@ -139,6 +139,24 @@ export interface Mp4GenerationApiResponse {
   msg: string;
   data: {
     taskId: string; // MP4生成任务taskId
+  };
+}
+
+// ============================================================================
+// MIDI GENERATION INTERFACES
+// ============================================================================
+
+export interface MidiGenerationRequest {
+  taskId: string; // 人声分离任务 taskId（必须来自 vocal-removal）
+  audioId?: string; // 可选：指定单个分离轨道 audioId
+  callBackUrl?: string; // 回调 URL
+}
+
+export interface MidiGenerationApiResponse {
+  code: number;
+  msg: string;
+  data: {
+    taskId: string; // MIDI 生成任务 taskId
   };
 }
 
@@ -853,6 +871,54 @@ class MusicApiService {
 
     console.error(`MP4 generation API error: ${data.code} - ${data.msg}`);
     throw new Error(`MP4 generation API error (${data.code}): ${data.msg || 'Unknown error'}`);
+  }
+
+  // ============================================================================
+  // MIDI GENERATION METHODS
+  // ============================================================================
+
+  /**
+   * Starts MIDI generation process
+   * Converts separated audio stems into MIDI note data
+   */
+  async generateMidi(request: MidiGenerationRequest): Promise<MidiGenerationApiResponse> {
+    const apiParams: Record<string, string> = {
+      taskId: request.taskId,
+      callBackUrl: request.callBackUrl || `${process.env.CallBackURL}/api/callbacks/midi`,
+    };
+
+    if (request.audioId && request.audioId.trim()) {
+      apiParams.audioId = request.audioId.trim();
+    }
+
+    const response = await this.fetchWithRetry(`${this.baseUrl}/api/v1/midi/generate`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${this.apiKey}`,
+      },
+      body: JSON.stringify(apiParams),
+    });
+
+    if (!response.ok) {
+      const errorData = await response.text();
+      console.error(`MIDI generation API call failed: ${response.status} - ${errorData}`);
+      throw new Error(`MIDI generation API call failed: ${response.statusText} - ${errorData}`);
+    }
+
+    const data = await response.json();
+    if (data.code === 200) {
+      return {
+        code: data.code,
+        msg: data.msg || 'MIDI generation started successfully',
+        data: {
+          taskId: data.data?.taskId || data.data?.task_id,
+        }
+      };
+    }
+
+    console.error(`MIDI generation API error: ${data.code} - ${data.msg}`);
+    throw new Error(`MIDI generation API error (${data.code}): ${data.msg || 'Unknown error'}`);
   }
 
   /**

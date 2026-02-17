@@ -4,7 +4,7 @@ import React from "react";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
-import { ChevronRight, Play, CreditCard, X, Check, Triangle, Pause, Wand2, Trash2, Loader2, RefreshCw } from "lucide-react";
+import { ChevronRight, Play, CreditCard, X, Pause, Wand2, Trash2, Loader2, RefreshCw } from "lucide-react";
 import musicOptions from '@/data/music-options.json';
 import { useAuth } from '@/contexts/AuthContext';
 import { useCredits } from '@/contexts/CreditsContext';
@@ -29,13 +29,7 @@ import { MashupUploadConfirmDialog } from "@/components/ui/mashup-upload-confirm
 import { StudioCustomModeContent, StudioSimpleModeContent, type AudioUploadIntent } from "@/components/ui/feature-panels/music-cover-panel-mode-content";
 import { MusicPersonaDialogs } from "@/components/ui/music-persona-dialogs";
 import { useStudioPersonaManager } from "@/hooks/use-studio-persona-manager";
-import { MusicModel, modelOptions } from '@/components/ui/model-selection-dialog';
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
+import { ModelSelectionDialog, MusicModel, modelOptions } from '@/components/ui/model-selection-dialog';
 import { PricingSection } from '@/components/layout/sections/pricing';
 import { useTheme } from "next-themes";
 
@@ -304,7 +298,7 @@ export const MusicCoverPanel = (props: FeatureCreatePanelProps) => {
 
   // Pricing dialog state
   const [isPricingOpen, setIsPricingOpen] = React.useState(false);
-  const [isModelMenuOpen, setIsModelMenuOpen] = React.useState(false);
+  const [isModelDialogOpen, setIsModelDialogOpen] = React.useState(false);
   const [isGeneratingGenrePrompt, setIsGeneratingGenrePrompt] = React.useState(false);
   const [pendingGenreId, setPendingGenreId] = React.useState<string | null>(null);
   const [isMashupEditOpen, setIsMashupEditOpen] = React.useState(false);
@@ -1849,10 +1843,6 @@ export const MusicCoverPanel = (props: FeatureCreatePanelProps) => {
           />
         </div>
         <div className="mt-2 space-y-2">
-          <div className="border-t border-dashed border-slate-300/35 dark:border-slate-700/25 pt-2" aria-hidden="true" />
-          <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-muted-foreground/80">
-            Style Presets
-          </p>
           {renderStyleQuickButtons(
             styleText,
             setStyleText,
@@ -2082,56 +2072,29 @@ export const MusicCoverPanel = (props: FeatureCreatePanelProps) => {
             {panelTitle && (
               <div className="mb-3 px-1 space-y-1.5">
                 <div className="flex items-center justify-between gap-3">
-                  <h2 className="text-lg md:text-xl font-semibold tracking-tight text-foreground">
+                  <h2 className="text-lg md:text-xl font-semibold tracking-tight text-foreground/90">
                     {panelTitle}
                   </h2>
                   {mode === "custom" && (
-                    <DropdownMenu open={isModelMenuOpen} onOpenChange={setIsModelMenuOpen}>
-                      <DropdownMenuTrigger asChild>
-                        <button
-                          type="button"
-                          className="group studio-panel-card h-11 min-w-[5.75rem] px-4 rounded-2xl text-xs md:text-sm font-semibold text-foreground/80 transition-colors hover:bg-accent hover:text-accent-foreground flex items-center justify-center gap-1.5"
-                          title="Click to change model version"
-                        >
-                          <span>{modelOptions.find((opt) => opt.value === selectedModel)?.label || 'V4.5'}</span>
-                          <Triangle
-                            className={`w-2 h-2 fill-current text-foreground/70 transition-colors transition-transform group-hover:text-accent-foreground ${isModelMenuOpen ? 'rotate-180' : ''}`}
-                          />
-                        </button>
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent
-                        align="end"
-                        className="z-[170] w-80 max-h-[70vh] overflow-y-auto rounded-2xl bg-popover p-1.5 text-popover-foreground shadow-[0_20px_56px_rgba(0,0,0,0.18)] backdrop-blur-xl dark:shadow-[0_20px_56px_rgba(0,0,0,0.5)]"
+                    <>
+                      <button
+                        type="button"
+                        onClick={() => setIsModelDialogOpen(true)}
+                        className="group h-11 min-w-[5.75rem] px-4 rounded-2xl border border-white/45 dark:border-white/10 text-xs md:text-sm font-semibold text-slate-950 transition-all duration-200 bg-gradient-to-r from-cyan-300 via-sky-300 to-indigo-300 shadow-[0_6px_14px_rgba(56,189,248,0.18)] hover:from-cyan-200 hover:via-sky-200 hover:to-indigo-200 flex items-center justify-center"
+                        title="Choose model"
                       >
-                        {modelOptions.map((option) => {
-                          const isSelected = option.value === selectedModel;
-                          return (
-                            <React.Fragment key={option.value}>
-                              <DropdownMenuItem
-                                onClick={() => handleModelSelect(option.value)}
-                                className="group flex flex-col items-start gap-1 rounded-xl px-3.5 py-2.5 transition-colors hover:bg-black/5 focus:bg-black/5 data-[highlighted]:bg-black/5 dark:hover:bg-white/5 dark:focus:bg-white/5 dark:data-[highlighted]:bg-white/5"
-                              >
-                                <div className="flex w-full items-center justify-between gap-2">
-                                  <div className="flex items-center gap-2">
-                                    <span className="text-sm font-semibold text-foreground">
-                                      {option.label}
-                                    </span>
-                                  </div>
-                                  {isSelected && (
-                                    <span className="inline-flex h-4 w-4 items-center justify-center rounded-full bg-primary">
-                                      <Check className="h-2.5 w-2.5 text-primary-foreground" strokeWidth={2.5} aria-hidden="true" />
-                                    </span>
-                                  )}
-                                </div>
-                                <span className="text-xs text-muted-foreground">
-                                  {option.description}
-                                </span>
-                              </DropdownMenuItem>
-                            </React.Fragment>
-                          );
-                        })}
-                      </DropdownMenuContent>
-                    </DropdownMenu>
+                        <span>{modelOptions.find((opt) => opt.value === selectedModel)?.label || "V4.5"}</span>
+                      </button>
+                      <ModelSelectionDialog
+                        open={isModelDialogOpen}
+                        onOpenChange={setIsModelDialogOpen}
+                        selectedModel={selectedModel}
+                        onSelectModel={handleModelSelect}
+                        options={modelOptions}
+                        isModelLocked={(model) => model === "V5" && !canUseV5Model}
+                        onLockedModelSelect={() => setIsPricingOpen(true)}
+                      />
+                    </>
                   )}
                 </div>
                 <p className="mt-1 text-xs md:text-sm text-muted-foreground">
