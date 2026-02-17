@@ -6,7 +6,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { supabase } from '@/lib/supabase';
-import { Loader2, Mail, ArrowLeft } from 'lucide-react';
+import { ArrowLeft } from 'lucide-react';
 import Image from 'next/image';
 import { LoadingDots } from '@/components/ui/loading-dots';
 
@@ -76,14 +76,6 @@ export default function UnifiedOTPLogin({ onSuccess, onClose }: UnifiedOTPLoginP
     } finally {
       setLoading(false);
     }
-  };
-
-  const resetForm = () => {
-    setEmail('');
-    setOtp('');
-    setStep('email');
-    setMessage('');
-    setLoading(false);
   };
 
   const handleOtpChange = (index: number, value: string) => {

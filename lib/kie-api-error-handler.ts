@@ -130,7 +130,7 @@ export async function handleKieApiError(options: ErrorHandlerOptions): Promise<v
         // 从 credit_transactions 表中查找该 taskId 的积分消耗记录
         // 注意：consumeUserCredit 使用 transaction_type = 'spend'，所以通过 reference_id 和 description 来查找
         const descriptionConditions = taskConfig.descriptionKeywords
-          .map((keyword, index) => `description LIKE $${index + 2}`)
+          .map((_keyword, index) => `description LIKE $${index + 2}`)
           .join(' OR ');
 
         const queryParams = [taskId, ...taskConfig.descriptionKeywords.map(k => `%${k}%`)];
@@ -218,5 +218,4 @@ export async function handleKieApiErrorByCode(
     errorDescription,
   });
 }
-
 

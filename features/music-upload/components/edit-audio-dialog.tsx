@@ -10,7 +10,7 @@ import {
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { WaveformPlayer, WaveformPlayerHandle } from "@/components/ui/waveform-player";
-import { Play, Pause, X } from "lucide-react";
+import { Play, Pause } from "lucide-react";
 import { useTheme } from "next-themes";
 
 interface EditAudioDialogProps {

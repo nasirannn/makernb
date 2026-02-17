@@ -20,7 +20,7 @@ export async function POST(request: NextRequest) {
 
   try {
     const callbackData = await request.json();
-    const { code, msg, data } = callbackData;
+    const { code, data } = callbackData;
     const taskId = data?.task_id;
 
     console.log(`[RS-CALLBACK-${callbackId}] Processing callback: taskId=${taskId}, code=${code}, type=${data?.callbackType}`);
@@ -64,7 +64,7 @@ export async function POST(request: NextRequest) {
 }
 
 // Handle OPTIONS for CORS
-export async function OPTIONS(request: NextRequest) {
+export async function OPTIONS(_request: NextRequest) {
   return new NextResponse(null, {
     status: 200,
     headers: {

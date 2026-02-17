@@ -38,22 +38,13 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useCredits } from '@/contexts/CreditsContext';
 import { useFeaturePermissions } from '@/contexts/FeaturePermissionsContext';
 import { usePricingModal } from '@/contexts/PricingModalContext';
-import { CustomAudioWaveIndicator } from './audio-wave-indicator';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Progress } from './progress';
-import { Input } from '@/components/ui/input';
 import { LibraryTrack } from '@/types/track';
 import { getEventBus, TRACK_EVENTS } from '@/lib/event-bus';
 import { TrackCover } from '@/features/lyrics-cover/components/track-cover';
 import { formatDuration, formatDateTime } from '@/lib/format-utils';
 import { LibraryTrackActions } from './library-track-actions';
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -68,7 +59,6 @@ import {
   Dialog,
   DialogContent,
   DialogDescription,
-  DialogFooter,
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
@@ -1203,7 +1193,7 @@ export const LibraryPanel = ({
             </div>
           ) : (
             <div className="space-y-1">
-              {paginatedTracks.map((track, index) => (
+              {paginatedTracks.map((track) => (
                 <div key={track.id}>
                   {/* Desktop Track Item - 桌面端 */}
                   <div
@@ -1212,7 +1202,7 @@ export const LibraryPanel = ({
                         ? 'bg-muted/80'
                         : 'bg-transparent hover:bg-muted/30 border-transparent'
                     }`}
-                    onClick={(e) => {
+                    onClick={() => {
                       handleTrackAction(track, 'select');
                     }}
                   >
@@ -1326,7 +1316,7 @@ export const LibraryPanel = ({
                         ? 'bg-muted/80'
                         : 'hover:bg-muted/20 border-transparent'
                     }`}
-                    onClick={(e) => {
+                    onClick={() => {
                       handleTrackAction(track, 'select');
                     }}
                   >

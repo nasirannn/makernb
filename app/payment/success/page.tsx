@@ -13,7 +13,6 @@ function PaymentSuccessContent() {
   const { refreshCredits } = useCredits();
   const { refreshPermissions } = useFeaturePermissions();
   const [isLoading, setIsLoading] = useState(true);
-  const [isValidPayment, setIsValidPayment] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
@@ -44,7 +43,6 @@ function PaymentSuccessContent() {
         // const data = await response.json();
         
         // 暂时模拟验证成功（实际应该调用支付验证API）
-        setIsValidPayment(true);
         // 刷新积分和权限（订阅成功后需要立即更新）
         refreshCredits();
         refreshPermissions();

@@ -113,7 +113,7 @@ export async function POST(request: NextRequest) {
     const callbackData = await request.json();
     console.log(`[VOCAL-REMOVAL-CALLBACK-${callbackId}] Received callback:`, JSON.stringify(callbackData, null, 2));
 
-    const { code, msg, data } = callbackData;
+    const { code, data } = callbackData;
     const taskId = data?.task_id;
 
     // 验证回调数据
@@ -161,7 +161,7 @@ export async function POST(request: NextRequest) {
 }
 
 // 添加 OPTIONS 方法支持 CORS 预检请求
-export async function OPTIONS(request: NextRequest) {
+export async function OPTIONS(_request: NextRequest) {
   return NextResponse.json(null, {
     status: 200,
     headers: {

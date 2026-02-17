@@ -423,10 +423,10 @@ export const useExtendMusic = (
   // 开始轮询
   const startPolling = useCallback((
     taskId: string,
-    musicId: string,
+    _musicId: string,
     title: string,
-    genre?: string,
-    tags?: string,
+    _genre?: string,
+    _tags?: string,
     initialTracks?: any[] // 初始占位 tracks
   ) => {
     // 清理旧的轮询

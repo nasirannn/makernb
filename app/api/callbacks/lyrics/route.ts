@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { consumeUserCredit } from '@/lib/user-db';
 import { createGenerationError } from '@/lib/generation-errors-db';
-import { query, withTransaction } from '@/lib/db-query-builder';
+import { query } from '@/lib/db-query-builder';
 import { getFeatureCredits } from '@/lib/credits-config';
 
 
@@ -10,13 +10,11 @@ const processedLyricsTasks = new Set<string>();
 
 // Handle Lyrics API callbacks
 export async function POST(request: NextRequest) {
-  const startTime = Date.now();
-  
   try {
     // 1. Fast response - must return response within 15 seconds
     const callbackData = await request.json();
 
-    const { code, msg, data } = callbackData;
+    const { code, data } = callbackData;
     const taskId = data?.task_id;
 
     if (!taskId) {

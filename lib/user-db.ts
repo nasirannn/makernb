@@ -69,7 +69,7 @@ export const consumeUserCredit = async (
   creditAmount: number = 1,
   description?: string,
   referenceId?: string,
-  referenceType?: string
+  _referenceType?: string
 ): Promise<boolean> => {
   try {
     return await withTransaction(async (queryFn) => {

@@ -29,7 +29,7 @@ export const TrackCover: React.FC<TrackCoverProps> = ({
   isCurrentTrack = false,
   hasPlayableAudio = false,
   onPlayPause,
-  trackId,
+  trackId: _trackId,
   isExtension = false,
   durationLabel,
 }) => {

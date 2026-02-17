@@ -211,7 +211,7 @@ export const ExploreSection = () => {
     setCurrentlyPlaying(trackId);
   };
 
-  const handlePlayPause = (trackId: string, audioUrl: string, music: MusicGeneration) => {
+  const handlePlayPause = (trackId: string, _audioUrl: string, _music: MusicGeneration) => {
     const trackIndex = playlist.findIndex((track) => track.primaryTrack.id === trackId);
     if (trackIndex === -1) return;
 
@@ -220,7 +220,7 @@ export const ExploreSection = () => {
       return;
     }
 
-    void playTrack(trackIndex, trackId, audioUrl);
+    void playTrack(trackIndex, trackId, _audioUrl);
   };
 
   const handlePlayerPlayPause = () => {
@@ -299,7 +299,7 @@ export const ExploreSection = () => {
     return pseudoAuthors[idx];
   };
 
-  const ExploreTrackCardSkeleton = ({ index }: { index: number }) => (
+  const ExploreTrackCardSkeleton = ({ index: _index }: { index: number }) => (
     <div className="group flex items-center gap-4 rounded-2xl px-2 py-2">
       <div className="relative h-12 w-12 shrink-0 overflow-hidden rounded-sm">
         <Skeleton className="h-full w-full rounded-sm" />

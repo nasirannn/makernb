@@ -6,7 +6,6 @@ export class AudioService {
   private audioElement: HTMLAudioElement;
   private currentTrackId: string | null = null;
   private listeners: Map<string, Function[]> = new Map();
-  private isInitialized = false;
   private savedCurrentTime: number = 0; // 保存当前播放时间
 
   constructor() {

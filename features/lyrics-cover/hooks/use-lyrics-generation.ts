@@ -33,7 +33,7 @@ export const useLyricsGeneration = () => {
     };
   }, []);
 
-  const handleGenerateLyrics = async (setCustomPrompt: (value: string) => void, userId: string) => {
+  const handleGenerateLyrics = async (setCustomPrompt: (value: string) => void, _userId: string) => {
     if (!lyricsPrompt.trim()) {
       toast("Please enter a prompt for lyrics generation", {
         description: "Describe what kind of lyrics you want to generate."

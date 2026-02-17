@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getLyricsGeneration } from '@/features/lyrics-cover/lib/lyrics-db';
 
 export async function GET(
-  request: NextRequest,
+  _request: NextRequest,
   { params }: { params: { taskId: string } }
 ) {
   try {

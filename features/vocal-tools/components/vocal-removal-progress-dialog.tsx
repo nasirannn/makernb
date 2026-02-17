@@ -298,15 +298,26 @@ export const VocalRemovalProgressDialog: React.FC<VocalRemovalProgressDialogProp
         </div>
 
         <div className="flex-shrink-0 px-5 pt-1 pb-4">
-          <Button
-            onClick={handleAction}
-            className="h-11 w-full rounded-2xl text-sm font-semibold"
-            disabled={actionDisabled || !canClose}
-          >
-            {status === 'completed'
-              ? `Re-Separate Vocal • cost ${creditCost} credits`
-              : `Separate Vocal • cost ${creditCost} credits`}
-          </Button>
+          <div className="flex items-center gap-2">
+            <Button
+              type="button"
+              variant="ghost"
+              onClick={onClose}
+              className="h-11 flex-1 rounded-2xl border-0 bg-foreground/5 text-sm font-semibold text-foreground/75 transition-colors hover:bg-foreground/10 hover:text-foreground"
+              disabled={!canClose}
+            >
+              Cancel
+            </Button>
+            <Button
+              onClick={handleAction}
+              className="h-11 flex-1 rounded-2xl text-sm font-semibold"
+              disabled={actionDisabled || !canClose}
+            >
+              {status === 'completed'
+                ? `Re-Separate Vocal • cost ${creditCost} credits`
+                : `Separate Vocal • cost ${creditCost} credits`}
+            </Button>
+          </div>
         </div>
       </DialogContent>
     </Dialog>

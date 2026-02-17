@@ -148,7 +148,7 @@ export const softDeleteMusicGeneration = async (generationId: string, userId: st
       }
 
       // 2. Soft delete all associated tracks records
-      const tracksResult = await queryFn(
+      await queryFn(
         `UPDATE tracks
          SET is_deleted = TRUE, updated_at = NOW()
          WHERE music_id = $1 AND (is_deleted IS NULL OR is_deleted = FALSE)

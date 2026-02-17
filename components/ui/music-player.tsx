@@ -2,7 +2,7 @@
 
 import React from 'react';
 import Image from 'next/image';
-import { Play, Pause, Rewind, FastForward, Volume2, VolumeX, FileText, Music, X } from 'lucide-react';
+import { Rewind, FastForward, Volume2, VolumeX, FileText, Music, X } from 'lucide-react';
 import { VocalSeparationButton } from '@/features/vocal-tools/components/vocal-separation-button';
 import { AudioPlayerTrack } from '@/types/track';
 import { cn } from '@/lib/utils';

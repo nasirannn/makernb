@@ -1,5 +1,3 @@
-import { MusicType } from '@/types/music';
-
 /**
  * 替换音乐分区相关类型定义
  * 基于 KIE API Replace Section 文档

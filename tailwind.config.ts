@@ -49,13 +49,6 @@ module.exports = {
           'Segoe UI Emoji',
           'Segoe UI Symbol',
         ],
-        display: [
-          'var(--font-inter)',
-          '-apple-system',
-          'BlinkMacSystemFont',
-          'system-ui',
-          'sans-serif',
-        ],
       },
       
       fontSize: {
@@ -152,47 +145,6 @@ module.exports = {
           from: { height: "var(--radix-accordion-content-height)" },
           to: { height: 0 },
         },
-        
-        // Collapsible animations
-        "collapsible-down": {
-          from: { height: 0 },
-          to: { height: "var(--radix-collapsible-content-height)" },
-        },
-        "collapsible-up": {
-          from: { height: "var(--radix-collapsible-content-height)" },
-          to: { height: 0 },
-        },
-        
-        // Visual effects
-        "shine": {
-          from: { transform: "translateX(-100%)" },
-          to: { transform: "translateX(100%)" },
-        },
-        "shimmer": {
-          "0%": { transform: "translateX(-100%)" },
-          "100%": { transform: "translateX(100%)" },
-        },
-        
-        // Twinkle animations
-        "twinkle": {
-          "0%, 100%": { opacity: "0.3", transform: "scale(1)" },
-          "50%": { opacity: "1", transform: "scale(1.2)" },
-        },
-        "twinkle-delay": {
-          "0%, 100%": { opacity: "0.4", transform: "scale(1)" },
-          "50%": { opacity: "1", transform: "scale(1.1)" },
-        },
-        "twinkle-slow": {
-          "0%, 100%": { opacity: "0.5", transform: "scale(1)" },
-          "50%": { opacity: "1", transform: "scale(1.3)" },
-        },
-        
-        // Flip animation
-        "flip": {
-          "0%": { transform: "rotateY(0deg)" },
-          "50%": { transform: "rotateY(90deg)" },
-          "100%": { transform: "rotateY(180deg)" },
-        },
         // Marquee animation (used in footer badges)
         "marquee": {
           "0%": { transform: "translateX(0)" },
@@ -204,25 +156,8 @@ module.exports = {
         // Accordion
         "accordion-down": "accordion-down 0.2s ease-out",
         "accordion-up": "accordion-up 0.2s ease-out",
-        
-        // Collapsible
-        "collapsible-down": "collapsible-down 0.2s ease-in-out",
-        "collapsible-up": "collapsible-up 0.2s ease-in-out",
-        
-        // Visual effects
-        "shine": "shine 2s ease-in-out infinite",
-        "shimmer": "shimmer 2s ease-in-out infinite",
-        
-        // Twinkle
-        "twinkle": "twinkle 3s ease-in-out infinite",
-        "twinkle-delay": "twinkle-delay 4s ease-in-out infinite",
-        "twinkle-slow": "twinkle-slow 5s ease-in-out infinite",
-        
-        // Flip
-        "flip": "flip 0.6s ease-in-out",
         // Marquee
         "marquee": "marquee 40s linear infinite",
-        "marquee-reverse": "marquee 40s linear infinite reverse",
       },
     },
   },

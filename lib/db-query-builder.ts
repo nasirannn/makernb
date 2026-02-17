@@ -1,4 +1,4 @@
-import { query, batchQuery, withTransaction } from './db-pool';
+import { query, batchQuery } from './db-pool';
 import type { QueryResultRow } from 'pg';
 
 // ============================================================================
@@ -164,7 +164,7 @@ export const updateQuery = async <T extends QueryResultRow = any>(
 
   // Build WHERE clause (parameters start after SET values)
   const { clause: whereClause, values: whereValues } = buildWhereClause(conditions);
-  const adjustedWhereClause = whereClause.replace(/\$(\d+)/g, (match, num) => {
+  const adjustedWhereClause = whereClause.replace(/\$(\d+)/g, (_match, num) => {
     return `$${parseInt(num) + fields.length}`;
   });
 

@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getUserInfoFromRequest } from '@/lib/auth';
-import { uploadAudioFileToKIE } from '@/lib/kie-file-upload';
 import { FeatureKey, getFeatureCredits } from '@/lib/credits-config';
 import { consumeUserCredit, getUserCredits, addUserCredits } from '@/lib/user-db';
 import { createMusicGeneration } from '@/lib/music-db';

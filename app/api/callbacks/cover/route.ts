@@ -388,20 +388,6 @@ async function processCoverCallbackAsync(callbackData: any) {
 
       coverResults.set(coverTaskId, result);
       
-      // 查询对应的音乐生成taskId
-      let musicTaskId = coverTaskId;
-      try {
-        const coverRecord = await query(
-          'SELECT music_task_id FROM cover_generations WHERE task_id = $1',
-          [coverTaskId]
-        );
-        if (coverRecord.rows.length > 0 && coverRecord.rows[0].music_task_id) {
-          musicTaskId = coverRecord.rows[0].music_task_id;
-        }
-      } catch (error) {
-        console.error('Failed to query music taskId for duplicate:', error);
-      }
-      
       // 发送重复请求通知到前端
 
       
@@ -420,20 +406,6 @@ async function processCoverCallbackAsync(callbackData: any) {
       coverResults.set(coverTaskId, result);
       
       console.error(`Cover generation server error for coverTaskId: ${coverTaskId}`, msg);
-      
-      // 查询对应的音乐生成taskId
-      let musicTaskId = coverTaskId;
-      try {
-        const coverRecord = await query(
-          'SELECT music_task_id FROM cover_generations WHERE task_id = $1',
-          [coverTaskId]
-        );
-        if (coverRecord.rows.length > 0 && coverRecord.rows[0].music_task_id) {
-          musicTaskId = coverRecord.rows[0].music_task_id;
-        }
-      } catch (error) {
-        console.error('Failed to query music taskId for error:', error);
-      }
       
       // 发送错误通知到前端
 
@@ -464,7 +436,7 @@ async function processCoverCallbackAsync(callbackData: any) {
 }
 
 // 添加OPTIONS方法支持CORS预检请求
-export async function OPTIONS(request: NextRequest) {
+export async function OPTIONS(_request: NextRequest) {
   return new NextResponse(null, {
     status: 200,
     headers: {

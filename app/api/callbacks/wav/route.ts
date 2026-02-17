@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { query } from '@/lib/db-query-builder';
 import { updateTrackWavConversionByTaskId, getTrackWavConversionByTaskId } from '@/lib/track-wav-db';
 import { downloadFromUrl, uploadWavFile, findWavFileByTaskId } from '@/lib/r2-storage';
-import { consumeUserCredit, addUserCredits } from '@/lib/user-db';
+import { consumeUserCredit } from '@/lib/user-db';
 import { getFeatureCredits } from '@/lib/credits-config';
 import { handleKieApiErrorByCode, TaskTypeConfig } from '@/lib/kie-api-error-handler';
 
@@ -22,7 +22,7 @@ export async function POST(request: NextRequest) {
   try {
     // 1. 快速响应 - 必须在15秒内返回响应
     const callbackData = await request.json();
-    const { code, msg, data } = callbackData;
+    const { code, data } = callbackData;
     const taskId = data?.task_id;
 
     // 验证回调数据
@@ -69,7 +69,7 @@ export async function POST(request: NextRequest) {
 }
 
 // 添加 OPTIONS 方法支持 CORS 预检请求
-export async function OPTIONS(request: NextRequest) {
+export async function OPTIONS(_request: NextRequest) {
   return NextResponse.json(null, {
     status: 200,
     headers: {
@@ -435,4 +435,3 @@ async function handleWavConversionError(
 
   await handleKieApiErrorByCode(code, msg, taskId, callbackId, taskConfig);
 }
-

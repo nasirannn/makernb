@@ -216,13 +216,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           }
         } else if (event === 'SIGNED_IN' && session?.access_token && session.user?.id) {
           // 当用户登录时，检查每日登录积分（使用持久化状态避免重复检查）
-          const today = new Date().toISOString().split('T')[0]; // YYYY-MM-DD
-          const checkKey = `dailyCreditsChecked_${session.user.id}_${today}`;
-          // 使用 localStorage（跨标签页共享）而不是 sessionStorage
-          const hasCheckedToday = typeof window !== 'undefined'
-            ? localStorage.getItem(checkKey) === 'true'
-            : false;
-
           // 增加延迟确保登录流程完成且token完全生效
           setTimeout(() => {
             maybeCheckDailyCredits(session.access_token, session.user.id);

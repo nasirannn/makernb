@@ -16,8 +16,8 @@ import { Switch } from "@/components/ui/switch";
 import Image from 'next/image';
 import { CLIENT_MUSIC_CREDITS, CLIENT_STYLE_BOOST_CREDITS, CLIENT_UPLOAD_AUDIO_CREDITS } from '@/lib/credits-config';
 import { getInstrumentIcon, getInstrumentAudio, getDrumKitIcon, getDrumKitAudio } from '@/lib/music-resources';
-import { replaceTextInStyle, updateStatesFromTextarea, getRandomBpm } from '@/lib/studio-utils';
-import { TEMPO_KEYWORDS, BUTTON_CLASSES, STYLES } from '@/lib/studio-constants';
+import { updateStatesFromTextarea, getRandomBpm } from '@/lib/studio-utils';
+import { BUTTON_CLASSES, STYLES } from '@/lib/studio-constants';
 import { useAudioPlayer } from '@/hooks/use-audio-player';
 import { useStudioUploadWorkflow } from '@/hooks/use-studio-upload-workflow';
 import type { UploadPanelMode } from '@/hooks/use-studio-upload-workflow';
@@ -189,7 +189,6 @@ export const MusicCoverPanel = (props: FeatureCreatePanelProps) => {
     setStyleText,
     enhanceStyle,
     setEnhanceStyle,
-    bpm,
     setBpm,
     grooveType,
     setGrooveType,
@@ -455,13 +454,6 @@ export const MusicCoverPanel = (props: FeatureCreatePanelProps) => {
       setEnhanceStyle(false);
     }
   }, [audioUploadIntent, enhanceStyle, setEnhanceStyle]);
-  
-  // State for hovered instrument
-  const [hoveredInstrument, setHoveredInstrument] = React.useState<string | null>(null);
-  
-  // State for hovered drum kit
-  const [hoveredDrumKit, setHoveredDrumKit] = React.useState<string | null>(null);
-  
   // Audio player hook
   const { playPreviewAudio } = useAudioPlayer();
 
@@ -2101,14 +2093,14 @@ export const MusicCoverPanel = (props: FeatureCreatePanelProps) => {
                   Restyle uploaded tracks while preserving the original melody.
                 </p>
                 {showModeTabs && (
-                  <div className="studio-panel-card inline-flex items-center rounded-2xl p-1 gap-1 flex-shrink-0">
+                  <div className="app-card-muted inline-flex items-center rounded-2xl p-1 gap-1 flex-shrink-0 bg-foreground/5 shadow-[0_1px_2px_rgba(0,0,0,0.06)] dark:bg-white/10">
                     <button
                       onClick={() => {
                         if (!lockModeSelector) {
                           setMode("simple");
                         }
                       }}
-                      className={`px-4 py-2 text-xs md:text-sm font-semibold transition-colors duration-200 rounded-2xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background ${
+                      className={`h-10 px-4 text-xs md:text-sm font-semibold transition-colors duration-200 rounded-2xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background ${
                         mode === "simple"
                           ? "bg-primary text-primary-foreground shadow-[0_1px_1px_rgba(0,0,0,0.08)]"
                           : "text-foreground/60 hover:text-foreground hover:bg-foreground/5"
@@ -2123,7 +2115,7 @@ export const MusicCoverPanel = (props: FeatureCreatePanelProps) => {
                           setMode("custom");
                         }
                       }}
-                      className={`px-4 py-2 text-xs md:text-sm font-semibold transition-colors duration-200 rounded-2xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background ${
+                      className={`h-10 px-4 text-xs md:text-sm font-semibold transition-colors duration-200 rounded-2xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background ${
                         mode === "custom"
                           ? "bg-primary text-primary-foreground shadow-[0_1px_1px_rgba(0,0,0,0.08)]"
                           : "text-foreground/60 hover:text-foreground hover:bg-foreground/5"

@@ -10,7 +10,6 @@ import { EditMusicInfoDialog } from './edit-music-info-dialog';
 import { LibraryTrack } from '@/types/track';
 import { Check, Share2, Star, ThumbsUp, Trash2 } from 'lucide-react';
 import { SolidThumbsUpIcon } from '@/components/icons/solid-thumbs-up-icon';
-import { formatDuration } from '@/lib/format-utils';
 
 interface TrackItemProps {
   track: LibraryTrack & any;
@@ -125,11 +124,6 @@ export const TrackItem: React.FC<TrackItemProps> = ({
     (isPromptFallbackTags || isGenerating || !track.audioUrl)
   );
   const model = track.model || track.musicGeneration?.model;
-  const numericDuration =
-    typeof track.duration === 'string'
-      ? Number.parseFloat(track.duration)
-      : (track.duration || 0);
-  const durationLabel = numericDuration > 0 ? formatDuration(numericDuration) : null;
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
 
   const canEditMusicInfo = Boolean(onEditMusicInfo || onEditTitle);

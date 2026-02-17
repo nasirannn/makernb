@@ -75,7 +75,7 @@ function createPool(): Pool {
   });
 
   // 连接成功事件
-  newPool.on('connect', (client: PoolClient) => {
+  newPool.on('connect', (_client: PoolClient) => {
     consecutiveErrors = 0; // 重置错误计数
   });
 
@@ -309,7 +309,6 @@ export async function query<T extends QueryResultRow = any>(
     }
   }
 
-  const totalTime = Date.now() - startTime;
   throw lastError || new Error('Query failed after retries');
 }
 
@@ -408,7 +407,7 @@ export async function batchQuery<T = any>(
  */
 export async function testConnection(): Promise<boolean> {
   try {
-    const result = await query('SELECT NOW() as current_time');
+    await query('SELECT NOW() as current_time');
     return true;
   } catch (error) {
     console.error('[DB-POOL] Connection test failed:', error);
@@ -468,4 +467,3 @@ export const pool_legacy = {
     return closePool();
   },
 };
-

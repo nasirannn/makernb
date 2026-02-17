@@ -4,14 +4,11 @@ import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Separator } from '@/components/ui/separator';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
-import { useVocalSeparation, VocalSeparationData, VocalSeparationRequest } from '@/features/vocal-tools/hooks/use-vocal-separation';
-import { MusicPlayer } from '@/components/ui/music-player';
+import { useVocalSeparation, VocalSeparationRequest } from '@/features/vocal-tools/hooks/use-vocal-separation';
 import { LoadingDots } from '@/components/ui/loading-dots';
 import { toast } from 'sonner';
-import { Trash2, Play, Pause, Download, Music, Mic, Volume2, Clock, CheckCircle, XCircle, AlertCircle } from 'lucide-react';
+import { Trash2, Play, Pause, Download, Music, Mic, Clock, CheckCircle, XCircle, AlertCircle } from 'lucide-react';
 
 interface VocalSeparationPanelProps {
   trackId: string;
@@ -24,9 +21,9 @@ interface VocalSeparationPanelProps {
 }
 
 export const VocalSeparationPanel: React.FC<VocalSeparationPanelProps> = ({
-  trackId,
-  audioId,
-  taskId,
+  trackId: _trackId,
+  audioId: _audioId,
+  taskId: _taskId,
   trackTitle,
   audioUrl,
   duration,

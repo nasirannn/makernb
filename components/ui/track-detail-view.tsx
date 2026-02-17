@@ -1,7 +1,6 @@
 "use client";
 
 import React, { useEffect, useMemo, useState } from "react";
-import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import {
   Calendar,
@@ -65,7 +64,6 @@ export const TrackDetailView: React.FC<TrackDetailViewProps> = ({
   onDownload,
   fullPage = false
 }) => {
-  const router = useRouter();
   const [trackInfo, setTrackInfo] = useState<TrackInfo | null>(trackData || null);
   const [isLoading, setIsLoading] = useState(!trackData);
   const [error, setError] = useState<string | null>(null);

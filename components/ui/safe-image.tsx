@@ -28,16 +28,10 @@ export const SafeImage: React.FC<SafeImageProps> = ({
   sizes
 }) => {
   const [hasError, setHasError] = useState(false);
-  const [isLoading, setIsLoading] = useState(true);
 
   const handleError = () => {
     console.warn(`Failed to load image: ${src}`);
     setHasError(true);
-    setIsLoading(false);
-  };
-
-  const handleLoad = () => {
-    setIsLoading(false);
   };
 
   // 如果图片加载失败，显示fallback内容
@@ -81,7 +75,6 @@ export const SafeImage: React.FC<SafeImageProps> = ({
       fill={fill}
       className={className}
       onError={handleError}
-      onLoad={handleLoad}
       priority={priority}
       sizes={sizes || "(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"}
       // 移除placeholder="blur"以减少transformations

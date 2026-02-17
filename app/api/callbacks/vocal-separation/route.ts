@@ -118,23 +118,3 @@ async function getUserIdByPredictionId(predictionId: string): Promise<string | n
     return null;
   }
 }
-
-// 存储分离结果
-async function storeSeparationResult(predictionId: string, output: any, userId: string | null) {
-  try {
-    // 如果需要存储到数据库，在这里实现
-    console.log('Storing separation result:', { predictionId, output, userId });
-  } catch (error) {
-    console.error('Failed to store separation result:', error);
-  }
-}
-
-// 存储错误信息
-async function storeSeparationError(predictionId: string, error: string) {
-  try {
-    // 如果需要存储错误信息到数据库，在这里实现
-    console.log('Storing separation error:', { predictionId, error });
-  } catch (error) {
-    console.error('Failed to store separation error:', error);
-  }
-}

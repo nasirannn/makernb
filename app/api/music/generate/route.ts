@@ -98,7 +98,6 @@ export async function POST(request: NextRequest) {
       styleText,
       isPublished: rawIsPublished = true,
       vocalGender,
-      genre,
       personaId,
       personaModel: rawPersonaModel,
       styleWeight: rawStyleWeight,

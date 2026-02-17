@@ -1594,7 +1594,7 @@ export const StudioTracksList: React.FC<StudioTracksListProps> = React.memo(func
       {/* Search Bar */}
       <div className="flex-shrink-0 px-3 pt-4 md:pt-6 pb-4">
         <div className="flex items-center gap-4 flex-wrap md:justify-end flex-1 min-w-[240px] self-center w-full">
-          <div className="app-card-muted rounded-2xl flex-1 h-11 px-1 bg-foreground/5 shadow-[0_1px_2px_rgba(0,0,0,0.06)] dark:bg-white/10">
+          <div className="studio-panel-card rounded-2xl flex-1 h-11 px-1 shadow-[0_1px_2px_rgba(0,0,0,0.06)] transition-colors hover:bg-foreground/10 dark:hover:bg-white/10">
           <div className="relative h-full w-full">
             <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-foreground/55" />
             <input
@@ -1618,7 +1618,7 @@ export const StudioTracksList: React.FC<StudioTracksListProps> = React.memo(func
             <DropdownMenuTrigger asChild>
               <button
                 type="button"
-                className="inline-flex studio-panel-card h-11 min-w-[130px] items-center justify-center gap-1.5 rounded-2xl px-3 text-xs font-semibold text-foreground/80 transition-colors hover:bg-accent hover:text-accent-foreground"
+                className="inline-flex studio-panel-card h-11 min-w-[130px] items-center justify-center gap-1.5 rounded-2xl px-3 text-xs md:text-sm font-semibold text-foreground/80 transition-colors hover:bg-accent hover:text-accent-foreground"
                 aria-label="Filter tracks by type"
                 title="Filter tracks by type"
               >
@@ -1634,13 +1634,13 @@ export const StudioTracksList: React.FC<StudioTracksListProps> = React.memo(func
                     {option.value === "disliked" && <DropdownMenuSeparator className="my-1" />}
                     <DropdownMenuItem
                       onClick={() => setSelectedTypeFilter(option.value)}
-                      className="group flex items-center justify-between gap-2 rounded-xl px-3.5 py-2 transition-colors hover:bg-black/5 focus:bg-black/5 data-[highlighted]:bg-black/5 dark:hover:bg-white/5 dark:focus:bg-white/5 dark:data-[highlighted]:bg-white/5"
+                      className="group flex items-center justify-between gap-2 rounded-xl px-3.5 py-2 text-xs md:text-sm transition-colors hover:bg-black/5 focus:bg-black/5 data-[highlighted]:bg-black/5 dark:hover:bg-white/5 dark:focus:bg-white/5 dark:data-[highlighted]:bg-white/5"
                     >
                       <span className="flex items-center gap-2">
                         {React.createElement(option.icon, {
                           className: `h-4 w-4 ${isSelected ? "text-primary" : "text-foreground/60"}`
                         })}
-                        <span className="text-sm font-medium text-foreground">{option.label}</span>
+                        <span className="font-medium text-foreground">{option.label}</span>
                       </span>
                       {isSelected && (
                         <span className="inline-flex h-4 w-4 items-center justify-center rounded-full bg-primary">

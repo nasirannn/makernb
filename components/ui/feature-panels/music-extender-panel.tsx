@@ -16,8 +16,8 @@ import { Switch } from "@/components/ui/switch";
 import Image from 'next/image';
 import { CLIENT_MUSIC_CREDITS, CLIENT_STYLE_BOOST_CREDITS, CLIENT_UPLOAD_AUDIO_CREDITS } from '@/lib/credits-config';
 import { getInstrumentIcon, getInstrumentAudio, getDrumKitIcon, getDrumKitAudio } from '@/lib/music-resources';
-import { replaceTextInStyle, updateStatesFromTextarea, getRandomBpm } from '@/lib/studio-utils';
-import { TEMPO_KEYWORDS, BUTTON_CLASSES, STYLES } from '@/lib/studio-constants';
+import { updateStatesFromTextarea, getRandomBpm } from '@/lib/studio-utils';
+import { BUTTON_CLASSES, STYLES } from '@/lib/studio-constants';
 import { useAudioPlayer } from '@/hooks/use-audio-player';
 import { useStudioUploadWorkflow } from '@/hooks/use-studio-upload-workflow';
 import type { UploadPanelMode } from '@/hooks/use-studio-upload-workflow';
@@ -180,7 +180,6 @@ export const MusicExtenderPanel = (props: FeatureCreatePanelProps) => {
     onCollapseToTracks,
     setIsAuthModalOpen,
     mode,
-    setMode,
     selectedGenre,
     setSelectedGenre,
     selectedVibe,
@@ -193,12 +192,10 @@ export const MusicExtenderPanel = (props: FeatureCreatePanelProps) => {
     setSongTitle,
     instrumentalMode,
     setInstrumentalMode,
-    isPublished,
     styleText,
     setStyleText,
     enhanceStyle,
     setEnhanceStyle,
-    bpm,
     setBpm,
     grooveType,
     setGrooveType,
@@ -462,13 +459,6 @@ export const MusicExtenderPanel = (props: FeatureCreatePanelProps) => {
       setEnhanceStyle(false);
     }
   }, [audioUploadIntent, enhanceStyle, setEnhanceStyle]);
-  
-  // State for hovered instrument
-  const [hoveredInstrument, setHoveredInstrument] = React.useState<string | null>(null);
-  
-  // State for hovered drum kit
-  const [hoveredDrumKit, setHoveredDrumKit] = React.useState<string | null>(null);
-  
   // Audio player hook
   const { playPreviewAudio } = useAudioPlayer();
 

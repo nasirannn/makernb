@@ -48,7 +48,6 @@ export const updateLyricsGeneration = async (
 ): Promise<LyricsGeneration> => {
   try {
     const fields = Object.keys(data).filter(key => key !== 'taskId');
-    const values = fields.map((field, index) => `$${index + 2}`);
     const setClause = fields.map(field => `${field} = $${fields.indexOf(field) + 2}`).join(', ');
     
     const result = await query(

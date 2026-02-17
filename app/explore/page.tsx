@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect, useRef, useCallback } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { Button } from '@/components/ui/button';
 import { Play, Pause, Music, Clock, Share2, ThumbsUp, Loader2 } from 'lucide-react';
 import { SafeImage } from '@/components/ui/safe-image';
@@ -318,7 +318,7 @@ export default function ExplorePage() {
     </div>
   );
 
-  const handlePlayPause = (trackId: string, audioUrl: string, music: MusicGeneration) => {
+  const handlePlayPause = (trackId: string, _audioUrl: string, _music: MusicGeneration) => {
     // 找到歌曲在播放列表中的索引
     const trackIndex = playlist.findIndex(track => track.primaryTrack.id === trackId);
     if (trackIndex === -1) return;
@@ -464,6 +464,8 @@ export default function ExplorePage() {
               <div className="relative">
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-5 gap-4">
                   {exploreData.music.map((music) => {
+                    const hasCover = Boolean(music.primaryTrack.coverR2Url);
+                    const isActiveTrack = currentlyPlaying === music.primaryTrack.id && audioPlayer.isPlaying;
                     return (
                       <div
                         key={music.id}
@@ -471,31 +473,46 @@ export default function ExplorePage() {
                       >
                       {/* Cover Image */}
                       <div className="relative aspect-square overflow-hidden rounded-b-xl">
-                        <SafeImage
-                          src={music.primaryTrack.coverR2Url || ''}
-                          alt={music.title}
-                          fill
-                          className="object-cover transition-transform duration-300 group-hover:scale-105"
-                          fallbackContent={
-                            <div className="absolute inset-0 w-full h-full bg-gradient-to-br from-purple-600/80 via-purple-700/60 to-purple-800/80 flex items-center justify-center">
-                              <Music className="w-16 h-16 text-white/70" />
+                        {hasCover ? (
+                          <SafeImage
+                            src={music.primaryTrack.coverR2Url || ''}
+                            alt={music.title}
+                            fill
+                            className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
+                            fallbackContent={
+                              <div className="h-full w-full bg-gradient-to-br from-slate-200 via-slate-100 to-slate-200 dark:from-zinc-800 dark:via-zinc-900 dark:to-zinc-800">
+                                <div className="flex h-full w-full items-center justify-center">
+                                  <Music className="h-7 w-7 text-slate-700 drop-shadow-[0_3px_10px_rgba(15,23,42,0.2)] dark:text-white/75 dark:drop-shadow-[0_3px_10px_rgba(0,0,0,0.45)]" />
+                                </div>
+                              </div>
+                            }
+                          />
+                        ) : (
+                          <div className="relative h-full w-full overflow-hidden bg-gradient-to-br from-slate-200 via-slate-100 to-slate-200 transition-transform duration-300 group-hover:scale-[1.02] dark:from-zinc-800 dark:via-zinc-900 dark:to-zinc-800">
+                            <div className="absolute inset-0 opacity-70 [background-image:radial-gradient(circle_at_20%_20%,rgba(255,255,255,0.35),transparent_45%),radial-gradient(circle_at_80%_80%,rgba(255,255,255,0.15),transparent_42%)] dark:[background-image:radial-gradient(circle_at_20%_20%,rgba(255,255,255,0.08),transparent_45%),radial-gradient(circle_at_80%_80%,rgba(255,255,255,0.05),transparent_42%)]" />
+                            <div className="absolute inset-0 flex items-center justify-center">
+                              <Music className="h-7 w-7 text-slate-700 drop-shadow-[0_3px_10px_rgba(15,23,42,0.2)] dark:text-white/75 dark:drop-shadow-[0_3px_10px_rgba(0,0,0,0.45)]" />
                             </div>
-                          }
-                        />
+                          </div>
+                        )}
 
                         {/* Playing Wave Effect - 播放时音波效果 */}
-                        {currentlyPlaying === music.primaryTrack.id && audioPlayer.isPlaying && (
-                          <div className="absolute inset-0 flex items-center justify-center bg-black/20 group-hover:opacity-0 transition-opacity duration-300">
+                        {isActiveTrack && (
+                          <div
+                            className={`absolute inset-0 flex items-center justify-center transition-opacity duration-300 ${
+                              hasCover ? 'bg-black/20 group-hover:opacity-0' : 'bg-white/15 dark:bg-black/20'
+                            }`}
+                          >
                             <CustomAudioWaveIndicator
                               isPlaying={audioPlayer.isPlaying}
                               size="lg"
-                              className="text-white"
+                              className={hasCover ? 'text-white' : 'text-foreground/80 dark:text-white/85'}
                             />
                           </div>
                         )}
 
                         {/* Play Button Overlay - 只在有封面图时显示 */}
-                        {music.primaryTrack.coverR2Url && (
+                        {hasCover && (
                           <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-center justify-center">
                             <div className="flex items-center gap-3">
                               <Button
@@ -546,6 +563,19 @@ export default function ExplorePage() {
                                   <Play className="h-5 w-5 text-white" />
                                 )}
                               </Button>
+                            </div>
+                          </div>
+                        )}
+
+                        {!hasCover && (
+                          <div className="pointer-events-none absolute inset-0 opacity-0 transition-opacity duration-300 group-hover:opacity-100">
+                            <div className="absolute inset-0 bg-white/20 dark:bg-black/25" />
+                            <div className="absolute inset-0 flex items-center justify-center">
+                              {isActiveTrack ? (
+                                <Pause className="h-5 w-5 text-slate-800 drop-shadow-[0_3px_10px_rgba(15,23,42,0.28)] dark:text-white dark:drop-shadow-[0_3px_10px_rgba(0,0,0,0.5)]" />
+                              ) : (
+                                <Play className="h-5 w-5 translate-x-[1px] text-slate-800 drop-shadow-[0_3px_10px_rgba(15,23,42,0.28)] dark:text-white dark:drop-shadow-[0_3px_10px_rgba(0,0,0,0.5)]" />
+                              )}
                             </div>
                           </div>
                         )}

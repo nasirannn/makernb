@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect, useRef, Suspense } from "react";
+import React, { useState, useEffect, Suspense } from "react";
 import { useRouter } from "next/navigation";
 
 // Custom Hooks
@@ -52,7 +52,7 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import AuthModal from "@/components/ui/auth-modal";
 import { LoadingDots } from "@/components/ui/loading-dots";
-import { Music, Wand2, ChevronLeft } from "lucide-react";
+import { Music } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 import { toast } from "sonner";
 import type { ExtendSourceTrack } from "@/types/extend-track-source";

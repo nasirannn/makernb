@@ -13,7 +13,6 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useCredits } from '@/contexts/CreditsContext';
 import { useSubscription } from "@/contexts/SubscriptionContext";
 import { usePricingModal } from "@/contexts/PricingModalContext";
-import { useTheme } from "next-themes";
 import AuthModal from '@/components/ui/auth-modal';
 import { EditNicknameDialog } from "@/components/ui/edit-nickname-dialog";
 
@@ -50,7 +49,6 @@ export const CommonSidebar = ({
   const { credits, refreshCredits } = useCredits();
   const { tierCode, tierName, hasSubscription, cancelAtPeriodEnd, cancelAt, currentPeriodEnd } = useSubscription();
   const { openModal } = usePricingModal();
-  const { theme, setTheme } = useTheme();
 
   // 判断是否选中某个路径
   const isActive = (path: string) => {
@@ -60,7 +58,6 @@ export const CommonSidebar = ({
   const [userMenuOpen, setUserMenuOpen] = React.useState(false);
   const [isAuthModalOpen, setIsAuthModalOpen] = React.useState(false);
   const [isDropdownOpen, setIsDropdownOpen] = React.useState(false);
-  const [dropdownTimeout, setDropdownTimeout] = React.useState<NodeJS.Timeout | null>(null);
   const [isRefreshingCredits, setIsRefreshingCredits] = React.useState(false);
   const [isExpanded, setIsExpanded] = React.useState(false);
   const [isNicknameDialogOpen, setIsNicknameDialogOpen] = React.useState(false);
@@ -168,15 +165,6 @@ const aiMusicToolsDropdown = [
       };
     }
   }, [userMenuOpen, isDropdownOpen]);
-
-  // 清理timeout
-  React.useEffect(() => {
-    return () => {
-      if (dropdownTimeout) {
-        clearTimeout(dropdownTimeout);
-      }
-    };
-  }, [dropdownTimeout]);
 
   const studioFeatureNavItems: SidebarNavItem[] = React.useMemo(() => ([
     { label: "Music Generator", href: "/music-generator", icon: Music2 },

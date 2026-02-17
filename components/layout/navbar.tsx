@@ -1,5 +1,5 @@
 "use client";
-import { Menu, Coins, ChevronDown, Mic, FileText, PencilLine } from "lucide-react";
+import { Menu, Coins, ChevronDown, PencilLine } from "lucide-react";
 import React from "react";
 import { Button } from "../ui/button";
 import { Avatar, AvatarImage, AvatarFallback } from "../ui/avatar";
@@ -108,7 +108,6 @@ export const Navbar = ({ credits = null }: NavbarProps) => {
   const [openMobileDropdown, setOpenMobileDropdown] = React.useState<DropdownKey | null>(null);
   const [dropdownTimeout, setDropdownTimeout] = React.useState<NodeJS.Timeout | null>(null);
   const pathname = usePathname();
-  const isHome = pathname === "/";
   const { user, signOut, loading: authLoading } = useAuth();
   const { tierCode, tierName, hasSubscription, cancelAtPeriodEnd, cancelAt, currentPeriodEnd } = useSubscription();
   const { openModal } = usePricingModal();

@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
-import { Sparkles, RefreshCw, AlertCircle, Music, Wand2, Copy, Download, Check, ChevronRight } from 'lucide-react';
+import { RefreshCw, AlertCircle, Music, Wand2, Copy, Download, Check, ChevronRight } from 'lucide-react';
 import AuthModal from '@/components/ui/auth-modal';
 import { FooterSection } from '@/components/layout/sections/footer';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';

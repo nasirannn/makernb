@@ -39,7 +39,7 @@ interface UploadPayload {
   instrumental?: boolean;
 }
 
-function buildKIEPayload(mode: UploadMode, params: UploadPayload) {
+function buildKIEPayload(params: UploadPayload) {
   const payload: Record<string, any> = {
     uploadUrl: params.uploadUrl,
     customMode: params.customMode,
@@ -63,12 +63,6 @@ function buildKIEPayload(mode: UploadMode, params: UploadPayload) {
   }
 
   return payload;
-}
-
-function parseNumber(value: FormDataEntryValue | null, fallback = 0): number {
-  if (!value) return fallback;
-  const num = parseFloat(value.toString());
-  return Number.isFinite(num) ? num : fallback;
 }
 
 export async function POST(request: NextRequest) {
@@ -175,7 +169,7 @@ export async function POST(request: NextRequest) {
       throw new Error('KIE_API_KEY is not configured');
     }
 
-    const payload = buildKIEPayload(mode, {
+    const payload = buildKIEPayload({
       uploadUrl: uploadInfo.downloadUrl,
       customMode,
       title,

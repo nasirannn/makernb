@@ -8,9 +8,6 @@ export async function GET(request: NextRequest) {
   const code = requestUrl.searchParams.get('code');
   const next = requestUrl.searchParams.get('next') || '/';
   const type = requestUrl.searchParams.get('type');
-  
-  // 处理密码重置的哈希片段（用于非 PKCE 流程）
-  const hashFragment = requestUrl.hash;
 
   if (code) {
     const cookieStore = cookies();
@@ -50,4 +47,3 @@ export async function GET(request: NextRequest) {
   // URL to redirect to after sign in process completes
   return NextResponse.redirect(new URL(next, requestUrl.origin));
 }
-

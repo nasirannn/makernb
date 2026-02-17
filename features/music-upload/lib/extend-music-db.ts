@@ -3,7 +3,7 @@
  */
 
 import { query } from '@/lib/db-query-builder';
-import { ExtendMusicTask, ExtensionInfo, ExtensionHistory } from '@/features/music-upload/types/extend-music';
+import { ExtensionInfo, ExtensionHistory } from '@/features/music-upload/types/extend-music';
 import { MusicType } from '@/types/music';
 
 /**
@@ -172,7 +172,6 @@ export async function getExtensionChain(musicId: string): Promise<ExtensionInfo 
     createdAt: row.created_at,
   }));
 
-  const current = chain[chain.length - 1];
   const original = chain[0];
 
   return {

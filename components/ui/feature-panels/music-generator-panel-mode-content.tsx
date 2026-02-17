@@ -237,7 +237,7 @@ interface StudioCustomModeContentProps {
 }
 
 export const StudioCustomModeContent: React.FC<StudioCustomModeContentProps> = ({
-  uploadCoverFile,
+  uploadCoverFile: _uploadCoverFile,
   uploadAudioPreview,
   uploadIntent,
   preferTrackUploadCard = false,

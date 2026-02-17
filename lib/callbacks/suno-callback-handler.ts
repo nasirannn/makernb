@@ -245,7 +245,7 @@ export async function handleSunoCallback(request: NextRequest, source: string) {
 }
 
 // 添加OPTIONS方法支持CORS预检请求
-export async function OPTIONS(request: NextRequest) {
+export async function OPTIONS(_request: NextRequest) {
   return new NextResponse(null, {
     status: 200,
     headers: {

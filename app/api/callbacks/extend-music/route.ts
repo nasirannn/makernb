@@ -479,7 +479,7 @@ async function processCallbackAsync(
 }
 
 // 添加 OPTIONS 方法支持 CORS 预检请求
-export async function OPTIONS(request: NextRequest) {
+export async function OPTIONS(_request: NextRequest) {
   return new NextResponse(null, {
     status: 200,
     headers: {

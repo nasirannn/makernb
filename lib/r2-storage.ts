@@ -28,7 +28,7 @@ function getR2Client(): S3Client {
 
 // 导出客户端（保持向后兼容，但延迟初始化）
 export const r2Client = new Proxy({} as S3Client, {
-  get(target, prop) {
+  get(_target, prop) {
     return getR2Client()[prop as keyof S3Client];
   }
 });
@@ -477,7 +477,7 @@ export async function getAllAudioFiles(): Promise<Array<{
 /**
  * 删除用户文件
  */
-export async function deleteUserFiles(userId: string, fileKeys: string[]): Promise<void> {
+export async function deleteUserFiles(_userId: string, fileKeys: string[]): Promise<void> {
   try {
     const deletePromises = fileKeys.map(key => {
       const command = new DeleteObjectCommand({

@@ -253,7 +253,7 @@ export const useMusicGeneration = () => {
   };
 
   // 智能合并新数据和现有数据（通过ID或sunoTrackId匹配）
-  const mergeTracks = (currentTracks: MusicGenerationTrack[], newTracks: MusicGenerationTrack[], status: GenerationStatus): MusicGenerationTrack[] => {
+  const mergeTracks = (currentTracks: MusicGenerationTrack[], newTracks: MusicGenerationTrack[], _status: GenerationStatus): MusicGenerationTrack[] => {
     if (newTracks.length === 0) {
       return currentTracks;
     }

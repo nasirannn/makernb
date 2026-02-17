@@ -14,7 +14,7 @@ export const dynamic = 'force-dynamic';
  * 查询扩展任务状态
  */
 export async function GET(
-  request: NextRequest,
+  _request: NextRequest,
   { params }: { params: { taskId: string } }
 ) {
   const requestId = `status_${Date.now()}_${Math.random().toString(36).substring(2, 11)}`;

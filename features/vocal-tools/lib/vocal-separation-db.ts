@@ -165,8 +165,8 @@ export const updateVocalSeparationByPredictionId = async (
  */
 export const getUserVocalSeparations = async (
   userId: string,
-  limit: number = 10,
-  offset: number = 0
+  _limit: number = 10,
+  _offset: number = 0
 ): Promise<VocalSeparationWithTrack[]> => {
   try {
     // 历史记录已关闭：不做持久化，直接返回空列表以避免访问不存在的列
