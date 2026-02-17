@@ -63,7 +63,7 @@ export async function downloadFromUrl(url: string, maxRetries = 5): Promise<Buff
       const response = await fetch(url, {
         signal: controller.signal,
         headers: {
-          'User-Agent': 'Mozilla/5.0 (compatible; MakerNB/1.0)',
+          'User-Agent': 'Mozilla/5.0 (compatible; MakeRNB/1.0)',
           'Accept': '*/*',
           'Connection': 'keep-alive',
         },
@@ -151,7 +151,7 @@ export async function downloadFromUrlWithMeta(
       const response = await fetch(url, {
         signal: controller.signal,
         headers: {
-          'User-Agent': 'Mozilla/5.0 (compatible; MakerNB/1.0)',
+          'User-Agent': 'Mozilla/5.0 (compatible; MakeRNB/1.0)',
           'Accept': '*/*',
           'Connection': 'keep-alive',
         },

@@ -334,7 +334,7 @@ const aiMusicToolsDropdown = [
                     <span className="absolute inset-0 flex items-center justify-center transition-opacity duration-150 group-hover:opacity-0 group-focus:opacity-0">
                       <Image
                         src="/logo.svg"
-                        alt="MakerNB Logo"
+                        alt="MakeRNB Logo"
                         width={28}
                         height={28}
                         className="h-7 w-7"
