@@ -9,7 +9,6 @@ import { supabase } from '@/lib/supabase';
 export interface LibraryTrack {
   id: string;
   title: string;
-  genre: string;
   tags: string;
   audioUrl: string;
   streamAudioUrl?: string;
@@ -78,7 +77,6 @@ export const useLibraryTracks = (userId: string | undefined) => {
 
       const flattenedTracks: LibraryTrack[] = musicGenerations.flatMap((generation: any) => {
         const generationTags = generation.tags || '';
-        const generationGenre = generation.genre || '';
         const generationLyrics = generation.lyricsContent || '';
         const generationStatus = generation.status || 'completed';
         const generationCreatedAt = generation.createdAt || generation.generationCreatedAt;
@@ -99,7 +97,6 @@ export const useLibraryTracks = (userId: string | undefined) => {
           const normalizedTrack: LibraryTrack = {
             id: track.id,
             title: track.title || generation.title || 'Untitled Track',
-            genre: generationGenre,
             tags: generationTags,
             audioUrl: track.audioUrl || '',
             streamAudioUrl: track.streamAudioUrl || '',

@@ -110,7 +110,6 @@ export const TrackItem: React.FC<TrackItemProps> = ({
     callbackTags ||
     track.tags ||
     promptFallback ||
-    track.genre ||
     (Array.isArray(track.tagList) ? track.tagList.join(', ') : undefined);
   const isPromptFallbackTags = Boolean(
     !callbackTags &&

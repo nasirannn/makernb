@@ -92,7 +92,6 @@ export const useTrackGenerationMonitor = ({
         duration: song.duration,
         coverImage: song.coverImage,
         tags: song.tags,
-        genre: song.genre,
         lyrics: song.lyrics,
         isGenerating: false, // 🔧 有封面图说明已经完成text回调
         isCompleted: song.isCompleted
@@ -161,7 +160,6 @@ export const useTrackGenerationMonitor = ({
           title: song.title || prev.title,
           tags: song.tags || prev.tags,
           lyrics: song.lyrics || prev.lyrics,
-          genre: song.genre || prev.genre,
           audioUrl: song.audioUrl || song.streamAudioUrl || prev.audioUrl,
           streamAudioUrl: song.streamAudioUrl || prev.streamAudioUrl
         } as StudioTrack;
@@ -227,8 +225,7 @@ export const useTrackGenerationMonitor = ({
           // 确保使用最新的所有数据
           title: song.title || prev.title,
           tags: song.tags || prev.tags,
-          lyrics: song.lyrics || prev.lyrics,
-          genre: song.genre || prev.genre
+          lyrics: song.lyrics || prev.lyrics
         } as StudioTrack;
       });
 
@@ -294,4 +291,3 @@ export const useTrackGenerationMonitor = ({
     processedTracksRef
   };
 };
-

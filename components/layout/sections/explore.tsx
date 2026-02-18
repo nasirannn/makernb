@@ -27,7 +27,6 @@ interface Track {
 interface MusicGeneration {
   id: string;
   title: string;
-  genre: string;
   tags: string;
   prompt?: string;
   lyrics?: string | null;
@@ -91,7 +90,6 @@ export const ExploreSection = () => {
         const musicGenerations: MusicGeneration[] = data.data.tracks.map((track: any) => ({
           id: track.id,
           title: track.title,
-          genre: track.genre,
           tags: track.tags,
           prompt: track.prompt,
           lyrics: track.lyrics || null,
@@ -309,7 +307,6 @@ export const ExploreSection = () => {
       audioUrl,
       duration: music.primaryTrack.duration,
       coverImage: music.primaryTrack.coverR2Url || "",
-      genre: music.genre,
     });
 
     setCurrentlyPlaying(trackId);

@@ -119,7 +119,7 @@ export async function getUserFavorites(userId: string, limit: number = 50, offse
         mt.created_at,
         mt.updated_at,
         COALESCE(mt.title, mg.title) as title,
-        mg.genre,
+        COALESCE(NULLIF(mg.tags, ''), '') as genre,
         mg.tags,
         mg.prompt,
         mg.user_id as track_owner_id,

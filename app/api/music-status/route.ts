@@ -19,7 +19,7 @@ export async function GET(request: NextRequest) {
 
     // 查询任务记录
     const genResult = await query(
-      'SELECT id, status, title, genre, tags, generation_mode, type FROM music WHERE task_id = $1',
+      "SELECT id, status, title, COALESCE(NULLIF(tags, ''), '') as genre, tags, generation_mode, type FROM music WHERE task_id = $1",
       [taskId]
     );
 
@@ -45,7 +45,7 @@ export async function GET(request: NextRequest) {
         mt.cover_image_url,
         mt.created_at,
         COALESCE(mt.title, mg.title) as title,
-        mg.genre as genre,
+        COALESCE(NULLIF(mg.tags, ''), '') as genre,
         mg.tags as tags,
         mg.prompt as prompt,
         mg.generation_mode as generation_mode,

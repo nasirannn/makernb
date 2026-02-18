@@ -13,7 +13,6 @@ export async function createExtendMusicTask(params: {
   userId: string;
   taskId: string;
   title: string;
-  genre: string;
   tags: string;
   prompt: string;
   generationMode?: string;
@@ -27,7 +26,6 @@ export async function createExtendMusicTask(params: {
     userId,
     taskId,
     title,
-    genre,
     tags,
     prompt,
     generationMode,
@@ -45,7 +43,6 @@ export async function createExtendMusicTask(params: {
       user_id,
       task_id,
       title,
-      genre,
       tags,
       prompt,
       generation_mode,
@@ -64,11 +61,10 @@ export async function createExtendMusicTask(params: {
       $5,
       $6,
       $7,
-      $8,
       'generating',
-      $9::uuid,
+      $8::uuid,
+      $9,
       $10,
-      $11,
       NOW(),
       NOW()
     ) RETURNING id`,
@@ -76,7 +72,6 @@ export async function createExtendMusicTask(params: {
       userId,
       taskId,
       title,
-      genre,
       tags,
       prompt,
       generationMode || null,
@@ -252,7 +247,7 @@ export async function getOriginalTrackInfo(trackId: string): Promise<{
       mg.id as music_id,
       mg.task_id,
       COALESCE(mt.title, mg.title) as title,
-      mg.genre,
+      COALESCE(NULLIF(mg.tags, ''), '') as genre,
       mg.tags,
       mg.is_instrumental,
       mg.tags as style

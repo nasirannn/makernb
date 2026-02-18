@@ -21,7 +21,7 @@ export async function GET(request: NextRequest) {
         mt.updated_at,
         mg.id as music_id,
         COALESCE(mt.title, mg.title) as title,
-        mg.genre,
+        COALESCE(NULLIF(mg.tags, ''), '') as genre,
         mg.tags,
         mg.prompt,
         ml.content as lyrics_content,

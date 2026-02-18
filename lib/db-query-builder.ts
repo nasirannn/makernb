@@ -213,7 +213,7 @@ export const getUserMusicGenerationsOptimized = async (
   // 只返回至少有一个未删除 track 的 music 记录
   const sql = `
     WITH user_generations AS (
-      SELECT DISTINCT mg.id, mg.title, mg.genre, mg.tags, mg.prompt, mg.generation_mode, mg.is_instrumental, mg.status, mg.model, mg.created_at, mg.updated_at,
+      SELECT DISTINCT mg.id, mg.title, COALESCE(NULLIF(mg.tags, ''), '') as genre, mg.tags, mg.prompt, mg.generation_mode, mg.is_instrumental, mg.status, mg.model, mg.created_at, mg.updated_at,
              mg.original_music_id, mg.type
       FROM music mg
       INNER JOIN tracks mt ON mg.id = mt.music_id

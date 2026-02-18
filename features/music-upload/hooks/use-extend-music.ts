@@ -110,7 +110,6 @@ export const useExtendMusic = (
         duration: t.duration,
         coverImage: t.coverImage,
         tags: t.tags || '',
-        genre: t.genre,
         prompt: t.prompt || '',
         lyrics: t.lyrics || '',
         musicType: t.musicType || 'extended',
@@ -408,7 +407,6 @@ export const useExtendMusic = (
       duration: t.duration,
       coverImage: t.coverImage,
       tags: t.tags || '',
-      genre: t.genre || '',
       lyrics: t.lyrics || '',
       musicType: t.musicType || 'extended',
       createdAt: t.createdAt || new Date().toISOString(),
@@ -425,8 +423,6 @@ export const useExtendMusic = (
     taskId: string,
     _musicId: string,
     title: string,
-    _genre?: string,
-    _tags?: string,
     initialTracks?: any[] // 初始占位 tracks
   ) => {
     // 清理旧的轮询

@@ -37,7 +37,6 @@ import {
 interface MusicGeneration {
   id: string;
   title: string;
-  genre: string;
   tags: string;
   prompt: string;
   isInstrumental: boolean;
@@ -78,8 +77,6 @@ interface StudioTracksListProps {
     taskId: string,
     musicId: string,
     title: string,
-    genre?: string,
-    tags?: string,
     initialTracks?: any[] // 初始占位 tracks
   ) => void;
   onCreate?: () => void;
@@ -320,7 +317,6 @@ export const StudioTracksList: React.FC<StudioTracksListProps> = React.memo(func
         coverR2Url: track.coverR2Url ?? undefined,
         musicTitle: music.title,
         musicTags: music.tags,
-        musicGenre: music.genre,
         musicStatus: music.status,
         musicGeneration: music,
         isError: !track.audioUrl || track.audioUrl.trim() === '',
@@ -374,19 +370,16 @@ export const StudioTracksList: React.FC<StudioTracksListProps> = React.memo(func
       coverImage: track.coverImage,
       coverR2Url: track.coverImage,
       tags: track.tags || '',
-      genre: track.genre || '',
       lyrics: track.lyrics || '',
       isFavorited: false,
       isPublished: publishStatusOverrides[track.id] ?? Boolean(track.isPublished),
       isDisliked: track.isDisliked ?? track.is_disliked ?? false,
       musicTitle: track.title,
       musicTags: track.tags || '',
-      musicGenre: track.genre || '',
       musicStatus: track.isError ? 'error' : (track.isGenerating ? 'generating' : (track.isCompleted ? 'complete' : 'generating')),
       musicGeneration: {
         id: track.generationId,
         title: track.title,
-        genre: track.genre || '',
         tags: track.tags || '',
         status: track.isError ? 'error' : (track.isGenerating ? 'generating' : (track.isCompleted ? 'complete' : 'generating')),
         model: track.model,
@@ -727,7 +720,6 @@ export const StudioTracksList: React.FC<StudioTracksListProps> = React.memo(func
       audioUrl: trackAudioUrl,
       duration: typeof track.duration === 'string' ? parseFloat(track.duration) || 0 : (track.duration || 0),
       tags: track.musicTags || track.tags || '',
-      genre: track.musicGenre || track.genre || '',
       coverImage: track.coverImage,
       coverR2Url: track.coverR2Url,
       musicType: track.musicType,
@@ -813,8 +805,6 @@ export const StudioTracksList: React.FC<StudioTracksListProps> = React.memo(func
           taskId,
           musicId,
           params.title,
-          params.tags,
-          params.tags,
           initialTracks
         );
 

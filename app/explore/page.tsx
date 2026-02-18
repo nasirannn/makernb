@@ -28,7 +28,6 @@ interface Track {
 interface MusicGeneration {
   id: string;
   title: string;
-  genre: string;
   tags: string;
   prompt?: string;
   lyrics?: string;
@@ -355,7 +354,6 @@ export default function ExplorePage() {
       audioUrl: audioUrl,
       duration: typeof music.primaryTrack.duration === 'string' ? parseFloat(music.primaryTrack.duration) : music.primaryTrack.duration,
       coverImage: music.primaryTrack.coverR2Url,
-      genre: music.genre,
     });
 
     // 更新本地状态
@@ -757,7 +755,7 @@ export default function ExplorePage() {
                 audioUrl: music.primaryTrack.audioUrl,
                 duration: typeof music.totalDuration === 'string' ? parseFloat(music.totalDuration) : music.totalDuration,
                 coverImage: music.primaryTrack.coverR2Url,
-                artist: music.genre,
+                artist: music.tags || "Unknown Artist",
                 tags: music.tags || "",
                 lyrics: music.lyrics || "",
                 allTracks: music.allTracks.map(track => ({

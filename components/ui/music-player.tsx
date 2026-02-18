@@ -138,7 +138,6 @@ interface MusicPlayerProps {
     title: string;
     audioUrl?: string;
     duration?: number;
-    genre?: string;
     coverImage?: string;
     coverR2Url?: string;
     tags?: string;

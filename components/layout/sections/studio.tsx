@@ -285,7 +285,6 @@ const StudioContent = ({ feature, FeaturePanel, panelMode, lockPanelMode }: Stud
         duration: number,
         coverImage?: string,
         tags?: string,
-        genre?: string,
         lyrics?: string,
         isFavorited: boolean = false,
         isLiked: boolean = false,
@@ -306,7 +305,6 @@ const StudioContent = ({ feature, FeaturePanel, panelMode, lockPanelMode }: Stud
         coverImage,
         coverR2Url: coverImage, // 使用驼峰命名
         tags,
-        genre,
         lyrics,
         generationMode,
         isFavorited: isFavorited, // 使用驼峰命名
@@ -329,7 +327,6 @@ const StudioContent = ({ feature, FeaturePanel, panelMode, lockPanelMode }: Stud
                 track.duration || 0,
                 track.coverImage,
                 track.tags,
-                track.genre,
                 track.lyrics,
                 track.isFavorited ?? false,
                 track.isLiked ?? false,
@@ -353,7 +350,6 @@ const StudioContent = ({ feature, FeaturePanel, panelMode, lockPanelMode }: Stud
                         track.duration,
                         track.coverR2Url ?? undefined,
                         music.tags,
-                        music.genre,
                         track.lyrics ?? music.lyrics ?? '',
                         track.isFavorited ?? false,
                         track.isLiked ?? false,
@@ -384,7 +380,6 @@ const StudioContent = ({ feature, FeaturePanel, panelMode, lockPanelMode }: Stud
                 duration: normalizeDuration(track.duration),
                 audioId: (track.audioId || '').trim() || undefined,
                 tags: track.tags || '',
-                genre: track.genre || '',
                 coverImage: track.coverImage,
                 coverR2Url: track.coverR2Url,
                 musicType: track.musicType,
@@ -406,7 +401,7 @@ const StudioContent = ({ feature, FeaturePanel, panelMode, lockPanelMode }: Stud
             title: track.title,
             audioUrl: track.audioUrl,
             duration: track.duration,
-            artist: track.genre,
+            artist: track.tags || 'Unknown Artist',
             tags: track.tags,
             coverImage: track.coverImage,
             coverR2Url: track.coverR2Url,
@@ -766,7 +761,6 @@ const StudioContent = ({ feature, FeaturePanel, panelMode, lockPanelMode }: Stud
         const newUserTrack = {
             id: completedTrack.generationId || completedTrack.id,
             title: completedTrack.title,
-            genre: completedTrack.genre || '',
             tags: completedTrack.tags || '',
             prompt: completedTrack.prompt || '', // 使用生成时的 prompt
             status: 'completed',

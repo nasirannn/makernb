@@ -41,7 +41,6 @@ export async function generateMetadata({ params }: TrackDetailPageProps): Promis
     const result = await query<{
       title: string | null;
       tags: string | null;
-      genre: string | null;
       duration: number | null;
       cover_image_url: string | null;
       is_published: boolean | null;
@@ -49,7 +48,6 @@ export async function generateMetadata({ params }: TrackDetailPageProps): Promis
       `SELECT
         COALESCE(mt.title, mg.title) as title,
         mg.tags,
-        mg.genre,
         mt.duration,
         mt.cover_image_url,
         mt.is_published
@@ -71,7 +69,7 @@ export async function generateMetadata({ params }: TrackDetailPageProps): Promis
 
     const row = result.rows[0];
     const trackTitle = (row.title || "Track").trim();
-    const tags = parseTags(row.tags) || parseTags(row.genre);
+    const tags = parseTags(row.tags);
     const durationText = formatDuration(row.duration);
 
     const descriptionParts: string[] = [

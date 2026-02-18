@@ -43,7 +43,7 @@ export async function GET(
         COALESCE(mt.is_disliked, FALSE) as is_disliked,
         mg.id as generation_id,
         COALESCE(mt.title, mg.title) as title,
-        mg.genre,
+        COALESCE(NULLIF(mg.tags, ''), '') as genre,
         mg.tags,
         mg.prompt,
         mg.is_instrumental,
@@ -85,7 +85,6 @@ export async function GET(
       coverImage: row.cover_r2_url, // 映射数据库字段为 JavaScript 字段名
       generationId: row.generation_id, // 映射数据库字段为 JavaScript 字段名
       title: row.title,
-      genre: row.genre,
       tags: row.tags,
       prompt: row.prompt,
       isInstrumental: row.is_instrumental, // 映射数据库字段为 JavaScript 字段名

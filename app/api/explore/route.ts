@@ -22,8 +22,8 @@ export async function GET(request: NextRequest) {
       WHERE mt.is_published = TRUE
         AND mg.status = 'complete'
         AND (mt.is_deleted IS NULL OR mt.is_deleted = FALSE)
-        ${genre && genre !== 'all' ? `AND mg.genre = $1` : ''}
-    `, genre && genre !== 'all' ? [genre] : []);
+        ${genre && genre !== 'all' ? `AND COALESCE(mg.tags, '') ILIKE $1` : ''}
+    `, genre && genre !== 'all' ? [`%${genre}%`] : []);
 
     const totalCount = parseInt(countResult.rows[0].total);
 
@@ -38,7 +38,7 @@ export async function GET(request: NextRequest) {
         mt.created_at as track_created_at,
         mg.id as generation_id,
         COALESCE(mt.title, mg.title) as title,
-        mg.genre,
+        COALESCE(NULLIF(mg.tags, ''), '') as genre,
         mg.tags,
         mg.prompt,
         mg.model,
@@ -52,12 +52,12 @@ export async function GET(request: NextRequest) {
       WHERE mt.is_published = TRUE
         AND mg.status = 'complete'
         AND (mt.is_deleted IS NULL OR mt.is_deleted = FALSE)
-        ${genre && genre !== 'all' ? `AND mg.genre = $3` : ''}
+        ${genre && genre !== 'all' ? `AND COALESCE(mg.tags, '') ILIKE $3` : ''}
       ORDER BY 
         CASE WHEN mt.is_pinned = TRUE THEN 0 ELSE 1 END,
         mt.created_at DESC
       LIMIT $1 OFFSET $2
-    `, genre && genre !== 'all' ? [limit, offset, genre] : [limit, offset]);
+    `, genre && genre !== 'all' ? [limit, offset, `%${genre}%`] : [limit, offset]);
 
     const trackIds: string[] = result.rows.map(row => row.track_id).filter(Boolean);
     const favoriteStatus = requestUserId && trackIds.length > 0

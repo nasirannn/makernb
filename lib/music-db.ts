@@ -29,7 +29,6 @@ export interface MusicGeneration {
 export interface CreateMusicGenerationData {
   author_name?: string;
   title?: string;
-  genre?: string;
   tags?: string;
   prompt?: string;
   generation_mode?: string;
@@ -85,7 +84,6 @@ export const createMusicGeneration = async (
 
     checkLength('title', data.title ?? null, 255);
     checkLength('author_name', data.author_name ?? null, 255);
-    checkLength('genre', data.genre ?? null, 255);
     checkLength('task_id', data.task_id ?? null, 255);
     checkLength('generation_mode', data.generation_mode ?? null, 20);
     checkLength('status', data.status ?? null, 20);
@@ -100,15 +98,14 @@ export const createMusicGeneration = async (
 
     const result = await query(
       `INSERT INTO music (
-        user_id, author_name, title, genre, tags, prompt, generation_mode,
+        user_id, author_name, title, tags, prompt, generation_mode,
         is_instrumental, task_id, status, type, model
-      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
+      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
       RETURNING *`,
       [
         userId,
         data.author_name || null,
         data.title || null,
-        data.genre || null,
         data.tags || null,
         data.prompt || null,
         data.generation_mode || null,
@@ -219,7 +216,7 @@ const getGenerationsWithDetails = async (generationIds: string[]): Promise<any[]
     SELECT
       mg.id as generation_id,
       mg.title,
-      mg.genre,
+      COALESCE(NULLIF(mg.tags, ''), '') as genre,
       mg.tags,
       mg.prompt,
       mg.is_instrumental,

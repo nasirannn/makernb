@@ -35,7 +35,7 @@ export async function GET(request: NextRequest) {
         mt.duration,
         mt.cover_image_url as cover_r2_url,
         mg.tags,
-        mg.genre,
+        COALESCE(NULLIF(mg.tags, ''), '') as genre,
         mg.created_at as music_created_at,
         EXISTS(
           SELECT 1

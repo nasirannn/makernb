@@ -38,7 +38,6 @@ export interface ReplaceSectionAPIResponse {
       duration?: number;
       coverImage: string | null;
       tags: string;
-      genre: string;
       lyrics: string;
       isGenerating: boolean;
       isCompleted: boolean;

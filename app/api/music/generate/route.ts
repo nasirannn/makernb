@@ -73,7 +73,6 @@ function buildInitialTracksFromRows(
   rows: any[],
   generationId: string,
   title: string,
-  genre: string,
   prompt: string,
   mode: 'simple' | 'custom',
   modelVersion: string
@@ -87,7 +86,6 @@ function buildInitialTracksFromRows(
     duration: undefined,
     coverImage: row.cover_image_url || null,
     tags: '',
-    genre,
     prompt,
     lyrics: '',
     generationMode: mode,
@@ -229,7 +227,6 @@ async function processSuccessfulGenerationPostTasks(params: {
   instrumentalMode: boolean;
   trimmedPrompt: string;
   songTitle?: string;
-  genreForDb: string;
   promptForDb: string;
   callbackBaseUrl?: string;
 }) {
@@ -247,7 +244,6 @@ async function processSuccessfulGenerationPostTasks(params: {
     instrumentalMode,
     trimmedPrompt,
     songTitle,
-    genreForDb,
     promptForDb,
     callbackBaseUrl,
   } = params;
@@ -271,7 +267,6 @@ async function processSuccessfulGenerationPostTasks(params: {
       tracksResult.rows,
       generationId,
       songTitle || 'Untitled Track',
-      genreForDb,
       promptForDb,
       mode,
       modelVersion
@@ -639,13 +634,11 @@ export async function POST(request: NextRequest) {
     }
 
     // 先落地本地生成记录（task_id 暂为空），避免第三方已创建任务但本地无记录
-    const genreForDb = 'R&B';
     const promptForDb = mode === 'simple' ? customPrompt : effectiveStyleText;
 
     const pendingGeneration = await createMusicGeneration(userId, {
       author_name: authorName,
       title: trimmedTitle || null,
-      genre: genreForDb,
       tags: undefined,
       prompt: promptForDb,
       generation_mode: mode,
@@ -698,7 +691,6 @@ export async function POST(request: NextRequest) {
           instrumentalMode,
           trimmedPrompt,
           songTitle: musicRequest.songTitle,
-          genreForDb,
           promptForDb,
           callbackBaseUrl: process.env.CallBackURL,
         });

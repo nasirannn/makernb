@@ -15,7 +15,6 @@ export interface BaseTrack {
   coverImage?: string;
   coverR2Url?: string; // R2存储的封面图片URL（兼容旧字段名 cover_r2_url）
   tags?: string;
-  genre?: string;
   prompt?: string;
   lyrics?: string;
   generationMode?: string;
@@ -112,7 +111,6 @@ export interface TrackInfoResponse {
   coverImage: string | null;
   generationId: string;
   title: string;
-  genre: string | null;
   tags: string | null;
   prompt: string | null;
   isInstrumental: boolean;
@@ -157,7 +155,6 @@ export function convertToBaseTrack(track: any): BaseTrack {
     coverImage: track.coverImage || track.cover_image_url || track.cover_r2_url || track.coverR2Url,
     coverR2Url: track.coverR2Url || track.cover_r2_url || track.cover_image_url, // 兼容旧字段名
     tags: track.tags,
-    genre: track.genre,
     lyrics: track.lyrics,
     createdAt: track.createdAt || track.created_at,
     isFavorited: track.isFavorited ?? track.is_favorited ?? false, // 兼容旧字段名
@@ -178,7 +175,6 @@ export const createDefaultTrack = (id: string, title: string = 'Untitled Track')
   coverImage: '',
   coverR2Url: '',
   tags: '',
-  genre: '',
   lyrics: '',
   createdAt: new Date().toISOString(),
   isFavorited: false,

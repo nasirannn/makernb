@@ -39,7 +39,7 @@ async function getOriginalTrackInfo(trackId: string) {
       m.id as music_id,
       m.task_id,
       m.title as music_title,
-      m.genre,
+      COALESCE(NULLIF(m.tags, ''), '') as genre,
       m.tags,
       m.model,
       m.user_id
@@ -349,16 +349,15 @@ export async function POST(request: NextRequest) {
       // 创建 music 记录，使用用户输入的 title
       const musicResult = await query(
         `INSERT INTO music (
-          user_id, author_name, task_id, title, genre, tags, prompt,
+          user_id, author_name, task_id, title, tags, prompt,
           is_instrumental, status, type, model
-        ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
+        ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
         RETURNING id`,
         [
           userId,
           authorName,
           newTaskId,
           title,
-          originalTrack.genre || tags,
           tags,
           prompt,
           false,
@@ -389,7 +388,6 @@ export async function POST(request: NextRequest) {
         duration: undefined,
         coverImage: row.cover_image_url || null,
         tags: tags,
-        genre: originalTrack.genre || tags,
         lyrics: '',
         isGenerating: true,
         isCompleted: false,

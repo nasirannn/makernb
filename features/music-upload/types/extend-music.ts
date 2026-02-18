@@ -35,7 +35,6 @@ export interface ExtendMusicTask {
   userId: string;
   taskId: string; // 扩展任务ID（KIE API返回）
   title: string;
-  genre: string;
   tags: string;
   prompt: string;
   isInstrumental: boolean;
@@ -87,7 +86,6 @@ export interface ExtendMusicAPIResponse {
       duration?: number;
       coverImage: string | null;
       tags: string;
-      genre: string;
       lyrics: string;
       isGenerating: boolean;
       isCompleted: boolean;

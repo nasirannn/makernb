@@ -196,7 +196,6 @@ export async function POST(request: NextRequest) {
     const musicRecord = await createMusicGeneration(userId, {
       author_name: authorName,
       title,
-      genre: 'R&B',
       tags: undefined,
       prompt: promptForDb,
       generation_mode: customMode ? 'custom' : 'simple',
@@ -247,7 +246,6 @@ export async function POST(request: NextRequest) {
       duration: undefined,
       coverImage: row.cover_image_url || null,
       tags: '',
-      genre: 'R&B',
       prompt: promptForDb,
       lyrics: '',
       generationMode: customMode ? 'custom' : 'simple',

@@ -7,7 +7,6 @@ export interface ExtendSourceTrack {
   audioUrl: string;
   duration: number;
   tags?: string;
-  genre?: string;
   coverImage?: string;
   coverR2Url?: string;
   musicType?: MusicType;

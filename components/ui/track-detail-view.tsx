@@ -255,7 +255,6 @@ export const TrackDetailView: React.FC<TrackDetailViewProps> = ({
       duration: parseFloat(nextTrack.duration) || 0,
       coverImage: nextTrack.coverImage || undefined,
       tags: nextTrack.tags,
-      genre: nextTrack.tags,
       lyrics: nextTrack.lyrics,
       isFavorited: nextTrack.isFavorited,
     });

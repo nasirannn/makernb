@@ -170,7 +170,6 @@ export const useMusicGeneration = () => {
       duration: t.duration,
       coverImage: t.coverImage,
       tags: t.tags || '',
-      genre: t.genre || '',
       prompt: t.prompt || '',
       lyrics: t.lyrics || '',
       generationMode: t.generationMode || t.generation_mode,
@@ -202,7 +201,6 @@ export const useMusicGeneration = () => {
       duration: undefined,
       coverImage: undefined,
       tags,
-      genre: '',
       prompt,
       lyrics: '',
       generationMode,
@@ -237,7 +235,6 @@ export const useMusicGeneration = () => {
       duration: t.duration,
       coverImage: t.coverImage,
       tags: t.tags || '',
-      genre: t.genre,
       prompt: t.prompt || '',
       lyrics: t.lyrics || '',
       generationMode: t.generationMode || t.generation_mode,
@@ -280,7 +277,6 @@ export const useMusicGeneration = () => {
           currentTrack.title !== newTrack.title ||
           currentTrack.tags !== newTrack.tags ||
           currentTrack.lyrics !== newTrack.lyrics ||
-          currentTrack.genre !== newTrack.genre ||
           currentTrack.audioUrl !== newTrack.audioUrl ||
           currentTrack.streamAudioUrl !== newTrack.streamAudioUrl ||
           currentTrack.duration !== newTrack.duration ||
