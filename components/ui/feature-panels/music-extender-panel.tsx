@@ -222,7 +222,7 @@ export const MusicExtenderPanel = (props: FeatureCreatePanelProps) => {
     onGenerateLyrics,
     onWriteNextLyricLine,
     isWritingNextLyricLine = false,
-    selectedModel = 'V4_5',
+    selectedModel = 'V4',
     setSelectedModel,
     selectedPersonaId = '',
     setSelectedPersonaId,
@@ -2181,7 +2181,7 @@ export const MusicExtenderPanel = (props: FeatureCreatePanelProps) => {
                         className="group h-11 min-w-[5.75rem] px-4 rounded-2xl border border-white/45 dark:border-white/10 text-xs md:text-sm font-semibold text-slate-950 transition-all duration-200 bg-gradient-to-r from-cyan-300 via-sky-300 to-indigo-300 shadow-[0_6px_14px_rgba(56,189,248,0.18)] hover:from-cyan-200 hover:via-sky-200 hover:to-indigo-200 flex items-center justify-center"
                         title="Choose model"
                       >
-                        <span>{modelOptions.find((opt) => opt.value === selectedModel)?.label || "V4.5"}</span>
+                        <span>{modelOptions.find((opt) => opt.value === selectedModel)?.label || "V4"}</span>
                       </button>
                       <ModelSelectionDialog
                         open={isModelDialogOpen}

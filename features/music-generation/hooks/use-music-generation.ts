@@ -37,7 +37,7 @@ export const useMusicGeneration = () => {
   const [selectedVibe, setSelectedVibe] = useState("");
   const [instrumentalMode, setInstrumentalMode] = useState(false);
   const [isPublished, setIsPublished] = useState(true);
-  const [selectedModel, setSelectedModel] = useState<MusicModel>('V4_5'); // Custom 默认使用 V4.5
+  const [selectedModel, setSelectedModel] = useState<MusicModel>('V4'); // 默认选中 V4
   const [enhanceStyle, setEnhanceStyle] = useState(false);
 
   // 高级选项
