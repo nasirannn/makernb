@@ -24,11 +24,13 @@ export async function GET(request: NextRequest) {
         mg.genre,
         mg.tags,
         mg.prompt,
+        ml.content as lyrics_content,
         mg.created_at as generation_created_at,
         mg.user_id as track_owner_id,
         mt.cover_image_url as cover_r2_url
       FROM tracks mt
       JOIN music mg ON mt.music_id = mg.id
+      LEFT JOIN lyrics ml ON mg.id = ml.music_id
       WHERE mt.is_pinned = TRUE
         AND (mt.is_deleted IS NULL OR mt.is_deleted = FALSE)
       ORDER BY mt.created_at DESC
@@ -42,6 +44,7 @@ export async function GET(request: NextRequest) {
       genre: row.genre,
       tags: row.tags,
       prompt: row.prompt,
+      lyrics: row.lyrics_content,
       audioUrl: row.audio_url, // 映射数据库字段为 JavaScript 字段名
       duration: row.duration,
       playCount: row.play_count,

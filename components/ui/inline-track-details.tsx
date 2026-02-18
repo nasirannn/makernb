@@ -3,6 +3,7 @@
 import React from "react";
 import Image from "next/image";
 import { CassetteTape } from "@/components/ui/cassette-tape";
+import { Skeleton } from "@/components/ui/skeleton";
 import { Copy, X } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/lib/supabase";
@@ -84,32 +85,9 @@ export const InlineTrackDetailsPanel: React.FC<InlineTrackDetailsPanelProps> = (
 
   const [timestampedWords, setTimestampedWords] = React.useState<TimestampedLyricWord[]>([]);
   const [isTimestampedLoading, setIsTimestampedLoading] = React.useState(false);
-  const [isInstrumentalTrack, setIsInstrumentalTrack] = React.useState(false);
 
   const lyricsScrollContainerRef = React.useRef<HTMLDivElement | null>(null);
   const lyricLineRefs = React.useRef<Map<number, HTMLDivElement>>(new Map());
-
-  const isTrackGenerationComplete = React.useMemo(() => {
-    if (!track?.id) return false;
-
-    const normalizedStatus = typeof track.status === 'string'
-      ? track.status.trim().toLowerCase()
-      : '';
-
-    if (normalizedStatus === 'complete' || normalizedStatus === 'completed') {
-      return true;
-    }
-
-    if (track.isCompleted === true) {
-      return true;
-    }
-
-    if (track.isGenerating === true) {
-      return false;
-    }
-
-    return Boolean(track.audioUrl);
-  }, [track?.id, track?.status, track?.isCompleted, track?.isGenerating, track?.audioUrl]);
 
   const setLyricLineRef = React.useCallback(
     (index: number) => (node: HTMLDivElement | null) => {
@@ -126,14 +104,6 @@ export const InlineTrackDetailsPanel: React.FC<InlineTrackDetailsPanelProps> = (
     if (!track?.id) {
       setTimestampedWords([]);
       setIsTimestampedLoading(false);
-      setIsInstrumentalTrack(false);
-      return;
-    }
-
-    if (!isTrackGenerationComplete) {
-      setTimestampedWords([]);
-      setIsTimestampedLoading(false);
-      setIsInstrumentalTrack(false);
       return;
     }
 
@@ -141,7 +111,6 @@ export const InlineTrackDetailsPanel: React.FC<InlineTrackDetailsPanelProps> = (
 
     const fetchTimestampedLyrics = async () => {
       setIsTimestampedLoading(true);
-      setIsInstrumentalTrack(false);
 
       try {
         const {
@@ -176,18 +145,11 @@ export const InlineTrackDetailsPanel: React.FC<InlineTrackDetailsPanelProps> = (
 
         if (isCancelled) return;
 
-        if (payload?.data?.isPending) {
-          setTimestampedWords([]);
-          setIsInstrumentalTrack(Boolean(payload?.data?.isInstrumental));
-          return;
-        }
-
         const alignedWords = Array.isArray(payload?.data?.alignedWords)
           ? payload.data.alignedWords
           : [];
 
         setTimestampedWords(alignedWords);
-        setIsInstrumentalTrack(Boolean(payload?.data?.isInstrumental));
       } catch (error) {
         if (isCancelled) return;
 
@@ -205,7 +167,7 @@ export const InlineTrackDetailsPanel: React.FC<InlineTrackDetailsPanelProps> = (
     return () => {
       isCancelled = true;
     };
-  }, [track?.id, isTrackGenerationComplete]);
+  }, [track?.id]);
 
   const timestampedLines = React.useMemo<TimestampedLyricLine[]>(() => {
     if (!timestampedWords.length) return [];
@@ -345,10 +307,25 @@ export const InlineTrackDetailsPanel: React.FC<InlineTrackDetailsPanelProps> = (
             {primaryTag && (
               <div className="flex items-center gap-1.5">
                 <span
-                  className="inline-flex items-center rounded-full bg-black/30 px-2 py-0.5 text-[10px] font-medium text-white/75 backdrop-blur-sm"
+                  className="inline-flex items-center gap-1 rounded-full bg-black/30 px-2 py-0.5 text-[10px] font-medium text-white/75 backdrop-blur-sm"
                   title={primaryTag}
                 >
-                  {visiblePrimaryTag}
+                  <span>{visiblePrimaryTag}</span>
+                  {allTagsText && (
+                    <>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          void handleCopyAllTags();
+                        }}
+                        title="Copy all tags"
+                        aria-label="Copy all tags"
+                        className="inline-flex h-3.5 w-3.5 items-center justify-center rounded-sm text-white/75 transition hover:text-white"
+                      >
+                        <Copy className="h-2.5 w-2.5" />
+                      </button>
+                    </>
+                  )}
                 </span>
 
                 {hasMoreTags && (
@@ -358,20 +335,6 @@ export const InlineTrackDetailsPanel: React.FC<InlineTrackDetailsPanelProps> = (
                   >
                     ...
                   </span>
-                )}
-
-                {allTagsText && (
-                  <button
-                    type="button"
-                    onClick={() => {
-                      void handleCopyAllTags();
-                    }}
-                    title="Copy all tags"
-                    aria-label="Copy all tags"
-                    className="inline-flex h-5 w-5 items-center justify-center rounded-full bg-black/30 text-white/70 backdrop-blur-sm transition hover:bg-black/45 hover:text-white/95"
-                  >
-                    <Copy className="h-3 w-3" />
-                  </button>
                 )}
               </div>
             )}
@@ -393,11 +356,15 @@ export const InlineTrackDetailsPanel: React.FC<InlineTrackDetailsPanelProps> = (
                 : undefined
             }
           >
-            {isTimestampedLoading && !hasSyncedLyrics && (
-              <p className="mb-3 text-xs text-muted-foreground">Loading synced lyrics...</p>
-            )}
-
-            {hasSyncedLyrics ? (
+            {isTimestampedLoading && !hasSyncedLyrics ? (
+              <div className="space-y-3 pt-[10vh] pb-[18vh]">
+                <Skeleton className="mx-auto h-4 w-[86%] rounded-full" />
+                <Skeleton className="mx-auto h-4 w-[72%] rounded-full" />
+                <Skeleton className="mx-auto h-4 w-[90%] rounded-full" />
+                <Skeleton className="mx-auto h-4 w-[66%] rounded-full" />
+                <Skeleton className="mx-auto h-4 w-[78%] rounded-full" />
+              </div>
+            ) : hasSyncedLyrics ? (
               <div className="pt-[10vh] pb-[18vh]">
                 {timestampedLines.map((line, index) => {
                   const distance =
@@ -433,13 +400,9 @@ export const InlineTrackDetailsPanel: React.FC<InlineTrackDetailsPanelProps> = (
               </div>
             ) : (
               <div className="text-sm text-foreground/90 whitespace-pre-wrap font-mono leading-relaxed">
-                {!isTrackGenerationComplete
-                  ? "Synced lyrics will be available after generation completes."
-                  : isInstrumentalTrack
-                    ? "This is an instrumental track. Synced lyrics are not available."
-                    : track.lyrics?.trim()
-                      ? track.lyrics
-                      : "Lyrics are not available yet. Try generating lyrics or check back later."}
+                {track.lyrics?.trim()
+                  ? track.lyrics
+                  : "Lyrics are not available yet."}
               </div>
             )}
           </div>

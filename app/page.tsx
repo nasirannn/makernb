@@ -42,9 +42,9 @@ export default function Home() {
       <HomeCanonical />
       
       <HeroSection />
-      <IntroductionSection />
       <ExploreSection />
       <FeaturesSection />
+      <IntroductionSection />
       <FAQSection />
       <FooterSection />
     </>

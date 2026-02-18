@@ -394,8 +394,7 @@ export const MusicPlayer: React.FC<MusicPlayerProps> = React.memo(function Music
           {onTrackInfoClick && (
             <PlayerIconButton
               onClick={onTrackInfoClick}
-              title={hideProgress ? "Hide lyrics" : "Show lyrics"}
-              className={cn(hideProgress ? "text-primary hover:text-primary" : undefined)}
+              title="Lyrics"
             >
               <FileText className="h-3.5 w-3.5" />
             </PlayerIconButton>

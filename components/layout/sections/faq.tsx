@@ -61,34 +61,38 @@ const FAQList: FAQProps[] = [
 
 export const FAQSection = () => {
   return (
-    <section id="faq" className="container max-w-4xl py-12 sm:py-16">
-      <div className="text-center mb-8">
-        <h2 className="text-lg text-primary text-center mb-2 tracking-wider">
-          Frequently Asked Questions
-        </h2>
+    <section id="faq" className="py-24 sm:py-32">
+      <div className="container">
+        <div className="mx-auto max-w-4xl">
+          <div className="mb-12 text-center sm:mb-14">
+            <h2 className="mb-2 text-center text-lg tracking-wider text-primary">
+              Frequently Asked Questions
+            </h2>
 
-        <h2 className="text-3xl md:text-4xl text-center font-bold mb-4">
-          Everything You Need to Know
-        </h2>
-        
-        <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
-          Get answers to common questions about our AI-powered R&B music generation platform
-        </p>
+            <h2 className="mb-4 text-center text-3xl font-bold md:text-4xl">
+              Everything You Need to Know
+            </h2>
+
+            <p className="mx-auto max-w-2xl text-lg text-muted-foreground">
+              Get answers to common questions about our AI-powered R&B music generation platform
+            </p>
+          </div>
+
+          <Accordion type="single" collapsible className="space-y-3">
+            {FAQList.map(({ question, answer, value }) => (
+              <AccordionItem key={value} value={value} className="border-b border-border px-4">
+                <AccordionTrigger className="py-4 text-left text-lg font-semibold hover:no-underline [&[data-state=open]]:text-primary">
+                  {question}
+                </AccordionTrigger>
+
+                <AccordionContent className="pb-4 text-base leading-relaxed text-muted-foreground">
+                  {answer}
+                </AccordionContent>
+              </AccordionItem>
+            ))}
+          </Accordion>
+        </div>
       </div>
-
-      <Accordion type="single" collapsible className="space-y-2">
-        {FAQList.map(({ question, answer, value }) => (
-          <AccordionItem key={value} value={value} className="border-b border-border px-4 py-1">
-            <AccordionTrigger className="text-left text-lg font-semibold py-4 hover:no-underline [&[data-state=open]]:text-primary">
-              {question}
-            </AccordionTrigger>
-
-            <AccordionContent className="text-base text-muted-foreground pb-4 leading-relaxed">
-              {answer}
-            </AccordionContent>
-          </AccordionItem>
-        ))}
-      </Accordion>
     </section>
   );
 };

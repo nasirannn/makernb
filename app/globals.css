@@ -61,7 +61,7 @@
     --popover-foreground: 0 0% 8%;
 
     /* Primary Accent (purple) */
-    --primary: 262 92% 56%;
+    --primary: 262 74% 58%;
     --primary-foreground: 0 0% 100%;
 
     --secondary: 45 22% 92%;
@@ -78,7 +78,7 @@
 
     --border: 0 0% 12% / 0.12;
     --input: 0 0% 12% / 0.12;
-    --ring: 262 92% 56%;
+    --ring: 262 74% 58%;
 
     /* Border Radius */
     --radius: 1rem;
@@ -112,7 +112,7 @@
 
     --border: 0 0% 100% / 0.10;
     --input: 0 0% 100% / 0.12;
-    --ring: 262 92% 56%;
+    --ring: 262 74% 58%;
 
   }
 }
@@ -282,6 +282,18 @@
     letter-spacing: -0.035em;
     font-size: 1.1rem;
     color: hsl(var(--foreground));
+    background-image: linear-gradient(
+      92deg,
+      hsl(var(--foreground)) 0%,
+      hsl(var(--foreground)) 58%,
+      hsl(var(--primary)) 100%
+    );
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+  }
+
+  .brand-gradient-text {
     background-image: linear-gradient(
       92deg,
       hsl(var(--foreground)) 0%,

@@ -1,10 +1,10 @@
 "use client";
 
 import Image from "next/image";
-import Link from "next/link"
+import Link from "next/link";
 import { cn } from "@/lib/utils";
 
-interface IntroductionProps {
+interface TimelineEra {
   icon: string;
   title: string;
   description: string;
@@ -49,7 +49,7 @@ const genreData: GenreData[] = [
   },
 ];
 
-const timelineEras: IntroductionProps[] = [
+const timelineEras: TimelineEra[] = [
   {
     icon: "/icons/1940s-1960s.svg",
     title: "The Origins",
@@ -78,100 +78,130 @@ const timelineEras: IntroductionProps[] = [
 
 export const IntroductionSection = () => {
   return (
-    <section id="introduction" className="py-20 sm:py-24">
+    <section id="introduction" className="pt-12 pb-24 sm:pt-16 sm:pb-28">
       <div className="container">
-        <div className="max-w-7xl mx-auto">
-          <div className="text-center mb-14 sm:mb-16">
-            <p className="text-primary text-lg font-medium mb-2 tracking-wider">Introduction</p>
-            <h2 className="text-3xl md:text-4xl font-bold mb-4 tracking-tight">
+        <div className="mx-auto max-w-7xl space-y-12 sm:space-y-14">
+          <header className="mx-auto max-w-4xl text-center">
+            <p className="mb-2 text-lg font-medium tracking-wider text-primary">Introduction</p>
+            <h2 className="mb-4 text-3xl font-bold tracking-tight md:text-4xl">
               Discover The Rich History of R&B
             </h2>
-            <p className="text-muted-foreground text-lg">
+            <p className="text-lg text-muted-foreground">
               From soulful roots to modern evolution, explore the genres that shaped music
             </p>
-          </div>
-          <div className="grid gap-8 lg:grid-cols-[0.95fr,1.05fr] lg:gap-10">
-            {/* Left: definition + CTA */}
-            <div className="w-full">
-              <div className="app-card rounded-[28px] p-6 sm:p-7">
-                <div className="inline-flex items-center gap-2 rounded-full bg-foreground/5 px-4 py-2 text-[11px] font-semibold uppercase tracking-[0.32em] text-foreground/70">
-                  <span className="h-1.5 w-1.5 rounded-full bg-primary" aria-hidden="true" />
-                  <span>Timeline</span>
-                </div>
+          </header>
 
-                <h3 className="mt-5 text-2xl font-bold tracking-tight text-left">
-                  What Is R&amp;B?
-                </h3>
-                <p className="mt-3 text-base sm:text-lg text-muted-foreground text-left leading-relaxed">
-                  Rhythm and Blues (R&amp;B) blends soulful vocals with rhythm-driven grooves. Emerging in the 1940s and evolving through soul, funk, and disco, it became one of the most influential genres shaping modern popular music.
-                </p>
+          <div className="grid gap-6 lg:grid-cols-[1.1fr,0.9fr] lg:items-stretch">
+            <article className="h-full p-6 sm:p-8 lg:p-10">
+              <p className="text-[11px] font-semibold uppercase tracking-[0.24em] text-primary/90">
+                R&B Timeline
+              </p>
+              <h3 className="mt-4 text-2xl font-bold tracking-tight sm:text-3xl">
+                What Is R&amp;B?
+              </h3>
+              <p className="mt-4 line-clamp-4 text-base leading-relaxed text-muted-foreground sm:text-lg">
+                Rhythm and Blues blends soulful vocals with rhythm-driven grooves. Emerging in the
+                1940s and evolving through soul, funk, and disco, it became one of the most
+                influential genres shaping modern popular music.
+              </p>
+              <p className="mt-3 line-clamp-2 text-sm leading-relaxed text-foreground/75 sm:text-base dark:text-white/78">
+                Explore four key eras to see how artists reshaped R&amp;B while preserving its
+                emotional core.
+              </p>
+              <Link
+                href="/blog/a-journey-through-the-eras-of-rnb"
+                className="mt-6 inline-flex items-center text-sm font-semibold text-primary transition-colors hover:text-primary/80"
+              >
+                Read full article
+              </Link>
+            </article>
 
-                <div className="mt-6 flex items-center justify-between gap-3">
-                  <Link
-                    href="/blog/a-journey-through-the-eras-of-rnb"
-                    className="inline-flex items-center rounded-full bg-primary px-5 py-2.5 text-sm font-semibold text-primary-foreground shadow-[0_14px_40px_rgba(0,0,0,0.16)] hover:bg-primary/90 transition-colors"
-                  >
-                    Read full article
-                  </Link>
-                </div>
-              </div>
-            </div>
-
-            {/* Right: vertical timeline */}
-            <div className="w-full">
-              <div className="relative">
-                <div
-                  className="pointer-events-none absolute left-7 top-2 bottom-2 w-px bg-foreground/10"
-                  aria-hidden="true"
+            <div className="flex h-full items-center">
+              <div className="w-full overflow-hidden rounded-[24px]">
+                <Image
+                  src="/blog/a-journey-through-the-eras-of-rnb.webp"
+                  alt="A Journey Through the Eras of R&B cover"
+                  width={1820}
+                  height={1022}
+                  sizes="(min-width: 1024px) 32vw, 100vw"
+                  className="block h-auto w-full"
                 />
-                <div className="space-y-4">
-                  {timelineEras.map(({ icon, title, description }) => (
-                    <div key={title} className="grid grid-cols-[56px,1fr] gap-4 items-start">
-                      <div className="flex justify-center pt-2">
-                        <Image
-                          src={icon}
-                          alt={`${title} icon`}
-                          width={44}
-                          height={44}
-                          className="h-11 w-11 drop-shadow-[0_12px_26px_rgba(0,0,0,0.22)]"
-                        />
-                      </div>
-
-                      <div className="app-card rounded-[24px] p-5 sm:p-6">
-                        <h4 className="text-lg font-semibold tracking-tight text-foreground">
-                          {title}
-                        </h4>
-                        <p className="mt-2 text-sm sm:text-[15px] text-muted-foreground leading-relaxed line-clamp-2">
-                          {description}
-                        </p>
-                      </div>
-                    </div>
-                  ))}
-                </div>
               </div>
             </div>
           </div>
 
-          {/* R&B Golden Era Section */}
-          <div className="mt-16 sm:mt-20">
-            <div className="mb-8 text-center">
+          <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+            {timelineEras.map(({ icon, title, description }, index) => (
+              <article key={title} className="app-card h-full rounded-[24px] p-5 sm:p-6">
+                <div className="flex items-start justify-between gap-4">
+                  <Image
+                    src={icon}
+                    alt={`${title} icon`}
+                    width={40}
+                    height={40}
+                    className="h-10 w-10"
+                  />
+                  <span className="text-[11px] font-semibold uppercase tracking-[0.16em] text-foreground/45 dark:text-white/45">
+                    {String(index + 1).padStart(2, "0")}
+                  </span>
+                </div>
+                <h4 className="mt-4 text-lg font-semibold tracking-tight text-foreground">{title}</h4>
+                <p className="mt-2 line-clamp-4 text-sm leading-relaxed text-muted-foreground">
+                  {description}
+                </p>
+              </article>
+            ))}
+          </div>
+
+          <div className="space-y-6 sm:space-y-7">
+            <div className="space-y-3">
               <Link href="/blog/golden-era-90s-rnb-genres" className="inline-block">
-                <h2 className="text-2xl md:text-3xl font-bold tracking-tight hover:underline">
+                <h2 className="text-2xl font-bold tracking-tight text-foreground transition-colors hover:text-primary md:text-3xl">
                   Classic R&amp;B Genres Of The Golden Age
                 </h2>
               </Link>
-              <p className="mt-3 text-muted-foreground">
-                A quick guide to the signature sounds that defined the era.
+              <p className="max-w-3xl text-muted-foreground">
+                A quick guide to the signature sounds that defined 90s R&amp;B and shaped today's
+                generation workflows.
               </p>
             </div>
 
-            <div className="grid gap-6 max-w-5xl mx-auto">
+            <div className="grid gap-4 sm:gap-5">
               {genreData.map((genre, index) => (
-                <div key={genre.id} className="group">
-                  <div className={cn("flex flex-col md:flex-row md:items-center", index % 2 === 1 && "md:flex-row-reverse")}>
+                <article
+                  key={genre.id}
+                  className="group overflow-hidden rounded-[20px] bg-foreground/[0.03] p-3.5 sm:p-4"
+                >
+                  <div
+                    className={cn(
+                      "flex flex-col gap-3.5 sm:gap-4 md:items-center",
+                      index % 2 === 0 ? "md:flex-row" : "md:flex-row-reverse"
+                    )}
+                  >
+                    <div
+                      className={cn(
+                        "min-w-0 flex-1 space-y-2.5",
+                        index % 2 === 0 ? "md:pr-2" : "md:pl-2"
+                      )}
+                    >
+                      <h3 className="text-xl font-semibold tracking-tight text-foreground">{genre.title}</h3>
+                      <p className="text-sm leading-relaxed text-muted-foreground sm:text-[15px]">
+                        {genre.description}
+                      </p>
+                      <Link
+                        href={genre.href}
+                        className="inline-flex text-sm font-semibold text-primary transition-colors hover:text-primary/80"
+                      >
+                        Learn more
+                      </Link>
+                    </div>
+
                     <Link
                       href={genre.href}
-                      className="relative block aspect-square w-full overflow-hidden rounded-2xl md:w-[400px]"
+                      className={cn(
+                        "relative block aspect-[4/3] w-full max-w-[220px] shrink-0 self-end overflow-hidden rounded-[16px] md:self-auto",
+                        index % 2 === 0 ? "md:ml-auto" : "md:mr-auto"
+                      )}
                       aria-label={genre.title}
                     >
                       <Image
@@ -179,41 +209,20 @@ export const IntroductionSection = () => {
                         alt={genre.title}
                         fill
                         className="object-cover transition-transform duration-300 group-hover:scale-[1.02]"
-                        sizes="(min-width: 768px) 400px, 100vw"
+                        sizes="(min-width: 1024px) 220px, (min-width: 768px) 240px, 100vw"
                       />
                       <div
-                        className={cn(
-                          "pointer-events-none absolute inset-0 bg-gradient-to-t from-black/45 via-black/10 to-transparent",
-                          index % 2 === 1
-                            ? "md:bg-gradient-to-l md:from-black/40 md:via-black/10 md:to-transparent"
-                            : "md:bg-gradient-to-r md:from-black/40 md:via-black/10 md:to-transparent"
-                        )}
+                        aria-hidden="true"
+                        className="pointer-events-none absolute inset-0 bg-gradient-to-t from-black/38 via-black/8 to-transparent"
                       />
                     </Link>
-
-                    <div className="flex-1 pt-5 md:pt-0 md:px-8">
-                      <h3 className="text-4xl font-semibold tracking-tight text-foreground">
-                        {genre.title}
-                      </h3>
-                      <p className="mt-2 text-base text-muted-foreground leading-relaxed">
-                        {genre.description}
-                      </p>
-                      <Link
-                        href={genre.href}
-                        className="mt-4 inline-flex text-sm font-semibold text-primary hover:text-primary/80 transition-colors"
-                      >
-                        Learn more →
-                      </Link>
-                    </div>
                   </div>
-                </div>
+                </article>
               ))}
             </div>
           </div>
         </div>
       </div>
-
-      
     </section>
   );
 };

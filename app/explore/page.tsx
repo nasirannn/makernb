@@ -7,6 +7,7 @@ import { SafeImage } from '@/components/ui/safe-image';
 import { MusicPlayer } from '@/components/ui/music-player';
 import { CustomAudioWaveIndicator } from '@/components/ui/audio-wave-indicator';
 import { Skeleton } from '@/components/ui/skeleton';
+import { InlineTrackDetailsPanel } from '@/components/ui/inline-track-details';
 import { FooterSection } from '@/components/layout/sections/footer';
 import { stopAllAudioGlobally } from '@/lib/audio-service';
 import { useAudioPlayer } from '@/hooks/use-audio-player';
@@ -57,6 +58,7 @@ export default function ExplorePage() {
   const [error, setError] = useState<string | null>(null);
   const [hasMore, setHasMore] = useState(true);
   const [currentlyPlaying, setCurrentlyPlaying] = useState<string | null>(null);
+  const [lyricsTrackId, setLyricsTrackId] = useState<string | null>(null);
 
   // 播放器状态 - 使用统一的AudioService
   const audioPlayer = useAudioPlayer();
@@ -115,8 +117,14 @@ export default function ExplorePage() {
       
       // 重置本地状态
       setCurrentlyPlaying(null);
+      setLyricsTrackId(null);
     };
   }, []);
+
+  useEffect(() => {
+    if (!lyricsTrackId || !currentlyPlaying || lyricsTrackId === currentlyPlaying) return;
+    setLyricsTrackId(currentlyPlaying);
+  }, [lyricsTrackId, currentlyPlaying]);
 
   const fetchExploreData = useCallback(async (offset = 0, append = false) => {
     try {
@@ -392,7 +400,47 @@ export default function ExplorePage() {
   const handleClosePlayer = () => {
     audioPlayer.clearCurrentTrack();
     setCurrentlyPlaying(null);
+    setLyricsTrackId(null);
   };
+
+  const handlePlayerLyricsToggle = useCallback(() => {
+    if (!currentlyPlaying) return;
+    setLyricsTrackId((prev) => (prev === currentlyPlaying ? null : currentlyPlaying));
+  }, [currentlyPlaying]);
+
+  const inlineTrackDetails = React.useMemo(() => {
+    if (!lyricsTrackId) return null;
+
+    const matched = playlist.find((music) => music.primaryTrack.id === lyricsTrackId);
+    if (!matched) return null;
+
+    return {
+      id: matched.primaryTrack.id,
+      title: matched.title || 'Untitled Track',
+      tags: matched.tags || '',
+      lyrics: matched.lyrics || '',
+      coverImage: matched.primaryTrack.coverR2Url || null,
+      createdAt: matched.createdAt,
+      duration: String(
+        typeof matched.totalDuration === 'string'
+          ? parseFloat(matched.totalDuration)
+          : matched.totalDuration || matched.primaryTrack.duration || 0
+      ),
+      status: 'completed',
+      isGenerating: false,
+      isCompleted: true,
+      audioUrl: matched.primaryTrack.audioUrl || '',
+    };
+  }, [lyricsTrackId, playlist]);
+
+  const isInlineTrackPlaying = Boolean(
+    inlineTrackDetails &&
+    currentlyPlaying === inlineTrackDetails.id &&
+    audioPlayer.isPlaying
+  );
+  const panelCurrentTime =
+    inlineTrackDetails && currentlyPlaying === inlineTrackDetails.id ? audioPlayer.currentTime : 0;
+  const showInlinePanel = Boolean(inlineTrackDetails);
 
   if (loading) {
     return (
@@ -513,12 +561,12 @@ export default function ExplorePage() {
 
                         {/* Play Button Overlay - 只在有封面图时显示 */}
                         {hasCover && (
-                          <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-center justify-center">
-                            <div className="flex items-center gap-3">
+                          <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+                            <div className="absolute right-3 top-3 z-10 flex items-center gap-2">
                               <Button
                                 variant="ghost"
                                 size="sm"
-                                className="h-12 w-12 p-0 bg-white/20 hover:bg-white/30 backdrop-blur-sm"
+                                className="h-10 w-10 p-0 text-white/90 hover:text-white"
                                 onClick={(e) => {
                                   e.stopPropagation();
                                   handleShare(music.primaryTrack.id);
@@ -526,12 +574,12 @@ export default function ExplorePage() {
                                 aria-label="Share track"
                                 title="Copy share link"
                               >
-                                <Share2 className="h-5 w-5 text-white" />
+                                <Share2 className="h-4 w-4" />
                               </Button>
                               <Button
                                 variant="ghost"
                                 size="sm"
-                                className={`h-12 w-12 p-0 bg-white/20 hover:bg-white/30 backdrop-blur-sm ${music.primaryTrack.isFavorited ? 'text-pink-200' : 'text-white'}`}
+                                className={`h-10 w-10 p-0 ${music.primaryTrack.isFavorited ? 'text-pink-200 hover:text-pink-100' : 'text-white/90 hover:text-white'}`}
                                 onClick={(e) => {
                                   e.stopPropagation();
                                   handleToggleFavorite(music.primaryTrack.id);
@@ -541,21 +589,25 @@ export default function ExplorePage() {
                                 disabled={favoriteLoadingTrackId === music.primaryTrack.id}
                               >
                                 {favoriteLoadingTrackId === music.primaryTrack.id ? (
-                                  <Loader2 className="h-5 w-5 animate-spin text-white" />
+                                  <Loader2 className="h-4 w-4 animate-spin text-white" />
                                 ) : music.primaryTrack.isFavorited ? (
-                                  <SolidThumbsUpIcon className="h-5 w-5 fill-current" />
+                                  <SolidThumbsUpIcon className="h-4 w-4 fill-current" />
                                 ) : (
-                                  <ThumbsUp className="h-5 w-5" />
+                                  <ThumbsUp className="h-4 w-4" />
                                 )}
                               </Button>
+                            </div>
+                            <div className="absolute inset-0 flex items-center justify-center">
                               <Button
                                 variant="ghost"
                                 size="sm"
-                                className="h-12 w-12 p-0 bg-white/20 hover:bg-white/30 backdrop-blur-sm"
+                                className="h-12 w-12 p-0 bg-white/20 backdrop-blur-sm hover:bg-white/30"
                                 onClick={(e) => {
                                   e.stopPropagation();
                                   handlePlayPause(music.primaryTrack.id, music.primaryTrack.audioUrl, music);
                                 }}
+                                aria-label={currentlyPlaying === music.primaryTrack.id && audioPlayer.isPlaying ? 'Pause track' : 'Play track'}
+                                title={currentlyPlaying === music.primaryTrack.id && audioPlayer.isPlaying ? 'Pause' : 'Play'}
                               >
                                 {currentlyPlaying === music.primaryTrack.id && audioPlayer.isPlaying ? (
                                   <Pause className="h-5 w-5 text-white" />
@@ -642,6 +694,37 @@ export default function ExplorePage() {
       {/* Footer */}
       <FooterSection />
 
+      <div
+        className={`fixed inset-0 z-[70] transition-opacity duration-200 ${
+          showInlinePanel ? 'pointer-events-auto opacity-100' : 'pointer-events-none opacity-0'
+        }`}
+        aria-hidden={!showInlinePanel}
+      >
+        <button
+          type="button"
+          aria-label="Close lyrics panel"
+          onClick={() => setLyricsTrackId(null)}
+          className="absolute inset-0 bg-background/20 backdrop-blur-[1px] md:bg-background/10"
+        />
+        <div
+          className={`absolute right-0 top-0 h-full w-full max-w-[min(90vw,400px)] transform-gpu transition-transform duration-300 ease-out ${
+            showInlinePanel ? 'translate-x-0' : 'translate-x-full'
+          }`}
+        >
+          {showInlinePanel && (
+            <div className="h-full p-2 md:py-4 md:pl-3 md:pr-2">
+              <InlineTrackDetailsPanel
+                track={inlineTrackDetails}
+                isPlaying={isInlineTrackPlaying}
+                currentTime={panelCurrentTime}
+                onClose={() => setLyricsTrackId(null)}
+                variant="studio"
+              />
+            </div>
+          )}
+        </div>
+      </div>
+
       {/* 播放器 - 移动端固定，桌面端固定带底部边距，与内容区域宽度一致 */}
       {playlist.length > 0 && currentlyPlaying && (
         <>
@@ -676,6 +759,7 @@ export default function ExplorePage() {
                 coverImage: music.primaryTrack.coverR2Url,
                 artist: music.genre,
                 tags: music.tags || "",
+                lyrics: music.lyrics || "",
                 allTracks: music.allTracks.map(track => ({
                   id: track.id,
                   audioUrl: track.audioUrl,
@@ -696,6 +780,7 @@ export default function ExplorePage() {
 	              onVolumeChange={handleVolumeChange}
 	              onMuteToggle={handleMuteToggle}
 	              onTrackChange={handleTrackChange}
+                onTrackInfoClick={handlePlayerLyricsToggle}
 	              onClose={handleClosePlayer}
 	            />
 	          </div>

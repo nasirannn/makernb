@@ -18,14 +18,14 @@ export const HeroSection = () => {
 
       <div className="relative z-10 container mx-auto min-h-screen flex items-center pt-28 pb-24 md:pt-28">
         <div className="w-full max-w-4xl mx-auto text-center">
-          <div className="inline-flex items-center gap-2 rounded-full border border-slate-300/80 bg-white/70 px-2 py-1.5 text-foreground/85 backdrop-blur-sm whitespace-nowrap dark:border-slate-700/70 dark:bg-slate-900/50">
+          <div className="inline-flex items-center gap-2 whitespace-nowrap rounded-full bg-[linear-gradient(132deg,rgba(255,255,255,0.66),rgba(255,255,255,0.28))] px-2.5 py-1.5 text-foreground/85 shadow-[0_12px_30px_rgba(0,0,0,0.12)] backdrop-blur-md dark:bg-[linear-gradient(132deg,rgba(255,255,255,0.16),rgba(255,255,255,0.06))] dark:shadow-[0_14px_30px_rgba(0,0,0,0.32)]">
             <span className="inline-flex items-center rounded-full bg-primary px-3 py-1 text-[11px] font-semibold leading-none text-primary-foreground">
               R&amp;B
             </span>
             <span className="pr-2 text-[12px] font-medium leading-none">Especially For The R&amp;B Lovers</span>
           </div>
 
-          <h1 className="mt-9 text-[2.6rem] leading-[0.98] tracking-tight font-black text-foreground sm:text-5xl lg:text-[4.6rem]">
+          <h1 className="mt-8 text-[2.6rem] leading-[0.98] tracking-tight font-black text-foreground sm:text-5xl lg:text-[4.6rem]">
             <span className="block">
               Free Online <span className="hero-ink">AI R&amp;B</span> Music Generator
             </span>
@@ -34,7 +34,7 @@ export const HeroSection = () => {
             </span>
           </h1>
 
-          <div className="mt-10 flex flex-col sm:flex-row sm:items-center sm:justify-center gap-4">
+          <div className="mt-8 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-center">
             <button
               type="button"
               onClick={() => router.push("/music-generator")}
@@ -54,11 +54,11 @@ export const HeroSection = () => {
             </button>
           </div>
 
-          <div className="mt-5 text-xs text-muted-foreground">
+          <div className="mt-4 text-xs text-muted-foreground">
             Free daily credits <span className="mx-1 opacity-60">•</span> No experience needed <span className="mx-1 opacity-60">•</span> 100% Royalty-Free
           </div>
 
-          <div className="mt-10 flex flex-wrap justify-center gap-2">
+          <div className="mt-8 flex flex-wrap justify-center gap-2">
             {[
               { label: "Quiet Storm", icon: "Quiet Storm Icon.webp" },
               { label: "New Jack Swing", icon: "New Jack Swing Icon.webp" },
