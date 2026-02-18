@@ -27,7 +27,7 @@ export async function POST(request: NextRequest) {
     sourceLabel: 'extend-music',
     defaultCallbackType: 'complete',
     onProcess: (callback, callbackId) => {
-      processCallbackAsync(callback, callbackId);
+      return processCallbackAsync(callback, callbackId);
     }
   });
 }
@@ -38,7 +38,7 @@ export async function POST(request: NextRequest) {
 async function processCallbackAsync(
   callback: NormalizedKieCallback,
   callbackId: string
-) {
+): Promise<boolean> {
   const { taskId, callbackType, tracks, errorMessage, msg, code } = callback;
   const status = code === 200 ? 'success' : 'failed';
 
@@ -46,7 +46,7 @@ async function processCallbackAsync(
     // 验证 task_id
     if (!taskId) {
       console.error(`[EXTEND-CALLBACK-${callbackId}] Missing task_id in callback data`);
-      return;
+      return false;
     }
 
     // 3. 查询对应的 music 记录
@@ -54,7 +54,7 @@ async function processCallbackAsync(
     const musicId = await getMusicIdByTaskId(taskId);
     if (!musicId) {
       console.error(`[EXTEND-CALLBACK-${callbackId}] Music record not found for task_id: ${taskId}`);
-      return;
+      return false;
     }
 
     console.log(`[EXTEND-CALLBACK-${callbackId}] Music record found: musicId=${musicId}`);
@@ -67,7 +67,7 @@ async function processCallbackAsync(
       console.log(`[EXTEND-CALLBACK-${callbackId}] Text generation completed, waiting for music extension...`);
       // 文本生成完成，但音乐还未生成，此时 tracks 为空数组
       // 不需要更新状态，继续等待后续回调
-      return;
+      return false;
     }
     
     // 4.2 处理失败情况（callbackType: "error" 或 code !== 200）
@@ -98,7 +98,7 @@ async function processCallbackAsync(
       );
 
       console.log(`[EXTEND-CALLBACK-${callbackId}] Task marked as failed successfully`);
-      return;
+      return true;
     }
 
     // 5. 处理成功情况（callbackType: "first" 或 "complete"）
@@ -468,13 +468,15 @@ async function processCallbackAsync(
       });
 
       console.log(`[EXTEND-CALLBACK-${callbackId}] Callback processing completed successfully`);
-      return;
+      return true;
     }
 
     // 6. 处理异常情况
     console.error(`[EXTEND-CALLBACK-${callbackId}] Invalid callback data:`, { task_id: taskId, status, tracks_count: tracks?.length || 0 });
+    return false;
   } catch (error) {
     console.error(`[EXTEND-CALLBACK-${callbackId}] Extend music callback error:`, error);
+    return false;
   }
 }
 

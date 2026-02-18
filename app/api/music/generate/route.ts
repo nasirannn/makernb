@@ -12,6 +12,9 @@ export const dynamic = 'force-dynamic';
 const GENERATE_IDEMPOTENCY_CACHE_TTL_MS = 5 * 60 * 1000;
 const generateIdempotencyCache = new Map<string, { createdAt: number; response: any }>();
 const STYLE_BOOST_SUPPORTED_MODELS = new Set(['V4_5', 'V4_5PLUS', 'V4_5ALL']);
+const POST_PROCESSING_WARNING_CODE = 'DB_POST_PROCESSING_PARTIAL_FAILURE';
+
+type QueryExecutor = (text: string, params?: any[]) => Promise<{ rows: any[] }>;
 
 function normalizeModelName(model: string): string {
   return model.toUpperCase().replace(/\./g, '_').replace(/\+/g, 'PLUS');
@@ -53,6 +56,250 @@ function cleanupGenerateIdempotencyCache() {
       generateIdempotencyCache.delete(key);
     }
   });
+}
+
+function toErrorMessage(error: unknown, fallback: string): string {
+  if (error instanceof Error && error.message) {
+    return error.message;
+  }
+  return fallback;
+}
+
+function delay(ms: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+function buildInitialTracksFromRows(
+  rows: any[],
+  generationId: string,
+  title: string,
+  genre: string,
+  prompt: string,
+  mode: 'simple' | 'custom',
+  modelVersion: string
+) {
+  return rows.map((row: any) => ({
+    id: row.id,
+    generationId,
+    suno_track_id: row.suno_track_id || null,
+    title: title || 'Untitled Track',
+    audioUrl: '',
+    duration: undefined,
+    coverImage: row.cover_image_url || null,
+    tags: '',
+    genre,
+    prompt,
+    lyrics: '',
+    generationMode: mode,
+    isGenerating: true,
+    isCompleted: false,
+    streamAudioUrl: '',
+    createdAt: row.created_at || new Date().toISOString(),
+    model: modelVersion,
+    musicType: 'generated',
+  }));
+}
+
+async function upsertLyricsForGeneration(
+  query: QueryExecutor,
+  generationId: string,
+  title: string,
+  lyrics: string
+) {
+  const existingLyrics = await query(
+    'SELECT id FROM lyrics WHERE music_id = $1::uuid',
+    [generationId]
+  );
+  if (existingLyrics.rows.length > 0) {
+    await query(
+      'UPDATE lyrics SET title = $1, content = $2 WHERE music_id = $3::uuid',
+      [title, lyrics, generationId]
+    );
+  } else {
+    await query(
+      'INSERT INTO lyrics (music_id, title, content) VALUES ($1::uuid, $2, $3)',
+      [generationId, title, lyrics]
+    );
+  }
+}
+
+async function triggerCoverGeneration(
+  query: QueryExecutor,
+  callbackBaseUrl: string | undefined,
+  taskId: string,
+  userId: string,
+  requestId: string
+) {
+  if (!callbackBaseUrl) {
+    console.warn(`[MUSIC-GEN-${requestId}] Cover trigger skipped: CallBackURL is not configured`);
+    return;
+  }
+
+  const coverExists = await query(
+    'SELECT id FROM cover_generations WHERE music_task_id = $1 LIMIT 1',
+    [taskId]
+  );
+
+  if (coverExists.rows.length > 0) {
+    console.log(`[MUSIC-GEN-${requestId}] Cover generation already exists for taskId: ${taskId}`);
+    return;
+  }
+
+  const coverResponse = await fetch(`${callbackBaseUrl}/api/cover/generate`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({
+      musicTaskId: taskId,
+      userId,
+    }),
+  });
+
+  if (coverResponse.ok) {
+    console.log(`[MUSIC-GEN-${requestId}] ✅ Cover generation started for taskId: ${taskId}`);
+    return;
+  }
+
+  const coverError = await coverResponse.text().catch(() => '');
+  throw new Error(`Cover generation failed, status=${coverResponse.status}, details=${coverError}`);
+}
+
+async function bindTaskIdWithRetry(
+  generationId: string,
+  taskId: string,
+  modelVersion: string,
+  requestId: string
+) {
+  let lastError: unknown;
+  for (let attempt = 1; attempt <= 3; attempt++) {
+    try {
+      await updateMusicGeneration(generationId, {
+        task_id: taskId,
+        status: 'generating',
+        model: modelVersion,
+      });
+      return;
+    } catch (error) {
+      lastError = error;
+      if (attempt < 3) {
+        console.warn(`[MUSIC-GEN-${requestId}] Task binding failed on attempt ${attempt}, retrying...`);
+        await delay(attempt * 250);
+      }
+    }
+  }
+
+  throw new Error(
+    `Failed to bind task_id after retries: ${toErrorMessage(lastError, 'Unknown task binding error')}`
+  );
+}
+
+async function processSuccessfulGenerationPostTasks(params: {
+  query: QueryExecutor;
+  requestId: string;
+  userId: string;
+  generationId: string;
+  taskId: string;
+  modelVersion: string;
+  isPublished: boolean;
+  shouldAttemptStyleBoost: boolean;
+  totalCreditCost: number;
+  mode: 'simple' | 'custom';
+  instrumentalMode: boolean;
+  trimmedPrompt: string;
+  songTitle?: string;
+  genreForDb: string;
+  promptForDb: string;
+  callbackBaseUrl?: string;
+}) {
+  const {
+    query,
+    requestId,
+    userId,
+    generationId,
+    taskId,
+    modelVersion,
+    isPublished,
+    shouldAttemptStyleBoost,
+    totalCreditCost,
+    mode,
+    instrumentalMode,
+    trimmedPrompt,
+    songTitle,
+    genreForDb,
+    promptForDb,
+    callbackBaseUrl,
+  } = params;
+
+  const warnings: string[] = [];
+
+  // 必须步骤：绑定 task_id（失败时无法被回调链路识别）
+  await bindTaskIdWithRetry(generationId, taskId, modelVersion, requestId);
+
+  let initialTracks: any[] = [];
+
+  // 可恢复步骤：创建占位 tracks。失败时回调链路仍会补建 tracks。
+  try {
+    const tracksResult = await query(
+      `INSERT INTO tracks (music_id, is_published, cover_image_url, suno_track_id)
+       VALUES ($1, $2, NULL, NULL), ($1, $2, NULL, NULL)
+       RETURNING *`,
+      [generationId, isPublished]
+    );
+    initialTracks = buildInitialTracksFromRows(
+      tracksResult.rows,
+      generationId,
+      songTitle || 'Untitled Track',
+      genreForDb,
+      promptForDb,
+      mode,
+      modelVersion
+    );
+  } catch (error) {
+    warnings.push(`TRACK_PLACEHOLDER_CREATE_FAILED: ${toErrorMessage(error, 'Unknown tracks insert failure')}`);
+  }
+
+  // 可恢复步骤：扣费（并发场景下可能因余额瞬间变化失败）
+  try {
+    const consumptionDescription = shouldAttemptStyleBoost
+      ? `Music generation (${modelVersion}) + Style boost`
+      : `Music generation (${modelVersion})`;
+    const consumed = await consumeUserCredit(
+      userId,
+      totalCreditCost,
+      consumptionDescription,
+      taskId,
+      'music_generation'
+    );
+    if (!consumed) {
+      warnings.push('CREDIT_CONSUME_FAILED: Not enough credits at commit time.');
+    }
+  } catch (error) {
+    warnings.push(`CREDIT_CONSUME_FAILED: ${toErrorMessage(error, 'Unknown credit consume failure')}`);
+  }
+
+  // 可恢复步骤：歌词落库失败不阻断主流程
+  if (mode === 'custom' && !instrumentalMode && trimmedPrompt) {
+    try {
+      await upsertLyricsForGeneration(
+        query,
+        generationId,
+        songTitle || 'Untitled Track',
+        trimmedPrompt
+      );
+    } catch (error) {
+      warnings.push(`LYRICS_UPSERT_FAILED: ${toErrorMessage(error, 'Unknown lyrics upsert failure')}`);
+    }
+  }
+
+  // 可恢复步骤：封面任务触发失败不阻断主流程
+  try {
+    await triggerCoverGeneration(query, callbackBaseUrl, taskId, userId, requestId);
+  } catch (error) {
+    warnings.push(`COVER_TRIGGER_FAILED: ${toErrorMessage(error, 'Unknown cover trigger failure')}`);
+  }
+
+  return { initialTracks, warnings };
 }
 
 export async function POST(request: NextRequest) {
@@ -299,7 +546,6 @@ export async function POST(request: NextRequest) {
     const totalCreditCost = creditCost + styleBoostCreditCost;
 
     try {
-      const { query } = await import('@/lib/db-query-builder');
       const creditResult = await query(
         'SELECT credits FROM user_credits WHERE user_id = $1::uuid',
         [userId]
@@ -413,128 +659,54 @@ export async function POST(request: NextRequest) {
 
     // 创建数据库记录和扣除积分（只有API调用成功才执行）
     if (result.taskId) {
-      // 成功获得taskId，分步骤处理以减少单个事务时间
+      // 成功获得taskId：执行本地后处理。
+      // 关键策略：task 已创建后，本地可恢复步骤失败不再直接返回 500，避免用户误触发重复生成。
       try {
         console.log(`[MUSIC-GEN-${requestId}] ✅ Processing successful generation`);
-
-        // 步骤0: 先将 task_id 绑定到本地记录
-        await updateMusicGeneration(pendingGeneration.id, {
-          task_id: result.taskId,
-          status: 'generating',
-          model: modelVersion,
+        const postProcessingResult = await processSuccessfulGenerationPostTasks({
+          query,
+          requestId,
+          userId,
+          generationId: pendingGeneration.id,
+          taskId: result.taskId,
+          modelVersion,
+          isPublished,
+          shouldAttemptStyleBoost,
+          totalCreditCost,
+          mode,
+          instrumentalMode,
+          trimmedPrompt,
+          songTitle: musicRequest.songTitle,
+          genreForDb,
+          promptForDb,
+          callbackBaseUrl: process.env.CallBackURL,
         });
 
-        // 步骤1: 扣除积分
+        if (postProcessingResult.initialTracks.length > 0) {
+          (result as any).initialTracks = postProcessingResult.initialTracks;
+          console.log(`[MUSIC-GEN-${requestId}] ✅ Created ${postProcessingResult.initialTracks.length} initial tracks`);
+        } else {
+          console.warn(`[MUSIC-GEN-${requestId}] No initial tracks created; callback flow will backfill tracks`);
+        }
 
-        const consumptionDescription = shouldAttemptStyleBoost
-          ? `Music generation (${modelVersion}) + Style boost`
-          : `Music generation (${modelVersion})`;
-
-        await consumeUserCredit(
-          userId,
-          totalCreditCost,
-          consumptionDescription,
-          result.taskId,
-          'music_generation'
-        );
-
-        // 步骤2: 写入歌词（如有）
-        if (mode === 'custom' && !instrumentalMode && trimmedPrompt) {
+        if (postProcessingResult.warnings.length > 0) {
+          const warningMessage = postProcessingResult.warnings.join(' | ');
+          console.warn(`[MUSIC-GEN-${requestId}] Post-processing warnings: ${warningMessage}`);
           try {
-            const existingLyrics = await query(
-              'SELECT id FROM lyrics WHERE music_id = $1::uuid',
-              [pendingGeneration.id]
+            await createGenerationError(
+              'music_generation',
+              userId,
+              pendingGeneration.id,
+              warningMessage,
+              POST_PROCESSING_WARNING_CODE
             );
-            if (existingLyrics.rows.length > 0) {
-              await query(
-                'UPDATE lyrics SET title = $1, content = $2 WHERE music_id = $3::uuid',
-                [musicRequest.songTitle || 'Untitled Track', trimmedPrompt, pendingGeneration.id]
-              );
-            } else {
-              await query(
-                'INSERT INTO lyrics (music_id, title, content) VALUES ($1::uuid, $2, $3)',
-                [pendingGeneration.id, musicRequest.songTitle || 'Untitled Track', trimmedPrompt]
-              );
-            }
-          } catch (lyricsError) {
-            console.error(`[MUSIC-GEN-${requestId}] Failed to store lyrics for custom generation:`, lyricsError);
+          } catch (recordError) {
+            console.error(`[MUSIC-GEN-${requestId}] Failed to record post-processing warnings:`, recordError);
           }
         }
-
-        // 步骤3: 创建空的tracks记录并返回初始数据
-        // 创建两个空的track记录
-        const tracksResult = await query(
-          `INSERT INTO tracks (music_id, is_published, cover_image_url, suno_track_id)
-           VALUES ($1, $2, NULL, NULL), ($1, $2, NULL, NULL)
-           RETURNING *`,
-          [pendingGeneration.id, isPublished]
-        );
-
-        // 构建初始 tracks 数据返回给前端
-        const initialTracks = tracksResult.rows.map((row: any) => ({
-          id: row.id,
-          generationId: pendingGeneration.id,
-          suno_track_id: row.suno_track_id || null, // 包含suno_track_id用于匹配
-          title: musicRequest.songTitle || 'Untitled Track',
-          audioUrl: '',
-          duration: undefined,
-          coverImage: row.cover_image_url || null,
-          tags: '',
-          genre: genreForDb,
-          prompt: promptForDb,
-          lyrics: '',
-          generationMode: mode,
-          isGenerating: true,
-          isCompleted: false,
-          streamAudioUrl: '',
-          createdAt: row.created_at || new Date().toISOString(), // 使用数据库的创建时间
-          model: modelVersion,
-          musicType: 'generated',
-        }));
-
-        // 将初始 tracks 添加到响应中
-        (result as any).initialTracks = initialTracks;
-        console.log(`[MUSIC-GEN-${requestId}] ✅ Created ${initialTracks.length} initial tracks`);
-
-        // 立即启动封面生成：在拿到 taskId 后同步发起请求，不再等待 first/complete 回调
-        try {
-          const callBackBaseUrl = process.env.CallBackURL;
-          if (!callBackBaseUrl) {
-            console.warn(`[MUSIC-GEN-${requestId}] Cover trigger skipped: CallBackURL is not configured`);
-          } else {
-            const coverExists = await query(
-              'SELECT id FROM cover_generations WHERE music_task_id = $1 LIMIT 1',
-              [result.taskId]
-            );
-
-            if (coverExists.rows.length > 0) {
-              console.log(`[MUSIC-GEN-${requestId}] Cover generation already exists for taskId: ${result.taskId}`);
-            } else {
-              const coverResponse = await fetch(`${callBackBaseUrl}/api/cover/generate`, {
-                method: 'POST',
-                headers: {
-                  'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({
-                  musicTaskId: result.taskId,
-                  userId,
-                }),
-              });
-
-              if (coverResponse.ok) {
-                console.log(`[MUSIC-GEN-${requestId}] ✅ Cover generation started for taskId: ${result.taskId}`);
-              } else {
-                const coverError = await coverResponse.text().catch(() => '');
-                console.error(`[MUSIC-GEN-${requestId}] ❌ Cover generation failed for taskId: ${result.taskId}, status=${coverResponse.status}, details=${coverError}`);
-              }
-            }
-          }
-        } catch (coverError) {
-          console.error(`[MUSIC-GEN-${requestId}] Error starting cover generation:`, coverError);
-        }
-        
-      } catch (dbError) {
-        console.error(`[MUSIC-GEN-${requestId}] ❌ Database operation failed`);
+      } catch (fatalError) {
+        const fatalMessage = toErrorMessage(fatalError, 'Unknown fatal post-processing error');
+        console.error(`[MUSIC-GEN-${requestId}] ❌ Fatal post-processing failure: ${fatalMessage}`);
 
         try {
           await updateMusicGeneration(pendingGeneration.id, {
@@ -544,57 +716,25 @@ export async function POST(request: NextRequest) {
           console.error(`[MUSIC-GEN-${requestId}] Failed to update pending generation status to error:`, statusError);
         }
 
-        // 数据库操作失败的补偿逻辑
-        // 尝试回滚积分（如果积分扣除成功但记录创建失败）
         try {
-          const { query } = await import('@/lib/db-query-builder');
-
-          // 检查是否有积分交易记录
-          const creditCheckResult = await query(
-            'SELECT id FROM credit_transactions WHERE reference_id = $1 AND description LIKE $2',
-            [result.taskId, '%Music generation%']
+          await createGenerationError(
+            'music_generation',
+            userId,
+            pendingGeneration.id,
+            fatalMessage,
+            'TASK_BIND_FAILED_AFTER_API_SUCCESS'
           );
-
-          if (creditCheckResult.rows.length > 0) {
-            console.log(`[MUSIC-GEN-${requestId}] Attempting credit compensation`);
-
-            // 创建补偿积分记录
-            await query(`
-              INSERT INTO credit_transactions (
-                user_id, transaction_type, amount,
-                balance_after, description, reference_id
-              )
-              SELECT
-                user_id, 'credit', $2,
-                (SELECT credits FROM user_credits WHERE user_id = $1::uuid) + $2,
-                'Compensation for failed generation: ' || $3,
-                $3
-              FROM credit_transactions
-              WHERE reference_id = $3 AND description LIKE '%Music generation%'
-              LIMIT 1
-            `, [userId, totalCreditCost, result.taskId]);
-
-            // 更新用户积分
-            await query(
-              'UPDATE user_credits SET credits = credits + $2, updated_at = NOW() WHERE user_id = $1::uuid',
-              [userId, totalCreditCost]
-            );
-
-            console.log(`[MUSIC-GEN-${requestId}] Credit compensation completed`);
-          }
-
-        } catch (compensationError) {
-          console.error(`[MUSIC-GEN-${requestId}] Credit compensation failed:`, compensationError);
+        } catch (recordError) {
+          console.error(`[MUSIC-GEN-${requestId}] Failed to record fatal post-processing error:`, recordError);
         }
 
-        // 返回带有详细错误信息的响应
         return NextResponse.json(
           {
-            error: 'Database operation failed',
-            message: 'Music generation started but database operation failed. Your credits have been restored. Please try again or contact support.',
+            error: 'Music generation started but local task binding failed.',
+            message: 'A music task was created upstream, but local tracking failed. Please contact support with this task ID.',
             success: false,
             taskId: result.taskId,
-            technical_details: dbError instanceof Error ? dbError.message : 'Unknown database error'
+            technical_details: fatalMessage,
           },
           { status: 500 }
         );

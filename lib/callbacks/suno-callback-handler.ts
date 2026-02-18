@@ -11,6 +11,7 @@ import { submitExplorePageToIndexNow } from '@/lib/indexnow';
 
 // Cache for processed tasks to handle idempotency
 const processedTasks = new Set<string>();
+const processingTasks = new Set<string>();
 
 export interface NormalizedKieCallback {
   code: number;
@@ -30,8 +31,13 @@ export function normalizeKieCallback(
   const msg = callbackData?.msg;
   const data = callbackData?.data || {};
   const taskId = data?.task_id || data?.taskId;
-  const callbackType = data?.callbackType ?? options?.defaultCallbackType;
-  const tracks = Array.isArray(data?.data) ? data.data : [];
+  const callbackTypeRaw = data?.callbackType ?? data?.status ?? options?.defaultCallbackType;
+  const callbackType = typeof callbackTypeRaw === 'string'
+    ? callbackTypeRaw.trim().toLowerCase()
+    : undefined;
+  const tracks = Array.isArray(data?.data)
+    ? data.data
+    : (Array.isArray(data?.tracks) ? data.tracks : []);
   const errorMessage = (code !== 200 ? (msg || data?.error_message) : data?.error_message) || undefined;
 
   return {
@@ -49,7 +55,7 @@ export async function handleKieCallback(
   request: NextRequest,
   options: {
     sourceLabel: string;
-    onProcess: (callback: NormalizedKieCallback, callbackId: string) => void;
+    onProcess: (callback: NormalizedKieCallback, callbackId: string) => Promise<boolean> | boolean;
     defaultCallbackType?: string;
     enableIdempotency?: boolean;
   }
@@ -72,12 +78,13 @@ export async function handleKieCallback(
     });
 
     const { code, taskId, callbackType, tracks } = normalized;
+    const idempotencyEnabled = options.enableIdempotency !== false;
+    const taskKey = taskId ? `${taskId}_${callbackType || 'unknown'}_${code}_${sourceLabel}` : undefined;
+    const completedKey = taskId ? `${taskId}_completed` : undefined;
 
     console.log(`[CALLBACK-${callbackId}] Processing callback: ${taskId}, code: ${code}`);
 
-    if (options.enableIdempotency !== false) {
-      const taskKey = `${taskId}_${callbackType || 'unknown'}_${code}_${sourceLabel}`;
-
+    if (idempotencyEnabled && taskKey) {
       if (processedTasks.has(taskKey)) {
         console.log(`[CALLBACK-${callbackId}] Already processed`);
         return NextResponse.json({
@@ -89,12 +96,23 @@ export async function handleKieCallback(
         });
       }
 
+      if (processingTasks.has(taskKey)) {
+        console.log(`[CALLBACK-${callbackId}] Processing in progress`);
+        return NextResponse.json({
+          success: true,
+          message: 'Processing in progress',
+          taskId: taskId,
+          callbackType: callbackType,
+          processedAt: new Date().toISOString()
+        });
+      }
+
       if (code === 200 && tracks.length > 0) {
         const allAudioReady = tracks.every((track: any) =>
           track.audio_url && track.audio_url.trim() !== ''
         );
 
-        if (allAudioReady && processedTasks.has(`${taskId}_completed`)) {
+        if (allAudioReady && completedKey && processedTasks.has(completedKey)) {
           console.log(`[CALLBACK-${callbackId}] Already completed`);
           return NextResponse.json({
             success: true,
@@ -104,8 +122,6 @@ export async function handleKieCallback(
           });
         }
       }
-
-      processedTasks.add(taskKey);
     }
 
     const response = NextResponse.json({
@@ -116,8 +132,29 @@ export async function handleKieCallback(
     response.headers.set('Access-Control-Allow-Methods', 'POST, OPTIONS');
     response.headers.set('Access-Control-Allow-Headers', 'Content-Type, Authorization');
 
-    setImmediate(() => {
-      options.onProcess(normalized, callbackId);
+    setImmediate(async () => {
+      try {
+        if (idempotencyEnabled && taskKey) {
+          processingTasks.add(taskKey);
+        }
+
+        const processedSuccessfully = await options.onProcess(normalized, callbackId);
+
+        if (idempotencyEnabled && taskKey) {
+          if (processedSuccessfully) {
+            processedTasks.add(taskKey);
+            console.log(`[CALLBACK-${callbackId}] Marked callback as processed: ${taskKey}`);
+          } else {
+            console.warn(`[CALLBACK-${callbackId}] Callback not marked as processed (failed/incomplete): ${taskKey}`);
+          }
+        }
+      } catch (processError) {
+        console.error(`[CALLBACK-${callbackId}] Async callback processor threw error:`, processError);
+      } finally {
+        if (idempotencyEnabled && taskKey) {
+          processingTasks.delete(taskKey);
+        }
+      }
     });
 
     return response;
@@ -239,7 +276,7 @@ export async function handleSunoCallback(request: NextRequest, source: string) {
   return handleKieCallback(request, {
     sourceLabel: source || 'default',
     onProcess: (callback, callbackId) => {
-      processCallbackAsync(callback, callbackId);
+      return processCallbackAsync(callback, callbackId);
     }
   });
 }
@@ -275,14 +312,14 @@ async function processCallbackAsync(callback: NormalizedKieCallback, callbackId:
 
     if (!taskId) {
       console.error(`[CALLBACK-${callbackId}] Missing taskId in callback payload`);
-      return;
+      return false;
     }
     const taskIdValue = taskId;
 
     // 2. 识别回调类型并处理
     let callbackType = rawCallbackType;
 
-    if (code === 200 && Array.isArray(raw?.data?.data)) {
+    if (code === 200 && Array.isArray(tracks)) {
       console.log(`[CALLBACK-${callbackId}] Processing ${tracks.length} tracks`);
 
       // 4. 根据不同的回调类型处理
@@ -291,7 +328,7 @@ async function processCallbackAsync(callback: NormalizedKieCallback, callbackId:
 
         // 4.1 text回调：只存储数据到数据库
         // 使用第一个track的元数据更新数据库（除了audio_url以外的所有值）
-        const primaryTrack = tracks[0];
+        const primaryTrack = tracks[0] || {};
 
         // 4.1.1 查询music记录获取type和现有title
         const musicGenQuery = await query(
@@ -301,7 +338,7 @@ async function processCallbackAsync(callback: NormalizedKieCallback, callbackId:
 
         if (musicGenQuery.rows.length === 0) {
           console.error(`[CALLBACK-${callbackId}] No music record found for taskId: ${taskId}`);
-          return;
+          return false;
         }
 
         const musicRecord = musicGenQuery.rows[0];
@@ -313,10 +350,13 @@ async function processCallbackAsync(callback: NormalizedKieCallback, callbackId:
         const hasUserProvidedTitle = trimmedExistingTitle.length > 0;
 
         // 4.1.2 更新音乐生成记录的元数据
-        const styleFromTags = primaryTrack.tags;
+        const styleFromTags = typeof primaryTrack.tags === 'string' ? primaryTrack.tags : undefined;
 
         // 使用接口返回的标题，如果没有则使用默认值
-        const extractedTitle = clampTitle(primaryTrack.title, 'Untitled');
+        const extractedTitle = clampTitle(
+          typeof primaryTrack.title === 'string' ? primaryTrack.title : undefined,
+          'Untitled'
+        );
 
         // 构建更新对象，只包含有值的字段
         const updateData: any = {
@@ -331,7 +371,9 @@ async function processCallbackAsync(callback: NormalizedKieCallback, callbackId:
         } else {
           console.log(`[CALLBACK-${callbackId}] User provided custom title (${trimmedExistingTitle}), skipping API title`);
         }
-        updateData.tags = styleFromTags;
+        if (typeof styleFromTags === 'string' && styleFromTags.trim()) {
+          updateData.tags = styleFromTags;
+        }
 
         try {
           // 实际执行数据库更新操作
@@ -339,11 +381,13 @@ async function processCallbackAsync(callback: NormalizedKieCallback, callbackId:
           console.log(`[CALLBACK-${callbackId}] Updated music record with tags${updateData.title ? ' and title' : ''}`);
         } catch (dbError) {
           console.error(`[CALLBACK-${callbackId}] Failed to update music generation record with text data:`, dbError);
+          return false;
         }
 
         // 4.1.3 存储歌词到lyrics表
         const shouldUsePromptFallback = !(isUploadDerivedMusicType(musicType));
-        const lyricsContent = primaryTrack.prompt || (shouldUsePromptFallback ? promptFallback : '') || '';
+        const primaryPrompt = typeof primaryTrack.prompt === 'string' ? primaryTrack.prompt : '';
+        const lyricsContent = primaryPrompt || (shouldUsePromptFallback ? promptFallback : '') || '';
         // 对于upload类型，使用existingTitle；对于普通类型，使用extractedTitle
         const titleForLyrics = clampTitle(
           (isUploadDerivedMusicType(musicType) || hasUserProvidedTitle)
@@ -363,52 +407,85 @@ async function processCallbackAsync(callback: NormalizedKieCallback, callbackId:
             [musicGenerationId]
           );
 
-          if (existingTracksQuery.rows.length > 0) {
-            // 依次更新tracks，每个API返回的track对应一个数据库record
-            for (let i = 0; i < Math.min(tracks.length, existingTracksQuery.rows.length); i++) {
+          const existingTracks = existingTracksQuery.rows;
+
+          // 依次更新现有占位 tracks，每个 API track 对应一个数据库 record
+          for (let i = 0; i < Math.min(tracks.length, existingTracks.length); i++) {
+            const track = tracks[i];
+            const existingTrack = existingTracks[i];
+            if (!track?.id) continue;
+
+            console.log(`[CALLBACK-${callbackId}] Updating track ${i + 1} with suno_track_id ${track.id}`);
+
+            // 决定是否更新track的title
+            let trackTitle: string;
+            if (isUploadDerivedMusicType(musicType) || hasUserProvidedTitle) {
+              // 上传或用户自定义标题：保持原始值
+              trackTitle = existingTrack.title || trimmedExistingTitle || existingTitle || 'Untitled';
+              console.log(`[CALLBACK-${callbackId}] Preserving provided track title: ${trackTitle}`);
+            } else {
+              // 对于普通generate类型且没有用户标题，使用API返回的title
+              trackTitle = track.title || extractedTitle;
+            }
+            trackTitle = clampTitle(trackTitle, 'Untitled');
+
+            // text回调：将stream_audio_url和title存储到tracks表
+            await query(
+              `UPDATE tracks SET
+                suno_track_id = $1,
+                stream_audio_url = $2,
+                title = $3,
+                updated_at = NOW()
+              WHERE id = $4`,
+              [
+                track.id,
+                track.stream_audio_url || null,
+                trackTitle,
+                existingTrack.id
+              ]
+            );
+          }
+
+          // 如果没有占位track，或回调曲目数多于占位数，补建缺失tracks，避免后续complete卡在mismatch
+          if (tracks.length > existingTracks.length) {
+            for (let i = existingTracks.length; i < tracks.length; i++) {
               const track = tracks[i];
-              const existingTrack = existingTracksQuery.rows[i];
+              if (!track?.id) continue;
 
-              console.log(`[CALLBACK-${callbackId}] Updating track ${i + 1} with suno_track_id ${track.id}`);
-
-              // 决定是否更新track的title
               let trackTitle: string;
               if (isUploadDerivedMusicType(musicType) || hasUserProvidedTitle) {
-                // 上传或用户自定义标题：保持原始值
-                trackTitle = existingTrack.title || trimmedExistingTitle || existingTitle || 'Untitled';
-                console.log(`[CALLBACK-${callbackId}] Preserving provided track title: ${trackTitle}`);
+                trackTitle = trimmedExistingTitle || existingTitle || 'Untitled';
               } else {
-                // 对于普通generate类型且没有用户标题，使用API返回的title
                 trackTitle = track.title || extractedTitle;
               }
               trackTitle = clampTitle(trackTitle, 'Untitled');
 
-              // text回调：将stream_audio_url和title存储到tracks表
               await query(
-                `UPDATE tracks SET
-                  suno_track_id = $1,
-                  stream_audio_url = $2,
-                  title = $3,
-                  updated_at = NOW()
-                WHERE id = $4`,
+                `INSERT INTO tracks (
+                  music_id, suno_track_id, stream_audio_url, title, duration, is_published, created_at, updated_at
+                ) VALUES ($1, $2, $3, $4, $5, $6, NOW(), NOW())`,
                 [
+                  musicGenerationId,
                   track.id,
-                  track.stream_audio_url,
+                  track.stream_audio_url || null,
                   trackTitle,
-                  existingTrack.id
+                  track.duration || null,
+                  false,
                 ]
               );
+              console.log(`[CALLBACK-${callbackId}] Created missing track for text callback: ${track.id}`);
             }
-          } else {
-            console.error(`[CALLBACK-${callbackId}] No existing tracks found for music_id: ${musicGenerationId}`);
+          } else if (existingTracks.length === 0 && tracks.length === 0) {
+            console.warn(`[CALLBACK-${callbackId}] Text callback has no tracks and no placeholders for music_id: ${musicGenerationId}`);
           }
         } catch (tracksError) {
           console.error('Failed to update tracks records in text callback:', tracksError);
+          return false;
         }
 
         // 4.1.5 封面生成优先在生成接口返回 taskId 后立即触发；first/complete 回调仅兜底补偿
 
-        return; // 直接返回，不处理其他逻辑
+        return true; // 直接返回，不处理其他逻辑
         
       } else if (callbackType === 'first') {
         // 4.2 first回调：将 audio_url 持久化到 R2，并更新数据库对应表字段
@@ -420,7 +497,7 @@ async function processCallbackAsync(callback: NormalizedKieCallback, callbackId:
 
           if (tracksWithAudio.length === 0) {
             console.log(`[CALLBACK-${callbackId}] No audio tracks`);
-            return;
+            return false;
           }
           // 查询 music 记录
           let finalUserId: string = 'anonymous';
@@ -440,7 +517,7 @@ async function processCallbackAsync(callback: NormalizedKieCallback, callbackId:
           }
           if (!musicGenerationId) {
             console.error(`No music record found for taskId: ${taskId} (first callback)`);
-            return;
+            return false;
           }
 
           // First回调：只更新duration，不处理audio_url
@@ -469,7 +546,24 @@ async function processCallbackAsync(callback: NormalizedKieCallback, callbackId:
                 );
                 console.log(`[CALLBACK-${callbackId}] First: Updated duration for track ${i + 1}: ${track.duration}`);
               } else {
-                console.error(`[CALLBACK-${callbackId}] First callback: no existing track found for suno_track_id ${track.id}, this should not happen`);
+                const trackTitle = clampTitle(track.title || finalTitle, 'Untitled');
+                const createdTrack = await query(
+                  `INSERT INTO tracks (
+                    music_id, suno_track_id, stream_audio_url, title, duration, is_published, created_at, updated_at
+                  ) VALUES ($1, $2, $3, $4, $5, $6, NOW(), NOW())
+                  RETURNING id`,
+                  [
+                    musicGenerationId,
+                    track.id,
+                    track.stream_audio_url || null,
+                    trackTitle,
+                    track.duration || null,
+                    false,
+                  ]
+                );
+                console.log(
+                  `[CALLBACK-${callbackId}] First callback created missing track ${createdTrack.rows[0]?.id} for suno_track_id ${track.id}`
+                );
               }
             } catch (err) {
               console.error(`Failed to update duration for track ${track.id} in first callback:`, err);
@@ -528,12 +622,17 @@ async function processCallbackAsync(callback: NormalizedKieCallback, callbackId:
           
         } catch (err) {
           console.error('First callback processing error:', err);
+          return false;
         }
-        return; // 处理完成，返回
+        return true; // 处理完成，返回
 
       } else if (callbackType === 'complete') {
         // 4.3 complete回调：处理最终音频文件上传到R2
         console.log(`[CALLBACK-${callbackId}] COMPLETE callback`);
+        if (!Array.isArray(tracks) || tracks.length === 0) {
+          console.warn(`[CALLBACK-${callbackId}] COMPLETE callback has no tracks, skipping`);
+          return false;
+        }
 
         // 检查音频准备状态
         const audioReady = tracks.every((track: any) =>
@@ -542,7 +641,7 @@ async function processCallbackAsync(callback: NormalizedKieCallback, callbackId:
 
         if (!audioReady) {
           console.log(`[CALLBACK-${callbackId}] Audio not ready`);
-          return;
+          return false;
         }
         // 获取用户ID和标题信息
         const musicGenQuery = await query(
@@ -557,7 +656,7 @@ async function processCallbackAsync(callback: NormalizedKieCallback, callbackId:
         
         if (!musicGenerationId) {
           console.error(`No music record found for taskId: ${taskId} - this should not happen`);
-          return;
+          return false;
         }
 
         const callbackTags = Array.isArray(tracks)
@@ -583,22 +682,90 @@ async function processCallbackAsync(callback: NormalizedKieCallback, callbackId:
           }
         }
         
-        // 获取已存在的tracks记录
+        // 获取已存在的tracks记录，并基于suno_track_id进行对齐
         const existingTracksQuery = await query(
-          'SELECT id, duration FROM tracks WHERE music_id = $1 ORDER BY id ASC',
+          `SELECT id, suno_track_id
+           FROM tracks
+           WHERE music_id = $1
+             AND (is_deleted IS NULL OR is_deleted = FALSE)
+           ORDER BY created_at ASC, id ASC`,
           [musicGenerationId]
         );
-        const existingTracks = existingTracksQuery.rows;
-        
-        if (existingTracks.length !== tracks.length) {
-          console.error(`Mismatch: ${existingTracks.length} existing tracks vs ${tracks.length} callback tracks`);
-          return;
+        const existingTracks = existingTracksQuery.rows as Array<{ id: string; suno_track_id: string | null }>;
+        const tracksBySunoId = new Map<string, string>();
+        const unboundTrackIds: string[] = [];
+
+        existingTracks.forEach((row) => {
+          if (row.suno_track_id && row.suno_track_id.trim()) {
+            tracksBySunoId.set(row.suno_track_id, row.id);
+          } else {
+            unboundTrackIds.push(row.id);
+          }
+        });
+
+        const resolvedTrackIds: string[] = [];
+        for (let i = 0; i < tracks.length; i++) {
+          const track = tracks[i];
+          if (!track?.id) {
+            resolvedTrackIds.push('');
+            continue;
+          }
+
+          let resolvedTrackId = tracksBySunoId.get(track.id);
+          if (!resolvedTrackId && unboundTrackIds.length > 0) {
+            resolvedTrackId = unboundTrackIds.shift() as string;
+            const trackTitle = clampTitle(track.title || finalTitle, 'Untitled');
+            await query(
+              `UPDATE tracks SET
+                suno_track_id = $1,
+                stream_audio_url = COALESCE(NULLIF($2, ''), stream_audio_url),
+                title = COALESCE(NULLIF($3, ''), title),
+                updated_at = NOW()
+               WHERE id = $4`,
+              [
+                track.id,
+                track.stream_audio_url || '',
+                trackTitle,
+                resolvedTrackId,
+              ]
+            );
+            tracksBySunoId.set(track.id, resolvedTrackId);
+          }
+
+          if (!resolvedTrackId) {
+            const trackTitle = clampTitle(track.title || finalTitle, 'Untitled');
+            const createdTrack = await query(
+              `INSERT INTO tracks (
+                music_id, suno_track_id, stream_audio_url, title, duration, is_published, created_at, updated_at
+              ) VALUES ($1, $2, $3, $4, $5, $6, NOW(), NOW())
+              RETURNING id`,
+              [
+                musicGenerationId,
+                track.id,
+                track.stream_audio_url || null,
+                trackTitle,
+                track.duration || null,
+                false,
+              ]
+            );
+            resolvedTrackId = createdTrack.rows[0]?.id;
+            if (resolvedTrackId) {
+              tracksBySunoId.set(track.id, resolvedTrackId);
+            }
+            console.log(`[CALLBACK-${callbackId}] Complete: created missing track for suno_track_id ${track.id}`);
+          }
+
+          resolvedTrackIds.push(resolvedTrackId || '');
         }
-        
+
         // Complete回调：统一处理所有音频文件上传到R2
         for (let i = 0; i < tracks.length; i++) {
           const track = tracks[i];
-          const existingTrack = existingTracks[i];
+          const resolvedTrackId = resolvedTrackIds[i];
+          if (!resolvedTrackId) {
+            console.warn(`[CALLBACK-${callbackId}] Complete: no resolved track id at index ${i}`);
+            continue;
+          }
           
           try {
             // 使用 audio_url
@@ -607,7 +774,7 @@ async function processCallbackAsync(callback: NormalizedKieCallback, callbackId:
             if (audioUrl && audioUrl.trim() !== '') {
               // 下载音频文件到R2（统一在complete回调处理）
               const audioBuffer = await downloadFromUrl(audioUrl);
-              const filename = `${finalTitle}_${i + 1}.mp3`;
+              const filename = `${clampTitle(finalTitle, 'Untitled')}_${i + 1}.mp3`;
               const audioR2Url = await uploadAudioFile(audioBuffer, taskId, filename, finalUserId || 'anonymous');
               
               console.log(`[CALLBACK-${callbackId}] Complete: Uploaded audio for track ${i + 1} to R2: ${audioR2Url}`);
@@ -617,12 +784,16 @@ async function processCallbackAsync(callback: NormalizedKieCallback, callbackId:
                 `UPDATE tracks SET 
                   audio_url = $1,
                   duration = $2,
+                  stream_audio_url = COALESCE(NULLIF($3, ''), stream_audio_url),
+                  title = COALESCE(NULLIF($4, ''), title),
                   updated_at = NOW()
-                WHERE id = $3`,
+                WHERE id = $5`,
                 [
                   audioR2Url,
                   track.duration || null,
-                  existingTrack.id
+                  track.stream_audio_url || '',
+                  clampTitle(track.title || finalTitle, 'Untitled'),
+                  resolvedTrackId
                 ]
               );
             } else {
@@ -640,6 +811,7 @@ async function processCallbackAsync(callback: NormalizedKieCallback, callbackId:
             status: 'complete'
           });
         }, 5, callbackId, 'update status to complete'); // complete 回调使用 5 次重试
+        processedTasks.add(`${taskIdValue}_completed`);
 
         await upsertLyrics(
           musicGenerationId,
@@ -749,9 +921,10 @@ async function processCallbackAsync(callback: NormalizedKieCallback, callbackId:
           // 备份失败不影响主流程，前端仍可使用临时URL
         }
         
-        return;
+        return true;
       } else {
         console.log(`[CALLBACK-${callbackId}] Unknown callback type: ${callbackType}`);
+        return false;
       }
       
     } else if (code !== 200) {
@@ -879,12 +1052,15 @@ async function processCallbackAsync(callback: NormalizedKieCallback, callbackId:
         }
       } catch (error) {
         console.error(`[CALLBACK-${callbackId}] Failed to process error callback:`, error);
+        return false;
       }
+      return true;
     }
 
     // Log completion of async processing
     const asyncProcessingTime = Date.now() - asyncStartTime;
     console.log(`[CALLBACK-${callbackId}] Async processing completed in ${asyncProcessingTime}ms`);
+    return false;
   } catch (error) {
     console.error(`[CALLBACK-${callbackId}] Async callback processing failed:`, error);
     // 尝试获取taskId用于错误通知
@@ -895,6 +1071,7 @@ async function processCallbackAsync(callback: NormalizedKieCallback, callbackId:
     } catch (taskIdError) {
       console.error(`[CALLBACK-${callbackId}] Failed to extract taskId from error context:`, taskIdError);
     }
+    return false;
   }
 }
 
@@ -902,5 +1079,8 @@ async function processCallbackAsync(callback: NormalizedKieCallback, callbackId:
 setInterval(() => {
   if (processedTasks.size > 1000) {
     processedTasks.clear();
+  }
+  if (processingTasks.size > 1000) {
+    processingTasks.clear();
   }
 }, 60 * 60 * 1000); // 每小时清理一次

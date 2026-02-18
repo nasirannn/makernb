@@ -70,6 +70,40 @@ export const InlineTrackDetailsPanel: React.FC<InlineTrackDetailsPanelProps> = (
     return tags.join(", ");
   }, [track?.tags, tags]);
 
+  const displayLyrics = React.useMemo(() => {
+    const rawLyrics = track?.lyrics?.trim() || "";
+    if (!rawLyrics) return "";
+
+    const rawTags = track?.tags?.trim() || "";
+    if (!rawTags) return rawLyrics;
+
+    const normalizeText = (value: string) => value.toLowerCase().replace(/\s+/g, " ").trim();
+    if (normalizeText(rawLyrics) === normalizeText(rawTags)) {
+      return "";
+    }
+
+    const normalizeTokenList = (value: string) =>
+      value
+        .split(/[,，;；]/)
+        .map((item) => item.trim().toLowerCase())
+        .filter(Boolean)
+        .sort();
+
+    const lyricTokens = normalizeTokenList(rawLyrics);
+    const tagTokens = normalizeTokenList(rawTags);
+
+    const hasSameTokens =
+      lyricTokens.length > 0 &&
+      lyricTokens.length === tagTokens.length &&
+      lyricTokens.every((token, index) => token === tagTokens[index]);
+
+    if (hasSameTokens) {
+      return "";
+    }
+
+    return rawLyrics;
+  }, [track?.lyrics, track?.tags]);
+
   const handleCopyAllTags = React.useCallback(async () => {
     if (!allTagsText) {
       return;
@@ -400,8 +434,8 @@ export const InlineTrackDetailsPanel: React.FC<InlineTrackDetailsPanelProps> = (
               </div>
             ) : (
               <div className="text-sm text-foreground/90 whitespace-pre-wrap font-mono leading-relaxed">
-                {track.lyrics?.trim()
-                  ? track.lyrics
+                {displayLyrics
+                  ? displayLyrics
                   : "Lyrics are not available yet."}
               </div>
             )}
