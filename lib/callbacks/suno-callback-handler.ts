@@ -10,8 +10,19 @@ import { MusicType } from '@/types/music';
 import { submitExplorePageToIndexNow } from '@/lib/indexnow';
 
 // Cache for processed tasks to handle idempotency
-const processedTasks = new Set<string>();
-const processingTasks = new Set<string>();
+const processedTasks = new Map<string, number>();
+const processingTasks = new Map<string, number>();
+const CALLBACK_IDEMPOTENCY_TTL_MS = 30 * 60 * 1000;
+
+function isActiveTaskKey(cache: Map<string, number>, key: string, ttlMs: number): boolean {
+  const timestamp = cache.get(key);
+  if (!timestamp) return false;
+  if (Date.now() - timestamp > ttlMs) {
+    cache.delete(key);
+    return false;
+  }
+  return true;
+}
 
 export interface NormalizedKieCallback {
   code: number;
@@ -85,18 +96,48 @@ export async function handleKieCallback(
     console.log(`[CALLBACK-${callbackId}] Processing callback: ${taskId}, code: ${code}`);
 
     if (idempotencyEnabled && taskKey) {
-      if (processedTasks.has(taskKey)) {
-        console.log(`[CALLBACK-${callbackId}] Already processed`);
-        return NextResponse.json({
-          success: true,
-          message: 'Already processed',
-          taskId: taskId,
-          callbackType: callbackType,
-          processedAt: new Date().toISOString()
-        });
+      if (isActiveTaskKey(processedTasks, taskKey, CALLBACK_IDEMPOTENCY_TTL_MS)) {
+        // 对 complete 回调做状态旁路：若 DB 还不是 complete，允许重放，避免历史脏 key 永久阻断修复
+        if (taskId && callbackType === 'complete') {
+          try {
+            const statusResult = await query(
+              'SELECT status FROM music WHERE task_id = $1 LIMIT 1',
+              [taskId]
+            );
+            const currentStatus = statusResult.rows[0]?.status;
+            if (currentStatus !== 'complete') {
+              console.warn(
+                `[CALLBACK-${callbackId}] complete callback idempotency bypassed because DB status is ${currentStatus || 'unknown'}`
+              );
+              processedTasks.delete(taskKey);
+            } else {
+              console.log(`[CALLBACK-${callbackId}] Already processed`);
+              return NextResponse.json({
+                success: true,
+                message: 'Already processed',
+                taskId: taskId,
+                callbackType: callbackType,
+                processedAt: new Date().toISOString()
+              });
+            }
+          } catch (statusCheckError) {
+            console.warn(`[CALLBACK-${callbackId}] Failed to check DB status for idempotency bypass:`, statusCheckError);
+            // 状态查询异常时优先允许继续处理，避免误拦截外部重试修复
+            processedTasks.delete(taskKey);
+          }
+        } else {
+          console.log(`[CALLBACK-${callbackId}] Already processed`);
+          return NextResponse.json({
+            success: true,
+            message: 'Already processed',
+            taskId: taskId,
+            callbackType: callbackType,
+            processedAt: new Date().toISOString()
+          });
+        }
       }
 
-      if (processingTasks.has(taskKey)) {
+      if (isActiveTaskKey(processingTasks, taskKey, CALLBACK_IDEMPOTENCY_TTL_MS)) {
         console.log(`[CALLBACK-${callbackId}] Processing in progress`);
         return NextResponse.json({
           success: true,
@@ -112,7 +153,7 @@ export async function handleKieCallback(
           track.audio_url && track.audio_url.trim() !== ''
         );
 
-        if (allAudioReady && completedKey && processedTasks.has(completedKey)) {
+        if (allAudioReady && completedKey && isActiveTaskKey(processedTasks, completedKey, CALLBACK_IDEMPOTENCY_TTL_MS)) {
           console.log(`[CALLBACK-${callbackId}] Already completed`);
           return NextResponse.json({
             success: true,
@@ -135,14 +176,14 @@ export async function handleKieCallback(
     setImmediate(async () => {
       try {
         if (idempotencyEnabled && taskKey) {
-          processingTasks.add(taskKey);
+          processingTasks.set(taskKey, Date.now());
         }
 
         const processedSuccessfully = await options.onProcess(normalized, callbackId);
 
         if (idempotencyEnabled && taskKey) {
           if (processedSuccessfully) {
-            processedTasks.add(taskKey);
+            processedTasks.set(taskKey, Date.now());
             console.log(`[CALLBACK-${callbackId}] Marked callback as processed: ${taskKey}`);
           } else {
             console.warn(`[CALLBACK-${callbackId}] Callback not marked as processed (failed/incomplete): ${taskKey}`);
@@ -318,6 +359,29 @@ async function processCallbackAsync(callback: NormalizedKieCallback, callbackId:
 
     // 2. 识别回调类型并处理
     let callbackType = rawCallbackType;
+    const knownCallbackTypes = new Set(['text', 'first', 'complete']);
+
+    // 兼容外部重放可能丢失 callbackType 的场景：根据轨道数据推断阶段
+    if (code === 200 && Array.isArray(tracks) && !knownCallbackTypes.has(callbackType || '')) {
+      const hasTracks = tracks.length > 0;
+      const allAudioReady = hasTracks && tracks.every((track: any) => track?.audio_url && track.audio_url.trim() !== '');
+      const hasFirstSignals = hasTracks && tracks.some((track: any) =>
+        (typeof track?.duration === 'number' && Number.isFinite(track.duration)) ||
+        (typeof track?.audio_url === 'string' && track.audio_url.trim() !== '')
+      );
+
+      if (allAudioReady) {
+        callbackType = 'complete';
+      } else if (hasFirstSignals) {
+        callbackType = 'first';
+      } else if (hasTracks) {
+        callbackType = 'text';
+      }
+
+      if (callbackType) {
+        console.log(`[CALLBACK-${callbackId}] Inferred callbackType=${callbackType} from payload shape`);
+      }
+    }
 
     if (code === 200 && Array.isArray(tracks)) {
       console.log(`[CALLBACK-${callbackId}] Processing ${tracks.length} tracks`);
@@ -811,7 +875,7 @@ async function processCallbackAsync(callback: NormalizedKieCallback, callbackId:
             status: 'complete'
           });
         }, 5, callbackId, 'update status to complete'); // complete 回调使用 5 次重试
-        processedTasks.add(`${taskIdValue}_completed`);
+        processedTasks.set(`${taskIdValue}_completed`, Date.now());
 
         await upsertLyrics(
           musicGenerationId,
@@ -1077,10 +1141,24 @@ async function processCallbackAsync(callback: NormalizedKieCallback, callbackId:
 
 // 定期清理缓存，防止内存泄漏
 setInterval(() => {
-  if (processedTasks.size > 1000) {
+  const now = Date.now();
+
+  processedTasks.forEach((timestamp, key) => {
+    if (now - timestamp > CALLBACK_IDEMPOTENCY_TTL_MS) {
+      processedTasks.delete(key);
+    }
+  });
+
+  processingTasks.forEach((timestamp, key) => {
+    if (now - timestamp > CALLBACK_IDEMPOTENCY_TTL_MS) {
+      processingTasks.delete(key);
+    }
+  });
+
+  if (processedTasks.size > 5000) {
     processedTasks.clear();
   }
-  if (processingTasks.size > 1000) {
+  if (processingTasks.size > 5000) {
     processingTasks.clear();
   }
 }, 60 * 60 * 1000); // 每小时清理一次
