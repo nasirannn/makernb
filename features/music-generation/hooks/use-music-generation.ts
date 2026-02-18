@@ -58,6 +58,7 @@ export const useMusicGeneration = () => {
   // ==================== 生成状态 ====================
   const [isGenerating, setIsGenerating] = useState(false);
   const [generatedTracks, setGeneratedTracks] = useState<MusicGenerationTrack[]>([]);
+  const requestInFlightRef = useRef(false);
 
   // ==================== 轮询控制 - 使用 Ref 而非状态 ====================
   const pollingStateRef = useRef<{
@@ -487,10 +488,17 @@ export const useMusicGeneration = () => {
       modeOverride?: "simple" | "custom";
     }
   ) => {
+    if (isGenerating || requestInFlightRef.current) {
+      toast.error('A generation request is already in progress.');
+      return;
+    }
+
     const effectiveMode = options?.modeOverride ?? "simple";
     if (!validateInputs(effectiveMode)) {
       throw new Error('Input validation failed');
     }
+
+    requestInFlightRef.current = true;
 
     // 清理之前的轮询
     cleanup();
@@ -572,6 +580,8 @@ export const useMusicGeneration = () => {
       );
       toast.error(error instanceof Error ? error.message : 'Music generation failed');
       throw error;
+    } finally {
+      requestInFlightRef.current = false;
     }
   };
 

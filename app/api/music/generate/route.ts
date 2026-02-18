@@ -166,25 +166,46 @@ async function triggerCoverGeneration(
 }
 
 async function bindTaskIdWithRetry(
+  query: QueryExecutor,
   generationId: string,
   taskId: string,
   modelVersion: string,
   requestId: string
 ) {
   let lastError: unknown;
-  for (let attempt = 1; attempt <= 3; attempt++) {
+  for (let attempt = 1; attempt <= 5; attempt++) {
     try {
-      await updateMusicGeneration(generationId, {
-        task_id: taskId,
-        status: 'generating',
-        model: modelVersion,
-      });
-      return;
+      const updateResult = await query(
+        `UPDATE music
+         SET task_id = $1, status = 'generating', model = $2, updated_at = NOW()
+         WHERE id = $3
+         RETURNING id, task_id`,
+        [taskId, modelVersion, generationId]
+      );
+
+      if (updateResult.rows.length > 0) {
+        return;
+      }
+
+      const existingRecord = await query(
+        'SELECT task_id FROM music WHERE id = $1 LIMIT 1',
+        [generationId]
+      );
+      if (existingRecord.rows.length === 0) {
+        throw new Error('Music generation record not found');
+      }
+
+      const existingTaskId = existingRecord.rows[0]?.task_id;
+      if (typeof existingTaskId === 'string' && existingTaskId === taskId) {
+        return;
+      }
+
+      throw new Error('Task binding did not persist');
     } catch (error) {
       lastError = error;
-      if (attempt < 3) {
+      if (attempt < 5) {
         console.warn(`[MUSIC-GEN-${requestId}] Task binding failed on attempt ${attempt}, retrying...`);
-        await delay(attempt * 250);
+        await delay(attempt * 300);
       }
     }
   }
@@ -234,7 +255,7 @@ async function processSuccessfulGenerationPostTasks(params: {
   const warnings: string[] = [];
 
   // 必须步骤：绑定 task_id（失败时无法被回调链路识别）
-  await bindTaskIdWithRetry(generationId, taskId, modelVersion, requestId);
+  await bindTaskIdWithRetry(query, generationId, taskId, modelVersion, requestId);
 
   let initialTracks: any[] = [];
 
