@@ -3,13 +3,14 @@ import { TrackDetailView } from "@/components/ui/track-detail-view";
 import { query } from "@/lib/db-query-builder";
 
 interface TrackDetailPageProps {
-  params: {
+  params: Promise<{
     trackId: string;
-  };
+  }>;
 }
 
 export async function generateMetadata({ params }: TrackDetailPageProps): Promise<Metadata> {
-  const canonical = `https://makernb.com/track/${params.trackId}`;
+  const { trackId } = await params;
+  const canonical = `https://makernb.com/track/${trackId}`;
 
   const formatDuration = (duration: number | string | null | undefined) => {
     const seconds = typeof duration === "string" ? Number.parseFloat(duration) : duration ?? 0;
@@ -56,7 +57,7 @@ export async function generateMetadata({ params }: TrackDetailPageProps): Promis
       WHERE mt.id = $1::uuid
         AND (mt.is_deleted IS NULL OR mt.is_deleted = FALSE)
       LIMIT 1`,
-      [params.trackId]
+      [trackId]
     );
 
     if (result.rows.length === 0) {
@@ -113,6 +114,7 @@ export async function generateMetadata({ params }: TrackDetailPageProps): Promis
   }
 }
 
-export default function TrackDetailPage({ params }: TrackDetailPageProps) {
-  return <TrackDetailView trackId={params.trackId} fullPage />;
+export default async function TrackDetailPage({ params }: TrackDetailPageProps) {
+  const { trackId } = await params;
+  return <TrackDetailView trackId={trackId} fullPage />;
 }

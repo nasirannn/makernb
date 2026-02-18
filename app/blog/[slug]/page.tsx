@@ -7,9 +7,9 @@ import { FooterSection } from '@/components/layout/sections/footer';
 import type { Metadata } from 'next';
 
 interface BlogPostPageProps {
-  params: {
+  params: Promise<{
     slug: string;
-  };
+  }>;
 }
 
 export async function generateStaticParams() {
@@ -20,7 +20,8 @@ export async function generateStaticParams() {
 }
 
 export async function generateMetadata({ params }: BlogPostPageProps): Promise<Metadata> {
-  const post = getPostBySlug(params.slug);
+  const { slug } = await params;
+  const post = getPostBySlug(slug);
 
   if (!post) {
     return {
@@ -38,7 +39,7 @@ export async function generateMetadata({ params }: BlogPostPageProps): Promise<M
     title: `${post.title} | MakeRNB Blog`,
     description: description,
     alternates: {
-      canonical: `https://makernb.com/blog/${params.slug}`,
+      canonical: `https://makernb.com/blog/${slug}`,
     },
     openGraph: {
       title: post.title,
@@ -46,7 +47,7 @@ export async function generateMetadata({ params }: BlogPostPageProps): Promise<M
       type: 'article',
       publishedTime: post.date,
       authors: [post.author],
-      url: `https://makernb.com/blog/${params.slug}`,
+      url: `https://makernb.com/blog/${slug}`,
       images: post.image ? [
         {
           url: post.image,
@@ -65,8 +66,9 @@ export async function generateMetadata({ params }: BlogPostPageProps): Promise<M
   };
 }
 
-export default function BlogPostPage({ params }: BlogPostPageProps) {
-  const post = getPostBySlug(params.slug);
+export default async function BlogPostPage({ params }: BlogPostPageProps) {
+  const { slug } = await params;
+  const post = getPostBySlug(slug);
   
   if (!post) {
     notFound();

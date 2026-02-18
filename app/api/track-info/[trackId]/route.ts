@@ -9,11 +9,11 @@ export const dynamic = 'force-dynamic';
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { trackId: string } }
+  { params }: { params: Promise<{ trackId: string }> }
 ) {
   try {
     // 使用解构方式获取 trackId，与其他路由保持一致
-    const { trackId } = params;
+    const { trackId } = await params;
 
     if (!trackId) {
       console.error('Track info API: trackId is missing from params');

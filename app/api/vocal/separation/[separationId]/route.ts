@@ -6,10 +6,10 @@ export const dynamic = 'force-dynamic';
 
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { separationId: string } }
+  { params }: { params: Promise<{ separationId: string }> }
 ) {
   const requestId = `delete-separation_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
-  const { separationId } = params;
+  const { separationId } = await params;
   
   console.log(`[DELETE-VOCAL-SEPARATION-${requestId}] Deleting vocal separation: ${separationId}`);
 

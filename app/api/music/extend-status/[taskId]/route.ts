@@ -15,12 +15,12 @@ export const dynamic = 'force-dynamic';
  */
 export async function GET(
   _request: NextRequest,
-  { params }: { params: { taskId: string } }
+  { params }: { params: Promise<{ taskId: string }> }
 ) {
   const requestId = `status_${Date.now()}_${Math.random().toString(36).substring(2, 11)}`;
   
   try {
-    const { taskId } = params;
+    const { taskId } = await params;
 
     if (!taskId) {
       console.log(`[EXTEND-STATUS-${requestId}] Validation failed: taskId is required`);

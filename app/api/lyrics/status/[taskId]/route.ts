@@ -3,10 +3,10 @@ import { getLyricsGeneration } from '@/features/lyrics-cover/lib/lyrics-db';
 
 export async function GET(
   _request: NextRequest,
-  { params }: { params: { taskId: string } }
+  { params }: { params: Promise<{ taskId: string }> }
 ) {
   try {
-    const { taskId } = params;
+    const { taskId } = await params;
     if (!taskId) {
       return NextResponse.json({ success: false, error: 'taskId is required' }, { status: 400 });
     }
@@ -43,5 +43,4 @@ export async function GET(
     return NextResponse.json({ success: false, error: 'Internal server error' }, { status: 500 });
   }
 }
-
 

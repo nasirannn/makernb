@@ -7,12 +7,12 @@ export const dynamic = 'force-dynamic';
 
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { trackId: string } }
+  { params }: { params: Promise<{ trackId: string }> }
 ) {
   const startTime = Date.now();
 
   try {
-    const { trackId } = params;
+    const { trackId } = await params;
 
     if (!trackId) {
       return NextResponse.json(
