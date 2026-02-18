@@ -2277,6 +2277,10 @@ export const MashupPanel = (props: FeatureCreatePanelProps) => {
           onSelectMashupAudioTwo={() => openMashupSlotPicker(1)}
           mashupAudioOneName={mashupSlots[0].fileName}
           mashupAudioTwoName={mashupSlots[1].fileName}
+          mashupAudioOneType={mashupSlots[0].file?.type || null}
+          mashupAudioTwoType={mashupSlots[1].file?.type || null}
+          mashupAudioOneSizeBytes={mashupSlots[0].file?.size ?? null}
+          mashupAudioTwoSizeBytes={mashupSlots[1].file?.size ?? null}
           mashupAudioOneDuration={mashupSlots[0].duration}
           mashupAudioTwoDuration={mashupSlots[1].duration}
           mashupPlayingIndex={mashupPlayingIndex}

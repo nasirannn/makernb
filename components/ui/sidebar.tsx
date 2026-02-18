@@ -37,6 +37,17 @@ type SidebarNavItem = {
   badge?: string;
 };
 
+const SIDEBAR_EXPANDED_STORAGE_KEY = "makernb.sidebar.expanded";
+
+const readSidebarExpandedFromStorage = () => {
+  if (typeof window === "undefined") return false;
+  try {
+    return window.localStorage.getItem(SIDEBAR_EXPANDED_STORAGE_KEY) === "1";
+  } catch {
+    return false;
+  }
+};
+
 export const CommonSidebar = ({
   hideMobileNav = false,
   onWidthChange,
@@ -59,7 +70,7 @@ export const CommonSidebar = ({
   const [isAuthModalOpen, setIsAuthModalOpen] = React.useState(false);
   const [isDropdownOpen, setIsDropdownOpen] = React.useState(false);
   const [isRefreshingCredits, setIsRefreshingCredits] = React.useState(false);
-  const [isExpanded, setIsExpanded] = React.useState(false);
+  const [isExpanded, setIsExpanded] = React.useState(readSidebarExpandedFromStorage);
   const [isNicknameDialogOpen, setIsNicknameDialogOpen] = React.useState(false);
   const [isCollapsedCreditsHovered, setIsCollapsedCreditsHovered] = React.useState(false);
   const [suppressCollapsedCreditsHover, setSuppressCollapsedCreditsHover] = React.useState(false);
@@ -92,7 +103,15 @@ export const CommonSidebar = ({
 
   // 切换sidebar展开/收起状态
   const toggleSidebar = () => {
-    setIsExpanded((prev) => !prev);
+    setIsExpanded((prev) => {
+      const next = !prev;
+      try {
+        window.localStorage.setItem(SIDEBAR_EXPANDED_STORAGE_KEY, next ? "1" : "0");
+      } catch {
+        // ignore localStorage write failures
+      }
+      return next;
+    });
   };
 
   React.useEffect(() => {

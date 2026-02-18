@@ -2,7 +2,7 @@
 
 import React from "react";
 import Image from "next/image";
-import { ChevronDown, ChevronRight, Clock3, Disc3, Info, Mic, Music2, Pause, Play, SlidersHorizontal, Trash2, UploadCloud, Users, Wand2, Tag, Sparkles } from "lucide-react";
+import { ChevronDown, ChevronRight, Disc3, Info, Mic, Music2, Pause, Play, SlidersHorizontal, Trash2, UploadCloud, Users, Wand2, Tag, Sparkles } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -38,6 +38,45 @@ const LYRICS_TAG_OPTIONS = [
   { label: "Interlude", value: "[Interlude]" },
   { label: "Outro", value: "[Outro]" },
 ] as const;
+
+const formatAudioTypeLabel = (mimeType?: string | null) => {
+  if (!mimeType) return null;
+
+  const normalized = mimeType.toLowerCase();
+  const mimeToLabel: Record<string, string> = {
+    "audio/mpeg": "MP3",
+    "audio/mp3": "MP3",
+    "audio/wav": "WAV",
+    "audio/x-wav": "WAV",
+    "audio/wave": "WAV",
+    "audio/x-pn-wav": "WAV",
+    "audio/flac": "FLAC",
+    "audio/x-flac": "FLAC",
+    "audio/aac": "AAC",
+    "audio/mp4": "M4A",
+    "audio/x-m4a": "M4A",
+    "audio/ogg": "OGG",
+    "audio/webm": "WEBM",
+  };
+
+  if (mimeToLabel[normalized]) {
+    return mimeToLabel[normalized];
+  }
+
+  const slashIndex = normalized.indexOf("/");
+  if (slashIndex < 0 || slashIndex === normalized.length - 1) {
+    return null;
+  }
+
+  return normalized.slice(slashIndex + 1).toUpperCase();
+};
+
+const formatFileSizeInMb = (bytes?: number | null) => {
+  if (typeof bytes !== "number" || !Number.isFinite(bytes) || bytes <= 0) {
+    return null;
+  }
+  return `${(bytes / (1024 * 1024)).toFixed(2)} MB`;
+};
 
 interface StudioSimpleModeContentProps {
   showQuickButtonsSection?: boolean;
@@ -273,6 +312,10 @@ interface StudioCustomModeContentProps {
   onSelectMashupAudioTwo?: () => void;
   mashupAudioOneName?: string | null;
   mashupAudioTwoName?: string | null;
+  mashupAudioOneType?: string | null;
+  mashupAudioTwoType?: string | null;
+  mashupAudioOneSizeBytes?: number | null;
+  mashupAudioTwoSizeBytes?: number | null;
   mashupAudioOneDuration?: number | null;
   mashupAudioTwoDuration?: number | null;
   mashupPlayingIndex?: number | null;
@@ -326,6 +369,10 @@ export const StudioCustomModeContent: React.FC<StudioCustomModeContentProps> = (
   onSelectMashupAudioTwo,
   mashupAudioOneName = null,
   mashupAudioTwoName = null,
+  mashupAudioOneType = null,
+  mashupAudioTwoType = null,
+  mashupAudioOneSizeBytes = null,
+  mashupAudioTwoSizeBytes = null,
   mashupAudioOneDuration = null,
   mashupAudioTwoDuration = null,
   mashupPlayingIndex = null,
@@ -369,12 +416,18 @@ export const StudioCustomModeContent: React.FC<StudioCustomModeContentProps> = (
     && typeof onSelectMashupAudioTwo === "function";
   const hasMashupAudioOne = Boolean(mashupAudioOneName);
   const hasMashupAudioTwo = Boolean(mashupAudioTwoName);
+  const mashupAudioOneTypeLabel = formatAudioTypeLabel(mashupAudioOneType);
+  const mashupAudioTwoTypeLabel = formatAudioTypeLabel(mashupAudioTwoType);
+  const mashupAudioOneSizeLabel = formatFileSizeInMb(mashupAudioOneSizeBytes);
+  const mashupAudioTwoSizeLabel = formatFileSizeInMb(mashupAudioTwoSizeBytes);
   const mashupAudioOneDurationLabel = typeof mashupAudioOneDuration === "number" && mashupAudioOneDuration > 0
     ? formatDuration(Math.floor(mashupAudioOneDuration))
     : null;
   const mashupAudioTwoDurationLabel = typeof mashupAudioTwoDuration === "number" && mashupAudioTwoDuration > 0
     ? formatDuration(Math.floor(mashupAudioTwoDuration))
     : null;
+  const mashupAudioOneMetaText = [mashupAudioOneDurationLabel, mashupAudioOneSizeLabel].filter(Boolean).join(" · ");
+  const mashupAudioTwoMetaText = [mashupAudioTwoDurationLabel, mashupAudioTwoSizeLabel].filter(Boolean).join(" · ");
   const hasAnyUploadIntentOption = showTrackIntent || showVocalIntent || showMelodyIntent;
   const canShowUploadActionsBase = showAddAudioActions && hasAnyUploadIntentOption && !hasUploadPreview;
   const showTrackUploadCard = preferTrackUploadCard && canShowUploadActionsBase && showTrackIntent && !showVocalIntent && !showMelodyIntent;
@@ -466,26 +519,6 @@ ${tag}
               <div className="flex items-center justify-between gap-3">
                 <button
                   type="button"
-                  onClick={onSelectMashupAudioOne}
-                  className="min-w-0 flex-1 text-left transition-colors hover:text-foreground/80"
-                  title={hasMashupAudioOne ? "Replace first audio" : "Select first audio"}
-                >
-                  <span className="block text-sm font-semibold text-foreground truncate">
-                    {mashupAudioOneName || "Audio 1"}
-                  </span>
-                  <span className="block text-xs text-muted-foreground truncate">
-                    {hasMashupAudioOne
-                      ? (
-                        <span className="inline-flex items-center gap-1">
-                          <Clock3 className="h-3 w-3" />
-                          <span>{mashupAudioOneDurationLabel || "--:--"}</span>
-                        </span>
-                      )
-                      : "Select audio file"}
-                  </span>
-                </button>
-                <button
-                  type="button"
                   onClick={hasMashupAudioOne ? onPlayMashupAudioOne : onSelectMashupAudioOne}
                   className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-primary/10 text-primary transition hover:bg-primary/15 hover:text-primary/90 disabled:opacity-50 disabled:cursor-not-allowed"
                   title={hasMashupAudioOne ? "Play audio 1" : "Select first audio"}
@@ -497,31 +530,35 @@ ${tag}
                     <UploadCloud className="h-4 w-4" />
                   )}
                 </button>
+                <button
+                  type="button"
+                  onClick={onSelectMashupAudioOne}
+                  className="min-w-0 flex-1 text-left transition-colors hover:text-foreground/80"
+                  title={hasMashupAudioOne ? "Replace first audio" : "Select first audio"}
+                >
+                  <span className="flex min-w-0 items-center gap-1.5">
+                    <span className="block min-w-0 flex-1 truncate text-sm font-semibold text-foreground">
+                      {mashupAudioOneName || "Audio 1"}
+                    </span>
+                    {mashupAudioOneTypeLabel && (
+                      <span className="shrink-0 text-[10px] font-semibold uppercase tracking-[0.08em] text-foreground/65">
+                        {mashupAudioOneTypeLabel}
+                      </span>
+                    )}
+                  </span>
+                  <span className="block text-xs text-muted-foreground truncate">
+                    {hasMashupAudioOne
+                      ? (
+                        <span>{mashupAudioOneMetaText || "--:--"}</span>
+                      )
+                      : "Select audio file"}
+                  </span>
+                </button>
               </div>
             </div>
 
             <div className="studio-panel-card w-full rounded-2xl p-3">
               <div className="flex items-center justify-between gap-3">
-                <button
-                  type="button"
-                  onClick={onSelectMashupAudioTwo}
-                  className="min-w-0 flex-1 text-left transition-colors hover:text-foreground/80"
-                  title={hasMashupAudioTwo ? "Replace second audio" : "Select second audio"}
-                >
-                  <span className="block text-sm font-semibold text-foreground truncate">
-                    {mashupAudioTwoName || "Audio 2"}
-                  </span>
-                  <span className="block text-xs text-muted-foreground truncate">
-                    {hasMashupAudioTwo
-                      ? (
-                        <span className="inline-flex items-center gap-1">
-                          <Clock3 className="h-3 w-3" />
-                          <span>{mashupAudioTwoDurationLabel || "--:--"}</span>
-                        </span>
-                      )
-                      : "Select audio file"}
-                  </span>
-                </button>
                 <button
                   type="button"
                   onClick={hasMashupAudioTwo ? onPlayMashupAudioTwo : onSelectMashupAudioTwo}
@@ -534,6 +571,30 @@ ${tag}
                   ) : (
                     <UploadCloud className="h-4 w-4" />
                   )}
+                </button>
+                <button
+                  type="button"
+                  onClick={onSelectMashupAudioTwo}
+                  className="min-w-0 flex-1 text-left transition-colors hover:text-foreground/80"
+                  title={hasMashupAudioTwo ? "Replace second audio" : "Select second audio"}
+                >
+                  <span className="flex min-w-0 items-center gap-1.5">
+                    <span className="block min-w-0 flex-1 truncate text-sm font-semibold text-foreground">
+                      {mashupAudioTwoName || "Audio 2"}
+                    </span>
+                    {mashupAudioTwoTypeLabel && (
+                      <span className="shrink-0 text-[10px] font-semibold uppercase tracking-[0.08em] text-foreground/65">
+                        {mashupAudioTwoTypeLabel}
+                      </span>
+                    )}
+                  </span>
+                  <span className="block text-xs text-muted-foreground truncate">
+                    {hasMashupAudioTwo
+                      ? (
+                        <span>{mashupAudioTwoMetaText || "--:--"}</span>
+                      )
+                      : "Select audio file"}
+                  </span>
                 </button>
               </div>
             </div>
