@@ -161,7 +161,7 @@ export const IntroductionSection = () => {
                 </h2>
               </Link>
               <p className="max-w-3xl text-muted-foreground">
-                A quick guide to the signature sounds that defined 90s R&amp;B and shaped today's
+                A quick guide to the signature sounds that defined 90s R&amp;B and shaped today&apos;s
                 generation workflows.
               </p>
             </div>
