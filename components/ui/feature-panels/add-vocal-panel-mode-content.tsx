@@ -15,6 +15,8 @@ import {
 import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
+import { LYRICS_TAG_OPTIONS } from "@/lib/lyrics-tags";
+import { useI18n } from "@/lib/i18n/provider";
 import { getDrumKitIcon, getInstrumentIcon } from "@/lib/music-resources";
 
 type NamedOption = {
@@ -28,16 +30,6 @@ type VocalGenderOption = {
 };
 
 export type AudioUploadIntent = "track" | "vocal" | "melody";
-
-const LYRICS_TAG_OPTIONS = [
-  { label: "Intro", value: "[Intro]" },
-  { label: "Verse", value: "[Verse]" },
-  { label: "Pre-Chorus", value: "[Pre-Chorus]" },
-  { label: "Chorus", value: "[Chorus]" },
-  { label: "Bridge", value: "[Bridge]" },
-  { label: "Interlude", value: "[Interlude]" },
-  { label: "Outro", value: "[Outro]" },
-] as const;
 
 interface StudioSimpleModeContentProps {
   instrumentalMode: boolean;
@@ -84,13 +76,15 @@ export const StudioSimpleModeContent: React.FC<StudioSimpleModeContentProps> = (
   uploadCoverFile,
   uploadAudioPreview,
 }) => {
+  const { t } = useI18n();
+  const resolvedPromptTitle = promptTitle === "Prompt" ? t("featurePanel.prompt") : promptTitle;
   return (
     <>
       <div className="space-y-5 md:space-y-6 pt-2 md:pt-3">
         <section className="studio-panel-card rounded-2xl p-3">
           <div className="mb-3 md:mb-4 flex items-center justify-between gap-3">
             <h3 className="text-xs md:text-sm font-semibold flex items-center gap-2">
-              {promptTitle}
+              {resolvedPromptTitle}
             </h3>
             {showInstrumentalToggle && (
               <div className="flex items-center gap-3">
@@ -100,7 +94,7 @@ export const StudioSimpleModeContent: React.FC<StudioSimpleModeContentProps> = (
                     onCheckedChange={setInstrumentalMode}
                     className="scale-75"
                   />
-                  <span className="text-xs text-muted-foreground">Instrumental</span>
+                  <span className="text-sm text-muted-foreground">{t("featurePanel.instrumental")}</span>
                 </div>
               </div>
             )}
@@ -108,7 +102,7 @@ export const StudioSimpleModeContent: React.FC<StudioSimpleModeContentProps> = (
           <div className="space-y-3">
             <div>
               <Textarea
-                placeholder="Describe your song idea"
+                placeholder={t("featurePanel.describeSongIdea")}
                 value={simplePrompt}
                 onChange={(e) => setSimplePrompt(e.target.value)}
                 maxLength={simplePromptMaxLength}
@@ -131,21 +125,21 @@ export const StudioSimpleModeContent: React.FC<StudioSimpleModeContentProps> = (
                   <button
                     type="button"
                     onClick={onAddAudio}
-                    className="inline-flex h-8 items-center gap-1.5 rounded-full bg-foreground/5 px-3 text-xs font-semibold text-foreground/70 transition-colors hover:bg-foreground/10 hover:text-foreground"
-                    title="Add audio"
+                    className="inline-flex h-8 items-center gap-1.5 rounded-full bg-foreground/5 px-3 text-xs font-medium text-foreground/70 transition-colors hover:bg-foreground/10 hover:text-foreground"
+                    title={t("featurePanel.addAudio")}
                   >
                     <UploadCloud className="h-3 w-3" />
-                    <span className="text-xs font-medium">Add Audio</span>
+                    <span className="text-xs font-medium">{t("featurePanel.addAudio")}</span>
                   </button>
                 )}
                 <button
                   type="button"
                   onClick={onClear}
-                  className="inline-flex h-8 items-center gap-1.5 rounded-full bg-foreground/5 px-3 text-xs font-semibold text-foreground/70 transition-colors hover:bg-foreground/10 hover:text-foreground"
-                  title="Clear"
+                  className="inline-flex h-8 items-center gap-1.5 rounded-full bg-foreground/5 px-3 text-xs font-medium text-foreground/70 transition-colors hover:bg-foreground/10 hover:text-foreground"
+                  title={t("featurePanel.clear")}
                 >
                   <Trash2 className="h-3 w-3" />
-                  <span className="text-xs font-medium">Clear</span>
+                  <span className="text-xs font-medium">{t("featurePanel.clear")}</span>
                 </button>
               </div>
             </div>
@@ -154,7 +148,7 @@ export const StudioSimpleModeContent: React.FC<StudioSimpleModeContentProps> = (
 
         <section className="studio-panel-card rounded-2xl p-3">
           <div className="pb-2 text-xs md:text-sm font-semibold text-foreground/80">
-            Classic Instruments Preview
+            {t("featurePanel.classicInstrumentsPreview")}
           </div>
 
           <div className="flex flex-nowrap gap-2 overflow-x-auto pb-1">
@@ -186,11 +180,11 @@ export const StudioSimpleModeContent: React.FC<StudioSimpleModeContentProps> = (
                       className="h-7 w-7"
                     />
                   )}
-                  <span className="text-[11px]">{instrument.name}</span>
+                  <span className="text-xs">{instrument.name}</span>
                   <div
                     role="button"
                     tabIndex={0}
-                    aria-label="Play sample"
+                    aria-label={t("featurePanel.playSample")}
                     onClick={(e) => {
                       e.stopPropagation();
                       onPreviewLeadInstrument(instrument.id);
@@ -202,7 +196,7 @@ export const StudioSimpleModeContent: React.FC<StudioSimpleModeContentProps> = (
                       }
                     }}
                     className="absolute inset-0 m-auto h-8 w-8 rounded-full bg-black/50 text-white transition-all duration-200 hover:bg-black/60 opacity-0 group-hover:opacity-100 flex items-center justify-center"
-                    title="Play sample"
+                    title={t("featurePanel.playSample")}
                   >
                     <Play className="h-4 w-4" />
                   </div>
@@ -238,11 +232,11 @@ export const StudioSimpleModeContent: React.FC<StudioSimpleModeContentProps> = (
                       className="h-7 w-7"
                     />
                   )}
-                  <span className="text-[11px]">{kit.name}</span>
+                  <span className="text-xs">{kit.name}</span>
                   <div
                     role="button"
                     tabIndex={0}
-                    aria-label="Play sample"
+                    aria-label={t("featurePanel.playSample")}
                     onClick={(e) => {
                       e.stopPropagation();
                       onPreviewDrumKit(kit.id);
@@ -254,7 +248,7 @@ export const StudioSimpleModeContent: React.FC<StudioSimpleModeContentProps> = (
                       }
                     }}
                     className="absolute inset-0 m-auto h-8 w-8 rounded-full bg-black/50 text-white transition-all duration-200 hover:bg-black/60 opacity-0 group-hover:opacity-100 flex items-center justify-center"
-                    title="Play sample"
+                    title={t("featurePanel.playSample")}
                   >
                     <Play className="h-4 w-4" />
                   </div>
@@ -291,6 +285,7 @@ interface StudioCustomModeContentProps {
   hasUploadPreview?: boolean;
   hidePersonaAction?: boolean;
   selectedPersonaName?: string | null;
+  selectedPersonaDescription?: string | null;
   selectedPersonaId: string;
   instrumentalMode: boolean;
   setInstrumentalMode: (mode: boolean) => void;
@@ -337,6 +332,7 @@ export const StudioCustomModeContent: React.FC<StudioCustomModeContentProps> = (
   hasUploadPreview = false,
   hidePersonaAction = false,
   selectedPersonaName,
+  selectedPersonaDescription,
   selectedPersonaId,
   instrumentalMode,
   setInstrumentalMode,
@@ -365,6 +361,7 @@ export const StudioCustomModeContent: React.FC<StudioCustomModeContentProps> = (
   setAudioWeight,
   showAdvancedOptions = true,
 }) => {
+  const { t } = useI18n();
   const showTrackIntent = allowedUploadIntents.includes("track");
   const showVocalIntent = allowedUploadIntents.includes("vocal");
   const showMelodyIntent = allowedUploadIntents.includes("melody");
@@ -404,12 +401,12 @@ export const StudioCustomModeContent: React.FC<StudioCustomModeContentProps> = (
   const showVocalGender = showVocalGenderSection && !instrumentalMode;
   const hasExplicitUploadIntent = uploadIntent !== null;
   const uploadIntentLabel = uploadIntent === "vocal"
-    ? "Vocal"
+    ? t("featurePanel.vocal")
     : uploadIntent === "melody"
-      ? "Melody"
+      ? t("featurePanel.melody")
       : uploadIntent === "track"
-        ? "Track"
-        : "Add Audio";
+        ? t("featurePanel.track")
+        : t("featurePanel.addAudio");
   const UploadIntentIcon = uploadIntent === "vocal"
     ? Mic
     : uploadIntent === "melody"
@@ -418,10 +415,10 @@ export const StudioCustomModeContent: React.FC<StudioCustomModeContentProps> = (
         ? Disc3
         : UploadCloud;
   const primaryUploadLabel = singleUploadIntent === "vocal"
-    ? "Vocal"
+    ? t("featurePanel.vocal")
     : singleUploadIntent === "melody"
-      ? "Melody"
-      : "Track";
+      ? t("featurePanel.melody")
+      : t("featurePanel.track");
   const handlePrimaryUploadClick = singleUploadIntent === "vocal"
     ? onAddVocal
     : singleUploadIntent === "melody"
@@ -476,22 +473,22 @@ ${tag}
           {showPrimaryUploadCard && (
             <div className="studio-panel-card rounded-2xl p-3 space-y-2">
               <h3 className="text-xs md:text-sm font-semibold text-foreground">
-                Audio Sample
+                {t("featurePanel.audioSample")}
               </h3>
               <button
                 type="button"
                 onClick={handlePrimaryUploadClick}
                 className="group w-full rounded-2xl border border-dashed border-slate-300/35 dark:border-slate-700/25 bg-background/20 px-4 py-8 text-center transition-colors"
-                title={`Upload ${primaryUploadLabel.toLowerCase()}`}
+                title={t("featurePanel.addAudio")}
               >
                 <span className="mx-auto mb-3 inline-flex h-10 w-10 items-center justify-center text-muted-foreground transition-colors group-hover:text-primary">
                   <UploadCloud className="h-6 w-6" strokeWidth={2} />
                 </span>
                 <span className="block text-sm md:text-base font-semibold text-foreground transition-colors group-hover:text-primary">
-                  Upload Audio
+                  {t("featurePanel.uploadAudio")}
                 </span>
-                <span className="mt-1 block text-xs text-muted-foreground transition-colors group-hover:text-primary/80">
-                  MP3, WAV, M4A (Max 100MB)
+                <span className="mt-1 block text-sm text-muted-foreground transition-colors group-hover:text-primary/80">
+                  {t("featurePanel.audioUploadFormatsHint")}
                 </span>
               </button>
             </div>
@@ -506,7 +503,7 @@ ${tag}
                     variant="ghost"
                     size="sm"
                     className={`studio-panel-card h-12 w-full justify-center text-foreground/75 hover:text-foreground hover:bg-foreground/10 transition-colors ${getSegmentClass("add")}`}
-                    title="Add audio"
+                    title={t("featurePanel.addAudio")}
                   >
                     <UploadIntentIcon className="h-3.5 w-3.5" />
                     <span className="text-sm font-semibold tracking-tight">{uploadIntentLabel}</span>
@@ -520,7 +517,7 @@ ${tag}
                       className="cursor-pointer rounded-lg px-2.5 py-2 text-sm"
                     >
                       <Disc3 className="mr-2 h-3.5 w-3.5" />
-                      <span>Track</span>
+                      <span>{t("featurePanel.track")}</span>
                     </DropdownMenuItem>
                   )}
                   {showVocalIntent && (
@@ -529,7 +526,7 @@ ${tag}
                       className="cursor-pointer rounded-lg px-2.5 py-2 text-sm"
                     >
                       <Mic className="mr-2 h-3.5 w-3.5" />
-                      <span>Vocal</span>
+                      <span>{t("featurePanel.vocal")}</span>
                     </DropdownMenuItem>
                   )}
                   {showMelodyIntent && (
@@ -538,7 +535,7 @@ ${tag}
                       className="cursor-pointer rounded-lg px-2.5 py-2 text-sm"
                     >
                       <Music2 className="mr-2 h-3.5 w-3.5" />
-                      <span>Melody</span>
+                      <span>{t("featurePanel.melody")}</span>
                     </DropdownMenuItem>
                   )}
                   {hasExplicitUploadIntent && onClearUploadIntent && (
@@ -549,7 +546,7 @@ ${tag}
                         className="cursor-pointer rounded-lg px-2.5 py-2 text-sm text-muted-foreground"
                       >
                         <Trash2 className="mr-2 h-3.5 w-3.5" />
-                        <span>Clear Selection</span>
+                        <span>{t("featurePanel.clearSelection")}</span>
                       </DropdownMenuItem>
                     </>
                   )}
@@ -562,13 +559,13 @@ ${tag}
                 variant="ghost"
                 size="sm"
                 className={`studio-panel-card h-12 w-full justify-center text-foreground/75 hover:text-foreground hover:bg-foreground/10 transition-colors ${getSegmentClass("mashup")}`}
-                title="Create mashup"
+                title={t("featurePanel.createMashup")}
                 onClick={onAddMashup}
                 disabled={isMashupLoading}
               >
                 <Sparkles className="h-3.5 w-3.5" />
                 <span className="text-sm font-semibold tracking-tight">
-                  {isMashupLoading ? "Preparing..." : "Mashup"}
+                  {isMashupLoading ? t("featurePanel.preparing") : t("featurePanel.mashup")}
                 </span>
               </Button>
             )}
@@ -581,7 +578,7 @@ ${tag}
 
         {showInstrumentalToggle && (
           <section className="studio-panel-card rounded-2xl px-3 py-3 flex items-center justify-between">
-            <h3 className="text-xs md:text-sm font-semibold text-foreground">Instrumental</h3>
+            <h3 className="text-xs md:text-sm font-semibold text-foreground">{t("featurePanel.instrumental")}</h3>
             <Switch
               checked={instrumentalMode}
               onCheckedChange={setInstrumentalMode}
@@ -594,13 +591,13 @@ ${tag}
           <section className="studio-panel-card rounded-2xl p-3">
             <div className="flex items-start justify-between gap-2 mb-3 md:mb-4">
               <h3 className="text-xs md:text-sm font-semibold flex items-center gap-2">
-                Lyrics
+                {t("featurePanel.lyrics")}
               </h3>
             </div>
             <div className="space-y-3">
               <div className="relative">
                 <Textarea
-                  placeholder="Write your song lyrics here..."
+                  placeholder={t("featurePanel.writeSongLyricsPlaceholder")}
                   value={customLyrics}
                   onChange={(e) => setCustomLyrics(e.target.value)}
                   maxLength={customPromptMaxLength}
@@ -615,12 +612,12 @@ ${tag}
                   <Button
                     variant="ghost"
                     size="sm"
-                    className="inline-flex h-8 items-center gap-1.5 rounded-full bg-foreground/5 px-3 text-xs font-semibold text-foreground/70 transition-colors hover:bg-foreground/10 hover:text-foreground"
-                    title="Generate lyrics with AI"
+                    className="inline-flex h-8 items-center gap-1.5 rounded-full bg-foreground/5 px-3 text-xs font-medium text-foreground/70 transition-colors hover:bg-foreground/10 hover:text-foreground"
+                    title={t("featurePanel.generateLyricsWithAI")}
                     onClick={onGenerateLyrics}
                   >
                     <Wand2 className="h-3.5 w-3.5" />
-                    <span className="text-xs font-medium">Auto Generate</span>
+                    <span className="text-xs font-medium">{t("featurePanel.autoGenerate")}</span>
                   </Button>
 
                   <DropdownMenu>
@@ -628,8 +625,8 @@ ${tag}
                       <Button
                         variant="ghost"
                         size="sm"
-                        title="Lyrics Tags"
-                        aria-label="Lyrics Tags"
+                        title={t("featurePanel.lyricsTags")}
+                        aria-label={t("featurePanel.lyricsTags")}
                         className="h-8 w-8 rounded-full bg-foreground/5 p-0 text-foreground/70 transition-colors hover:bg-foreground/10 hover:text-foreground"
                       >
                         <Tag className="h-3.5 w-3.5" />
@@ -651,8 +648,8 @@ ${tag}
                   <Button
                     variant="ghost"
                     size="sm"
-                    title={isWritingNextLyricLine ? "Writing next line" : "Write Next Line"}
-                    aria-label={isWritingNextLyricLine ? "Writing next line" : "Write Next Line"}
+                    title={isWritingNextLyricLine ? t("featurePanel.writingNextLine") : t("featurePanel.writeNextLine")}
+                    aria-label={isWritingNextLyricLine ? t("featurePanel.writingNextLine") : t("featurePanel.writeNextLine")}
                     className="h-8 w-8 rounded-full bg-foreground/5 p-0 text-foreground/70 transition-colors hover:bg-foreground/10 hover:text-foreground disabled:opacity-50 disabled:cursor-not-allowed"
                     onClick={onWriteNextLyricLine}
                     disabled={isWritingNextLyricLine || !customLyrics.trim()}
@@ -663,8 +660,8 @@ ${tag}
                   <Button
                     variant="ghost"
                     size="sm"
-                    title="Clear Lyrics"
-                    aria-label="Clear Lyrics"
+                    title={t("featurePanel.clearLyrics")}
+                    aria-label={t("featurePanel.clearLyrics")}
                     className="h-8 w-8 rounded-full bg-foreground/5 p-0 text-foreground/70 transition-colors hover:bg-foreground/10 hover:text-foreground disabled:opacity-50 disabled:cursor-not-allowed"
                     onClick={onClearCustomLyrics}
                     disabled={!customLyrics.trim()}
@@ -681,11 +678,11 @@ ${tag}
 
         <section className="studio-panel-card rounded-2xl p-3">
           <h3 className="text-xs md:text-sm font-semibold mb-3 md:mb-4 flex items-center gap-2">
-            Title
+            {t("featurePanel.title")}
           </h3>
           <div>
             <Input
-              placeholder="Enter your song title..."
+              placeholder={t("featurePanel.enterSongTitle")}
               value={songTitle}
               onChange={(e) => setSongTitle(e.target.value)}
               maxLength={titleMaxLength}
@@ -704,11 +701,11 @@ ${tag}
               className="flex w-full min-h-[28px] items-center justify-between gap-3 rounded-xl p-1 text-left"
               onClick={() => setIsPersonaOpen((prev) => !prev)}
               aria-expanded={isPersonaOpen}
-              aria-label="Toggle persona options"
+              aria-label={t("featurePanel.togglePersonaOptions")}
             >
-              <h3 className="text-xs md:text-sm font-semibold text-foreground">Persona</h3>
+              <h3 className="text-xs md:text-sm font-semibold text-foreground">{t("featurePanel.persona")}</h3>
               <span className="inline-flex items-center gap-2">
-                <span className="text-[10px] uppercase tracking-[0.14em] text-muted-foreground">Optional</span>
+                <span className="text-xs uppercase tracking-[0.14em] text-muted-foreground">{t("featurePanel.optional")}</span>
                 <ChevronDown
                   className={`h-3.5 w-3.5 text-muted-foreground transition-transform ${
                     isPersonaOpen ? "rotate-180" : ""
@@ -723,7 +720,7 @@ ${tag}
                   variant="ghost"
                   size="sm"
                   className="studio-panel-card h-[62px] w-full justify-start gap-2 px-3 text-foreground/75 hover:text-foreground hover:bg-foreground/10 transition-colors"
-                  title="Select persona"
+                  title={t("featurePanel.selectPersona")}
                   onClick={onOpenPersonaDialog}
                 >
                   <span className="inline-flex h-7 w-7 items-center justify-center rounded-full bg-primary/10 text-primary">
@@ -731,9 +728,13 @@ ${tag}
                   </span>
                   <span className="min-w-0 text-left">
                     <span className="block text-sm font-semibold tracking-tight text-foreground">
-                      {selectedPersonaName || (selectedPersonaId ? "Persona Selected" : "Persona")}
+                      {selectedPersonaName || (selectedPersonaId ? t("featurePanel.personaSelected") : t("featurePanel.persona"))}
                     </span>
-                    <span className="block text-xs font-normal text-muted-foreground">Select/Create Persona</span>
+                    <span className="block text-sm font-normal text-muted-foreground">
+                      {selectedPersonaId && selectedPersonaDescription
+                        ? selectedPersonaDescription
+                        : t("featurePanel.selectCreatePersona")}
+                    </span>
                   </span>
                   <ChevronRight className="ml-auto h-3.5 w-3.5 shrink-0 text-muted-foreground" />
                 </Button>
@@ -749,14 +750,14 @@ ${tag}
               className="flex w-full items-center justify-between gap-3 rounded-xl p-1 text-left"
               onClick={() => setIsAdvancedOptionsOpen((prev) => !prev)}
               aria-expanded={isAdvancedOptionsOpen}
-              aria-label="Toggle advanced options"
+              aria-label={t("featurePanel.toggleAdvancedOptions")}
             >
               <h3 className="text-xs md:text-sm font-semibold text-foreground inline-flex items-center gap-2">
                 <SlidersHorizontal className="h-3.5 w-3.5" />
-                Advanced Options
+                {t("featurePanel.advancedOptions")}
               </h3>
               <span className="inline-flex items-center gap-2">
-                <span className="text-[10px] uppercase tracking-[0.14em] text-muted-foreground">Optional</span>
+                <span className="text-xs uppercase tracking-[0.14em] text-muted-foreground">{t("featurePanel.optional")}</span>
                 <ChevronDown
                   className={`h-3.5 w-3.5 text-muted-foreground transition-transform ${
                     isAdvancedOptionsOpen ? "rotate-180" : ""
@@ -769,15 +770,15 @@ ${tag}
               <div className="mt-3 space-y-4">
                 {showVocalGender && (
                   <div className="flex items-center justify-between gap-3">
-                    <p className="text-xs font-semibold text-foreground whitespace-nowrap">Vocal Gender</p>
+                    <p className="text-xs font-medium text-foreground whitespace-nowrap">{t("featurePanel.vocalGender")}</p>
                     <div className="studio-panel-card inline-flex shrink-0 whitespace-nowrap items-center rounded-full p-1 gap-1">
                       {vocalGenders.map((gender) => (
                         <button
                           key={gender.id}
                           onClick={() => setVocalGender(gender.id)}
-                          className={`px-4 py-2 text-xs md:text-sm font-semibold transition-colors duration-200 rounded-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background ${
+                          className={`px-4 py-2 text-xs md:text-sm font-medium transition-colors duration-200 rounded-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background ${
                             vocalGender === gender.id
-                              ? 'bg-primary text-primary-foreground shadow-[0_1px_1px_rgba(0,0,0,0.08)]'
+                              ? 'bg-primary text-primary-foreground font-semibold shadow-[0_1px_1px_rgba(0,0,0,0.08)]'
                               : 'text-foreground/60 hover:text-foreground hover:bg-foreground/5'
                           }`}
                         >
@@ -792,18 +793,18 @@ ${tag}
                   <div className="flex items-start justify-between gap-3">
                     <div className="space-y-1">
                       <div className="inline-flex items-center gap-1.5">
-                        <p className="text-xs font-semibold text-foreground">Style Weight</p>
+                        <p className="text-xs font-medium text-foreground">{t("featurePanel.styleWeight")}</p>
                         <button
                           type="button"
                           className="inline-flex h-4 w-4 items-center justify-center rounded-full text-muted-foreground transition-colors hover:text-foreground"
-                          aria-label="Style Weight info"
-                          title="Controls how closely the result follows the chosen style. Higher values keep it more faithful to that style."
+                          aria-label={t("featurePanel.styleWeightInfoLabel")}
+                          title={t("featurePanel.styleWeightInfoText")}
                         >
                           <Info className="h-3.5 w-3.5" />
                         </button>
                       </div>
                     </div>
-                    <span className="inline-flex h-8 min-w-[56px] items-center justify-end px-1 text-xs font-semibold text-foreground/80">
+                    <span className="inline-flex h-8 min-w-[56px] items-center justify-end px-1 text-xs font-medium text-foreground/80">
                       {toPercent(styleWeight)}%
                     </span>
                   </div>
@@ -822,18 +823,18 @@ ${tag}
                   <div className="flex items-start justify-between gap-3">
                     <div className="space-y-1">
                       <div className="inline-flex items-center gap-1.5">
-                        <p className="text-xs font-semibold text-foreground">Weirdness Constraint</p>
+                        <p className="text-xs font-medium text-foreground">{t("featurePanel.weirdnessConstraint")}</p>
                         <button
                           type="button"
                           className="inline-flex h-4 w-4 items-center justify-center rounded-full text-muted-foreground transition-colors hover:text-foreground"
-                          aria-label="Weirdness Constraint info"
-                          title="Controls the experimental range of the output. Higher values allow more creative and unexpected variations."
+                          aria-label={t("featurePanel.weirdnessConstraintInfoLabel")}
+                          title={t("featurePanel.weirdnessConstraintInfoText")}
                         >
                           <Info className="h-3.5 w-3.5" />
                         </button>
                       </div>
                     </div>
-                    <span className="inline-flex h-8 min-w-[56px] items-center justify-end px-1 text-xs font-semibold text-foreground/80">
+                    <span className="inline-flex h-8 min-w-[56px] items-center justify-end px-1 text-xs font-medium text-foreground/80">
                       {toPercent(weirdnessConstraint)}%
                     </span>
                   </div>
@@ -852,18 +853,18 @@ ${tag}
                   <div className="flex items-start justify-between gap-3">
                     <div className="space-y-1">
                       <div className="inline-flex items-center gap-1.5">
-                        <p className="text-xs font-semibold text-foreground">Audio Weight</p>
+                        <p className="text-xs font-medium text-foreground">{t("featurePanel.audioWeight")}</p>
                         <button
                           type="button"
                           className="inline-flex h-4 w-4 items-center justify-center rounded-full text-muted-foreground transition-colors hover:text-foreground"
-                          aria-label="Audio Weight info"
-                          title="Adjusts how strongly audio elements are weighted. Higher values give audio characteristics more influence."
+                          aria-label={t("featurePanel.audioWeightInfoLabel")}
+                          title={t("featurePanel.audioWeightInfoText")}
                         >
                           <Info className="h-3.5 w-3.5" />
                         </button>
                       </div>
                     </div>
-                    <span className="inline-flex h-8 min-w-[56px] items-center justify-end px-1 text-xs font-semibold text-foreground/80">
+                    <span className="inline-flex h-8 min-w-[56px] items-center justify-end px-1 text-xs font-medium text-foreground/80">
                       {toPercent(audioWeight)}%
                     </span>
                   </div>

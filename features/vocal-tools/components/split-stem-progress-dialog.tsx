@@ -256,10 +256,10 @@ export const SplitStemProgressDialog: React.FC<SplitStemProgressDialogProps> = (
           {showSplitStemCards && (
             <div className="space-y-3">
               <div className="flex items-center justify-between gap-3">
-                <p className="text-[11px] font-semibold uppercase tracking-[0.08em] text-muted-foreground">
+                <p className="text-xs font-semibold uppercase tracking-[0.08em] text-muted-foreground">
                   {trackTitle}
                 </p>
-                <p className="text-xs text-muted-foreground">
+                <p className="text-sm text-muted-foreground">
                   {`${splitStemEntries.length} stems`}
                 </p>
               </div>
@@ -318,7 +318,7 @@ export const SplitStemProgressDialog: React.FC<SplitStemProgressDialogProps> = (
                     />
                   </section>
                   {stemErrorMap[activeSplitStemEntry[0]] && (
-                    <p className="text-xs text-red-500">
+                    <p className="text-sm text-red-500">
                       Failed to load {getStemLabel(activeSplitStemEntry[0]).toLowerCase()} track.
                     </p>
                   )}

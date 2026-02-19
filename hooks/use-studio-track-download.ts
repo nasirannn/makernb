@@ -4,6 +4,7 @@ import React from "react";
 import { toast } from "sonner";
 
 import { supabase } from "@/lib/supabase";
+import { useI18n } from "@/lib/i18n/provider";
 
 type DownloadFormat = "mp3" | "wav" | "mp4" | "cover";
 type WavDownloadStatus = "preparing" | "generating" | "downloading" | "completed" | "error";
@@ -19,6 +20,7 @@ interface DownloadOptions {
 }
 
 export const useStudioTrackDownload = ({ user }: UseStudioTrackDownloadParams) => {
+  const { t } = useI18n();
   const [wavDownloadDialogOpen, setWavDownloadDialogOpen] = React.useState(false);
   const [wavDownloadProgress, setWavDownloadProgress] = React.useState(0);
   const [wavDownloadStatus, setWavDownloadStatus] = React.useState<WavDownloadStatus>("preparing");
@@ -56,9 +58,9 @@ export const useStudioTrackDownload = ({ user }: UseStudioTrackDownloadParams) =
     setWavDownloadDialogOpen(true);
     setWavDownloadProgress(0);
     setWavDownloadStatus("preparing");
-    setWavDownloadStatusText("Preparing download...");
+    setWavDownloadStatusText(t("download.preparingDownload"));
     setWavDownloadErrorMessage("");
-    setWavDownloadTrackTitle(track.title || music.title || "Track");
+    setWavDownloadTrackTitle(track.title || music.title || t("download.trackDefaultTitle"));
 
     const calculateProgress = (hasWavUrl: boolean, elapsedTime: number): number => {
       if (hasWavUrl) {
@@ -84,8 +86,8 @@ export const useStudioTrackDownload = ({ user }: UseStudioTrackDownloadParams) =
 
         if (elapsedTime > MAX_POLL_TIME) {
           setWavDownloadStatus("error");
-          setWavDownloadStatusText("Download timeout");
-          setWavDownloadErrorMessage("WAV conversion is taking longer than expected. Please try again later.");
+          setWavDownloadStatusText(t("download.downloadTimeout"));
+          setWavDownloadErrorMessage(t("download.wavTakingLong"));
           return;
         }
 
@@ -96,8 +98,8 @@ export const useStudioTrackDownload = ({ user }: UseStudioTrackDownloadParams) =
             lastProgress = Math.max(lastProgress, progress);
 
             const statusText = data.hasWavUrl
-              ? "Processing WAV file..."
-              : "Waiting for conversion...";
+              ? t("download.processingWavFile")
+              : t("download.waitingForConversion");
 
             setWavDownloadProgress(lastProgress);
             setWavDownloadStatus(data.hasWavUrl ? "generating" : "preparing");
@@ -107,13 +109,13 @@ export const useStudioTrackDownload = ({ user }: UseStudioTrackDownloadParams) =
             return;
           }
 
-          throw new Error(data.error || data.message || "WAV generation failed");
+          throw new Error(data.error || data.message || t("download.downloadFailed"));
         }
 
         if (response.status === 200) {
           setWavDownloadProgress(95);
           setWavDownloadStatus("downloading");
-          setWavDownloadStatusText("Preparing file for download");
+          setWavDownloadStatusText(t("download.preparingFileForDownload"));
 
           const contentType = response.headers.get("content-type");
 
@@ -125,23 +127,23 @@ export const useStudioTrackDownload = ({ user }: UseStudioTrackDownloadParams) =
                 throw new Error(`Failed to fetch WAV: ${wavResponse.status}`);
               }
               const blob = await wavResponse.blob();
-              downloadFile(blob, track.title || music.title || "track", "wav");
+              downloadFile(blob, track.title || music.title || t("download.trackDefaultTitle"), "wav");
 
               setWavDownloadProgress(100);
               setWavDownloadStatus("completed");
-              setWavDownloadStatusText("Download completed!");
+              setWavDownloadStatusText(t("download.downloadCompleted"));
               return;
             }
 
-            throw new Error(data.error || "Download failed");
+            throw new Error(data.error || t("download.downloadFailed"));
           }
 
           const blob = await response.blob();
-          downloadFile(blob, track.title || music.title || "track", "wav");
+          downloadFile(blob, track.title || music.title || t("download.trackDefaultTitle"), "wav");
 
           setWavDownloadProgress(100);
           setWavDownloadStatus("completed");
-          setWavDownloadStatusText("Download completed!");
+          setWavDownloadStatusText(t("download.downloadCompleted"));
           return;
         }
 
@@ -150,13 +152,13 @@ export const useStudioTrackDownload = ({ user }: UseStudioTrackDownloadParams) =
       } catch (error) {
         console.error("WAV download polling error:", error);
         setWavDownloadStatus("error");
-        setWavDownloadStatusText("Download failed");
-        setWavDownloadErrorMessage(error instanceof Error ? error.message : "Unable to download WAV file");
+        setWavDownloadStatusText(t("download.downloadFailed"));
+        setWavDownloadErrorMessage(error instanceof Error ? error.message : t("download.unableDownloadWavFile"));
       }
     };
 
     await pollForWav();
-  }, [downloadFile]);
+  }, [downloadFile, t]);
 
   const handleDownload = React.useCallback(async (
     track: any,
@@ -165,7 +167,7 @@ export const useStudioTrackDownload = ({ user }: UseStudioTrackDownloadParams) =
     options?: DownloadOptions
   ) => {
     if (!track.id) {
-      toast.error("Track ID is required");
+      toast.error(t("download.trackIdRequired"));
       return;
     }
 
@@ -191,8 +193,8 @@ export const useStudioTrackDownload = ({ user }: UseStudioTrackDownloadParams) =
       const { data: { session } } = await supabase.auth.getSession();
 
       if (!session?.access_token) {
-        toast.error("Authentication required", {
-          description: "Please log in to download tracks",
+        toast.error(t("toasts.authRequired"), {
+          description: t("download.pleaseLogInDownloadTracks"),
         });
         return;
       }
@@ -231,8 +233,8 @@ export const useStudioTrackDownload = ({ user }: UseStudioTrackDownloadParams) =
           downloadFile(blob, track.title || music.title || "cover", ext);
         } catch (error) {
           console.error("Cover download error:", error);
-          toast.error("Download failed", {
-            description: error instanceof Error ? error.message : "Unable to download cover image",
+          toast.error(t("download.downloadFailed"), {
+            description: error instanceof Error ? error.message : t("download.unableDownloadCoverImage"),
           });
         }
         return;
@@ -247,8 +249,8 @@ export const useStudioTrackDownload = ({ user }: UseStudioTrackDownloadParams) =
         const POLL_INTERVAL = 3000;
         const MAX_POLL_TIME = 180000;
         const startTime = Date.now();
-        const mp4ToastId = toast.loading("Generating MP4 video...", {
-          description: "This may take 1-3 minutes. You can continue using Studio.",
+        const mp4ToastId = toast.loading(t("download.generatingMp4Video"), {
+          description: t("download.generatingMp4Description"),
         });
 
         const mp4Params = new URLSearchParams({
@@ -275,7 +277,7 @@ export const useStudioTrackDownload = ({ user }: UseStudioTrackDownloadParams) =
 
           const elapsedTime = Date.now() - startTime;
           if (elapsedTime > MAX_POLL_TIME) {
-            throw new Error("MP4 generation timeout");
+            throw new Error(t("download.mp4GenerationTimeout"));
           }
 
           if (response.status === 202) {
@@ -284,7 +286,7 @@ export const useStudioTrackDownload = ({ user }: UseStudioTrackDownloadParams) =
               await new Promise((resolve) => setTimeout(resolve, POLL_INTERVAL));
               return pollForMp4();
             }
-            throw new Error(data.error || data.message || "MP4 generation failed");
+            throw new Error(data.error || data.message || t("download.mp4GenerationFailed"));
           }
 
           if (!response.ok) {
@@ -301,27 +303,27 @@ export const useStudioTrackDownload = ({ user }: UseStudioTrackDownloadParams) =
                 throw new Error(`Failed to fetch MP4: ${videoResponse.status}`);
               }
               const blob = await videoResponse.blob();
-              downloadFile(blob, track.title || music.title || "track", "mp4");
+              downloadFile(blob, track.title || music.title || t("download.trackDefaultTitle"), "mp4");
               return;
             }
-            throw new Error(data.error || "Download failed");
+            throw new Error(data.error || t("download.downloadFailed"));
           }
 
           const blob = await response.blob();
-          downloadFile(blob, track.title || music.title || "track", "mp4");
+          downloadFile(blob, track.title || music.title || t("download.trackDefaultTitle"), "mp4");
         };
 
         try {
           await pollForMp4();
-          toast.success("MP4 download started!", {
+          toast.success(t("download.mp4DownloadStarted"), {
             id: mp4ToastId,
-            description: `${track.title || music.title || "track"}.mp4`,
+            description: `${track.title || music.title || t("download.trackDefaultTitle")}.mp4`,
           });
         } catch (error) {
           console.error("MP4 download error:", error);
-          toast.error("MP4 download failed", {
+          toast.error(t("download.mp4DownloadFailed"), {
             id: mp4ToastId,
-            description: error instanceof Error ? error.message : "Unable to download MP4 file",
+            description: error instanceof Error ? error.message : t("download.unableDownloadMp4File"),
           });
         }
         return;
@@ -343,7 +345,7 @@ export const useStudioTrackDownload = ({ user }: UseStudioTrackDownloadParams) =
           }
 
           const blob = await audioResponse.blob();
-          downloadFile(blob, track.title || music.title || "track", "mp3");
+          downloadFile(blob, track.title || music.title || t("download.trackDefaultTitle"), "mp3");
           return;
         } catch (error) {
           console.error("[DOWNLOAD] Error downloading MP3 from audio URL:", error);
@@ -370,18 +372,18 @@ export const useStudioTrackDownload = ({ user }: UseStudioTrackDownloadParams) =
             throw new Error(`Failed to fetch audio: ${audioResponse.status}`);
           }
           const blob = await audioResponse.blob();
-          downloadFile(blob, track.title || music.title || "track", "mp3");
+          downloadFile(blob, track.title || music.title || t("download.trackDefaultTitle"), "mp3");
         } else {
-          throw new Error(data.error || "Download failed");
+          throw new Error(data.error || t("download.downloadFailed"));
         }
       } else {
         const blob = await response.blob();
-        downloadFile(blob, track.title || music.title || "track", "mp3");
+        downloadFile(blob, track.title || music.title || t("download.trackDefaultTitle"), "mp3");
       }
     } catch (error) {
       console.error("Download error:", error);
     }
-  }, [downloadFile, handleWavDownloadWithPolling, mp4Author, user]);
+  }, [downloadFile, handleWavDownloadWithPolling, mp4Author, user, t]);
 
   const closeWavDownloadDialog = React.useCallback(() => {
     setWavDownloadDialogOpen(false);

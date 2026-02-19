@@ -13,8 +13,10 @@ import presetsData from '@/data/lyrics-presets.json';
 import Image from 'next/image';
 import { supabase } from '@/lib/supabase';
 import { BUTTON_CLASSES, STYLES } from '@/lib/studio-constants';
+import { useI18n } from '@/lib/i18n/provider';
 
 export default function LyricsGeneratorPage() {
+  const { t } = useI18n();
   const { user } = useAuth();
   const isLoggedIn = !!user;
   const [prompt, setPrompt] = useState<string>('');
@@ -37,7 +39,7 @@ export default function LyricsGeneratorPage() {
     }
 
     if (!prompt.trim()) {
-      setError('Please enter a song theme or prompt');
+      setError(t('lyricsGeneratorPage.errors.enterThemeOrPrompt'));
       return;
     }
 
@@ -53,7 +55,7 @@ export default function LyricsGeneratorPage() {
         if (refreshedSession?.access_token) {
           return await makeApiCall(refreshedSession.access_token);
         }
-        throw new Error('Failed to get session. Please try logging in again.');
+        throw new Error(t('lyricsGeneratorPage.errors.failedGetSessionLoginAgain'));
       }
 
       if (!session?.access_token) {
@@ -61,14 +63,14 @@ export default function LyricsGeneratorPage() {
         if (refreshedSession?.access_token) {
           return await makeApiCall(refreshedSession.access_token);
         }
-        throw new Error('Please log in to generate lyrics.');
+        throw new Error(t('lyricsGeneratorPage.errors.pleaseLoginGenerateLyrics'));
       }
 
       await makeApiCall(session.access_token);
 
     } catch (err) {
       console.error('Error generating lyrics:', err);
-      setError(err instanceof Error ? err.message : 'Failed to generate lyrics');
+      setError(err instanceof Error ? err.message : t('lyricsGeneratorPage.errors.failedGenerateLyrics'));
       setIsGenerating(false);
     }
   };
@@ -87,17 +89,17 @@ export default function LyricsGeneratorPage() {
       const result = await response.json();
 
       if (response.status === 401) {
-        throw new Error('Your session has expired. Please log in again.');
+        throw new Error(t('lyricsGeneratorPage.errors.sessionExpiredLoginAgain'));
       }
 
       if (!result.success) {
-        throw new Error(result.error || 'Failed to generate lyrics');
+        throw new Error(result.error || t('lyricsGeneratorPage.errors.failedGenerateLyrics'));
       }
 
       if (result.data?.taskId) {
         await pollLyricsStatus(result.data.taskId);
       } else {
-        throw new Error('No task ID received');
+        throw new Error(t('lyricsGeneratorPage.errors.noTaskIdReceived'));
       }
     } catch (err) {
       throw err;
@@ -120,7 +122,7 @@ export default function LyricsGeneratorPage() {
             setGeneratedLyrics(result.data.lyrics);
             return;
           } else if (result.data?.status === 'error') {
-            setError(result.data.error || 'Lyrics generation failed');
+            setError(result.data.error || t('lyricsGeneratorPage.errors.lyricsGenerationFailed'));
             return;
           }
         }
@@ -129,11 +131,11 @@ export default function LyricsGeneratorPage() {
         if (attempts < maxAttempts) {
           setTimeout(poll, 2000);
         } else {
-          setError('Lyrics generation timed out. Please try again.');
+          setError(t('lyricsGeneratorPage.errors.lyricsGenerationTimedOut'));
         }
       } catch (err) {
         console.error('Error polling lyrics status:', err);
-        setError('Failed to check lyrics generation status');
+        setError(t('lyricsGeneratorPage.errors.failedCheckStatus'));
       }
     };
 
@@ -205,13 +207,13 @@ export default function LyricsGeneratorPage() {
           {/* Header */}
           <div className="text-center mb-8">
             <p className="text-sm font-semibold text-muted-foreground uppercase tracking-wider mb-4">
-              AI LYRICS GENERATOR TOOLS
+              {t('lyricsGeneratorPage.hero.toolsLabel')}
             </p>
             <h1 className="text-4xl sm:text-5xl md:text-6xl font-bold text-foreground mb-4 tracking-tight">
-            AI Lyrics Generator Free Online
+              {t('lyricsGeneratorPage.hero.title')}
             </h1>
             <p className="text-muted-foreground text-base sm:text-lg max-w-2xl mx-auto">
-              Craft expressive lyrics instantly with our fast, AI-powered writing assistant.
+              {t('lyricsGeneratorPage.hero.subtitle')}
             </p>
           </div>
 
@@ -223,7 +225,7 @@ export default function LyricsGeneratorPage() {
                   <div className="flex flex-wrap items-center justify-between gap-3 mb-4">
                     <h3 className="text-lg font-semibold tracking-tight flex items-center gap-2">
                       <Wand2 className="h-5 w-5 text-primary" />
-                      Describe Your Song
+                      {t('lyricsGeneratorPage.form.describeSong')}
                     </h3>
                     {prompt && (
                       <Button
@@ -233,14 +235,14 @@ export default function LyricsGeneratorPage() {
                         className="text-xs text-muted-foreground hover:text-foreground"
                       >
                         <RefreshCw className="h-3 w-3 mr-1" />
-                        Clear All
+                        {t('lyricsGeneratorPage.form.clearAll')}
                       </Button>
                     )}
                   </div>
 
                   <div className="relative">
                     <Textarea
-                      placeholder="Type your themes, moods, and styles... e.g., Love and Romance, Romantic and Intimate, R&B"
+                      placeholder={t("lyricsGeneratorPage.promptPlaceholder")}
                       value={prompt}
                       onChange={(e) => setPrompt(e.target.value)}
                       className="min-h-[160px] resize-none pr-16 pb-12 border-0 bg-transparent focus-visible:ring-0 focus-visible:ring-offset-0"
@@ -258,7 +260,7 @@ export default function LyricsGeneratorPage() {
                           }`}
                           aria-expanded={expandedPreset === 'theme'}
                         >
-                          Popular Themes
+                          {t('lyricsGeneratorPage.form.popularThemes')}
                           <ChevronRight className={`h-3 w-3 transition-transform ${expandedPreset === 'theme' ? 'rotate-90' : ''}`} />
                         </button>
                         <button
@@ -269,7 +271,7 @@ export default function LyricsGeneratorPage() {
                           }`}
                           aria-expanded={expandedPreset === 'mood'}
                         >
-                          Moods
+                          {t('lyricsGeneratorPage.form.moods')}
                           <ChevronRight className={`h-3 w-3 transition-transform ${expandedPreset === 'mood' ? 'rotate-90' : ''}`} />
                         </button>
                         <button
@@ -280,7 +282,7 @@ export default function LyricsGeneratorPage() {
                           }`}
                           aria-expanded={expandedPreset === 'style'}
                         >
-                          Musical Styles
+                          {t('lyricsGeneratorPage.form.musicalStyles')}
                           <ChevronRight className={`h-3 w-3 transition-transform ${expandedPreset === 'style' ? 'rotate-90' : ''}`} />
                         </button>
                       </div>
@@ -361,17 +363,19 @@ export default function LyricsGeneratorPage() {
                             <div className="w-2 h-2 bg-white rounded-full animate-bounce" style={{ animationDelay: '150ms' }}></div>
                             <div className="w-2 h-2 bg-white rounded-full animate-bounce" style={{ animationDelay: '300ms' }}></div>
                           </div>
-                          Generating Lyrics...
+                          {t('lyricsGeneratorPage.form.generatingLyrics')}
                         </div>
                       ) : (
                         <div className="flex items-center gap-2">
-                          Generate Lyrics
+                          {t('lyricsGeneratorPage.form.generateLyrics')}
                         </div>
                       )}
                     </Button>
 
                     <p className="text-sm text-muted-foreground text-center">
-                      Estimated time: 30-60 seconds • Cost <span className="text-primary font-medium">{CLIENT_FEATURE_CREDITS.generate_lyrics.credits}</span> <span className="text-primary font-medium">credits</span>
+                      {t('lyricsGeneratorPage.form.estimatedTimeCost', {
+                        credits: CLIENT_FEATURE_CREDITS.generate_lyrics.credits,
+                      })}
                     </p>
 
                     {error && (
@@ -393,7 +397,7 @@ export default function LyricsGeneratorPage() {
               <div className="flex items-center gap-3">
                 <Music className="h-5 w-5 text-primary" />
                 <h2 className="text-2xl font-bold text-foreground tracking-tight">
-                  Generated Lyrics
+                  {t('lyricsGeneratorPage.results.heading')}
                 </h2>
               </div>
 
@@ -405,7 +409,7 @@ export default function LyricsGeneratorPage() {
                       <div className="w-2 h-2 bg-primary rounded-full animate-bounce" style={{ animationDelay: '150ms' }}></div>
                       <div className="w-2 h-2 bg-primary rounded-full animate-bounce" style={{ animationDelay: '300ms' }}></div>
                     </div>
-                    <p className="text-muted-foreground">Crafting your lyrics...</p>
+                    <p className="text-muted-foreground">{t('lyricsGeneratorPage.results.craftingLyrics')}</p>
                   </div>
                 </div>
               )}
@@ -430,12 +434,12 @@ export default function LyricsGeneratorPage() {
                               {copiedIndex === index ? (
                                 <>
                                   <Check className="h-3.5 w-3.5 mr-1.5" />
-                                  Copied
+                                  {t('lyricsGeneratorPage.results.copied')}
                                 </>
                               ) : (
                                 <>
                                   <Copy className="h-3.5 w-3.5 mr-1.5" />
-                                  Copy
+                                  {t('lyricsGeneratorPage.results.copy')}
                                 </>
                               )}
                             </Button>
@@ -446,7 +450,7 @@ export default function LyricsGeneratorPage() {
                               className="h-8 px-3 text-xs hover:bg-muted/30"
                             >
                               <Download className="h-3.5 w-3.5 mr-1.5" />
-                              Download
+                              {t('lyricsGeneratorPage.results.download')}
                             </Button>
                           </div>
                         </div>
@@ -473,17 +477,17 @@ export default function LyricsGeneratorPage() {
           <div className="flex flex-col lg:flex-row items-center gap-12">
             <div className="flex-1 lg:w-3/5 space-y-6">
               <h2 className="text-3xl lg:text-4xl font-bold text-foreground leading-tight tracking-tight">
-                About MakeRNB&apos;s Lyrics Generator
+                {t('lyricsGeneratorPage.about.title')}
               </h2>
               <p className="text-base text-muted-foreground leading-relaxed">
-                Our advanced AI lyrics generator transforms your creative vision into compelling song lyrics. Whether you&apos;re a songwriter seeking inspiration, a musician looking for the perfect words, or a content creator needing original lyrics, our tool delivers professional-quality results in seconds.
+                {t('lyricsGeneratorPage.about.description')}
               </p>
             </div>
 
             <div className="flex-1 lg:w-2/5 flex justify-center">
               <Image
                 src="/icons/Custom-Lyrics-Support.svg"
-                alt="Lyrics Generator"
+                alt={t('lyricsGeneratorPage.about.imageAlt')}
                 width={320}
                 height={320}
                 className="h-80 w-80 object-contain opacity-90"
@@ -498,13 +502,13 @@ export default function LyricsGeneratorPage() {
         <div className="max-w-6xl mx-auto">
           <div className="text-center mb-12">
             <p className="text-xs font-semibold text-primary uppercase tracking-wider mb-3">
-              Features
+              {t('lyricsGeneratorPage.features.sectionLabel')}
             </p>
             <h2 className="text-3xl md:text-4xl font-bold text-foreground mb-4 tracking-tight">
-              Key Features
+              {t('lyricsGeneratorPage.features.title')}
             </h2>
             <p className="text-base text-muted-foreground max-w-2xl mx-auto">
-              Discover the capabilities that make our AI lyrics generator stand out
+              {t('lyricsGeneratorPage.features.subtitle')}
             </p>
           </div>
 
@@ -513,17 +517,17 @@ export default function LyricsGeneratorPage() {
               <div className="w-16 h-16 flex items-center justify-center mx-auto bg-primary/10 rounded-2xl">
                 <Image
                   src="/icons/AI-Powered-Creativity.svg"
-                  alt="AI-Powered Creativity"
+                  alt={t('lyricsGeneratorPage.features.items.aiPoweredCreativity.alt')}
                   width={40}
                   height={40}
                   className="h-10 w-10"
                 />
               </div>
               <h3 className="text-xl font-semibold text-foreground tracking-tight">
-                AI-Powered Creativity
+                {t('lyricsGeneratorPage.features.items.aiPoweredCreativity.title')}
               </h3>
               <p className="text-sm text-muted-foreground leading-relaxed">
-                Advanced AI creates compelling lyrics that understand context, emotion, and musical structure.
+                {t('lyricsGeneratorPage.features.items.aiPoweredCreativity.description')}
               </p>
             </div>
 
@@ -531,17 +535,17 @@ export default function LyricsGeneratorPage() {
               <div className="w-16 h-16 flex items-center justify-center mx-auto bg-primary/10 rounded-2xl">
                 <Image
                   src="/icons/Multiple-Genres.svg"
-                  alt="Multiple Genres"
+                  alt={t('lyricsGeneratorPage.features.items.multipleGenres.alt')}
                   width={40}
                   height={40}
                   className="h-10 w-10"
                 />
               </div>
               <h3 className="text-xl font-semibold text-foreground tracking-tight">
-                Multiple Genres
+                {t('lyricsGeneratorPage.features.items.multipleGenres.title')}
               </h3>
               <p className="text-sm text-muted-foreground leading-relaxed">
-                Generate lyrics for any style - pop, rock, hip-hop, country, jazz, and more.
+                {t('lyricsGeneratorPage.features.items.multipleGenres.description')}
               </p>
             </div>
 
@@ -549,17 +553,17 @@ export default function LyricsGeneratorPage() {
               <div className="w-16 h-16 flex items-center justify-center mx-auto bg-primary/10 rounded-2xl">
                 <Image
                   src="/icons/Customizable-Mood.svg"
-                  alt="Customizable Mood"
+                  alt={t('lyricsGeneratorPage.features.items.customizableMood.alt')}
                   width={40}
                   height={40}
                   className="h-10 w-10"
                 />
               </div>
               <h3 className="text-xl font-semibold text-foreground tracking-tight">
-                Customizable Mood
+                {t('lyricsGeneratorPage.features.items.customizableMood.title')}
               </h3>
               <p className="text-sm text-muted-foreground leading-relaxed">
-                Set the emotional tone - happy, sad, romantic, or energetic.
+                {t('lyricsGeneratorPage.features.items.customizableMood.description')}
               </p>
             </div>
           </div>
@@ -571,10 +575,10 @@ export default function LyricsGeneratorPage() {
         <div className="max-w-6xl mx-auto">
           <div className="text-center mb-12">
             <h2 className="text-3xl md:text-4xl font-bold text-foreground mb-4 tracking-tight">
-              How To Generate Lyrics With AI
+              {t('lyricsGeneratorPage.howTo.title')}
             </h2>
             <p className="text-base text-muted-foreground max-w-2xl mx-auto">
-              Create compelling lyrics in just three simple steps
+              {t('lyricsGeneratorPage.howTo.subtitle')}
             </p>
           </div>
 
@@ -588,11 +592,11 @@ export default function LyricsGeneratorPage() {
                   <div className="absolute inset-0 w-12 h-12 rounded-full bg-gradient-to-r from-primary to-primary/70 opacity-20 blur-lg"></div>
                 </div>
                 <h3 className="text-xl font-semibold text-foreground tracking-tight">
-                  Choose Your Style
+                  {t('lyricsGeneratorPage.howTo.step1.title')}
                 </h3>
               </div>
               <p className="text-sm text-muted-foreground leading-relaxed pl-16">
-                Select themes, moods, and musical styles from our preset options or type your own creative prompt.
+                {t('lyricsGeneratorPage.howTo.step1.description')}
               </p>
             </div>
 
@@ -605,11 +609,11 @@ export default function LyricsGeneratorPage() {
                   <div className="absolute inset-0 w-12 h-12 rounded-full bg-gradient-to-r from-primary to-primary/70 opacity-20 blur-lg"></div>
                 </div>
                 <h3 className="text-xl font-semibold text-foreground tracking-tight">
-                  Generate Lyrics
+                  {t('lyricsGeneratorPage.howTo.step2.title')}
                 </h3>
               </div>
               <p className="text-sm text-muted-foreground leading-relaxed pl-16">
-                Click generate and let our AI create professional-quality lyrics that match your vision and style.
+                {t('lyricsGeneratorPage.howTo.step2.description')}
               </p>
             </div>
 
@@ -622,11 +626,11 @@ export default function LyricsGeneratorPage() {
                   <div className="absolute inset-0 w-12 h-12 rounded-full bg-gradient-to-r from-primary to-primary/70 opacity-20 blur-lg"></div>
                 </div>
                 <h3 className="text-xl font-semibold text-foreground tracking-tight">
-                  Use Your Lyrics
+                  {t('lyricsGeneratorPage.howTo.step3.title')}
                 </h3>
               </div>
               <p className="text-sm text-muted-foreground leading-relaxed pl-16">
-                Copy your generated lyrics and use them for your songs, or regenerate with different options.
+                {t('lyricsGeneratorPage.howTo.step3.description')}
               </p>
             </div>
           </div>
@@ -638,41 +642,41 @@ export default function LyricsGeneratorPage() {
         <div className="max-w-4xl mx-auto">
           <div className="text-center mb-10">
             <p className="text-xs font-semibold text-primary uppercase tracking-wider mb-3">
-              FAQ
+              {t('lyricsGeneratorPage.faq.sectionLabel')}
             </p>
             <h2 className="text-3xl md:text-4xl font-bold text-foreground mb-4 tracking-tight">
-              Frequently Asked Questions
+              {t('lyricsGeneratorPage.faq.title')}
             </h2>
             <p className="text-base text-muted-foreground">
-              Get answers to common questions about our AI-powered lyrics generator
+              {t('lyricsGeneratorPage.faq.subtitle')}
             </p>
           </div>
 
           <Accordion type="single" collapsible className="space-y-3">
             <AccordionItem value="item-1" className="bg-[#05060b] border border-white/5 rounded-2xl px-6 overflow-hidden">
               <AccordionTrigger className="text-left text-base font-semibold py-4 hover:no-underline [&[data-state=open]]:text-primary">
-                How does AI lyrics generation work?
+                {t('lyricsGeneratorPage.faq.items.item1.question')}
               </AccordionTrigger>
               <AccordionContent className="text-sm text-muted-foreground pb-4 leading-relaxed">
-                Our AI analyzes your prompt, genre, and mood preferences to understand the context and emotional tone you want. It then generates lyrics that follow proper song structure (verses, chorus, bridge) while maintaining coherence and creativity.
+                {t('lyricsGeneratorPage.faq.items.item1.answer')}
               </AccordionContent>
             </AccordionItem>
 
             <AccordionItem value="item-2" className="bg-[#05060b] border border-white/5 rounded-2xl px-6 overflow-hidden">
               <AccordionTrigger className="text-left text-base font-semibold py-4 hover:no-underline [&[data-state=open]]:text-primary">
-                Can I customize the generated lyrics?
+                {t('lyricsGeneratorPage.faq.items.item2.question')}
               </AccordionTrigger>
               <AccordionContent className="text-sm text-muted-foreground pb-4 leading-relaxed">
-                Yes! The generated lyrics serve as a foundation that you can edit, modify, and personalize. You can regenerate with different prompts or manually adjust any part of the lyrics to better match your vision.
+                {t('lyricsGeneratorPage.faq.items.item2.answer')}
               </AccordionContent>
             </AccordionItem>
 
             <AccordionItem value="item-3" className="bg-[#05060b] border border-white/5 rounded-2xl px-6 overflow-hidden">
               <AccordionTrigger className="text-left text-base font-semibold py-4 hover:no-underline [&[data-state=open]]:text-primary">
-                Can I use the generated lyrics commercially?
+                {t('lyricsGeneratorPage.faq.items.item3.question')}
               </AccordionTrigger>
               <AccordionContent className="text-sm text-muted-foreground pb-4 leading-relaxed">
-                Yes, you have full rights to use the generated lyrics for commercial purposes. However, we recommend reviewing and potentially modifying the lyrics to ensure they meet your specific needs and standards.
+                {t('lyricsGeneratorPage.faq.items.item3.answer')}
               </AccordionContent>
             </AccordionItem>
           </Accordion>

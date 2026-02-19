@@ -4,6 +4,7 @@ import * as React from "react";
 import { useTheme } from "next-themes";
 import { Moon, Sun } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { useI18n } from "@/lib/i18n/provider";
 
 export function ThemeModeToggle({
   className,
@@ -15,6 +16,7 @@ export function ThemeModeToggle({
   variant?: "segmented" | "icon";
 }) {
   const { theme, setTheme } = useTheme();
+  const { t } = useI18n();
   const [mounted, setMounted] = React.useState(false);
 
   React.useEffect(() => setMounted(true), []);
@@ -34,8 +36,8 @@ export function ThemeModeToggle({
           btnSize,
           className
         )}
-        aria-label={isDark ? "Switch to light mode" : "Switch to dark mode"}
-        title={isDark ? "Light mode" : "Dark mode"}
+        aria-label={isDark ? t("themeToggle.switchToLightMode") : t("themeToggle.switchToDarkMode")}
+        title={isDark ? t("themeToggle.lightMode") : t("themeToggle.darkMode")}
       >
         {isDark ? <Sun className={iconSize} /> : <Moon className={iconSize} />}
       </button>
@@ -49,7 +51,7 @@ export function ThemeModeToggle({
   return (
     <div
       role="group"
-      aria-label="Theme toggle"
+      aria-label={t("themeToggle.groupLabel")}
       className={cn(
         "inline-flex items-center rounded-full border border-foreground/10 bg-background/80 shadow-[0_1px_2px_rgba(0,0,0,0.08)] backdrop-blur-sm",
         containerSize,
@@ -67,8 +69,8 @@ export function ThemeModeToggle({
             : "text-foreground/60 hover:text-foreground hover:bg-foreground/5"
         )}
         aria-pressed={isDark}
-        aria-label="Switch to dark mode"
-        title="Dark mode"
+        aria-label={t("themeToggle.switchToDarkMode")}
+        title={t("themeToggle.darkMode")}
       >
         <Moon className={iconSize} />
       </button>
@@ -83,8 +85,8 @@ export function ThemeModeToggle({
             : "bg-foreground/10 text-foreground shadow-[0_1px_1px_rgba(0,0,0,0.08)]"
         )}
         aria-pressed={!isDark}
-        aria-label="Switch to light mode"
-        title="Light mode"
+        aria-label={t("themeToggle.switchToLightMode")}
+        title={t("themeToggle.lightMode")}
       >
         <Sun className={iconSize} />
       </button>

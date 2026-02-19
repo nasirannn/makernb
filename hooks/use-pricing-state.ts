@@ -7,38 +7,37 @@ import { useSubscription } from "@/contexts/SubscriptionContext";
 import { createBillingPortalLink, createCheckoutSession, scheduleCancellation, switchSubscription } from "@/lib/subscription-actions";
 import { type PricingPlan } from "@/lib/pricing-config";
 import { usePricingPlans } from "@/hooks/use-pricing-plans";
+import { formatLocalizedDate, formatLocalizedNumber } from "@/lib/locale-format";
 import { toast } from "sonner";
+import { useI18n } from "@/lib/i18n/provider";
 
 const tierRankMap: Record<string, number> = {
   starter: 1,
   hobby: 2,
 };
 
-const formatUsdAmount = (amount: number) => {
+const formatUsdAmountWithLocale = (amount: number, locale: string) => {
   const rounded = Math.round(amount * 100) / 100;
-  return rounded.toLocaleString(undefined, {
+  return formatLocalizedNumber(rounded, {
     minimumFractionDigits: 0,
     maximumFractionDigits: 2,
-  });
+  }, locale);
 };
 
-const formatDisplayDate = (dateValue: string | null | undefined) => {
+const formatDisplayDate = (dateValue: string | null | undefined, locale: string) => {
   if (!dateValue) return null;
-  const parsed = new Date(dateValue);
-  if (Number.isNaN(parsed.getTime())) {
-    return null;
-  }
-  return parsed.toLocaleDateString("en-US", {
+  return formatLocalizedDate(dateValue, {
     weekday: "short",
     month: "short",
     day: "2-digit",
     year: "numeric",
-  });
+  }, locale);
 };
 
 export const usePricingState = (options?: { initialPlans?: PricingPlan[] }) => {
   const { initialPlans } = options ?? {};
   const { user } = useAuth();
+  const { t, locale } = useI18n();
   useCredits();
   const { tierCode, hasSubscription, productId: activeProductId, cancelAtPeriodEnd, cancelAt, currentPeriodEnd, refreshSubscription } = useSubscription();
   const [loading, setLoading] = useState<string | null>(null);
@@ -49,6 +48,7 @@ export const usePricingState = (options?: { initialPlans?: PricingPlan[] }) => {
   const { monthlyPlans, yearlyPlans } = usePricingPlans(initialPlans);
 
   const currentPlans = billingPeriod === "monthly" ? monthlyPlans : yearlyPlans;
+  const formatUsdAmount = (amount: number) => formatUsdAmountWithLocale(amount, locale);
   const allPlans = useMemo(() => [...monthlyPlans, ...yearlyPlans], [monthlyPlans, yearlyPlans]);
   const activePlanRank = useMemo(() => {
     if (activeProductId) {
@@ -58,11 +58,15 @@ export const usePricingState = (options?: { initialPlans?: PricingPlan[] }) => {
   }, [activeProductId, allPlans, tierCode]);
 
   const scheduledCancellationCopy = cancelAt
-    ? `Scheduled to cancel on ${formatDisplayDate(cancelAt) ?? cancelAt}`
-    : "Cancellation scheduled.";
+    ? t("common.cancelScheduledOn", {
+        date: formatDisplayDate(cancelAt, locale) ?? cancelAt,
+      })
+    : t("common.cancellationScheduled");
   const nextChargeCopy = currentPeriodEnd
-    ? `Next charge on ${formatDisplayDate(currentPeriodEnd) ?? currentPeriodEnd}.`
-    : "Next charge scheduled.";
+    ? t("common.nextChargeOn", {
+        date: formatDisplayDate(currentPeriodEnd, locale) ?? currentPeriodEnd,
+      })
+    : t("common.nextChargeScheduled");
 
   const handlePurchase = async (plan: PricingPlan) => {
     if (!user) {
@@ -152,8 +156,8 @@ export const usePricingState = (options?: { initialPlans?: PricingPlan[] }) => {
     if (success) {
       setIsCancelDialogOpen(false);
       await refreshSubscription();
-      toast.success("Cancellation scheduled", {
-        description: "Your subscription will remain active until the end of the current billing period.",
+      toast.success(t("pricing.toasts.cancellationScheduledTitle"), {
+        description: t("pricing.toasts.cancellationScheduledDescription"),
       });
     }
   };

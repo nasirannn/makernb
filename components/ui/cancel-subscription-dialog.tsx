@@ -12,6 +12,7 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { Loader2 } from "lucide-react";
+import { useI18n } from "@/lib/i18n/provider";
 
 interface CancelSubscriptionDialogProps {
   open: boolean;
@@ -26,6 +27,7 @@ export const CancelSubscriptionDialog: React.FC<CancelSubscriptionDialogProps> =
   onConfirm,
   loading = false,
 }) => {
+  const { t } = useI18n();
   const handleOpenChange = (nextOpen: boolean) => {
     if (!nextOpen && loading) {
       return;
@@ -37,9 +39,9 @@ export const CancelSubscriptionDialog: React.FC<CancelSubscriptionDialogProps> =
     <AlertDialog open={open} onOpenChange={handleOpenChange}>
       <AlertDialogContent className="max-w-[calc(100vw-2rem)] sm:max-w-[460px]">
         <AlertDialogHeader className="space-y-2">
-          <AlertDialogTitle>Schedule cancellation?</AlertDialogTitle>
+          <AlertDialogTitle>{t("pricing.dialog.scheduleCancellationTitle")}</AlertDialogTitle>
           <AlertDialogDescription>
-            Your subscription will remain active until the end of the current billing period.
+            {t("pricing.dialog.scheduleCancellationDescription")}
           </AlertDialogDescription>
         </AlertDialogHeader>
         <AlertDialogFooter className="flex-col sm:flex-row gap-2 sm:gap-0">
@@ -54,17 +56,17 @@ export const CancelSubscriptionDialog: React.FC<CancelSubscriptionDialogProps> =
             {loading ? (
               <span className="inline-flex items-center">
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                Canceling...
+                {t("pricing.dialog.canceling")}
               </span>
             ) : (
-              "Schedule cancellation"
+              t("pricing.dialog.scheduleCancellationAction")
             )}
           </AlertDialogAction>
           <AlertDialogCancel
             disabled={loading}
             className="sm:order-2 border-transparent bg-primary text-primary-foreground hover:bg-primary/90"
           >
-            Keep subscription
+            {t("pricing.dialog.keepSubscription")}
           </AlertDialogCancel>
         </AlertDialogFooter>
       </AlertDialogContent>

@@ -9,6 +9,7 @@ import { toast } from "sonner";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Copy, Loader2, RefreshCw, UserRound } from "lucide-react";
 import { supabase } from "@/lib/supabase";
+import { useI18n } from "@/lib/i18n/provider";
 
 interface EditNicknameDialogProps {
   open: boolean;
@@ -17,6 +18,7 @@ interface EditNicknameDialogProps {
 }
 
 export function EditNicknameDialog({ open, onOpenChange, initialValue = "" }: EditNicknameDialogProps) {
+  const { t } = useI18n();
   const { updateNickname, updateProfile, user } = useAuth();
   const [nickname, setNickname] = useState(initialValue);
   const [saving, setSaving] = useState(false);
@@ -46,18 +48,18 @@ export function EditNicknameDialog({ open, onOpenChange, initialValue = "" }: Ed
 
   const handleSave = async () => {
     if (!trimmedNickname) {
-      setError("Nickname cannot be empty.");
+      setError(t("editNickname.nicknameCannotBeEmpty"));
       return;
     }
 
     setSaving(true);
     try {
       await updateNickname(trimmedNickname);
-      toast.success("Nickname updated.");
+      toast.success(t("editNickname.nicknameUpdated"));
       onOpenChange(false);
     } catch (err) {
       console.error("Failed to update nickname:", err);
-      setError("Failed to update nickname. Please try again.");
+      setError(t("editNickname.failedUpdateNickname"));
     } finally {
       setSaving(false);
     }
@@ -69,10 +71,10 @@ export function EditNicknameDialog({ open, onOpenChange, initialValue = "" }: Ed
     }
     try {
       await navigator.clipboard.writeText(user.id);
-      toast("User ID copied.");
+      toast(t("editNickname.userIdCopied"));
     } catch (err) {
       console.error("Failed to copy user ID:", err);
-      toast("Unable to copy user ID.");
+      toast(t("editNickname.unableCopyUserId"));
     }
   };
 
@@ -87,12 +89,12 @@ export function EditNicknameDialog({ open, onOpenChange, initialValue = "" }: Ed
     }
 
     if (!file.type.startsWith("image/")) {
-      toast("Please select an image file.");
+      toast(t("editNickname.selectImageFile"));
       return;
     }
 
     if (file.size > 5 * 1024 * 1024) {
-      toast("Image must be 5MB or smaller.");
+      toast(t("editNickname.imageMaxSize"));
       return;
     }
 
@@ -104,7 +106,7 @@ export function EditNicknameDialog({ open, onOpenChange, initialValue = "" }: Ed
     try {
       const { data: { session }, error: sessionError } = await supabase.auth.getSession();
       if (sessionError || !session?.access_token) {
-        throw new Error("Authentication required");
+        throw new Error(t("toasts.authRequired"));
       }
 
       const formData = new FormData();
@@ -120,17 +122,17 @@ export function EditNicknameDialog({ open, onOpenChange, initialValue = "" }: Ed
 
       if (!response.ok) {
         const payload = await response.json().catch(() => ({}));
-        throw new Error(payload.error || "Failed to upload avatar");
+        throw new Error(payload.error || t("editNickname.failedUploadAvatar"));
       }
 
       const { avatarUrl } = await response.json();
       await updateProfile({ avatar_url: avatarUrl });
       setAvatarOverride(avatarUrl);
-      toast("Profile photo updated.");
+      toast(t("editNickname.profilePhotoUpdated"));
     } catch (err) {
       console.error("Avatar upload failed:", err);
       setAvatarOverride(null);
-      toast("Failed to update profile photo.");
+      toast(t("editNickname.failedUpdateProfilePhoto"));
     } finally {
       setAvatarUploading(false);
       if (fileInputRef.current) {
@@ -152,10 +154,10 @@ export function EditNicknameDialog({ open, onOpenChange, initialValue = "" }: Ed
       <DialogContent className="studio-panel-card max-w-[calc(100vw-2rem)] sm:max-w-[560px] max-h-[82vh] flex flex-col overflow-hidden p-0 border-0 shadow-xl">
           <DialogHeader className="flex-shrink-0 px-5 pt-4 pb-2 text-left">
             <div className="pr-8">
-              <DialogTitle className="text-xl font-semibold tracking-tight">Edit profile</DialogTitle>
+              <DialogTitle className="text-xl font-semibold tracking-tight">{t("editNickname.editProfileTitle")}</DialogTitle>
             </div>
             <DialogDescription className="text-sm text-muted-foreground">
-              Update your display name and profile photo.
+              {t("editNickname.editProfileDescription")}
             </DialogDescription>
           </DialogHeader>
 
@@ -164,7 +166,7 @@ export function EditNicknameDialog({ open, onOpenChange, initialValue = "" }: Ed
               <div className="studio-panel-card rounded-2xl p-3 sm:p-4">
                 <div className="flex flex-col items-center gap-3 text-center">
                   <Avatar className="h-20 w-20 shadow-sm">
-                    <AvatarImage src={avatarSrc} alt="User avatar" />
+                    <AvatarImage src={avatarSrc} alt={t("common.userAvatar")} />
                     <AvatarFallback className="bg-muted text-lg font-semibold">
                       {fallbackLetter}
                     </AvatarFallback>
@@ -181,12 +183,12 @@ export function EditNicknameDialog({ open, onOpenChange, initialValue = "" }: Ed
                     {avatarUploading ? (
                       <>
                         <Loader2 className="h-4 w-4 animate-spin" />
-                        Uploading…
+                        {t("editNickname.uploading")}
                       </>
                     ) : (
                       <>
                         <RefreshCw className="h-4 w-4" />
-                        Change photo
+                        {t("editNickname.changePhoto")}
                       </>
                     )}
                   </Button>
@@ -201,27 +203,27 @@ export function EditNicknameDialog({ open, onOpenChange, initialValue = "" }: Ed
 
                   <div className="w-full space-y-2 pt-1 text-left">
                     {user?.email && (
-                      <div className="text-[11px] leading-4 text-muted-foreground/80">
-                        <div className="font-semibold text-foreground/70">Email</div>
+                      <div className="text-sm leading-5 text-muted-foreground/80">
+                        <div className="font-semibold text-foreground/70">{t("editNickname.emailLabel")}</div>
                         <div className="truncate">{user.email}</div>
                       </div>
                     )}
                     {user?.id && (
-                      <div className="text-[11px] leading-4 text-muted-foreground/80">
+                      <div className="text-sm leading-5 text-muted-foreground/80">
                         <div className="flex items-center justify-between gap-2">
-                          <div className="font-semibold text-foreground/70">User ID</div>
+                          <div className="font-semibold text-foreground/70">{t("editNickname.userIdLabel")}</div>
                           <Button
                             type="button"
                             variant="ghost"
                             size="icon"
                             onClick={handleCopyUserId}
                             className="h-8 w-8 rounded-full text-muted-foreground/70 transition-colors hover:bg-foreground/10 hover:text-foreground"
-                            aria-label="Copy user ID"
+                            aria-label={t("editNickname.copyUserId")}
                           >
                             <Copy className="h-4 w-4" />
                           </Button>
                         </div>
-                        <div className="truncate font-mono text-[10px] tracking-tight text-muted-foreground/70">
+                        <div className="truncate font-mono text-sm tracking-tight text-muted-foreground/70">
                           {user.id}
                         </div>
                       </div>
@@ -232,23 +234,23 @@ export function EditNicknameDialog({ open, onOpenChange, initialValue = "" }: Ed
 
               <div className="studio-panel-card rounded-2xl p-3 sm:p-4">
                 <div className="space-y-2">
-                  <div className="text-xs md:text-sm font-semibold text-foreground">Display name</div>
+                  <div className="text-sm font-semibold text-foreground">{t("editNickname.displayNameLabel")}</div>
                   <div className="relative">
                     <UserRound className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
                     <Input
                       value={nickname}
                       onChange={(event) => setNickname(event.target.value)}
-                      placeholder={displayName ? displayName : "Enter your nickname"}
+                      placeholder={displayName ? displayName : t("editNickname.enterNicknamePlaceholder")}
                       maxLength={32}
                       className="h-11 w-full border-0 bg-transparent pl-10 pr-0 focus-visible:ring-0 focus-visible:ring-offset-0"
                     />
                   </div>
                   <div className="flex items-start justify-between gap-3">
                     {error ? (
-                      <p className="text-xs text-destructive">{error}</p>
+                      <p className="text-sm text-destructive">{error}</p>
                     ) : (
-                      <p className="text-xs text-muted-foreground/70">
-                        Shown on your published tracks.
+                      <p className="text-sm text-muted-foreground/70">
+                        {t("editNickname.displayNameHint")}
                       </p>
                     )}
                     <p className="text-xs tabular-nums text-muted-foreground/60">
@@ -268,7 +270,7 @@ export function EditNicknameDialog({ open, onOpenChange, initialValue = "" }: Ed
                 onClick={() => onOpenChange(false)}
                 className="h-11 w-full rounded-2xl border-0 bg-foreground/5 text-foreground/75 transition-colors hover:bg-foreground/10 hover:text-foreground sm:w-auto"
               >
-                Cancel
+                {t("common.cancel")}
               </Button>
               <Button
                 type="button"
@@ -279,10 +281,10 @@ export function EditNicknameDialog({ open, onOpenChange, initialValue = "" }: Ed
                 {saving ? (
                   <>
                     <Loader2 className="h-4 w-4 animate-spin" />
-                    Saving…
+                    {t("editNickname.saving")}
                   </>
                 ) : (
-                  "Save changes"
+                  t("editNickname.saveChanges")
                 )}
               </Button>
             </DialogFooter>

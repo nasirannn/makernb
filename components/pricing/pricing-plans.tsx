@@ -9,7 +9,9 @@ import AuthModal from "@/components/ui/auth-modal";
 import { CancelSubscriptionDialog } from "@/components/ui/cancel-subscription-dialog";
 import { FREE_FEATURES } from "@/components/pricing/pricing-constants";
 import { usePricingState } from "@/hooks/use-pricing-state";
+import { formatLocalizedNumber } from "@/lib/locale-format";
 import type { PricingPlan } from "@/lib/pricing-config";
+import { useI18n } from "@/lib/i18n/provider";
 
 type PricingVariant = "section" | "modal";
 
@@ -19,24 +21,23 @@ interface PricingPlansProps {
   initialPlans?: PricingPlan[];
 }
 
-const variantConfig: Record<PricingVariant, { grid: string; freeCard: string; toggle: string; toggleInner: string; freeDescription: string }> = {
+const variantConfig: Record<PricingVariant, { grid: string; freeCard: string; toggle: string; toggleInner: string }> = {
   section: {
     grid: "mt-12 grid gap-6 md:grid-cols-2 lg:grid-cols-3",
     freeCard: "md:col-span-2 lg:col-span-1",
     toggle: "mt-8 flex justify-center",
     toggleInner: "",
-    freeDescription: "Creating with daily credits.",
   },
   modal: {
     grid: "mt-6 grid gap-6 md:grid-cols-3",
     freeCard: "",
     toggle: "mt-4 flex justify-center",
     toggleInner: "border border-foreground/10",
-    freeDescription: "Start creating with daily credits. No subscription needed.",
   },
 };
 
 export const PricingPlans = ({ variant = "section", onNavigate, initialPlans }: PricingPlansProps) => {
+  const { t, locale } = useI18n();
   const {
     user,
     billingPeriod,
@@ -62,9 +63,13 @@ export const PricingPlans = ({ variant = "section", onNavigate, initialPlans }: 
     handleCancelConfirm,
     formatUsdAmount,
   } = usePricingState({ initialPlans });
-  const { grid, freeCard, toggle, toggleInner, freeDescription } = variantConfig[variant];
+  const { grid, freeCard, toggle, toggleInner } = variantConfig[variant];
+  const freeDescription =
+    variant === "modal"
+      ? t("pricing.startCreatingNoSubscription")
+      : t("pricing.creatingWithDailyCredits");
 
-  const yearlySavingsLabel = useMemo(() => {
+  const yearlySavingsPercent = useMemo(() => {
     const tiers = Array.from(new Set(allPlans.map((plan) => plan.tierCode)));
     const savings = tiers
       .map((tier) => {
@@ -85,31 +90,65 @@ export const PricingPlans = ({ variant = "section", onNavigate, initialPlans }: 
     }
 
     const averageSavings = savings.reduce((total, value) => total + value, 0) / savings.length;
-    return `Save ${Math.round(averageSavings)}%`;
+    return Math.round(averageSavings);
   }, [allPlans]);
 
   const freeCtaLabel =
     variant === "modal"
       ? user
-        ? "Continue Free"
-        : "Start Free"
+        ? t("pricing.continueFree")
+        : t("pricing.startFree")
       : user
-        ? "Continue"
-        : "Start Free";
+        ? t("pricing.continue")
+        : t("pricing.startFree");
 
   const yearlySavingsBadge = useMemo(() => {
-    if (!yearlySavingsLabel) return "Best Value";
-    const match = yearlySavingsLabel.match(/(\d+)/);
-    if (!match) return yearlySavingsLabel;
-    return `${match[1]}% OFF`;
-  }, [yearlySavingsLabel]);
+    if (!yearlySavingsPercent) return t("pricing.bestValue");
+    return t("pricing.percentOff", { percent: yearlySavingsPercent });
+  }, [t, yearlySavingsPercent]);
+
+  const commercialLicenseText = t("pricing.feature.commercialLicenseIncluded");
+  const accessAllModelsText = t("pricing.feature.accessAllModels");
+
+  const getPlanFeatures = (plan: PricingPlan) => {
+    const periodLabel = plan.billingPeriod === "yearly" ? t("pricing.year") : t("pricing.month");
+    const approxSongs = Math.max(1, Math.round(plan.credits / 7));
+    const creditsLine = t("pricing.creditsPerPeriodApproxSongs", {
+      credits: formatLocalizedNumber(plan.credits, undefined, locale),
+      period: periodLabel,
+      songs: formatLocalizedNumber(approxSongs, undefined, locale),
+    });
+    const downloadLine =
+      plan.tierCode === "hobby"
+        ? t("pricing.feature.downloadHobby")
+        : t("pricing.feature.downloadStarter");
+    const advancedEditingLine =
+      plan.tierCode === "hobby"
+        ? t("pricing.feature.advancedEditingHobby")
+        : t("pricing.feature.advancedEditingStarter");
+
+    return [
+      creditsLine,
+      t("pricing.feature.aiMusicGenerator"),
+      t("pricing.feature.aiLyricsGenerator"),
+      t("pricing.feature.aiPersonaGenerator"),
+      t("pricing.feature.aiVocalSeparation"),
+      downloadLine,
+      t("pricing.feature.publicVisibilityControl"),
+      commercialLicenseText,
+      t("pricing.feature.enhanceStyle"),
+      advancedEditingLine,
+      accessAllModelsText,
+      t("pricing.feature.emailSupport"),
+    ];
+  };
 
   return (
     <>
       <div className={toggle}>
         <div className={cn("relative w-full", variant === "modal" ? "max-w-[19rem]" : "max-w-[22rem]")}>
-          {yearlySavingsLabel && (
-            <span className="pointer-events-none absolute -top-2 right-2.5 z-10 inline-flex items-center rounded-md bg-gradient-to-r from-cyan-400 via-sky-400 to-indigo-400 px-2 py-0.5 text-[10px] font-semibold tracking-wide text-slate-950 shadow-[0_6px_14px_rgba(56,189,248,0.32)]">
+          {yearlySavingsPercent && (
+            <span className="pointer-events-none absolute -top-2 right-2.5 z-10 inline-flex items-center rounded-md bg-gradient-to-r from-cyan-400 via-sky-400 to-indigo-400 px-2 py-0.5 text-xs font-semibold tracking-wide text-slate-950 shadow-[0_6px_14px_rgba(56,189,248,0.32)]">
               {yearlySavingsBadge}
             </span>
           )}
@@ -124,27 +163,27 @@ export const PricingPlans = ({ variant = "section", onNavigate, initialPlans }: 
             <button
               onClick={() => setBillingPeriod("monthly")}
               className={cn(
-                "relative z-[1] h-[44px] rounded-[1.15rem] px-3.5 text-[0.88rem] md:text-[0.95rem] font-semibold transition-colors duration-200",
+                "relative z-[1] h-[44px] rounded-[1.15rem] px-3.5 text-sm font-semibold transition-colors duration-200",
                 "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background",
                 billingPeriod === "monthly"
                   ? "bg-background text-foreground shadow-[0_7px_16px_rgba(0,0,0,0.22)]"
                   : "text-foreground/70 hover:text-foreground"
               )}
             >
-              Bill Monthly
+              {t("pricing.billMonthly")}
             </button>
 
             <button
               onClick={() => setBillingPeriod("yearly")}
               className={cn(
-                "relative z-[1] h-[44px] rounded-[1.15rem] px-3.5 text-[0.88rem] md:text-[0.95rem] font-semibold transition-colors duration-200",
+                "relative z-[1] h-[44px] rounded-[1.15rem] px-3.5 text-sm font-semibold transition-colors duration-200",
                 "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background",
                 billingPeriod === "yearly"
                   ? "bg-background text-foreground shadow-[0_7px_16px_rgba(0,0,0,0.22)]"
                   : "text-foreground/70 hover:text-foreground"
               )}
             >
-              Bill Yearly
+              {t("pricing.billYearly")}
             </button>
           </div>
         </div>
@@ -154,9 +193,9 @@ export const PricingPlans = ({ variant = "section", onNavigate, initialPlans }: 
         <div className={cn("relative overflow-hidden rounded-3xl p-6 md:p-7 app-card-muted", freeCard)}>
           <div className="relative flex h-full flex-col">
             <div className="min-w-0">
-              <div className="text-xl font-semibold tracking-tight">Free</div>
+              <div className="text-xl font-semibold tracking-tight">{t("pricing.free")}</div>
               <div className="mt-4 text-6xl md:text-7xl font-black tracking-tight text-foreground">
-                Free
+                {t("pricing.free")}
               </div>
               <div className="mt-2 text-sm text-muted-foreground/70">
                 {freeDescription}
@@ -167,7 +206,7 @@ export const PricingPlans = ({ variant = "section", onNavigate, initialPlans }: 
               <ul className="space-y-5">
                 {FREE_FEATURES.map((feature) => (
                   <li
-                    key={feature.label}
+                    key={feature.key}
                     className="flex items-start gap-3 text-sm text-foreground/90"
                   >
                     {feature.enabled ? (
@@ -175,7 +214,7 @@ export const PricingPlans = ({ variant = "section", onNavigate, initialPlans }: 
                     ) : (
                       <X className="mt-1 h-5 w-5 flex-shrink-0 text-rose-500 dark:text-rose-400" />
                     )}
-                    <span className="leading-relaxed">{feature.label}</span>
+                    <span className="leading-relaxed">{t(`pricing.freeFeatures.${feature.key}`)}</span>
                   </li>
                 ))}
               </ul>
@@ -205,14 +244,14 @@ export const PricingPlans = ({ variant = "section", onNavigate, initialPlans }: 
           const isSwitchPlan =
             Boolean(hasSubscription && activePlan && activePlan.rank === plan.rank) && !isCurrentPlan;
           const actionLabel = (() => {
-            if (isCurrentPlan) return "Manage Subscription";
+            if (isCurrentPlan) return t("pricing.manageSubscription");
             if (hasSubscription && activePlan && activePlan.rank === plan.rank) {
-              return "Switch Plan";
+              return t("pricing.switchPlan");
             }
-            if (!hasSubscription || activePlanRank === null) return "Subscribe";
-            if (plan.rank > activePlanRank) return "Upgrade";
-            if (plan.rank < activePlanRank) return "Downgrade";
-            return "Subscribe";
+            if (!hasSubscription || activePlanRank === null) return t("pricing.subscribe");
+            if (plan.rank > activePlanRank) return t("pricing.upgrade");
+            if (plan.rank < activePlanRank) return t("pricing.downgrade");
+            return t("pricing.subscribe");
           })();
 
           return (
@@ -248,13 +287,13 @@ export const PricingPlans = ({ variant = "section", onNavigate, initialPlans }: 
               {showPopular && (
                 <div
                   className={cn(
-                    "absolute -right-1 -top-1 rounded-bl-[28px] rounded-tr-[28px] px-5 py-2 text-[11px] font-semibold",
+                    "absolute -right-1 -top-1 rounded-bl-[28px] rounded-tr-[28px] px-5 py-2 text-xs font-semibold",
                     isHobby
                       ? "bg-cyan-300 text-slate-950 shadow-[0_12px_30px_rgba(56,189,248,0.42)]"
                       : "bg-primary text-primary-foreground shadow-[0_12px_32px_hsl(var(--primary)/0.35)]"
                   )}
                 >
-                  Most Popular
+                  {t("pricing.mostPopular")}
                 </div>
               )}
 
@@ -262,18 +301,18 @@ export const PricingPlans = ({ variant = "section", onNavigate, initialPlans }: 
                 <div className="min-w-0">
                   <div className="flex items-center gap-2">
                     <div className={cn("text-xl font-semibold tracking-tight", isHobby ? "text-white" : "")}>
-                      {plan.name}
+                      {t(`pricing.planNames.${plan.tierCode}`) || plan.name}
                     </div>
                     {isCurrentPlan && (
                       <span
                         className={cn(
-                          "inline-flex items-center rounded-full px-2.5 py-1 text-[11px] font-semibold",
+                          "inline-flex items-center rounded-full px-2.5 py-1 text-xs font-semibold",
                           isHobby
                             ? "bg-white/10 text-white/80 ring-1 ring-white/10"
                             : "bg-foreground/10 text-foreground/70"
                         )}
                       >
-                        Current plan
+                        {t("pricing.currentPlan")}
                       </span>
                     )}
                   </div>
@@ -289,15 +328,16 @@ export const PricingPlans = ({ variant = "section", onNavigate, initialPlans }: 
                         isHobby ? "text-cyan-100/90" : "text-muted-foreground/70"
                       )}
                     >
-                      month
+                      {t("pricing.month")}
                     </div>
                   </div>
 
                   <div className={cn("mt-2 text-sm", isHobby ? "text-slate-200/80" : "text-muted-foreground/70")}>
                     {billingPeriod === "yearly" ? (
                       <>
-                        {"$"}
-                        {formatUsdAmount(plan.price * 12)} billed yearly.{" "}
+                        {t("pricing.billedYearly", {
+                          amount: `$${formatUsdAmount(plan.price * 12)}`,
+                        })}{" "}
                         {isCurrentPlan ? (
                           cancelAtPeriodEnd ? (
                             <span>{scheduledCancellationCopy}</span>
@@ -308,13 +348,13 @@ export const PricingPlans = ({ variant = "section", onNavigate, initialPlans }: 
                                 onClick={() => setIsCancelDialogOpen(true)}
                                 className="inline-flex items-center font-semibold text-primary underline underline-offset-2 transition-colors hover:text-primary/80"
                               >
-                                Cancel
+                                {t("common.cancel")}
                               </button>{" "}
-                              anytime.
+                              {t("pricing.cancelAnytime")}
                             </>
                           )
                         ) : (
-                          "Cancel anytime."
+                          t("pricing.cancelAnytime")
                         )}
                       </>
                     ) : (
@@ -330,15 +370,17 @@ export const PricingPlans = ({ variant = "section", onNavigate, initialPlans }: 
                                 onClick={() => setIsCancelDialogOpen(true)}
                                 className="inline-flex items-center font-semibold text-primary underline underline-offset-2 transition-colors hover:text-primary/80"
                               >
-                                Cancel
+                                {t("common.cancel")}
                               </button>{" "}
-                              anytime.
+                              {t("pricing.cancelAnytime")}
                             </>
                           )
                         ) : (
                           <>
-                            {"$"}
-                            {formatUsdAmount(plan.price)} billed monthly. Cancel anytime.
+                            {t("pricing.billedMonthly", {
+                              amount: `$${formatUsdAmount(plan.price)}`,
+                            })}{" "}
+                            {t("pricing.cancelAnytime")}
                           </>
                         )}
                       </>
@@ -348,23 +390,7 @@ export const PricingPlans = ({ variant = "section", onNavigate, initialPlans }: 
 
                 <div className="mt-6 flex-1">
                   {(() => {
-                    const creditsFeature =
-                      plan.features[0] ??
-                      (billingPeriod === "yearly"
-                        ? `${plan.credits.toLocaleString()} credits/year`
-                        : `${plan.credits.toLocaleString()} credits/month`);
-                    const baseFeatures = plan.features.slice(1);
-                    const lyricIndex = baseFeatures.findIndex((feature) =>
-                      feature.toLowerCase().includes("create up to")
-                    );
-                    const orderedFeatures = [...baseFeatures];
-                    if (creditsFeature) {
-                      if (lyricIndex >= 0) {
-                        orderedFeatures.splice(lyricIndex, 0, creditsFeature);
-                      } else {
-                        orderedFeatures.unshift(creditsFeature);
-                      }
-                    }
+                    const orderedFeatures = getPlanFeatures(plan);
 
                     return (
                       <ul className="space-y-5">
@@ -382,7 +408,7 @@ export const PricingPlans = ({ variant = "section", onNavigate, initialPlans }: 
                                 isHobby ? "text-cyan-300" : "text-foreground/80"
                               )}
                             />
-                            {feature === "Commercial License Included" ? (
+                            {feature === commercialLicenseText ? (
                               <Link
                                 href="/license"
                                 onClick={onNavigate}
@@ -401,8 +427,8 @@ export const PricingPlans = ({ variant = "section", onNavigate, initialPlans }: 
                                   "leading-relaxed",
                                   isHobby &&
                                     (index <= 2 ||
-                                      feature.includes("Access to all models") ||
-                                      feature.includes("Commercial License")) &&
+                                      feature === accessAllModelsText ||
+                                      feature === commercialLicenseText) &&
                                     "font-semibold text-cyan-100"
                                 )}
                               >
@@ -443,10 +469,10 @@ export const PricingPlans = ({ variant = "section", onNavigate, initialPlans }: 
                 >
                   {loading === plan.id
                     ? isCurrentPlan
-                      ? "Redirecting..."
+                      ? t("pricing.redirecting")
                       : isSwitchPlan
-                        ? "Switching..."
-                        : "Redirecting to payment..."
+                        ? t("pricing.switching")
+                        : t("pricing.redirectingToPayment")
                     : actionLabel}
                 </Button>
               </div>

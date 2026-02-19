@@ -61,6 +61,7 @@ import {
     getStudioFeaturePath,
     type StudioFeatureKey,
 } from "@/lib/studio-features";
+import { useI18n } from "@/lib/i18n/provider";
 
 const USER_TRACKS_PAGE_SIZE = 10;
 type StudioFeaturePanelStateProps = Omit<
@@ -102,6 +103,7 @@ const StudioContent = ({ feature, FeaturePanel, panelMode, lockPanelMode }: Stud
     } = musicGeneration;
     const { user, signOut, loading: isAuthLoading } = useAuth();
     const { credits, refreshCredits } = useCredits();
+    const { t } = useI18n();
 
     // UI States
     const [mobileCreateOpen, setMobileCreateOpen] = useState(false);
@@ -654,7 +656,7 @@ const StudioContent = ({ feature, FeaturePanel, panelMode, lockPanelMode }: Stud
 
         const trimmedLyrics = customLyrics.trim();
         if (!trimmedLyrics) {
-            toast.error('Please enter lyrics first');
+            toast.error(t("toasts.pleaseEnterLyrics"));
             return;
         }
 
@@ -664,11 +666,11 @@ const StudioContent = ({ feature, FeaturePanel, panelMode, lockPanelMode }: Stud
             const { data: { session }, error: sessionError } = await supabase.auth.getSession();
 
             if (sessionError) {
-                throw new Error('Failed to get session. Please try logging in again.');
+                throw new Error(t("toasts.failedGetSessionTryLogInAgain"));
             }
 
             if (!session?.access_token) {
-                throw new Error('Please log in to continue.');
+                throw new Error(t("toasts.pleaseLogInToContinue"));
             }
 
             const response = await fetch('/api/lyrics/next-line', {
@@ -686,29 +688,29 @@ const StudioContent = ({ feature, FeaturePanel, panelMode, lockPanelMode }: Stud
 
             if (!response.ok || !result?.success) {
                 if (response.status === 401) {
-                    throw new Error('Your session has expired. Please log in again.');
+                    throw new Error(t("toasts.sessionExpiredLogInAgain"));
                 }
-                throw new Error(result?.error || 'Failed to write next lyric line.');
+                throw new Error(result?.error || t("toasts.failedWriteNextLyricLine"));
             }
 
             const nextLine = typeof result?.data?.line === 'string' ? result.data.line.trim() : '';
             if (!nextLine) {
-                throw new Error('Model returned empty content. Please try again.');
+                throw new Error(t("toasts.modelReturnedEmptyPromptTryAgain"));
             }
 
             setCustomLyrics((prevLyrics) => {
                 const baseLyrics = prevLyrics.trimEnd();
                 return baseLyrics ? baseLyrics + '\n' + nextLine : nextLine;
             });
-            toast.success('Next lyric line added');
+            toast.success(t("toasts.nextLyricLineAdded"));
         } catch (error) {
             console.error('Write next lyric line failed:', error);
-            const message = error instanceof Error ? error.message : 'Failed to write next lyric line.';
+            const message = error instanceof Error ? error.message : t("toasts.failedWriteNextLyricLine");
             toast.error(message);
         } finally {
             setIsWritingNextLyricLine(false);
         }
-    }, [user?.id, customLyrics, setCustomLyrics, setIsAuthModalOpen]);
+    }, [user?.id, customLyrics, setCustomLyrics, setIsAuthModalOpen, t]);
 
     const {
         handleFavoriteToggle,
@@ -999,6 +1001,10 @@ const StudioContent = ({ feature, FeaturePanel, panelMode, lockPanelMode }: Stud
             id="studio"
             className="relative h-screen overflow-hidden"
         >
+            <div aria-hidden className="pointer-events-none absolute inset-0">
+                <div className="absolute -top-24 -left-20 h-56 w-56 rounded-full bg-[radial-gradient(circle,rgba(56,189,248,0.28)_0%,rgba(56,189,248,0)_70%)]" />
+            </div>
+
             <div
                 className="relative h-full flex flex-col md:flex-row md:gap-0 md:px-4 md:py-0 transition-[margin] duration-500"
                 style={{ marginLeft: 'var(--sidebar-offset, 0px)' }}
@@ -1105,7 +1111,7 @@ const StudioContent = ({ feature, FeaturePanel, panelMode, lockPanelMode }: Stud
                                 >
                                     <button
                                         type="button"
-                                        aria-label="Close lyrics panel"
+                                        aria-label={t("studioPage.closeLyricsPanel")}
                                         onClick={() => setLyricsPanelOpen(false)}
                                         className="absolute inset-0 bg-background/20 backdrop-blur-[1px] md:bg-background/10"
                                     />
@@ -1175,21 +1181,21 @@ const StudioContent = ({ feature, FeaturePanel, panelMode, lockPanelMode }: Stud
                     <DialogHeader className="flex-shrink-0 px-5 pt-4 pb-2 text-left">
                         <div className="pr-8">
                             <DialogTitle className="text-xl font-semibold tracking-tight">
-                                Generate Lyrics
+                                {t("studioPage.generateLyricsTitle")}
                             </DialogTitle>
                         </div>
                         <p className="text-sm text-muted-foreground">
-                            Describe the theme, mood, or story you want for your lyrics.
+                            {t("studioPage.generateLyricsDescription")}
                         </p>
                     </DialogHeader>
                     <div className="flex-1 overflow-y-auto space-y-3 px-5 py-3">
                         <section className="studio-panel-card rounded-2xl p-3 space-y-2">
-                            <label className="text-xs md:text-sm font-semibold text-foreground block">Lyrics Prompt</label>
+                            <label className="text-xs md:text-sm font-semibold text-foreground block">{t("studioPage.lyricsPromptLabel")}</label>
                             <div className="relative">
                                 <Textarea
                                     value={lyricsPrompt}
                                     onChange={(e) => setLyricsPrompt(e.target.value)}
-                                    placeholder="Describe the theme, mood, or story for your lyrics..."
+                                    placeholder={t("studioPage.lyricsPromptPlaceholder")}
                                     maxLength={200}
                                     className="min-h-[128px] w-full resize-none border-0 bg-transparent px-0 text-sm pr-16 focus-visible:ring-0 focus-visible:ring-offset-0"
                                 />
@@ -1207,11 +1213,11 @@ const StudioContent = ({ feature, FeaturePanel, panelMode, lockPanelMode }: Stud
                         >
                             {isGeneratingLyrics ? (
                                 <div className="flex items-center gap-2">
-                                    <span>Generating</span>
+                                    <span>{t("studioPage.generating")}</span>
                                     <LoadingDots size="sm" color="white" />
                                 </div>
                             ) : (
-                                'Generate Lyrics'
+                                t("studioPage.generateLyricsAction")
                             )}
                         </Button>
                     </div>
@@ -1228,20 +1234,20 @@ const StudioContent = ({ feature, FeaturePanel, panelMode, lockPanelMode }: Stud
             <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
                 <AlertDialogContent className="max-w-[calc(100vw-2rem)] sm:max-w-[520px]">
                     <AlertDialogHeader className="space-y-2 sm:space-y-3">
-                        <AlertDialogTitle className="text-lg sm:text-xl">Delete Track</AlertDialogTitle>
+                        <AlertDialogTitle className="text-lg sm:text-xl">{t("studioTracks.deleteTrackTitle")}</AlertDialogTitle>
                         <AlertDialogDescription className="text-sm sm:text-base whitespace-nowrap">
-                            Are you sure you want to delete the current track?
+                            {t("studioTracks.deleteTrackDescription")}
                         </AlertDialogDescription>
                     </AlertDialogHeader>
                     <AlertDialogFooter className="flex flex-col sm:flex-row items-center justify-center gap-2 sm:gap-3">
                         <AlertDialogCancel className="w-full sm:w-auto">
-                            Cancel
+                            {t("common.cancel")}
                         </AlertDialogCancel>
                         <AlertDialogAction
                             onClick={handleDeleteConfirm}
                             className="w-full sm:w-auto bg-destructive text-destructive-foreground hover:bg-destructive/90"
                         >
-                            Confirm
+                            {t("common.confirm")}
                         </AlertDialogAction>
                     </AlertDialogFooter>
                 </AlertDialogContent>

@@ -9,6 +9,7 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
+import { useI18n } from "@/lib/i18n/provider";
 
 interface GenerationConfirmDialogProps {
   isOpen: boolean;
@@ -23,6 +24,7 @@ export const GenerationConfirmDialog = React.memo(({
   isOpen,
   onClose,
 }: GenerationConfirmDialogProps) => {
+  const { t } = useI18n();
   return (
     <AlertDialog open={isOpen} onOpenChange={onClose}>
       <AlertDialogContent className="studio-panel-card max-w-[calc(100vw-2rem)] sm:max-w-[520px] p-0 border-0 shadow-xl">
@@ -33,10 +35,10 @@ export const GenerationConfirmDialog = React.memo(({
             <div className="w-2 h-2 bg-primary/50 rounded-full animate-pulse" style={{ animationDelay: '0.6s' }}></div>
           </div>
           <AlertDialogTitle className="text-xl font-semibold tracking-tight text-foreground">
-            Music Generation Started
+            {t("generationConfirm.title")}
           </AlertDialogTitle>
           <AlertDialogDescription className="text-sm text-muted-foreground">
-            Your music is being generated. You can preview it in about 30 ~ 60 seconds.
+            {t("generationConfirm.description")}
           </AlertDialogDescription>
         </AlertDialogHeader>
 
@@ -45,7 +47,7 @@ export const GenerationConfirmDialog = React.memo(({
             onClick={onClose}
             className="h-11 w-full rounded-xl bg-primary text-sm font-medium text-primary-foreground hover:bg-primary/90"
           >
-            Got it
+            {t("generationConfirm.gotIt")}
           </Button>
         </div>
       </AlertDialogContent>

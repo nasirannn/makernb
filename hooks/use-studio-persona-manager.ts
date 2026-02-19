@@ -4,6 +4,7 @@ import React from "react";
 import { toast } from "sonner";
 
 import { formatDateTime } from "@/lib/format-utils";
+import { useI18n } from "@/lib/i18n/provider";
 import { supabase } from "@/lib/supabase";
 
 export type PersonaOption = {
@@ -36,6 +37,7 @@ export const useStudioPersonaManager = ({
   selectedPersonaId,
   setSelectedPersonaId,
 }: UseStudioPersonaManagerParams) => {
+  const { t } = useI18n();
   const [isPersonaDialogOpen, setIsPersonaDialogOpen] = React.useState(false);
   const [isPersonaLoading, setIsPersonaLoading] = React.useState(false);
   const [personaOptions, setPersonaOptions] = React.useState<PersonaOption[]>([]);
@@ -74,11 +76,11 @@ export const useStudioPersonaManager = ({
     }
 
     if (track.hasPersona) {
-      return 'Persona already created for this audio. Each audio ID can only generate one persona.';
+      return t("personaDialog.personaAlreadyCreatedForAudio");
     }
 
     return null;
-  }, []);
+  }, [t]);
 
   const pendingMusicTrackUnavailableReason = React.useMemo(
     () => getPersonaTrackUnavailableReason(pendingMusicTrack),
@@ -87,16 +89,16 @@ export const useStudioPersonaManager = ({
 
   const formatTrackCreatedAt = React.useCallback((value: string) => {
     if (!value) {
-      return 'Unknown date';
+      return t("personaDialog.unknownDate");
     }
 
     const date = new Date(value);
     if (Number.isNaN(date.getTime())) {
-      return 'Unknown date';
+      return t("personaDialog.unknownDate");
     }
 
     return formatDateTime(value);
-  }, []);
+  }, [t]);
 
   const loadPersonaOptions = React.useCallback(async () => {
     if (!user) {
@@ -120,7 +122,7 @@ export const useStudioPersonaManager = ({
       });
 
       if (!response.ok) {
-        throw new Error('Failed to load personas');
+        throw new Error(t("personaDialog.failedLoadPersonas"));
       }
 
       const result = await response.json();
@@ -132,12 +134,12 @@ export const useStudioPersonaManager = ({
       }
     } catch (error) {
       console.error('[StudioPanel] Failed to load personas:', error);
-      toast.error('Failed to load personas');
+      toast.error(t("personaDialog.failedLoadPersonas"));
       setPersonaOptions([]);
     } finally {
       setIsPersonaLoading(false);
     }
-  }, [user, selectedPersonaId, setSelectedPersonaId]);
+  }, [user, selectedPersonaId, setSelectedPersonaId, t]);
 
   const loadSelectMusicOptions = React.useCallback(async () => {
     if (!user) {
@@ -162,7 +164,7 @@ export const useStudioPersonaManager = ({
       });
 
       if (!response.ok) {
-        throw new Error('Failed to load current songs');
+        throw new Error(t("personaDialog.failedLoadCurrentSongs"));
       }
 
       const result = await response.json();
@@ -174,7 +176,7 @@ export const useStudioPersonaManager = ({
 
           return {
             id: item.id,
-            title: item.title || 'Untitled Track',
+            title: item.title || t("studioTracks.untitledTrack"),
             duration: typeof item.duration === 'number' ? item.duration : Number(item.duration || 0),
             createdAt: item.createdAt || item.created_at || '',
             audioId: item.audioId || item.audio_id || null,
@@ -186,16 +188,16 @@ export const useStudioPersonaManager = ({
       );
     } catch (error) {
       console.error('[StudioPanel] Failed to load current songs:', error);
-      toast.error('Failed to load current songs');
+      toast.error(t("personaDialog.failedLoadCurrentSongs"));
       setSelectMusicOptions([]);
     } finally {
       setIsSelectMusicLoading(false);
     }
-  }, [user]);
+  }, [user, t]);
 
   const handleDeletePersona = React.useCallback(async (persona: PersonaOption) => {
     if (!user) {
-      toast.error('Please sign in to delete personas.');
+      toast.error(t("personaDialog.pleaseSignInDeletePersonas"));
       return;
     }
 
@@ -207,7 +209,7 @@ export const useStudioPersonaManager = ({
     try {
       const { data: { session } } = await supabase.auth.getSession();
       if (!session?.access_token) {
-        toast.error('Authentication expired. Please sign in again.');
+        toast.error(t("personaDialog.authenticationExpiredSignInAgain"));
         return;
       }
 
@@ -224,7 +226,7 @@ export const useStudioPersonaManager = ({
 
       const result = await response.json();
       if (!response.ok || !result?.success) {
-        throw new Error(result?.error || 'Failed to delete persona');
+        throw new Error(result?.error || t("personaDialog.failedDeletePersona"));
       }
 
       if (selectedPersonaId === persona.personaId) {
@@ -232,14 +234,14 @@ export const useStudioPersonaManager = ({
       }
 
       await loadPersonaOptions();
-      toast.success('Persona deleted');
+      toast.success(t("personaDialog.personaDeleted"));
     } catch (error) {
-      const message = error instanceof Error ? error.message : 'Failed to delete persona';
+      const message = error instanceof Error ? error.message : t("personaDialog.failedDeletePersona");
       toast.error(message);
     } finally {
       setDeletingPersonaRecordId(null);
     }
-  }, [user, deletingPersonaRecordId, selectedPersonaId, setSelectedPersonaId, loadPersonaOptions]);
+  }, [user, deletingPersonaRecordId, selectedPersonaId, setSelectedPersonaId, loadPersonaOptions, t]);
 
   const openSelectMusicDialog = React.useCallback(() => {
     setPendingMusicTrackId(selectedMusicTrackId);
@@ -276,7 +278,7 @@ export const useStudioPersonaManager = ({
     const normalizedFallbackTrack: PersonaTrackOption | null = fallbackTrack
       ? {
           id: trackId,
-          title: fallbackTrack.title ?? 'Untitled Track',
+          title: fallbackTrack.title ?? t("studioTracks.untitledTrack"),
           duration: typeof fallbackTrack.duration === 'number' ? fallbackTrack.duration : Number(fallbackTrack.duration || 0),
           createdAt: fallbackTrack.createdAt || '',
           audioId: fallbackTrack.audioId ?? null,
@@ -301,7 +303,7 @@ export const useStudioPersonaManager = ({
     setCreatePersonaName(resolvedTrack?.title?.trim() || '');
     setCreatePersonaDescription('');
     setIsCreatePersonaDialogOpen(true);
-  }, [selectMusicOptions, getPersonaTrackUnavailableReason]);
+  }, [selectMusicOptions, getPersonaTrackUnavailableReason, t]);
 
   const closeCreatePersonaDialog = React.useCallback(() => {
     if (isCreatingPersona) {
@@ -327,7 +329,7 @@ export const useStudioPersonaManager = ({
   const handleCreatePersona = React.useCallback(async () => {
     const trackId = selectedMusicTrackId;
     if (!trackId) {
-      toast.error('Please select a track first.');
+      toast.error(t("personaDialog.pleaseSelectTrackFirst"));
       return;
     }
 
@@ -342,12 +344,12 @@ export const useStudioPersonaManager = ({
     const description = createPersonaDescription.trim();
 
     if (!name || !description) {
-      toast.error('Please enter both name and description.');
+      toast.error(t("personaDialog.pleaseEnterNameAndDescription"));
       return;
     }
 
     if (!user) {
-      toast.error('Please sign in to create a persona.');
+      toast.error(t("personaDialog.pleaseSignInCreatePersona"));
       return;
     }
 
@@ -355,7 +357,7 @@ export const useStudioPersonaManager = ({
     try {
       const { data: { session } } = await supabase.auth.getSession();
       if (!session?.access_token) {
-        toast.error('Authentication expired. Please sign in again.');
+        toast.error(t("personaDialog.authenticationExpiredSignInAgain"));
         return;
       }
 
@@ -374,7 +376,7 @@ export const useStudioPersonaManager = ({
 
       const result = await response.json();
       if (!response.ok || !result?.success) {
-        const message = result?.message || result?.error || 'Failed to create persona';
+        const message = result?.message || result?.error || t("personaDialog.failedCreatePersona");
         throw new Error(message);
       }
 
@@ -385,14 +387,14 @@ export const useStudioPersonaManager = ({
 
       await loadPersonaOptions();
       setIsCreatePersonaDialogOpen(false);
-      toast.success(result?.data?.isExisting ? 'Persona already exists and has been selected.' : 'Persona created successfully.');
+      toast.success(result?.data?.isExisting ? t("personaDialog.personaExistsSelected") : t("personaDialog.personaCreatedSuccessfully"));
     } catch (error) {
-      const message = error instanceof Error ? error.message : 'Failed to create persona';
+      const message = error instanceof Error ? error.message : t("personaDialog.failedCreatePersona");
       toast.error(message);
     } finally {
       setIsCreatingPersona(false);
     }
-  }, [selectedMusicTrackId, selectMusicOptions, getPersonaTrackUnavailableReason, createPersonaName, createPersonaDescription, user, setSelectedPersonaId, loadPersonaOptions]);
+  }, [selectedMusicTrackId, selectMusicOptions, getPersonaTrackUnavailableReason, createPersonaName, createPersonaDescription, user, setSelectedPersonaId, loadPersonaOptions, t]);
 
   React.useEffect(() => {
     if (!pendingMusicTrackId || !pendingMusicTrackUnavailableReason) {

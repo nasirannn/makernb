@@ -12,6 +12,7 @@ import { Z_INDEX_COMBINATIONS } from '@/lib/z-index';
 import { Turnstile } from '@marsidev/react-turnstile';
 import Image from "next/image";
 import { cn } from "@/lib/utils";
+import { useI18n } from "@/lib/i18n/provider";
 
 interface AuthModalProps {
   isOpen: boolean;
@@ -19,10 +20,12 @@ interface AuthModalProps {
 }
 
 export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
+  const { t, locale } = useI18n();
   const [email, setEmail] = useState('');
   const [loading, setLoading] = useState(false);
   const [isGoogleAuthLoading, setIsGoogleAuthLoading] = useState(false);
   const [message, setMessage] = useState('');
+  const [messageType, setMessageType] = useState<'success' | 'error' | null>(null);
   const [showCodeInput, setShowCodeInput] = useState(false);
   const [verificationCode, setVerificationCode] = useState('');
   const otpLength = 6;
@@ -52,6 +55,7 @@ export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
       setVerificationCode('');
       setShowCodeInput(false);
       setMessage('');
+      setMessageType(null);
       setLoading(false);
       setIsGoogleAuthLoading(false);
       setCaptchaToken(undefined);
@@ -150,10 +154,12 @@ export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
     e.preventDefault();
     setLoading(true);
     setMessage('');
+    setMessageType(null);
 
     // 检查 Turnstile 验证
     if (!captchaToken) {
-      setMessage('Please complete the verification');
+      setMessage(t('authModal.completeVerification'));
+      setMessageType('error');
       setLoading(false);
       return;
     }
@@ -168,10 +174,12 @@ export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
         }
       });
       if (error) throw error;
-      setMessage('Check your email for the verification code!');
+      setMessage(t('authModal.checkEmailForCode'));
+      setMessageType('success');
       setShowCodeInput(true);
     } catch (error: any) {
-      setMessage(error instanceof Error ? error.message : 'Unknown error');
+      setMessage(error instanceof Error ? error.message : t('authModal.unknownError'));
+      setMessageType('error');
     } finally {
       setLoading(false);
     }
@@ -181,6 +189,7 @@ export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
     e.preventDefault();
     setLoading(true);
     setMessage('');
+    setMessageType(null);
 
     try {
       const { error } = await supabase.auth.verifyOtp({
@@ -192,7 +201,8 @@ export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
       if (error) throw error;
       onClose();
     } catch (error: any) {
-      setMessage(error instanceof Error ? error.message : 'Invalid verification code');
+      setMessage(error instanceof Error ? error.message : t('authModal.invalidVerificationCode'));
+      setMessageType('error');
     } finally {
       setLoading(false);
     }
@@ -210,7 +220,8 @@ export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
       });
       if (error) throw error;
     } catch (error: any) {
-      setMessage(error instanceof Error ? error.message : 'Unknown error');
+      setMessage(error instanceof Error ? error.message : t('authModal.unknownError'));
+      setMessageType('error');
       setIsGoogleAuthLoading(false);
     }
   };
@@ -218,6 +229,7 @@ export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
 
   const handleClose = () => {
     setMessage('');
+    setMessageType(null);
     setEmail('');
     setShowCodeInput(false);
     setVerificationCode('');
@@ -295,14 +307,14 @@ export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
               <button
                 onClick={handleClose}
                 className="hidden md:inline-flex absolute top-4 right-4 z-10 h-9 w-9 items-center justify-center rounded-full app-card-muted text-foreground/70 hover:text-foreground hover:bg-foreground/10 transition-colors"
-                aria-label="Close"
+                aria-label={t("authModal.close")}
               >
                 <X className="h-4 w-4" />
               </button>
 
               <div className="relative px-5 pt-2 pb-4 md:px-7 md:pt-7 md:pb-5">
                 <div className="flex items-center justify-center gap-2.5">
-                  <Image src="/logo.svg" alt="MakeRNB" width={28} height={28} className="opacity-90" />
+                  <Image src="/logo.svg" alt={t("common.brandLogo")} width={28} height={28} className="opacity-90" />
                   <div className="text-sm font-semibold tracking-tight text-foreground/85">
                     MakeRNB
                   </div>
@@ -310,12 +322,12 @@ export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
 
                 <div className="mt-4 text-center">
                   <div className="text-[22px] md:text-[26px] font-black tracking-tight text-foreground">
-                    {showCodeInput ? "Enter the code" : "Sign in"}
+                    {showCodeInput ? t("authModal.enterCodeTitle") : t("authModal.signInTitle")}
                   </div>
                   <div className="mt-1 text-sm text-muted-foreground/80">
                     {showCodeInput
-                      ? `We sent a 6-digit code to ${email}`
-                      : "Generate, extend, and export clean audio in seconds."}
+                      ? t("authModal.sentCodeToEmail", { email })
+                      : t("authModal.subtitle")}
                   </div>
                 </div>
               </div>
@@ -347,7 +359,7 @@ export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
                       <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/>
                     </svg>
                   )}
-                  Continue with Google
+                  {t("authModal.continueWithGoogle")}
                 </Button>
 
                 <div className="relative py-1.5">
@@ -355,8 +367,8 @@ export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
                     <span className="w-full h-px bg-foreground/10 dark:bg-white/10" />
                   </div>
                   <div className="relative flex justify-center">
-                    <span className="app-card-muted rounded-full px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.18em] text-foreground/55">
-                      Or email
+                    <span className="app-card-muted rounded-full px-3 py-1 text-xs font-semibold uppercase tracking-[0.18em] text-foreground/55">
+                      {t("authModal.orEmail")}
                     </span>
                   </div>
                 </div>
@@ -367,13 +379,13 @@ export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
                 >
                   {!showCodeInput ? (
                     <div className="space-y-2">
-                      <Label htmlFor="email" className="text-[11px] font-semibold uppercase tracking-[0.18em] text-foreground/70">
-                        Email
+                      <Label htmlFor="email" className="text-xs font-semibold uppercase tracking-[0.18em] text-foreground/70">
+                        {t("authModal.emailLabel")}
                       </Label>
                       <Input
                         id="email"
                         type="email"
-                        placeholder="you@domain.com"
+                        placeholder={t("authModal.emailPlaceholder")}
                         value={email}
                         onChange={(e) => setEmail(e.target.value)}
                         onFocus={handleInputFocus}
@@ -388,8 +400,8 @@ export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
                     </div>
                   ) : (
                     <div className="space-y-2">
-                      <Label htmlFor="code" className="text-[11px] font-semibold uppercase tracking-[0.18em] text-foreground/70">
-                        Verification code
+                      <Label htmlFor="code" className="text-xs font-semibold uppercase tracking-[0.18em] text-foreground/70">
+                        {t("authModal.verificationCodeLabel")}
                       </Label>
                       <div className="flex w-full items-center justify-between gap-2">
                         {Array.from({ length: otpLength }).map((_, index) => (
@@ -407,7 +419,7 @@ export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
                             ref={(el) => {
                               otpRefs.current[index] = el;
                             }}
-                            aria-label={`Verification code digit ${index + 1}`}
+                            aria-label={t("authModal.verificationCodeDigitAria", { index: index + 1 })}
                             className={cn(
                               "h-11 w-11 md:h-12 md:w-12 rounded-2xl text-center text-lg font-black tabular-nums",
                               "bg-foreground/5 dark:bg-white/10 border-0",
@@ -424,11 +436,12 @@ export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
                             setShowCodeInput(false);
                             setVerificationCode('');
                             setMessage('');
+                            setMessageType(null);
                           }}
                           className="inline-flex items-center gap-1.5 text-xs font-semibold text-foreground/60 hover:text-foreground transition-colors"
                         >
                           <ArrowLeft className="h-3.5 w-3.5" />
-                          Change email
+                          {t("authModal.changeEmail")}
                         </button>
                       </div>
                     </div>
@@ -444,7 +457,7 @@ export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
                         options={{
                           size: 'flexible',
                           theme: turnstileTheme,
-                          language: 'en'
+                          language: locale === "zh-CN" ? "zh-CN" : "en"
                         }}
                       />
                     </div>
@@ -467,26 +480,27 @@ export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
                     {loading && !isGoogleAuthLoading ? (
                       <LoadingDots size="sm" color="white" className="mr-2" />
                     ) : null}
-                    {showCodeInput ? 'Verify code' : 'Send code'}
+                    {showCodeInput ? t("authModal.verifyCodeAction") : t("authModal.sendCodeAction")}
                   </Button>
                 </form>
 
-                {message && !message.includes('Check your email') && !message.includes('verification code') && (
+                {message && messageType === "error" && (
                   <div className="app-card-muted text-sm text-center px-4 py-3 rounded-2xl text-red-200/90">
                     {message}
                   </div>
                 )}
 
                 <div className="text-center">
-                  <p className="text-[11px] leading-relaxed text-muted-foreground/80">
-                    By signing in, you agree to our{" "}
+                  <p className="text-sm leading-relaxed text-muted-foreground/80">
+                    {t("authModal.termsAgreementPrefix")}{" "}
                     <a href="/terms" className="text-primary hover:underline" target="_blank" rel="noopener noreferrer">
-                      Terms
+                      {t("authModal.termsLink")}
                     </a>{" "}
-                    and{" "}
+                    {t("authModal.termsAgreementBetween")}{" "}
                     <a href="/privacy" className="text-primary hover:underline" target="_blank" rel="noopener noreferrer">
-                      Privacy Policy
-                    </a>.
+                      {t("authModal.privacyPolicyLink")}
+                    </a>
+                    {t("authModal.termsAgreementSuffix")}
                   </p>
                 </div>
 
@@ -496,7 +510,7 @@ export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
                     variant="ghost"
                     className="w-full h-11 rounded-2xl text-foreground/70 hover:text-foreground hover:bg-foreground/5"
                   >
-                    Not now
+                    {t("authModal.notNow")}
                   </Button>
                 </div>
               </div>

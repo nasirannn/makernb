@@ -93,7 +93,7 @@ export const TrackInfo: React.FC<TrackInfoProps> = ({
           {parsedTags.map((tag, index) => (
             <span
               key={`${tag}-${index}`}
-              className={`inline-flex max-w-full items-center rounded-md px-2.5 py-1 text-[11px] font-medium leading-tight tracking-tight ${
+              className={`inline-flex max-w-full items-center rounded-md px-2.5 py-1 text-xs font-medium leading-tight tracking-tight ${
                 index === 0
                   ? 'bg-muted/75 text-foreground'
                   : 'bg-muted/50 text-foreground/85'
@@ -117,7 +117,7 @@ export const TrackInfo: React.FC<TrackInfoProps> = ({
     return model.replace('_', '.');
   }, [model]);
 
-  const modelBadgeClass = 'inline-flex items-center rounded-sm border border-white/45 dark:border-white/10 bg-gradient-to-r from-cyan-300 via-sky-300 to-indigo-300 px-2 py-0.5 text-[10px] font-semibold leading-none text-slate-950 shadow-[0_6px_14px_rgba(56,189,248,0.18)]';
+  const modelBadgeClass = 'inline-flex items-center rounded-sm border border-white/45 dark:border-white/10 bg-gradient-to-r from-cyan-300 via-sky-300 to-indigo-300 px-2 py-0.5 text-xs font-semibold leading-none text-slate-950 shadow-[0_6px_14px_rgba(56,189,248,0.18)]';
 
   const displayTitle = React.useMemo(() => {
     if (isError) return 'Generation Failed';
@@ -143,7 +143,7 @@ export const TrackInfo: React.FC<TrackInfoProps> = ({
               )}
 
               {!isError && originalTrackTitle && sourceType && (
-                <span className="inline-flex flex-shrink-0 items-center whitespace-nowrap rounded bg-primary/10 px-1.5 py-0.5 text-[10px] font-medium text-primary">
+                <span className="inline-flex flex-shrink-0 items-center whitespace-nowrap rounded bg-primary/10 px-1.5 py-0.5 text-xs font-medium text-primary">
                   {sourceType === 'extended' ? 'Extended' : 'Replaced'}
                 </span>
               )}
@@ -194,7 +194,7 @@ export const TrackInfo: React.FC<TrackInfoProps> = ({
                 )}
 
                 {showDuration && (hasPlainTextTags || hasParsedTags) && (
-                  <span className="text-[11px] leading-none text-muted-foreground/45">|</span>
+                  <span className="text-xs leading-none text-muted-foreground/45">|</span>
                 )}
 
                 {hasPlainTextTags ? (

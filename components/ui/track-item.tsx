@@ -10,6 +10,7 @@ import { EditMusicInfoDialog } from './edit-music-info-dialog';
 import { LibraryTrack } from '@/types/track';
 import { Check, Share2, Star, ThumbsUp, Trash2 } from 'lucide-react';
 import { SolidThumbsUpIcon } from '@/components/icons/solid-thumbs-up-icon';
+import { useI18n } from '@/lib/i18n/provider';
 
 interface TrackItemProps {
   track: LibraryTrack & any;
@@ -94,6 +95,7 @@ export const TrackItem: React.FC<TrackItemProps> = ({
   onEditMusicInfo,
   isPublishing = false,
 }) => {
+  const { t } = useI18n();
   const isError = track.isError || (!track.audioUrl && !track.isGenerating && !track.isLoading);
   const isGenerating = track.isGenerating || track.isLoading;
   const isClickable = !isError && !track.isPlaceholder;
@@ -103,7 +105,7 @@ export const TrackItem: React.FC<TrackItemProps> = ({
   const hasPlayableAudio = Boolean(track.audioUrl || track.streamAudioUrl);
   
   // 确定标题和标签
-  const title = track.title || track.musicTitle || 'Untitled Track';
+  const title = track.title || track.musicTitle || t("studioTracks.untitledTrack");
   const callbackTags = track.musicGeneration?.tags;
   const promptFallback = track.prompt || track.musicGeneration?.prompt;
   const tags =
@@ -238,8 +240,8 @@ export const TrackItem: React.FC<TrackItemProps> = ({
                             ? 'text-red-500 hover:text-red-500 hover:bg-foreground/10 dark:hover:bg-white/8'
                             : 'group-hover:text-foreground/80 group-hover:hover:text-foreground hover:bg-foreground/10 dark:hover:bg-white/8'
                         }`}
-                        aria-label={track.isFavorited ? 'Remove from library' : 'Add to library'}
-                        title={track.isFavorited ? 'Remove from library' : 'Add to library'}
+                        aria-label={track.isFavorited ? t("trackActions.removeFromLibrary") : t("trackActions.addToLibrary")}
+                        title={track.isFavorited ? t("trackActions.removeFromLibrary") : t("trackActions.addToLibrary")}
                       >
                         <Star className={`h-3 w-3 ${track.isFavorited ? 'fill-current' : ''}`} />
                       </button>
@@ -258,8 +260,8 @@ export const TrackItem: React.FC<TrackItemProps> = ({
                             ? 'group-hover:text-green-500 group-hover:hover:text-green-500 hover:bg-foreground/10 dark:hover:bg-white/8'
                             : 'group-hover:text-foreground/80 group-hover:hover:text-foreground hover:bg-foreground/10 dark:hover:bg-white/8'
                         }`}
-                        aria-label={isCopied ? 'Link copied' : 'Share track'}
-                        title={isCopied ? 'Link copied' : 'Share track'}
+                        aria-label={isCopied ? t("trackActions.linkCopied") : t("trackActions.shareTrack")}
+                        title={isCopied ? t("trackActions.linkCopied") : t("trackActions.shareTrack")}
                       >
                         {isCopied ? <Check className="h-3 w-3" /> : <Share2 className="h-3 w-3" />}
                       </button>
@@ -278,8 +280,8 @@ export const TrackItem: React.FC<TrackItemProps> = ({
                             ? 'group-hover:text-pink-500 group-hover:hover:text-pink-500 hover:bg-foreground/10 dark:hover:bg-white/8'
                             : 'group-hover:text-foreground/80 group-hover:hover:text-foreground hover:bg-foreground/10 dark:hover:bg-white/8'
                         }`}
-                        aria-label={track.isLiked ? 'Unlike track' : 'Like track'}
-                        title={track.isLiked ? 'Unlike track' : 'Like track'}
+                        aria-label={track.isLiked ? t("trackActions.unlikeTrack") : t("trackActions.likeTrack")}
+                        title={track.isLiked ? t("trackActions.unlikeTrack") : t("trackActions.likeTrack")}
                       >
                         {track.isLiked ? (
                           <SolidThumbsUpIcon className="h-3 w-3 fill-current" />

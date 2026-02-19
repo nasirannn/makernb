@@ -10,9 +10,11 @@ import { LoadingDots } from '@/components/ui/loading-dots';
 import { useRouter } from 'next/navigation';
 import Image from 'next/image';
 import { Check, Lock } from 'lucide-react';
+import { useI18n } from '@/lib/i18n/provider';
 
 export default function ResetPasswordPage() {
   const router = useRouter();
+  const { t } = useI18n();
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [loading, setLoading] = useState(false);
@@ -31,7 +33,7 @@ export default function ResetPasswordPage() {
             setIsValidToken(true);
             setCheckingToken(false);
           } else if (event === 'SIGNED_OUT' || !session) {
-            setMessage('Invalid or expired reset link. Please request a new one.');
+            setMessage(t('resetPasswordPage.invalidOrExpiredLink'));
             setCheckingToken(false);
           }
         });
@@ -44,7 +46,7 @@ export default function ResetPasswordPage() {
           // 如果没有会话，等待URL中的token被处理
           setTimeout(() => {
             if (!isValidToken) {
-              setMessage('Invalid or expired reset link. Please request a new one.');
+              setMessage(t('resetPasswordPage.invalidOrExpiredLink'));
               setCheckingToken(false);
             }
           }, 2000);
@@ -53,24 +55,24 @@ export default function ResetPasswordPage() {
         return () => subscription.unsubscribe();
       } catch (error) {
         console.error('Error checking token:', error);
-        setMessage('An error occurred. Please try again.');
+        setMessage(t('resetPasswordPage.genericErrorTryAgain'));
         setCheckingToken(false);
       }
     };
 
     checkToken();
-  }, [isValidToken]);
+  }, [isValidToken, t]);
 
   const handleResetPassword = async (e: React.FormEvent) => {
     e.preventDefault();
     
     if (password !== confirmPassword) {
-      setMessage('Passwords do not match');
+      setMessage(t('resetPasswordPage.passwordsDoNotMatch'));
       return;
     }
 
     if (password.length < 6) {
-      setMessage('Password must be at least 6 characters');
+      setMessage(t('resetPasswordPage.passwordMinLengthError'));
       return;
     }
 
@@ -85,14 +87,14 @@ export default function ResetPasswordPage() {
       if (error) throw error;
 
       setIsSuccess(true);
-      setMessage('Password updated successfully! Redirecting...');
+      setMessage(t('resetPasswordPage.passwordUpdatedRedirecting'));
       
       // 等待2秒后跳转到首页
       setTimeout(() => {
         router.push('/');
       }, 2000);
     } catch (error: any) {
-      setMessage(error instanceof Error ? error.message : 'Unknown error');
+      setMessage(error instanceof Error ? error.message : t('resetPasswordPage.unknownError'));
     } finally {
       setLoading(false);
     }
@@ -118,13 +120,13 @@ export default function ResetPasswordPage() {
             <div className="flex justify-center mb-4">
               <Image
                 src="/logo.svg"
-                alt="MakeRNB Logo"
+                alt={t('common.brandLogo')}
                 width={48}
                 height={48}
                 className="h-12 w-12"
               />
             </div>
-            <CardTitle className="text-2xl font-bold">Invalid Link</CardTitle>
+            <CardTitle className="text-2xl font-bold">{t('resetPasswordPage.invalidLinkTitle')}</CardTitle>
             <CardDescription>
               {message}
             </CardDescription>
@@ -134,7 +136,7 @@ export default function ResetPasswordPage() {
               onClick={() => router.push('/')}
               className="w-full h-12 bg-primary hover:bg-primary/90 text-primary-foreground font-medium rounded-xl"
             >
-              Return to Home
+              {t('resetPasswordPage.returnHome')}
             </Button>
           </CardContent>
         </Card>
@@ -152,14 +154,14 @@ export default function ResetPasswordPage() {
                 <Check className="w-8 h-8 text-green-400" />
               </div>
             </div>
-            <CardTitle className="text-2xl font-bold">Success!</CardTitle>
+            <CardTitle className="text-2xl font-bold">{t('resetPasswordPage.successTitle')}</CardTitle>
             <CardDescription>
-              Your password has been updated successfully
+              {t('resetPasswordPage.passwordUpdatedDescription')}
             </CardDescription>
           </CardHeader>
           <CardContent className="text-center">
             <p className="text-muted-foreground text-sm mb-4">
-              Redirecting you to the home page...
+              {t('resetPasswordPage.redirectingHome')}
             </p>
             <LoadingDots size="sm" color="muted" />
           </CardContent>
@@ -175,30 +177,30 @@ export default function ResetPasswordPage() {
           <div className="flex justify-center mb-4">
             <Image
               src="/logo.svg"
-              alt="MakeRNB Logo"
+              alt={t('common.brandLogo')}
               width={48}
               height={48}
               className="h-12 w-12"
             />
           </div>
           <CardTitle className="text-2xl font-bold">
-            Set New Password
+            {t('resetPasswordPage.setNewPasswordTitle')}
           </CardTitle>
           <CardDescription>
-            Enter your new password below
+            {t('resetPasswordPage.setNewPasswordDescription')}
           </CardDescription>
         </CardHeader>
         
         <CardContent>
           <form onSubmit={handleResetPassword} className="space-y-4">
             <div className="space-y-2">
-              <Label htmlFor="password">New Password</Label>
+              <Label htmlFor="password">{t('resetPasswordPage.newPasswordLabel')}</Label>
               <div className="relative">
                 <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                 <Input
                   id="password"
                   type="password"
-                  placeholder="Enter new password"
+                  placeholder={t('resetPasswordPage.newPasswordPlaceholder')}
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   required
@@ -206,17 +208,17 @@ export default function ResetPasswordPage() {
                   className="pl-10"
                 />
               </div>
-              <p className="text-xs text-muted-foreground">Must be at least 6 characters</p>
+              <p className="text-xs text-muted-foreground">{t('resetPasswordPage.passwordMinLengthHint')}</p>
             </div>
             
             <div className="space-y-2">
-              <Label htmlFor="confirmPassword">Confirm Password</Label>
+              <Label htmlFor="confirmPassword">{t('resetPasswordPage.confirmPasswordLabel')}</Label>
               <div className="relative">
                 <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                 <Input
                   id="confirmPassword"
                   type="password"
-                  placeholder="Confirm new password"
+                  placeholder={t('resetPasswordPage.confirmPasswordPlaceholder')}
                   value={confirmPassword}
                   onChange={(e) => setConfirmPassword(e.target.value)}
                   required
@@ -236,7 +238,7 @@ export default function ResetPasswordPage() {
               ) : (
                 <Lock className="mr-2 h-4 w-4" />
               )}
-              Update Password
+              {t('resetPasswordPage.updatePasswordAction')}
             </Button>
 
             {/* Message */}
@@ -256,7 +258,7 @@ export default function ResetPasswordPage() {
               onClick={() => router.push('/')}
               className="text-sm text-muted-foreground hover:text-foreground transition-colors"
             >
-              ← Back to home
+              {t('resetPasswordPage.backToHome')}
             </button>
           </div>
         </CardContent>

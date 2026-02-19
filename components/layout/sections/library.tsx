@@ -16,6 +16,7 @@ import { MusicPlayer } from "@/components/ui/music-player";
 import { InlineTrackDetailsPanel } from "@/components/ui/inline-track-details";
 import AuthModal from "@/components/ui/auth-modal";
 import { toast } from "sonner";
+import { useI18n } from "@/lib/i18n/provider";
 
 interface LibraryInlineTrackDetails {
     id: string;
@@ -39,6 +40,7 @@ const LibraryContent = () => {
     const selectedTrackId = searchParams?.get('track') || null;
     
     const { user } = useAuth();
+    const { t } = useI18n();
     const audioPlayer = useAudioPlayer();
     const { tracks, isLoading, toggleFavorite, updateTrack } = useLibraryTracks(user?.id);
 
@@ -104,7 +106,7 @@ const LibraryContent = () => {
 
         return {
             id: track.id,
-            title: track.title || 'Untitled Track',
+            title: track.title || t("studioTracks.untitledTrack"),
             tags: track.tags || '',
             lyrics: track.lyrics || '',
             coverImage: track.coverImage || track.coverR2Url || track.coverUrl || null,
@@ -118,7 +120,7 @@ const LibraryContent = () => {
             audioUrl: track?.audioUrl || '',
             streamAudioUrl: track?.streamAudioUrl || '',
         };
-    }, []);
+    }, [t]);
 
     // ==================== 选中状态同步 ====================
     // 当 URL 有 track 参数时，更新内部选中状态以及右侧歌词面板数据
@@ -181,7 +183,7 @@ const LibraryContent = () => {
             audioUrl: track.audioUrl,
             streamAudioUrl: track.streamAudioUrl,
             duration: track.duration,
-            artist: track.tags || 'Unknown Artist',
+            artist: track.tags || t("libraryPage.unknownArtist"),
             tags: track.tags,
             coverImage: track.coverImage || undefined,
             coverR2Url: (track as any).coverR2Url || undefined,
@@ -193,7 +195,7 @@ const LibraryContent = () => {
                 coverR2Url: track.coverImage // 映射为 JavaScript 字段名
             }]
         }));
-    }, [tracks]);
+    }, [tracks, t]);
 
     // 为LibraryPanel准备tracks数据（兼容旧格式）
     const libraryPanelTracks = React.useMemo(() => {
@@ -321,7 +323,7 @@ const LibraryContent = () => {
     // ==================== Track Actions ====================
     const handleFavoriteToggle = React.useCallback(async (track: any) => {
         if (!user?.id) {
-            toast('Please log in to manage favorites');
+            toast(t("toasts.pleaseLogInFavoriteTracks"));
             return;
         }
 
@@ -330,12 +332,12 @@ const LibraryContent = () => {
 
             // 显示toast提示
             if (isFavorited) {
-                toast.success('Added to favorites!', {
-                    description: `"${track.title}" has been added to library.`
+                toast.success(t("toasts.addedToFavorites"), {
+                    description: t("toasts.addedToFavoritesDesc", { title: track.title || t("studioTracks.untitledTrack") })
                 });
             } else {
-                toast.success('Removed from favorites', {
-                    description: `"${track.title}" has been removed from library.`
+                toast.success(t("toasts.removedFromFavorites"), {
+                    description: t("toasts.removedFromFavoritesDesc", { title: track.title || t("studioTracks.untitledTrack") })
                 });
                 
                 // 如果在详情页取消收藏，返回列表页
@@ -345,9 +347,9 @@ const LibraryContent = () => {
             }
         } catch (error) {
             console.error('Error toggling favorite:', error);
-            toast.error('Failed to update favorite status');
+            toast.error(t("toasts.failedUpdateFavoriteStatus"));
         }
-    }, [user?.id, toggleFavorite, selectedTrackId, handleBackToList]);
+    }, [user?.id, toggleFavorite, selectedTrackId, handleBackToList, t]);
 
     const handleTrackAction = React.useCallback((track: any, action: string) => {
         if (action === 'update') {
@@ -496,6 +498,7 @@ const LibraryContent = () => {
 };
 
 export const LibrarySection = () => {
+    const { t } = useI18n();
     return (
         <Suspense
             fallback={(
@@ -504,7 +507,7 @@ export const LibrarySection = () => {
                     className="h-screen bg-background px-6 py-4 md:py-6"
                 >
                     <h1 className="text-2xl font-semibold tracking-tight text-foreground md:text-4xl">
-                        Music Library
+                        {t("nav.library")}
                     </h1>
                 </section>
             )}

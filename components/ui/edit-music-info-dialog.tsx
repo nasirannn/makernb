@@ -15,6 +15,7 @@ import NextImage from "next/image";
 import { Slider } from "@/components/ui/slider";
 import { toast } from "sonner";
 import { supabase } from "@/lib/supabase";
+import { useI18n } from "@/lib/i18n/provider";
 
 interface EditMusicInfoDialogProps {
   isOpen: boolean;
@@ -33,6 +34,7 @@ export const EditMusicInfoDialog: React.FC<EditMusicInfoDialogProps> = ({
   initialCoverImage,
   trackId,
 }) => {
+  const { t } = useI18n();
   const [title, setTitle] = useState(initialTitle);
   const [coverImage, setCoverImage] = useState<string | undefined>(initialCoverImage);
   const [coverImageFile, setCoverImageFile] = useState<File | null>(null);
@@ -65,20 +67,20 @@ export const EditMusicInfoDialog: React.FC<EditMusicInfoDialogProps> = ({
   const handleFileSelect = useCallback((file: File) => {
     const validTypes = ['image/jpeg', 'image/jpg', 'image/png'];
     if (!validTypes.includes(file.type)) {
-      alert('Please select a valid image file (JPG, JPEG, or PNG)');
+      alert(t("editMusicInfo.invalidImageType"));
       return;
     }
 
     const maxSize = 10 * 1024 * 1024; // 10MB
     if (file.size > maxSize) {
-      alert('File size must be less than 10MB');
+      alert(t("editMusicInfo.imageSizeLimit"));
       return;
     }
 
     setCoverImageFile(file);
     const url = URL.createObjectURL(file);
     setPreviewUrl(url);
-  }, []);
+  }, [t]);
 
   const loadImageFromBlob = (blob: Blob) =>
     new Promise<HTMLImageElement>((resolve, reject) => {
@@ -200,7 +202,7 @@ export const EditMusicInfoDialog: React.FC<EditMusicInfoDialogProps> = ({
       await onSave({ title: title.trim(), coverImageUrl });
     } catch (error) {
       console.error('Error saving music info:', error);
-      toast.error('Failed to update music info. Please try again.');
+      toast.error(t("editMusicInfo.failedUpdateMusicInfoTryAgain"));
     } finally {
       setIsSaving(false);
     }
@@ -224,23 +226,23 @@ export const EditMusicInfoDialog: React.FC<EditMusicInfoDialogProps> = ({
       >
         <DialogHeader className="flex-shrink-0 px-5 pt-4 pb-2 text-left">
           <div className="pr-8">
-            <DialogTitle className="text-xl font-semibold tracking-tight">Edit Music Info</DialogTitle>
+            <DialogTitle className="text-xl font-semibold tracking-tight">{t("editMusicInfo.title")}</DialogTitle>
           </div>
           <DialogDescription className="text-sm text-muted-foreground">
-            Update title or cover image for this track.
+            {t("editMusicInfo.description")}
           </DialogDescription>
         </DialogHeader>
 
         <div className="flex-1 overflow-y-auto space-y-3 px-5 py-3">
           <section className="studio-panel-card rounded-2xl p-3 space-y-2">
             <label htmlFor="title" className="text-xs md:text-sm font-semibold text-foreground">
-              Title
+              {t("editMusicInfo.titleLabel")}
             </label>
             <Input
               id="title"
               value={title}
               onChange={(e) => setTitle(e.target.value)}
-              placeholder="Track title"
+              placeholder={t("editMusicInfo.titlePlaceholder")}
               maxLength={80}
               className="h-11 border-0 bg-transparent px-0 focus-visible:ring-0 focus-visible:ring-offset-0"
               onKeyDown={(e) => {
@@ -256,7 +258,7 @@ export const EditMusicInfoDialog: React.FC<EditMusicInfoDialogProps> = ({
 
           <section className="studio-panel-card rounded-2xl p-3 space-y-2">
             <label className="text-xs md:text-sm font-semibold text-foreground block text-left">
-              Cover Image
+              {t("editMusicInfo.coverImageLabel")}
             </label>
             <div
               className={`rounded-xl bg-foreground/5 p-3 transition-colors ${
@@ -274,7 +276,7 @@ export const EditMusicInfoDialog: React.FC<EditMusicInfoDialogProps> = ({
                   {displayImage ? (
                     <NextImage
                       src={displayImage}
-                      alt="Cover preview"
+                      alt={t("editMusicInfo.coverPreviewAlt")}
                       fill
                       className="object-cover origin-center transition-transform duration-200"
                       style={{ transform: `scale(${coverScale[0] / 100})` }}
@@ -286,10 +288,10 @@ export const EditMusicInfoDialog: React.FC<EditMusicInfoDialogProps> = ({
                     >
                       <Upload className="mb-2 h-8 w-8 text-muted-foreground" />
                       <p className="mb-1 text-sm font-medium text-foreground">
-                        Drag and drop or click to upload your image
+                        {t("editMusicInfo.uploadPrompt")}
                       </p>
-                      <p className="text-xs text-muted-foreground">
-                        JPG, JPEG, PNG up to 10MB.
+                      <p className="text-sm text-muted-foreground">
+                        {t("editMusicInfo.uploadHint")}
                       </p>
                     </div>
                   )}
@@ -298,7 +300,7 @@ export const EditMusicInfoDialog: React.FC<EditMusicInfoDialogProps> = ({
                 {displayImage && (
                   <div className="flex flex-1 items-center gap-3">
                     <div className="studio-panel-card flex flex-1 items-center gap-3 rounded-full px-4 py-2">
-                      <span className="text-xs font-medium text-foreground/80">Size</span>
+                      <span className="text-xs font-medium text-foreground/80">{t("editMusicInfo.sizeLabel")}</span>
                       <Slider
                         value={coverScale}
                         onValueChange={setCoverScale}
@@ -312,7 +314,7 @@ export const EditMusicInfoDialog: React.FC<EditMusicInfoDialogProps> = ({
                       onClick={handleRemoveImage}
                       className="h-9 w-9 shrink-0 rounded-full text-muted-foreground transition-colors hover:bg-foreground/10 hover:text-foreground focus-visible:outline-none focus-visible:ring-0 focus-visible:ring-offset-0"
                       type="button"
-                      aria-label="Remove cover image"
+                      aria-label={t("editMusicInfo.removeCoverImage")}
                     >
                       <Trash2 className="mx-auto h-4 w-4" />
                     </button>
@@ -339,10 +341,10 @@ export const EditMusicInfoDialog: React.FC<EditMusicInfoDialogProps> = ({
             {isSaving ? (
               <>
                 <div className="mr-2 h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent" />
-                Saving...
+                {t("editMusicInfo.saving")}
               </>
             ) : (
-              'Save'
+              t("editMusicInfo.save")
             )}
           </button>
         </DialogFooter>

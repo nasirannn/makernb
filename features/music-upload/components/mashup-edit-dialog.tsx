@@ -362,7 +362,7 @@ export const MashupEditDialog = ({
         <DialogHeader className="flex-shrink-0 px-6 pt-5 pb-3 text-left relative overflow-hidden">
           <div className="pointer-events-none absolute inset-0 bg-gradient-to-r from-primary/10 via-transparent to-primary/10" />
           <div className="relative">
-            <div className="text-[10px] uppercase tracking-[0.28em] text-muted-foreground">
+            <div className="text-xs uppercase tracking-[0.28em] text-muted-foreground">
               Upload Audio
             </div>
             <DialogTitle className="text-xl font-semibold tracking-tight">
@@ -427,7 +427,7 @@ export const MashupEditDialog = ({
                         <div className="text-sm font-mono tracking-widest text-foreground">
                           {formatClockTime(slot.currentTime)} / {formatClockTime(slot.duration || 0)}
                         </div>
-                        <div className="text-xs text-muted-foreground">
+                        <div className="text-sm text-muted-foreground">
                           Audio Length {minDuration}s ~ {Math.floor(maxDuration / 60)}m
                         </div>
                       </div>
@@ -562,7 +562,7 @@ export const MashupEditDialog = ({
                         <UploadCloud className="h-5 w-5" />
                       </div>
                       <div className="text-sm font-semibold text-foreground">Click to select audio</div>
-                      <div className="mt-1 text-xs text-muted-foreground">
+                      <div className="mt-1 text-sm text-muted-foreground">
                         Required · audio only · max 100MB
                       </div>
                     </div>

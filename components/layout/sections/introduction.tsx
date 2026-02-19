@@ -93,7 +93,7 @@ export const IntroductionSection = () => {
 
           <div className="grid gap-6 lg:grid-cols-[1.1fr,0.9fr] lg:items-stretch">
             <article className="h-full p-6 sm:p-8 lg:p-10">
-              <p className="text-[11px] font-semibold uppercase tracking-[0.24em] text-primary/90">
+              <p className="text-xs font-semibold uppercase tracking-[0.24em] text-primary/90">
                 R&B Timeline
               </p>
               <h3 className="mt-4 text-2xl font-bold tracking-tight sm:text-3xl">
@@ -141,7 +141,7 @@ export const IntroductionSection = () => {
                     height={40}
                     className="h-10 w-10"
                   />
-                  <span className="text-[11px] font-semibold uppercase tracking-[0.16em] text-foreground/45 dark:text-white/45">
+                  <span className="text-xs font-semibold uppercase tracking-[0.16em] text-foreground/45 dark:text-white/45">
                     {String(index + 1).padStart(2, "0")}
                   </span>
                 </div>
@@ -185,7 +185,7 @@ export const IntroductionSection = () => {
                       )}
                     >
                       <h3 className="text-xl font-semibold tracking-tight text-foreground">{genre.title}</h3>
-                      <p className="text-sm leading-relaxed text-muted-foreground sm:text-[15px]">
+                      <p className="text-sm leading-relaxed text-muted-foreground">
                         {genre.description}
                       </p>
                       <Link

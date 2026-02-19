@@ -31,6 +31,7 @@ import { useStudioPersonaManager } from "@/hooks/use-studio-persona-manager";
 import { ModelSelectionDialog, MusicModel, modelOptions } from '@/components/ui/model-selection-dialog';
 import { PricingSection } from '@/components/layout/sections/pricing';
 import { useTheme } from "next-themes";
+import { useI18n } from "@/lib/i18n/provider";
 
 // Extract options from musicOptions
 const { genres, vibes, grooveTypes, leadInstruments, drumKits, bassTones, vocalGenders, harmonyPalettes } = musicOptions;
@@ -50,12 +51,6 @@ const UPLOAD_ACTION_CREDITS: Record<AudioUploadIntent, number> = {
   track: CLIENT_UPLOAD_AUDIO_CREDITS.cover,
   vocal: CLIENT_UPLOAD_AUDIO_CREDITS.vocal,
   melody: CLIENT_UPLOAD_AUDIO_CREDITS.melody,
-};
-
-const UPLOAD_INTENT_LABEL: Record<AudioUploadIntent, string> = {
-  track: "Track",
-  vocal: "Vocal",
-  melody: "Melody",
 };
 
 type MashupPreviewTrack = {
@@ -184,7 +179,7 @@ export const MashupPanel = (props: FeatureCreatePanelProps) => {
     panelOpen,
     forceVisibleOnMobile = false,
     hasPlayer = false,
-    panelTitle = "Mashup",
+    panelTitle,
     setIsAuthModalOpen,
     mode,
     setMode,
@@ -244,6 +239,8 @@ export const MashupPanel = (props: FeatureCreatePanelProps) => {
   const { user } = useAuth();
   const { credits } = useCredits();
   const { resolvedTheme } = useTheme();
+  const { t } = useI18n();
+  const resolvedPanelTitle = panelTitle ?? t("studioFeatures.mashup");
   const userSelectedModelRef = React.useRef(false);
   const defaultSimplePromptMaxLength = 400;
   const maxUploadDurationSeconds = 8 * 60;
@@ -511,7 +508,7 @@ export const MashupPanel = (props: FeatureCreatePanelProps) => {
 
     const nextTracks: MashupPreviewTrack[] = slots.map((slot, index) => {
       const file = slot.file!;
-      const fallbackName = file.name.replace(/\.[^/.]+$/, "") || `Mashup Audio ${index + 1}`;
+      const fallbackName = file.name.replace(/\.[^/.]+$/, "") || t("featurePanel.mashupAudioWithIndex", { index: index + 1 });
       return {
         file,
         fileName: slot.fileName || fallbackName,
@@ -526,7 +523,7 @@ export const MashupPanel = (props: FeatureCreatePanelProps) => {
       return nextTracks;
     });
     stopMashupPlayback(true);
-  }, [clearMashupPreviewTracks, stopMashupPlayback]);
+  }, [clearMashupPreviewTracks, stopMashupPlayback, t]);
 
   React.useEffect(() => {
     syncMashupTracksFromSlots(mashupSlots);
@@ -723,11 +720,11 @@ export const MashupPanel = (props: FeatureCreatePanelProps) => {
       const { data: { session }, error: sessionError } = await supabase.auth.getSession();
 
       if (sessionError) {
-        throw new Error("Failed to get session. Please try logging in again.");
+        throw new Error(t("toasts.failedGetSessionTryLogInAgain"));
       }
 
       if (!session?.access_token) {
-        throw new Error("Please log in to continue.");
+        throw new Error(t("toasts.pleaseLogInToContinue"));
       }
 
       const response = await fetch("/api/prompt/simple-genre", {
@@ -753,10 +750,10 @@ export const MashupPanel = (props: FeatureCreatePanelProps) => {
       if (!response.ok || !result?.success) {
         if (response.status === 401) {
           setIsAuthModalOpen?.(true);
-          throw new Error("Your session has expired. Please log in again.");
+          throw new Error(t("toasts.sessionExpiredLogInAgain"));
         }
 
-        throw new Error(result?.error || "Failed to generate prompt.");
+        throw new Error(result?.error || t("toasts.failedGeneratePrompt"));
       }
 
       const generatedPrompt = typeof result?.data?.prompt === "string"
@@ -764,7 +761,7 @@ export const MashupPanel = (props: FeatureCreatePanelProps) => {
         : "";
 
       if (!generatedPrompt) {
-        throw new Error("Model returned empty prompt. Please try again.");
+        throw new Error(t("toasts.modelReturnedEmptyPromptTryAgain"));
       }
 
       onSuccess(generatedPrompt);
@@ -774,7 +771,7 @@ export const MashupPanel = (props: FeatureCreatePanelProps) => {
       }
 
       console.error("Generate genre prompt failed:", error);
-      const message = error instanceof Error ? error.message : "Failed to generate prompt.";
+      const message = error instanceof Error ? error.message : t("toasts.failedGeneratePrompt");
       toast.error(message);
     } finally {
       if (requestId === genrePromptRequestIdRef.current) {
@@ -783,7 +780,7 @@ export const MashupPanel = (props: FeatureCreatePanelProps) => {
         genrePromptAbortRef.current = null;
       }
     }
-  }, [user, setIsAuthModalOpen]);
+  }, [user, setIsAuthModalOpen, t]);
   // Function to update states based on textarea content with debouncing
   const handleUpdateStatesFromTextarea = React.useCallback((text: string) => {
     const timeoutId = setTimeout(() => {
@@ -832,27 +829,27 @@ export const MashupPanel = (props: FeatureCreatePanelProps) => {
       const trimmedTitle = songTitle.trim();
 
       if (!trimmedStyle) {
-        toast.error('Please enter a style before creating mashup.');
+        toast.error(t("toasts.pleaseEnterStyleBeforeMashup"));
         return;
       }
       if (!trimmedTitle) {
-        toast.error('Please enter a title before creating mashup.');
+        toast.error(t("toasts.pleaseEnterTitleBeforeMashup"));
         return;
       }
       if (!trimmedCustomLyrics) {
-        toast.error('Please enter lyrics before creating mashup.');
+        toast.error(t("toasts.pleaseEnterLyricsBeforeMashup"));
         return;
       }
 
       if (credits === null) {
-        toast('Loading credits, please wait...');
+        toast(t("toasts.loadingCreditsPleaseWait"));
         return;
       }
 
       const mashupCredits = CLIENT_UPLOAD_AUDIO_CREDITS.mashup;
       if (credits < mashupCredits) {
-        toast('Insufficient Credits', {
-          description: `Need ${mashupCredits} credits (you have ${credits}). Please wait for daily rewards or buy credits.`,
+        toast(t("toasts.insufficientCredits"), {
+          description: t("toasts.needCreditsDescription", { required: mashupCredits, credits: credits ?? 0 }),
           icon: <CreditCard className="h-4 w-4" />,
         });
         return;
@@ -869,7 +866,7 @@ export const MashupPanel = (props: FeatureCreatePanelProps) => {
           .filter(Boolean);
 
         if (uploadUrlList.length !== 2) {
-          throw new Error('Failed to upload mashup audio files. Please try again.');
+          throw new Error(t("toasts.failedUploadMashupAudioFiles"));
         }
 
         const generationResult = await onGenerationStart?.({
@@ -882,7 +879,7 @@ export const MashupPanel = (props: FeatureCreatePanelProps) => {
         result = Boolean(generationResult);
       } catch (error) {
         console.error('Mashup generation failed:', error);
-        const message = error instanceof Error ? error.message : 'Mashup generation failed. Please try again.';
+        const message = error instanceof Error ? error.message : t("toasts.mashupGenerationFailedTryAgain");
         toast.error(message);
       }
 
@@ -893,18 +890,18 @@ export const MashupPanel = (props: FeatureCreatePanelProps) => {
     }
 
     if (requiresTrackUpload && !uploadCoverFile) {
-      toast.error('Please upload an audio track first.');
+      toast.error(t("toasts.pleaseUploadAudioTrackFirst"));
       return;
     }
 
     if (isExtendUploadMode && isCustomMode && uploadCoverFile && !isExtendContinueAtValid) {
-      toast.error('Please set Continue At to a value greater than 0 and less than the track duration.');
+      toast.error(t("toasts.pleaseSetContinueAtRange"));
       return;
     }
 
     if (uploadCoverFile) {
       if (!uploadAudioUploadUrl) {
-        toast.error("Upload URL is missing. Please save your audio again.");
+        toast.error(t("toasts.uploadUrlMissingSaveAudioAgain"));
         return;
       }
 
@@ -932,13 +929,13 @@ export const MashupPanel = (props: FeatureCreatePanelProps) => {
     }
 
     if (mode === "custom" && audioUploadIntent !== null && activeUploadIntent !== "track") {
-      toast.error(`Please upload an audio file for ${UPLOAD_INTENT_LABEL[activeUploadIntent]} mode first.`);
+      toast.error(t("toasts.pleaseUploadAudioFileForModeFirst", { mode: t("featurePanel." + activeUploadIntent) }));
       return;
     }
     
     // 检查积分是否足够（点击后才检查）
     if (credits === null) {
-      toast("Loading credits, please wait...");
+      toast(t("toasts.loadingCreditsPleaseWait"));
       return;
     }
 
@@ -951,8 +948,8 @@ export const MashupPanel = (props: FeatureCreatePanelProps) => {
 
     if (credits < requiredCredits) {
       // 使用 sonner 显示积分不足提示
-      toast(`Insufficient Credits`, {
-        description: `Need ${requiredCredits} credits (you have ${credits}). Please wait for daily rewards or buy credits.`,
+      toast(t("toasts.insufficientCredits"), {
+        description: t("toasts.needCreditsDescription", { required: requiredCredits, credits: credits ?? 0 }),
         icon: <CreditCard className="h-4 w-4" />,
       });
       return;
@@ -979,7 +976,7 @@ export const MashupPanel = (props: FeatureCreatePanelProps) => {
     }
 
     if (mashupTracks.length === 2) {
-      toast.error('Please remove current mashup audio before adding a new one.');
+      toast.error(t("toasts.pleaseRemoveCurrentMashupAudioBeforeAdding"));
       return;
     }
 
@@ -1005,6 +1002,7 @@ export const MashupPanel = (props: FeatureCreatePanelProps) => {
     resetPendingAudio,
     updateCurrentUploadState,
     uploadFileInputRef,
+    t,
   ]);
 
   const handlePromptAddAudioClick = React.useCallback(() => {
@@ -1039,11 +1037,11 @@ export const MashupPanel = (props: FeatureCreatePanelProps) => {
       return;
     }
     if (uploadCoverFile) {
-      toast.error('Please remove current uploaded audio before creating mashup.');
+      toast.error(t("toasts.pleaseRemoveCurrentUploadedAudioBeforeMashup"));
       return;
     }
     mashupSlotInputRefs.current[slotIndex]?.click();
-  }, [allowMashupAction, user, setIsAuthModalOpen, canUseMashup, uploadCoverFile]);
+  }, [allowMashupAction, user, setIsAuthModalOpen, canUseMashup, uploadCoverFile, t]);
 
   const handleMashupSlotPlayPause = React.useCallback(async (slotIndex: 0 | 1) => {
     const slotAudio = mashupAudioRefs.current[slotIndex];
@@ -1080,9 +1078,9 @@ export const MashupPanel = (props: FeatureCreatePanelProps) => {
     } catch (error) {
       console.error("Failed to play mashup preview audio:", error);
       setMashupPlayingIndex(null);
-      toast.error("Unable to play selected audio.");
+      toast.error(t("toasts.unableToPlaySelectedAudio"));
     }
-  }, [getMashupSlotPlaybackAudioUrl, getOrCreateMashupAudio, mashupPlayingIndex]);
+  }, [getMashupSlotPlaybackAudioUrl, getOrCreateMashupAudio, mashupPlayingIndex, t]);
 
   const handleMashupSlotFileChange = React.useCallback(async (
     slotIndex: 0 | 1,
@@ -1094,17 +1092,17 @@ export const MashupPanel = (props: FeatureCreatePanelProps) => {
     if (!file) return;
 
     if (file.size > maxDirectUploadBytes) {
-      toast.error("File size must be under 100MB.");
+      toast.error(t("toasts.fileSizeUnder100Mb"));
       return;
     }
 
     if (!file.type.startsWith("audio/")) {
-      toast.error("Unsupported file type. Please upload audio.");
+      toast.error(t("toasts.unsupportedFileTypeUploadAudio"));
       return;
     }
 
     const duration = await readAudioDuration(file);
-    const fileName = file.name.replace(/\.[^/.]+$/, "") || `Mashup Audio ${slotIndex + 1}`;
+    const fileName = file.name.replace(/\.[^/.]+$/, "") || t("featurePanel.mashupAudioWithIndex", { index: slotIndex + 1 });
 
     setMashupSlots((prev) => {
       const next: [MashupSelectionSlot, MashupSelectionSlot] = [...prev] as [MashupSelectionSlot, MashupSelectionSlot];
@@ -1115,7 +1113,7 @@ export const MashupPanel = (props: FeatureCreatePanelProps) => {
       };
       return next;
     });
-  }, [maxDirectUploadBytes, readAudioDuration]);
+  }, [maxDirectUploadBytes, readAudioDuration, t]);
 
   const handleDirectAudioFileChange = React.useCallback(async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0] || null;
@@ -1124,12 +1122,12 @@ export const MashupPanel = (props: FeatureCreatePanelProps) => {
     if (!file) return;
 
     if (file.size > maxDirectUploadBytes) {
-      toast.error("File size must be under 100MB.");
+      toast.error(t("toasts.fileSizeUnder100Mb"));
       return;
     }
 
     if (!file.type.startsWith("audio/")) {
-      toast.error("Unsupported file type. Please upload audio.");
+      toast.error(t("toasts.unsupportedFileTypeUploadAudio"));
       return;
     }
 
@@ -1165,7 +1163,7 @@ export const MashupPanel = (props: FeatureCreatePanelProps) => {
         progressError: null,
       });
     } catch (error) {
-      const message = error instanceof Error ? error.message : "Upload failed. Please try again.";
+      const message = error instanceof Error ? error.message : t("toasts.uploadFailedTryAgain");
       updateCurrentUploadState({
         audioUploadUrl: null,
         progressStatus: "error",
@@ -1178,6 +1176,7 @@ export const MashupPanel = (props: FeatureCreatePanelProps) => {
     maxDirectUploadBytes,
     updateCurrentUploadState,
     uploadAudioToServer,
+    t,
   ]);
 
   const handleOpenPersonaDialog = React.useCallback(() => {
@@ -1218,24 +1217,24 @@ export const MashupPanel = (props: FeatureCreatePanelProps) => {
                   <p className="text-sm font-semibold truncate text-foreground leading-none">
                     {uploadCoverFileName || uploadCoverFile.name}
                   </p>
-                  <span className="inline-flex items-center rounded-full bg-primary/15 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-primary/90">
+                  <span className="inline-flex items-center rounded-full bg-primary/15 px-2 py-0.5 text-xs font-medium uppercase tracking-wide text-primary/90">
                     {activeUploadIntent === "track"
-                      ? (uploadAudioMode === "extend" ? "Extend" : "Cover")
-                      : UPLOAD_INTENT_LABEL[activeUploadIntent]}
+                      ? (uploadAudioMode === "extend" ? t("featurePanel.extend") : t("featurePanel.cover"))
+                      : t("featurePanel." + activeUploadIntent)}
                   </span>
                   <button
                     type="button"
                     onClick={clearUploadAndResetIntent}
                     className="ml-auto inline-flex h-5 w-5 items-center justify-center rounded-full text-muted-foreground hover:text-foreground transition-colors p-0"
-                    title="Remove"
+                    title={t("featurePanel.remove")}
                   >
                     <X className="h-3 w-3" />
                   </button>
                 </div>
                 <div className="flex items-center gap-2">
-                  <p className="text-xs text-muted-foreground leading-none">
+                  <p className="text-sm text-muted-foreground leading-none">
                     {isUploadAudioAnalyzing
-                      ? "Analyzing audio..."
+                      ? t("featurePanel.analyzingAudio")
                       : (() => {
                           const total = uploadAudioTotalDuration || uploadAudioDuration || 0;
                           const current = uploadAudioCurrentTime || 0;
@@ -1482,7 +1481,7 @@ export const MashupPanel = (props: FeatureCreatePanelProps) => {
                           setText(toggleTag(text, genre.value));
                         }
                       }}
-                      className={`inline-flex shrink-0 items-center gap-2 px-3 py-1.5 rounded-full border border-white/10 dark:border-transparent text-xs font-semibold transition-all duration-200 disabled:opacity-60 disabled:cursor-not-allowed ${
+                      className={`inline-flex shrink-0 items-center gap-2 px-3 py-1.5 rounded-full border border-white/10 dark:border-transparent text-xs font-medium transition-all duration-200 disabled:opacity-60 disabled:cursor-not-allowed ${
                         isSelected
                           ? 'bg-primary text-primary-foreground '
                           : 'bg-slate-50 text-muted-foreground hover:text-foreground hover:bg-slate-100 dark:bg-white/10 dark:hover:bg-white/15'
@@ -1523,7 +1522,7 @@ export const MashupPanel = (props: FeatureCreatePanelProps) => {
                           setText(toggleTag(text, vibe.value));
                         }
                       }}
-                      className={`inline-flex items-center px-3 py-1.5 rounded-full border border-white/10 text-xs font-semibold transition-all duration-200 ${
+                      className={`inline-flex items-center px-3 py-1.5 rounded-full border border-white/10 text-xs font-medium transition-all duration-200 ${
                         isSelected
                           ? 'bg-primary text-primary-foreground '
                           : 'text-muted-foreground hover:text-foreground hover:bg-muted/50'
@@ -1549,7 +1548,7 @@ export const MashupPanel = (props: FeatureCreatePanelProps) => {
                           setText(toggleTag(text, groove.value));
                         }
                       }}
-                      className={`inline-flex items-center px-3 py-1.5 rounded-full border border-white/10 text-xs font-semibold transition-all duration-200 ${
+                      className={`inline-flex items-center px-3 py-1.5 rounded-full border border-white/10 text-xs font-medium transition-all duration-200 ${
                         isSelected
                           ? 'bg-primary text-primary-foreground '
                           : 'text-muted-foreground hover:text-foreground hover:bg-muted/50'
@@ -1574,13 +1573,13 @@ export const MashupPanel = (props: FeatureCreatePanelProps) => {
                         setText(toggleTag(text, 'Slow'));
                       }
                     }}
-                    className={`inline-flex items-center px-3 py-1.5 rounded-full border border-white/10 text-xs font-semibold transition-all duration-200 ${
+                    className={`inline-flex items-center px-3 py-1.5 rounded-full border border-white/10 text-xs font-medium transition-all duration-200 ${
                       hasTag(text, 'Slow')
                         ? 'bg-primary text-primary-foreground '
                         : 'text-muted-foreground hover:text-foreground hover:bg-muted/50'
                     }`}
                   >
-                    <span>Slow</span>
+                    <span>{t("featurePanel.tempoSlow")}</span>
                   </button>
                 </Tooltip>
                 <Tooltip content="80-100 BPM" position="top">
@@ -1593,13 +1592,13 @@ export const MashupPanel = (props: FeatureCreatePanelProps) => {
                         setText(toggleTag(text, 'Moderate'));
                       }
                     }}
-                    className={`inline-flex items-center px-3 py-1.5 rounded-full border border-white/10 text-xs font-semibold transition-all duration-200 ${
+                    className={`inline-flex items-center px-3 py-1.5 rounded-full border border-white/10 text-xs font-medium transition-all duration-200 ${
                       hasTag(text, 'Moderate')
                         ? 'bg-primary text-primary-foreground '
                         : 'text-muted-foreground hover:text-foreground hover:bg-muted/50'
                     }`}
                   >
-                    <span>Moderate</span>
+                    <span>{t("featurePanel.tempoModerate")}</span>
                   </button>
                 </Tooltip>
                 <Tooltip content="100-120 BPM" position="top">
@@ -1612,13 +1611,13 @@ export const MashupPanel = (props: FeatureCreatePanelProps) => {
                         setText(toggleTag(text, 'Medium'));
                       }
                     }}
-                    className={`inline-flex items-center px-3 py-1.5 rounded-full border border-white/10 text-xs font-semibold transition-all duration-200 ${
+                    className={`inline-flex items-center px-3 py-1.5 rounded-full border border-white/10 text-xs font-medium transition-all duration-200 ${
                       hasTag(text, 'Medium')
                         ? 'bg-primary text-primary-foreground '
                         : 'text-muted-foreground hover:text-foreground hover:bg-muted/50'
                     }`}
                   >
-                    <span>Medium</span>
+                    <span>{t("featurePanel.tempoMedium")}</span>
                   </button>
                 </Tooltip>
               </div>
@@ -1672,11 +1671,11 @@ export const MashupPanel = (props: FeatureCreatePanelProps) => {
                             className="w-7 h-7"
                           />
                         )}
-                        <span className="text-[11px]">{instrument.name}</span>
+                        <span className="text-xs">{instrument.name}</span>
                         <div
                           role="button"
                           tabIndex={0}
-                          aria-label="Play sample"
+                          aria-label={t("featurePanel.playSample")}
                           onClick={(e) => {
                             e.stopPropagation();
                             const audioUrl = getInstrumentAudio(instrument.id);
@@ -1694,7 +1693,7 @@ export const MashupPanel = (props: FeatureCreatePanelProps) => {
                             }
                           }}
                           className="absolute inset-0 m-auto h-8 w-8 rounded-full bg-black/50 text-white transition-all duration-200 hover:bg-black/60 opacity-0 group-hover:opacity-100 flex items-center justify-center"
-                          title="Play sample"
+                          title={t("featurePanel.playSample")}
                         >
                           <Play className="h-4 w-4" />
                         </div>
@@ -1753,11 +1752,11 @@ export const MashupPanel = (props: FeatureCreatePanelProps) => {
                             className="w-7 h-7"
                           />
                         )}
-                        <span className="text-[11px]">{kit.name}</span>
+                        <span className="text-xs">{kit.name}</span>
                         <div
                           role="button"
                           tabIndex={0}
-                          aria-label="Play sample"
+                          aria-label={t("featurePanel.playSample")}
                           onClick={(e) => {
                             e.stopPropagation();
                             const audioUrl = getDrumKitAudio(kit.id);
@@ -1775,7 +1774,7 @@ export const MashupPanel = (props: FeatureCreatePanelProps) => {
                             }
                           }}
                           className="absolute inset-0 m-auto h-8 w-8 rounded-full bg-black/50 text-white transition-all duration-200 hover:bg-black/60 opacity-0 group-hover:opacity-100 flex items-center justify-center"
-                          title="Play sample"
+                          title={t("featurePanel.playSample")}
                         >
                           <Play className="h-4 w-4" />
                         </div>
@@ -1807,7 +1806,7 @@ export const MashupPanel = (props: FeatureCreatePanelProps) => {
                           : 'hover:shadow-[0_14px_36px_rgba(5,5,15,0.24)]'
                       }`}
                     >
-                      <span className="text-[11px]">{tone.name}</span>
+                      <span className="text-xs">{tone.name}</span>
                     </button>
                   );
                 })}
@@ -1827,7 +1826,7 @@ export const MashupPanel = (props: FeatureCreatePanelProps) => {
                           setText(toggleTag(text, palette.value));
                         }
                       }}
-                      className={`inline-flex items-center px-3 py-1.5 rounded-full border border-white/10 text-xs font-semibold transition-all duration-200 ${
+                      className={`inline-flex items-center px-3 py-1.5 rounded-full border border-white/10 text-xs font-medium transition-all duration-200 ${
                         isSelected
                           ? 'bg-primary text-primary-foreground '
                           : 'text-muted-foreground hover:text-foreground hover:bg-muted/50'
@@ -1849,14 +1848,14 @@ export const MashupPanel = (props: FeatureCreatePanelProps) => {
     <section className="studio-panel-card rounded-2xl p-3">
       <div className="mb-3 md:mb-4">
         <h3 className="text-xs md:text-sm font-semibold flex items-center gap-2">
-          Music Style
+          {t("featurePanel.musicStyle")}
         </h3>
       </div>
 
       <div>
         <div>
           <Textarea
-            placeholder="Enter style of music"
+            placeholder={t("featurePanel.enterStyleOfMusic")}
             value={styleText}
             onChange={(e) => {
               const newValue = e.target.value;
@@ -1890,7 +1889,7 @@ export const MashupPanel = (props: FeatureCreatePanelProps) => {
           <div className="flex items-center gap-2">
             {activeUploadIntent === "track" && (
               <Tooltip
-                content={`Enhance style quality · ${CLIENT_STYLE_BOOST_CREDITS} credits/use`}
+                content={t("featurePanel.enhanceStyleQualityCost", { credits: CLIENT_STYLE_BOOST_CREDITS })}
                 position="top"
               >
                 <div className="inline-flex h-8 items-center gap-2 rounded-full bg-foreground/5 px-3 text-xs text-muted-foreground">
@@ -1908,9 +1907,9 @@ export const MashupPanel = (props: FeatureCreatePanelProps) => {
                     }}
                     disabled={!supportsStyleBoost || isGenerating}
                     className="scale-75"
-                    aria-label="Enhance style prompt"
+                    aria-label={t("featurePanel.enhanceStylePrompt")}
                   />
-                  <span className="text-xs">Enhance</span>
+                  <span className="text-xs">{t("featurePanel.enhance")}</span>
                 </div>
               </Tooltip>
             )}
@@ -1929,10 +1928,10 @@ export const MashupPanel = (props: FeatureCreatePanelProps) => {
                 setHarmonyPalette("");
                 setStyleText("");
               }}
-              className="inline-flex h-8 items-center gap-1.5 rounded-full bg-foreground/5 px-3 text-xs font-semibold text-foreground/70 transition-colors hover:bg-foreground/10 hover:text-foreground"
+              className="inline-flex h-8 items-center gap-1.5 rounded-full bg-foreground/5 px-3 text-xs font-medium text-foreground/70 transition-colors hover:bg-foreground/10 hover:text-foreground"
             >
               <Trash2 className="h-3 w-3" />
-              <span className="text-xs font-medium">Clear</span>
+              <span className="text-xs font-medium">{t("featurePanel.clear")}</span>
             </Button>
           </div>
         </div>
@@ -2044,7 +2043,7 @@ export const MashupPanel = (props: FeatureCreatePanelProps) => {
         </h3>
         <div>
           <Textarea
-            placeholder="Describe the melody style tags"
+            placeholder={t("featurePanel.describeMelodyStyleTags")}
             value={melodyTags}
             onChange={(event) => setMelodyTags(event.target.value)}
             maxLength={styleTextMaxLength}
@@ -2062,7 +2061,7 @@ export const MashupPanel = (props: FeatureCreatePanelProps) => {
         </h3>
         <div>
           <Textarea
-            placeholder="Describe what to avoid in the arrangement"
+            placeholder={t("featurePanel.describeWhatToAvoidInArrangement")}
             value={melodyNegativeTags}
             onChange={(event) => setMelodyNegativeTags(event.target.value)}
             maxLength={styleTextMaxLength}
@@ -2094,11 +2093,11 @@ export const MashupPanel = (props: FeatureCreatePanelProps) => {
         <>
           {/* Header */}
           <div className="flex-shrink-0 px-0 pt-4 md:pt-6 pb-4">
-            {panelTitle && (
+            {resolvedPanelTitle && (
               <div className="mb-3 px-1 space-y-1.5">
                 <div className="flex items-center justify-between gap-3">
                   <h2 className="text-lg md:text-xl font-semibold tracking-tight text-foreground">
-                    {panelTitle}
+                    {resolvedPanelTitle}
                   </h2>
                   <div className="h-11 min-w-[5.75rem] flex items-center justify-end">
                     {mode === "custom" ? (
@@ -2107,7 +2106,7 @@ export const MashupPanel = (props: FeatureCreatePanelProps) => {
                           type="button"
                           onClick={() => setIsModelDialogOpen(true)}
                           className="group h-11 min-w-[5.75rem] px-4 rounded-2xl border border-white/45 dark:border-white/10 text-xs md:text-sm font-semibold text-slate-950 transition-all duration-200 bg-gradient-to-r from-cyan-300 via-sky-300 to-indigo-300 shadow-[0_6px_14px_rgba(56,189,248,0.18)] hover:from-cyan-200 hover:via-sky-200 hover:to-indigo-200 flex items-center justify-center"
-                          title="Choose model"
+                          title={t("featurePanel.chooseModel")}
                         >
                           <span>{modelOptions.find((opt) => opt.value === selectedModel)?.label || "V4"}</span>
                         </button>
@@ -2129,8 +2128,8 @@ export const MashupPanel = (props: FeatureCreatePanelProps) => {
                     )}
                   </div>
                 </div>
-                <p className="mt-1 text-xs md:text-sm text-muted-foreground">
-                  Blend two tracks into one seamless mashup.
+                <p className="mt-1 text-sm text-muted-foreground">
+                  {t("featurePanel.mashupDescription")}
                 </p>
               </div>
             )}
@@ -2178,14 +2177,14 @@ export const MashupPanel = (props: FeatureCreatePanelProps) => {
                         setMode("simple");
                       }
                     }}
-                    className={`flex-1 h-10 px-4 text-xs md:text-sm font-semibold transition-colors duration-200 rounded-2xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background ${
+                    className={`flex-1 h-10 px-4 text-xs md:text-sm font-medium transition-colors duration-200 rounded-2xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background ${
                       mode === "simple"
-                        ? "bg-primary text-primary-foreground shadow-[0_1px_1px_rgba(0,0,0,0.08)]"
+                        ? "bg-primary text-primary-foreground font-semibold shadow-[0_1px_1px_rgba(0,0,0,0.08)]"
                         : "text-foreground/60 hover:text-foreground hover:bg-foreground/5"
                     } ${lockModeSelector ? 'cursor-not-allowed opacity-70' : ''}`}
                     disabled={lockModeSelector}
                   >
-                    Description
+                    {t("featurePanel.descriptionTab")}
                   </button>
                   <button
                     onClick={() => {
@@ -2193,14 +2192,14 @@ export const MashupPanel = (props: FeatureCreatePanelProps) => {
                         setMode("custom");
                       }
                     }}
-                    className={`flex-1 h-10 px-4 text-xs md:text-sm font-semibold transition-colors duration-200 rounded-2xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background ${
+                    className={`flex-1 h-10 px-4 text-xs md:text-sm font-medium transition-colors duration-200 rounded-2xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background ${
                       mode === "custom"
-                        ? "bg-primary text-primary-foreground shadow-[0_1px_1px_rgba(0,0,0,0.08)]"
+                        ? "bg-primary text-primary-foreground font-semibold shadow-[0_1px_1px_rgba(0,0,0,0.08)]"
                         : "text-foreground/60 hover:text-foreground hover:bg-foreground/5"
                     } ${lockModeSelector ? 'cursor-not-allowed opacity-70' : ''}`}
                     disabled={lockModeSelector}
                   >
-                    Lyrics
+                    {t("featurePanel.lyricsTab")}
                   </button>
                 </div>
               </div>
@@ -2292,6 +2291,7 @@ export const MashupPanel = (props: FeatureCreatePanelProps) => {
           hasUploadPreview={!!uploadCoverFile || mashupTracks.length === 2}
           hidePersonaAction={allowMashupAction || mashupTracks.length === 2 || (audioUploadIntent !== null && activeUploadIntent !== "track")}
           selectedPersonaName={selectedPersona?.name?.trim() || null}
+          selectedPersonaDescription={selectedPersona?.description?.trim() || null}
           selectedPersonaId={selectedPersonaId}
           customLyrics={customLyrics}
           setCustomLyrics={setCustomLyrics}
@@ -2333,7 +2333,7 @@ export const MashupPanel = (props: FeatureCreatePanelProps) => {
               let isDisabled = isGenerating;
 
               if (mode === 'simple') {
-                // Simple Mode: 只需要prompt字段
+                // 描述模式：仅需 prompt 字段
                 isDisabled = isDisabled || !simplePrompt.trim();
                 if (requiresTrackUpload) {
                   isDisabled = isDisabled || !uploadCoverFile;
@@ -2355,11 +2355,11 @@ export const MashupPanel = (props: FeatureCreatePanelProps) => {
 
               const createActionLabel = mode === "custom"
                 ? activeUploadIntent === "vocal"
-                  ? "Create Vocal"
+                  ? t("featurePanel.createVocal")
                   : activeUploadIntent === "melody"
-                    ? "Create Melody"
-                    : "Create"
-                : "Create";
+                    ? t("featurePanel.createMelody")
+                    : t("featurePanel.create")
+                : t("featurePanel.create");
 
               return (
                 <div className="flex">
@@ -2373,7 +2373,7 @@ export const MashupPanel = (props: FeatureCreatePanelProps) => {
                     <div className="relative z-10 flex items-center justify-center">
                       {isGenerating ? (
                         <div className="flex items-center justify-center gap-2">
-                          <span>Creating</span>
+                          <span>{t("featurePanel.creating")}</span>
                           <div className="flex items-center gap-1">
                             <div className="w-1 h-1 bg-white rounded-full animate-pulse"></div>
                             <div className="w-1 h-1 bg-white rounded-full animate-pulse" style={{ animationDelay: '0.3s' }}></div>
@@ -2389,7 +2389,7 @@ export const MashupPanel = (props: FeatureCreatePanelProps) => {
                         <span className="inline-flex items-center gap-1.5">
                           <Wand2 className="h-4 w-4" />
                           <span>{createActionLabel}</span>
-                          <span className="font-normal text-white/90">{`• cost ${createCredits} credits`}</span>
+                          <span className="font-normal text-white/90">{"• " + t("featurePanel.costCredits", { credits: createCredits })}</span>
                         </span>
                       )}
                     </div>
@@ -2432,7 +2432,7 @@ export const MashupPanel = (props: FeatureCreatePanelProps) => {
               progressStatus: "ready",
             });
           } catch (error) {
-            const message = error instanceof Error ? error.message : "Upload failed. Please try again.";
+            const message = error instanceof Error ? error.message : t("toasts.uploadFailedTryAgain");
             updateUploadState(pendingAudioMode, {
               audioUploadUrl: null,
               progressStatus: "error",
@@ -2491,14 +2491,14 @@ export const MashupPanel = (props: FeatureCreatePanelProps) => {
             updateCurrentUploadState({ readyAudioUrl: null });
           }
         }}
-        fileName={readyFileName || readyFile?.name || "Audio"}
+        fileName={readyFileName || readyFile?.name || t("featurePanel.audio")}
         status={uploadProgressStatus}
         errorMessage={uploadProgressError || undefined}
         audioUrl={readyAudioUrl}
         duration={readyDuration || 0}
         onSelect={(nextMode) => {
           if (!uploadAudioUploadUrl) {
-            toast.error("Upload failed. Please save your audio again.");
+            toast.error(t("toasts.uploadFailedSaveAudioAgain"));
             return;
           }
           if (uploadAudioUrl) {

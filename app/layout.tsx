@@ -11,6 +11,7 @@ import { PricingModalProvider } from "@/contexts/PricingModalContext";
 import { PricingModal } from "@/components/ui/pricing-modal";
 import { Toaster } from "@/components/ui/sonner";
 import { Suspense } from "react";
+import { I18nProvider } from "@/lib/i18n/provider";
 
 export const viewport: Viewport = {
   width: 'device-width',
@@ -66,28 +67,30 @@ export default function RootLayout({
           crossOrigin="anonymous"
         />
 
-        <AuthProvider>
-          <CreditsProvider>
-            <SubscriptionProvider>
-              <PricingModalProvider>
-                <ThemeProvider>
-                  <Suspense fallback={null}>
-                    <NavbarWrapper />
-                  </Suspense>
+        <I18nProvider>
+          <AuthProvider>
+            <CreditsProvider>
+              <SubscriptionProvider>
+                <PricingModalProvider>
+                  <ThemeProvider>
+                    <Suspense fallback={null}>
+                      <NavbarWrapper />
+                    </Suspense>
 
-                  {children}
-                  
-                  <PricingModal />
-                  
-                  <Toaster
-                    position="top-right"
-                    expand={false}
-                  />
-                </ThemeProvider>
-              </PricingModalProvider>
-            </SubscriptionProvider>
-          </CreditsProvider>
-        </AuthProvider>
+                    {children}
+                    
+                    <PricingModal />
+                    
+                    <Toaster
+                      position="top-right"
+                      expand={false}
+                    />
+                  </ThemeProvider>
+                </PricingModalProvider>
+              </SubscriptionProvider>
+            </CreditsProvider>
+          </AuthProvider>
+        </I18nProvider>
       </body>
     </html>
   );

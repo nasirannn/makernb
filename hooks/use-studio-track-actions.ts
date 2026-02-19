@@ -6,6 +6,7 @@ import { toast } from "sonner";
 import { supabase } from "@/lib/supabase";
 import { getEventBus, TRACK_EVENTS } from "@/lib/event-bus";
 import type { StudioTrack } from "@/types/track";
+import { useI18n } from "@/lib/i18n/provider";
 
 interface UseStudioTrackActionsParams {
   userId?: string;
@@ -42,9 +43,10 @@ export const useStudioTrackActions = ({
   setDeleteDialogOpen,
   setIsAuthModalOpen,
 }: UseStudioTrackActionsParams) => {
+  const { t } = useI18n();
   const handleFavoriteToggle = React.useCallback(async (track: any, music: any) => {
     if (!userId) {
-      toast("Please log in to favorite tracks");
+      toast(t("toasts.pleaseLogInFavoriteTracks"));
       return;
     }
 
@@ -63,13 +65,13 @@ export const useStudioTrackActions = ({
       });
 
       if (!response.ok) {
-        throw new Error("Failed to toggle favorite");
+        throw new Error(t("toasts.failedToggleFavorite"));
       }
 
       const data = await response.json();
 
       if (!data.success) {
-        throw new Error(data.error || "Failed to toggle favorite");
+        throw new Error(data.error || t("toasts.failedToggleFavorite"));
       }
 
       updateTrack(track.id, (t) => ({ ...t, isFavorited: data.isFavorited }));
@@ -85,19 +87,19 @@ export const useStudioTrackActions = ({
       });
 
       if (data.isFavorited) {
-        toast.success("Added to favorites!", {
-          description: `"${music.title}" has been added to library.`,
+        toast.success(t("toasts.addedToFavorites"), {
+          description: t("toasts.addedToFavoritesDesc", { title: music.title }),
         });
       } else {
-        toast.success("Removed from favorites", {
-          description: `"${music.title}" has been removed from library.`,
+        toast.success(t("toasts.removedFromFavorites"), {
+          description: t("toasts.removedFromFavoritesDesc", { title: music.title }),
         });
       }
     } catch (error) {
       console.error("Error toggling favorite:", error);
-      toast.error("Failed to update favorite status");
+      toast.error(t("toasts.failedUpdateFavoriteStatus"));
     }
-  }, [userId, updateTrack, setSelectedStudioTrack]);
+  }, [userId, updateTrack, setSelectedStudioTrack, t]);
 
   const handleLikeToggle = React.useCallback(async (track: any, _music: any) => {
     if (!userId) {
@@ -120,12 +122,12 @@ export const useStudioTrackActions = ({
       });
 
       if (!response.ok) {
-        throw new Error("Failed to toggle like");
+        throw new Error(t("toasts.failedToggleLike"));
       }
 
       const data = await response.json();
       if (!data.success) {
-        throw new Error(data.error || "Failed to toggle like");
+        throw new Error(data.error || t("toasts.failedToggleLike"));
       }
 
       updateTrack(track.id, (t) => ({
@@ -154,7 +156,7 @@ export const useStudioTrackActions = ({
     } catch (error) {
       console.error("Error toggling like:", error);
     }
-  }, [userId, setIsAuthModalOpen, updateTrack, updateTracks, setSelectedStudioTrack]);
+  }, [userId, setIsAuthModalOpen, updateTrack, updateTracks, setSelectedStudioTrack, t]);
 
   const handleDislikeToggle = React.useCallback(async (track: any, _music: any) => {
     if (!userId) {
@@ -177,12 +179,12 @@ export const useStudioTrackActions = ({
       });
 
       if (!response.ok) {
-        throw new Error("Failed to toggle dislike");
+        throw new Error(t("toasts.failedToggleDislike"));
       }
 
       const data = await response.json();
       if (!data.success) {
-        throw new Error(data.error || "Failed to toggle dislike");
+        throw new Error(data.error || t("toasts.failedToggleDislike"));
       }
 
       updateTrack(track.id, (t) => ({
@@ -211,7 +213,7 @@ export const useStudioTrackActions = ({
     } catch (error) {
       console.error("Error toggling dislike:", error);
     }
-  }, [userId, setIsAuthModalOpen, updateTrack, updateTracks, setSelectedStudioTrack]);
+  }, [userId, setIsAuthModalOpen, updateTrack, updateTracks, setSelectedStudioTrack, t]);
 
   const handleEditTitle = React.useCallback(async (trackId: string, newTitle: string) => {
     try {
@@ -222,7 +224,7 @@ export const useStudioTrackActions = ({
       });
 
       if (!response.ok) {
-        throw new Error("Failed to update title");
+        throw new Error(t("toasts.failedUpdateTitle"));
       }
 
       updateTrack(trackId, (t) => ({ ...t, title: newTitle }));
@@ -235,12 +237,12 @@ export const useStudioTrackActions = ({
         };
       });
 
-      toast.success("Title updated successfully");
+      toast.success(t("toasts.titleUpdatedSuccessfully"));
     } catch (error) {
       console.error("Error updating title:", error);
-      toast.error("Failed to update title");
+      toast.error(t("toasts.failedUpdateTitle"));
     }
-  }, [updateTrack, setSelectedStudioTrack]);
+  }, [updateTrack, setSelectedStudioTrack, t]);
 
   const handleEditMusicInfo = React.useCallback(async (
     trackId: string,
@@ -249,7 +251,7 @@ export const useStudioTrackActions = ({
     try {
       const { data: { session } } = await supabase.auth.getSession();
       if (!session?.access_token) {
-        toast.error("Please log in to update music info");
+        toast.error(t("toasts.pleaseLogInUpdateMusicInfo"));
         return;
       }
 
@@ -268,7 +270,7 @@ export const useStudioTrackActions = ({
 
       if (!response.ok) {
         const errorData = await response.json();
-        throw new Error(errorData.error || "Failed to update music info");
+        throw new Error(errorData.error || t("toasts.failedUpdateMusicInfo"));
       }
 
       const result = await response.json();
@@ -292,12 +294,12 @@ export const useStudioTrackActions = ({
         };
       });
 
-      toast.success("Music info updated successfully");
+      toast.success(t("toasts.musicInfoUpdatedSuccessfully"));
     } catch (error) {
       console.error("Error updating music info:", error);
-      toast.error(error instanceof Error ? error.message : "Failed to update music info");
+      toast.error(error instanceof Error ? error.message : t("toasts.failedUpdateMusicInfo"));
     }
-  }, [updateTrack, setSelectedStudioTrack]);
+  }, [updateTrack, setSelectedStudioTrack, t]);
 
   const openDeleteDialogForTrack = React.useCallback((track: any) => {
     setTrackToDelete(track);
@@ -311,7 +313,7 @@ export const useStudioTrackActions = ({
       const { data: { session } } = await supabase.auth.getSession();
 
       if (!session?.access_token) {
-        toast("Authentication required. Please log in again.");
+        toast(t("toasts.authRequiredLogInAgain"));
         return;
       }
 
@@ -376,13 +378,13 @@ export const useStudioTrackActions = ({
           setSelectedStudioTrack(null);
         }
 
-        toast.success("Track deleted successfully");
+        toast.success(t("toasts.trackDeletedSuccessfully"));
       } else {
-        toast(data.error || "Failed to delete track");
+        toast(data.error || t("toasts.failedDeleteTrack"));
       }
     } catch (error) {
       console.error("Error deleting track:", error);
-      toast("Failed to delete track, please try again");
+      toast(t("toasts.failedDeleteTrackTryAgain"));
     } finally {
       setDeleteDialogOpen(false);
       setTrackToDelete(null);
@@ -398,6 +400,7 @@ export const useStudioTrackActions = ({
     setSelectedStudioTrack,
     setDeleteDialogOpen,
     setTrackToDelete,
+    t,
   ]);
 
   return {

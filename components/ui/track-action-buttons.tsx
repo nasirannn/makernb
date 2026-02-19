@@ -12,6 +12,7 @@ import { FileAudio, FileVideo, Image as ImageIcon, Music2, Star, Share2, Check, 
 import { LibraryTrack } from '@/types/track';
 import { SolidThumbsUpIcon } from '@/components/icons/solid-thumbs-up-icon';
 import { SolidThumbsDownIcon } from '@/components/icons/solid-thumbs-down-icon';
+import { useI18n } from "@/lib/i18n/provider";
 
 interface TrackActionButtonsProps {
   track: LibraryTrack & any;
@@ -92,6 +93,7 @@ export const TrackActionButtons: React.FC<TrackActionButtonsProps> = ({
   onEditMusicInfo,
   onPricingModalOpen,
 }) => {
+  const { t } = useI18n();
   const isInstrumental = track.musicGeneration?.isInstrumental || track.isInstrumental;
   const hasAudioUrl = !!track.audioUrl;
   const hasCoverImage = Boolean(
@@ -128,11 +130,11 @@ export const TrackActionButtons: React.FC<TrackActionButtonsProps> = ({
                   e.preventDefault();
                   e.stopPropagation();
                 }}
-                aria-label="Edit options"
-                title="Edit options"
+                aria-label={t("trackActions.editOptions")}
+                title={t("trackActions.editOptions")}
               >
                 <span className="inline-flex items-center gap-1.5">
-                  Edit
+                  {t("trackActions.edit")}
                   <ChevronDown className="h-3.5 w-3.5" />
                 </span>
               </Button>
@@ -157,7 +159,7 @@ export const TrackActionButtons: React.FC<TrackActionButtonsProps> = ({
                 >
                   <div className="flex items-center gap-1.5">
                     <Split className="h-3.5 w-3.5" />
-                    <span>Vocal Separation</span>
+                    <span>{t("trackActions.vocalSeparation")}</span>
                   </div>
                 </DropdownMenuItem>
               )}
@@ -175,7 +177,7 @@ export const TrackActionButtons: React.FC<TrackActionButtonsProps> = ({
                   className="flex items-center gap-2 cursor-pointer px-3 py-2 text-xs"
                 >
                   <Layers className="h-3.5 w-3.5" />
-                  <span>Split Stem</span>
+                  <span>{t("trackActions.splitStem")}</span>
                 </DropdownMenuItem>
               )}
               {onGenerateMidi && (
@@ -192,7 +194,7 @@ export const TrackActionButtons: React.FC<TrackActionButtonsProps> = ({
                   className="flex items-center gap-2 cursor-pointer px-3 py-2 text-xs"
                 >
                   <FileAudio className="h-3.5 w-3.5" />
-                  <span>Generate MIDI</span>
+                  <span>{t("trackActions.generateMidi")}</span>
                 </DropdownMenuItem>
               )}
               {onExtendMusic && (
@@ -209,7 +211,7 @@ export const TrackActionButtons: React.FC<TrackActionButtonsProps> = ({
                   className="flex items-center gap-2 cursor-pointer px-3 py-2 text-xs"
                 >
                   <Expand className="h-3.5 w-3.5" />
-                  <span>Extend Music</span>
+                  <span>{t("trackActions.extendMusic")}</span>
                 </DropdownMenuItem>
               )}
               {onReplaceSection && (
@@ -226,7 +228,7 @@ export const TrackActionButtons: React.FC<TrackActionButtonsProps> = ({
                   className="flex items-center gap-2 cursor-pointer px-3 py-2 text-xs"
                 >
                   <Scissors className="h-3.5 w-3.5" />
-                  <span>Replace Section</span>
+                  <span>{t("trackActions.replaceSection")}</span>
                 </DropdownMenuItem>
               )}
               {onCreatePersona && (
@@ -243,7 +245,7 @@ export const TrackActionButtons: React.FC<TrackActionButtonsProps> = ({
                   className="flex items-center gap-2 cursor-pointer px-3 py-2 text-xs"
                 >
                   <Users className="h-3.5 w-3.5" />
-                  <span>Persona</span>
+                  <span>{t("trackActions.persona")}</span>
                 </DropdownMenuItem>
               )}
             </DropdownMenuContent>
@@ -262,8 +264,8 @@ export const TrackActionButtons: React.FC<TrackActionButtonsProps> = ({
                   e.preventDefault();
                   e.stopPropagation();
                 }}
-                aria-label="Download track"
-                title="Download track"
+                aria-label={t("trackActions.downloadTrack")}
+                title={t("trackActions.downloadTrack")}
               >
                 <Download className="h-3.5 w-3.5" />
               </Button>
@@ -284,13 +286,13 @@ export const TrackActionButtons: React.FC<TrackActionButtonsProps> = ({
                 >
                   <span className="flex items-center gap-2 font-medium">
                     <ImageIcon className="h-3.5 w-3.5" />
-                    PNG (Cover Art)
+                    {t("trackActions.pngCoverArt")}
                   </span>
                 </DropdownMenuItem>
               )}
 
-              <div className="px-2.5 py-1 text-[10px] text-muted-foreground uppercase">
-                Advanced Features
+              <div className="px-2.5 py-1 text-xs text-muted-foreground uppercase">
+                {t("trackActions.advancedFeatures")}
               </div>
 
               <DropdownMenuItem
@@ -307,7 +309,7 @@ export const TrackActionButtons: React.FC<TrackActionButtonsProps> = ({
               >
                 <span className="flex items-center gap-2 font-medium">
                   <Music2 className="h-3.5 w-3.5" />
-                  MP3 (Song)
+                  {t("trackActions.mp3Song")}
                 </span>
               </DropdownMenuItem>
               {canDownloadWAV !== undefined && (
@@ -325,7 +327,7 @@ export const TrackActionButtons: React.FC<TrackActionButtonsProps> = ({
                 >
                   <span className="flex items-center gap-2 font-medium">
                     <FileAudio className="h-3.5 w-3.5" />
-                    WAV (High Quality Song)
+                    {t("trackActions.wavHighQualitySong")}
                   </span>
                 </DropdownMenuItem>
               )}
@@ -344,7 +346,7 @@ export const TrackActionButtons: React.FC<TrackActionButtonsProps> = ({
                 >
                   <span className="flex items-center gap-2 font-medium">
                     <FileVideo className="h-3.5 w-3.5" />
-                    MP4 (Music Video)
+                    {t("trackActions.mp4MusicVideo")}
                   </span>
                 </DropdownMenuItem>
               )}
@@ -365,8 +367,8 @@ export const TrackActionButtons: React.FC<TrackActionButtonsProps> = ({
                   e.preventDefault();
                   e.stopPropagation();
                 }}
-                aria-label="More options"
-                title="More options"
+                aria-label={t("trackActions.moreOptions")}
+                title={t("trackActions.moreOptions")}
               >
                 <MoreVertical className="h-3.5 w-3.5" />
               </Button>
@@ -382,7 +384,7 @@ export const TrackActionButtons: React.FC<TrackActionButtonsProps> = ({
                   className="flex items-center gap-2 cursor-pointer px-3 py-2 text-xs"
                 >
                   <Pencil className="h-3.5 w-3.5" />
-                  <span>Edit title and cover</span>
+                  <span>{t("trackActions.editTitleAndCover")}</span>
                 </DropdownMenuItem>
               )}
               {onViewLyrics && (
@@ -394,7 +396,7 @@ export const TrackActionButtons: React.FC<TrackActionButtonsProps> = ({
                   className="flex items-center gap-2 cursor-pointer px-3 py-2 text-xs"
                 >
                   <FileText className="h-3.5 w-3.5" />
-                  <span>View Lyrics</span>
+                  <span>{t("trackActions.viewLyrics")}</span>
                 </DropdownMenuItem>
               )}
               {onPublishToggle && (
@@ -411,7 +413,7 @@ export const TrackActionButtons: React.FC<TrackActionButtonsProps> = ({
                   }`}
                 >
                   <Send className={`h-3.5 w-3.5 ${currentPublished ? 'text-green-500' : ''}`} />
-                  <span>{isPublishing ? 'Updating...' : (currentPublished ? 'Unpublish' : 'Publish')}</span>
+                  <span>{isPublishing ? t("trackActions.updating") : (currentPublished ? t("trackActions.unpublish") : t("trackActions.publish"))}</span>
                 </DropdownMenuItem>
               )}
               {onDislikeToggle && (
@@ -432,7 +434,7 @@ export const TrackActionButtons: React.FC<TrackActionButtonsProps> = ({
                   ) : (
                     <ThumbsDown className="h-3.5 w-3.5" />
                   )}
-                  <span>{isDisliked ? 'Remove Dislike' : 'Dislike'}</span>
+                  <span>{isDisliked ? t("trackActions.removeDislike") : t("trackActions.dislike")}</span>
                 </DropdownMenuItem>
               )}
               {onDelete && (
@@ -445,7 +447,7 @@ export const TrackActionButtons: React.FC<TrackActionButtonsProps> = ({
                   className="flex items-center gap-2 cursor-pointer px-3 py-2 text-xs text-destructive data-[highlighted]:bg-destructive/10 data-[highlighted]:text-destructive focus:bg-destructive/10 focus:text-destructive"
                 >
                   <Trash2 className="h-3.5 w-3.5" />
-                  <span>Delete</span>
+                  <span>{t("trackActions.delete")}</span>
                 </DropdownMenuItem>
               )}
             </DropdownMenuContent>
@@ -468,7 +470,7 @@ export const TrackActionButtons: React.FC<TrackActionButtonsProps> = ({
               ? 'text-green-500'
               : 'text-foreground/70 hover:text-foreground'
           }`}
-          aria-label={isCopied ? 'Link copied' : 'Share track'}
+          aria-label={isCopied ? t("trackActions.linkCopied") : t("trackActions.shareTrack")}
         >
           {isCopied ? (
             <Check className="h-3.5 w-3.5" />
@@ -489,8 +491,8 @@ export const TrackActionButtons: React.FC<TrackActionButtonsProps> = ({
               ? 'text-red-500 hover:text-red-500'
               : 'text-foreground/70 hover:text-foreground'
           }`}
-          aria-label={isFavorited ? 'Remove from library' : 'Add to library'}
-          title={isFavorited ? 'Remove from library' : 'Add to library'}
+          aria-label={isFavorited ? t("trackActions.removeFromLibrary") : t("trackActions.addToLibrary")}
+          title={isFavorited ? t("trackActions.removeFromLibrary") : t("trackActions.addToLibrary")}
         >
           <Star className={`h-3.5 w-3.5 ${isFavorited ? 'fill-current' : ''}`} />
         </button>
@@ -507,8 +509,8 @@ export const TrackActionButtons: React.FC<TrackActionButtonsProps> = ({
               ? 'text-pink-500 hover:text-pink-500'
               : 'text-foreground/70 hover:text-foreground'
           }`}
-          aria-label={isLiked ? 'Unlike track' : 'Like track'}
-          title={isLiked ? 'Unlike track' : 'Like track'}
+          aria-label={isLiked ? t("trackActions.unlikeTrack") : t("trackActions.likeTrack")}
+          title={isLiked ? t("trackActions.unlikeTrack") : t("trackActions.likeTrack")}
         >
           {isLiked ? (
             <SolidThumbsUpIcon className="h-3.5 w-3.5 fill-current" />
@@ -527,7 +529,7 @@ export const TrackActionButtons: React.FC<TrackActionButtonsProps> = ({
                 e.stopPropagation();
               }}
               className={mobileNeutralIconButtonClass}
-              aria-label="Download track"
+              aria-label={t("trackActions.downloadTrack")}
             >
               <Download className="h-3.5 w-3.5" />
             </button>
@@ -545,17 +547,17 @@ export const TrackActionButtons: React.FC<TrackActionButtonsProps> = ({
                   onDownload('cover');
                 }}
                 className="flex items-center justify-between gap-1.5 cursor-pointer px-2.5 py-1.5 text-xs"
-              >
-                <span className="flex items-center gap-2 font-medium">
-                  <ImageIcon className="h-3.5 w-3.5" />
-                  PNG (Cover Art)
-                </span>
-              </DropdownMenuItem>
-            )}
+                >
+                  <span className="flex items-center gap-2 font-medium">
+                    <ImageIcon className="h-3.5 w-3.5" />
+                    {t("trackActions.pngCoverArt")}
+                  </span>
+                </DropdownMenuItem>
+              )}
 
-            <div className="px-2.5 py-1 text-[10px] text-muted-foreground uppercase">
-              Advanced Features
-            </div>
+              <div className="px-2.5 py-1 text-xs text-muted-foreground uppercase">
+                {t("trackActions.advancedFeatures")}
+              </div>
 
             <DropdownMenuItem
               onClick={(e) => {
@@ -568,12 +570,12 @@ export const TrackActionButtons: React.FC<TrackActionButtonsProps> = ({
                 onDownload('mp3');
               }}
               className="flex items-center justify-between gap-1.5 cursor-pointer px-2.5 py-1.5 text-xs"
-            >
-              <span className="flex items-center gap-2 font-medium">
-                <Music2 className="h-3.5 w-3.5" />
-                MP3 (Song)
-              </span>
-            </DropdownMenuItem>
+              >
+                <span className="flex items-center gap-2 font-medium">
+                  <Music2 className="h-3.5 w-3.5" />
+                  {t("trackActions.mp3Song")}
+                </span>
+              </DropdownMenuItem>
             {canDownloadWAV !== undefined && (
               <DropdownMenuItem
                 onClick={(e) => {
@@ -586,13 +588,13 @@ export const TrackActionButtons: React.FC<TrackActionButtonsProps> = ({
                   onDownload('wav');
                 }}
                 className="flex items-center justify-between gap-1.5 cursor-pointer px-2.5 py-1.5 text-xs"
-              >
-                <span className="flex items-center gap-2 font-medium">
-                  <FileAudio className="h-3.5 w-3.5" />
-                  WAV (High Quality Song)
-                </span>
-              </DropdownMenuItem>
-            )}
+                >
+                  <span className="flex items-center gap-2 font-medium">
+                    <FileAudio className="h-3.5 w-3.5" />
+                    {t("trackActions.wavHighQualitySong")}
+                  </span>
+                </DropdownMenuItem>
+              )}
             {canDownloadMP4 !== undefined && (
               <DropdownMenuItem
                 onClick={(e) => {
@@ -605,13 +607,13 @@ export const TrackActionButtons: React.FC<TrackActionButtonsProps> = ({
                   onDownload('mp4');
                 }}
                 className="flex items-center justify-between gap-1.5 cursor-pointer px-2.5 py-1.5 text-xs"
-              >
-                <span className="flex items-center gap-2 font-medium">
-                  <FileVideo className="h-3.5 w-3.5" />
-                  MP4 (Music Video)
-                </span>
-              </DropdownMenuItem>
-            )}
+                >
+                  <span className="flex items-center gap-2 font-medium">
+                    <FileVideo className="h-3.5 w-3.5" />
+                    {t("trackActions.mp4MusicVideo")}
+                  </span>
+                </DropdownMenuItem>
+              )}
           </DropdownMenuContent>
         </DropdownMenu>
       )}
@@ -625,7 +627,7 @@ export const TrackActionButtons: React.FC<TrackActionButtonsProps> = ({
                 e.stopPropagation();
               }}
               className={mobileNeutralIconButtonClass}
-              aria-label="More options"
+              aria-label={t("trackActions.moreOptions")}
             >
               <MoreVertical className="h-3.5 w-3.5" />
             </button>
@@ -641,7 +643,7 @@ export const TrackActionButtons: React.FC<TrackActionButtonsProps> = ({
                 className="flex items-center gap-1.5 cursor-pointer px-2.5 py-1.5 text-xs"
               >
                 <Pencil className="h-3.5 w-3.5" />
-                <span>Edit title and cover</span>
+                <span>{t("trackActions.editTitleAndCover")}</span>
               </DropdownMenuItem>
             )}
               {onViewLyrics && (
@@ -653,7 +655,7 @@ export const TrackActionButtons: React.FC<TrackActionButtonsProps> = ({
                 className="flex items-center gap-1.5 cursor-pointer px-2.5 py-1.5 text-xs"
               >
                 <FileText className="h-3.5 w-3.5" />
-                  <span>View Lyrics</span>
+                  <span>{t("trackActions.viewLyrics")}</span>
                 </DropdownMenuItem>
               )}
               {onPublishToggle && (
@@ -670,7 +672,7 @@ export const TrackActionButtons: React.FC<TrackActionButtonsProps> = ({
                   }`}
                 >
                   <Send className={`h-3.5 w-3.5 ${currentPublished ? 'text-green-500' : ''}`} />
-                  <span>{isPublishing ? 'Updating...' : (currentPublished ? 'Unpublish' : 'Publish')}</span>
+                  <span>{isPublishing ? t("trackActions.updating") : (currentPublished ? t("trackActions.unpublish") : t("trackActions.publish"))}</span>
                 </DropdownMenuItem>
               )}
               {onDislikeToggle && (
@@ -691,7 +693,7 @@ export const TrackActionButtons: React.FC<TrackActionButtonsProps> = ({
                   ) : (
                     <ThumbsDown className="h-3.5 w-3.5" />
                   )}
-                  <span>{isDisliked ? 'Remove Dislike' : 'Dislike'}</span>
+                  <span>{isDisliked ? t("trackActions.removeDislike") : t("trackActions.dislike")}</span>
                 </DropdownMenuItem>
               )}
               {onDelete && (
@@ -704,7 +706,7 @@ export const TrackActionButtons: React.FC<TrackActionButtonsProps> = ({
                 className="flex items-center gap-1.5 cursor-pointer px-2.5 py-1.5 text-xs text-destructive data-[highlighted]:bg-destructive/10 data-[highlighted]:text-destructive focus:bg-destructive/10 focus:text-destructive"
               >
                 <Trash2 className="h-3.5 w-3.5" />
-                <span>Delete</span>
+                <span>{t("trackActions.delete")}</span>
               </DropdownMenuItem>
             )}
           </DropdownMenuContent>
@@ -720,8 +722,8 @@ export const TrackActionButtons: React.FC<TrackActionButtonsProps> = ({
                 e.stopPropagation();
               }}
               className={mobileNeutralIconButtonClass}
-              aria-label="Edit options"
-              title="Edit options"
+              aria-label={t("trackActions.editOptions")}
+              title={t("trackActions.editOptions")}
             >
               <Pencil className="h-3.5 w-3.5" />
             </button>
@@ -746,7 +748,7 @@ export const TrackActionButtons: React.FC<TrackActionButtonsProps> = ({
               >
                 <div className="flex items-center gap-1.5">
                   <Split className="h-3.5 w-3.5" />
-                  <span>Vocal Separation</span>
+                  <span>{t("trackActions.vocalSeparation")}</span>
                 </div>
               </DropdownMenuItem>
             )}
@@ -764,7 +766,7 @@ export const TrackActionButtons: React.FC<TrackActionButtonsProps> = ({
                 className="flex items-center gap-1.5 cursor-pointer px-2.5 py-1.5 text-xs"
               >
                 <Layers className="h-3.5 w-3.5" />
-                <span>Split Stem</span>
+                <span>{t("trackActions.splitStem")}</span>
               </DropdownMenuItem>
             )}
             {onGenerateMidi && (
@@ -781,7 +783,7 @@ export const TrackActionButtons: React.FC<TrackActionButtonsProps> = ({
                 className="flex items-center gap-1.5 cursor-pointer px-2.5 py-1.5 text-xs"
               >
                 <FileAudio className="h-3.5 w-3.5" />
-                <span>Generate MIDI</span>
+                <span>{t("trackActions.generateMidi")}</span>
               </DropdownMenuItem>
             )}
             {onExtendMusic && (
@@ -798,7 +800,7 @@ export const TrackActionButtons: React.FC<TrackActionButtonsProps> = ({
                 className="flex items-center gap-1.5 cursor-pointer px-2.5 py-1.5 text-xs"
               >
                 <Expand className="h-3.5 w-3.5" />
-                <span>Extend Music</span>
+                <span>{t("trackActions.extendMusic")}</span>
               </DropdownMenuItem>
             )}
             {onReplaceSection && (
@@ -815,7 +817,7 @@ export const TrackActionButtons: React.FC<TrackActionButtonsProps> = ({
                 className="flex items-center gap-1.5 cursor-pointer px-2.5 py-1.5 text-xs"
               >
                 <Scissors className="h-3.5 w-3.5" />
-                <span>Replace Section</span>
+                <span>{t("trackActions.replaceSection")}</span>
               </DropdownMenuItem>
             )}
             {onCreatePersona && (
@@ -832,7 +834,7 @@ export const TrackActionButtons: React.FC<TrackActionButtonsProps> = ({
                 className="flex items-center gap-1.5 cursor-pointer px-2.5 py-1.5 text-xs"
               >
                 <Users className="h-3.5 w-3.5" />
-                <span>Persona</span>
+                <span>{t("trackActions.persona")}</span>
               </DropdownMenuItem>
             )}
           </DropdownMenuContent>

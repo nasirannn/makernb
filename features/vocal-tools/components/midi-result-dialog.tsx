@@ -445,10 +445,10 @@ export const MidiResultDialog: React.FC<MidiResultDialogProps> = ({
           {midiStatus === 'completed' && (
             <div className="space-y-3">
               <div className="flex items-center justify-between gap-3">
-                <p className="min-w-0 truncate text-[11px] font-semibold uppercase tracking-[0.08em] text-muted-foreground">
+                <p className="min-w-0 truncate text-xs font-semibold uppercase tracking-[0.08em] text-muted-foreground">
                   {trackTitle}
                 </p>
-                <p className="text-xs text-emerald-700 dark:text-emerald-300">
+                <p className="text-sm text-emerald-700 dark:text-emerald-300">
                   MIDI ready{typeof midiInstrumentsCount === 'number' ? ` • ${midiInstrumentsCount} instruments detected` : ''}.
                 </p>
               </div>
@@ -480,7 +480,7 @@ export const MidiResultDialog: React.FC<MidiResultDialogProps> = ({
 
                   {activeMidiInstrument && midiRollData && (
                     <div className="space-y-2">
-                      <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted-foreground">
+                      <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-muted-foreground">
                         <span>{midiRollData.totalNotes} notes</span>
                         <span>Range {midiRollData.minPitch} - {midiRollData.maxPitch}</span>
                         <span>Length {formatSeconds(midiRollData.timelineEnd)}</span>
@@ -557,7 +557,7 @@ export const MidiResultDialog: React.FC<MidiResultDialogProps> = ({
                           </svg>
                         </div>
                         {midiRollData.truncated && (
-                          <p className="mt-2 text-xs text-muted-foreground">
+                          <p className="mt-2 text-sm text-muted-foreground">
                             Showing first {MIDI_MAX_RENDERED_NOTES} notes for performance.
                           </p>
                         )}

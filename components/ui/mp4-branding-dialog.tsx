@@ -13,6 +13,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
+import { useI18n } from "@/lib/i18n/provider";
 
 interface Mp4BrandingDialogProps {
   open: boolean;
@@ -36,6 +37,7 @@ const BrandingField = ({
   onChange,
   helper,
   infoTitle,
+  infoAriaLabel,
 }: {
   id: string;
   label: string;
@@ -45,16 +47,17 @@ const BrandingField = ({
   onChange: (value: string) => void;
   helper: string;
   infoTitle: string;
+  infoAriaLabel: string;
 }) => {
   return (
     <div className="space-y-2.5 rounded-xl bg-muted/35 p-2.5 sm:p-3">
       <div className="flex items-center gap-1.5">
-        <label htmlFor={id} className="text-[13px] font-semibold tracking-tight">
+        <label htmlFor={id} className="text-sm font-semibold tracking-tight">
           {label}
         </label>
         <button
           type="button"
-          aria-label={`${label} field information`}
+          aria-label={infoAriaLabel}
           title={infoTitle}
           className="inline-flex h-7 w-7 cursor-help items-center justify-center rounded-full text-muted-foreground transition-colors duration-200 hover:text-foreground"
         >
@@ -90,6 +93,7 @@ export const Mp4BrandingDialog: React.FC<Mp4BrandingDialogProps> = ({
   onDomainNameChange,
   onGenerate,
 }) => {
+  const { t } = useI18n();
   const wasOpenRef = React.useRef(open);
 
   React.useEffect(() => {
@@ -104,40 +108,42 @@ export const Mp4BrandingDialog: React.FC<Mp4BrandingDialogProps> = ({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-[calc(100vw-2rem)] overflow-hidden bg-background p-0 sm:max-w-[520px]">
         <DialogHeader className="bg-muted/45 px-4 pb-3 pt-4 text-left sm:px-5 sm:pt-5">
-          <DialogTitle className="text-lg font-semibold tracking-tight">Customize Video Branding</DialogTitle>
+          <DialogTitle className="text-lg font-semibold tracking-tight">{t("mp4Branding.title")}</DialogTitle>
           <DialogDescription className="text-sm leading-relaxed text-muted-foreground">
-            Both fields are optional. Leave them blank to export a clean MP4.
+            {t("mp4Branding.description")}
           </DialogDescription>
         </DialogHeader>
 
         <div className="space-y-3 bg-background px-4 py-3 sm:px-5">
           <BrandingField
             id="mp4-branding-author"
-            label="Author"
-            placeholder="Artist name"
+            label={t("mp4Branding.authorLabel")}
+            placeholder={t("mp4Branding.authorPlaceholder")}
             value={author}
             maxLength={AUTHOR_MAX_LENGTH}
             onChange={onAuthorChange}
-            helper="Shown as a cover signature"
-            infoTitle="Artist or creator name to display as a signature on the video cover"
+            helper={t("mp4Branding.authorHelper")}
+            infoTitle={t("mp4Branding.authorInfoTitle")}
+            infoAriaLabel={t("mp4Branding.fieldInfoAria", { label: t("mp4Branding.authorLabel") })}
           />
 
           <BrandingField
             id="mp4-branding-domain"
-            label="Domain Name"
-            placeholder="Brand domain"
+            label={t("mp4Branding.domainLabel")}
+            placeholder={t("mp4Branding.domainPlaceholder")}
             value={domainName}
             maxLength={DOMAIN_MAX_LENGTH}
             onChange={onDomainNameChange}
-            helper="Shown as a bottom watermark"
-            infoTitle="Website or brand to display as a watermark at the bottom of the video"
+            helper={t("mp4Branding.domainHelper")}
+            infoTitle={t("mp4Branding.domainInfoTitle")}
+            infoAriaLabel={t("mp4Branding.fieldInfoAria", { label: t("mp4Branding.domainLabel") })}
           />
         </div>
 
         <DialogFooter className="bg-muted/35 px-4 py-3 sm:px-5 sm:py-4">
           <Button onClick={onGenerate} className="w-full gap-2">
             <Film className="h-4 w-4" />
-            Generate MP4
+            {t("mp4Branding.generate")}
           </Button>
         </DialogFooter>
       </DialogContent>

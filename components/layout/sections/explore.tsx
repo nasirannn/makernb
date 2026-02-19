@@ -13,6 +13,7 @@ import { useAudioPlayer } from "@/hooks/use-audio-player";
 import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase";
 import { SolidThumbsUpIcon } from "@/components/icons/solid-thumbs-up-icon";
+import { useI18n } from "@/lib/i18n/provider";
 
 interface Track {
   id: string;
@@ -47,6 +48,7 @@ interface ExploreData {
 
 export const ExploreSection = () => {
   const router = useRouter();
+  const { t } = useI18n();
   const sectionRef = useRef<HTMLElement | null>(null);
   const [exploreData, setExploreData] = useState<ExploreData | null>(null);
   const [loading, setLoading] = useState(true);
@@ -209,12 +211,12 @@ export const ExploreSection = () => {
       if (!trackId) return;
       const shareUrl = `${window.location.origin}/track/${trackId}`;
       await navigator.clipboard.writeText(shareUrl);
-      toast.success("Link copied", {
+      toast.success(t("trackActions.linkCopied"), {
         duration: 1500,
       });
     } catch (error) {
       console.error("Error copying share link:", error);
-      toast("Copy failed", { duration: 2000 });
+      toast.error(t("toasts.failedCopyLink"), { duration: 2000 });
     }
   };
 
@@ -260,7 +262,7 @@ export const ExploreSection = () => {
     try {
       const headers = await getAuthHeaders();
       if (!headers.Authorization) {
-        toast("Please log in to like songs");
+        toast(t("toasts.pleaseLogInFavoriteTracks"));
         router.push("/login");
         return;
       }
@@ -274,25 +276,25 @@ export const ExploreSection = () => {
       const result = await response.json().catch(() => ({}));
       if (!response.ok || !result.success) {
         if (response.status === 401) {
-          toast("Please log in to like songs");
+          toast(t("toasts.pleaseLogInFavoriteTracks"));
           router.push("/login");
           return;
         }
-        throw new Error(result.error || "Failed to update like status");
+        throw new Error(result.error || t("toasts.failedUpdateFavoriteStatus"));
       }
 
       const isFavorited = Boolean(result.isFavorited);
       updateFavoriteState(trackId, isFavorited);
-      toast.success(isFavorited ? "Liked" : "Like removed", {
+      toast.success(isFavorited ? t("toasts.addedToFavorites") : t("toasts.removedFromFavorites"), {
         duration: 1200,
       });
     } catch (error) {
       console.error("Error toggling favorite on home explore:", error);
-      toast.error("Failed to update like status.");
+      toast.error(t("toasts.failedUpdateFavoriteStatus"));
     } finally {
       setFavoriteLoadingTrackId(null);
     }
-  }, [favoriteLoadingTrackId, getAuthHeaders, router, updateFavoriteState]);
+  }, [favoriteLoadingTrackId, getAuthHeaders, router, updateFavoriteState, t]);
 
   const playTrack = async (index: number, specificTrackId?: string, specificAudioUrl?: string) => {
     if (index < 0 || index >= playlist.length) return;
@@ -503,8 +505,8 @@ export const ExploreSection = () => {
                                   e.stopPropagation();
                                   void handleShare(music.primaryTrack.id);
                                 }}
-                                aria-label="Share track"
-                                title="Copy share link"
+                                aria-label={t("trackActions.shareTrack")}
+                                title={t("trackActions.copyShareLink")}
                               >
                                 <Share2 className="h-4 w-4" />
                               </Button>
@@ -516,8 +518,8 @@ export const ExploreSection = () => {
                                   e.stopPropagation();
                                   void handleToggleFavorite(music.primaryTrack.id);
                                 }}
-                                aria-label={music.primaryTrack.isFavorited ? "Unlike track" : "Like track"}
-                                title={music.primaryTrack.isFavorited ? "Unlike track" : "Like track"}
+                                aria-label={music.primaryTrack.isFavorited ? t("trackActions.unlikeTrack") : t("trackActions.likeTrack")}
+                                title={music.primaryTrack.isFavorited ? t("trackActions.unlikeTrack") : t("trackActions.likeTrack")}
                                 disabled={favoriteLoadingTrackId === music.primaryTrack.id}
                               >
                                 {favoriteLoadingTrackId === music.primaryTrack.id ? (
@@ -538,8 +540,8 @@ export const ExploreSection = () => {
                                   e.stopPropagation();
                                   handlePlayPause(music.primaryTrack.id, music.primaryTrack.audioUrl || "", music);
                                 }}
-                                aria-label={currentlyPlaying === music.primaryTrack.id && audioPlayer.isPlaying ? "Pause track" : "Play track"}
-                                title={currentlyPlaying === music.primaryTrack.id && audioPlayer.isPlaying ? "Pause" : "Play"}
+                                aria-label={currentlyPlaying === music.primaryTrack.id && audioPlayer.isPlaying ? t("trackActions.pause") : t("trackActions.play")}
+                                title={currentlyPlaying === music.primaryTrack.id && audioPlayer.isPlaying ? t("trackActions.pause") : t("trackActions.play")}
                               >
                                 {currentlyPlaying === music.primaryTrack.id && audioPlayer.isPlaying ? (
                                   <Pause className="h-5 w-5 text-white" />
@@ -584,7 +586,7 @@ export const ExploreSection = () => {
                         <h3 className="mb-1 truncate text-base font-bold text-foreground">
                           {music.title}
                         </h3>
-                        <p className="mb-2 overflow-hidden truncate whitespace-nowrap text-xs capitalize text-muted-foreground">
+                        <p className="mb-2 overflow-hidden truncate whitespace-nowrap text-sm capitalize text-muted-foreground">
                           {music.tags}
                         </p>
                       </div>
@@ -596,7 +598,7 @@ export const ExploreSection = () => {
           ) : shouldLoad ? (
             <div className="text-center py-12">
               <Music className="w-16 h-16 text-muted-foreground/30 mx-auto mb-4" />
-              <p className="text-muted-foreground text-lg">No music available yet</p>
+              <p className="text-muted-foreground text-lg">{t("explorePage.noMusicAvailableYet")}</p>
             </div>
           ) : null}
 
@@ -610,7 +612,7 @@ export const ExploreSection = () => {
         >
           <button
             type="button"
-            aria-label="Close lyrics panel"
+            aria-label={t("studioPage.closeLyricsPanel")}
             onClick={() => setLyricsTrackId(null)}
             className="absolute inset-0 bg-background/20 backdrop-blur-[1px] md:bg-background/10"
           />

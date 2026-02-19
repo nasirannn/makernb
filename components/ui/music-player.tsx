@@ -6,6 +6,7 @@ import { Rewind, FastForward, Volume2, VolumeX, FileText, Music, X } from 'lucid
 import { VocalSeparationButton } from '@/features/vocal-tools/components/vocal-separation-button';
 import { AudioPlayerTrack } from '@/types/track';
 import { cn } from '@/lib/utils';
+import { useI18n } from '@/lib/i18n/provider';
 
 function PlayerIconButton({
   onClick,
@@ -45,12 +46,14 @@ function PlayerProgressRail({
   currentTime,
   progressPercentage,
   onSeek,
+  seekLabel,
   className,
 }: {
   currentDuration: number;
   currentTime: number;
   progressPercentage: number;
   onSeek: (time: number) => void;
+  seekLabel: string;
   className?: string;
 }) {
   return (
@@ -61,7 +64,7 @@ function PlayerProgressRail({
         className
       )}
       role="slider"
-      aria-label="Seek"
+      aria-label={seekLabel}
       aria-valuemin={0}
       aria-valuemax={Math.max(0, Math.floor(currentDuration))}
       aria-valuenow={Math.min(Math.max(0, Math.floor(currentTime)), Math.max(0, Math.floor(currentDuration)))}
@@ -160,6 +163,7 @@ const truncateText = (value: string, maxLength: number) => {
 };
 
 export const MusicPlayer: React.FC<MusicPlayerProps> = React.memo(function MusicPlayer(props) {
+  const { t } = useI18n();
   const {
     tracks,
     currentTrackIndex,
@@ -234,7 +238,7 @@ export const MusicPlayer: React.FC<MusicPlayerProps> = React.memo(function Music
     }
   }, [hideProgress, isPlaying]);
 
-  const trackTitle = currentTrack?.title || currentPlayingTrack?.title || 'Untitled';
+  const trackTitle = currentTrack?.title || currentPlayingTrack?.title || t("studioTracks.untitledTrack");
   const coverUrl =
     currentTrack?.coverR2Url ||
     currentTrack?.coverImage ||
@@ -285,7 +289,7 @@ export const MusicPlayer: React.FC<MusicPlayerProps> = React.memo(function Music
               {trackTitle}
             </div>
             {tagsText && (
-              <div className="mt-0.5 truncate text-xs text-muted-foreground/80">
+              <div className="mt-0.5 truncate text-sm text-muted-foreground/80">
                 {tagsText}
               </div>
             )}
@@ -297,7 +301,7 @@ export const MusicPlayer: React.FC<MusicPlayerProps> = React.memo(function Music
           <PlayerIconButton
             onClick={onPrevious}
             disabled={currentTrackIndex === 0}
-            title="Previous"
+            title={t("musicPlayer.previous")}
             className="h-9 w-9"
           >
             <Rewind className="h-4 w-4 fill-current" />
@@ -306,7 +310,7 @@ export const MusicPlayer: React.FC<MusicPlayerProps> = React.memo(function Music
           <button
             type="button"
             onClick={onPlayPause}
-            aria-label={isPlaying ? "Pause" : "Play"}
+            aria-label={isPlaying ? t("trackActions.pause") : t("trackActions.play")}
             className={cn(
               "inline-flex h-12 w-12 items-center justify-center rounded-full",
               "border border-primary text-primary-foreground shadow-[0_14px_32px_rgba(0,0,0,0.22)]",
@@ -340,7 +344,7 @@ export const MusicPlayer: React.FC<MusicPlayerProps> = React.memo(function Music
           <PlayerIconButton
             onClick={onNext}
             disabled={currentTrackIndex === tracks.length - 1}
-            title="Next"
+            title={t("musicPlayer.next")}
             className="h-9 w-9"
           >
             <FastForward className="h-4 w-4 fill-current" />
@@ -359,6 +363,7 @@ export const MusicPlayer: React.FC<MusicPlayerProps> = React.memo(function Music
                 currentTime={currentTime}
                 progressPercentage={progressPercentage}
                 onSeek={onSeek}
+                seekLabel={t("musicPlayer.seek")}
               />
             </div>
           )}
@@ -382,7 +387,7 @@ export const MusicPlayer: React.FC<MusicPlayerProps> = React.memo(function Music
             />
           )}
 
-          <PlayerIconButton onClick={onMuteToggle} title={isMuted || volume === 0 ? "Unmute" : "Mute"}>
+          <PlayerIconButton onClick={onMuteToggle} title={isMuted || volume === 0 ? t("musicPlayer.unmute") : t("musicPlayer.mute")}>
             {isMuted || volume === 0 ? (
               <VolumeX className="h-4 w-4" />
             ) : (
@@ -393,14 +398,14 @@ export const MusicPlayer: React.FC<MusicPlayerProps> = React.memo(function Music
           {onTrackInfoClick && (
             <PlayerIconButton
               onClick={onTrackInfoClick}
-              title="Lyrics"
+              title={t("musicPlayer.lyrics")}
             >
               <FileText className="h-3.5 w-3.5" />
             </PlayerIconButton>
           )}
 
           {onClose && (
-            <PlayerIconButton onClick={onClose} title="Close player">
+            <PlayerIconButton onClick={onClose} title={t("musicPlayer.closePlayer")}>
               <X className="h-4 w-4" />
             </PlayerIconButton>
           )}

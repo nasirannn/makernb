@@ -105,7 +105,7 @@ export const TrackCover: React.FC<TrackCoverProps> = ({
 
       {durationLabel && (
         <div className="pointer-events-none absolute inset-x-0 bottom-1.5 flex items-center justify-center">
-          <span className="inline-flex items-center rounded-md bg-black/60 px-2 py-0.5 text-[10px] font-medium leading-none text-white/90 backdrop-blur-sm">
+          <span className="inline-flex items-center rounded-md bg-black/60 px-2 py-0.5 text-xs font-medium leading-none text-white/90 backdrop-blur-sm">
             {durationLabel}
           </span>
         </div>

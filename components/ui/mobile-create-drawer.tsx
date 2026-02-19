@@ -3,6 +3,7 @@
 import React from 'react';
 import { X } from "lucide-react";
 import type { FeatureCreatePanelProps } from "@/components/ui/feature-panels/music-generator-panel";
+import { useI18n } from "@/lib/i18n/provider";
 
 type StudioFeaturePanelStateProps = Omit<
   FeatureCreatePanelProps,
@@ -37,6 +38,7 @@ export const MobileCreateDrawer = React.memo(({
   FeaturePanel,
   featurePanelProps,
 }: MobileCreateDrawerProps) => {
+  const { t } = useI18n();
   if (!isOpen) return null;
 
   return (
@@ -89,7 +91,7 @@ export const MobileCreateDrawer = React.memo(({
           {/* Header */}
           <div className="flex-shrink-0 px-6 pb-4 bg-background/60 backdrop-blur-sm">
             <div className="flex items-center justify-between">
-              <h1 className="text-2xl font-semibold">Create Music</h1>
+              <h1 className="text-2xl font-semibold">{t("studioPage.createMusic")}</h1>
               <button
                 onClick={onClose}
                 className="p-2 hover:bg-foreground/10 rounded-lg transition-colors"

@@ -4,6 +4,7 @@ import React from "react";
 import { flushSync } from "react-dom";
 import { toast } from "sonner";
 
+import { useI18n } from "@/lib/i18n/provider";
 import { supabase } from "@/lib/supabase";
 import type { StudioFeatureKey } from "@/lib/studio-features";
 import type { MusicType } from "@/types/music";
@@ -73,6 +74,7 @@ export const useStudioUploadCoverAction = ({
   clearSelectedStudioTrack,
   openGenerationConfirm,
 }: UseStudioUploadCoverActionParams) => {
+  const { t } = useI18n();
   return React.useCallback(async (options?: UploadCoverOptions) => {
     if (!userId) {
       setIsAuthModalOpen(true);
@@ -97,21 +99,21 @@ export const useStudioUploadCoverAction = ({
         : false;
 
     if (!useCustomUploadParams && isSimpleMode && !trimmedSimplePrompt) {
-      toast.error("Please enter a prompt.");
+      toast.error(t("toasts.pleaseEnterPrompt"));
       return false;
     }
 
     if (useCustomUploadParams) {
       if (!trimmedStyle) {
-        toast.error("Please enter a style.");
+        toast.error(t("toasts.pleaseEnterStyle"));
         return false;
       }
       if (!trimmedTitle) {
-        toast.error("Please enter a title.");
+        toast.error(t("toasts.pleaseEnterTitle"));
         return false;
       }
       if (!effectiveUploadInstrumental && !trimmedCustomLyrics) {
-        toast.error("Please enter lyrics.");
+        toast.error(t("toasts.pleaseEnterLyrics"));
         return false;
       }
     }
@@ -120,12 +122,12 @@ export const useStudioUploadCoverAction = ({
     const uploadUrl = options?.uploadUrl ?? null;
     const continueAt = options?.continueAt ?? 0;
     if (!uploadUrl) {
-      toast.error("Upload URL is required. Please upload your audio first.");
+      toast.error(t("toasts.uploadUrlRequiredUploadAudioFirst"));
       return false;
     }
 
     if (isExtendUploadRequest && continueAt <= 0) {
-      toast.error("Start time must be greater than 0s.");
+      toast.error(t("toasts.startTimeMustBeGreaterThanZero"));
       return false;
     }
 
@@ -134,7 +136,7 @@ export const useStudioUploadCoverAction = ({
     const placeholderGenerationId = `pending_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
     const placeholderTags = useCustomUploadParams ? trimmedStyle : trimmedSimplePrompt;
     const placeholderPrompt = useCustomUploadParams ? trimmedStyle : trimmedSimplePrompt;
-    const placeholderTitle = trimmedTitle || (uploadFile?.name ? uploadFile.name.replace(/\.[^/.]+$/, "") : "Untitled Track");
+    const placeholderTitle = trimmedTitle || (uploadFile?.name ? uploadFile.name.replace(/\.[^/.]+$/, "") : t("studioTracks.untitledTrack"));
     const generationMode = useCustomUploadParams ? "custom" : "simple";
     const placeholderMusicType: MusicType = isExtendUploadRequest ? "upload_extend" : "upload_cover";
 
@@ -195,7 +197,7 @@ export const useStudioUploadCoverAction = ({
 
       if (!session?.access_token) {
         removePlaceholderTracks();
-        throw new Error("Authentication expired. Please sign in again.");
+        throw new Error(t("toasts.authenticationExpiredSignInAgain"));
       }
 
       const formData = new FormData();
@@ -252,9 +254,9 @@ export const useStudioUploadCoverAction = ({
       if (!response.ok || !result?.success) {
         removePlaceholderTracks();
         if (response.status === 402) {
-          toast.error(result?.error || "Insufficient credits. Please top up credits.");
+          toast.error(result?.error || t("toasts.insufficientCreditsTopUp"));
         } else {
-          toast.error(result?.error || "Upload failed. Please try again.");
+          toast.error(result?.error || t("toasts.uploadFailedTryAgain"));
         }
         return false;
       }
@@ -273,7 +275,7 @@ export const useStudioUploadCoverAction = ({
     } catch (error) {
       console.error("Upload audio error:", error);
       removePlaceholderTracks();
-      const message = error instanceof Error ? error.message : "Upload failed. Please try again.";
+      const message = error instanceof Error ? error.message : t("toasts.uploadFailedTryAgain");
       toast.error(message);
       return false;
     }
@@ -297,5 +299,6 @@ export const useStudioUploadCoverAction = ({
     setIsAuthModalOpen,
     clearSelectedStudioTrack,
     openGenerationConfirm,
+    t,
   ]);
 };

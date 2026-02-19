@@ -15,7 +15,10 @@ import { LogOut } from "lucide-react";
 import { getZIndexClass } from "@/lib/z-index";
 import { EditNicknameDialog } from "@/components/ui/edit-nickname-dialog";
 import { ThemeModeToggle } from "@/components/ui/theme-mode-toggle";
-import { isStudioAreaPath } from "@/lib/studio-features";
+import { LanguageToggle } from "@/components/ui/language-toggle";
+import { formatIsoDateUTC, formatLocalizedNumber } from "@/lib/locale-format";
+import { getStudioFeatureDefinition, isStudioAreaPath, type StudioFeatureKey } from "@/lib/studio-features";
+import { useI18n } from "@/lib/i18n/provider";
 
 interface RouteProps {
   href: string;
@@ -32,74 +35,30 @@ interface DropdownItemProps {
 
 type DropdownKey = "studio" | "ai";
 
-const studioDropdown: DropdownItemProps[] = [
-  {
-    href: "/music-generator",
-    label: "Music Generator",
-  },
-  {
-    href: "/music-extender",
-    label: "Music Extender",
-  },
-  {
-    href: "/music-cover",
-    label: "Music Cover",
-  },
-  {
-    href: "/mashup",
-    label: "Mashup",
-  },
-  {
-    href: "/add-track",
-    label: "Add Track",
-  },
+const studioDropdownFeatureOrder: StudioFeatureKey[] = [
+  "music-generator",
+  "music-extender",
+  "music-cover",
+  "mashup",
+  "add-track",
 ];
 
-const aiMusicToolsDropdown: DropdownItemProps[] = [
-  {
-    href: "/vocal-separation",
-    label: "Vocal Separation",
-  },
-  {
-    href: "/lyrics-generator",
-    label: "Lyrics Generator",
-  }
-];
-
-const routeList: RouteProps[] = [
-  {
-    href: "#studio",
-    label: "Studio",
-    hasDropdown: true,
-    dropdownKey: "studio",
-    dropdownItems: studioDropdown,
-  },
-  {
-    href: "/library",
-    label: "Library",
-  },
-  {
-    href: "#ai",
-    label: "AI Music Tool",
-    hasDropdown: true,
-    dropdownKey: "ai",
-    dropdownItems: aiMusicToolsDropdown,
-  },
-  {
-    href: "/blog",
-    label: "Blog",
-  },
-  {
-    href: "/pricing",
-    label: "Pricing",
-  },
-];
+const STUDIO_FEATURE_LABEL_KEYS: Record<StudioFeatureKey, string> = {
+  "music-generator": "studioFeatures.musicGenerator",
+  "music-extender": "studioFeatures.musicExtender",
+  "music-cover": "studioFeatures.musicCover",
+  "mashup": "studioFeatures.mashup",
+  "add-track": "studioFeatures.addTrack",
+  "add-vocal": "studioFeatures.addVocal",
+  "add-melody": "studioFeatures.addMelody",
+};
 
 interface NavbarProps {
   credits?: number | null;
 }
 
 export const Navbar = ({ credits = null }: NavbarProps) => {
+  const { t } = useI18n();
   const [isOpen, setIsOpen] = React.useState(false);
   const [isAuthModalOpen, setIsAuthModalOpen] = React.useState(false);
   const [isUserMenuOpen, setIsUserMenuOpen] = React.useState(false);
@@ -112,26 +71,81 @@ export const Navbar = ({ credits = null }: NavbarProps) => {
   const { user, signOut, loading: authLoading } = useAuth();
   const { tierCode, tierName, hasSubscription, cancelAtPeriodEnd, cancelAt, currentPeriodEnd } = useSubscription();
   const { openModal } = usePricingModal();
+  const getStudioFeatureLabel = React.useCallback(
+    (featureKey: StudioFeatureKey) => t(STUDIO_FEATURE_LABEL_KEYS[featureKey]),
+    [t]
+  );
+  const studioDropdown = React.useMemo<DropdownItemProps[]>(
+    () =>
+      studioDropdownFeatureOrder.map((featureKey) => {
+        const feature = getStudioFeatureDefinition(featureKey);
+        return {
+          href: feature.path,
+          label: getStudioFeatureLabel(featureKey),
+        };
+      }),
+    [getStudioFeatureLabel]
+  );
+  const aiMusicToolsDropdown = React.useMemo<DropdownItemProps[]>(
+    () => [
+      {
+        href: "/vocal-separation",
+        label: t("nav.vocalSeparation"),
+      },
+      {
+        href: "/lyrics-generator",
+        label: t("nav.lyricsGenerator"),
+      },
+    ],
+    [t]
+  );
+  const routeList = React.useMemo<RouteProps[]>(
+    () => [
+      {
+        href: "#studio",
+        label: t("nav.studio"),
+        hasDropdown: true,
+        dropdownKey: "studio",
+        dropdownItems: studioDropdown,
+      },
+      {
+        href: "/library",
+        label: t("nav.library"),
+      },
+      {
+        href: "#ai",
+        label: t("nav.aiMusicTool"),
+        hasDropdown: true,
+        dropdownKey: "ai",
+        dropdownItems: aiMusicToolsDropdown,
+      },
+      {
+        href: "/blog",
+        label: t("nav.blog"),
+      },
+      {
+        href: "/pricing",
+        label: t("nav.pricing"),
+      },
+    ],
+    [aiMusicToolsDropdown, studioDropdown, t]
+  );
   const displayName = user?.user_metadata?.nickname || user?.user_metadata?.full_name || user?.user_metadata?.name || user?.email?.split('@')[0] || '';
   const formatDisplayDate = React.useCallback((dateValue?: string | null) => {
     if (!dateValue) return null;
-    const parsed = new Date(dateValue);
-    if (Number.isNaN(parsed.getTime())) return null;
-    return parsed.toLocaleDateString("en-CA", {
-      year: "numeric",
-      month: "2-digit",
-      day: "2-digit",
-    });
+    return formatIsoDateUTC(dateValue);
   }, []);
   const billingNotice = React.useMemo(() => {
     if (!hasSubscription) return null;
     if (cancelAtPeriodEnd) {
       const formatted = formatDisplayDate(cancelAt);
-      return formatted ? `Scheduled to cancel on ${formatted}` : "Cancellation scheduled.";
+      return formatted
+        ? t("common.cancelScheduledOn", { date: formatted })
+        : t("common.cancellationScheduled");
     }
     const formatted = formatDisplayDate(currentPeriodEnd);
-    return formatted ? `Next charge on ${formatted}.` : null;
-  }, [hasSubscription, cancelAtPeriodEnd, cancelAt, currentPeriodEnd, formatDisplayDate]);
+    return formatted ? t("common.nextChargeOn", { date: formatted }) : null;
+  }, [cancelAt, cancelAtPeriodEnd, currentPeriodEnd, formatDisplayDate, hasSubscription, t]);
 
   const handleOpenPricingModal = (options?: { closeMobileMenu?: boolean }) => {
     if (options?.closeMobileMenu) {
@@ -270,7 +284,7 @@ export const Navbar = ({ credits = null }: NavbarProps) => {
       <Link href="/" className="flex items-center gap-3">
         <Image
           src="/logo.svg"
-          alt="MakeRNB Logo"
+          alt={t("common.brandLogo")}
           width={36}
           height={36}
           className="h-9 w-9"
@@ -298,9 +312,9 @@ export const Navbar = ({ credits = null }: NavbarProps) => {
                     onClick={() => setOpenDropdown((prev) => prev === dropdownKey ? null : dropdownKey)}
                     onMouseEnter={() => handleDropdownMouseEnter(dropdownKey)}
                     onMouseLeave={handleDropdownMouseLeave}
-                  className={`text-base px-5 py-3 rounded-lg transition-colors duration-200 flex items-center gap-1 font-semibold ${
+                  className={`text-base px-5 py-3 rounded-lg transition-colors duration-200 flex items-center gap-1 font-medium ${
                       isActive
-                        ? 'text-primary'
+                        ? 'text-primary font-semibold'
                         : 'text-foreground/70 hover:text-foreground'
                     }`}
                   >
@@ -348,9 +362,9 @@ export const Navbar = ({ credits = null }: NavbarProps) => {
               <li key={href}>
                 <Link
                   href={href}
-                  className={`text-base px-5 py-3 rounded-lg transition-colors duration-200 font-semibold ${
+                  className={`text-base px-5 py-3 rounded-lg transition-colors duration-200 font-medium ${
                     isActive
-                      ? 'text-primary'
+                      ? 'text-primary font-semibold'
                       : 'text-foreground/70 hover:text-foreground'
                   }`}
                 >
@@ -377,7 +391,7 @@ export const Navbar = ({ credits = null }: NavbarProps) => {
                 <Link href="/" className="flex items-center" onClick={() => setIsOpen(false)}>
                   <Image
                     src="/logo.svg"
-                    alt="MakeRNB Logo"
+                    alt={t("common.brandLogo")}
                     width={40}
                     height={40}
                     className="mr-2"
@@ -396,7 +410,7 @@ export const Navbar = ({ credits = null }: NavbarProps) => {
                     <Avatar className="w-10 h-10">
                       <AvatarImage
                         src={user.user_metadata?.avatar_url || user.user_metadata?.picture || `https://api.dicebear.com/7.x/initials/svg?seed=${user.email}`}
-                        alt="User Avatar"
+                        alt={t("common.userAvatar")}
                       />
                       <AvatarFallback className="bg-gradient-to-br from-purple-600 to-purple-600 text-white font-semibold">
                         {displayName?.charAt(0)?.toUpperCase() ||
@@ -406,13 +420,13 @@ export const Navbar = ({ credits = null }: NavbarProps) => {
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center justify-between gap-2 mb-1">
                         <p className="text-foreground font-medium text-sm truncate flex-1">
-                          {displayName || 'User'}
+                          {displayName || t("common.user")}
                         </p>
                         <button
                           type="button"
                           onClick={() => handleOpenPricingModal({ closeMobileMenu: true })}
                           className="group inline-flex items-center gap-1.5 flex-shrink-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background"
-                          aria-label="Open pricing"
+                          aria-label={t("common.openPricing")}
                           title={billingNotice ?? undefined}
                         >
                           <SubscriptionBadge
@@ -433,7 +447,7 @@ export const Navbar = ({ credits = null }: NavbarProps) => {
                   <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-black/5">
                     <Coins className="h-3.5 w-3.5 text-primary" />
                     <span className="text-base font-semibold text-foreground">
-                      {credits === null ? '...' : credits} Credits
+                      {credits === null ? '...' : `${formatLocalizedNumber(credits)} ${t("common.credits")}`}
                     </span>
                   </div>
                   
@@ -447,7 +461,7 @@ export const Navbar = ({ credits = null }: NavbarProps) => {
                       className="w-full flex items-center gap-3 px-3 py-2 text-sm text-foreground/80 hover:bg-black/5 hover:text-foreground transition-colors rounded-lg"
                     >
                       <PencilLine className="w-4 h-4" />
-                      <span>Edit profile</span>
+                      <span>{t("common.editProfile")}</span>
                     </button>
                     <button
                       onClick={async () => {
@@ -461,7 +475,7 @@ export const Navbar = ({ credits = null }: NavbarProps) => {
                       className="w-full flex items-center gap-3 px-3 py-2 text-sm text-foreground/80 hover:bg-black/5 hover:text-foreground transition-colors rounded-lg"
                     >
                       <LogOut className="w-4 h-4" />
-                      <span>Sign Out</span>
+                      <span>{t("common.signOut")}</span>
                     </button>
                   </div>
                 </div>
@@ -475,7 +489,7 @@ export const Navbar = ({ credits = null }: NavbarProps) => {
                     size="default" 
                     className="w-full bg-primary hover:bg-primary/90 text-primary-foreground px-6 py-1.5 rounded-md text-base font-semibold"
                   >
-                    Sign In
+                    {t("common.signIn")}
                   </Button>
                 </div>
               )}
@@ -549,11 +563,19 @@ export const Navbar = ({ credits = null }: NavbarProps) => {
               </div>
               </div>
               <div className="mt-auto shrink-0 border-t border-border/20 pt-2 pb-2 px-3 bg-card">
-                <div className="flex items-center justify-between gap-3">
-                  <div className="text-[10px] font-semibold uppercase tracking-[0.28em] text-muted-foreground">
-                    Theme
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between gap-3">
+                    <div className="text-xs font-semibold uppercase tracking-[0.28em] text-muted-foreground">
+                      {t("common.language")}
+                    </div>
+                    <LanguageToggle size="sm" variant="nav" />
                   </div>
-                  <ThemeModeToggle size="md" variant="icon" />
+                  <div className="flex items-center justify-between gap-3">
+                    <div className="text-xs font-semibold uppercase tracking-[0.28em] text-muted-foreground">
+                      {t("common.theme")}
+                    </div>
+                    <ThemeModeToggle size="md" variant="icon" />
+                  </div>
                 </div>
               </div>
             </div>
@@ -563,6 +585,7 @@ export const Navbar = ({ credits = null }: NavbarProps) => {
 
       {/* <!-- Desktop Right Side --> */}
       <div className="hidden lg:flex ml-auto items-center gap-4">
+        <LanguageToggle size="md" variant="nav" />
         <ThemeModeToggle size="md" variant="icon" className="rounded-2xl" />
         {authLoading ? (
           <div className="h-10 w-24 rounded-md bg-black/10 animate-pulse" />
@@ -581,15 +604,15 @@ export const Navbar = ({ credits = null }: NavbarProps) => {
               className="rounded-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background"
               aria-haspopup="menu"
               aria-expanded={isUserMenuOpen}
-              aria-label="Open user menu"
+              aria-label={t("common.openUserMenu")}
             >
-              <Avatar 
-                className="w-10 h-10 cursor-pointer hover:scale-105 transition-transform duration-200"
-              >
-                <AvatarImage
-                  src={user.user_metadata?.avatar_url || user.user_metadata?.picture || `https://api.dicebear.com/7.x/initials/svg?seed=${user.email}`}
-                  alt="User Avatar"
-                />
+                <Avatar 
+                  className="w-10 h-10 cursor-pointer hover:scale-105 transition-transform duration-200"
+                >
+                  <AvatarImage
+                    src={user.user_metadata?.avatar_url || user.user_metadata?.picture || `https://api.dicebear.com/7.x/initials/svg?seed=${user.email}`}
+                    alt={t("common.userAvatar")}
+                  />
                 <AvatarFallback className="bg-gradient-to-br from-purple-600 to-purple-600 text-white font-semibold text-sm">
                   {displayName?.charAt(0)?.toUpperCase() ||
                    user.email?.charAt(0).toUpperCase()}
@@ -606,13 +629,13 @@ export const Navbar = ({ credits = null }: NavbarProps) => {
                 <div className="px-2.5 py-1.5">
                   <div className="flex items-center justify-between gap-2 mb-1">
                     <p className="text-foreground font-semibold text-sm truncate flex-1">
-                      {displayName || 'User'}
+                      {displayName || t("common.user")}
                     </p>
                     <button
                       type="button"
                       onClick={() => handleOpenPricingModal()}
                       className="group inline-flex items-center gap-1.5 flex-shrink-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background"
-                      aria-label="Open pricing"
+                      aria-label={t("common.openPricing")}
                       title={billingNotice ?? undefined}
                     >
                       <SubscriptionBadge
@@ -634,10 +657,10 @@ export const Navbar = ({ credits = null }: NavbarProps) => {
                     <div className="flex-shrink-0 h-8 w-8 rounded-lg flex items-center justify-center text-primary">
                       <Coins className="h-3.5 w-3.5" />
                     </div>
-                    <span className="text-sm font-medium text-foreground">Credits</span>
+                    <span className="text-sm font-medium text-foreground">{t("common.credits")}</span>
                   </div>
-                  <span className="min-w-6 text-right text-[11px] font-semibold text-foreground tabular-nums">
-                    {credits === null ? '...' : credits}
+                  <span className="min-w-6 text-right text-xs font-semibold text-foreground tabular-nums">
+                    {credits === null ? '...' : formatLocalizedNumber(credits)}
                   </span>
                 </div>
 
@@ -651,7 +674,7 @@ export const Navbar = ({ credits = null }: NavbarProps) => {
                   <div className="flex-shrink-0 h-8 w-8 rounded-lg flex items-center justify-center text-foreground/70">
                     <PencilLine className="h-3.5 w-3.5" />
                   </div>
-                  <span className="text-foreground font-medium text-sm">Edit profile</span>
+                  <span className="text-foreground font-medium text-sm">{t("common.editProfile")}</span>
                 </button>
 
                 {/* Sign Out Button */}
@@ -669,7 +692,7 @@ export const Navbar = ({ credits = null }: NavbarProps) => {
                   <div className="flex-shrink-0 h-8 w-8 rounded-lg flex items-center justify-center text-foreground/70">
                     <LogOut className="h-3.5 w-3.5" />
                   </div>
-                  <span className="text-foreground font-medium text-sm">Sign Out</span>
+                  <span className="text-foreground font-medium text-sm">{t("common.signOut")}</span>
                 </button>
               </div>
             )}
@@ -681,7 +704,7 @@ export const Navbar = ({ credits = null }: NavbarProps) => {
             size="default" 
             className="bg-primary hover:bg-primary/90 text-primary-foreground px-4 py-2 rounded-md text-base font-semibold h-10"
           >
-            Sign In
+            {t("common.signIn")}
           </Button>
         )}
       </div>

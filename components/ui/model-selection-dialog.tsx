@@ -174,7 +174,7 @@ export const ModelSelectionDialog: React.FC<ModelSelectionDialogProps> = ({
                       <div className="flex flex-wrap items-center gap-2">
                         <h3
                           className={cn(
-                            "text-[1.15rem] leading-none font-semibold tracking-tight transition-colors",
+                            "text-lg leading-none font-semibold tracking-tight transition-colors",
                             isSelected
                               ? "text-slate-900 dark:text-foreground"
                               : "text-foreground/85 dark:text-foreground/90"
@@ -186,7 +186,7 @@ export const ModelSelectionDialog: React.FC<ModelSelectionDialogProps> = ({
                           <span
                             key={`${option.value}-highlight-${badge.label}-${index}`}
                             className={cn(
-                              "inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.04em] text-slate-950",
+                              "inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-semibold uppercase tracking-[0.04em] text-slate-950",
                               MODEL_HIGHLIGHT_TONE_CLASS[badge.tone ?? "cyan"]
                             )}
                           >
@@ -197,7 +197,7 @@ export const ModelSelectionDialog: React.FC<ModelSelectionDialogProps> = ({
                         {isLocked && option.tierHint ? (
                           <span
                             className={cn(
-                              "inline-flex items-center rounded-full px-2.5 py-1 text-[10px] font-semibold transition-colors",
+                              "inline-flex items-center rounded-full px-2.5 py-1 text-xs font-semibold transition-colors",
                               isSelected
                                 ? "bg-white/50 text-slate-700 dark:bg-white/[0.14] dark:text-foreground/90"
                                 : "bg-foreground/5 text-foreground/75 dark:bg-white/[0.08] dark:text-foreground/80"
@@ -224,7 +224,7 @@ export const ModelSelectionDialog: React.FC<ModelSelectionDialogProps> = ({
                           <span
                             key={`${option.value}-${capability}`}
                             className={cn(
-                              "inline-flex items-center rounded-full px-2.5 py-1 text-[10px] font-semibold leading-none tracking-[0.01em] transition-colors",
+                              "inline-flex items-center rounded-full px-2.5 py-1 text-xs font-semibold leading-none tracking-[0.01em] transition-colors",
                               isSelected
                                 ? "bg-white/58 text-slate-800 dark:bg-white/[0.16] dark:text-foreground/95"
                                 : "bg-foreground/5 text-foreground/72 dark:bg-white/[0.08] dark:text-foreground/80"

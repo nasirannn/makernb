@@ -9,6 +9,7 @@ import { supabase } from '@/lib/supabase';
 import { ArrowLeft } from 'lucide-react';
 import Image from 'next/image';
 import { LoadingDots } from '@/components/ui/loading-dots';
+import { useI18n } from '@/lib/i18n/provider';
 
 interface UnifiedOTPLoginProps {
   onSuccess?: () => void;
@@ -16,11 +17,13 @@ interface UnifiedOTPLoginProps {
 }
 
 export default function UnifiedOTPLogin({ onSuccess, onClose }: UnifiedOTPLoginProps) {
+  const { t } = useI18n();
   const [email, setEmail] = useState('');
   const [otp, setOtp] = useState('');
   const [step, setStep] = useState<'email' | 'otp'>('email');
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState('');
+  const [messageType, setMessageType] = useState<'success' | 'error' | null>(null);
   const otpLength = 6;
   const otpRefs = React.useRef<Array<HTMLInputElement | null>>([]);
 
@@ -37,6 +40,7 @@ export default function UnifiedOTPLogin({ onSuccess, onClose }: UnifiedOTPLoginP
     e.preventDefault();
     setLoading(true);
     setMessage('');
+    setMessageType(null);
 
     try {
       // 统一的 OTP 登录（登录即注册）
@@ -49,9 +53,11 @@ export default function UnifiedOTPLogin({ onSuccess, onClose }: UnifiedOTPLoginP
       
       if (error) throw error;
       setStep('otp');
-      setMessage('Verification code sent!');
+      setMessage(t('otpLogin.verificationCodeSent'));
+      setMessageType('success');
     } catch (error: any) {
-      setMessage(error instanceof Error ? error.message : 'Failed to send code');
+      setMessage(error instanceof Error ? error.message : t('otpLogin.failedToSendCode'));
+      setMessageType('error');
     } finally {
       setLoading(false);
     }
@@ -61,6 +67,7 @@ export default function UnifiedOTPLogin({ onSuccess, onClose }: UnifiedOTPLoginP
     e.preventDefault();
     setLoading(true);
     setMessage('');
+    setMessageType(null);
 
     try {
       const { error } = await supabase.auth.verifyOtp({
@@ -72,7 +79,8 @@ export default function UnifiedOTPLogin({ onSuccess, onClose }: UnifiedOTPLoginP
       if (error) throw error;
       onSuccess?.();
     } catch (error: any) {
-      setMessage(error instanceof Error ? error.message : 'Invalid verification code');
+      setMessage(error instanceof Error ? error.message : t('otpLogin.invalidVerificationCode'));
+      setMessageType('error');
     } finally {
       setLoading(false);
     }
@@ -122,7 +130,7 @@ export default function UnifiedOTPLogin({ onSuccess, onClose }: UnifiedOTPLoginP
         <div className="flex justify-center mb-4">
           <Image
             src="/logo.svg"
-            alt="MakeRNB Logo"
+            alt={t('common.brandLogo')}
             width={48}
             height={48}
             className="h-12 w-12"
@@ -130,10 +138,10 @@ export default function UnifiedOTPLogin({ onSuccess, onClose }: UnifiedOTPLoginP
         </div>
         
         <CardTitle className="text-2xl font-bold text-foreground mb-2">
-          Welcome to MakeRNB
+          {t('otpLogin.welcomeTitle')}
         </CardTitle>
         <CardDescription className="text-muted-foreground">
-          Create amazing R&B tracks with the power of AI
+          {t('otpLogin.welcomeDescription')}
         </CardDescription>
       </CardHeader>
       
@@ -141,11 +149,11 @@ export default function UnifiedOTPLogin({ onSuccess, onClose }: UnifiedOTPLoginP
         {step === 'email' ? (
           <form onSubmit={sendOTP} className="space-y-4">
             <div className="space-y-2">
-              <Label htmlFor="email" className="text-foreground">Email address</Label>
+              <Label htmlFor="email" className="text-foreground">{t('otpLogin.emailAddressLabel')}</Label>
               <Input
                 id="email"
                 type="email"
-                placeholder="your@email.com"
+                placeholder={t('otpLogin.emailPlaceholder')}
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 required
@@ -161,13 +169,13 @@ export default function UnifiedOTPLogin({ onSuccess, onClose }: UnifiedOTPLoginP
               {loading ? (
                 <LoadingDots size="sm" color="white" className="mr-2" />
               ) : null}
-              Continue
+              {t('otpLogin.continueAction')}
             </Button>
           </form>
         ) : (
           <form onSubmit={verifyOTP} className="space-y-4">
             <div className="space-y-2">
-              <Label htmlFor="otp" className="text-foreground">Verification code</Label>
+              <Label htmlFor="otp" className="text-foreground">{t('otpLogin.verificationCodeLabel')}</Label>
               <div className="flex w-full items-center justify-between gap-2">
                 {Array.from({ length: otpLength }).map((_, index) => (
                   <Input
@@ -183,13 +191,13 @@ export default function UnifiedOTPLogin({ onSuccess, onClose }: UnifiedOTPLoginP
                     ref={(el) => {
                       otpRefs.current[index] = el;
                     }}
-                    aria-label={`Verification code digit ${index + 1}`}
+                    aria-label={t('otpLogin.verificationCodeDigitAria', { index: index + 1 })}
                     className="h-12 w-12 text-center text-lg font-semibold tracking-widest"
                   />
                 ))}
               </div>
               <p className="text-sm text-muted-foreground text-center">
-                Code sent to {email}
+                {t('otpLogin.codeSentTo', { email })}
               </p>
             </div>
             
@@ -201,7 +209,7 @@ export default function UnifiedOTPLogin({ onSuccess, onClose }: UnifiedOTPLoginP
               {loading ? (
                 <LoadingDots size="sm" color="white" className="mr-2" />
               ) : null}
-              Complete Login
+              {t('otpLogin.completeLogin')}
             </Button>
             
             <Button
@@ -211,13 +219,13 @@ export default function UnifiedOTPLogin({ onSuccess, onClose }: UnifiedOTPLoginP
               className="w-full h-10 text-muted-foreground hover:text-foreground"
             >
               <ArrowLeft className="mr-2 h-4 w-4" />
-              Use different email
+              {t('otpLogin.useDifferentEmail')}
             </Button>
           </form>
         )}
 
         {/* Message - 只显示错误消息 */}
-        {message && !message.includes('sent') && !message.includes('Verification') && (
+        {message && messageType === 'error' && (
           <div className="text-sm text-center p-3 rounded-lg bg-red-500/20 text-red-300 border border-red-500/30">
             {message}
           </div>
@@ -230,7 +238,7 @@ export default function UnifiedOTPLogin({ onSuccess, onClose }: UnifiedOTPLoginP
             variant="outline"
             className="w-full h-10 text-muted-foreground hover:text-foreground"
           >
-            Close
+            {t('otpLogin.close')}
           </Button>
         )}
       </CardContent>

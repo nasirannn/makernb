@@ -364,13 +364,13 @@ export const ReplaceSectionDialog: React.FC<ReplaceSectionDialogProps> = ({
                     />
                     <div className="pointer-events-none absolute inset-x-0 top-full mt-1 h-4">
                       <span
-                        className="absolute -translate-x-1/2 rounded-md bg-background/85 px-1.5 py-0.5 text-[10px] font-medium leading-none text-foreground/80 shadow-sm"
+                        className="absolute -translate-x-1/2 rounded-md bg-background/85 px-1.5 py-0.5 text-xs font-medium leading-none text-foreground/80 shadow-sm"
                         style={{ left: `${selectorStartPercent}%` }}
                       >
                         {infillStartS.toFixed(2)}s
                       </span>
                       <span
-                        className="absolute -translate-x-1/2 rounded-md bg-background/85 px-1.5 py-0.5 text-[10px] font-medium leading-none text-foreground/80 shadow-sm"
+                        className="absolute -translate-x-1/2 rounded-md bg-background/85 px-1.5 py-0.5 text-xs font-medium leading-none text-foreground/80 shadow-sm"
                         style={{ left: `${selectorEndPercent}%` }}
                       >
                         {infillEndS.toFixed(2)}s
@@ -442,7 +442,7 @@ export const ReplaceSectionDialog: React.FC<ReplaceSectionDialogProps> = ({
             >
               <h3 className="text-xs md:text-sm font-semibold text-foreground">Lyrics</h3>
               <span className="inline-flex items-center gap-2">
-                <span className="text-[10px] uppercase tracking-[0.14em] text-muted-foreground">Optional</span>
+                <span className="text-xs uppercase tracking-[0.14em] text-muted-foreground">Optional</span>
                 <ChevronDown
                   className={`h-3.5 w-3.5 text-muted-foreground transition-transform ${
                     isFullLyricsOpen ? "rotate-180" : ""
@@ -453,7 +453,7 @@ export const ReplaceSectionDialog: React.FC<ReplaceSectionDialogProps> = ({
 
             {isFullLyricsOpen && (
               <div className="mt-3 space-y-2">
-                <Label htmlFor="fullLyrics" className="text-xs font-medium text-muted-foreground">
+                <Label htmlFor="fullLyrics" className="text-sm font-medium text-muted-foreground">
                   Lyrics Content
                 </Label>
                 <Textarea
@@ -464,7 +464,7 @@ export const ReplaceSectionDialog: React.FC<ReplaceSectionDialogProps> = ({
                   rows={4}
                   className="min-h-[120px] resize-y border-0 bg-transparent px-0 focus-visible:ring-0 focus-visible:ring-offset-0"
                 />
-                <p className="text-xs text-muted-foreground">
+                <p className="text-sm text-muted-foreground">
                   Provide merged lyrics to keep the replaced section aligned with the full song.
                 </p>
               </div>

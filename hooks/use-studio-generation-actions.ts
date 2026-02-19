@@ -3,6 +3,7 @@
 import React from "react";
 import { toast } from "sonner";
 
+import { useI18n } from "@/lib/i18n/provider";
 import { supabase } from "@/lib/supabase";
 import type { FeatureCreatePanelProps } from "@/components/ui/feature-panels/music-generator-panel";
 
@@ -43,6 +44,7 @@ export const useStudioGenerationActions = ({
   setIsAuthModalOpen,
   openGenerationConfirm,
 }: UseStudioGenerationActionsParams) => {
+  const { t } = useI18n();
   const handleMashupGenerationStart = React.useCallback(async (options?: GenerationStartOptions) => {
     if (options?.mode !== "mashup") {
       return false;
@@ -55,7 +57,7 @@ export const useStudioGenerationActions = ({
 
     const uploadUrlList = (options.uploadUrlList || []).map((url) => url.trim()).filter(Boolean);
     if (uploadUrlList.length !== 2) {
-      toast.error("Please provide exactly 2 uploaded audio URLs for mashup.");
+      toast.error(t("toasts.pleaseProvideExactly2UploadedAudioUrlsForMashup"));
       return false;
     }
 
@@ -64,15 +66,15 @@ export const useStudioGenerationActions = ({
     const trimmedTitle = songTitle.trim();
 
     if (!trimmedStyle) {
-      toast.error("Please enter a style.");
+      toast.error(t("toasts.pleaseEnterStyle"));
       return false;
     }
     if (!trimmedTitle) {
-      toast.error("Please enter a title.");
+      toast.error(t("toasts.pleaseEnterTitle"));
       return false;
     }
     if (!trimmedCustomLyrics) {
-      toast.error("Please enter lyrics.");
+      toast.error(t("toasts.pleaseEnterLyrics"));
       return false;
     }
 
@@ -82,7 +84,7 @@ export const useStudioGenerationActions = ({
       const { data: { session } } = await supabase.auth.getSession();
 
       if (!session?.access_token) {
-        throw new Error("Authentication expired. Please sign in again.");
+        throw new Error(t("toasts.authenticationExpiredSignInAgain"));
       }
 
       const formData = new FormData();
@@ -117,9 +119,9 @@ export const useStudioGenerationActions = ({
 
       if (!response.ok || !result?.success) {
         if (response.status === 402) {
-          toast.error(result?.error || "Insufficient credits. Please top up credits.");
+          toast.error(result?.error || t("toasts.insufficientCreditsTopUp"));
         } else {
-          toast.error(result?.error || "Mashup generation failed. Please try again.");
+          toast.error(result?.error || t("toasts.mashupGenerationFailedTryAgain"));
         }
         return false;
       }
@@ -128,7 +130,7 @@ export const useStudioGenerationActions = ({
       const initialTracks = result?.data?.initialTracks;
 
       if (!taskId) {
-        toast.error("Mashup task ID is missing. Please try again.");
+        toast.error(t("toasts.mashupTaskIdMissingTryAgain"));
         return false;
       }
 
@@ -138,7 +140,7 @@ export const useStudioGenerationActions = ({
       return true;
     } catch (error) {
       console.error("Mashup generation failed:", error);
-      const message = error instanceof Error ? error.message : "Mashup generation failed. Please try again.";
+      const message = error instanceof Error ? error.message : t("toasts.mashupGenerationFailedTryAgain");
       toast.error(message);
       return false;
     }
@@ -154,6 +156,7 @@ export const useStudioGenerationActions = ({
     trackExistingTask,
     openGenerationConfirm,
     setIsAuthModalOpen,
+    t,
   ]);
 
   const handleUploadTransformGenerationStart = React.useCallback(async (options?: GenerationStartOptions) => {
@@ -168,13 +171,13 @@ export const useStudioGenerationActions = ({
 
     const uploadUrl = options.uploadUrl?.trim() || "";
     if (!uploadUrl) {
-      toast.error("Please upload audio first.");
+      toast.error(t("toasts.pleaseUploadAudioTrackFirst"));
       return false;
     }
 
     const trimmedTitle = songTitle.trim();
     if (!trimmedTitle) {
-      toast.error("Please enter a title.");
+      toast.error(t("toasts.pleaseEnterTitle"));
       return false;
     }
 
@@ -188,17 +191,17 @@ export const useStudioGenerationActions = ({
       const trimmedCustomLyrics = customLyrics.trim();
 
       if (!trimmedStyle) {
-        toast.error("Please enter a style.");
+        toast.error(t("toasts.pleaseEnterStyle"));
         return false;
       }
       if (!trimmedCustomLyrics) {
-        toast.error("Please enter lyrics.");
+        toast.error(t("toasts.pleaseEnterLyrics"));
         return false;
       }
     } else {
       const trimmedTags = options.tags?.trim() || "";
       if (!trimmedTags) {
-        toast.error("Please enter tags for melody mode.");
+        toast.error(t("toasts.pleaseEnterTagsForMelodyMode"));
         return false;
       }
     }
@@ -207,7 +210,7 @@ export const useStudioGenerationActions = ({
       const { data: { session } } = await supabase.auth.getSession();
 
       if (!session?.access_token) {
-        throw new Error("Authentication expired. Please sign in again.");
+        throw new Error(t("toasts.authenticationExpiredSignInAgain"));
       }
 
       const formData = new FormData();
@@ -256,9 +259,9 @@ export const useStudioGenerationActions = ({
 
       if (!response.ok || !result?.success) {
         if (response.status === 402) {
-          toast.error(result?.error || "Insufficient credits. Please top up credits.");
+          toast.error(result?.error || t("toasts.insufficientCreditsTopUp"));
         } else {
-          toast.error(result?.error || "Upload generation failed. Please try again.");
+          toast.error(result?.error || t("toasts.uploadGenerationFailedTryAgain"));
         }
         return false;
       }
@@ -267,7 +270,7 @@ export const useStudioGenerationActions = ({
       const initialTracks = result?.data?.initialTracks;
 
       if (!taskId) {
-        toast.error("Task ID is missing. Please try again.");
+        toast.error(t("toasts.uploadTaskIdMissingTryAgain"));
         return false;
       }
 
@@ -277,7 +280,7 @@ export const useStudioGenerationActions = ({
       return true;
     } catch (error) {
       console.error("Upload transform generation failed:", error);
-      const message = error instanceof Error ? error.message : "Upload generation failed. Please try again.";
+      const message = error instanceof Error ? error.message : t("toasts.uploadGenerationFailedTryAgain");
       toast.error(message);
       return false;
     }
@@ -293,6 +296,7 @@ export const useStudioGenerationActions = ({
     trackExistingTask,
     openGenerationConfirm,
     setIsAuthModalOpen,
+    t,
   ]);
 
   const handleExtendGenerationStart = React.useCallback(async (options?: GenerationStartOptions) => {
@@ -308,7 +312,7 @@ export const useStudioGenerationActions = ({
     const trackId = options.trackId.trim();
     const audioId = options.audioId?.trim() || "";
     if (!trackId) {
-      toast.error("Track ID is required.");
+      toast.error(t("toasts.trackIdRequired"));
       return false;
     }
 
@@ -320,19 +324,19 @@ export const useStudioGenerationActions = ({
     const continueAt = options.continueAt ?? 0;
 
     if (!trimmedStyle) {
-      toast.error("Please enter a style.");
+      toast.error(t("toasts.pleaseEnterStyle"));
       return false;
     }
     if (!trimmedTitle) {
-      toast.error("Please enter a title.");
+      toast.error(t("toasts.pleaseEnterTitle"));
       return false;
     }
     if (!trimmedCustomLyrics) {
-      toast.error("Please enter lyrics.");
+      toast.error(t("toasts.pleaseEnterLyrics"));
       return false;
     }
     if (continueAt <= 0) {
-      toast.error("Start time must be greater than 0s.");
+      toast.error(t("toasts.startTimeMustBeGreaterThanZero"));
       return false;
     }
 
@@ -340,7 +344,7 @@ export const useStudioGenerationActions = ({
       const { data: { session } } = await supabase.auth.getSession();
 
       if (!session?.access_token) {
-        throw new Error("Authentication expired. Please sign in again.");
+        throw new Error(t("toasts.authenticationExpiredSignInAgain"));
       }
 
       const requestBody: Record<string, unknown> = {
@@ -386,9 +390,9 @@ export const useStudioGenerationActions = ({
 
       if (!response.ok || !result?.success) {
         if (response.status === 402) {
-          toast.error(result?.error || "Insufficient credits. Please top up credits.");
+          toast.error(result?.error || t("toasts.insufficientCreditsTopUp"));
         } else {
-          toast.error(result?.error || "Extend generation failed. Please try again.");
+          toast.error(result?.error || t("toasts.extendGenerationFailedTryAgain"));
         }
         return false;
       }
@@ -397,7 +401,7 @@ export const useStudioGenerationActions = ({
       const initialTracks = result?.data?.initialTracks;
 
       if (!taskId) {
-        toast.error("Extend task ID is missing. Please try again.");
+        toast.error(t("toasts.extendTaskIdMissingTryAgain"));
         return false;
       }
 
@@ -407,7 +411,7 @@ export const useStudioGenerationActions = ({
       return true;
     } catch (error) {
       console.error("Extend generation failed:", error);
-      const message = error instanceof Error ? error.message : "Extend generation failed. Please try again.";
+      const message = error instanceof Error ? error.message : t("toasts.extendGenerationFailedTryAgain");
       toast.error(message);
       return false;
     }
@@ -424,6 +428,7 @@ export const useStudioGenerationActions = ({
     trackExistingTask,
     openGenerationConfirm,
     setIsAuthModalOpen,
+    t,
   ]);
 
   return {

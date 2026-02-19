@@ -716,7 +716,7 @@ export const WaveformPlayer = React.forwardRef<WaveformPlayerHandle, WaveformPla
                             >
                               <GripVertical className="h-3 w-3" />
                             </div>
-                            <span className="absolute -top-6 left-1/2 -translate-x-1/2 rounded-full bg-background/90 px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-primary shadow-sm">
+                            <span className="absolute -top-6 left-1/2 -translate-x-1/2 rounded-full bg-background/90 px-1.5 py-0.5 text-xs font-semibold uppercase tracking-wide text-primary shadow-sm">
                               Start
                             </span>
                           </div>

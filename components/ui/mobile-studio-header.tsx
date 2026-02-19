@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { Sparkles, LogOut, LogIn } from "lucide-react";
 import { useSubscription } from "@/contexts/SubscriptionContext";
+import { useI18n } from "@/lib/i18n/provider";
 
 interface MobileStudioHeaderProps {
   user: any;
@@ -29,6 +30,7 @@ export const MobileStudioHeader = React.memo(({
   setIsAuthModalOpen,
   signOut,
 }: MobileStudioHeaderProps) => {
+  const { t } = useI18n();
   const { tierName } = useSubscription();
   const displayName = user?.user_metadata?.nickname || user?.user_metadata?.full_name || user?.user_metadata?.name || user?.email?.split('@')[0] || '';
 
@@ -38,7 +40,7 @@ export const MobileStudioHeader = React.memo(({
         <Link href="/" className="font-bold text-lg flex items-center">
           <Image
             src="/logo.svg"
-            alt="MakeRNB Logo"
+            alt={t("common.brandLogo")}
             width={36}
             height={36}
             className="mr-3"
@@ -67,7 +69,7 @@ export const MobileStudioHeader = React.memo(({
                 <Avatar className="w-9 h-9">
                   <AvatarImage
                     src={user.user_metadata?.avatar_url || user.user_metadata?.picture}
-                    alt="User Avatar"
+                    alt={t("common.userAvatar")}
                   />
                   <AvatarFallback className="bg-primary/20 text-primary text-xs font-semibold">
                     {displayName?.charAt(0) || user.email?.charAt(0) || 'U'}
@@ -88,7 +90,7 @@ export const MobileStudioHeader = React.memo(({
                           {tierName}
                         </span>
                       </div>
-                      <div className="text-xs text-muted-foreground truncate">
+                      <div className="text-sm text-muted-foreground truncate">
                         {user.email}
                       </div>
                     </div>
@@ -107,7 +109,7 @@ export const MobileStudioHeader = React.memo(({
                       }}
                     >
                       <LogOut className="mr-2 h-4 w-4" />
-                      Sign Out
+                      {t("common.signOut")}
                     </Button>
                   </div>
                 </div>
@@ -119,6 +121,7 @@ export const MobileStudioHeader = React.memo(({
               variant="ghost"
               size="sm"
               className="h-9 w-9 p-0 text-muted-foreground rounded-full flex items-center justify-center"
+              aria-label={t("common.signIn")}
             >
               <LogIn className="h-5 w-5" />
             </Button>

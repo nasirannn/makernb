@@ -24,6 +24,7 @@ import { Label } from "@/components/ui/label";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Textarea } from "@/components/ui/textarea";
 import { formatDuration } from "@/lib/format-utils";
+import { useI18n } from "@/lib/i18n/provider";
 import type { PersonaOption, PersonaTrackOption } from "@/hooks/use-studio-persona-manager";
 
 interface MusicPersonaDialogsProps {
@@ -97,6 +98,7 @@ export const MusicPersonaDialogs: React.FC<MusicPersonaDialogsProps> = ({
   handleCreatePersona,
   isCreatingPersona,
 }) => {
+  const { t } = useI18n();
   const [pendingPersonaId, setPendingPersonaId] = React.useState(selectedPersonaId);
 
   React.useEffect(() => {
@@ -111,25 +113,25 @@ export const MusicPersonaDialogs: React.FC<MusicPersonaDialogsProps> = ({
           <DialogHeader className="flex-shrink-0 px-5 pt-4 pb-2 text-left">
             <div className="pr-8">
               <DialogTitle className="text-xl font-semibold tracking-tight text-foreground">
-                Music Persona
+                {t("personaDialog.title")}
               </DialogTitle>
             </div>
             <DialogDescription className="text-sm text-muted-foreground">
-              Extract persona from your generated tracks.
+              {t("personaDialog.description")}
             </DialogDescription>
           </DialogHeader>
 
           <div className="flex-1 space-y-3 overflow-y-auto px-5 py-3">
             <section className="studio-panel-card rounded-2xl p-3 space-y-3">
               <div className="flex items-center justify-between gap-2">
-                <h3 className="text-sm font-semibold tracking-tight text-foreground">My Personas</h3>
+                <h3 className="text-sm font-semibold tracking-tight text-foreground">{t("personaDialog.myPersonas")}</h3>
                 <button
                   type="button"
                   onClick={onOpenSelectMusicDialog}
-                  className="studio-panel-card inline-flex cursor-pointer items-center gap-1.5 rounded-xl px-2.5 py-1.5 text-xs font-medium text-muted-foreground transition-colors hover:bg-foreground/10 hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                  className="studio-panel-card inline-flex cursor-pointer items-center gap-1.5 rounded-xl px-2.5 py-1.5 text-sm font-medium text-muted-foreground transition-colors hover:bg-foreground/10 hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                 >
                   <Plus className="h-3.5 w-3.5" aria-hidden="true" />
-                  <span>Create</span>
+                  <span>{t("personaDialog.create")}</span>
                 </button>
               </div>
 
@@ -151,9 +153,9 @@ export const MusicPersonaDialogs: React.FC<MusicPersonaDialogsProps> = ({
                     <div className="mb-3 flex h-14 w-14 items-center justify-center rounded-full bg-primary/12 text-primary">
                       <Users className="h-6 w-6" aria-hidden="true" />
                     </div>
-                    <div className="text-base font-semibold text-foreground">No Personas Yet</div>
-                    <p className="mt-1 max-w-[420px] text-xs leading-relaxed text-muted-foreground">
-                      No personas yet. Select music to create one.
+                    <div className="text-base font-semibold text-foreground">{t("personaDialog.noPersonasTitle")}</div>
+                    <p className="mt-1 max-w-[420px] text-sm leading-relaxed text-muted-foreground">
+                      {t("personaDialog.noPersonasDescription")}
                     </p>
                   </div>
                 ) : (
@@ -188,13 +190,15 @@ export const MusicPersonaDialogs: React.FC<MusicPersonaDialogsProps> = ({
                         <div className="flex w-full items-center gap-3">
                           <div className="min-w-0 flex-1">
                             <div className="truncate text-sm font-semibold text-foreground">
-                              {persona.name?.trim() || 'Unnamed Persona'}
+                              {persona.name?.trim() || t("personaDialog.unnamedPersona")}
                             </div>
                             {persona.trackTitle && (
-                              <div className="mt-0.5 text-[11px] text-muted-foreground">From: {persona.trackTitle}</div>
+                              <div className="mt-0.5 text-sm text-muted-foreground">
+                                {t("personaDialog.fromTrack", { title: persona.trackTitle })}
+                              </div>
                             )}
                             {persona.description && (
-                              <div className="mt-1.5 line-clamp-2 text-xs leading-relaxed text-muted-foreground">
+                              <div className="mt-1.5 line-clamp-2 text-sm leading-relaxed text-muted-foreground">
                                 {persona.description}
                               </div>
                             )}
@@ -211,8 +215,8 @@ export const MusicPersonaDialogs: React.FC<MusicPersonaDialogsProps> = ({
                                   event.stopPropagation();
                                 }}
                                 className="inline-flex h-8 w-8 shrink-0 cursor-pointer items-center justify-center rounded-md text-muted-foreground opacity-0 pointer-events-none transition-[opacity,color,background-color] duration-200 group-hover:opacity-100 group-hover:pointer-events-auto group-focus-within:opacity-100 group-focus-within:pointer-events-auto hover:bg-muted/60 hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-                                aria-label="Persona actions"
-                                title="More actions"
+                                aria-label={t("trackActions.moreActions")}
+                                title={t("trackActions.moreActions")}
                               >
                                 <MoreHorizontal className="h-4 w-4" aria-hidden="true" />
                               </button>
@@ -220,11 +224,11 @@ export const MusicPersonaDialogs: React.FC<MusicPersonaDialogsProps> = ({
                             <DropdownMenuContent align="end" className="z-[180] w-36">
                               <DropdownMenuItem
                                 onSelect={() => {
-                                  toast.info('Edit persona (coming soon)');
+                                  toast.info(t("personaDialog.editComingSoon"));
                                 }}
                                 disabled={isDeletingPersona}
                               >
-                                Edit
+                                {t("personaDialog.edit")}
                               </DropdownMenuItem>
                               <DropdownMenuItem
                                 onSelect={() => {
@@ -233,7 +237,7 @@ export const MusicPersonaDialogs: React.FC<MusicPersonaDialogsProps> = ({
                                 disabled={isDeletingPersona}
                                 className="text-destructive focus:text-destructive"
                               >
-                                {isDeletingPersona ? 'Deleting...' : 'Delete'}
+                                {isDeletingPersona ? t("personaDialog.deleting") : t("personaDialog.delete")}
                               </DropdownMenuItem>
                             </DropdownMenuContent>
                           </DropdownMenu>
@@ -253,7 +257,7 @@ export const MusicPersonaDialogs: React.FC<MusicPersonaDialogsProps> = ({
               onClick={() => setIsPersonaDialogOpen(false)}
               className="h-11 rounded-2xl border-0 bg-foreground/5 px-4 text-foreground/75 transition-colors hover:bg-foreground/10 hover:text-foreground"
             >
-              Cancel
+              {t("common.cancel")}
             </Button>
             <Button
               type="button"
@@ -263,7 +267,7 @@ export const MusicPersonaDialogs: React.FC<MusicPersonaDialogsProps> = ({
                 setIsPersonaDialogOpen(false);
               }}
             >
-              Confirm
+              {t("common.confirm")}
             </Button>
           </div>
         </DialogContent>
@@ -284,11 +288,11 @@ export const MusicPersonaDialogs: React.FC<MusicPersonaDialogsProps> = ({
           <DialogHeader className="flex-shrink-0 px-5 pt-4 pb-2 text-left">
             <div className="pr-8">
               <DialogTitle className="text-xl font-semibold tracking-tight text-foreground">
-                Select Music
+                {t("personaDialog.selectMusicTitle")}
               </DialogTitle>
             </div>
             <DialogDescription className="text-sm text-muted-foreground">
-              Choose one of your current songs, then confirm.
+              {t("personaDialog.selectMusicDescription")}
             </DialogDescription>
           </DialogHeader>
 
@@ -315,8 +319,8 @@ export const MusicPersonaDialogs: React.FC<MusicPersonaDialogsProps> = ({
                 <div className="mb-3 flex h-14 w-14 items-center justify-center rounded-full bg-primary/12 text-primary">
                   <Music className="h-6 w-6" aria-hidden="true" />
                 </div>
-                <div className="text-base font-semibold text-foreground">No Songs Yet</div>
-                <div className="mt-1 text-xs text-muted-foreground">Generate or upload a song to see it here.</div>
+                <div className="text-base font-semibold text-foreground">{t("personaDialog.noSongsTitle")}</div>
+                <div className="mt-1 text-sm text-muted-foreground">{t("personaDialog.noSongsDescription")}</div>
               </div>
             ) : (
               <div className="studio-panel-card max-h-[400px] space-y-1.5 overflow-y-auto rounded-2xl p-2 pr-1">
@@ -350,7 +354,7 @@ export const MusicPersonaDialogs: React.FC<MusicPersonaDialogsProps> = ({
                           {track.coverR2Url ? (
                             <Image
                               src={track.coverR2Url}
-                              alt={track.title || 'Track cover'}
+                              alt={track.title || t("personaDialog.trackCoverAlt")}
                               fill
                               sizes="40px"
                               className="object-cover"
@@ -364,9 +368,9 @@ export const MusicPersonaDialogs: React.FC<MusicPersonaDialogsProps> = ({
 
                         <div className="min-w-0 flex-1">
                           <div className="truncate text-sm font-medium text-foreground">
-                            {track.title || 'Untitled Track'}
+                            {track.title || t("studioTracks.untitledTrack")}
                           </div>
-                          <div className="mt-1 flex items-center gap-1.5 text-[11px] text-muted-foreground">
+                          <div className="mt-1 flex items-center gap-1.5 text-sm text-muted-foreground">
                             <span className="rounded-md bg-foreground/10 px-1.5 py-0.5">
                               {formatDuration(Math.floor(track.duration || 0)) || '0:00'}
                             </span>
@@ -375,7 +379,7 @@ export const MusicPersonaDialogs: React.FC<MusicPersonaDialogsProps> = ({
                             </span>
                           </div>
                           {isUnavailable && unavailableReason && (
-                            <div className="mt-1.5 text-[11px] text-amber-600 dark:text-amber-400">
+                            <div className="mt-1.5 text-sm text-amber-600 dark:text-amber-400">
                               {unavailableReason}
                             </div>
                           )}
@@ -395,12 +399,12 @@ export const MusicPersonaDialogs: React.FC<MusicPersonaDialogsProps> = ({
           </div>
 
           <div className="px-5 pt-1 pb-4 space-y-2">
-            <div className="studio-panel-card min-w-0 truncate rounded-xl px-3 py-2 text-xs text-muted-foreground">
+            <div className="studio-panel-card min-w-0 truncate rounded-xl px-3 py-2 text-sm text-muted-foreground">
               {pendingMusicTrack
                 ? pendingMusicTrackUnavailableReason
                   ? pendingMusicTrackUnavailableReason
-                  : `Selected: ${pendingMusicTrack.title || 'Untitled Track'}`
-                : "You haven't selected any tracks yet"}
+                  : t("personaDialog.selectedTrack", { title: pendingMusicTrack.title || t("studioTracks.untitledTrack") })
+                : t("personaDialog.noTracksSelected")}
             </div>
             <div className="flex items-center justify-end gap-2">
               <Button
@@ -409,7 +413,7 @@ export const MusicPersonaDialogs: React.FC<MusicPersonaDialogsProps> = ({
                 onClick={closeSelectMusicDialog}
                 className="h-11 rounded-2xl border-0 bg-foreground/5 px-4 text-foreground/75 transition-colors hover:bg-foreground/10 hover:text-foreground"
               >
-                Cancel
+                {t("common.cancel")}
               </Button>
               <Button
                 type="button"
@@ -417,7 +421,7 @@ export const MusicPersonaDialogs: React.FC<MusicPersonaDialogsProps> = ({
                 className="h-11 rounded-2xl px-5 text-sm font-semibold"
                 disabled={isSelectMusicLoading || !pendingMusicTrackId || !!pendingMusicTrackUnavailableReason}
               >
-                Confirm
+                {t("common.confirm")}
               </Button>
             </div>
           </div>
@@ -429,11 +433,11 @@ export const MusicPersonaDialogs: React.FC<MusicPersonaDialogsProps> = ({
           <DialogHeader className="flex-shrink-0 px-5 pt-4 pb-2 text-left">
             <div className="pr-8">
               <DialogTitle className="text-xl font-semibold tracking-tight text-foreground">
-                Create Persona
+                {t("personaDialog.createPersonaTitle")}
               </DialogTitle>
             </div>
             <DialogDescription className="text-sm text-muted-foreground">
-              Add a name and description for this music persona.
+              {t("personaDialog.createPersonaDescription")}
             </DialogDescription>
           </DialogHeader>
 
@@ -445,7 +449,7 @@ export const MusicPersonaDialogs: React.FC<MusicPersonaDialogsProps> = ({
                     {selectedMusicTrack.coverR2Url ? (
                       <Image
                         src={selectedMusicTrack.coverR2Url}
-                        alt={selectedMusicTrack.title || 'Track cover'}
+                        alt={selectedMusicTrack.title || t("personaDialog.trackCoverAlt")}
                         fill
                         sizes="40px"
                         className="object-cover"
@@ -458,9 +462,9 @@ export const MusicPersonaDialogs: React.FC<MusicPersonaDialogsProps> = ({
                   </div>
                   <div className="min-w-0 flex-1">
                     <div className="truncate text-sm font-semibold text-foreground">
-                      {selectedMusicTrack.title || 'Untitled Track'}
+                      {selectedMusicTrack.title || t("studioTracks.untitledTrack")}
                     </div>
-                    <div className="mt-0.5 text-[11px] text-muted-foreground">
+                    <div className="mt-0.5 text-sm text-muted-foreground">
                       {formatDuration(Math.floor(selectedMusicTrack.duration || 0)) || '0:00'} • {formatTrackCreatedAt(selectedMusicTrack.createdAt)}
                     </div>
                   </div>
@@ -471,14 +475,14 @@ export const MusicPersonaDialogs: React.FC<MusicPersonaDialogsProps> = ({
             <section className="studio-panel-card rounded-2xl p-3 space-y-2">
               <div className="flex items-center gap-1.5">
                 <Label htmlFor="create-persona-name" className="text-xs md:text-sm font-semibold text-foreground">
-                  Name
+                  {t("personaDialog.nameLabel")}
                 </Label>
               </div>
               <Input
                 id="create-persona-name"
                 value={createPersonaName}
                 onChange={(event) => setCreatePersonaName(event.target.value)}
-                placeholder="Enter persona name"
+                placeholder={t("personaDialog.namePlaceholder")}
                 maxLength={100}
                 className="h-11 border-0 bg-transparent px-0 focus-visible:ring-0 focus-visible:ring-offset-0"
               />
@@ -488,18 +492,18 @@ export const MusicPersonaDialogs: React.FC<MusicPersonaDialogsProps> = ({
             <section className="studio-panel-card rounded-2xl p-3 space-y-2">
               <div className="flex items-center gap-1.5">
                 <Label htmlFor="create-persona-description" className="text-xs md:text-sm font-semibold text-foreground">
-                  Description
+                  {t("personaDialog.descriptionLabel")}
                 </Label>
               </div>
               <Textarea
                 id="create-persona-description"
                 value={createPersonaDescription}
                 onChange={(event) => setCreatePersonaDescription(event.target.value)}
-                placeholder="Describe this persona"
+                placeholder={t("personaDialog.descriptionPlaceholder")}
                 maxLength={1000}
                 className="min-h-[120px] resize-none border-0 bg-transparent px-0 focus-visible:ring-0 focus-visible:ring-offset-0"
               />
-              <div className="text-right text-[11px] text-muted-foreground">
+              <div className="text-right text-xs text-muted-foreground">
                 {createPersonaDescription.length}/1000
               </div>
             </section>
@@ -513,7 +517,7 @@ export const MusicPersonaDialogs: React.FC<MusicPersonaDialogsProps> = ({
               className="h-11 rounded-2xl border-0 bg-foreground/5 px-4 text-foreground/75 transition-colors hover:bg-foreground/10 hover:text-foreground"
               disabled={isCreatingPersona}
             >
-              Cancel
+              {t("common.cancel")}
             </Button>
             <Button
               type="button"
@@ -521,7 +525,7 @@ export const MusicPersonaDialogs: React.FC<MusicPersonaDialogsProps> = ({
               className="h-11 rounded-2xl px-5 text-sm font-semibold"
               disabled={isCreatingPersona || !createPersonaName.trim() || !createPersonaDescription.trim()}
             >
-              {isCreatingPersona ? 'Creating...' : 'Confirm'}
+              {isCreatingPersona ? t("personaDialog.creating") : t("common.confirm")}
             </Button>
           </div>
         </DialogContent>

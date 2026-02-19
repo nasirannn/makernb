@@ -19,6 +19,7 @@ import { CLIENT_FEATURE_CREDITS, CLIENT_VOCAL_SEPARATION_CREDITS } from '@/lib/c
 import { useVocalRemovalManager } from '@/features/vocal-tools/hooks/use-vocal-removal-manager';
 import { TrackItem } from './track-item';
 import { formatDurationInMinutes } from '@/lib/format-utils';
+import { getStudioFeatureDefinition, getStudioFeatureMusicTypes, type StudioFeatureKey } from '@/lib/studio-features';
 import { useAuth } from '@/contexts/AuthContext';
 import { useCredits } from '@/contexts/CreditsContext';
 import { getEventBus, TRACK_EVENTS } from "@/lib/event-bus";
@@ -26,6 +27,7 @@ import type { MusicType } from "@/types/music";
 import type { ExtendSourceTrack } from "@/types/extend-track-source";
 import { MusicPersonaDialogs } from "@/components/ui/music-persona-dialogs";
 import { useStudioPersonaManager } from "@/hooks/use-studio-persona-manager";
+import { useI18n } from "@/lib/i18n/provider";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -103,20 +105,31 @@ type MidiTrackState = {
   errorMessage?: string;
 };
 
-const TRACK_TYPE_FILTER_OPTIONS: Array<{
+const STUDIO_FEATURE_LABEL_KEYS: Record<StudioFeatureKey, string> = {
+  "music-generator": "studioFeatures.musicGenerator",
+  "music-extender": "studioFeatures.musicExtender",
+  "music-cover": "studioFeatures.musicCover",
+  "mashup": "studioFeatures.mashup",
+  "add-track": "studioFeatures.addTrack",
+  "add-vocal": "studioFeatures.addVocal",
+  "add-melody": "studioFeatures.addMelody",
+};
+
+const TRACK_TYPE_FILTER_CONFIG: Array<{
   value: TrackTypeFilter;
-  label: string;
+  labelKey?: string;
+  featureKey?: StudioFeatureKey;
   musicTypes: MusicType[];
   icon: React.ElementType;
 }> = [
-  { value: "all", label: "All", musicTypes: [], icon: Filter },
-  { value: "music-generator", label: "Music Generator", musicTypes: ["generated"], icon: Music2 },
-  { value: "music-extender", label: "Music Extender", musicTypes: ["upload_extend", "extended"], icon: Expand },
-  { value: "music-cover", label: "Music Cover", musicTypes: ["upload_cover"], icon: Disc3 },
-  { value: "mashup", label: "Mashup", musicTypes: ["upload_mashup"], icon: Blend },
-  { value: "add-vocal", label: "Add Vocal", musicTypes: ["upload_vocal"], icon: Mic },
-  { value: "add-melody", label: "Add Melody", musicTypes: ["upload_melody"], icon: Music },
-  { value: "disliked", label: "Disliked", musicTypes: [], icon: ThumbsDown },
+  { value: "all", labelKey: "studioTracks.all", musicTypes: [], icon: Filter },
+  { value: "music-generator", featureKey: "music-generator", musicTypes: getStudioFeatureMusicTypes("music-generator"), icon: Music2 },
+  { value: "music-extender", featureKey: "music-extender", musicTypes: getStudioFeatureMusicTypes("music-extender"), icon: Expand },
+  { value: "music-cover", featureKey: "music-cover", musicTypes: getStudioFeatureMusicTypes("music-cover"), icon: Disc3 },
+  { value: "mashup", featureKey: "mashup", musicTypes: getStudioFeatureMusicTypes("mashup"), icon: Blend },
+  { value: "add-vocal", featureKey: "add-vocal", musicTypes: getStudioFeatureMusicTypes("add-vocal"), icon: Mic },
+  { value: "add-melody", featureKey: "add-melody", musicTypes: getStudioFeatureMusicTypes("add-melody"), icon: Music },
+  { value: "disliked", labelKey: "studioTracks.disliked", musicTypes: [], icon: ThumbsDown },
 ];
 
 const TrackListSkeleton = ({ count = 5, className = '' }: { count?: number; className?: string }) => (
@@ -165,6 +178,21 @@ export const StudioTracksList: React.FC<StudioTracksListProps> = React.memo(func
   extendMusicStartPolling,
   onCreate,
 }) {
+  const { t } = useI18n();
+  const getStudioFeatureLabel = useCallback(
+    (featureKey: StudioFeatureKey) => t(STUDIO_FEATURE_LABEL_KEYS[featureKey]),
+    [t]
+  );
+  const trackTypeFilterOptions = useMemo(
+    () =>
+      TRACK_TYPE_FILTER_CONFIG.map((option) => ({
+        ...option,
+        label: option.featureKey ? getStudioFeatureLabel(option.featureKey) : t(option.labelKey || "studioTracks.all"),
+      })),
+    [getStudioFeatureLabel, t]
+  );
+  const untitledTrackLabel = t("studioTracks.untitledTrack");
+  const unknownTrackLabel = t("studioTracks.unknownTrack");
   
   const { user } = useAuth();
   const { credits, refreshCredits } = useCredits();
@@ -193,8 +221,8 @@ export const StudioTracksList: React.FC<StudioTracksListProps> = React.memo(func
   const [createdAtSortOrder, setCreatedAtSortOrder] = useState<'desc' | 'asc'>('desc');
   const [selectedTypeFilter, setSelectedTypeFilter] = useState<TrackTypeFilter>('all');
   const selectedTypeFilterOption = useMemo(
-    () => TRACK_TYPE_FILTER_OPTIONS.find((option) => option.value === selectedTypeFilter) ?? TRACK_TYPE_FILTER_OPTIONS[0],
-    [selectedTypeFilter]
+    () => trackTypeFilterOptions.find((option) => option.value === selectedTypeFilter) ?? trackTypeFilterOptions[0],
+    [selectedTypeFilter, trackTypeFilterOptions]
   );
   const selectedTypeFilterMusicTypes = selectedTypeFilterOption.musicTypes;
   const hasActiveTypeFilter = selectedTypeFilter !== 'all';
@@ -321,7 +349,7 @@ export const StudioTracksList: React.FC<StudioTracksListProps> = React.memo(func
         musicGeneration: music,
         isError: !track.audioUrl || track.audioUrl.trim() === '',
         errorMessage: (!track.audioUrl || track.audioUrl.trim() === '')
-          ? (music.errorInfo?.errorMessage || trackErrorMessage || 'Audio file missing')
+          ? (music.errorInfo?.errorMessage || trackErrorMessage || t("toasts.trackAudioUnavailable"))
           : undefined
       });
       });
@@ -431,7 +459,7 @@ export const StudioTracksList: React.FC<StudioTracksListProps> = React.memo(func
         const originalTrack = allTracksCombined.find(t => t.id === track.originalTrackId);
         return {
           ...track,
-          originalTrackTitle: originalTrack?.title || 'Unknown Track',
+          originalTrackTitle: originalTrack?.title || unknownTrackLabel,
         };
       }
       return track;
@@ -445,7 +473,7 @@ export const StudioTracksList: React.FC<StudioTracksListProps> = React.memo(func
     });
 
     return tracksWithSource;
-  }, [currentTracks, allTracksCombined, createdAtSortOrder]);
+  }, [currentTracks, allTracksCombined, createdAtSortOrder, unknownTrackLabel]);
 
   const groupedTracks = React.useMemo(() => {
     const groups: Array<{ id: string; tracks: any[] }> = [];
@@ -502,12 +530,12 @@ export const StudioTracksList: React.FC<StudioTracksListProps> = React.memo(func
 
   const handleCreatePersonaFromTrack = useCallback((track: any) => {
     if (!user) {
-      toast.error('Please sign in to create a persona.');
+      toast.error(t("toasts.pleaseSignInCreatePersona"));
       return;
     }
 
     openCreatePersonaDialog(track.id, {
-      title: track.title || track.musicTitle || 'Untitled Track',
+      title: track.title || track.musicTitle || untitledTrackLabel,
       duration: typeof track.duration === 'string' ? Number.parseFloat(track.duration) || 0 : (track.duration || 0),
       createdAt: track.createdAt || track.musicGeneration?.createdAt || '',
       audioId: track.audioId || null,
@@ -515,7 +543,7 @@ export const StudioTracksList: React.FC<StudioTracksListProps> = React.memo(func
       hasPersona: Boolean(track.personaId || track.persona_id),
       personaId: track.personaId || track.persona_id || null,
     });
-  }, [openCreatePersonaDialog, user]);
+  }, [openCreatePersonaDialog, t, untitledTrackLabel, user]);
   
   // 处理下载
   const handleDownload = useCallback((track: any, music: any, format: 'mp3' | 'wav' | 'mp4' | 'cover' = 'mp3') => {
@@ -545,7 +573,7 @@ export const StudioTracksList: React.FC<StudioTracksListProps> = React.memo(func
 
   const handlePublishToggle = useCallback(async (track: any) => {
     if (!track?.id) {
-      toast.error('Track not found');
+      toast.error(t("toasts.trackNotFound"));
       return;
     }
 
@@ -563,7 +591,7 @@ export const StudioTracksList: React.FC<StudioTracksListProps> = React.memo(func
       if (!session?.access_token || sessionError) {
         const { data: refreshData, error: refreshError } = await supabase.auth.refreshSession();
         if (refreshError || !refreshData?.session?.access_token) {
-          toast.error('Session expired. Please log in again.');
+          toast.error(t("toasts.sessionExpiredLogInAgain"));
           return;
         }
         session = refreshData.session;
@@ -584,7 +612,7 @@ export const StudioTracksList: React.FC<StudioTracksListProps> = React.memo(func
       const data = await response.json().catch(() => null);
 
       if (!response.ok || !data?.success) {
-        toast.error(data?.error || data?.message || 'Failed to update publish status');
+        toast.error(data?.error || data?.message || t("toasts.failedUpdatePublishStatus"));
         return;
       }
 
@@ -594,14 +622,14 @@ export const StudioTracksList: React.FC<StudioTracksListProps> = React.memo(func
         [track.id]: updatedStatus,
       }));
 
-      toast.success(data.message || (updatedStatus ? 'Track published successfully' : 'Track unpublished successfully'));
+      toast.success(data.message || (updatedStatus ? t("toasts.trackPublishedSuccessfully") : t("toasts.trackUnpublishedSuccessfully")));
     } catch (error) {
       console.error('Toggle publish error:', error);
-      toast.error('Failed to update publish status');
+      toast.error(t("toasts.failedUpdatePublishStatus"));
     } finally {
       setPublishingTrackIds((prev) => prev.filter((id) => id !== track.id));
     }
-  }, [publishingTrackIds]);
+  }, [publishingTrackIds, t]);
   
   // 处理删除 - 显示确认弹窗
   const handleDelete = useCallback((trackId: string) => {
@@ -609,11 +637,11 @@ export const StudioTracksList: React.FC<StudioTracksListProps> = React.memo(func
     if (track) {
       setTrackToDelete({
         id: trackId,
-        title: track.title || track.musicTitle || 'Untitled Track'
+        title: track.title || track.musicTitle || untitledTrackLabel
       });
       setDeleteDialogOpen(true);
     }
-  }, [findTrackById]);
+  }, [findTrackById, untitledTrackLabel]);
 
   // 确认删除
   const handleDeleteConfirm = useCallback(async () => {
@@ -637,7 +665,7 @@ export const StudioTracksList: React.FC<StudioTracksListProps> = React.memo(func
 
         if (refreshError || !refreshData?.session?.access_token) {
           console.error('[Delete Track] Session refresh failed:', refreshError?.message);
-          toast.error('Session expired. Please log in again.');
+          toast.error(t("toasts.sessionExpiredLogInAgain"));
           setDeleteDialogOpen(false);
           setTrackToDelete(null);
           return;
@@ -672,51 +700,53 @@ export const StudioTracksList: React.FC<StudioTracksListProps> = React.memo(func
             });
           }
           
-          toast.success('Track deleted successfully');
+          toast.success(t("toasts.trackDeletedSuccessfully"));
         } else {
-          toast.error(data.error || 'Failed to delete track');
+          toast.error(data.error || t("toasts.failedDeleteTrack"));
         }
       } else {
         const errorData = await response.json();
-        toast.error(errorData.error || 'Failed to delete track');
+        toast.error(errorData.error || t("toasts.failedDeleteTrack"));
       }
     } catch (error) {
       console.error('Delete track error:', error);
-      toast.error('Failed to delete track');
+      toast.error(t("toasts.failedDeleteTrack"));
     } finally {
       setDeleteDialogOpen(false);
       setTrackToDelete(null);
     }
-  }, [trackToDelete]);
+  }, [t, trackToDelete]);
 
   // 处理 Extend Music
   const handleExtendMusic = useCallback((trackId: string) => {
     if (!user) {
-      toast.error('Please log in to extend music');
+      toast.error(t("toasts.pleaseLogInExtendMusic"));
       return;
     }
 
     const track = findTrackById(trackId);
     if (!track) {
-      toast.error('Track not found');
+      toast.error(t("toasts.trackNotFound"));
       return;
     }
 
     const trackAudioUrl = (track.audioUrl || track.streamAudioUrl || '').trim();
     if (!trackAudioUrl) {
-      toast.error('Track audio is unavailable.');
+      toast.error(t("toasts.trackAudioUnavailable"));
       return;
     }
 
     if (!onExtendTrackSelect) {
-      toast.error('Open Music Extender to continue.');
+      toast.error(
+        t("toasts.openFeatureToContinue", { feature: getStudioFeatureLabel("music-extender") })
+      );
       return;
     }
 
     onExtendTrackSelect?.({
       id: track.id,
       audioId: (track.audioId || '').trim() || undefined,
-      title: track.title || track.musicTitle || 'Untitled Track',
+      title: track.title || track.musicTitle || untitledTrackLabel,
       audioUrl: trackAudioUrl,
       duration: typeof track.duration === 'string' ? parseFloat(track.duration) || 0 : (track.duration || 0),
       tags: track.musicTags || track.tags || '',
@@ -725,29 +755,29 @@ export const StudioTracksList: React.FC<StudioTracksListProps> = React.memo(func
       musicType: track.musicType,
       createdAt: track.createdAt || track.musicGeneration?.createdAt,
     });
-  }, [user, findTrackById, onExtendTrackSelect]);
+  }, [findTrackById, getStudioFeatureLabel, onExtendTrackSelect, t, untitledTrackLabel, user]);
 
   // 处理 Replace Section
   const handleReplaceSection = useCallback((trackId: string) => {
     if (!user) {
-      toast.error('Please sign in to replace section');
+      toast.error(t("toasts.pleaseSignInReplaceSection"));
       return;
     }
 
     const track = findTrackById(trackId);
     if (!track) {
-      toast.error('Track not found');
+      toast.error(t("toasts.trackNotFound"));
       return;
     }
 
     // 设置待处理的曲目信息并打开对话框
     setPendingReplaceSectionTrackId(trackId);
-    setPendingReplaceSectionTrackTitle(track.title || 'Untitled Track');
+    setPendingReplaceSectionTrackTitle(track.title || untitledTrackLabel);
     setPendingReplaceSectionTrackDuration(track.duration || 120);
     setPendingReplaceSectionOriginalStyle(track.musicGeneration?.tags || '');
     setPendingReplaceSectionAudioUrl(track.audioUrl || track.streamAudioUrl || '');
     setShowReplaceSectionDialog(true);
-  }, [user, findTrackById]);
+  }, [findTrackById, t, untitledTrackLabel, user]);
 
   // 确认 Replace Section
   const handleConfirmReplaceSection = useCallback(async (params: ReplaceSectionParams): Promise<{ taskId: string } | void> => {
@@ -757,7 +787,7 @@ export const StudioTracksList: React.FC<StudioTracksListProps> = React.memo(func
       // 获取认证令牌
       const { data: { session } } = await supabase.auth.getSession();
       if (!session?.access_token) {
-        toast.error('Authentication required. Please log in again.');
+        toast.error(t("toasts.authRequiredLogInAgain"));
         return;
       }
 
@@ -792,7 +822,7 @@ export const StudioTracksList: React.FC<StudioTracksListProps> = React.memo(func
           }
         }
 
-        throw new Error(errorData.error || 'Failed to replace section');
+        throw new Error(errorData.error || t("toasts.failedReplaceSection"));
       }
 
       const result = await response.json();
@@ -808,8 +838,8 @@ export const StudioTracksList: React.FC<StudioTracksListProps> = React.memo(func
           initialTracks
         );
 
-        toast.success('Replace section started successfully!', {
-          description: 'Your modified track is being generated.',
+        toast.success(t("toasts.replaceSectionStarted"), {
+          description: t("toasts.replaceSectionGeneratingDesc"),
         });
 
         // 清理状态
@@ -827,15 +857,15 @@ export const StudioTracksList: React.FC<StudioTracksListProps> = React.memo(func
         // 返回 taskId，通知弹窗可以关闭了
         return { taskId };
       } else {
-        throw new Error(result.error || 'Failed to replace section');
+        throw new Error(result.error || t("toasts.failedReplaceSection"));
       }
 
     } catch (error: any) {
       console.error('Replace section error:', error);
-      toast.error(error.message || 'Failed to replace section. Please try again.');
+      toast.error(error.message || t("toasts.failedReplaceSection"));
       return;
     }
-  }, [pendingReplaceSectionTrackId, startExtendMusicPolling, refreshCredits]);
+  }, [pendingReplaceSectionTrackId, refreshCredits, startExtendMusicPolling, t]);
 
   const startMidiStatusPolling = useCallback(async (trackId: string, taskId: string) => {
     const POLL_INTERVAL = 3000;
@@ -847,7 +877,7 @@ export const StudioTracksList: React.FC<StudioTracksListProps> = React.memo(func
         status: 'error',
         taskId,
         midiData: undefined,
-        errorMessage: 'Authentication required. Please sign in again.',
+        errorMessage: t("toasts.authRequiredLogInAgain"),
       });
       return;
     }
@@ -908,7 +938,7 @@ export const StudioTracksList: React.FC<StudioTracksListProps> = React.memo(func
           if (refreshCredits) {
             await refreshCredits();
           }
-          toast.success('MIDI is ready.');
+          toast.success(t("toasts.midiReady"));
           return;
         }
 
@@ -939,7 +969,7 @@ export const StudioTracksList: React.FC<StudioTracksListProps> = React.memo(func
     const timerId = setInterval(pollOnce, POLL_INTERVAL);
     midiPollingTimersRef.current.set(trackId, timerId);
     await pollOnce();
-  }, [clearMidiPollingForTrack, refreshCredits, updateMidiTrackState]);
+  }, [clearMidiPollingForTrack, refreshCredits, t, updateMidiTrackState]);
 
   const handleGenerateMidi = useCallback(async (
     trackId: string,
@@ -954,7 +984,7 @@ export const StudioTracksList: React.FC<StudioTracksListProps> = React.memo(func
     try {
       const { data: { session } } = await supabase.auth.getSession();
       if (!session?.access_token) {
-        toast.error('Authentication required');
+        toast.error(t("toasts.authRequired"));
         return;
       }
 
@@ -981,7 +1011,7 @@ export const StudioTracksList: React.FC<StudioTracksListProps> = React.memo(func
       const result = await response.json().catch(() => null);
 
       if (!response.ok || !result?.success) {
-        const errorMessage = result?.error || result?.message || 'Failed to start MIDI generation';
+        const errorMessage = result?.error || result?.message || t("toasts.failedStartMidiGeneration");
 
         if (response.status === 402 || result?.insufficientCredits) {
           if (refreshCredits) {
@@ -1014,7 +1044,7 @@ export const StudioTracksList: React.FC<StudioTracksListProps> = React.memo(func
           midiData: result.data.midiData,
           errorMessage: undefined,
         });
-        toast.success('MIDI is ready.');
+        toast.success(t("toasts.midiReady"));
         return;
       }
 
@@ -1024,7 +1054,7 @@ export const StudioTracksList: React.FC<StudioTracksListProps> = React.memo(func
           midiData: undefined,
           errorMessage: 'Missing MIDI task id from API response.',
         });
-        toast.error('Failed to start MIDI generation');
+        toast.error(t("toasts.failedStartMidiGeneration"));
         return;
       }
 
@@ -1035,7 +1065,7 @@ export const StudioTracksList: React.FC<StudioTracksListProps> = React.memo(func
         errorMessage: undefined,
       });
 
-      toast.success('MIDI generation started.');
+      toast.success(t("toasts.midiGenerationStarted"));
       await startMidiStatusPolling(trackId, generatedTaskId);
     } catch (error) {
       console.error('Generate MIDI error:', error);
@@ -1047,7 +1077,7 @@ export const StudioTracksList: React.FC<StudioTracksListProps> = React.memo(func
       });
       toast.error(errorMessage);
     }
-  }, [credits, openPricingModal, refreshCredits, startMidiStatusPolling, updateMidiTrackState]);
+  }, [credits, openPricingModal, refreshCredits, startMidiStatusPolling, t, updateMidiTrackState]);
 
   const openRemovalDialogForMode = useCallback(async (
     trackId: string,
@@ -1057,11 +1087,11 @@ export const StudioTracksList: React.FC<StudioTracksListProps> = React.memo(func
     try {
       const { data: { session } } = await supabase.auth.getSession();
       if (!session?.access_token) {
-        toast.error('Authentication required');
+        toast.error(t("toasts.authRequired"));
         return;
       }
 
-      const trackTitle = track?.title || 'Unknown Track';
+      const trackTitle = track?.title || unknownTrackLabel;
       setCurrentProcessingTrackId(trackId);
       setCurrentProcessingTrackTitle(trackTitle);
       setCurrentProcessingFeatureMode(mode);
@@ -1185,7 +1215,7 @@ export const StudioTracksList: React.FC<StudioTracksListProps> = React.memo(func
         errorMessage: error instanceof Error ? error.message : 'Failed to check separation status',
       });
     }
-  }, [findTrackById, updateMidiTrackState, vocalRemovalManager]);
+  }, [findTrackById, t, unknownTrackLabel, updateMidiTrackState, vocalRemovalManager]);
 
   const handleMidiAction = useCallback(async (trackId: string) => {
     if (!canGenerateMidi) {
@@ -1194,7 +1224,7 @@ export const StudioTracksList: React.FC<StudioTracksListProps> = React.memo(func
     }
 
     const track = findTrackById(trackId);
-    const trackTitle = track?.title || 'Unknown Track';
+    const trackTitle = track?.title || unknownTrackLabel;
 
     try {
       clearMidiPollingForTrack(trackId);
@@ -1215,9 +1245,9 @@ export const StudioTracksList: React.FC<StudioTracksListProps> = React.memo(func
       if (!session?.access_token) {
         updateMidiTrackState(trackId, {
           status: 'error',
-          errorMessage: 'Authentication required',
+          errorMessage: t("toasts.authRequired"),
         });
-        toast.error('Authentication required');
+        toast.error(t("toasts.authRequired"));
         return;
       }
 
@@ -1235,9 +1265,9 @@ export const StudioTracksList: React.FC<StudioTracksListProps> = React.memo(func
       if (!splitStemStatusResponse.ok) {
         updateMidiTrackState(trackId, {
           status: 'error',
-          errorMessage: 'Failed to check Split Stem status.',
+          errorMessage: t("toasts.failedCheckSplitStemStatus"),
         });
-        toast.error('Failed to check Split Stem status.');
+        toast.error(t("toasts.failedCheckSplitStemStatus"));
         return;
       }
 
@@ -1263,7 +1293,7 @@ export const StudioTracksList: React.FC<StudioTracksListProps> = React.memo(func
           midiData: undefined,
           errorMessage: undefined,
         });
-        toast.info('Split Stem is required before generating MIDI.');
+        toast.info(t("toasts.splitStemRequiredBeforeMidi"));
         await openRemovalDialogForMode(trackId, 'split_stem');
         return;
       }
@@ -1288,9 +1318,9 @@ export const StudioTracksList: React.FC<StudioTracksListProps> = React.memo(func
       if (!midiStatusResponse.ok) {
         updateMidiTrackState(trackId, {
           status: 'error',
-          errorMessage: 'Failed to check MIDI status.',
+          errorMessage: t("toasts.failedCheckMidiStatus"),
         });
-        toast.error('Failed to check MIDI status.');
+        toast.error(t("toasts.failedCheckMidiStatus"));
         return;
       }
 
@@ -1341,7 +1371,7 @@ export const StudioTracksList: React.FC<StudioTracksListProps> = React.memo(func
       });
     } catch (error) {
       console.error('MIDI action error:', error);
-      toast.error(error instanceof Error ? error.message : 'Failed to prepare MIDI action');
+      toast.error(error instanceof Error ? error.message : t("toasts.failedPrepareMidiAction"));
     }
   }, [
     canGenerateMidi,
@@ -1351,6 +1381,8 @@ export const StudioTracksList: React.FC<StudioTracksListProps> = React.memo(func
     openPricingModal,
     openRemovalDialogForMode,
     startMidiStatusPolling,
+    t,
+    unknownTrackLabel,
     updateMidiTrackState,
     vocalRemovalManager,
   ]);
@@ -1359,11 +1391,11 @@ export const StudioTracksList: React.FC<StudioTracksListProps> = React.memo(func
   const handleVocalRemoval = useCallback(async (trackId: string) => {
     const track = findTrackById(trackId);
     if (track?.musicGeneration?.isInstrumental) {
-      toast.error('Instrumental tracks cannot be processed for vocal removal');
+      toast.error(t("toasts.instrumentalCannotVocalRemoval"));
       return;
     }
     await openRemovalDialogForMode(trackId, 'separate_vocal');
-  }, [findTrackById, openRemovalDialogForMode]);
+  }, [findTrackById, openRemovalDialogForMode, t]);
 
   // 处理 Split Stem：独立入口
   const handleSplitStem = useCallback(async (trackId: string) => {
@@ -1382,12 +1414,12 @@ export const StudioTracksList: React.FC<StudioTracksListProps> = React.memo(func
     try {
       const { data: { session } } = await supabase.auth.getSession();
       if (!session?.access_token) {
-        toast.error('Authentication required');
+        toast.error(t("toasts.authRequired"));
         return;
       }
       
       const track = findTrackById(trackId);
-      const trackTitle = track?.title || 'Unknown Track';
+      const trackTitle = track?.title || unknownTrackLabel;
       const requestedMode: 'separate_vocal' | 'split_stem' = options?.type === 'split_stem' ? 'split_stem' : 'separate_vocal';
       
       setCurrentProcessingTrackId(trackId);
@@ -1513,7 +1545,7 @@ export const StudioTracksList: React.FC<StudioTracksListProps> = React.memo(func
         errorMessage,
       });
     }
-  }, [clearMidiPollingForTrack, findTrackById, openPricingModal, updateMidiTrackState, vocalRemovalManager]);
+  }, [clearMidiPollingForTrack, findTrackById, openPricingModal, t, unknownTrackLabel, updateMidiTrackState, vocalRemovalManager]);
 
   // 渲染空状态
   const showEmptyState = !isLoading && (!userTracks || userTracks.length === 0 || allTracks.length === 0) 
@@ -1558,7 +1590,7 @@ export const StudioTracksList: React.FC<StudioTracksListProps> = React.memo(func
             <div className="relative">
               <Image
                 src="/icons/Studio-Empty-Coffee.svg"
-                alt="No tracks yet"
+                alt={t("studioTracks.noTracksYetAlt")}
                 width={96}
                 height={96}
                 className="h-20 w-20 opacity-70"
@@ -1568,10 +1600,10 @@ export const StudioTracksList: React.FC<StudioTracksListProps> = React.memo(func
           </div>
           <div className="space-y-3">
             <h3 className="text-2xl font-bold text-foreground">
-              No tracks data
+              {t("studioTracks.noTracksData")}
             </h3>
             <p className="text-base text-muted-foreground leading-relaxed">
-              Let{"'"}s bring your R&amp;B track to life.
+              {t("studioTracks.noTracksDescription")}
             </p>
           </div>
         </div>
@@ -1589,7 +1621,7 @@ export const StudioTracksList: React.FC<StudioTracksListProps> = React.memo(func
             <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-foreground/55" />
             <input
               type="text"
-              placeholder="Search by song title"
+              placeholder={t("studioTracks.searchBySongTitle")}
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               className="w-full h-full rounded-2xl bg-transparent pl-11 pr-10 text-sm text-foreground placeholder:text-foreground/40 transition-colors focus:bg-transparent focus:outline-none border-0"
@@ -1609,15 +1641,15 @@ export const StudioTracksList: React.FC<StudioTracksListProps> = React.memo(func
               <button
                 type="button"
                 className="inline-flex studio-panel-card h-11 min-w-[130px] items-center justify-center gap-1.5 rounded-2xl px-3 text-xs md:text-sm font-semibold text-foreground/80 shadow-[0_1px_2px_rgba(0,0,0,0.06)] transition-colors hover:bg-accent hover:text-accent-foreground"
-                aria-label="Filter tracks by type"
-                title="Filter tracks by type"
+                aria-label={t("studioTracks.filterTracksByType")}
+                title={t("studioTracks.filterTracksByType")}
               >
                 {React.createElement(selectedTypeFilterOption.icon, { className: "h-3.5 w-3.5" })}
                 <span className="truncate">{selectedTypeFilterOption.label}</span>
               </button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" className="w-56">
-              {TRACK_TYPE_FILTER_OPTIONS.map((option) => {
+              {trackTypeFilterOptions.map((option) => {
                 const isSelected = option.value === selectedTypeFilter;
                 return (
                   <React.Fragment key={option.value}>
@@ -1646,13 +1678,13 @@ export const StudioTracksList: React.FC<StudioTracksListProps> = React.memo(func
           <button
             type="button"
             onClick={() => setCreatedAtSortOrder((prev) => (prev === 'desc' ? 'asc' : 'desc'))}
-            className={`inline-flex studio-panel-card h-11 w-[108px] items-center justify-center gap-1.5 rounded-2xl px-3 text-xs font-semibold shadow-[0_1px_2px_rgba(0,0,0,0.06)] transition-colors hover:bg-accent hover:text-accent-foreground ${
+            className={`inline-flex studio-panel-card h-11 w-[108px] items-center justify-center gap-1.5 rounded-2xl px-3 text-xs md:text-sm font-semibold shadow-[0_1px_2px_rgba(0,0,0,0.06)] transition-colors hover:bg-accent hover:text-accent-foreground ${
               createdAtSortOrder === 'desc'
                 ? 'text-foreground'
                 : 'text-foreground/80'
             }`}
-            aria-label={createdAtSortOrder === 'desc' ? 'Sort by newest first' : 'Sort by oldest first'}
-            title={createdAtSortOrder === 'desc' ? 'Sorted: Newest first' : 'Sorted: Oldest first'}
+            aria-label={createdAtSortOrder === 'desc' ? t("studioTracks.sortByNewestFirst") : t("studioTracks.sortByOldestFirst")}
+            title={createdAtSortOrder === 'desc' ? t("studioTracks.sortedNewestFirst") : t("studioTracks.sortedOldestFirst")}
             aria-pressed={createdAtSortOrder === 'asc'}
           >
             <ArrowDownUp
@@ -1660,15 +1692,15 @@ export const StudioTracksList: React.FC<StudioTracksListProps> = React.memo(func
                 createdAtSortOrder === 'asc' ? 'rotate-180' : ''
               }`}
             />
-            <span>{createdAtSortOrder === 'desc' ? 'Newest' : 'Oldest'}</span>
+            <span>{createdAtSortOrder === 'desc' ? t("studioTracks.newest") : t("studioTracks.oldest")}</span>
           </button>
           {onCreate && (
             <button
               type="button"
               onClick={onCreate}
               className="inline-flex h-11 w-11 items-center justify-center rounded-2xl bg-primary text-primary-foreground shadow-sm transition-colors hover:bg-primary/90"
-              aria-label="Start Creating"
-              title="Start Creating"
+              aria-label={t("studioTracks.startCreating")}
+              title={t("studioTracks.startCreating")}
             >
               <Wand2 className="h-4 w-4" />
             </button>
@@ -1757,7 +1789,7 @@ export const StudioTracksList: React.FC<StudioTracksListProps> = React.memo(func
               {/* Tracks Summary */}
               {currentTracks.length > 0 && (
                 <div className="flex justify-center items-center py-2 px-4">
-                  <span className="inline-flex items-center px-2 py-0.5 text-[11px] font-semibold tracking-tight text-foreground/80 dark:text-foreground/85">
+                  <span className="inline-flex items-center px-2 py-0.5 text-xs font-semibold tracking-tight text-foreground/80 dark:text-foreground/85">
                     {(() => {
                       const useTotalSummary = Boolean(summary) && !searchQuery.trim() && !hasActiveTypeFilter;
                       const totalSongs = useTotalSummary ? summary!.totalTracks : currentTracks.length;
@@ -1768,7 +1800,11 @@ export const StudioTracksList: React.FC<StudioTracksListProps> = React.memo(func
                             return sum + (isNaN(duration) ? 0 : duration);
                           }, 0);
                       const durationText = formatDurationInMinutes(totalDuration);
-                      return `${totalSongs} song${totalSongs > 1 ? 's' : ''}${durationText ? `, ${durationText}` : ''}`;
+                      const songLabel = totalSongs > 1 ? t("studioTracks.songPlural") : t("studioTracks.songSingular");
+                      const songsText = `${totalSongs} ${songLabel}`;
+                      return durationText
+                        ? t("studioTracks.summaryWithDuration", { songs: songsText, duration: durationText })
+                        : songsText;
                     })()}
                   </span>
                 </div>
@@ -1797,12 +1833,12 @@ export const StudioTracksList: React.FC<StudioTracksListProps> = React.memo(func
                   </div>
                 </div>
                 <h3 className="text-xl font-semibold text-foreground mb-3">
-                  {searchQuery.trim() ? 'No matching tracks' : 'No tracks in this type'}
+                  {searchQuery.trim() ? t("studioTracks.noMatchingTracks") : t("studioTracks.noTracksInType")}
                 </h3>
                 <p className="text-muted-foreground mb-6 leading-relaxed">
                   {searchQuery.trim()
-                    ? `No tracks found for "${searchQuery}". Try a different search term.`
-                    : `No tracks found in "${selectedTypeFilterOption.label}".`}
+                    ? t("studioTracks.noTracksForQuery", { query: searchQuery })
+                    : t("studioTracks.noTracksForType", { type: selectedTypeFilterOption.label })}
                 </p>
                 <button
                   onClick={() => {
@@ -1811,7 +1847,7 @@ export const StudioTracksList: React.FC<StudioTracksListProps> = React.memo(func
                   }}
                   className="px-4 py-2 bg-primary text-primary-foreground rounded-lg text-sm font-medium hover:bg-primary/90 transition-colors"
                 >
-                  Reset
+                  {t("studioTracks.reset")}
                 </button>
               </div>
             </div>
@@ -1885,7 +1921,7 @@ export const StudioTracksList: React.FC<StudioTracksListProps> = React.memo(func
           status={currentVocalRemovalState?.status || 'checking'}
           errorMessage={
             currentVocalRemovalState?.status === 'error'
-              ? currentVocalRemovalState?.errorMessage || 'Vocal separation failed. Please try again.'
+              ? currentVocalRemovalState?.errorMessage || t("toasts.vocalSeparationFailedTryAgain")
               : undefined
           }
           vocalUrl={currentVocalRemovalState?.vocalUrl}
@@ -1924,7 +1960,7 @@ export const StudioTracksList: React.FC<StudioTracksListProps> = React.memo(func
           status={currentVocalRemovalState?.status || 'checking'}
           errorMessage={
             currentVocalRemovalState?.status === 'error'
-              ? currentVocalRemovalState?.errorMessage || 'Split stem failed. Please try again.'
+              ? currentVocalRemovalState?.errorMessage || t("toasts.splitStemFailedTryAgain")
               : undefined
           }
           stemsData={currentVocalRemovalState?.stemsData}
@@ -1976,9 +2012,9 @@ export const StudioTracksList: React.FC<StudioTracksListProps> = React.memo(func
       <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
         <AlertDialogContent className="max-w-[calc(100vw-2rem)] sm:max-w-[520px]">
           <AlertDialogHeader className="space-y-3">
-            <AlertDialogTitle className="text-lg sm:text-xl">Delete Track</AlertDialogTitle>
+            <AlertDialogTitle className="text-lg sm:text-xl">{t("studioTracks.deleteTrackTitle")}</AlertDialogTitle>
             <AlertDialogDescription className="text-sm sm:text-base whitespace-nowrap">
-              Are you sure you want to delete the current track?
+              {t("studioTracks.deleteTrackDescription")}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter className="mt-3 flex flex-col sm:flex-row gap-2 sm:gap-3">
@@ -1989,13 +2025,13 @@ export const StudioTracksList: React.FC<StudioTracksListProps> = React.memo(func
               }}
               className="w-full sm:w-[160px] h-10 rounded-lg"
             >
-              Cancel
+              {t("common.cancel")}
             </AlertDialogCancel>
             <AlertDialogAction
               onClick={handleDeleteConfirm}
               className="w-full sm:w-[160px] h-10 rounded-lg bg-primary text-primary-foreground hover:bg-primary/90"
             >
-              Confirm
+              {t("common.confirm")}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

@@ -3,9 +3,11 @@
 import * as React from "react";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
+import { useI18n } from "@/lib/i18n/provider";
 
 export const HeroSection = () => {
   const router = useRouter();
+  const { t } = useI18n();
 
   return (
     <section className="app-shell relative w-full min-h-screen overflow-hidden">
@@ -19,18 +21,18 @@ export const HeroSection = () => {
       <div className="relative z-10 container mx-auto min-h-screen flex items-center pt-28 pb-24 md:pt-28">
         <div className="w-full max-w-4xl mx-auto text-center">
           <div className="inline-flex items-center gap-2 whitespace-nowrap rounded-full bg-[linear-gradient(132deg,rgba(255,255,255,0.66),rgba(255,255,255,0.28))] px-2.5 py-1.5 text-foreground/85 shadow-[0_12px_30px_rgba(0,0,0,0.12)] backdrop-blur-md dark:bg-[linear-gradient(132deg,rgba(255,255,255,0.16),rgba(255,255,255,0.06))] dark:shadow-[0_14px_30px_rgba(0,0,0,0.32)]">
-            <span className="inline-flex items-center rounded-full bg-primary px-3 py-1 text-[11px] font-semibold leading-none text-primary-foreground">
+            <span className="inline-flex items-center rounded-full bg-primary px-3 py-1 text-xs font-semibold leading-none text-primary-foreground">
               R&amp;B
             </span>
-            <span className="pr-2 text-[12px] font-medium leading-none">Especially For The R&amp;B Lovers</span>
+            <span className="pr-2 text-xs font-medium leading-none">{t("heroSection.badgeText")}</span>
           </div>
 
           <h1 className="mt-8 text-[2.6rem] leading-[0.98] tracking-tight font-black text-foreground sm:text-5xl lg:text-[4.6rem]">
             <span className="block">
-              Free Online <span className="hero-ink">AI R&amp;B</span> Music Generator
+              {t("heroSection.headingPrefix")} <span className="hero-ink">AI R&amp;B</span> {t("heroSection.headingSuffix")}
             </span>
-            <span className="block mt-4 text-foreground/85 text-[1.05rem] sm:text-xl lg:text-2xl font-extrabold tracking-tight">
-              Create songs in different Contemporary Rhythm and Blues musical styles
+            <span className="block mt-4 text-foreground/85 text-base sm:text-xl lg:text-2xl font-extrabold tracking-tight">
+              {t("heroSection.subheading")}
             </span>
           </h1>
 
@@ -38,24 +40,24 @@ export const HeroSection = () => {
             <button
               type="button"
               onClick={() => router.push("/music-generator")}
-              aria-label="Try for free"
+              aria-label={t("heroSection.tryForFree")}
               className="inline-flex items-center justify-center gap-2 px-7 py-3 bg-primary text-primary-foreground font-semibold rounded-full hover:bg-primary/90 transition-transform duration-200 hover:-translate-y-0.5 active:translate-y-0 text-base shadow-[0_16px_44px_rgba(0,0,0,0.18)]"
             >
-              <span>Try for free</span>
+              <span>{t("heroSection.tryForFree")}</span>
             </button>
 
             <button
               type="button"
               onClick={() => router.push("/explore")}
-              aria-label="Listen to examples"
+              aria-label={t("heroSection.listenToExamples")}
               className="inline-flex items-center justify-center gap-2 px-7 py-3 bg-foreground/5 text-foreground font-semibold rounded-full hover:bg-foreground/10 transition-colors duration-200 text-base"
             >
-              <span>Explore</span>
+              <span>{t("nav.explore")}</span>
             </button>
           </div>
 
-          <div className="mt-4 text-xs text-muted-foreground">
-            Free daily credits <span className="mx-1 opacity-60">•</span> No experience needed <span className="mx-1 opacity-60">•</span> 100% Royalty-Free
+          <div className="mt-4 text-sm text-muted-foreground">
+            {t("heroSection.metaFreeDailyCredits")} <span className="mx-1 opacity-60">•</span> {t("heroSection.metaNoExperience")} <span className="mx-1 opacity-60">•</span> {t("heroSection.metaRoyaltyFree")}
           </div>
 
           <div className="mt-8 flex flex-wrap justify-center gap-2">

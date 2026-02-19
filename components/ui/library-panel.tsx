@@ -64,6 +64,7 @@ import {
 } from '@/components/ui/dialog';
 import { EditMusicInfoDialog } from '@/components/ui/edit-music-info-dialog';
 import { Mp4BrandingDialog } from '@/components/ui/mp4-branding-dialog';
+import { useI18n } from '@/lib/i18n/provider';
 
 interface LibraryPanelProps {
   tracks: LibraryTrack[];
@@ -148,6 +149,7 @@ export const LibraryPanel = ({
   onFavoriteToggle
 }: LibraryPanelProps) => {
   const { user, loading: authLoading, signOut } = useAuth();
+  const { t } = useI18n();
   const { credits } = useCredits();
   const { openModal: openPricingModal } = usePricingModal();
   const displayName = user?.user_metadata?.nickname || user?.user_metadata?.full_name || user?.user_metadata?.name || user?.email?.split('@')[0] || '';
@@ -234,10 +236,10 @@ export const LibraryPanel = ({
 
   const filterEmptyDescription =
     activeFilter === 'favourite'
-      ? 'No favorited tracks yet. Add songs to your favorites to manage them here.'
+      ? t("libraryPage.noFavoritedTracksYet")
       : activeFilter === 'published'
-        ? 'No published tracks yet. Publish tracks to manage them here.'
-        : 'No tracks yet. Create songs in Studio and manage them here.';
+        ? t("libraryPage.noPublishedTracksYet")
+        : t("libraryPage.noTracksYet");
 
   const handleSortClick = (column: 'createdAt' | 'duration') => {
     setSortColumn(column);
@@ -296,12 +298,12 @@ export const LibraryPanel = ({
 
   const handleShare = useCallback(async (track: LibraryTrack): Promise<boolean> => {
     if (!track?.id) {
-      toast.error('Track ID is required to share');
+      toast.error(t("download.trackIdRequired"));
       return false;
     }
 
     if (typeof window === 'undefined' || typeof navigator === 'undefined' || !navigator.clipboard?.writeText) {
-      toast.error('Sharing is not supported in this environment');
+      toast.error(t("toasts.sharingNotSupported"));
       return false;
     }
 
@@ -321,10 +323,10 @@ export const LibraryPanel = ({
       return true;
     } catch (error) {
       console.error('Error copying share link:', error);
-      toast.error('Failed to copy link');
+      toast.error(t("toasts.failedCopyLink"));
       return false;
     }
-  }, []);
+  }, [t]);
 
   const handleDownload = async (
     track: LibraryTrack,
@@ -346,14 +348,14 @@ export const LibraryPanel = ({
     }
 
     if (!track.id) {
-      toast.error('Track ID is required');
+      toast.error(t("download.trackIdRequired"));
       return;
     }
 
     try {
       // 显示下载开始提示
-      const downloadToast = toast.loading('Downloading...', {
-        description: 'Preparing your file...',
+      const downloadToast = toast.loading(t("download.downloading"), {
+        description: t("download.preparingYourFile"),
         icon: <ArrowDown className="h-4 w-4 text-blue-500" />
       });
 
@@ -361,7 +363,7 @@ export const LibraryPanel = ({
       if (format === 'cover') {
         const coverUrl = track.coverImage || track.coverR2Url || track.allTracks?.[0]?.coverR2Url;
         if (!coverUrl) {
-          toast.error('No cover image available', {
+          toast.error(t("download.noCoverImageAvailable"), {
             id: downloadToast
           });
           return;
@@ -371,9 +373,9 @@ export const LibraryPanel = ({
           // 获取 session token
           const { data: { session } } = await supabase.auth.getSession();
           if (!session?.access_token) {
-            toast.error('Authentication required', {
+            toast.error(t("toasts.authRequired"), {
               id: downloadToast,
-              description: 'Please log in to download cover image'
+              description: t("download.pleaseLogInDownloadTracks")
             });
             return;
           }
@@ -394,21 +396,21 @@ export const LibraryPanel = ({
           const blobUrl = window.URL.createObjectURL(blob);
           const link = document.createElement('a');
           link.href = blobUrl;
-          link.download = `${track.title || 'cover'}.png`;
+          link.download = `${track.title || t("download.coverDefaultTitle")}.png`;
           document.body.appendChild(link);
           link.click();
           document.body.removeChild(link);
           window.URL.revokeObjectURL(blobUrl);
 
-          toast.success('Download started!', {
+          toast.success(t("download.downloadStarted"), {
             id: downloadToast,
-            description: `${track.title || 'cover'}.png`,
+            description: `${track.title || t("download.coverDefaultTitle")}.png`,
           });
         } catch (error) {
           console.error('Cover download error:', error);
-          toast.error('Download failed', {
+          toast.error(t("download.downloadFailed"), {
             id: downloadToast,
-            description: error instanceof Error ? error.message : 'Unable to download cover image'
+            description: error instanceof Error ? error.message : t("download.unableDownloadCoverImage")
           });
         }
         return;
@@ -432,7 +434,7 @@ export const LibraryPanel = ({
       // MP3格式直接下载
       const { data: { session } } = await supabase.auth.getSession();
       if (!session?.access_token) {
-        throw new Error('Authentication required');
+        throw new Error(t("trackDetail.authenticationRequired"));
       }
 
       const response = await fetch(`/api/download-track?trackId=${track.id}&format=${format}`, {
@@ -466,7 +468,7 @@ export const LibraryPanel = ({
           document.body.removeChild(link);
           window.URL.revokeObjectURL(blobUrl);
         } else {
-          throw new Error(data.error || 'Download failed');
+          throw new Error(data.error || t("download.downloadFailed"));
         }
       } else {
         // 正常模式：直接获取音频文件
@@ -482,14 +484,14 @@ export const LibraryPanel = ({
       }
       
       // 更新 toast 为成功状态
-      toast.success('Download started!', {
+      toast.success(t("download.downloadStarted"), {
         id: downloadToast,
         description: `${track.title}.${format}`,
       });
     } catch (error) {
       console.error('Download error:', error);
-      toast.error('Download failed', {
-        description: error instanceof Error ? error.message : 'Unable to download file'
+      toast.error(t("download.downloadFailed"), {
+        description: error instanceof Error ? error.message : t("download.unableDownloadFile")
       });
     }
   };
@@ -524,7 +526,7 @@ export const LibraryPanel = ({
       try {
         const { data: { session } } = await supabase.auth.getSession();
         if (!session?.access_token) {
-          throw new Error('Authentication required');
+          throw new Error(t("trackDetail.authenticationRequired"));
         }
 
         const response = await fetch(`/api/download-track?trackId=${track.id}&format=wav`, {
@@ -536,9 +538,9 @@ export const LibraryPanel = ({
         
         // 检查是否超时
         if (elapsedTime > MAX_POLL_TIME) {
-          toast.error('WAV generation timeout', {
+          toast.error(t("download.downloadTimeout"), {
             id: downloadToast,
-            description: 'WAV conversion is taking longer than expected. Please try again later.'
+            description: t("download.wavTakingLong")
           });
           return;
         }
@@ -553,10 +555,10 @@ export const LibraryPanel = ({
             
             // 显示带进度条的 toast
             const statusText = data.hasWavUrl 
-              ? 'Processing WAV file...' 
-              : 'Waiting for conversion...';
+              ? t("download.processingWavFile")
+              : t("download.waitingForConversion");
             
-            toast.loading('Generating WAV...', {
+            toast.loading(t("download.generatingWavFile"), {
               id: downloadToast,
               description: (
                 <div className="w-full space-y-2">
@@ -571,15 +573,15 @@ export const LibraryPanel = ({
             setTimeout(pollForWav, POLL_INTERVAL);
             return;
           } else {
-            throw new Error(data.error || data.message || 'WAV generation failed');
+            throw new Error(data.error || data.message || t("download.downloadFailed"));
           }
         } else if (response.status === 200) {
           // WAV已准备好，显示完成进度
-          toast.loading('Finalizing download...', {
+          toast.loading(t("download.finalizingDownload"), {
             id: downloadToast,
             description: (
               <div className="w-full space-y-2">
-                <p className="text-sm">Preparing file for download</p>
+                <p className="text-sm">{t("download.preparingFileForDownload")}</p>
                 <Progress value={100} className="h-2" />
                 <p className="text-xs text-muted-foreground">100%</p>
               </div>
@@ -599,21 +601,21 @@ export const LibraryPanel = ({
                 throw new Error(`Failed to fetch WAV: ${wavResponse.status}`);
               }
               const blob = await wavResponse.blob();
-              downloadFile(blob, track.title || 'track', 'wav');
-              toast.success('Download started!', {
+              downloadFile(blob, track.title || t("download.trackDefaultTitle"), 'wav');
+              toast.success(t("download.downloadStarted"), {
                 id: downloadToast,
-                description: `${track.title}.wav`,
+                description: `${track.title || t("download.trackDefaultTitle")}.wav`,
               });
             } else {
-              throw new Error(data.error || 'Download failed');
+              throw new Error(data.error || t("download.downloadFailed"));
             }
           } else {
             // 正常模式：直接获取WAV文件
             const blob = await response.blob();
-            downloadFile(blob, track.title || 'track', 'wav');
-            toast.success('Download started!', {
+            downloadFile(blob, track.title || t("download.trackDefaultTitle"), 'wav');
+            toast.success(t("download.downloadStarted"), {
               id: downloadToast,
-              description: `${track.title}.wav`,
+              description: `${track.title || t("download.trackDefaultTitle")}.wav`,
             });
           }
         } else {
@@ -623,9 +625,9 @@ export const LibraryPanel = ({
         }
       } catch (error) {
         console.error('WAV download polling error:', error);
-        toast.error('WAV download failed', {
+        toast.error(t("download.wavDownloadFailed"), {
           id: downloadToast,
-          description: error instanceof Error ? error.message : 'Unable to download WAV file'
+          description: error instanceof Error ? error.message : t("download.unableDownloadWavFile")
         });
       }
     };
@@ -666,7 +668,7 @@ export const LibraryPanel = ({
       try {
         const { data: { session } } = await supabase.auth.getSession();
         if (!session?.access_token) {
-          throw new Error('Authentication required');
+          throw new Error(t("trackDetail.authenticationRequired"));
         }
 
         const response = await fetch(mp4RequestUrl, {
@@ -677,9 +679,9 @@ export const LibraryPanel = ({
         const elapsedTime = Date.now() - startTime;
 
         if (elapsedTime > MAX_POLL_TIME) {
-          toast.error('MP4 generation timeout', {
+          toast.error(t("download.mp4GenerationTimeout"), {
             id: downloadToast,
-            description: 'MP4 generation is taking longer than expected. Please try again later.'
+            description: t("download.mp4TakingLong")
           });
           return;
         }
@@ -687,14 +689,14 @@ export const LibraryPanel = ({
         if (response.status === 202) {
           const data = await response.json();
           if (data.status === 'generating') {
-            toast.loading('Generating MP4 video...', {
+            toast.loading(t("download.generatingMp4Video"), {
               id: downloadToast,
-              description: 'Creating visualized video for your track...'
+              description: t("download.generatingMp4Description")
             });
             setTimeout(pollForMp4, POLL_INTERVAL);
             return;
           }
-          throw new Error(data.error || data.message || 'MP4 generation failed');
+          throw new Error(data.error || data.message || t("download.mp4GenerationFailed"));
         }
 
         if (response.status === 200) {
@@ -708,21 +710,21 @@ export const LibraryPanel = ({
                 throw new Error(`Failed to fetch MP4: ${videoResponse.status}`);
               }
               const blob = await videoResponse.blob();
-              downloadFile(blob, track.title || 'track', 'mp4');
-              toast.success('Download started!', {
+              downloadFile(blob, track.title || t("download.trackDefaultTitle"), 'mp4');
+              toast.success(t("download.downloadStarted"), {
                 id: downloadToast,
-                description: `${track.title}.mp4`,
+                description: `${track.title || t("download.trackDefaultTitle")}.mp4`,
               });
               return;
             }
-            throw new Error(data.error || 'Download failed');
+            throw new Error(data.error || t("download.downloadFailed"));
           }
 
           const blob = await response.blob();
-          downloadFile(blob, track.title || 'track', 'mp4');
-          toast.success('Download started!', {
+          downloadFile(blob, track.title || t("download.trackDefaultTitle"), 'mp4');
+          toast.success(t("download.downloadStarted"), {
             id: downloadToast,
-            description: `${track.title}.mp4`,
+            description: `${track.title || t("download.trackDefaultTitle")}.mp4`,
           });
           return;
         }
@@ -731,9 +733,9 @@ export const LibraryPanel = ({
         throw new Error(errorData.message || errorData.error || `HTTP error! status: ${response.status}`);
       } catch (error) {
         console.error('MP4 download polling error:', error);
-        toast.error('MP4 download failed', {
+        toast.error(t("download.mp4DownloadFailed"), {
           id: downloadToast,
-          description: error instanceof Error ? error.message : 'Unable to download MP4 file'
+          description: error instanceof Error ? error.message : t("download.unableDownloadMp4File")
         });
       }
     };
@@ -760,7 +762,7 @@ export const LibraryPanel = ({
 
   const handlePublishConfirm = async () => {
     if (!trackToPublish || !userId) {
-      toast('Please log in to publish tracks');
+      toast(t("toasts.pleaseLogInPublishTracks"));
       setPublishDialogOpen(false);
       setTrackToPublish(null);
       return;
@@ -769,7 +771,7 @@ export const LibraryPanel = ({
     try {
       const { data: { session } } = await supabase.auth.getSession();
       if (!session?.access_token) {
-        toast('Please log in to publish tracks');
+        toast(t("toasts.pleaseLogInPublishTracks"));
         setPublishDialogOpen(false);
         setTrackToPublish(null);
         return;
@@ -792,15 +794,19 @@ export const LibraryPanel = ({
       if (response.ok && result.success) {
         // 通知父组件更新发布状态
         onTrackAction?.(trackToPublish, 'publish_toggle');
-        toast.success(result.message);
+        toast.success(
+          trackToPublish.isPublished
+            ? t("toasts.trackUnpublishedSuccessfully")
+            : t("toasts.trackPublishedSuccessfully")
+        );
       } else {
-        toast(result.error || 'Failed to toggle publication', {
+        toast(result.error || t("toasts.failedTogglePublication"), {
           icon: <XCircle className="h-4 w-4 text-red-500" />
         });
       }
     } catch (error) {
       console.error('Error toggling publication:', error);
-      toast('Failed to toggle publication', {
+      toast(t("toasts.failedTogglePublication"), {
         icon: <XCircle className="h-4 w-4 text-red-500" />
       });
     } finally {
@@ -822,7 +828,7 @@ export const LibraryPanel = ({
       // 获取当前session的access token
       const { data: { session } } = await supabase.auth.getSession();
       if (!session?.access_token) {
-        toast('Please log in to delete tracks');
+        toast(t("toasts.pleaseLogInDeleteTracks"));
         return;
       }
 
@@ -850,13 +856,13 @@ export const LibraryPanel = ({
           });
         }
         
-        toast.success('Track deleted successfully');
+        toast.success(t("toasts.trackDeletedSuccessfully"));
       } else {
-        toast(data.error || 'Failed to delete track');
+        toast(data.error || t("toasts.failedDeleteTrack"));
       }
     } catch (error) {
       console.error('Error deleting track:', error);
-      toast('Failed to delete track, please try again');
+      toast(t("toasts.failedDeleteTrackTryAgain"));
     } finally {
       setDeleteDialogOpen(false);
       setTrackToDelete(null);
@@ -885,15 +891,15 @@ export const LibraryPanel = ({
 
   const handleEditSave = async (data: { title: string; coverImageUrl?: string }) => {
     if (!userId || !trackToEdit) {
-      toast('Please log in to edit track info');
-      throw new Error('Not authenticated');
+      toast(t("toasts.pleaseLogInEditTrackInfo"));
+      throw new Error(t("trackDetail.authenticationRequired"));
     }
 
     try {
       const { data: { session } } = await supabase.auth.getSession();
       if (!session?.access_token) {
-        toast('Please log in to edit track info');
-        throw new Error('Authentication required');
+        toast(t("toasts.pleaseLogInEditTrackInfo"));
+        throw new Error(t("trackDetail.authenticationRequired"));
       }
 
       const body: Record<string, any> = {
@@ -917,7 +923,7 @@ export const LibraryPanel = ({
       const result = await response.json();
 
       if (!response.ok || !result.success) {
-        throw new Error(result.error || 'Failed to update track info');
+        throw new Error(result.error || t("toasts.failedUpdateMusicInfo"));
       }
 
       const updatedTitle = result.data?.title || data.title;
@@ -933,13 +939,13 @@ export const LibraryPanel = ({
 
       onTrackAction?.(updatedTrack as LibraryTrack, 'update');
 
-      toast.success('Track info updated successfully');
+      toast.success(t("toasts.musicInfoUpdatedSuccessfully"));
 
       setEditDialogOpen(false);
       setTrackToEdit(null);
     } catch (error) {
       console.error('Error updating track info:', error);
-      toast(error instanceof Error ? error.message : 'Failed to update track info', {
+      toast(error instanceof Error ? error.message : t("toasts.failedUpdateMusicInfo"), {
         icon: <XCircle className="h-4 w-4 text-red-500" />
       });
       throw error;
@@ -954,7 +960,7 @@ export const LibraryPanel = ({
           <Link href="/" className="font-bold text-lg flex items-center">
             <Image
               src="/logo.svg"
-              alt="MakeRNB Logo"
+              alt={t("common.brandLogo")}
               width={36}
               height={36}
               className="mr-3"
@@ -983,7 +989,7 @@ export const LibraryPanel = ({
                   <Avatar className="w-9 h-9">
                     <AvatarImage
                       src={user.user_metadata?.avatar_url || user.user_metadata?.picture}
-                      alt="User Avatar"
+                      alt={t("common.userAvatar")}
                     />
                     <AvatarFallback className="bg-primary/20 text-primary text-xs font-semibold">
                       {displayName?.charAt(0) || user.email?.charAt(0) || 'U'}
@@ -999,7 +1005,7 @@ export const LibraryPanel = ({
                         <div className="text-sm font-medium text-foreground truncate">
                           {displayName || user.email}
                         </div>
-                        <div className="text-xs text-muted-foreground mt-1 truncate">
+                        <div className="text-sm text-muted-foreground mt-1 truncate">
                           {user.email}
                         </div>
                       </div>
@@ -1018,7 +1024,7 @@ export const LibraryPanel = ({
                         }}
                       >
                         <LogOut className="mr-2 h-4 w-4" />
-                        Sign Out
+                        {t("common.signOut")}
                       </Button>
                     </div>
                   </div>
@@ -1046,35 +1052,35 @@ export const LibraryPanel = ({
               <button
                 type="button"
                 onClick={() => setActiveFilter('all')}
-                className={`h-10 px-4 text-xs md:text-sm font-semibold transition-colors duration-200 rounded-2xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background ${
+                className={`h-10 px-4 text-xs md:text-sm font-medium transition-colors duration-200 rounded-2xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background ${
                   activeFilter === 'all'
-                    ? 'bg-primary text-primary-foreground shadow-[0_1px_1px_rgba(0,0,0,0.08)]'
+                    ? 'bg-primary text-primary-foreground font-semibold shadow-[0_1px_1px_rgba(0,0,0,0.08)]'
                     : 'text-foreground/60 hover:text-foreground hover:bg-foreground/5'
                 }`}
               >
-                All
+                {t("libraryPage.filterAll")}
               </button>
               <button
                 type="button"
                 onClick={() => setActiveFilter('favourite')}
-                className={`h-10 px-4 text-xs md:text-sm font-semibold transition-colors duration-200 rounded-2xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background ${
+                className={`h-10 px-4 text-xs md:text-sm font-medium transition-colors duration-200 rounded-2xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background ${
                   activeFilter === 'favourite'
-                    ? 'bg-primary text-primary-foreground shadow-[0_1px_1px_rgba(0,0,0,0.08)]'
+                    ? 'bg-primary text-primary-foreground font-semibold shadow-[0_1px_1px_rgba(0,0,0,0.08)]'
                     : 'text-foreground/60 hover:text-foreground hover:bg-foreground/5'
                 }`}
               >
-                Favourite
+                {t("libraryPage.filterFavourite")}
               </button>
               <button
                 type="button"
                 onClick={() => setActiveFilter('published')}
-                className={`h-10 px-4 text-xs md:text-sm font-semibold transition-colors duration-200 rounded-2xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background ${
+                className={`h-10 px-4 text-xs md:text-sm font-medium transition-colors duration-200 rounded-2xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background ${
                   activeFilter === 'published'
-                    ? 'bg-primary text-primary-foreground shadow-[0_1px_1px_rgba(0,0,0,0.08)]'
+                    ? 'bg-primary text-primary-foreground font-semibold shadow-[0_1px_1px_rgba(0,0,0,0.08)]'
                     : 'text-foreground/60 hover:text-foreground hover:bg-foreground/5'
                 }`}
               >
-                Published
+                {t("libraryPage.filterPublished")}
               </button>
             </div>
           </div>
@@ -1087,7 +1093,7 @@ export const LibraryPanel = ({
                   <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-foreground/55" />
                   <input
                     type="text"
-                    placeholder="Enter title and tags"
+                    placeholder={t("libraryPage.searchPlaceholder")}
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
                     className="w-full md:w-64 h-10 rounded-2xl bg-transparent pl-11 pr-10 text-sm text-foreground placeholder:text-foreground/40 transition-colors focus:bg-transparent focus:outline-none border-0"
@@ -1126,17 +1132,17 @@ export const LibraryPanel = ({
                 <span></span>
               </div>
               <div className="col-span-3 flex items-center gap-3">
-                <span>Tracks</span>
+                <span>{t("libraryPage.tracksColumn")}</span>
               </div>
               <div className="col-span-4 flex items-center">
-                <span>Tags</span>
+                <span>{t("libraryPage.tagsColumn")}</span>
               </div>
               <div 
                 className="col-span-1 flex items-center gap-0.5 cursor-pointer select-none hover:text-foreground transition-colors"
                 onClick={() => handleSortClick('createdAt')}
               >
                 <span className="whitespace-nowrap">
-                  Created<span className="hidden xl:inline"> Time</span>
+                  {t("libraryPage.createdTimeColumn")}
                 </span>
                 <div className="relative inline-flex items-center">
                   {sortColumn !== 'createdAt' || sortOrder === null ? (
@@ -1152,7 +1158,7 @@ export const LibraryPanel = ({
                 className="col-span-1 flex items-center justify-end gap-1 cursor-pointer select-none hover:text-foreground transition-colors"
                 onClick={() => handleSortClick('duration')}
               >
-                <span>Duration</span>
+                <span>{t("libraryPage.durationColumn")}</span>
                 <div className="relative inline-flex items-center">
                   {sortColumn !== 'duration' || sortOrder === null ? (
                     <ArrowUpDown className="h-4 w-4" />
@@ -1164,7 +1170,7 @@ export const LibraryPanel = ({
                 </div>
               </div>
               <div className="col-span-2 flex items-center justify-center">
-                <span>Actions</span>
+                <span>{t("libraryPage.actionsColumn")}</span>
               </div>
             </div>
           </div>
@@ -1181,11 +1187,11 @@ export const LibraryPanel = ({
                   </div>
                 </div>
                 <h3 className="text-xl font-semibold text-foreground mb-3">
-                  {searchQuery ? 'No matching tracks' : 'No tracks found'}
+                  {searchQuery ? t("libraryPage.noMatchingTracks") : t("libraryPage.noTracksFound")}
                 </h3>
                 <p className="text-muted-foreground mb-6 leading-relaxed">
                   {searchQuery 
-                    ? `No tracks found for "${searchQuery}". Try a different search term.`
+                    ? t("libraryPage.noTracksForQuery", { query: searchQuery })
                     : filterEmptyDescription
                   }
                 </p>
@@ -1212,7 +1218,7 @@ export const LibraryPanel = ({
                       variant="ghost"
                       size="sm"
                       className="h-8 w-8 p-0 text-muted-foreground hover:text-foreground transition-colors hover:bg-transparent focus-visible:bg-transparent"
-                      title={currentPlayingTrack === track.id && isPlaying ? 'Pause' : 'Play'}
+                      title={currentPlayingTrack === track.id && isPlaying ? t("trackActions.pause") : t("trackActions.play")}
                       onClick={(e) => {
                         e.stopPropagation();
                         handleTrackAction(track, 'play');
@@ -1250,7 +1256,7 @@ export const LibraryPanel = ({
                   <div className="col-span-4 flex items-center py-2">
                     <div className="flex items-center gap-2 text-sm text-muted-foreground truncate" title={track.tags || undefined}>
                       {formatModelLabel(track.model) && (
-                        <span className="inline-flex items-center rounded-full border border-white/10 bg-white/5 px-2 py-0.5 text-[10px] font-medium text-white/70">
+                        <span className="inline-flex items-center rounded-full border border-white/10 bg-white/5 px-2 py-0.5 text-xs font-medium text-white/70">
                           {formatModelLabel(track.model)}
                         </span>
                       )}
@@ -1273,7 +1279,7 @@ export const LibraryPanel = ({
                   {/* Created Time Column - 桌面端 */}
                   <div className="col-span-1 flex items-center py-2">
                     <span className="text-sm text-muted-foreground truncate">
-                      {track.createdAt ? formatDateTime(track.createdAt) : 'Unknown'}
+                      {track.createdAt ? formatDateTime(track.createdAt) : t("libraryPage.unknown")}
                     </span>
                   </div>
 
@@ -1345,7 +1351,7 @@ export const LibraryPanel = ({
                         {/* 时长显示在 tags 前面，用竖线分隔 */}
                         {track.duration && track.duration > 0 && (
                           <>
-                            <span className="text-xs text-muted-foreground whitespace-nowrap">
+                            <span className="text-sm text-muted-foreground whitespace-nowrap">
                               {formatDuration(typeof track.duration === 'string' ? parseFloat(track.duration) : (track.duration || 0))}
                             </span>
                             <span className="text-xs text-muted-foreground/60">|</span>
@@ -1353,14 +1359,14 @@ export const LibraryPanel = ({
                         )}
                         {formatModelLabel(track.model) && (
                           <>
-                            <span className="inline-flex items-center rounded-full border border-white/10 bg-white/5 px-2 py-0.5 text-[10px] font-medium text-white/70">
+                            <span className="inline-flex items-center rounded-full border border-white/10 bg-white/5 px-2 py-0.5 text-xs font-medium text-white/70">
                               {formatModelLabel(track.model)}
                             </span>
                             <span className="text-xs text-muted-foreground/60">|</span>
                           </>
                         )}
                         <p 
-                          className="text-xs text-muted-foreground truncate flex-1"
+                          className="text-sm text-muted-foreground truncate flex-1"
                           title={track.tags}
                         >
                           {track.tags.split(/[,;.]/).filter((tag: string) => tag.trim()).map((tag: string, index: number, array: string[]) => (
@@ -1374,7 +1380,7 @@ export const LibraryPanel = ({
                       </div>
                     )}
                     {track.createdAt && (
-                      <p className="text-xs text-muted-foreground/60 truncate mt-1">
+                      <p className="text-sm text-muted-foreground/60 truncate mt-1">
                         {formatDateTime(track.createdAt)}
                       </p>
                     )}
@@ -1386,7 +1392,7 @@ export const LibraryPanel = ({
                     variant="ghost"
                     size="sm"
                     className="h-8 w-8 p-0 mr-2 text-muted-foreground hover:text-foreground transition-colors hover:bg-transparent focus-visible:bg-transparent"
-                    title="More actions"
+                    title={t("trackActions.moreActions")}
                     onClick={(e) => {
                       e.stopPropagation();
                       setSelectedTrackForMenu(track);
@@ -1412,9 +1418,15 @@ export const LibraryPanel = ({
                       
                       // 底部汇总使用分钟格式
                       const totalMinutes = Math.floor(totalDuration / 60);
-                      const durationText = totalMinutes > 0 ? `${totalMinutes} minute${totalMinutes > 1 ? 's' : ''}` : '';
+                      const durationText = totalMinutes > 0
+                        ? t("libraryPage.minutesSummary", { minutes: totalMinutes, mSuffix: totalMinutes > 1 ? "s" : "" })
+                        : '';
                       
-                      return `${totalSongs} song${totalSongs > 1 ? 's' : ''}${durationText ? `, ${durationText}` : ''}`;
+                      return t("libraryPage.songsSummary", {
+                        songs: totalSongs,
+                        sSuffix: totalSongs > 1 ? "s" : "",
+                        durationPart: durationText,
+                      });
                     })()}
                   </div>
                 </div>
@@ -1428,20 +1440,20 @@ export const LibraryPanel = ({
       <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
         <AlertDialogContent className="max-w-[calc(100vw-2rem)] sm:max-w-[425px]">
           <AlertDialogHeader className="space-y-3">
-            <AlertDialogTitle className="text-lg sm:text-xl">Delete Track</AlertDialogTitle>
+            <AlertDialogTitle className="text-lg sm:text-xl">{t("studioTracks.deleteTrackTitle")}</AlertDialogTitle>
             <AlertDialogDescription className="text-sm sm:text-base whitespace-nowrap">
-              Are you sure you want to delete the current track?
+              {t("studioTracks.deleteTrackDescription")}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter className="mt-3 flex-col sm:flex-row gap-2 sm:gap-0">
             <AlertDialogCancel className="w-full sm:w-auto">
-              Cancel
+              {t("common.cancel")}
             </AlertDialogCancel>
             <AlertDialogAction 
               onClick={handleDeleteConfirm}
               className="w-full sm:w-auto bg-destructive text-destructive-foreground hover:bg-destructive/90"
             >
-              Confirm
+              {t("common.confirm")}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
@@ -1457,21 +1469,21 @@ export const LibraryPanel = ({
         <AlertDialogContent className="max-w-[calc(100vw-2rem)] sm:max-w-[425px]">
           <AlertDialogHeader className="space-y-2 sm:space-y-3">
             <AlertDialogTitle className="text-lg sm:text-xl">
-              {trackToPublish?.isPublished ? 'Unpublish Track' : 'Publish Track'}
+              {trackToPublish?.isPublished ? t("libraryPage.unpublishTrackTitle") : t("libraryPage.publishTrackTitle")}
             </AlertDialogTitle>
             <AlertDialogDescription className="text-sm sm:text-base">
               {trackToPublish?.isPublished
-                ? `Unpublish "${trackToPublish?.title}" so it is private again.`
-                : `Publish "${trackToPublish?.title}" so it can be shared publicly.`}
+                ? t("libraryPage.unpublishTrackDescription", { title: trackToPublish?.title || t("download.trackDefaultTitle") })
+                : t("libraryPage.publishTrackDescription", { title: trackToPublish?.title || t("download.trackDefaultTitle") })}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter className="flex-col sm:flex-row gap-2 sm:gap-0">
-            <AlertDialogCancel className="w-full sm:w-auto">Cancel</AlertDialogCancel>
+            <AlertDialogCancel className="w-full sm:w-auto">{t("common.cancel")}</AlertDialogCancel>
             <AlertDialogAction
               onClick={handlePublishConfirm}
               className="w-full sm:w-auto bg-primary text-primary-foreground hover:bg-primary/90"
             >
-              {trackToPublish?.isPublished ? 'Unpublish' : 'Publish'}
+              {trackToPublish?.isPublished ? t("trackActions.unpublish") : t("trackActions.publish")}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
@@ -1489,18 +1501,20 @@ export const LibraryPanel = ({
       >
         <AlertDialogContent className="max-w-[calc(100vw-2rem)] sm:max-w-[425px]">
           <AlertDialogHeader className="space-y-2 sm:space-y-3">
-            <AlertDialogTitle className="text-lg sm:text-xl">Remove from library</AlertDialogTitle>
+            <AlertDialogTitle className="text-lg sm:text-xl">{t("trackActions.removeFromLibrary")}</AlertDialogTitle>
             <AlertDialogDescription className="text-sm sm:text-base">
-              Remove &quot;{trackToRemoveFavorite?.title}&quot; from your library? You can add it back later.
+              {t("libraryPage.removeFromLibraryDescription", {
+                title: trackToRemoveFavorite?.title || t("download.trackDefaultTitle"),
+              })}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter className="flex-col sm:flex-row gap-2 sm:gap-0">
-            <AlertDialogCancel className="w-full sm:w-auto">Cancel</AlertDialogCancel>
+            <AlertDialogCancel className="w-full sm:w-auto">{t("common.cancel")}</AlertDialogCancel>
             <AlertDialogAction
               onClick={handleFavoriteRemoveConfirm}
               className="w-full sm:w-auto bg-destructive text-destructive-foreground hover:bg-destructive/90"
             >
-              Remove
+              {t("featurePanel.remove")}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
@@ -1553,7 +1567,7 @@ export const LibraryPanel = ({
       <Dialog open={mobileMenuOpen} onOpenChange={setMobileMenuOpen}>
         <DialogContent className="sm:max-w-md p-0 gap-0 [&>button]:hidden md:hidden bottom-0 top-auto translate-y-0 data-[state=closed]:slide-out-to-bottom data-[state=open]:slide-in-from-bottom rounded-t-3xl rounded-b-none border-0">
           <DialogDescription className="sr-only">
-            Track options menu. Use the options below to manage your track.
+            {t("libraryPage.trackOptionsDescription")}
           </DialogDescription>
           {/* Drag Handle - 拖动指示器 */}
           <div 
@@ -1616,7 +1630,7 @@ export const LibraryPanel = ({
                   )}
                 </div>
                 {selectedTrackForMenu?.createdAt && (
-                  <div className="text-xs text-muted-foreground/60 mt-1 text-left">
+                  <div className="text-sm text-muted-foreground/60 mt-1 text-left">
                     {formatDateTime(selectedTrackForMenu.createdAt)}
                   </div>
                 )}
@@ -1659,7 +1673,7 @@ export const LibraryPanel = ({
                 className="w-full flex items-center gap-3 p-3 rounded-lg hover:bg-muted transition-colors"
               >
                 <Pencil className="h-5 w-5" />
-                <span className="font-medium">Edit Music Info</span>
+                <span className="font-medium">{t("trackActions.editTitleAndCover")}</span>
               </button>
             )}
 
@@ -1679,10 +1693,10 @@ export const LibraryPanel = ({
               >
                 <Download className="h-5 w-5" />
                 <div className="flex-1 flex items-center justify-between gap-3">
-                  <span className="font-medium">Download PNG</span>
+                  <span className="font-medium">{t("trackActions.pngCoverArt")}</span>
                   {!canDownloadCover && (
                     <Badge variant="outline" className="text-xs px-2 py-0.5 bg-gradient-create text-white border-0 shrink-0">
-                      Basic
+                      {t("libraryPage.basicBadge")}
                     </Badge>
                   )}
                 </div>
@@ -1690,8 +1704,8 @@ export const LibraryPanel = ({
             )}
 
             {selectedTrackForMenu && (
-              <div className="px-3 py-1.5 text-[10px] text-muted-foreground uppercase">
-                Advanced Features
+              <div className="px-3 py-1.5 text-xs text-muted-foreground uppercase">
+                {t("trackActions.advancedFeatures")}
               </div>
             )}
 
@@ -1711,11 +1725,11 @@ export const LibraryPanel = ({
               >
                 <div className="flex items-center gap-3">
                   <Download className="h-5 w-5" />
-                  <span className="font-medium">Download MP3</span>
+                  <span className="font-medium">{t("trackActions.mp3Song")}</span>
                 </div>
                 {!canDownloadMP3 && (
                   <Badge variant="outline" className="text-xs px-2 py-0.5 bg-gradient-create text-white border-0 shrink-0">
-                    Basic
+                    {t("libraryPage.basicBadge")}
                   </Badge>
                 )}
               </button>
@@ -1737,7 +1751,7 @@ export const LibraryPanel = ({
               >
                 <div className="flex items-center gap-3">
                   <Download className="h-5 w-5" />
-                  <span className="font-medium">Download WAV</span>
+                  <span className="font-medium">{t("trackActions.wavHighQualitySong")}</span>
                 </div>
               </button>
             )}
@@ -1758,11 +1772,11 @@ export const LibraryPanel = ({
               >
                 <div className="flex items-center gap-3">
                   <Download className="h-5 w-5" />
-                  <span className="font-medium">Download MP4</span>
+                  <span className="font-medium">{t("trackActions.mp4MusicVideo")}</span>
                 </div>
                 {!canDownloadMP4 && (
                   <Badge variant="outline" className="text-xs px-2 py-0.5 bg-gradient-create text-white border-0 shrink-0">
-                    Hobby
+                    {t("libraryPage.hobbyBadge")}
                   </Badge>
                 )}
               </button>
@@ -1779,7 +1793,7 @@ export const LibraryPanel = ({
                 className="w-full flex items-center gap-3 p-3 rounded-lg hover:bg-muted transition-colors"
               >
                 <Star className="h-5 w-5 text-red-500 fill-current" />
-                <span className="font-medium">Remove from library</span>
+                <span className="font-medium">{t("trackActions.removeFromLibrary")}</span>
               </button>
             )}
 
@@ -1799,7 +1813,7 @@ export const LibraryPanel = ({
                     }`}
                   />
                   <span className="font-medium">
-                    {selectedTrackForMenu.isPublished ? "Unpublish" : "Publish"}
+                    {selectedTrackForMenu.isPublished ? t("trackActions.unpublish") : t("trackActions.publish")}
                   </span>
                 </div>
                 <Switch
@@ -1830,7 +1844,7 @@ export const LibraryPanel = ({
                   <Share2 className="h-5 w-5" />
                 )}
                 <span className="font-medium">
-                  {copiedTrackId === selectedTrackForMenu.id ? 'Link copied' : 'Copy share link'}
+                  {copiedTrackId === selectedTrackForMenu.id ? t("trackActions.linkCopied") : t("trackActions.copyShareLink")}
                 </span>
               </button>
             )}
@@ -1845,7 +1859,7 @@ export const LibraryPanel = ({
                 className="w-full flex items-center gap-3 p-3 rounded-lg hover:bg-red-50 transition-colors text-red-600"
               >
                 <Trash2 className="h-5 w-5" />
-                <span className="font-medium">Delete</span>
+                <span className="font-medium">{t("trackActions.delete")}</span>
               </button>
             )}
           </div>

@@ -188,7 +188,7 @@ export const UploadProgressDialog = ({
               {!isAudioPreviewVariant && (
                 <>
                   <div>
-                    <div className="text-[11px] uppercase tracking-[0.24em] text-muted-foreground">Next Step</div>
+                    <div className="text-xs uppercase tracking-[0.24em] text-muted-foreground">Next Step</div>
                     <div className="text-base font-semibold text-foreground mt-1">Select a creative path</div>
                   </div>
 

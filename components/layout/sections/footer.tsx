@@ -5,8 +5,10 @@ import { ThemeModeToggle } from "@/components/ui/theme-mode-toggle";
 import Link from "next/link";
 import Image from "next/image";
 import { Mail } from "lucide-react";
+import { useI18n } from "@/lib/i18n/provider";
 
 export const FooterSection = () => {
+  const { t } = useI18n();
   const renderBadges = () => (
     <>
       <a
@@ -14,7 +16,7 @@ export const FooterSection = () => {
         target="_blank"
         rel="noopener noreferrer"
         className="inline-flex items-center justify-center rounded-2xl px-2 py-2"
-        aria-label="Featured on LaunchYourApp"
+        aria-label={t("footerSection.featuredOnLaunchYourApp")}
       >
         <Image
           src="https://84826d28beedc6132a2353da3796e843.cdn.bubble.io/f1758681923686x163623620280710200/Featured_On_LaunchYourApp.svg"
@@ -49,7 +51,7 @@ export const FooterSection = () => {
         href="https://startupfa.st"
         target="_blank"
         rel="noopener noreferrer"
-        title="Powered by Startup Fast"
+        title={t("footerSection.poweredByStartupFast")}
         className="inline-flex items-center justify-center rounded-2xl px-2 py-2"
       >
         <Image
@@ -218,16 +220,16 @@ export const FooterSection = () => {
         <div className="grid gap-10 lg:grid-cols-[1.35fr_1fr] lg:items-start">
           <div className="space-y-4">
             <Link href="/" className="inline-flex items-center gap-3">
-              <Image src="/logo.svg" alt="MakeRNB Logo" width={32} height={32} />
+              <Image src="/logo.svg" alt={t("common.brandLogo")} width={32} height={32} />
               <span className="text-lg font-extrabold tracking-tight">MakeRNB</span>
             </Link>
             <p className="max-w-xl text-sm text-muted-foreground leading-relaxed">
-              Create authentic R&B music with AI — from soulful ballads to contemporary grooves. Generate export‑ready tracks in minutes.
+              {t("footerSection.description")}
             </p>
             <a
               href="mailto:contact@makernb.com?subject=Contact from MakeRNB Website&body=Hello MakeRNB Team,%0D%0A%0D%0AI would like to get in touch with you regarding:%0D%0A%0D%0A%0D%0A%0D%0ABest regards,"
               className="inline-flex h-10 w-10 items-center justify-center rounded-full bg-foreground/5 text-foreground/70 transition-colors hover:bg-foreground/10 hover:text-foreground"
-              aria-label="Email MakeRNB"
+              aria-label={t("footerSection.emailMakeRnb")}
             >
               <Mail className="h-4 w-4" />
             </a>
@@ -235,26 +237,26 @@ export const FooterSection = () => {
 
           <div className="grid grid-cols-2 gap-8 md:grid-cols-3">
             <div className="space-y-3">
-              <p className="text-[11px] font-semibold uppercase tracking-[0.28em] text-muted-foreground">Product</p>
+              <p className="text-xs font-semibold uppercase tracking-[0.28em] text-muted-foreground">{t("footerSection.product")}</p>
               <div className="flex flex-col gap-2 text-sm">
-                <Link href="/#features" className="text-foreground/80 hover:text-foreground transition-colors">Features</Link>
+                <Link href="/#features" className="text-foreground/80 hover:text-foreground transition-colors">{t("footerSection.features")}</Link>
               </div>
             </div>
 
             <div className="space-y-3">
-              <p className="text-[11px] font-semibold uppercase tracking-[0.28em] text-muted-foreground">Resources</p>
+              <p className="text-xs font-semibold uppercase tracking-[0.28em] text-muted-foreground">{t("footerSection.resources")}</p>
               <div className="flex flex-col gap-2 text-sm">
-                <Link href="/blog" className="text-foreground/80 hover:text-foreground transition-colors">Blog</Link>
-                <Link href="/pricing" className="text-foreground/80 hover:text-foreground transition-colors">Pricing</Link>
+                <Link href="/blog" className="text-foreground/80 hover:text-foreground transition-colors">{t("nav.blog")}</Link>
+                <Link href="/pricing" className="text-foreground/80 hover:text-foreground transition-colors">{t("nav.pricing")}</Link>
               </div>
             </div>
 
             <div className="space-y-3">
-              <p className="text-[11px] font-semibold uppercase tracking-[0.28em] text-muted-foreground">Support</p>
+              <p className="text-xs font-semibold uppercase tracking-[0.28em] text-muted-foreground">{t("footerSection.support")}</p>
               <div className="flex flex-col gap-2 text-sm">
-                <Link href="/privacy" className="text-foreground/80 hover:text-foreground transition-colors">Privacy</Link>
-                <Link href="/terms" className="text-foreground/80 hover:text-foreground transition-colors">Terms</Link>
-                <Link href="/refund" className="text-foreground/80 hover:text-foreground transition-colors">Refunds</Link>
+                <Link href="/privacy" className="text-foreground/80 hover:text-foreground transition-colors">{t("footerSection.privacy")}</Link>
+                <Link href="/terms" className="text-foreground/80 hover:text-foreground transition-colors">{t("footerSection.terms")}</Link>
+                <Link href="/refund" className="text-foreground/80 hover:text-foreground transition-colors">{t("footerSection.refunds")}</Link>
               </div>
             </div>
           </div>
@@ -264,8 +266,8 @@ export const FooterSection = () => {
 
         <div className="flex flex-col gap-4">
           <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-            <div className="text-xs text-muted-foreground text-left">
-              &copy; 2025 MakeRNB. All rights reserved.
+            <div className="text-sm text-muted-foreground text-left">
+              {t("footerSection.copyright")}
             </div>
             <ThemeModeToggle variant="icon" />
           </div>

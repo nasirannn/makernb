@@ -230,10 +230,10 @@ export const VocalRemovalProgressDialog: React.FC<VocalRemovalProgressDialogProp
           {showSeparateVocalCards && (
             <section className="space-y-3">
               <div className="flex items-center justify-between gap-3">
-                <p className="text-[11px] font-semibold uppercase tracking-[0.08em] text-muted-foreground">
+                <p className="text-xs font-semibold uppercase tracking-[0.08em] text-muted-foreground">
                   {trackTitle}
                 </p>
-                <p className="text-xs text-muted-foreground">
+                <p className="text-sm text-muted-foreground">
                   {`${separateVocalEntries.length} tracks`}
                 </p>
               </div>
@@ -282,7 +282,7 @@ export const VocalRemovalProgressDialog: React.FC<VocalRemovalProgressDialogProp
                       />
                     </section>
                     {entry.hasError && (
-                      <p className="text-xs text-red-500">{entry.errorMessage}</p>
+                      <p className="text-sm text-red-500">{entry.errorMessage}</p>
                     )}
                   </div>
                 ))}

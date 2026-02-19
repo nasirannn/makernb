@@ -2,6 +2,8 @@
  * Pricing plan builders (config-driven).
  */
 
+import { formatLocalizedNumber } from "@/lib/locale-format";
+
 export type PricingTierCode = 'starter' | 'hobby';
 export type PricingBillingPeriod = 'monthly' | 'yearly';
 
@@ -57,7 +59,7 @@ const normalizeTierCode = (tierCode: string): PricingTierCode => {
 const buildFeatureList = (tier: PricingTierCode, credits: number, billingPeriod: PricingBillingPeriod) => {
   const periodLabel = billingPeriod === 'yearly' ? 'year' : 'month';
   const approxSongs = Math.max(1, Math.round(credits / 7));
-  const creditsLine = `${credits.toLocaleString('en-US')} credits/${periodLabel} (approx. ${approxSongs.toLocaleString('en-US')} songs)`;
+  const creditsLine = `${formatLocalizedNumber(credits, undefined, "en-US")} credits/${periodLabel} (approx. ${formatLocalizedNumber(approxSongs, undefined, "en-US")} songs)`;
   const downloadLine = tierMeta[tier].download;
   const enhanceStyleLine = 'Enhance Style';
   const advancedEditingLine =

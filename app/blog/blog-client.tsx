@@ -4,12 +4,15 @@ import React from 'react';
 import Link from 'next/link';
 import type { BlogPost } from '@/lib/mdx';
 import { FooterSection } from '@/components/layout/sections/footer';
+import { formatLocalizedDate } from '@/lib/locale-format';
+import { useI18n } from '@/lib/i18n/provider';
 
 interface BlogClientProps {
   allPosts: BlogPost[];
 }
 
 export default function BlogClient({ allPosts }: BlogClientProps) {
+  const { t, locale } = useI18n();
 
   return (
     <div className="min-h-screen bg-background">
@@ -18,13 +21,13 @@ export default function BlogClient({ allPosts }: BlogClientProps) {
         {/* Page Header */}
         <div className="text-center mb-16">
           <p className="text-sm font-medium text-muted-foreground uppercase tracking-wider mb-4">
-            MUSIC KNOWLEDGE & HISTORY
+            {t("blog.knowledgeHistory")}
           </p>
           <h1 className="text-5xl md:text-6xl font-bold text-foreground mb-4 tracking-tight">
-            MakeRNB Music Blog
+            {t("blog.title")}
           </h1>
           <p className="text-lg text-muted-foreground max-w-2xl mx-auto leading-relaxed">
-            Discover remarkable R&B songs, albums, and artists from the golden era
+            {t("blog.subtitle")}
           </p>
         </div>
 
@@ -61,11 +64,11 @@ export default function BlogClient({ allPosts }: BlogClientProps) {
                 <div className="flex items-center justify-between text-sm text-muted-foreground pb-3 border-b border-gray-200/30">
                   <span>{post.author}</span>
                   <span>
-                    {new Date(post.date).toLocaleDateString('en-US', {
+                    {formatLocalizedDate(post.date, {
                       month: 'numeric',
                       day: 'numeric',
                       year: '2-digit'
-                    })}
+                    }, locale) ?? ''}
                   </span>
                 </div>
               </div>
@@ -76,7 +79,7 @@ export default function BlogClient({ allPosts }: BlogClientProps) {
           {/* No More Data Indicator */}
           <div className="text-center mt-4 sm:mt-8 py-4">
             <span className="text-sm text-muted-foreground font-medium">
-              All content loaded
+              {t("blog.allContentLoaded")}
             </span>
           </div>
         </div>

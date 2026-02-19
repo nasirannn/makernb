@@ -20,12 +20,14 @@ import {
   AccordionTrigger,
 } from "@/components/ui/accordion";
 import { formatDateTime } from "@/lib/format-utils";
+import { useI18n } from "@/lib/i18n/provider";
 
 function VocalSeparationCreditsDisplay() {
   return <span className="text-primary font-medium">{CLIENT_VOCAL_SEPARATION_CREDITS.local}</span>;
 }
 
 export default function VocalSeparationDemo() {
+  const { t } = useI18n();
   const [isOriginalPlaying, setIsOriginalPlaying] = useState(false);
   const [isVocalsPlaying, setIsVocalsPlaying] = useState(false);
   const [isAccompanimentPlaying, setIsAccompanimentPlaying] = useState(false);
@@ -149,7 +151,7 @@ export default function VocalSeparationDemo() {
     if (url.trim()) {
       const validation = validateAudioUrl(url);
       if (!validation.isValid) {
-        setUrlValidationError(validation.error || 'Invalid URL');
+        setUrlValidationError(validation.error || t('vocalSeparationPage.validation.invalidUrl'));
       } else {
         setUrlValidationError('');
       }
@@ -161,19 +163,19 @@ export default function VocalSeparationDemo() {
   // URL验证函数
   const validateAudioUrl = (url: string): { isValid: boolean; error?: string } => {
     if (!url.trim()) {
-      return { isValid: false, error: 'Please enter an audio URL' };
+      return { isValid: false, error: t('vocalSeparationPage.validation.enterAudioUrl') };
     }
 
     // 基本URL格式验证
     try {
       new URL(url);
     } catch {
-      return { isValid: false, error: 'Please enter a valid URL' };
+      return { isValid: false, error: t('vocalSeparationPage.validation.enterValidUrl') };
     }
 
     // 检查协议
     if (!url.startsWith('http://') && !url.startsWith('https://')) {
-      return { isValid: false, error: 'URL must start with http:// or https://' };
+      return { isValid: false, error: t('vocalSeparationPage.validation.urlMustStartWithHttp') };
     }
 
     // 检查音频文件扩展名
@@ -182,7 +184,7 @@ export default function VocalSeparationDemo() {
     const hasAudioExtension = audioExtensions.some(ext => urlLower.includes(ext));
     
     if (!hasAudioExtension) {
-      return { isValid: false, error: 'Please enter a URL to an audio file (MP3, WAV, FLAC, OGG, etc.)' };
+      return { isValid: false, error: t('vocalSeparationPage.validation.urlToAudioFile') };
     }
 
     return { isValid: true };
@@ -191,7 +193,7 @@ export default function VocalSeparationDemo() {
   const handleStartSeparating = async () => {
     // 原有的上传文件/URL 逻辑
     if (!selectedFile && !userInputUrl) {
-      setError('Please select a file or enter an audio URL');
+      setError(t('vocalSeparationPage.errors.selectFileOrAudioUrl'));
       return;
     }
 
@@ -199,7 +201,7 @@ export default function VocalSeparationDemo() {
     if (userInputUrl && !selectedFile) {
       const validation = validateAudioUrl(userInputUrl);
       if (!validation.isValid) {
-        setError(validation.error || 'Invalid audio URL');
+        setError(validation.error || t('vocalSeparationPage.errors.invalidAudioUrl'));
         return;
       }
     }
@@ -279,7 +281,7 @@ export default function VocalSeparationDemo() {
       const result = await response.json();
 
       if (!response.ok) {
-        throw new Error(result.error || 'Separation failed');
+        throw new Error(result.error || t('vocalSeparationPage.errors.separationFailed'));
       }
 
       // Cache hit: completed result can be rendered immediately without polling.
@@ -305,7 +307,7 @@ export default function VocalSeparationDemo() {
       }
     } catch (error) {
       console.error('Separation error:', error);
-      setError(error instanceof Error ? error.message : 'Separation failed');
+      setError(error instanceof Error ? error.message : t('vocalSeparationPage.errors.separationFailed'));
       setIsGenerating(false);
     }
   };
@@ -402,7 +404,7 @@ export default function VocalSeparationDemo() {
         }
 
         if (data.status === 'error') {
-          setError(data.errorMessage || 'Separation failed');
+          setError(data.errorMessage || t('vocalSeparationPage.errors.separationFailed'));
           setIsGenerating(false);
           setSeparationProgress(0);
           return;
@@ -410,7 +412,7 @@ export default function VocalSeparationDemo() {
 
         // 继续轮询
         if (elapsed > MAX_POLL_TIME) {
-          setError('Separation timeout');
+          setError(t('vocalSeparationPage.errors.separationTimeout'));
           setIsGenerating(false);
           setSeparationProgress(0);
           return;
@@ -450,7 +452,7 @@ export default function VocalSeparationDemo() {
       >
         {isGenerating ? (
           <div className="flex items-center gap-2">
-            Separating ({Math.round(separationProgress)}%)
+            {t('vocalSeparationPage.action.separatingProgress', { progress: Math.round(separationProgress) })}
             <div className="flex items-center gap-1.5">
               <div className="w-2 h-2 bg-white rounded-full animate-bounce" style={{ animationDelay: '0ms' }}></div>
               <div className="w-2 h-2 bg-white rounded-full animate-bounce" style={{ animationDelay: '150ms' }}></div>
@@ -458,19 +460,21 @@ export default function VocalSeparationDemo() {
             </div>
           </div>
         ) : (
-          "Start Separation"
+          t('vocalSeparationPage.action.startSeparation')
         )}
       </Button>
       {isGenerating && (
         <div className="w-full space-y-2 mt-2">
           <Progress value={separationProgress} className="h-2" />
           <p className="text-xs text-center text-muted-foreground">
-            Processing: {Math.round(separationProgress)}%
+            {t('vocalSeparationPage.action.processingProgress', { progress: Math.round(separationProgress) })}
           </p>
         </div>
       )}
       <div className="text-center text-sm text-muted-foreground">
-        <p>Estimated time: 1~3 minutes • Cost <VocalSeparationCreditsDisplay /> <span className="text-primary font-medium">credits</span></p>
+        <p>
+          {t('vocalSeparationPage.action.estimatedTimeCost', { credits: CLIENT_VOCAL_SEPARATION_CREDITS.local })}
+        </p>
       </div>
     </div>
   );
@@ -482,13 +486,13 @@ export default function VocalSeparationDemo() {
         {/* Header */}
         <div className="text-center mb-8">
           <p className="text-sm font-semibold text-foreground/70 dark:text-white/60 uppercase tracking-wider mb-4">
-            AI VOCAL SEPARATION TOOL
+            {t('vocalSeparationPage.hero.toolLabel')}
           </p>
           <h1 className="text-5xl md:text-6xl font-bold text-foreground mb-4 tracking-tight">
-            AI Vocal Separation Free Online
+            {t('vocalSeparationPage.hero.title')}
           </h1>
           <p className="text-foreground/70 dark:text-white/70 text-lg max-w-2xl mx-auto mb-8">
-            Enjoy fast and seamless vocal separation with our AI-powered tool.
+            {t('vocalSeparationPage.hero.subtitle')}
           </p>
         </div>
 
@@ -498,11 +502,11 @@ export default function VocalSeparationDemo() {
             <div className="studio-panel-card rounded-2xl p-4">
               {/* Track URL Input with Button */}
               <div className="w-full space-y-2">
-                <label className="text-sm font-medium text-foreground text-left block">Audio URL</label>
+                <label className="text-sm font-medium text-foreground text-left block">{t('vocalSeparationPage.inputs.audioUrlLabel')}</label>
                 <div className="relative">
                   <input
                     type="url"
-                    placeholder="Paste your audio file URL here..."
+                    placeholder={t("vocalSeparationPage.audioUrlPlaceholder")}
                     className="w-full px-4 py-3 pr-14 rounded-lg border border-transparent bg-muted text-foreground placeholder:text-muted-foreground transition-colors focus:outline-none focus:ring-2 focus:ring-primary/70 dark:border-white/10 dark:bg-white/5 dark:placeholder:text-white/40"
                     value={userInputUrl}
                     onChange={handleUrlInputChange}
@@ -515,7 +519,7 @@ export default function VocalSeparationDemo() {
 
               {/* Upload Area */}
               <div className="w-full space-y-2 mt-4">
-                <label className="text-sm font-medium text-foreground text-left block">Upload Local File</label>
+                <label className="text-sm font-medium text-foreground text-left block">{t('vocalSeparationPage.inputs.uploadLocalFileLabel')}</label>
                 <Card
                   className={`border-2 border-dashed transition-colors cursor-pointer ${
                     isLoggedIn
@@ -544,10 +548,10 @@ export default function VocalSeparationDemo() {
                         ) : (
                           <>
                             <p className="text-sm text-muted-foreground">
-                              Drag and drop your file or click to browse
+                              {t('vocalSeparationPage.inputs.dragDropOrBrowse')}
                             </p>
                             <p className="text-xs text-muted-foreground">
-                              Supports WAV, MP3, FLAC, OGG, OPUS, SPHERE, MP4, M4V, AVI, MOV, AAC, M4A, BIN
+                              {t('vocalSeparationPage.inputs.supportedFormats')}
                             </p>
                           </>
                         )}
@@ -573,7 +577,11 @@ export default function VocalSeparationDemo() {
             <div className="w-full max-w-6xl mt-8">
               <Separator className="mb-8" />
               <h3 className="text-xl font-semibold text-foreground mb-6 text-left">
-                {selectedFile ? selectedFile.name : audioUrl ? 'Audio URL' : 'Separation Results'}
+                {selectedFile
+                  ? selectedFile.name
+                  : audioUrl
+                    ? t('vocalSeparationPage.results.audioUrlTitle')
+                    : t('vocalSeparationPage.results.separationResultsTitle')}
               </h3>
 
               {separationComplete && resultKey?.startsWith('url:') && (
@@ -581,8 +589,10 @@ export default function VocalSeparationDemo() {
                   <div className="flex flex-col sm:flex-row gap-3 sm:items-center sm:justify-between">
                     <p className={`text-sm ${isCacheHit ? 'text-blue-700' : 'text-muted-foreground'}`}>
                       {isCacheHit
-                        ? `Showing existing separation result${cacheUpdatedAt ? ` • Updated ${formatDateTime(cacheUpdatedAt)}` : ''}`
-                        : 'Want a fresh result with the latest model?'}
+                        ? t('vocalSeparationPage.results.showingExistingResult', {
+                            updatedAt: cacheUpdatedAt ? ` • ${t('vocalSeparationPage.results.updatedPrefix')} ${formatDateTime(cacheUpdatedAt)}` : '',
+                          })
+                        : t('vocalSeparationPage.results.freshResultPrompt')}
                     </p>
                     <Button
                       variant="secondary"
@@ -593,7 +603,7 @@ export default function VocalSeparationDemo() {
                         startSeparation({ force: true, requestKey: resultKey, file: null, audioUrl: url });
                       }}
                     >
-                      Re-separate
+                      {t('vocalSeparationPage.results.reseparate')}
                     </Button>
                   </div>
                 </div>
@@ -611,7 +621,7 @@ export default function VocalSeparationDemo() {
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-2">
                       <Music className="h-4 w-4 text-primary" />
-                      <p className="text-sm font-medium text-foreground">Origin</p>
+                      <p className="text-sm font-medium text-foreground">{t('vocalSeparationPage.results.origin')}</p>
                     </div>
                     {audioUrl && (
                       <button 
@@ -640,7 +650,7 @@ export default function VocalSeparationDemo() {
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-2">
                       <Mic className="h-4 w-4 text-primary" />
-                      <p className="text-sm font-medium text-foreground">Vocal</p>
+                      <p className="text-sm font-medium text-foreground">{t('vocalSeparationPage.results.vocal')}</p>
                     </div>
                     {separationComplete && separationResults?.vocals && (
                       <button
@@ -669,7 +679,7 @@ export default function VocalSeparationDemo() {
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-2">
                       <Volume2 className="h-4 w-4 text-primary" />
-                      <p className="text-sm font-medium text-foreground">Instrumental</p>
+                      <p className="text-sm font-medium text-foreground">{t('vocalSeparationPage.results.instrumental')}</p>
                     </div>
                     {separationComplete && separationResults?.accompaniment && (
                       <button
@@ -705,10 +715,10 @@ export default function VocalSeparationDemo() {
             {/* Left Side - Text Content */}
             <div className="flex-1 lg:w-3/5 space-y-6 text-center lg:text-left">
               <h2 className="text-4xl lg:text-5xl font-bold text-foreground leading-tight">
-                About MakeRNB&apos;s Vocal Separation
+                {t('vocalSeparationPage.about.title')}
               </h2>
               <p className="text-lg text-muted-foreground leading-relaxed">
-                Our AI-powered vocal separation technology analyzes audio tracks to extract vocals and instrumentals separately. Whether you&apos;re creating karaoke versions, producing remixes, or isolating vocal tracks for sampling, our tool delivers quality results in minutes. Perfect for musicians, content creators, and music enthusiasts who want to unlock creative possibilities from their favorite songs.
+                {t('vocalSeparationPage.about.description')}
               </p>
             </div>
             
@@ -717,7 +727,7 @@ export default function VocalSeparationDemo() {
               <div className="flex items-center justify-center">
                 <Image 
                   src="/icons/Vocal-Remover.svg" 
-                  alt="Vocal Separation" 
+                  alt={t('vocalSeparationPage.about.imageAlt')}
                   width={256}
                   height={256}
                   className="h-64 w-64 object-contain"
@@ -734,15 +744,15 @@ export default function VocalSeparationDemo() {
           {/* Section Title */}
           <div className="text-center mb-12">
             <h2 className="text-lg text-primary text-center mb-2 tracking-wider">
-              Features
+              {t('vocalSeparationPage.features.sectionLabel')}
             </h2>
 
             <h2 className="text-3xl md:text-4xl text-center font-bold mb-4">
-              Key Features of MakeRNB Vocal Separation
+              {t('vocalSeparationPage.features.title')}
             </h2>
 
             <h3 className="md:w-1/2 mx-auto text-lg text-center text-muted-foreground mb-8">
-              Discover the capabilities that make our vocal separation tool stand out
+              {t('vocalSeparationPage.features.subtitle')}
             </h3>
           </div>
 
@@ -754,10 +764,10 @@ export default function VocalSeparationDemo() {
                 <span className="text-primary-foreground font-bold text-lg">AI</span>
               </div>
               <h3 className="text-xl font-semibold text-foreground mb-3">
-                AI-Powered Online Processing
+                {t('vocalSeparationPage.features.items.aiPoweredOnlineProcessing.title')}
               </h3>
               <p className="text-muted-foreground leading-relaxed">
-                AI technology separates vocals and instrumentals through your browser. No software installation required - upload and get results in seconds.
+                {t('vocalSeparationPage.features.items.aiPoweredOnlineProcessing.description')}
               </p>
             </div>
 
@@ -767,10 +777,10 @@ export default function VocalSeparationDemo() {
                 <span className="text-primary-foreground font-bold text-sm">HQ</span>
               </div>
               <h3 className="text-xl font-semibold text-foreground mb-3">
-                Studio-Quality Output
+                {t('vocalSeparationPage.features.items.studioQualityOutput.title')}
               </h3>
               <p className="text-muted-foreground leading-relaxed">
-                Vocal separation with lossless quality preservation. Create karaoke tracks, acapella versions, and remixes with clarity and precision.
+                {t('vocalSeparationPage.features.items.studioQualityOutput.description')}
               </p>
             </div>
 
@@ -780,10 +790,10 @@ export default function VocalSeparationDemo() {
                 <Music className="h-6 w-6 text-primary-foreground" />
               </div>
               <h3 className="text-xl font-semibold text-foreground mb-3">
-                Universal Format Support
+                {t('vocalSeparationPage.features.items.universalFormatSupport.title')}
               </h3>
               <p className="text-muted-foreground leading-relaxed">
-                Works with all major audio formats including MP3, WAV, FLAC, OGG, and more. Upload any audio file and get instant processing.
+                {t('vocalSeparationPage.features.items.universalFormatSupport.description')}
               </p>
             </div>
           </div>
@@ -797,10 +807,10 @@ export default function VocalSeparationDemo() {
             {/* Section Header */}
             <div className="text-center mb-16">
               <h2 className="text-4xl font-bold text-foreground mb-4">
-                How To Separate Vocals With AI
+                {t('vocalSeparationPage.howTo.title')}
               </h2>
               <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
-                Separate vocals from music in just three simple steps
+                {t('vocalSeparationPage.howTo.subtitle')}
               </p>
             </div>
 
@@ -820,13 +830,13 @@ export default function VocalSeparationDemo() {
                   
                   {/* Title */}
                   <h3 className="text-xl font-semibold text-foreground">
-                    Upload Your Audio
+                    {t('vocalSeparationPage.howTo.step1.title')}
                   </h3>
                 </div>
                 
                 {/* Description */}
                 <p className="text-muted-foreground leading-relaxed">
-                  Drag and drop your audio file or paste a URL. Our AI supports various formats including MP3, WAV, FLAC, and more.
+                  {t('vocalSeparationPage.howTo.step1.description')}
                 </p>
               </div>
 
@@ -844,13 +854,13 @@ export default function VocalSeparationDemo() {
                   
                   {/* Title */}
                   <h3 className="text-xl font-semibold text-foreground">
-                    Start Separation
+                    {t('vocalSeparationPage.howTo.step2.title')}
                   </h3>
                 </div>
                 
                 {/* Description */}
                 <p className="text-muted-foreground leading-relaxed">
-                  Click &quot;Start Separation&quot; and let our advanced AI technology isolate vocals and instrumental tracks automatically.
+                  {t('vocalSeparationPage.howTo.step2.description')}
                 </p>
               </div>
 
@@ -868,13 +878,13 @@ export default function VocalSeparationDemo() {
                   
                   {/* Title */}
                   <h3 className="text-xl font-semibold text-foreground">
-                    Download Results
+                    {t('vocalSeparationPage.howTo.step3.title')}
                   </h3>
                 </div>
                 
                 {/* Description */}
                 <p className="text-muted-foreground leading-relaxed">
-                  Preview your separated tracks and download high-quality vocal and instrumental files for your projects.
+                  {t('vocalSeparationPage.howTo.step3.description')}
                 </p>
               </div>
             </div>
@@ -886,88 +896,88 @@ export default function VocalSeparationDemo() {
       <section id="faq" className="container max-w-4xl py-12 sm:py-16">
         <div className="text-center mb-8">
           <h2 className="text-lg text-primary text-center mb-2 tracking-wider">
-            Frequently Asked Questions
+            {t('vocalSeparationPage.faq.sectionLabel')}
           </h2>
 
           <h2 className="text-3xl md:text-4xl text-center font-bold mb-4">
-            Everything You Need to Know
+            {t('vocalSeparationPage.faq.title')}
           </h2>
           
           <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
-            Get answers to common questions about our AI-powered vocal separation tool
+            {t('vocalSeparationPage.faq.subtitle')}
           </p>
         </div>
 
         <Accordion type="single" collapsible className="space-y-2">
           <AccordionItem value="item-1" className="border-b border-border px-4 py-1">
             <AccordionTrigger className="text-left text-lg font-semibold py-4 hover:no-underline [&[data-state=open]]:text-primary">
-              What is vocal separation?
+              {t('vocalSeparationPage.faq.items.item1.question')}
             </AccordionTrigger>
             <AccordionContent className="text-base text-muted-foreground pb-4 leading-relaxed">
-              Vocal separation is an AI-powered process that separates vocals from instrumental tracks in audio files. It uses advanced machine learning algorithms to isolate different audio components, allowing you to create karaoke tracks, acapella versions, or clean instrumentals for remixing and music production.
+              {t('vocalSeparationPage.faq.items.item1.answer')}
             </AccordionContent>
           </AccordionItem>
 
           <AccordionItem value="item-2" className="border-b border-border px-4 py-1">
             <AccordionTrigger className="text-left text-lg font-semibold py-4 hover:no-underline [&[data-state=open]]:text-primary">
-              How does our AI vocal separation work?
+              {t('vocalSeparationPage.faq.items.item2.question')}
             </AccordionTrigger>
             <AccordionContent className="text-base text-muted-foreground pb-4 leading-relaxed">
-              Our AI analyzes the frequency spectrum and spatial characteristics of audio to distinguish between vocals and instruments. Using deep learning models trained on thousands of songs, it can identify vocal patterns and separate them from the instrumental backing with high accuracy, even in complex musical arrangements.
+              {t('vocalSeparationPage.faq.items.item2.answer')}
             </AccordionContent>
           </AccordionItem>
 
           <AccordionItem value="item-3" className="border-b border-border px-4 py-1">
             <AccordionTrigger className="text-left text-lg font-semibold py-4 hover:no-underline [&[data-state=open]]:text-primary">
-              Is MakeRNB&apos;s vocal separation free to use?
+              {t('vocalSeparationPage.faq.items.item3.question')}
             </AccordionTrigger>
             <AccordionContent className="text-base text-muted-foreground pb-4 leading-relaxed">
-              Yes! Our vocal separation tool is completely free to use. Simply upload your audio file and get instant results without any hidden costs or subscription requirements. We believe in making professional-quality audio tools accessible to everyone.
+              {t('vocalSeparationPage.faq.items.item3.answer')}
             </AccordionContent>
           </AccordionItem>
 
           <AccordionItem value="item-4" className="border-b border-border px-4 py-1">
             <AccordionTrigger className="text-left text-lg font-semibold py-4 hover:no-underline [&[data-state=open]]:text-primary">
-              Do I need to download or install any software?
+              {t('vocalSeparationPage.faq.items.item4.question')}
             </AccordionTrigger>
             <AccordionContent className="text-base text-muted-foreground pb-4 leading-relaxed">
-              No installation required! Our vocal separation tool works entirely in your web browser. Simply visit our website, upload your audio file, and get your separated tracks instantly. It&apos;s designed to work on any device with an internet connection.
+              {t('vocalSeparationPage.faq.items.item4.answer')}
             </AccordionContent>
           </AccordionItem>
 
           <AccordionItem value="item-5" className="border-b border-border px-4 py-1">
             <AccordionTrigger className="text-left text-lg font-semibold py-4 hover:no-underline [&[data-state=open]]:text-primary">
-              What audio file formats are supported?
+              {t('vocalSeparationPage.faq.items.item5.question')}
             </AccordionTrigger>
             <AccordionContent className="text-base text-muted-foreground pb-4 leading-relaxed">
-              We support all major audio formats including MP3, WAV, FLAC, OGG, OPUS, and more. You can also upload video files (MP4, AVI, MOV) and we&apos;ll extract the audio track for processing. The tool automatically detects the format and processes accordingly.
+              {t('vocalSeparationPage.faq.items.item5.answer')}
             </AccordionContent>
           </AccordionItem>
 
           <AccordionItem value="item-6" className="border-b border-border px-4 py-1">
             <AccordionTrigger className="text-left text-lg font-semibold py-4 hover:no-underline [&[data-state=open]]:text-primary">
-              How long does processing take?
+              {t('vocalSeparationPage.faq.items.item6.question')}
             </AccordionTrigger>
             <AccordionContent className="text-base text-muted-foreground pb-4 leading-relaxed">
-              Processing time depends on the length and complexity of your audio file. Most songs (3-5 minutes) are processed within 30-60 seconds. Our AI is optimized for speed while maintaining high quality results, so you won&apos;t have to wait long for your separated tracks.
+              {t('vocalSeparationPage.faq.items.item6.answer')}
             </AccordionContent>
           </AccordionItem>
 
           <AccordionItem value="item-7" className="border-b border-border px-4 py-1">
             <AccordionTrigger className="text-left text-lg font-semibold py-4 hover:no-underline [&[data-state=open]]:text-primary">
-              Can I preview results before downloading?
+              {t('vocalSeparationPage.faq.items.item7.question')}
             </AccordionTrigger>
             <AccordionContent className="text-base text-muted-foreground pb-4 leading-relaxed">
-              Absolutely! You can preview both the isolated vocals and instrumental tracks directly in your browser before downloading. This allows you to verify the quality and ensure you&apos;re happy with the separation before saving the files to your device.
+              {t('vocalSeparationPage.faq.items.item7.answer')}
             </AccordionContent>
           </AccordionItem>
 
           <AccordionItem value="item-8" className="border-b border-border px-4 py-1">
             <AccordionTrigger className="text-left text-lg font-semibold py-4 hover:no-underline [&[data-state=open]]:text-primary">
-              Can I save tracks directly from the platform?
+              {t('vocalSeparationPage.faq.items.item8.question')}
             </AccordionTrigger>
             <AccordionContent className="text-base text-muted-foreground pb-4 leading-relaxed">
-              Yes! Once processing is complete, you can download both the vocal and instrumental tracks directly to your device. Files are saved in high quality and ready to use for your projects, whether it&apos;s karaoke, remixing, or music practice.
+              {t('vocalSeparationPage.faq.items.item8.answer')}
             </AccordionContent>
           </AccordionItem>
         </Accordion>
@@ -987,20 +997,20 @@ export default function VocalSeparationDemo() {
         <AlertDialog open={showConfirmDialog} onOpenChange={setShowConfirmDialog}>
           <AlertDialogContent className="max-w-[calc(100vw-2rem)] sm:max-w-[425px]">
             <AlertDialogHeader className="space-y-2 sm:space-y-3">
-              <AlertDialogTitle className="text-lg sm:text-xl">Clear Current Tracks</AlertDialogTitle>
+              <AlertDialogTitle className="text-lg sm:text-xl">{t('vocalSeparationPage.confirmDialog.title')}</AlertDialogTitle>
               <AlertDialogDescription className="text-sm sm:text-base">
-                There are existing audio tracks in the player. Starting a new separation will clear all current tracks. Please download them to your local device if needed. Do you want to continue?
+                {t('vocalSeparationPage.confirmDialog.description')}
               </AlertDialogDescription>
             </AlertDialogHeader>
             <AlertDialogFooter className="flex-col sm:flex-row gap-2 sm:gap-0">
               <AlertDialogCancel className="w-full sm:w-auto" onClick={handleCancelDialog}>
-                Cancel
+                {t('vocalSeparationPage.confirmDialog.cancel')}
               </AlertDialogCancel>
               <AlertDialogAction 
                 onClick={handleConfirmDialog}
                 className="w-full sm:w-auto bg-primary text-primary-foreground hover:bg-primary/90"
               >
-                Continue
+                {t('vocalSeparationPage.confirmDialog.continue')}
               </AlertDialogAction>
             </AlertDialogFooter>
           </AlertDialogContent>

@@ -47,7 +47,7 @@ export function SubscriptionBadge({
   return (
     <span
       className={cn(
-        "inline-flex items-center gap-1.5 rounded-full px-2 py-0.5 text-[10px] font-semibold",
+        "inline-flex items-center gap-1.5 rounded-full px-2 py-0.5 text-xs font-semibold",
         "shadow-[0_10px_26px_rgba(0,0,0,0.06)] dark:shadow-[0_12px_32px_rgba(0,0,0,0.28)]",
         config.className,
         className

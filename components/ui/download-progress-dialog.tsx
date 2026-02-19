@@ -7,6 +7,7 @@ import {
 } from "@/components/ui/dialog";
 import { Progress } from "@/components/ui/progress";
 import { Download, CheckCircle2, XCircle, Loader2, Sparkles } from "lucide-react";
+import { useI18n } from "@/lib/i18n/provider";
 
 export interface DownloadProgressDialogProps {
   isOpen: boolean;
@@ -25,12 +26,14 @@ export interface DownloadProgressDialogProps {
 export const DownloadProgressDialog: React.FC<DownloadProgressDialogProps> = ({
   isOpen,
   onClose,
-  trackTitle = 'Track',
+  trackTitle,
   progress,
   status,
   statusText,
   errorMessage,
 }) => {
+  const { t } = useI18n();
+  const resolvedTrackTitle = trackTitle || t("download.trackDefaultTitle");
   return (
     <Dialog open={isOpen} onOpenChange={(open) => {
       if (!open) {
@@ -54,17 +57,17 @@ export const DownloadProgressDialog: React.FC<DownloadProgressDialogProps> = ({
               {/* 成功标题 */}
               <div className="space-y-1">
                 <h3 className="text-xl font-semibold text-foreground">
-                  Download Complete!
+                  {t("download.dialog.completedTitle")}
                 </h3>
                 <p className="text-sm text-muted-foreground">
-                  {trackTitle}
+                  {resolvedTrackTitle}
                 </p>
               </div>
 
               {/* 成功消息 */}
               <div className="w-full rounded-lg bg-primary/10 dark:bg-primary/20 p-4 border border-primary/30 dark:border-primary/30">
                 <p className="text-sm font-medium text-primary dark:text-primary-foreground">
-                  Your WAV file has been downloaded successfully.
+                  {t("download.dialog.completedMessage")}
                 </p>
               </div>
 
@@ -73,7 +76,7 @@ export const DownloadProgressDialog: React.FC<DownloadProgressDialogProps> = ({
                 onClick={onClose}
                 className="w-full px-6 py-3 bg-primary hover:bg-primary/90 text-primary-foreground font-medium rounded-lg shadow-md hover:shadow-lg transition-all duration-200 transform hover:scale-[1.02] active:scale-[0.98]"
               >
-                Done
+                {t("download.dialog.done")}
               </button>
             </div>
           </div>
@@ -92,17 +95,17 @@ export const DownloadProgressDialog: React.FC<DownloadProgressDialogProps> = ({
               {/* 准备标题 */}
               <div className="space-y-1">
                 <h3 className="text-xl font-semibold text-foreground">
-                  Preparing Download
+                  {t("download.dialog.preparingTitle")}
                 </h3>
                 <p className="text-sm text-muted-foreground">
-                  {trackTitle}
+                  {resolvedTrackTitle}
                 </p>
               </div>
 
               {/* 准备消息 */}
               <div className="w-full rounded-lg bg-muted/50 dark:bg-muted/30 p-4">
                 <p className="text-sm font-medium text-muted-foreground">
-                  {statusText || 'Setting up your download...'}
+                  {statusText || t("download.dialog.preparingFallback")}
                 </p>
               </div>
             </div>
@@ -122,10 +125,10 @@ export const DownloadProgressDialog: React.FC<DownloadProgressDialogProps> = ({
               {/* 生成标题 */}
               <div className="space-y-1">
                 <h3 className="text-xl font-semibold text-foreground">
-                  Generating WAV File
+                  {t("download.dialog.generatingTitle")}
                 </h3>
                 <p className="text-sm text-muted-foreground">
-                  {trackTitle}
+                  {resolvedTrackTitle}
                 </p>
               </div>
 
@@ -133,7 +136,7 @@ export const DownloadProgressDialog: React.FC<DownloadProgressDialogProps> = ({
               <div className="w-full space-y-2">
                 <div className="flex items-center justify-between text-sm">
                   <span className="text-muted-foreground">
-                    {statusText || 'Creating your audio file...'}
+                    {statusText || t("download.dialog.generatingFallback")}
                   </span>
                   <span className="font-medium text-primary">{Math.round(progress)}%</span>
                 </div>
@@ -146,7 +149,7 @@ export const DownloadProgressDialog: React.FC<DownloadProgressDialogProps> = ({
               {/* 状态消息 */}
               <div className="w-full rounded-lg bg-muted/50 dark:bg-muted/30 p-4">
                 <p className="text-sm font-medium text-muted-foreground">
-                  Please wait while we generate your WAV file...
+                  {t("download.dialog.generatingWaitMessage")}
                 </p>
               </div>
             </div>
@@ -166,10 +169,10 @@ export const DownloadProgressDialog: React.FC<DownloadProgressDialogProps> = ({
               {/* 下载标题 */}
               <div className="space-y-1">
                 <h3 className="text-xl font-semibold text-foreground">
-                  Downloading File
+                  {t("download.dialog.downloadingTitle")}
                 </h3>
                 <p className="text-sm text-muted-foreground">
-                  {trackTitle}
+                  {resolvedTrackTitle}
                 </p>
               </div>
 
@@ -177,7 +180,7 @@ export const DownloadProgressDialog: React.FC<DownloadProgressDialogProps> = ({
               <div className="w-full space-y-2">
                 <div className="flex items-center justify-between text-sm">
                   <span className="text-muted-foreground">
-                    {statusText || 'Downloading your file...'}
+                    {statusText || t("download.dialog.downloadingFallback")}
                   </span>
                   <span className="font-medium text-primary">{Math.round(progress)}%</span>
                 </div>
@@ -190,7 +193,7 @@ export const DownloadProgressDialog: React.FC<DownloadProgressDialogProps> = ({
               {/* 状态消息 */}
               <div className="w-full rounded-lg bg-muted/50 dark:bg-muted/30 p-4">
                 <p className="text-sm font-medium text-muted-foreground">
-                  Your download is in progress...
+                  {t("download.dialog.downloadingProgressMessage")}
                 </p>
               </div>
             </div>
@@ -210,17 +213,17 @@ export const DownloadProgressDialog: React.FC<DownloadProgressDialogProps> = ({
               {/* 错误标题 */}
               <div className="space-y-1">
                 <h3 className="text-xl font-semibold text-foreground">
-                  Download Failed
+                  {t("download.dialog.errorTitle")}
                 </h3>
                 <p className="text-sm text-muted-foreground">
-                  {trackTitle}
+                  {resolvedTrackTitle}
                 </p>
               </div>
 
               {/* 错误消息 */}
               <div className="w-full rounded-lg bg-red-50 dark:bg-red-950/20 p-4 border border-red-200 dark:border-red-800/50">
                 <p className="text-sm font-medium text-red-600 dark:text-red-400">
-                  {errorMessage || 'An error occurred during the download process. Please try again.'}
+                  {errorMessage || t("download.dialog.errorFallback")}
                 </p>
               </div>
 
@@ -229,7 +232,7 @@ export const DownloadProgressDialog: React.FC<DownloadProgressDialogProps> = ({
                 onClick={onClose}
                 className="w-full px-6 py-3 bg-red-500 hover:bg-red-600 text-white font-medium rounded-lg shadow-md hover:shadow-lg transition-all duration-200 transform hover:scale-[1.02] active:scale-[0.98]"
               >
-                Close
+                {t("download.dialog.close")}
               </button>
             </div>
           </div>
@@ -238,4 +241,3 @@ export const DownloadProgressDialog: React.FC<DownloadProgressDialogProps> = ({
     </Dialog>
   );
 };
-

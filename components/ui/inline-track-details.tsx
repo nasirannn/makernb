@@ -5,6 +5,7 @@ import Image from "next/image";
 import { CassetteTape } from "@/components/ui/cassette-tape";
 import { Copy, X } from "lucide-react";
 import { toast } from "sonner";
+import { useI18n } from "@/lib/i18n/provider";
 
 interface InlineTrackDetails {
   id: string;
@@ -35,6 +36,7 @@ export const InlineTrackDetailsPanel: React.FC<InlineTrackDetailsPanelProps> = (
   onClose,
   variant = "default",
 }) => {
+  const { t } = useI18n();
   const tags = React.useMemo(() => {
     if (!track?.tags) return [];
     return track.tags
@@ -95,12 +97,12 @@ export const InlineTrackDetailsPanel: React.FC<InlineTrackDetailsPanelProps> = (
 
     try {
       await navigator.clipboard.writeText(allTagsText);
-      toast.success("All tags copied");
+      toast.success(t("inlineTrack.allTagsCopied"));
     } catch (error) {
       console.error("Failed to copy tags:", error);
-      toast.error("Failed to copy tags");
+      toast.error(t("inlineTrack.failedCopyTags"));
     }
-  }, [allTagsText]);
+  }, [allTagsText, t]);
 
   const lyricsScrollContainerRef = React.useRef<HTMLDivElement | null>(null);
 
@@ -139,8 +141,8 @@ export const InlineTrackDetailsPanel: React.FC<InlineTrackDetailsPanelProps> = (
             <button
               type="button"
               onClick={onClose}
-              aria-label="Close lyrics panel"
-              title="Close lyrics panel"
+              aria-label={t("inlineTrack.closeLyricsPanel")}
+              title={t("inlineTrack.closeLyricsPanel")}
               className="absolute right-2 top-1.5 h-7 w-7 rounded-full bg-black/50 text-white/90 flex items-center justify-center transition hover:bg-black/70"
             >
               <X className="h-3.5 w-3.5" />
@@ -148,14 +150,14 @@ export const InlineTrackDetailsPanel: React.FC<InlineTrackDetailsPanelProps> = (
           )}
 
           <div className="absolute bottom-0 left-0 right-0 px-5 pb-3.5 space-y-1.5">
-            <h3 className="pr-9 text-base sm:text-[1.02rem] font-semibold leading-tight tracking-tight text-white/95 line-clamp-2">
+            <h3 className="pr-9 text-base font-semibold leading-tight tracking-tight text-white/95 line-clamp-2">
               {track.title}
             </h3>
 
             {primaryTag && (
               <div className="flex items-center gap-1.5">
                 <span
-                  className="inline-flex items-center gap-1 rounded-full bg-black/30 px-2 py-0.5 text-[10px] font-medium text-white/75 backdrop-blur-sm"
+                  className="inline-flex items-center gap-1 rounded-full bg-black/30 px-2 py-0.5 text-xs font-medium text-white/75 backdrop-blur-sm"
                   title={primaryTag}
                 >
                   <span>{visiblePrimaryTag}</span>
@@ -165,8 +167,8 @@ export const InlineTrackDetailsPanel: React.FC<InlineTrackDetailsPanelProps> = (
                       onClick={() => {
                         void handleCopyAllTags();
                       }}
-                      title="Copy all tags"
-                      aria-label="Copy all tags"
+                      title={t("inlineTrack.copyAllTags")}
+                      aria-label={t("inlineTrack.copyAllTags")}
                       className="inline-flex h-3.5 w-3.5 items-center justify-center rounded-sm text-white/75 transition hover:text-white"
                     >
                       <Copy className="h-2.5 w-2.5" />
@@ -176,7 +178,7 @@ export const InlineTrackDetailsPanel: React.FC<InlineTrackDetailsPanelProps> = (
 
                 {hasMoreTags && (
                   <span
-                    className="inline-flex items-center rounded-full bg-black/30 px-1.5 py-0.5 text-[10px] font-medium text-white/70 backdrop-blur-sm"
+                    className="inline-flex items-center rounded-full bg-black/30 px-1.5 py-0.5 text-xs font-medium text-white/70 backdrop-blur-sm"
                     title={allTagsText}
                   >
                     ...
@@ -203,7 +205,7 @@ export const InlineTrackDetailsPanel: React.FC<InlineTrackDetailsPanelProps> = (
           >
             <div className="space-y-3">
               <div className="text-sm text-foreground/90 whitespace-pre-wrap font-mono leading-relaxed">
-                {displayLyrics ? displayLyrics : "No lyrics available."}
+                {displayLyrics ? displayLyrics : t("inlineTrack.noLyricsAvailable")}
               </div>
             </div>
           </div>

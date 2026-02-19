@@ -15,6 +15,7 @@ import { supabase } from '@/lib/supabase';
 import { toast } from 'sonner';
 import { useRouter } from 'next/navigation';
 import { SolidThumbsUpIcon } from '@/components/icons/solid-thumbs-up-icon';
+import { useI18n } from '@/lib/i18n/provider';
 
 interface Track {
   id: string;
@@ -51,6 +52,7 @@ interface ExploreData {
 
 export default function ExplorePage() {
   const router = useRouter();
+  const { t } = useI18n();
   const [exploreData, setExploreData] = useState<ExploreData | null>(null);
   const [loading, setLoading] = useState(true);
   const [loadingMore, setLoadingMore] = useState(false);
@@ -205,12 +207,12 @@ export default function ExplorePage() {
       if (!trackId) return;
       const shareUrl = `${window.location.origin}/track/${trackId}`;
       await navigator.clipboard.writeText(shareUrl);
-      toast.success('Link copied', {
+      toast.success(t("trackActions.linkCopied"), {
         duration: 1500,
       });
     } catch (error) {
       console.error("Error copying share link:", error);
-      toast("Copy failed", { duration: 2000 });
+      toast.error(t("toasts.failedCopyLink"), { duration: 2000 });
     }
   };
 
@@ -257,7 +259,7 @@ export default function ExplorePage() {
     try {
       const headers = await getAuthHeaders();
       if (!headers.Authorization) {
-        toast('Please log in to like songs');
+        toast(t("toasts.pleaseLogInFavoriteTracks"));
         router.push('/login');
         return;
       }
@@ -271,26 +273,26 @@ export default function ExplorePage() {
       const result = await response.json().catch(() => ({}));
       if (!response.ok || !result.success) {
         if (response.status === 401) {
-          toast('Please log in to like songs');
+          toast(t("toasts.pleaseLogInFavoriteTracks"));
           router.push('/login');
           return;
         }
 
-        throw new Error(result.error || 'Failed to update like status');
+        throw new Error(result.error || t("toasts.failedUpdateFavoriteStatus"));
       }
 
       const isFavorited = Boolean(result.isFavorited);
       updateFavoriteState(trackId, isFavorited);
-      toast.success(isFavorited ? 'Liked' : 'Like removed', {
+      toast.success(isFavorited ? t("toasts.addedToFavorites") : t("toasts.removedFromFavorites"), {
         duration: 1200,
       });
     } catch (error) {
       console.error('Error toggling favorite on explore:', error);
-      toast.error('Failed to update like status.');
+      toast.error(t("toasts.failedUpdateFavoriteStatus"));
     } finally {
       setFavoriteLoadingTrackId(null);
     }
-  }, [favoriteLoadingTrackId, getAuthHeaders, router, updateFavoriteState]);
+  }, [favoriteLoadingTrackId, getAuthHeaders, router, updateFavoriteState, t]);
 
   const formatPlayCount = (count?: number) => {
     if (!count || count < 0) return '0';
@@ -564,8 +566,8 @@ export default function ExplorePage() {
                                   e.stopPropagation();
                                   handleShare(music.primaryTrack.id);
                                 }}
-                                aria-label="Share track"
-                                title="Copy share link"
+                                aria-label={t("trackActions.shareTrack")}
+                                title={t("trackActions.copyShareLink")}
                               >
                                 <Share2 className="h-4 w-4" />
                               </Button>
@@ -577,8 +579,8 @@ export default function ExplorePage() {
                                   e.stopPropagation();
                                   handleToggleFavorite(music.primaryTrack.id);
                                 }}
-                                aria-label={music.primaryTrack.isFavorited ? 'Unlike track' : 'Like track'}
-                                title={music.primaryTrack.isFavorited ? 'Unlike track' : 'Like track'}
+                                aria-label={music.primaryTrack.isFavorited ? t("trackActions.unlikeTrack") : t("trackActions.likeTrack")}
+                                title={music.primaryTrack.isFavorited ? t("trackActions.unlikeTrack") : t("trackActions.likeTrack")}
                                 disabled={favoriteLoadingTrackId === music.primaryTrack.id}
                               >
                                 {favoriteLoadingTrackId === music.primaryTrack.id ? (
@@ -599,8 +601,8 @@ export default function ExplorePage() {
                                   e.stopPropagation();
                                   handlePlayPause(music.primaryTrack.id, music.primaryTrack.audioUrl, music);
                                 }}
-                                aria-label={currentlyPlaying === music.primaryTrack.id && audioPlayer.isPlaying ? 'Pause track' : 'Play track'}
-                                title={currentlyPlaying === music.primaryTrack.id && audioPlayer.isPlaying ? 'Pause' : 'Play'}
+                                aria-label={currentlyPlaying === music.primaryTrack.id && audioPlayer.isPlaying ? t("trackActions.pause") : t("trackActions.play")}
+                                title={currentlyPlaying === music.primaryTrack.id && audioPlayer.isPlaying ? t("trackActions.pause") : t("trackActions.play")}
                               >
                                 {currentlyPlaying === music.primaryTrack.id && audioPlayer.isPlaying ? (
                                   <Pause className="h-5 w-5 text-white" />
@@ -670,7 +672,7 @@ export default function ExplorePage() {
               {exploreData && exploreData.music && !hasMore && exploreData.music.length > 0 && (
                 <div className="text-center mt-8 py-4">
                   <span className="text-sm text-muted-foreground font-medium">
-                    All songs loaded
+                    {t("explorePage.allSongsLoaded")}
                   </span>
                 </div>
               )}
@@ -678,7 +680,7 @@ export default function ExplorePage() {
           ) : (
             <div className="text-center py-12">
               <Music className="w-16 h-16 text-muted-foreground/30 mx-auto mb-4" />
-              <p className="text-muted-foreground text-lg">No public music available yet</p>
+              <p className="text-muted-foreground text-lg">{t("explorePage.noPublicMusicAvailableYet")}</p>
             </div>
           )}
         </div>
@@ -695,7 +697,7 @@ export default function ExplorePage() {
       >
         <button
           type="button"
-          aria-label="Close lyrics panel"
+          aria-label={t("studioPage.closeLyricsPanel")}
           onClick={() => setLyricsTrackId(null)}
           className="absolute inset-0 bg-background/20 backdrop-blur-[1px] md:bg-background/10"
         />

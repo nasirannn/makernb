@@ -18,9 +18,12 @@ import { EditNicknameDialog } from "@/components/ui/edit-nickname-dialog";
 
 import { Tooltip } from '@/components/ui/tooltip';
 import { ThemeModeToggle } from "@/components/ui/theme-mode-toggle";
+import { LanguageToggle } from "@/components/ui/language-toggle";
 import { cn } from "@/lib/utils";
 import { getZIndexClass } from "@/lib/z-index";
-import { isStudioAreaPath } from "@/lib/studio-features";
+import { formatIsoDateUTC, formatLocalizedNumber } from "@/lib/locale-format";
+import { getStudioFeatureDefinition, isStudioAreaPath, type StudioFeatureKey } from "@/lib/studio-features";
+import { useI18n } from "@/lib/i18n/provider";
 
 interface CommonSidebarProps {
   // 移除 isGenerating 参数，因为不再需要显示生成状态
@@ -39,6 +42,47 @@ type SidebarNavItem = {
 
 const SIDEBAR_EXPANDED_STORAGE_KEY = "makernb.sidebar.expanded";
 
+const SIDEBAR_STUDIO_FEATURE_ORDER: StudioFeatureKey[] = [
+  "music-generator",
+  "music-extender",
+  "music-cover",
+  "mashup",
+  "add-track",
+];
+
+const STUDIO_FEATURE_LABEL_KEYS: Record<StudioFeatureKey, string> = {
+  "music-generator": "studioFeatures.musicGenerator",
+  "music-extender": "studioFeatures.musicExtender",
+  "music-cover": "studioFeatures.musicCover",
+  "mashup": "studioFeatures.mashup",
+  "add-track": "studioFeatures.addTrack",
+  "add-vocal": "studioFeatures.addVocal",
+  "add-melody": "studioFeatures.addMelody",
+};
+
+const AI_TOOL_ROUTE_ITEMS = [
+  {
+    href: "/vocal-separation",
+    labelKey: "nav.vocalSeparation",
+    descriptionKey: "aiTools.vocalSeparationDescription",
+  },
+  {
+    href: "/lyrics-generator",
+    labelKey: "nav.lyricsGenerator",
+    descriptionKey: "aiTools.lyricsGeneratorDescription",
+  },
+] as const;
+
+const STUDIO_FEATURE_ICON_MAP: Record<StudioFeatureKey, React.ElementType> = {
+  "music-generator": Music2,
+  "music-extender": Expand,
+  "music-cover": Disc3,
+  "mashup": Blend,
+  "add-track": AudioLines,
+  "add-vocal": Wand2,
+  "add-melody": Music,
+};
+
 const readSidebarExpandedFromStorage = () => {
   if (typeof window === "undefined") return false;
   try {
@@ -54,12 +98,17 @@ export const CommonSidebar = ({
   collapsedWidth = 72,
   expandedWidth = 224
 }: CommonSidebarProps) => {
+  const { t } = useI18n();
   const pathname = usePathname();
   const router = useRouter();
   const { user, signOut } = useAuth();
   const { credits, refreshCredits } = useCredits();
   const { tierCode, tierName, hasSubscription, cancelAtPeriodEnd, cancelAt, currentPeriodEnd } = useSubscription();
   const { openModal } = usePricingModal();
+  const getStudioFeatureLabel = React.useCallback(
+    (featureKey: StudioFeatureKey) => t(STUDIO_FEATURE_LABEL_KEYS[featureKey]),
+    [t]
+  );
 
   // 判断是否选中某个路径
   const isActive = (path: string) => {
@@ -79,22 +128,19 @@ export const CommonSidebar = ({
   const displayName = user?.user_metadata?.nickname || user?.user_metadata?.full_name || user?.user_metadata?.name || user?.email?.split('@')[0] || '';
   const formatDisplayDate = React.useCallback((dateValue?: string | null) => {
     if (!dateValue) return null;
-    const parsed = new Date(dateValue);
-    if (Number.isNaN(parsed.getTime())) return null;
-    const year = parsed.getUTCFullYear();
-    const month = String(parsed.getUTCMonth() + 1).padStart(2, "0");
-    const day = String(parsed.getUTCDate()).padStart(2, "0");
-    return `${year}-${month}-${day}`;
+    return formatIsoDateUTC(dateValue);
   }, []);
   const billingNotice = React.useMemo(() => {
     if (!hasSubscription) return null;
     if (cancelAtPeriodEnd) {
       const formatted = formatDisplayDate(cancelAt);
-      return formatted ? `Scheduled to cancel on ${formatted}` : "Cancellation scheduled.";
+      return formatted
+        ? t("common.cancelScheduledOn", { date: formatted })
+        : t("common.cancellationScheduled");
     }
     const formatted = formatDisplayDate(currentPeriodEnd);
-    return formatted ? `Next charge on ${formatted}.` : null;
-  }, [hasSubscription, cancelAtPeriodEnd, cancelAt, currentPeriodEnd, formatDisplayDate]);
+    return formatted ? t("common.nextChargeOn", { date: formatted }) : null;
+  }, [cancelAt, cancelAtPeriodEnd, currentPeriodEnd, formatDisplayDate, hasSubscription, t]);
 
   const handleOpenPricingModal = () => {
     setUserMenuOpen(false);
@@ -119,20 +165,18 @@ export const CommonSidebar = ({
   }, [isExpanded, onWidthChange, expandedWidth, collapsedWidth]);
 
   // AI Music Tools dropdown items
-const aiMusicToolsDropdown = [
-  {
-    href: "/vocal-separation",
-    label: "Vocal Separation",
-    description: "Separate vocals from music",
-    icon: <Split className="h-4 w-4" />
-  },
-  {
-    href: "/lyrics-generator",
-    label: "Lyrics Generator",
-    description: "Generate creative lyrics with AI",
-    icon: <FileText className="h-4 w-4" />
-  }
-];
+  const aiMusicToolsDropdown = React.useMemo(
+    () =>
+      AI_TOOL_ROUTE_ITEMS.map((item) => ({
+        href: item.href,
+        label: t(item.labelKey),
+        description: t(item.descriptionKey),
+        icon: item.href === "/vocal-separation"
+          ? <Split className="h-4 w-4" />
+          : <FileText className="h-4 w-4" />
+      })),
+    [t]
+  );
   // 处理积分刷新
   const handleRefreshCredits = async () => {
     if (isRefreshingCredits) return;
@@ -185,24 +229,33 @@ const aiMusicToolsDropdown = [
     }
   }, [userMenuOpen, isDropdownOpen]);
 
-  const studioFeatureNavItems: SidebarNavItem[] = React.useMemo(() => ([
-    { label: "Music Generator", href: "/music-generator", icon: Music2 },
-    { label: "Music Extender", href: "/music-extender", icon: Expand },
-    { label: "Music Cover", href: "/music-cover", icon: Disc3 },
-    { label: "Mashup", href: "/mashup", icon: Blend },
-    { label: "Add Track", href: "/add-track", icon: AudioLines },
-    { label: "Library", href: "/library", icon: Library }
-  ]), []);
+  const studioFeatureNavItems: SidebarNavItem[] = React.useMemo(() => {
+    const featureItems = SIDEBAR_STUDIO_FEATURE_ORDER.map((featureKey) => {
+      const feature = getStudioFeatureDefinition(featureKey);
+      return {
+        label: getStudioFeatureLabel(featureKey),
+        href: feature.path,
+        icon: STUDIO_FEATURE_ICON_MAP[featureKey],
+      };
+    });
+
+    return [...featureItems, { label: t("nav.library"), href: "/library", icon: Library }];
+  }, [getStudioFeatureLabel, t]);
 
   const exploreNavItems: SidebarNavItem[] = React.useMemo(() => ([
-    { label: "Explore", href: "/explore", icon: Sparkles },
-    { label: "Blog", href: "/blog", icon: BookOpen }
-  ]), []);
+    { label: t("nav.explore"), href: "/explore", icon: Sparkles },
+    { label: t("nav.blog"), href: "/blog", icon: BookOpen }
+  ]), [t]);
 
-  const aiToolNavItems: SidebarNavItem[] = React.useMemo(() => ([
-    { label: "Vocal Separation", href: "/vocal-separation", icon: Split },
-    { label: "Lyrics Generator", href: "/lyrics-generator", icon: FileText }
-  ]), []);
+  const aiToolNavItems: SidebarNavItem[] = React.useMemo(
+    () =>
+      AI_TOOL_ROUTE_ITEMS.map((item) => ({
+        label: t(item.labelKey),
+        href: item.href,
+        icon: item.href === "/vocal-separation" ? Split : FileText,
+      })),
+    [t]
+  );
 
   const expandedButtonClasses = (active: boolean) =>
     cn(
@@ -245,7 +298,7 @@ const aiMusicToolsDropdown = [
             <span className="text-sm font-medium">{item.label}</span>
           </div>
           {item.badge && (
-            <Badge variant="outline" className="text-[10px] uppercase tracking-wide border-black/15 text-foreground/70">
+            <Badge variant="outline" className="text-xs uppercase tracking-wide border-black/15 text-foreground/70">
               {item.badge}
             </Badge>
           )}
@@ -314,7 +367,7 @@ const aiMusicToolsDropdown = [
                   <Link href="/" className="flex items-center gap-3 hover:opacity-90 transition-opacity">
                     <Image
                       src="/logo.svg"
-                      alt="Logo"
+                      alt={t("common.brandLogo")}
                       width={32}
                       height={32}
                       className="h-8 w-8"
@@ -331,7 +384,7 @@ const aiMusicToolsDropdown = [
                   </Button>
                 </>
               ) : (
-                <Tooltip content="Expand Sidebar" position="right">
+                <Tooltip content={t("nav.expandSidebar")} position="right">
                   <Button
                     onClick={toggleSidebar}
                     variant="ghost"
@@ -341,7 +394,7 @@ const aiMusicToolsDropdown = [
                     <span className="absolute inset-0 flex items-center justify-center transition-opacity duration-150 group-hover:opacity-0 group-focus:opacity-0">
                       <Image
                         src="/logo.svg"
-                        alt="MakeRNB Logo"
+                        alt={t("common.brandLogo")}
                         width={28}
                         height={28}
                         className="h-7 w-7"
@@ -350,7 +403,7 @@ const aiMusicToolsDropdown = [
                     <span className="absolute inset-0 flex items-center justify-center opacity-0 transition-opacity duration-150 group-hover:opacity-100 group-focus:opacity-100">
                       <PanelLeftOpen className="h-5 w-5" />
                     </span>
-                    <span className="sr-only">Expand sidebar</span>
+                    <span className="sr-only">{t("nav.expandSidebarSrOnly")}</span>
                   </Button>
                 </Tooltip>
               )}
@@ -370,7 +423,7 @@ const aiMusicToolsDropdown = [
                         <Avatar className="w-9 h-9 flex-shrink-0">
                           <AvatarImage
                             src={user.user_metadata?.avatar_url || user.user_metadata?.picture}
-                            alt="User Avatar"
+                            alt={t("common.userAvatar")}
                           />
                           <AvatarFallback className="bg-gradient-to-br from-purple-600 to-purple-700 text-white font-semibold text-base">
                             {displayName?.charAt(0)?.toUpperCase() ||
@@ -382,7 +435,7 @@ const aiMusicToolsDropdown = [
                             <div className="text-sm font-semibold text-foreground truncate">
                               {displayName || user.email}
                             </div>
-                            <div className="mt-0.5 text-[10px] font-semibold tracking-normal text-muted-foreground truncate">
+                            <div className="mt-0.5 text-sm font-medium tracking-normal text-muted-foreground truncate">
                               {tierName}
                             </div>
                           </div>
@@ -395,13 +448,13 @@ const aiMusicToolsDropdown = [
                           <div className="px-2.5 py-1.5">
                             <div className="flex items-center justify-between gap-2 mb-1">
                               <p className="text-foreground font-semibold text-sm truncate flex-1">
-                                {displayName || 'User'}
+                                {displayName || t("common.user")}
                               </p>
                               <button
                                 type="button"
                                 onClick={handleOpenPricingModal}
                                 className="group inline-flex items-center gap-1.5 flex-shrink-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background"
-                                aria-label="Open pricing"
+                                aria-label={t("common.openPricing")}
                                 title={billingNotice ?? undefined}
                               >
                                 <SubscriptionBadge
@@ -412,7 +465,7 @@ const aiMusicToolsDropdown = [
                                 />
                               </button>
                             </div>
-                            <p className="text-muted-foreground text-xs truncate">
+                            <p className="text-muted-foreground text-sm truncate">
                               {user.email}
                             </p>
                           </div>
@@ -422,10 +475,10 @@ const aiMusicToolsDropdown = [
                               <div className="flex-shrink-0 h-8 w-8 rounded-lg flex items-center justify-center text-primary">
                                 <Coins className="h-3.5 w-3.5" />
                               </div>
-                              <span className="text-sm font-medium text-foreground">Credits</span>
+                              <span className="text-sm font-medium text-foreground">{t("common.credits")}</span>
                             </div>
-                            <span className="min-w-6 text-right text-[11px] font-semibold text-foreground tabular-nums">
-                              {credits === null ? '...' : credits}
+                            <span className="min-w-6 text-right text-xs font-semibold text-foreground tabular-nums">
+                              {credits === null ? '...' : formatLocalizedNumber(credits)}
                             </span>
                           </div>
 
@@ -439,7 +492,7 @@ const aiMusicToolsDropdown = [
                             <div className="flex-shrink-0 h-8 w-8 rounded-lg flex items-center justify-center text-foreground/70">
                               <PencilLine className="h-3.5 w-3.5" />
                             </div>
-                            <span className="text-foreground font-medium text-sm">Edit profile</span>
+                            <span className="text-foreground font-medium text-sm">{t("common.editProfile")}</span>
                           </button>
                           <button
                             onClick={() => {
@@ -451,7 +504,7 @@ const aiMusicToolsDropdown = [
                             <div className="flex-shrink-0 h-8 w-8 rounded-lg flex items-center justify-center text-foreground/70">
                               <LogOut className="h-3.5 w-3.5" />
                             </div>
-                            <span className="text-foreground font-medium text-sm">Sign Out</span>
+                            <span className="text-foreground font-medium text-sm">{t("common.signOut")}</span>
                           </button>
                         </div>
                       )}
@@ -464,7 +517,7 @@ const aiMusicToolsDropdown = [
                       >
                         <AvatarImage
                           src={user.user_metadata?.avatar_url || user.user_metadata?.picture}
-                          alt="User Avatar"
+                          alt={t("common.userAvatar")}
                         />
                         <AvatarFallback className="bg-gradient-to-br from-purple-600 to-purple-700 text-white font-semibold">
                           {displayName?.charAt(0)?.toUpperCase() ||
@@ -477,13 +530,13 @@ const aiMusicToolsDropdown = [
                           <div className="px-2.5 py-1.5">
                             <div className="flex items-center justify-between gap-2 mb-1">
                               <div className="text-sm font-semibold text-foreground truncate flex-1">
-                                {displayName || 'User'}
+                                {displayName || t("common.user")}
                               </div>
                               <button
                                 type="button"
                                 onClick={handleOpenPricingModal}
                                 className="group inline-flex items-center gap-1.5 flex-shrink-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background"
-                                aria-label="Open pricing"
+                                aria-label={t("common.openPricing")}
                                 title={billingNotice ?? undefined}
                               >
                                 <SubscriptionBadge
@@ -494,7 +547,7 @@ const aiMusicToolsDropdown = [
                                 />
                               </button>
                             </div>
-                            <div className="text-xs text-muted-foreground truncate">{user.email}</div>
+                            <div className="text-sm text-muted-foreground truncate">{user.email}</div>
                           </div>
 
                           <div className="w-full flex items-center justify-between gap-3 rounded-xl px-3 py-2">
@@ -502,10 +555,10 @@ const aiMusicToolsDropdown = [
                               <div className="flex-shrink-0 h-8 w-8 rounded-lg flex items-center justify-center text-primary">
                                 <Coins className="h-3.5 w-3.5" />
                               </div>
-                              <span className="text-sm font-medium text-foreground">Credits</span>
+                              <span className="text-sm font-medium text-foreground">{t("common.credits")}</span>
                             </div>
-                            <span className="min-w-6 text-right text-[11px] font-semibold text-foreground tabular-nums">
-                              {credits === null ? '...' : credits}
+                            <span className="min-w-6 text-right text-xs font-semibold text-foreground tabular-nums">
+                              {credits === null ? '...' : formatLocalizedNumber(credits)}
                             </span>
                           </div>
 
@@ -519,7 +572,7 @@ const aiMusicToolsDropdown = [
                             <div className="flex-shrink-0 h-8 w-8 rounded-lg flex items-center justify-center text-foreground/70">
                               <PencilLine className="h-3.5 w-3.5" />
                             </div>
-                            <span className="text-foreground font-medium text-sm">Edit profile</span>
+                            <span className="text-foreground font-medium text-sm">{t("common.editProfile")}</span>
                           </button>
                           <button
                             onClick={() => {
@@ -531,7 +584,7 @@ const aiMusicToolsDropdown = [
                             <div className="flex-shrink-0 h-8 w-8 rounded-lg flex items-center justify-center text-foreground/70">
                               <LogOut className="h-3.5 w-3.5" />
                             </div>
-                            <span className="text-foreground font-medium text-sm">Sign Out</span>
+                            <span className="text-foreground font-medium text-sm">{t("common.signOut")}</span>
                           </button>
                         </div>
                       )}
@@ -548,11 +601,11 @@ const aiMusicToolsDropdown = [
                       className="w-full h-12 rounded-2xl bg-muted/40 text-foreground/80 hover:bg-muted/60 hover:text-foreground"
                     >
                       <LogIn className="h-5 w-5" />
-                      <span className="text-sm font-medium">Sign In</span>
+                      <span className="text-sm font-medium">{t("common.signIn")}</span>
                     </Button>
                   ) : (
                     <div className="flex justify-center">
-                      <Tooltip content="Sign In" position="right">
+                      <Tooltip content={t("common.signIn")} position="right">
                         <Button
                           onClick={() => setIsAuthModalOpen(true)}
                           variant="ghost"
@@ -578,77 +631,23 @@ const aiMusicToolsDropdown = [
               </div>
             </div>
 
-            <div className={`border-t border-dashed border-black/5 dark:border-white/5 ${isExpanded ? 'px-4 pt-4 pb-6' : 'px-2 pt-4 pb-6'} flex flex-col gap-3`}>
+            <div className={`border-t border-dashed border-black/5 dark:border-white/5 ${isExpanded ? 'px-4 pt-4 pb-6' : 'px-2 pt-4 pb-6'} flex flex-col gap-2`}>
               {user && (
                 <>
                   {isExpanded ? (
-                  <>
-                    <div
-                      role="button"
-                      tabIndex={0}
-                      aria-disabled={isRefreshingCredits}
-                      onClick={() => {
-                        if (!isRefreshingCredits) {
-                          handleRefreshCredits();
-                        }
-                      }}
-                      onKeyDown={(event) => {
-                        if (isRefreshingCredits) return;
-                        if (event.key === 'Enter' || event.key === ' ') {
-                          event.preventDefault();
-                          handleRefreshCredits();
-                        }
-                      }}
-                      className={`w-full min-h-14 rounded-2xl bg-transparent px-4 py-2.5 text-left transition-all duration-300 border border-transparent ${
-                        isRefreshingCredits ? 'opacity-70 cursor-wait' : 'cursor-pointer hover:bg-muted/30'
-                      }`}
-                    >
-                      <div className="flex min-h-8 items-center text-foreground">
-                        <div className="flex items-center gap-2.5">
-                          <span className="inline-flex h-8 w-8 items-center justify-center rounded-lg text-foreground/60">
-                            <Coins className="h-4 w-4" />
-                          </span>
-                          <span className="text-sm font-medium leading-none text-foreground/65">
-                            Credits
-                          </span>
-                        </div>
-                        <div className="ml-auto flex h-8 min-w-[72px] items-center justify-end">
-                          {isRefreshingCredits ? (
-                            <span className="inline-flex h-8 w-8 items-center justify-center rounded-lg text-foreground/60" aria-hidden="true">
-                              <RefreshCw className="h-4 w-4 animate-spin" />
-                            </span>
-                          ) : (
-                            <button
-                              type="button"
-                              onClick={(event) => {
-                                event.stopPropagation();
-                                handleRefreshCredits();
-                              }}
-                              className="inline-flex h-8 min-w-[72px] items-center justify-end rounded-lg px-2 text-xs font-semibold leading-none tabular-nums text-right text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-                              aria-label="Refresh credits"
-                            >
-                              {credits !== null ? (
-                                credits.toLocaleString()
-                              ) : (
-                                <span className="inline-flex h-full items-center leading-none">...</span>
-                              )}
-                            </button>
-                          )}
-                        </div>
-                      </div>
-                    </div>
+                    <>
                     {!hasSubscription && (
                       <div className="relative w-full overflow-hidden rounded-2xl bg-primary/90 px-4 py-3 text-left text-primary-foreground shadow-[0_12px_32px_hsl(var(--primary)/0.25)]">
                         <div className="absolute inset-0 bg-[radial-gradient(120%_80%_at_10%_0%,hsl(var(--primary-foreground)/0.35),transparent_60%)]" />
                         <div className="relative flex flex-col gap-1">
-                          <p className="text-xs text-primary-foreground/80">
-                            Unlock full access & more credits.
+                          <p className="text-sm text-primary-foreground/80">
+                            {t("common.unlockFullAccess")}
                           </p>
                           <Button
                             asChild
                             className="mt-1 h-9 w-full rounded-full bg-primary-foreground text-primary text-sm font-semibold hover:bg-primary-foreground/90"
                           >
-                            <Link href="/pricing">Upgrade Now</Link>
+                            <Link href="/pricing">{t("common.upgradeNow")}</Link>
                           </Button>
                         </div>
                       </div>
@@ -688,14 +687,14 @@ const aiMusicToolsDropdown = [
                                 handleCollapsedRefreshCredits();
                               }}
                               className="h-9 w-9 rounded-full text-foreground/70 hover:text-foreground"
-                              aria-label="Refresh credits"
+                              aria-label={t("common.refreshCredits")}
                             >
                               <RefreshCw className="h-4 w-4" />
                             </Button>
                           ) : (
                             <span className="inline-flex items-center justify-center rounded-full px-2.5 py-1 text-xs font-semibold leading-none text-foreground tabular-nums">
                               {credits !== null ? (
-                                credits.toLocaleString()
+                                formatLocalizedNumber(credits)
                               ) : (
                                 <span className="inline-flex h-full items-center leading-none">...</span>
                               )}
@@ -703,8 +702,8 @@ const aiMusicToolsDropdown = [
                           )}
                         </div>
                         {!isRefreshingCredits && (!isCollapsedCreditsHovered || suppressCollapsedCreditsHover) && (
-                          <span className="mt-1 text-[10px] font-medium text-foreground/45">
-                            Credits
+                          <span className="mt-1 text-xs font-medium text-foreground/45">
+                            {t("common.credits")}
                           </span>
                         )}
                       </div>
@@ -715,34 +714,63 @@ const aiMusicToolsDropdown = [
 
               {isExpanded ? (
                 <div
-                  className="w-full min-h-14 rounded-2xl bg-transparent px-4 py-2.5 transition-all duration-300 border border-transparent hover:bg-muted/30"
+                  className="w-full min-h-12 rounded-2xl bg-transparent px-3 py-2 transition-all duration-300 border border-transparent hover:bg-muted/30"
                 >
-                  <div className="flex min-h-8 w-full items-center justify-between">
-                    <div className="flex items-center gap-2.5">
-                      <span className="inline-flex h-8 w-8 items-center justify-center rounded-lg text-foreground/60">
-                        <Sun className="h-4 w-4" />
-                      </span>
-                      <span className="text-sm font-medium leading-none text-foreground/65">
-                        Theme
-                      </span>
-                    </div>
+                  <div className="flex min-h-8 w-full items-center gap-2">
+                    {user && (
+                      <button
+                        type="button"
+                        onClick={handleRefreshCredits}
+                        disabled={isRefreshingCredits}
+                        className={cn(
+                          "inline-flex h-9 min-w-0 max-w-[92px] items-center gap-1.5 rounded-2xl px-2.5 text-foreground/60 transition-colors",
+                          "hover:bg-foreground/5 hover:text-foreground",
+                          isRefreshingCredits ? "cursor-wait opacity-70" : "cursor-pointer"
+                        )}
+                        aria-label={t("common.refreshCredits")}
+                        title={t("common.refreshCredits")}
+                      >
+                        {isRefreshingCredits ? (
+                          <RefreshCw className="h-3.5 w-3.5 shrink-0 animate-spin" />
+                        ) : (
+                          <Coins className="h-3.5 w-3.5 shrink-0" />
+                        )}
+                        <span className="min-w-0 truncate text-xs font-semibold leading-none tabular-nums">
+                          {credits !== null ? formatLocalizedNumber(credits) : "..."}
+                        </span>
+                      </button>
+                    )}
+                    <LanguageToggle
+                      size="sm"
+                      className="h-9 w-9 rounded-2xl text-foreground/60 hover:text-foreground"
+                    />
                     <ThemeModeToggle
                       size="sm"
                       variant="icon"
-                      className="h-8 w-8 rounded-lg text-foreground/60 hover:text-foreground"
+                      className="h-9 w-9 rounded-2xl text-foreground/60 hover:text-foreground"
                     />
                   </div>
                 </div>
               ) : (
-                <Tooltip content="Toggle theme" position="right">
-                  <div className="flex h-14 w-full items-center justify-center rounded-2xl transition-all duration-300 hover:bg-muted/30">
-                    <ThemeModeToggle
-                      size="md"
-                      variant="icon"
-                      className="rounded-2xl text-foreground/60 hover:text-foreground"
-                    />
-                  </div>
-                </Tooltip>
+                <>
+                  <Tooltip content={t("common.switchLanguage")} position="right">
+                    <div className="flex h-14 w-full items-center justify-center rounded-2xl transition-all duration-300 hover:bg-muted/30">
+                      <LanguageToggle
+                        size="md"
+                        className="h-10 w-10 rounded-2xl text-foreground/60 hover:text-foreground"
+                      />
+                    </div>
+                  </Tooltip>
+                  <Tooltip content={t("common.toggleTheme")} position="right">
+                    <div className="flex h-14 w-full items-center justify-center rounded-2xl transition-all duration-300 hover:bg-muted/30">
+                      <ThemeModeToggle
+                        size="md"
+                        variant="icon"
+                        className="rounded-2xl text-foreground/60 hover:text-foreground"
+                      />
+                    </div>
+                  </Tooltip>
+                </>
               )}
             </div>
           </div>
@@ -810,7 +838,7 @@ const aiMusicToolsDropdown = [
                     </div>
                     <div className="flex-1 min-w-0">
                       <p className="text-foreground font-medium text-sm group-hover:text-accent-foreground">{item.label}</p>
-                      <p className="text-muted-foreground text-xs truncate group-hover:text-accent-foreground/85">{item.description}</p>
+                      <p className="text-muted-foreground text-sm truncate group-hover:text-accent-foreground/85">{item.description}</p>
                     </div>
                   </Link>
                 ))}

@@ -31,6 +31,7 @@ import { useAudioPlayer } from "@/hooks/use-audio-player";
 import { MusicPlayer } from "@/components/ui/music-player";
 import { supabase } from "@/lib/supabase";
 import { Mp4BrandingDialog } from "@/components/ui/mp4-branding-dialog";
+import { useI18n } from "@/lib/i18n/provider";
 
 interface TrackDetailViewProps {
   trackData?: TrackInfo;
@@ -89,6 +90,7 @@ export const TrackDetailView: React.FC<TrackDetailViewProps> = ({
     clearCurrentTrack,
   } = useAudioPlayer();
   const { user } = useAuth();
+  const { t } = useI18n();
   const { openModal: openPricingModal } = usePricingModal();
   const { hasPermission } = useFeaturePermissions();
 
@@ -113,7 +115,7 @@ export const TrackDetailView: React.FC<TrackDetailViewProps> = ({
           setError(null);
           const response = await fetch(`/api/track-info/${trackId}`);
           if (!response.ok) {
-            throw new Error("Failed to fetch track info");
+            throw new Error(t("trackDetail.failedFetchTrackInfo"));
           }
           const data = await response.json();
           if (data.success && data.track) {
@@ -134,12 +136,12 @@ export const TrackDetailView: React.FC<TrackDetailViewProps> = ({
               model: apiTrack.model
             });
           } else {
-            throw new Error("Invalid response format");
+            throw new Error(t("trackDetail.invalidResponseFormat"));
           }
         } catch (err) {
           console.error("Error fetching track info:", err);
-          setError("Failed to load track information");
-          toast.error("Failed to load track");
+          setError(t("trackDetail.failedLoadTrackInformation"));
+          toast.error(t("trackDetail.failedLoadTrack"));
         } finally {
           setIsLoading(false);
         }
@@ -147,7 +149,7 @@ export const TrackDetailView: React.FC<TrackDetailViewProps> = ({
 
       fetchTrackInfo();
     }
-  }, [trackData, trackId]);
+  }, [trackData, trackId, t]);
 
   useEffect(() => {
     if (typeof window === "undefined" || !trackInfo?.id) return;
@@ -267,7 +269,7 @@ export const TrackDetailView: React.FC<TrackDetailViewProps> = ({
 
   const internalDownload = React.useCallback(async (track: TrackInfo, format: "mp3" | "wav" | "mp4") => {
     if (!track?.id) {
-      toast.error("Missing track information");
+      toast.error(t("trackDetail.missingTrackInformation"));
       return;
     }
 
@@ -275,18 +277,18 @@ export const TrackDetailView: React.FC<TrackDetailViewProps> = ({
       return;
     }
 
-    const downloadingToast = toast.loading("Preparing download...");
+    const downloadingToast = toast.loading(t("download.preparingDownload"));
     try {
       const { data: { session } } = await supabase.auth.getSession();
       if (!session?.access_token) {
-        throw new Error("Authentication required");
+        throw new Error(t("trackDetail.authenticationRequired"));
       }
 
       const triggerBlobDownload = (blob: Blob) => {
         const blobUrl = window.URL.createObjectURL(blob);
         const link = document.createElement("a");
         link.href = blobUrl;
-        link.download = `${track.title || "track"}.${format}`;
+        link.download = `${track.title || t("download.trackDefaultTitle")}.${format}`;
         document.body.appendChild(link);
         link.click();
         document.body.removeChild(link);
@@ -307,7 +309,7 @@ export const TrackDetailView: React.FC<TrackDetailViewProps> = ({
             triggerBlobDownload(blob);
             return;
           }
-          throw new Error(data.error || data.message || "Download failed");
+          throw new Error(data.error || data.message || t("download.downloadFailed"));
         }
 
         const blob = await response.blob();
@@ -345,22 +347,22 @@ export const TrackDetailView: React.FC<TrackDetailViewProps> = ({
           if (response.status === 202) {
             const elapsed = Date.now() - startTime;
             if (elapsed > MAX_POLL_TIME) {
-              throw new Error(`${format.toUpperCase()} generation timeout`);
-            }
+                  throw new Error(format === "mp4" ? t("download.mp4GenerationTimeout") : t("download.downloadTimeout"));
+                }
             await new Promise((resolve) => setTimeout(resolve, POLL_INTERVAL));
             continue;
           }
 
           if (!response.ok) {
             const errorData = await response.json().catch(() => ({}));
-            throw new Error(errorData.error || errorData.message || "Download failed");
+            throw new Error(errorData.error || errorData.message || t("download.downloadFailed"));
           }
 
           await processDownloadResponse(response);
           break;
         }
 
-        toast.success("Download started", { id: downloadingToast });
+        toast.success(t("download.downloadStarted"), { id: downloadingToast });
         return;
       }
 
@@ -371,16 +373,16 @@ export const TrackDetailView: React.FC<TrackDetailViewProps> = ({
       });
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}));
-        throw new Error(errorData.error || errorData.message || "Download failed");
+        throw new Error(errorData.error || errorData.message || t("download.downloadFailed"));
       }
 
       await processDownloadResponse(response);
 
-      toast.success("Download started", { id: downloadingToast });
+      toast.success(t("download.downloadStarted"), { id: downloadingToast });
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : "Unable to download file", { id: downloadingToast });
+      toast.error(error instanceof Error ? error.message : t("download.unableDownloadFile"), { id: downloadingToast });
     }
-  }, [mp4Author, mp4DomainName, ensureDownloadAccess]);
+  }, [mp4Author, mp4DomainName, ensureDownloadAccess, t]);
 
   const effectiveOnDownload = onDownload ?? internalDownload;
   const isDownloadableResolved = Boolean(trackInfo?.audioUrl && effectiveOnDownload);
@@ -456,8 +458,8 @@ export const TrackDetailView: React.FC<TrackDetailViewProps> = ({
 
   if (error || !trackInfo) {
     return (
-      <div className="flex h-full w-full flex-col items-center justify-center bg-background p-6 text-center space-y-4">
-        <p className="text-muted-foreground">{error || "Track not found"}</p>
+        <div className="flex h-full w-full flex-col items-center justify-center bg-background p-6 text-center space-y-4">
+        <p className="text-muted-foreground">{error || t("trackDetail.trackNotFound")}</p>
         {/* Removed the back button here */}
       </div>
     );
@@ -477,7 +479,7 @@ export const TrackDetailView: React.FC<TrackDetailViewProps> = ({
             onClick={() => trackInfo && effectiveOnPlayTrack?.(trackInfo)}
             disabled={!isPlayableResolved}
             className="group relative aspect-square w-full overflow-hidden rounded-2xl bg-foreground/5 dark:bg-white/10 disabled:cursor-not-allowed"
-            aria-label={isPlayingCurrent ? "Pause" : "Play"}
+            aria-label={isPlayingCurrent ? t("trackDetail.pause") : t("trackDetail.play")}
           >
             {trackInfo.coverImage ? (
               <Image
@@ -515,7 +517,7 @@ export const TrackDetailView: React.FC<TrackDetailViewProps> = ({
                 {trackInfo.title}
               </h1>
 
-              <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
+              <div className="flex flex-wrap items-center gap-2 text-sm text-muted-foreground">
                 {trackInfo.createdAt && (
                   <span className="inline-flex items-center gap-2">
                     <Calendar className="h-4 w-4" />
@@ -556,7 +558,7 @@ export const TrackDetailView: React.FC<TrackDetailViewProps> = ({
                 ) : (
                   <Play className="h-4 w-4" />
                 )}
-                <span>{isPlayingCurrent ? "Pause" : "Play"}</span>
+                <span>{isPlayingCurrent ? t("trackDetail.pause") : t("trackDetail.play")}</span>
               </Button>
 
               {effectiveOnDownload && (
@@ -585,12 +587,12 @@ export const TrackDetailView: React.FC<TrackDetailViewProps> = ({
                       }}
                     >
                     <Download className="h-4 w-4" />
-                      Download
+                      {t("trackDetail.download")}
                     </Button>
                   </DropdownMenuTrigger>
                   <DropdownMenuContent align="start" className="w-40 p-1.5 rounded-2xl app-card">
-                    <div className="px-2 py-1 text-[10px] text-muted-foreground uppercase">
-                      Advanced Features
+                    <div className="px-2 py-1 text-xs text-muted-foreground uppercase">
+                      {t("trackDetail.advancedFeatures")}
                     </div>
                     <DropdownMenuItem
                       className="cursor-pointer text-sm"
@@ -605,7 +607,7 @@ export const TrackDetailView: React.FC<TrackDetailViewProps> = ({
                         setDownloadMenuOpen(false);
                       }}
                     >
-                      MP3
+                      {t("trackDetail.mp3")}
                     </DropdownMenuItem>
                     <DropdownMenuItem
                       className="cursor-pointer text-sm"
@@ -620,7 +622,7 @@ export const TrackDetailView: React.FC<TrackDetailViewProps> = ({
                         setDownloadMenuOpen(false);
                       }}
                     >
-                      WAV
+                      {t("trackDetail.wav")}
                     </DropdownMenuItem>
                     <DropdownMenuItem
                       className="cursor-pointer text-sm"
@@ -643,7 +645,7 @@ export const TrackDetailView: React.FC<TrackDetailViewProps> = ({
                         setDownloadMenuOpen(false);
                       }}
                     >
-                      MP4
+                      {t("trackDetail.mp4")}
                     </DropdownMenuItem>
                   </DropdownMenuContent>
                 </DropdownMenu>
@@ -654,7 +656,7 @@ export const TrackDetailView: React.FC<TrackDetailViewProps> = ({
                 className="app-card-muted app-hairline rounded-full px-4 text-foreground/75 hover:text-accent-foreground"
               >
                 {copied ? <Check className="h-4 w-4" /> : <Share2 className="h-4 w-4" />}
-                <span>{copied ? "Copied" : "Share"}</span>
+                <span>{copied ? t("trackDetail.copied") : t("trackDetail.share")}</span>
               </Button>
             </div>
           </div>
@@ -679,11 +681,11 @@ export const TrackDetailView: React.FC<TrackDetailViewProps> = ({
       <section className="app-card rounded-[28px] p-5 sm:p-6 md:p-7">
         <div className="flex items-center justify-between gap-3 pb-3">
           <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.2em] text-muted-foreground">
-            Lyrics
+            {t("trackDetail.lyrics")}
           </div>
         </div>
 
-        <div className="space-y-3 text-[15px] leading-7 text-foreground/80">
+        <div className="space-y-3 text-sm leading-7 text-foreground/80">
           {trackInfo.lyrics?.trim()
             ? trackInfo.lyrics.split(/\n{2,}/).map((block, idx) => (
                 <p key={`${block}-${idx}`} className="whitespace-pre-line">
@@ -692,7 +694,7 @@ export const TrackDetailView: React.FC<TrackDetailViewProps> = ({
               ))
             : (
               <p className="text-muted-foreground">
-                No lyrics yet.
+                {t("trackDetail.noLyricsYet")}
               </p>
             )}
         </div>
