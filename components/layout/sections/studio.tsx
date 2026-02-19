@@ -1003,7 +1003,7 @@ const StudioContent = ({ feature, FeaturePanel, panelMode, lockPanelMode }: Stud
                 className="relative h-full flex flex-col md:flex-row md:gap-0 md:px-4 md:py-0 transition-[margin] duration-500"
                 style={{ marginLeft: 'var(--sidebar-offset, 0px)' }}
             >
-                <div className="hidden md:block md:order-2 flex-shrink-0 md:pr-4">
+                <div className="hidden md:block md:order-2 flex-shrink-0 md:pr-2 md:py-2">
                     <FeaturePanel
                         {...featurePanelProps}
                         panelOpen={panelOpen}
@@ -1024,7 +1024,7 @@ const StudioContent = ({ feature, FeaturePanel, panelMode, lockPanelMode }: Stud
                 </div>
 
                 <div 
-                    className="flex-1 min-w-0 h-full flex z-10 md:order-3 relative pb-[calc(var(--mobile-nav-height,64px)+var(--player-height,48px)+1rem)] md:pb-0 md:pl-4 md:shadow-[-1px_0_0_rgba(0,0,0,0.06)] md:dark:shadow-[-1px_0_0_rgba(255,255,255,0.08)]"
+                    className="flex-1 min-w-0 h-full flex z-10 md:order-3 relative pb-[calc(var(--mobile-nav-height,64px)+var(--player-height,48px)+1rem)] md:pb-0 md:pl-2"
                     style={{
                         paddingBottom: player.currentTrack 
                             ? undefined
@@ -1042,7 +1042,7 @@ const StudioContent = ({ feature, FeaturePanel, panelMode, lockPanelMode }: Stud
                 </div>
 
                     <div className="flex flex-col flex-1 min-h-0 min-w-0">
-                        <div className="relative flex flex-col flex-1 min-h-0 min-w-0 px-0 md:px-0">
+                        <div className="relative flex flex-col flex-1 min-h-0 min-w-0 px-0 md:px-0 md:py-2">
                                 <div className="flex-1 min-h-0 md:hidden">
                                     <StudioTracksList
                                         userTracks={convertUserTracksToMusicGeneration(userTracks)}
@@ -1071,7 +1071,7 @@ const StudioContent = ({ feature, FeaturePanel, panelMode, lockPanelMode }: Stud
                                     />
                                 </div>
 
-                                <div className="hidden md:block min-h-0 h-full">
+                                <div className="hidden md:flex md:flex-col min-h-0 flex-1 studio-panel-cards overflow-hidden">
                                     <StudioTracksList
                                         userTracks={convertUserTracksToMusicGeneration(userTracks)}
                                         isLoading={isInitialUserTracksLoading}
@@ -1111,12 +1111,14 @@ const StudioContent = ({ feature, FeaturePanel, panelMode, lockPanelMode }: Stud
                                     />
 
                                     <div
-                                        className={`absolute right-0 top-0 h-full w-full max-w-[min(90vw,400px)] md:right-0 md:max-w-[20rem] transform-gpu transition-transform duration-300 ease-out ${
+                                        className={`absolute right-0 top-0 h-full w-full max-w-[min(90vw,400px)] md:right-0 md:max-w-[20rem] ${
+                                            player.currentTrack ? 'md:h-[calc(100%-var(--player-height,0px)-1rem)]' : ''
+                                        } transform-gpu transition-transform duration-300 ease-out ${
                                             showInlinePanel ? 'translate-x-0' : 'translate-x-full'
                                         }`}
                                     >
                                         {showInlinePanel && (
-                                            <div className="h-full p-2 md:py-4 md:pl-3 md:pr-0">
+                                            <div className="h-full p-2 md:py-2 md:pl-3 md:pr-0">
                                                 <InlineTrackDetailsPanel
                                                     track={inlineTrackDetails}
                                                     isPlaying={isInlineTrackPlaying}

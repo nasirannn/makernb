@@ -1,7 +1,7 @@
 "use client";
 
 import React from "react";
-import { Check, Crown } from "lucide-react";
+import { Crown } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -150,10 +150,10 @@ export const ModelSelectionDialog: React.FC<ModelSelectionDialogProps> = ({
                   type="button"
                   onClick={() => setPendingModel(option.value)}
                   className={cn(
-                    "group relative w-full cursor-pointer overflow-hidden rounded-2xl border px-4 py-3.5 text-left transition-all duration-200",
+                    "group relative w-full cursor-pointer overflow-hidden rounded-2xl border px-4 py-3.5 text-left transition-all duration-200 hover:-translate-y-0.5 motion-reduce:hover:translate-y-0",
                     isSelected
-                      ? "animate-border-marquee animate-border-marquee-slow border-transparent bg-[linear-gradient(145deg,rgba(240,249,255,0.96),rgba(238,242,255,0.92))] shadow-[inset_0_1px_0_rgba(255,255,255,0.72),0_12px_24px_rgba(14,165,233,0.16)] dark:border-transparent dark:bg-none dark:bg-primary/16 dark:shadow-[inset_0_1px_0_rgba(255,255,255,0.05)]"
-                      : "border-black/10 bg-white/90 hover:border-black/20 hover:bg-white/95 hover:shadow-[0_8px_18px_rgba(2,8,23,0.08)] dark:border-white/12 dark:bg-white/[0.06] dark:hover:border-white/20 dark:hover:bg-white/[0.1] dark:hover:shadow-[0_10px_20px_rgba(0,0,0,0.24)]",
+                      ? "animate-border-marquee animate-border-marquee-slow border-transparent bg-[linear-gradient(145deg,rgba(255,255,255,0.24),hsl(var(--primary)/0.20))] shadow-[0_10px_22px_rgba(37,99,235,0.08)] dark:border-white/[0.16] dark:bg-[linear-gradient(145deg,rgba(30,41,59,0.58),rgba(15,23,42,0.74))]"
+                      : "border-white/[0.14] bg-[linear-gradient(145deg,rgba(255,255,255,0.22),rgba(255,255,255,0.12))] shadow-[inset_0_1px_0_rgba(255,255,255,0.12)] dark:border-transparent dark:bg-primary/16 dark:shadow-[inset_0_1px_0_rgba(255,255,255,0.05)]",
                     "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/55 focus-visible:ring-offset-2 focus-visible:ring-offset-background",
                     isLocked && "opacity-85"
                   )}
@@ -164,15 +164,22 @@ export const ModelSelectionDialog: React.FC<ModelSelectionDialogProps> = ({
                     className={cn(
                       "pointer-events-none absolute inset-0",
                       isSelected
-                        ? "bg-[radial-gradient(110%_90%_at_0%_0%,rgba(255,255,255,0.34),transparent_54%)] dark:bg-[radial-gradient(110%_90%_at_0%_0%,rgba(255,255,255,0.06),transparent_58%)]"
-                        : "bg-[radial-gradient(110%_90%_at_0%_0%,rgba(255,255,255,0.2),transparent_56%)] dark:bg-[radial-gradient(110%_90%_at_0%_0%,rgba(255,255,255,0.11),transparent_58%)]"
+                        ? "bg-[radial-gradient(120%_95%_at_0%_0%,rgba(255,255,255,0.34),rgba(56,189,248,0.04)_42%,transparent_72%)] dark:bg-[radial-gradient(110%_90%_at_0%_0%,rgba(148,163,184,0.2),transparent_60%)]"
+                        : "bg-[radial-gradient(110%_90%_at_0%_0%,rgba(255,255,255,0.12),transparent_58%)] dark:bg-[radial-gradient(110%_90%_at_0%_0%,rgba(255,255,255,0.06),transparent_58%)]"
                     )}
                   />
 
                   <div className="flex items-start justify-between gap-3">
                     <div className="min-w-0">
                       <div className="flex flex-wrap items-center gap-2">
-                        <h3 className="text-[1.15rem] leading-none font-semibold tracking-tight text-foreground">
+                        <h3
+                          className={cn(
+                            "text-[1.15rem] leading-none font-semibold tracking-tight transition-colors",
+                            isSelected
+                              ? "text-slate-900 dark:text-foreground"
+                              : "text-foreground/85 dark:text-foreground/90"
+                          )}
+                        >
                           {option.label}
                         </h3>
                         {option.highlightBadges?.map((badge, index) => (
@@ -188,13 +195,27 @@ export const ModelSelectionDialog: React.FC<ModelSelectionDialogProps> = ({
                           </span>
                         ))}
                         {isLocked && option.tierHint ? (
-                          <span className="inline-flex items-center rounded-full border border-black/12 bg-white/75 px-2 py-0.5 text-[10px] font-medium text-foreground/75 dark:border-white/15 dark:bg-white/[0.12] dark:text-foreground/85">
+                          <span
+                            className={cn(
+                              "inline-flex items-center rounded-full px-2.5 py-1 text-[10px] font-semibold transition-colors",
+                              isSelected
+                                ? "bg-white/50 text-slate-700 dark:bg-white/[0.14] dark:text-foreground/90"
+                                : "bg-foreground/5 text-foreground/75 dark:bg-white/[0.08] dark:text-foreground/80"
+                            )}
+                          >
                             Requires {option.tierHint}
                           </span>
                         ) : null}
                       </div>
 
-                      <p className="mt-1.5 text-sm leading-[1.45] text-muted-foreground">
+                      <p
+                        className={cn(
+                          "mt-1.5 text-sm leading-[1.45] transition-colors",
+                          isSelected
+                            ? "text-slate-700 dark:text-foreground/75"
+                            : "text-foreground/70 dark:text-foreground/72"
+                        )}
+                      >
                         {option.description}
                       </p>
 
@@ -203,10 +224,10 @@ export const ModelSelectionDialog: React.FC<ModelSelectionDialogProps> = ({
                           <span
                             key={`${option.value}-${capability}`}
                             className={cn(
-                              "inline-flex items-center rounded-full border px-2.5 py-1 text-[10px] font-medium leading-none tracking-[0.01em] transition-colors",
+                              "inline-flex items-center rounded-full px-2.5 py-1 text-[10px] font-semibold leading-none tracking-[0.01em] transition-colors",
                               isSelected
-                                ? "border-transparent bg-primary text-primary-foreground"
-                                : "border-black/10 bg-white/72 text-foreground/80 dark:border-white/15 dark:bg-white/[0.1] dark:text-foreground/85"
+                                ? "bg-white/58 text-slate-800 dark:bg-white/[0.16] dark:text-foreground/95"
+                                : "bg-foreground/5 text-foreground/72 dark:bg-white/[0.08] dark:text-foreground/80"
                             )}
                           >
                             {capability}
@@ -215,11 +236,6 @@ export const ModelSelectionDialog: React.FC<ModelSelectionDialogProps> = ({
                       </div>
                     </div>
 
-                    {isSelected ? (
-                      <span className="mt-0.5 inline-flex h-6 min-w-6 items-center justify-center rounded-full bg-primary text-primary-foreground shadow-[0_8px_16px_hsl(var(--primary)/0.34)]">
-                        <Check className="h-3.5 w-3.5" strokeWidth={2.5} />
-                      </span>
-                    ) : null}
                   </div>
                 </button>
               );

@@ -1,23 +1,20 @@
 "use client";
 
-import { usePathname, useSearchParams } from "next/navigation";
+import { usePathname } from "next/navigation";
 import { Navbar } from "./navbar";
 import { useCredits } from "@/contexts/CreditsContext";
 import { isStudioAreaPath } from "@/lib/studio-features";
 
 export const NavbarWrapper = () => {
   const pathname = usePathname();
-  const searchParams = useSearchParams();
   const { credits } = useCredits();
-  
-  const isStudioPath = isStudioAreaPath(pathname);
-  const hasTrackQuery = isStudioPath && Boolean(searchParams?.get("track"));
-  const hideNavbarPaths = ["/library", "/privacy", "/terms", "/refund", "/payment"];
+
+  const hideNavbarPaths = ["/privacy", "/terms", "/refund", "/payment"];
   const shouldHideNavbarByPath = hideNavbarPaths.some(path => 
     pathname === path || pathname?.startsWith(`${path}/`)
-  ) || isStudioPath;
+  ) || isStudioAreaPath(pathname) || pathname === "/library" || pathname?.startsWith("/library/");
 
-  if (shouldHideNavbarByPath && !hasTrackQuery) {
+  if (shouldHideNavbarByPath) {
     return null;
   }
   

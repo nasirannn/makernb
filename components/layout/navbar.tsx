@@ -107,6 +107,7 @@ export const Navbar = ({ credits = null }: NavbarProps) => {
   const [openDropdown, setOpenDropdown] = React.useState<DropdownKey | null>(null);
   const [openMobileDropdown, setOpenMobileDropdown] = React.useState<DropdownKey | null>(null);
   const [dropdownTimeout, setDropdownTimeout] = React.useState<NodeJS.Timeout | null>(null);
+  const userMenuHoverTimeoutRef = React.useRef<NodeJS.Timeout | null>(null);
   const pathname = usePathname();
   const { user, signOut, loading: authLoading } = useAuth();
   const { tierCode, tierName, hasSubscription, cancelAtPeriodEnd, cancelAt, currentPeriodEnd } = useSubscription();
@@ -136,6 +137,10 @@ export const Navbar = ({ credits = null }: NavbarProps) => {
     if (options?.closeMobileMenu) {
       setIsOpen(false);
     }
+    if (userMenuHoverTimeoutRef.current) {
+      clearTimeout(userMenuHoverTimeoutRef.current);
+      userMenuHoverTimeoutRef.current = null;
+    }
     setIsUserMenuOpen(false);
     openModal();
   };
@@ -154,6 +159,24 @@ export const Navbar = ({ credits = null }: NavbarProps) => {
       setOpenDropdown(null);
     }, 150); // 150ms延迟
     setDropdownTimeout(timeout);
+  };
+
+  const handleUserMenuMouseEnter = () => {
+    if (userMenuHoverTimeoutRef.current) {
+      clearTimeout(userMenuHoverTimeoutRef.current);
+      userMenuHoverTimeoutRef.current = null;
+    }
+    setIsUserMenuOpen(true);
+  };
+
+  const handleUserMenuMouseLeave = () => {
+    if (userMenuHoverTimeoutRef.current) {
+      clearTimeout(userMenuHoverTimeoutRef.current);
+    }
+    userMenuHoverTimeoutRef.current = setTimeout(() => {
+      setIsUserMenuOpen(false);
+      userMenuHoverTimeoutRef.current = null;
+    }, 120);
   };
 
   React.useEffect(() => {
@@ -209,6 +232,10 @@ export const Navbar = ({ credits = null }: NavbarProps) => {
       const inDropdownContainer = !!target?.closest('.dropdown-container');
       
       if (userMenuContainer && !userMenuContainer.contains(event.target as Node)) {
+        if (userMenuHoverTimeoutRef.current) {
+          clearTimeout(userMenuHoverTimeoutRef.current);
+          userMenuHoverTimeoutRef.current = null;
+        }
         setIsUserMenuOpen(false);
       }
       
@@ -228,6 +255,10 @@ export const Navbar = ({ credits = null }: NavbarProps) => {
     return () => {
       if (dropdownTimeout) {
         clearTimeout(dropdownTimeout);
+      }
+      if (userMenuHoverTimeoutRef.current) {
+        clearTimeout(userMenuHoverTimeoutRef.current);
+        userMenuHoverTimeoutRef.current = null;
       }
     };
   }, [dropdownTimeout]);
@@ -539,21 +570,32 @@ export const Navbar = ({ credits = null }: NavbarProps) => {
           <>
             <div 
               className="relative user-menu-container"
-              onClick={() => setIsUserMenuOpen(!isUserMenuOpen)}
+              onMouseEnter={handleUserMenuMouseEnter}
+              onMouseLeave={handleUserMenuMouseLeave}
             >
             {/* User Avatar */}
-            <Avatar 
-              className="w-10 h-10 cursor-pointer hover:scale-105 transition-transform duration-200"
+            <button
+              type="button"
+              onClick={() => setIsUserMenuOpen((prev) => !prev)}
+              onFocus={handleUserMenuMouseEnter}
+              className="rounded-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+              aria-haspopup="menu"
+              aria-expanded={isUserMenuOpen}
+              aria-label="Open user menu"
             >
-              <AvatarImage
-                src={user.user_metadata?.avatar_url || user.user_metadata?.picture || `https://api.dicebear.com/7.x/initials/svg?seed=${user.email}`}
-                alt="User Avatar"
-              />
-              <AvatarFallback className="bg-gradient-to-br from-purple-600 to-purple-600 text-white font-semibold text-sm">
-                {displayName?.charAt(0)?.toUpperCase() ||
-                 user.email?.charAt(0).toUpperCase()}
-              </AvatarFallback>
-            </Avatar>
+              <Avatar 
+                className="w-10 h-10 cursor-pointer hover:scale-105 transition-transform duration-200"
+              >
+                <AvatarImage
+                  src={user.user_metadata?.avatar_url || user.user_metadata?.picture || `https://api.dicebear.com/7.x/initials/svg?seed=${user.email}`}
+                  alt="User Avatar"
+                />
+                <AvatarFallback className="bg-gradient-to-br from-purple-600 to-purple-600 text-white font-semibold text-sm">
+                  {displayName?.charAt(0)?.toUpperCase() ||
+                   user.email?.charAt(0).toUpperCase()}
+                </AvatarFallback>
+              </Avatar>
+            </button>
 
             {/* User Dropdown Menu */}
             {isUserMenuOpen && (

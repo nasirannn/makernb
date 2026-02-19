@@ -206,17 +206,17 @@ const aiMusicToolsDropdown = [
 
   const expandedButtonClasses = (active: boolean) =>
     cn(
-      "group w-full h-12 flex items-center justify-start gap-3 rounded-2xl px-4 transition-colors duration-200",
+      "group w-full h-11 flex items-center justify-start gap-3 rounded-2xl px-3.5 transition-colors duration-200",
       active
-        ? "bg-foreground/10 text-foreground shadow-[0px_12px_30px_rgba(0,0,0,0.08)] hover:bg-accent hover:text-accent-foreground"
+        ? "bg-primary/15 text-primary hover:bg-primary/20 hover:text-primary"
         : "text-foreground/60 hover:bg-accent hover:text-accent-foreground"
     );
 
   const collapsedButtonClasses = (active: boolean) =>
     cn(
-      "group relative w-12 h-12 flex items-center justify-center rounded-2xl border border-transparent transition-colors duration-200",
+      "group relative w-11 h-11 flex items-center justify-center rounded-2xl border border-transparent transition-colors duration-200",
       active
-        ? "bg-foreground/10 text-foreground shadow-[0px_12px_30px_rgba(0,0,0,0.08)] hover:bg-accent hover:text-accent-foreground"
+        ? "bg-primary/15 text-primary hover:bg-primary/20 hover:text-primary"
         : "text-foreground/60 hover:bg-accent hover:text-accent-foreground"
     );
 
@@ -237,7 +237,7 @@ const aiMusicToolsDropdown = [
             className={cn(
               "h-5 w-5 flex-shrink-0 transition-colors",
               active
-                ? "text-primary group-hover:text-accent-foreground"
+                ? "text-primary group-hover:text-primary"
                 : "text-foreground/60 group-hover:text-accent-foreground"
             )}
           />
@@ -301,11 +301,11 @@ const aiMusicToolsDropdown = [
   return (
     <>
       <div
-        className={`hidden md:flex fixed left-0 top-0 bottom-0 ${getZIndexClass('SIDEBAR')} h-screen flex-col ${
+        className={`hidden md:flex fixed left-0 top-0 bottom-0 h-screen ${getZIndexClass('SIDEBAR')} flex-col ${
           isExpanded ? 'w-56' : 'w-[72px]'
         }`}
       >
-        <div className="flex h-full flex-col bg-background/70 backdrop-blur-md shadow-[1px_0_0_rgba(0,0,0,0.06)] dark:shadow-[1px_0_0_rgba(255,255,255,0.08)]">
+        <div className="flex h-full flex-col backdrop-blur-md">
           <div className="flex h-full flex-col">
             {/* Home Button */}
             <div className={`flex items-center h-[72px] px-4 ${isExpanded ? 'justify-between' : 'justify-center'}`}>
@@ -336,7 +336,7 @@ const aiMusicToolsDropdown = [
                     onClick={toggleSidebar}
                     variant="ghost"
                     size="sm"
-                    className="group relative w-12 h-12 flex items-center justify-center rounded-2xl text-foreground/60 hover:bg-black/5 hover:text-foreground"
+                    className="group relative w-11 h-11 flex items-center justify-center rounded-2xl text-foreground/60 hover:bg-black/5 hover:text-foreground"
                   >
                     <span className="absolute inset-0 flex items-center justify-center transition-opacity duration-150 group-hover:opacity-0 group-focus:opacity-0">
                       <Image
@@ -566,11 +566,11 @@ const aiMusicToolsDropdown = [
                   )}
                 </>
               )}
-            </div>
+              </div>
 
-            <div className={`flex-1 overflow-y-auto overflow-x-visible ${isExpanded ? 'px-4 pt-0' : 'px-2 pt-0'} pb-6`}>
-              <div className={`rounded-[28px] ${isExpanded ? 'p-3' : 'p-2'} ${isExpanded ? '' : 'flex flex-col items-center'}`}>
-                <div className={`flex flex-col ${isExpanded ? 'gap-2' : 'gap-3 items-center'}`}>
+            <div className={`flex-1 overflow-y-auto overflow-x-visible ${isExpanded ? 'px-4' : 'px-2'} pt-0 pb-6`}>
+              <div className={`rounded-[28px] p-0 ${isExpanded ? '' : 'flex flex-col items-center'}`}>
+                <div className={`flex flex-col ${isExpanded ? 'gap-2' : 'gap-2 items-center'}`}>
                   {studioFeatureNavItems.map(renderNavButton)}
                   {aiToolNavItems.map(renderNavButton)}
                   {exploreNavItems.map(renderNavButton)}

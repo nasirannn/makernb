@@ -2047,9 +2047,9 @@ export const MusicCoverPanel = (props: FeatureCreatePanelProps) => {
 
   return (
     <div
-      className={`studio-panel-cards bg-transparent transition-all duration-300 ease-in-out ${
+      className={`studio-panel-cards transition-all duration-300 ease-in-out ${
         // 桌面：左侧固定宽度；移动端：当 forceVisibleOnMobile=true 时占满宽度
-        panelOpen ? (forceVisibleOnMobile ? 'w-full md:w-[30rem]' : 'w-[30rem]') : 'w-0'
+        panelOpen ? (forceVisibleOnMobile ? 'w-full md:w-[32rem]' : 'w-[32rem]') : 'w-0'
       } ${forceVisibleOnMobile ? 'flex flex-col' : 'h-full flex flex-col overflow-hidden'} ${forceVisibleOnMobile ? 'flex md:flex' : 'hidden md:flex'}`}
       style={
         hasPlayer && !forceVisibleOnMobile

@@ -172,9 +172,11 @@
     background: linear-gradient(
       90deg,
       transparent 0%,
-      transparent 30%,
-      rgba(255, 255, 255, 0.8) 50%,
-      transparent 70%,
+      transparent 32%,
+      rgba(56, 189, 248, 0.46) 46%,
+      rgba(255, 255, 255, 0.84) 50%,
+      rgba(99, 102, 241, 0.42) 54%,
+      transparent 68%,
       transparent 100%
     );
     background-size: 200% 100%;
@@ -188,6 +190,11 @@
 
   .animate-border-marquee-slow::before {
     animation-duration: 12s;
+  }
+
+  .dark .animate-border-marquee::before {
+    animation: none;
+    opacity: 0;
   }
 
   /* ==========================================================================
@@ -239,6 +246,27 @@
     backdrop-filter: blur(10px) saturate(120%);
   }
 
+  .studio-panel-cards {
+    background: rgba(255, 255, 255, 0.82);
+    border: 1px solid rgba(0, 0, 0, 0.08);
+    border-radius: 1.5rem;
+    box-shadow: 0 20px 60px rgba(2, 8, 23, 0.1);
+    backdrop-filter: blur(12px) saturate(120%);
+    padding: 0.75rem;
+  }
+
+  .studio-panel-cards .studio-panel-card {
+    background: rgba(255, 255, 255, 0.94);
+    border: none;
+    box-shadow: 0 8px 20px rgba(2, 8, 23, 0.06);
+  }
+
+  @media (min-width: 768px) {
+    .studio-panel-cards {
+      padding: 0.875rem;
+    }
+  }
+
   .dark .app-shell {
     background-color: #05060b;
     background-image:
@@ -272,7 +300,18 @@
     backdrop-filter: blur(12px) saturate(125%);
   }
 
+  .dark .studio-panel-cards {
+    background: rgba(15, 16, 22, 0.9);
+    border: none;
+    box-shadow: 0 28px 70px rgba(0, 0, 0, 0.42);
+    backdrop-filter: blur(14px) saturate(125%);
+  }
 
+  .dark .studio-panel-cards .studio-panel-card {
+    background: rgba(26, 26, 30, 0.88);
+    border: none;
+    box-shadow: none;
+  }
 
   .sidebar-brand {
     position: relative;
@@ -375,6 +414,10 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
+  .animate-border-marquee::before {
+    animation: none !important;
+  }
+
   .audio-preview-sheen {
     animation: none !important;
   }

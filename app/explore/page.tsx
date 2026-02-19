@@ -401,11 +401,6 @@ export default function ExplorePage() {
     setLyricsTrackId(null);
   };
 
-  const handlePlayerLyricsToggle = useCallback(() => {
-    if (!currentlyPlaying) return;
-    setLyricsTrackId((prev) => (prev === currentlyPlaying ? null : currentlyPlaying));
-  }, [currentlyPlaying]);
-
   const inlineTrackDetails = React.useMemo(() => {
     if (!lyricsTrackId) return null;
 
@@ -775,12 +770,11 @@ export default function ExplorePage() {
               onPrevious={handlePrevious}
               onNext={handleNext}
               onSeek={handleSeek}
-	              onVolumeChange={handleVolumeChange}
-	              onMuteToggle={handleMuteToggle}
-	              onTrackChange={handleTrackChange}
-                onTrackInfoClick={handlePlayerLyricsToggle}
-	              onClose={handleClosePlayer}
-	            />
+		              onVolumeChange={handleVolumeChange}
+		              onMuteToggle={handleMuteToggle}
+		              onTrackChange={handleTrackChange}
+		              onClose={handleClosePlayer}
+		            />
 	          </div>
 	        </>
 	      )}

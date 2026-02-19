@@ -1608,7 +1608,7 @@ export const StudioTracksList: React.FC<StudioTracksListProps> = React.memo(func
             <DropdownMenuTrigger asChild>
               <button
                 type="button"
-                className="inline-flex studio-panel-card h-11 min-w-[130px] items-center justify-center gap-1.5 rounded-2xl px-3 text-xs md:text-sm font-semibold text-foreground/80 transition-colors hover:bg-accent hover:text-accent-foreground"
+                className="inline-flex studio-panel-card h-11 min-w-[130px] items-center justify-center gap-1.5 rounded-2xl px-3 text-xs md:text-sm font-semibold text-foreground/80 shadow-[0_1px_2px_rgba(0,0,0,0.06)] transition-colors hover:bg-accent hover:text-accent-foreground"
                 aria-label="Filter tracks by type"
                 title="Filter tracks by type"
               >
@@ -1646,7 +1646,7 @@ export const StudioTracksList: React.FC<StudioTracksListProps> = React.memo(func
           <button
             type="button"
             onClick={() => setCreatedAtSortOrder((prev) => (prev === 'desc' ? 'asc' : 'desc'))}
-            className={`inline-flex studio-panel-card h-11 w-[108px] items-center justify-center gap-1.5 rounded-2xl px-3 text-xs font-semibold transition-colors hover:bg-accent hover:text-accent-foreground ${
+            className={`inline-flex studio-panel-card h-11 w-[108px] items-center justify-center gap-1.5 rounded-2xl px-3 text-xs font-semibold shadow-[0_1px_2px_rgba(0,0,0,0.06)] transition-colors hover:bg-accent hover:text-accent-foreground ${
               createdAtSortOrder === 'desc'
                 ? 'text-foreground'
                 : 'text-foreground/80'

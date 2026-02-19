@@ -358,11 +358,6 @@ export const ExploreSection = () => {
     void playTrack(index);
   };
 
-  const handlePlayerLyricsToggle = React.useCallback(() => {
-    if (!currentlyPlaying) return;
-    setLyricsTrackId((prev) => (prev === currentlyPlaying ? null : currentlyPlaying));
-  }, [currentlyPlaying]);
-
   const handleClosePlayer = () => {
     audioPlayer.clearCurrentTrack();
     setCurrentlyPlaying(null);
@@ -694,7 +689,6 @@ export const ExploreSection = () => {
                 onVolumeChange={handleVolumeChange}
                 onMuteToggle={handleMuteToggle}
                 onTrackChange={handleTrackChange}
-                onTrackInfoClick={handlePlayerLyricsToggle}
                 onClose={handleClosePlayer}
               />
             </div>
