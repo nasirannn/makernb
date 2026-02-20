@@ -4,15 +4,17 @@ import { usePathname } from "next/navigation";
 import { Navbar } from "./navbar";
 import { useCredits } from "@/contexts/CreditsContext";
 import { isStudioAreaPath } from "@/lib/studio-features";
+import { stripLocalePrefix } from "@/lib/i18n/routing";
 
 export const NavbarWrapper = () => {
   const pathname = usePathname();
+  const normalizedPathname = stripLocalePrefix(pathname);
   const { credits } = useCredits();
 
   const hideNavbarPaths = ["/privacy", "/terms", "/refund", "/payment"];
   const shouldHideNavbarByPath = hideNavbarPaths.some(path => 
-    pathname === path || pathname?.startsWith(`${path}/`)
-  ) || isStudioAreaPath(pathname) || pathname === "/library" || pathname?.startsWith("/library/");
+    normalizedPathname === path || normalizedPathname.startsWith(`${path}/`)
+  ) || isStudioAreaPath(pathname) || normalizedPathname === "/library" || normalizedPathname.startsWith("/library/");
 
   if (shouldHideNavbarByPath) {
     return null;

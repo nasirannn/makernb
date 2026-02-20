@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { SubscriptionBadge } from "@/components/ui/subscription-badge";
-import { Music, Music2, Library, Sparkles, Sun, LogOut, BookOpen, LogIn, Split, FileText, Disc3, Wand2, RefreshCw, Expand, PanelLeftClose, PanelLeftOpen, PencilLine, Coins, Blend, AudioLines, Ellipsis } from "lucide-react";
+import { Music, Music2, Library, Sparkles, LogOut, BookOpen, LogIn, Split, FileText, Disc3, Wand2, RefreshCw, Expand, PencilLine, Coins, Blend, AudioLines, Ellipsis, Pin, PinOff } from "lucide-react";
 import { usePathname, useRouter } from "next/navigation";
 import Image from "next/image";
 import Link from "next/link";
@@ -24,6 +24,7 @@ import { getZIndexClass } from "@/lib/z-index";
 import { formatIsoDateUTC, formatLocalizedNumber } from "@/lib/locale-format";
 import { getStudioFeatureDefinition, isStudioAreaPath, type StudioFeatureKey } from "@/lib/studio-features";
 import { useI18n } from "@/lib/i18n/provider";
+import { stripLocalePrefix, withLocalePrefix } from "@/lib/i18n/routing";
 
 interface CommonSidebarProps {
   // 移除 isGenerating 参数，因为不再需要显示生成状态
@@ -31,6 +32,7 @@ interface CommonSidebarProps {
   onWidthChange?: (width: number) => void;
   collapsedWidth?: number;
   expandedWidth?: number;
+  variant?: "default" | "studio";
 }
 
 type SidebarNavItem = {
@@ -41,6 +43,8 @@ type SidebarNavItem = {
 };
 
 const SIDEBAR_EXPANDED_STORAGE_KEY = "makernb.sidebar.expanded";
+const SIDEBAR_TOGGLE_EVENT = "makernb:sidebar-toggle";
+const STUDIO_SIDEBAR_WIDTH_VAR = "--studio-sidebar-width";
 
 const SIDEBAR_STUDIO_FEATURE_ORDER: StudioFeatureKey[] = [
   "music-generator",
@@ -96,15 +100,19 @@ export const CommonSidebar = ({
   hideMobileNav = false,
   onWidthChange,
   collapsedWidth = 72,
-  expandedWidth = 224
+  expandedWidth = 224,
+  variant = "default",
 }: CommonSidebarProps) => {
-  const { t } = useI18n();
+  const isStudioVariant = variant === "studio";
+  const { t, locale } = useI18n();
   const pathname = usePathname();
+  const normalizedPathname = React.useMemo(() => stripLocalePrefix(pathname), [pathname]);
   const router = useRouter();
   const { user, signOut } = useAuth();
   const { credits, refreshCredits } = useCredits();
   const { tierCode, tierName, hasSubscription, cancelAtPeriodEnd, cancelAt, currentPeriodEnd } = useSubscription();
   const { openModal } = usePricingModal();
+  const withCurrentLocale = React.useCallback((path: string) => withLocalePrefix(path, locale), [locale]);
   const getStudioFeatureLabel = React.useCallback(
     (featureKey: StudioFeatureKey) => t(STUDIO_FEATURE_LABEL_KEYS[featureKey]),
     [t]
@@ -112,19 +120,23 @@ export const CommonSidebar = ({
 
   // 判断是否选中某个路径
   const isActive = (path: string) => {
-    return pathname === path || pathname?.startsWith(`${path}/`);
+    return normalizedPathname === path || normalizedPathname.startsWith(`${path}/`);
   };
 
   const [userMenuOpen, setUserMenuOpen] = React.useState(false);
   const [isAuthModalOpen, setIsAuthModalOpen] = React.useState(false);
   const [isDropdownOpen, setIsDropdownOpen] = React.useState(false);
   const [isRefreshingCredits, setIsRefreshingCredits] = React.useState(false);
-  const [isExpanded, setIsExpanded] = React.useState(readSidebarExpandedFromStorage);
+  const [isExpanded, setIsExpanded] = React.useState(() => (isStudioVariant ? false : readSidebarExpandedFromStorage()));
+  const [isStudioDrawerOpen, setIsStudioDrawerOpen] = React.useState(false);
   const [isNicknameDialogOpen, setIsNicknameDialogOpen] = React.useState(false);
   const [isCollapsedCreditsHovered, setIsCollapsedCreditsHovered] = React.useState(false);
   const [suppressCollapsedCreditsHover, setSuppressCollapsedCreditsHover] = React.useState(false);
   const collapsedCreditsHoverRef = React.useRef(false);
+  const studioHoverTimeoutRef = React.useRef<ReturnType<typeof setTimeout> | null>(null);
   const mobileNavRef = React.useRef<HTMLDivElement | null>(null);
+  const isSidebarExpanded = isStudioVariant ? (isExpanded || isStudioDrawerOpen) : isExpanded;
+  const isStudioHoverExpanded = isStudioVariant && !isExpanded && isStudioDrawerOpen;
   const displayName = user?.user_metadata?.nickname || user?.user_metadata?.full_name || user?.user_metadata?.name || user?.email?.split('@')[0] || '';
   const formatDisplayDate = React.useCallback((dateValue?: string | null) => {
     if (!dateValue) return null;
@@ -148,7 +160,21 @@ export const CommonSidebar = ({
   };
 
   // 切换sidebar展开/收起状态
-  const toggleSidebar = () => {
+  const toggleSidebar = React.useCallback(() => {
+    if (isStudioVariant) {
+      if (studioHoverTimeoutRef.current) {
+        clearTimeout(studioHoverTimeoutRef.current);
+        studioHoverTimeoutRef.current = null;
+      }
+      if (isExpanded) {
+        setIsExpanded(false);
+        setIsStudioDrawerOpen(false);
+      } else {
+        setIsStudioDrawerOpen(false);
+        setIsExpanded(true);
+      }
+      return;
+    }
     setIsExpanded((prev) => {
       const next = !prev;
       try {
@@ -158,11 +184,38 @@ export const CommonSidebar = ({
       }
       return next;
     });
-  };
+  }, [isExpanded, isStudioVariant]);
 
   React.useEffect(() => {
-    onWidthChange?.(isExpanded ? expandedWidth : collapsedWidth);
-  }, [isExpanded, onWidthChange, expandedWidth, collapsedWidth]);
+    if (typeof window === "undefined") return;
+    const handleExternalToggle = () => {
+      toggleSidebar();
+    };
+    window.addEventListener(SIDEBAR_TOGGLE_EVENT, handleExternalToggle);
+    return () => {
+      window.removeEventListener(SIDEBAR_TOGGLE_EVENT, handleExternalToggle);
+    };
+  }, [toggleSidebar]);
+
+  React.useEffect(() => {
+    if (isStudioVariant || !onWidthChange) return;
+    onWidthChange(isExpanded ? expandedWidth : collapsedWidth);
+  }, [collapsedWidth, expandedWidth, isExpanded, isStudioVariant, onWidthChange]);
+
+  React.useEffect(() => {
+    if (!isStudioVariant || typeof document === "undefined") return;
+    document.documentElement.style.setProperty(
+      STUDIO_SIDEBAR_WIDTH_VAR,
+      `${isExpanded ? expandedWidth : collapsedWidth}px`
+    );
+  }, [collapsedWidth, expandedWidth, isExpanded, isStudioVariant]);
+
+  React.useEffect(() => {
+    if (!isStudioVariant || typeof document === "undefined") return;
+    return () => {
+      document.documentElement.style.removeProperty(STUDIO_SIDEBAR_WIDTH_VAR);
+    };
+  }, [isStudioVariant]);
 
   // AI Music Tools dropdown items
   const aiMusicToolsDropdown = React.useMemo(
@@ -229,6 +282,58 @@ export const CommonSidebar = ({
     }
   }, [userMenuOpen, isDropdownOpen]);
 
+  React.useEffect(() => {
+    if (!isStudioVariant) return;
+    setIsStudioDrawerOpen(false);
+    setUserMenuOpen(false);
+  }, [isStudioVariant, normalizedPathname]);
+
+  React.useEffect(() => {
+    if (!isStudioVariant || !isStudioDrawerOpen) return;
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") {
+        setIsStudioDrawerOpen(false);
+      }
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => {
+      window.removeEventListener("keydown", handleKeyDown);
+    };
+  }, [isStudioVariant, isStudioDrawerOpen]);
+
+  React.useEffect(() => {
+    if (!isStudioVariant || isSidebarExpanded) return;
+    setUserMenuOpen(false);
+  }, [isSidebarExpanded, isStudioVariant]);
+
+  React.useEffect(() => {
+    return () => {
+      if (studioHoverTimeoutRef.current) {
+        clearTimeout(studioHoverTimeoutRef.current);
+      }
+    };
+  }, []);
+
+  const handleStudioSidebarMouseEnter = React.useCallback(() => {
+    if (!isStudioVariant || isExpanded) return;
+    if (studioHoverTimeoutRef.current) {
+      clearTimeout(studioHoverTimeoutRef.current);
+      studioHoverTimeoutRef.current = null;
+    }
+    setIsStudioDrawerOpen(true);
+  }, [isExpanded, isStudioVariant]);
+
+  const handleStudioSidebarMouseLeave = React.useCallback(() => {
+    if (!isStudioVariant || isExpanded) return;
+    if (studioHoverTimeoutRef.current) {
+      clearTimeout(studioHoverTimeoutRef.current);
+    }
+    studioHoverTimeoutRef.current = setTimeout(() => {
+      setIsStudioDrawerOpen(false);
+      studioHoverTimeoutRef.current = null;
+    }, 120);
+  }, [isExpanded, isStudioVariant]);
+
   const studioFeatureNavItems: SidebarNavItem[] = React.useMemo(() => {
     const featureItems = SIDEBAR_STUDIO_FEATURE_ORDER.map((featureKey) => {
       const feature = getStudioFeatureDefinition(featureKey);
@@ -276,12 +381,18 @@ export const CommonSidebar = ({
   const renderNavButton = (item: SidebarNavItem) => {
     const Icon = item.icon;
     const active = isActive(item.href);
+    const handleNavigate = () => {
+      if (isStudioVariant) {
+        setIsStudioDrawerOpen(false);
+      }
+      router.push(withCurrentLocale(item.href));
+    };
 
-    if (isExpanded) {
+    if (isSidebarExpanded) {
       return (
         <Button
           key={item.href}
-          onClick={() => router.push(item.href)}
+          onClick={handleNavigate}
           variant="ghost"
           size="sm"
           className={expandedButtonClasses(active)}
@@ -309,7 +420,7 @@ export const CommonSidebar = ({
     return (
       <Tooltip key={item.href} content={item.label} position="right">
         <Button
-          onClick={() => router.push(item.href)}
+          onClick={handleNavigate}
           variant="ghost"
           size="sm"
           className={collapsedButtonClasses(active)}
@@ -329,7 +440,7 @@ export const CommonSidebar = ({
   const handleSignOut = async () => {
     try {
       await signOut();
-      router.push('/');
+      router.push(withCurrentLocale("/"));
     } catch (error) {
       console.error('Error signing out:', error);
     }
@@ -353,72 +464,76 @@ export const CommonSidebar = ({
 
   return (
     <>
+      {isStudioVariant && (
+        <div
+          aria-hidden="true"
+          className={cn(
+            "hidden md:block fixed inset-0 top-0 z-[50] bg-background/20 backdrop-blur-[1px] transition-opacity duration-200 pointer-events-none",
+            isStudioHoverExpanded ? "opacity-100" : "opacity-0"
+          )}
+        />
+      )}
       <div
-        className={`hidden md:flex fixed left-0 top-0 bottom-0 h-screen ${getZIndexClass('SIDEBAR')} flex-col ${
-          isExpanded ? 'w-56' : 'w-[72px]'
-        }`}
+        onMouseEnter={handleStudioSidebarMouseEnter}
+        onMouseLeave={handleStudioSidebarMouseLeave}
+        className={cn(
+          "hidden md:flex fixed left-0 bottom-0 flex-col",
+          isStudioVariant
+            ? `top-0 z-[55] transition-[width,box-shadow] duration-200 ease-out ${isStudioHoverExpanded ? "shadow-[0_30px_60px_rgba(2,8,23,0.22)]" : "shadow-none"}`
+            : `top-0 ${getZIndexClass('SIDEBAR')} ${isExpanded ? 'w-56' : 'w-[72px]'}`,
+        )}
+        style={isStudioVariant ? { width: isSidebarExpanded ? expandedWidth : collapsedWidth } : undefined}
       >
-        <div className="flex h-full flex-col backdrop-blur-md">
-          <div className="flex h-full flex-col">
+        <div className="relative flex h-full flex-col backdrop-blur-md">
+          <div className="relative z-10 flex h-full flex-col">
             {/* Home Button */}
-            <div className={`flex items-center h-[72px] px-4 ${isExpanded ? 'justify-between' : 'justify-center'}`}>
-              {isExpanded ? (
-                <>
-                  <Link href="/" className="flex items-center gap-3 hover:opacity-90 transition-opacity">
-                    <Image
-                      src="/logo.svg"
-                      alt={t("common.brandLogo")}
-                      width={32}
-                      height={32}
-                      className="h-8 w-8"
-                    />
-                    <span className="sidebar-brand">MakeRNB</span>
-                  </Link>
-                  <Button
-                    onClick={toggleSidebar}
-                    variant="ghost"
-                    size="sm"
-                    className="w-8 h-8 p-0 flex items-center justify-center rounded-xl text-foreground/60 hover:bg-black/5 hover:text-foreground"
-                  >
-                    <PanelLeftClose className="h-4 w-4" />
-                  </Button>
-                </>
-              ) : (
-                <Tooltip content={t("nav.expandSidebar")} position="right">
-                  <Button
-                    onClick={toggleSidebar}
-                    variant="ghost"
-                    size="sm"
-                    className="group relative w-11 h-11 flex items-center justify-center rounded-2xl text-foreground/60 hover:bg-black/5 hover:text-foreground"
-                  >
-                    <span className="absolute inset-0 flex items-center justify-center transition-opacity duration-150 group-hover:opacity-0 group-focus:opacity-0">
-                      <Image
-                        src="/logo.svg"
-                        alt={t("common.brandLogo")}
-                        width={28}
-                        height={28}
-                        className="h-7 w-7"
-                      />
-                    </span>
-                    <span className="absolute inset-0 flex items-center justify-center opacity-0 transition-opacity duration-150 group-hover:opacity-100 group-focus:opacity-100">
-                      <PanelLeftOpen className="h-5 w-5" />
-                    </span>
-                    <span className="sr-only">{t("nav.expandSidebarSrOnly")}</span>
-                  </Button>
-                </Tooltip>
+            <div className={`flex items-center h-[72px] px-4 ${isSidebarExpanded ? 'justify-start' : 'justify-center'}`}>
+              <Link
+                href={withCurrentLocale("/")}
+                className={cn(
+                  "hover:opacity-90 transition-opacity",
+                  isSidebarExpanded
+                    ? "flex h-11 items-center gap-3 pl-1"
+                    : "group relative w-11 h-11 flex items-center justify-center rounded-2xl text-foreground/60 hover:bg-black/5 hover:text-foreground"
+                )}
+              >
+                <Image
+                  src="/logo.svg"
+                  alt={t("common.brandLogo")}
+                  width={32}
+                  height={32}
+                  className="h-8 w-8"
+                />
+                {isSidebarExpanded && <span className="sidebar-brand">MakeRNB</span>}
+              </Link>
+              {isStudioVariant && (
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  onClick={toggleSidebar}
+                  className="absolute right-2 h-9 w-9 rounded-2xl text-foreground/60 hover:bg-foreground/5 hover:text-foreground"
+                  aria-label={isExpanded ? t("nav.collapseSidebarSrOnly") : t("nav.expandSidebarSrOnly")}
+                >
+                  {isExpanded ? (
+                    <PinOff className="h-4 w-4" />
+                  ) : (
+                    <Pin className="h-4 w-4" />
+                  )}
+                </Button>
               )}
             </div>
 
-            <div className={`${isExpanded ? 'px-4 pt-1 pb-1' : 'px-2 pt-1 pb-1'} flex flex-col gap-2`}>
+            <div className={`${isSidebarExpanded ? 'px-4 pt-1 pb-2' : 'px-2 pt-1 pb-2'} flex flex-col gap-2`}>
               {user ? (
                 <>
-                  {isExpanded ? (
+                  {isSidebarExpanded ? (
                     <div className="relative user-menu-container z-[40]">
                       <Button
                         onClick={() => setUserMenuOpen(!userMenuOpen)}
                         variant="ghost"
                         size="sm"
-                        className="w-full h-14 rounded-2xl bg-transparent hover:bg-muted/60 flex items-center gap-3 px-4"
+                        className="w-full h-14 rounded-2xl bg-foreground/[0.04] dark:bg-white/[0.08] hover:bg-foreground/[0.08] dark:hover:bg-white/[0.12] flex items-center gap-3 px-4"
                       >
                         <Avatar className="w-9 h-9 flex-shrink-0">
                           <AvatarImage
@@ -593,7 +708,7 @@ export const CommonSidebar = ({
                 </>
               ) : (
                 <>
-                  {isExpanded ? (
+                  {isSidebarExpanded ? (
                     <Button
                       onClick={() => setIsAuthModalOpen(true)}
                       variant="ghost"
@@ -619,11 +734,11 @@ export const CommonSidebar = ({
                   )}
                 </>
               )}
-              </div>
+            </div>
 
-            <div className={`flex-1 overflow-y-auto overflow-x-visible ${isExpanded ? 'px-4' : 'px-2'} pt-0 pb-6`}>
-              <div className={`rounded-[28px] p-0 ${isExpanded ? '' : 'flex flex-col items-center'}`}>
-                <div className={`flex flex-col ${isExpanded ? 'gap-2' : 'gap-2 items-center'}`}>
+            <div className={`flex-1 overflow-y-auto overflow-x-visible ${isSidebarExpanded ? 'px-4' : 'px-2'} pt-0 pb-6`}>
+              <div className={`rounded-[28px] p-0 ${isSidebarExpanded ? '' : 'flex flex-col items-center'}`}>
+                <div className={`flex flex-col ${isSidebarExpanded ? 'gap-2' : 'gap-2 items-center'}`}>
                   {studioFeatureNavItems.map(renderNavButton)}
                   {aiToolNavItems.map(renderNavButton)}
                   {exploreNavItems.map(renderNavButton)}
@@ -631,28 +746,35 @@ export const CommonSidebar = ({
               </div>
             </div>
 
-            <div className={`border-t border-dashed border-black/5 dark:border-white/5 ${isExpanded ? 'px-4 pt-4 pb-6' : 'px-2 pt-4 pb-6'} flex flex-col gap-2`}>
-              {user && (
-                <>
-                  {isExpanded ? (
-                    <>
-                    {!hasSubscription && (
-                      <div className="relative w-full overflow-hidden rounded-2xl bg-primary/90 px-4 py-3 text-left text-primary-foreground shadow-[0_12px_32px_hsl(var(--primary)/0.25)]">
-                        <div className="absolute inset-0 bg-[radial-gradient(120%_80%_at_10%_0%,hsl(var(--primary-foreground)/0.35),transparent_60%)]" />
-                        <div className="relative flex flex-col gap-1">
-                          <p className="text-sm text-primary-foreground/80">
-                            {t("common.unlockFullAccess")}
-                          </p>
-                          <Button
-                            asChild
-                            className="mt-1 h-9 w-full rounded-full bg-primary-foreground text-primary text-sm font-semibold hover:bg-primary-foreground/90"
-                          >
-                            <Link href="/pricing">{t("common.upgradeNow")}</Link>
-                          </Button>
-                        </div>
+            <div className={`${isSidebarExpanded ? 'px-4 pt-4 pb-6' : 'px-2 pt-4 pb-6'} flex flex-col gap-2`}>
+              {false ? (
+                user ? (
+                  isSidebarExpanded ? (
+                    <div className="w-full min-h-12 rounded-2xl bg-transparent px-3 py-2">
+                      <div className="flex min-h-8 w-full items-center">
+                        <button
+                          type="button"
+                          onClick={handleRefreshCredits}
+                          disabled={isRefreshingCredits}
+                          className={cn(
+                            "inline-flex h-9 min-w-0 max-w-[92px] items-center gap-1.5 rounded-2xl px-2.5 text-foreground/60 transition-colors",
+                            "hover:bg-foreground/5 hover:text-foreground",
+                            isRefreshingCredits ? "cursor-wait opacity-70" : "cursor-pointer"
+                          )}
+                          aria-label={t("common.refreshCredits")}
+                          title={t("common.refreshCredits")}
+                        >
+                          {isRefreshingCredits ? (
+                            <RefreshCw className="h-3.5 w-3.5 shrink-0 animate-spin" />
+                          ) : (
+                            <Coins className="h-3.5 w-3.5 shrink-0" />
+                          )}
+                          <span className="min-w-0 truncate text-xs font-semibold leading-none tabular-nums">
+                            {typeof credits === "number" ? formatLocalizedNumber(credits as number) : "..."}
+                          </span>
+                        </button>
                       </div>
-                    )}
-                  </>
+                    </div>
                   ) : (
                     <div className="relative group w-full">
                       <div
@@ -693,8 +815,8 @@ export const CommonSidebar = ({
                             </Button>
                           ) : (
                             <span className="inline-flex items-center justify-center rounded-full px-2.5 py-1 text-xs font-semibold leading-none text-foreground tabular-nums">
-                              {credits !== null ? (
-                                formatLocalizedNumber(credits)
+                              {typeof credits === "number" ? (
+                                formatLocalizedNumber(credits as number)
                               ) : (
                                 <span className="inline-flex h-full items-center leading-none">...</span>
                               )}
@@ -708,68 +830,150 @@ export const CommonSidebar = ({
                         )}
                       </div>
                     </div>
-                  )}
-                </>
-              )}
-
-              {isExpanded ? (
-                <div
-                  className="w-full min-h-12 rounded-2xl bg-transparent px-3 py-2 transition-all duration-300 border border-transparent hover:bg-muted/30"
-                >
-                  <div className="flex min-h-8 w-full items-center gap-2">
-                    {user && (
-                      <button
-                        type="button"
-                        onClick={handleRefreshCredits}
-                        disabled={isRefreshingCredits}
-                        className={cn(
-                          "inline-flex h-9 min-w-0 max-w-[92px] items-center gap-1.5 rounded-2xl px-2.5 text-foreground/60 transition-colors",
-                          "hover:bg-foreground/5 hover:text-foreground",
-                          isRefreshingCredits ? "cursor-wait opacity-70" : "cursor-pointer"
-                        )}
-                        aria-label={t("common.refreshCredits")}
-                        title={t("common.refreshCredits")}
-                      >
-                        {isRefreshingCredits ? (
-                          <RefreshCw className="h-3.5 w-3.5 shrink-0 animate-spin" />
-                        ) : (
-                          <Coins className="h-3.5 w-3.5 shrink-0" />
-                        )}
-                        <span className="min-w-0 truncate text-xs font-semibold leading-none tabular-nums">
-                          {credits !== null ? formatLocalizedNumber(credits) : "..."}
-                        </span>
-                      </button>
-                    )}
-                    <LanguageToggle
-                      size="sm"
-                      className="h-9 w-9 rounded-2xl text-foreground/60 hover:text-foreground"
-                    />
-                    <ThemeModeToggle
-                      size="sm"
-                      variant="icon"
-                      className="h-9 w-9 rounded-2xl text-foreground/60 hover:text-foreground"
-                    />
-                  </div>
-                </div>
+                  )
+                ) : null
               ) : (
                 <>
-                  <Tooltip content={t("common.switchLanguage")} position="right">
-                    <div className="flex h-14 w-full items-center justify-center rounded-2xl transition-all duration-300 hover:bg-muted/30">
-                      <LanguageToggle
-                        size="md"
-                        className="h-10 w-10 rounded-2xl text-foreground/60 hover:text-foreground"
-                      />
+                  {user && (
+                    <>
+                      {isSidebarExpanded ? (
+                        <>
+                          {!hasSubscription && (
+                            <div className="relative w-full overflow-hidden rounded-2xl bg-primary/90 px-4 py-3 text-left text-primary-foreground shadow-[0_12px_32px_hsl(var(--primary)/0.25)]">
+                              <div className="absolute inset-0 bg-[radial-gradient(120%_80%_at_10%_0%,hsl(var(--primary-foreground)/0.35),transparent_60%)]" />
+                              <div className="relative flex flex-col gap-1">
+                                <p className="text-sm text-primary-foreground/80">
+                                  {t("common.unlockFullAccess")}
+                                </p>
+                                <Button
+                                  asChild
+                                  className="mt-1 h-9 w-full rounded-full bg-primary-foreground text-primary text-sm font-semibold hover:bg-primary-foreground/90"
+                                >
+                                  <Link href={withCurrentLocale("/pricing")}>{t("common.upgradeNow")}</Link>
+                                </Button>
+                              </div>
+                            </div>
+                          )}
+                        </>
+                      ) : (
+                        <div className="relative group w-full">
+                          <div
+                            onMouseEnter={() => {
+                              collapsedCreditsHoverRef.current = true;
+                              setIsCollapsedCreditsHovered(true);
+                            }}
+                            onMouseLeave={() => {
+                              collapsedCreditsHoverRef.current = false;
+                              setIsCollapsedCreditsHovered(false);
+                              setSuppressCollapsedCreditsHover(false);
+                            }}
+                            className={`w-full h-14 rounded-2xl px-2 py-3 text-foreground transition-all duration-300 focus:outline-none focus-visible:ring-2 focus-visible:ring-ring/40 focus-visible:ring-offset-0 ${
+                              isRefreshingCredits ? 'opacity-70 cursor-wait' : 'cursor-default'
+                            } flex flex-col items-center text-center`}
+                          >
+                            <div className="relative w-full flex items-center justify-center">
+                              {isRefreshingCredits ? (
+                                <div
+                                  aria-hidden="true"
+                                  className="h-9 w-9 rounded-full text-foreground/70 transition-colors flex items-center justify-center"
+                                >
+                                  <RefreshCw className="h-4 w-4 animate-spin" />
+                                </div>
+                              ) : isCollapsedCreditsHovered && !suppressCollapsedCreditsHover ? (
+                                <Button
+                                  type="button"
+                                  variant="ghost"
+                                  size="icon"
+                                  onClick={(event) => {
+                                    event.stopPropagation();
+                                    handleCollapsedRefreshCredits();
+                                  }}
+                                  className="h-9 w-9 rounded-full text-foreground/70 hover:text-foreground"
+                                  aria-label={t("common.refreshCredits")}
+                                >
+                                  <RefreshCw className="h-4 w-4" />
+                                </Button>
+                              ) : (
+                                <span className="inline-flex items-center justify-center rounded-full px-2.5 py-1 text-xs font-semibold leading-none text-foreground tabular-nums">
+                                  {credits !== null ? (
+                                    formatLocalizedNumber(credits)
+                                  ) : (
+                                    <span className="inline-flex h-full items-center leading-none">...</span>
+                                  )}
+                                </span>
+                              )}
+                            </div>
+                            {!isRefreshingCredits && (!isCollapsedCreditsHovered || suppressCollapsedCreditsHover) && (
+                              <span className="mt-1 text-xs font-medium text-foreground/45">
+                                {t("common.credits")}
+                              </span>
+                            )}
+                          </div>
+                        </div>
+                      )}
+                    </>
+                  )}
+
+                  {isSidebarExpanded ? (
+                    <div
+                      className="w-full min-h-12 rounded-2xl bg-transparent px-3 py-2 transition-all duration-300 border border-transparent hover:bg-muted/30"
+                    >
+                      <div className="flex min-h-8 w-full items-center gap-2">
+                        {user && (
+                          <button
+                            type="button"
+                            onClick={handleRefreshCredits}
+                            disabled={isRefreshingCredits}
+                            className={cn(
+                              "inline-flex h-9 min-w-0 max-w-[92px] items-center gap-1.5 rounded-2xl px-2.5 text-foreground/60 transition-colors",
+                              "hover:bg-foreground/5 hover:text-foreground",
+                              isRefreshingCredits ? "cursor-wait opacity-70" : "cursor-pointer"
+                            )}
+                            aria-label={t("common.refreshCredits")}
+                            title={t("common.refreshCredits")}
+                          >
+                            {isRefreshingCredits ? (
+                              <RefreshCw className="h-3.5 w-3.5 shrink-0 animate-spin" />
+                            ) : (
+                              <Coins className="h-3.5 w-3.5 shrink-0" />
+                            )}
+                            <span className="min-w-0 truncate text-xs font-semibold leading-none tabular-nums">
+                              {credits !== null ? formatLocalizedNumber(credits) : "..."}
+                            </span>
+                          </button>
+                        )}
+                        <LanguageToggle
+                          size="sm"
+                          className="h-9 w-9 rounded-2xl text-foreground/60 hover:text-foreground"
+                        />
+                        <ThemeModeToggle
+                          size="sm"
+                          variant="icon"
+                          className="h-9 w-9 rounded-2xl text-foreground/60 hover:text-foreground"
+                        />
+                      </div>
                     </div>
-                  </Tooltip>
-                  <Tooltip content={t("common.toggleTheme")} position="right">
-                    <div className="flex h-14 w-full items-center justify-center rounded-2xl transition-all duration-300 hover:bg-muted/30">
-                      <ThemeModeToggle
-                        size="md"
-                        variant="icon"
-                        className="rounded-2xl text-foreground/60 hover:text-foreground"
-                      />
-                    </div>
-                  </Tooltip>
+                  ) : (
+                    <>
+                      <Tooltip content={t("common.switchLanguage")} position="right">
+                        <div className="flex h-14 w-full items-center justify-center rounded-2xl transition-all duration-300 hover:bg-muted/30">
+                          <LanguageToggle
+                            size="md"
+                            className="h-10 w-10 rounded-2xl text-foreground/60 hover:text-foreground"
+                          />
+                        </div>
+                      </Tooltip>
+                      <Tooltip content={t("common.toggleTheme")} position="right">
+                        <div className="flex h-14 w-full items-center justify-center rounded-2xl transition-all duration-300 hover:bg-muted/30">
+                          <ThemeModeToggle
+                            size="md"
+                            variant="icon"
+                            className="rounded-2xl text-foreground/60 hover:text-foreground"
+                          />
+                        </div>
+                      </Tooltip>
+                    </>
+                  )}
                 </>
               )}
             </div>
@@ -781,7 +985,7 @@ export const CommonSidebar = ({
         <div className="flex items-center justify-around py-2">
           {/* Studio Button */}
           <Button
-            onClick={() => router.push('/music-generator')}
+            onClick={() => router.push(withCurrentLocale("/music-generator"))}
             variant="ghost"
             size="sm"
             className={`h-12 w-12 flex items-center justify-center hover:bg-muted/50 transition-all duration-300 rounded-lg ${isStudioAreaPath(pathname) ? 'bg-primary/20 text-primary shadow-sm' : 'text-muted-foreground'}`}
@@ -792,7 +996,7 @@ export const CommonSidebar = ({
 
           {/* Library Button */}
           <Button
-            onClick={() => router.push('/library')}
+            onClick={() => router.push(withCurrentLocale("/library"))}
             variant="ghost"
             size="sm"
             className={`h-12 w-12 flex items-center justify-center hover:bg-muted/50 transition-all duration-300 rounded-lg ${isActive('/library') ? 'bg-primary/20 text-primary shadow-sm' : 'text-muted-foreground'}`}
@@ -821,14 +1025,14 @@ export const CommonSidebar = ({
                 {aiMusicToolsDropdown.map((item) => (
                   <Link
                     key={item.href}
-                    href={item.href}
+                    href={withCurrentLocale(item.href)}
                     onClick={(e) => {
                       e.preventDefault();
                       e.stopPropagation();
                       // 延迟关闭菜单，确保点击事件完成
                       setTimeout(() => {
                         setIsDropdownOpen(false);
-                        router.push(item.href);
+                        router.push(withCurrentLocale(item.href));
                       }, 50);
                     }}
                     className="flex items-center gap-3 px-3 py-2 hover:bg-accent hover:text-accent-foreground transition-colors group rounded-md cursor-pointer"
@@ -848,7 +1052,7 @@ export const CommonSidebar = ({
 
           {/* Blog Button */}
           <Button
-            onClick={() => router.push('/blog')}
+            onClick={() => router.push(withCurrentLocale("/blog"))}
             variant="ghost"
             size="sm"
             className={`h-12 w-12 flex items-center justify-center hover:bg-muted/50 transition-all duration-300 rounded-lg ${isActive('/blog') ? 'bg-primary/20 text-primary shadow-sm' : 'text-muted-foreground'}`}

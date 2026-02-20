@@ -8,6 +8,7 @@ import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { Sparkles, LogOut, LogIn } from "lucide-react";
 import { useSubscription } from "@/contexts/SubscriptionContext";
 import { useI18n } from "@/lib/i18n/provider";
+import { withLocalePrefix } from "@/lib/i18n/routing";
 
 interface MobileStudioHeaderProps {
   user: any;
@@ -30,14 +31,15 @@ export const MobileStudioHeader = React.memo(({
   setIsAuthModalOpen,
   signOut,
 }: MobileStudioHeaderProps) => {
-  const { t } = useI18n();
+  const { t, locale } = useI18n();
   const { tierName } = useSubscription();
   const displayName = user?.user_metadata?.nickname || user?.user_metadata?.full_name || user?.user_metadata?.name || user?.email?.split('@')[0] || '';
+  const withCurrentLocale = (path: string) => withLocalePrefix(path, locale);
 
   return (
     <div className="app-card-muted app-hairline flex-shrink-0 px-6 py-4 border-0 border-b-0 relative z-[130]">
       <div className="flex items-center justify-between gap-3">
-        <Link href="/" className="font-bold text-lg flex items-center">
+        <Link href={withCurrentLocale("/")} className="font-bold text-lg flex items-center">
           <Image
             src="/logo.svg"
             alt={t("common.brandLogo")}

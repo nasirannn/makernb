@@ -32,6 +32,7 @@ import { MusicPlayer } from "@/components/ui/music-player";
 import { supabase } from "@/lib/supabase";
 import { Mp4BrandingDialog } from "@/components/ui/mp4-branding-dialog";
 import { useI18n } from "@/lib/i18n/provider";
+import { withLocalePrefix } from "@/lib/i18n/routing";
 
 interface TrackDetailViewProps {
   trackData?: TrackInfo;
@@ -90,7 +91,7 @@ export const TrackDetailView: React.FC<TrackDetailViewProps> = ({
     clearCurrentTrack,
   } = useAudioPlayer();
   const { user } = useAuth();
-  const { t } = useI18n();
+  const { t, locale } = useI18n();
   const { openModal: openPricingModal } = usePricingModal();
   const { hasPermission } = useFeaturePermissions();
 
@@ -437,7 +438,7 @@ export const TrackDetailView: React.FC<TrackDetailViewProps> = ({
 
   const handleShare = () => {
     if (!trackInfo) return;
-    const url = `${window.location.origin}/track/${trackInfo.id}`;
+    const url = `${window.location.origin}${withLocalePrefix(`/track/${trackInfo.id}`, locale)}`;
     navigator.clipboard.writeText(url).then(() => {
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);

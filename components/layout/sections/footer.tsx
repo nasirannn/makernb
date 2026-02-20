@@ -6,9 +6,11 @@ import Link from "next/link";
 import Image from "next/image";
 import { Mail } from "lucide-react";
 import { useI18n } from "@/lib/i18n/provider";
+import { withLocalePrefix } from "@/lib/i18n/routing";
 
 export const FooterSection = () => {
-  const { t } = useI18n();
+  const { t, locale } = useI18n();
+  const withCurrentLocale = (path: string) => withLocalePrefix(path, locale);
   const renderBadges = () => (
     <>
       <a
@@ -219,7 +221,7 @@ export const FooterSection = () => {
       <div className="container py-10 sm:py-14">
         <div className="grid gap-10 lg:grid-cols-[1.35fr_1fr] lg:items-start">
           <div className="space-y-4">
-            <Link href="/" className="inline-flex items-center gap-3">
+            <Link href={withCurrentLocale("/")} className="inline-flex items-center gap-3">
               <Image src="/logo.svg" alt={t("common.brandLogo")} width={32} height={32} />
               <span className="text-lg font-extrabold tracking-tight">MakeRNB</span>
             </Link>
@@ -239,24 +241,24 @@ export const FooterSection = () => {
             <div className="space-y-3">
               <p className="text-xs font-semibold uppercase tracking-[0.28em] text-muted-foreground">{t("footerSection.product")}</p>
               <div className="flex flex-col gap-2 text-sm">
-                <Link href="/#features" className="text-foreground/80 hover:text-foreground transition-colors">{t("footerSection.features")}</Link>
+                <Link href={withCurrentLocale("/#features")} className="text-foreground/80 hover:text-foreground transition-colors">{t("footerSection.features")}</Link>
               </div>
             </div>
 
             <div className="space-y-3">
               <p className="text-xs font-semibold uppercase tracking-[0.28em] text-muted-foreground">{t("footerSection.resources")}</p>
               <div className="flex flex-col gap-2 text-sm">
-                <Link href="/blog" className="text-foreground/80 hover:text-foreground transition-colors">{t("nav.blog")}</Link>
-                <Link href="/pricing" className="text-foreground/80 hover:text-foreground transition-colors">{t("nav.pricing")}</Link>
+                <Link href={withCurrentLocale("/blog")} className="text-foreground/80 hover:text-foreground transition-colors">{t("nav.blog")}</Link>
+                <Link href={withCurrentLocale("/pricing")} className="text-foreground/80 hover:text-foreground transition-colors">{t("nav.pricing")}</Link>
               </div>
             </div>
 
             <div className="space-y-3">
               <p className="text-xs font-semibold uppercase tracking-[0.28em] text-muted-foreground">{t("footerSection.support")}</p>
               <div className="flex flex-col gap-2 text-sm">
-                <Link href="/privacy" className="text-foreground/80 hover:text-foreground transition-colors">{t("footerSection.privacy")}</Link>
-                <Link href="/terms" className="text-foreground/80 hover:text-foreground transition-colors">{t("footerSection.terms")}</Link>
-                <Link href="/refund" className="text-foreground/80 hover:text-foreground transition-colors">{t("footerSection.refunds")}</Link>
+                <Link href={withCurrentLocale("/privacy")} className="text-foreground/80 hover:text-foreground transition-colors">{t("footerSection.privacy")}</Link>
+                <Link href={withCurrentLocale("/terms")} className="text-foreground/80 hover:text-foreground transition-colors">{t("footerSection.terms")}</Link>
+                <Link href={withCurrentLocale("/refund")} className="text-foreground/80 hover:text-foreground transition-colors">{t("footerSection.refunds")}</Link>
               </div>
             </div>
           </div>

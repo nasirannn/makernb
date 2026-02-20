@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect, Suspense } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 
 // Custom Hooks
 import { useMusicGeneration } from "@/features/music-generation/hooks/use-music-generation";
@@ -62,6 +62,7 @@ import {
     type StudioFeatureKey,
 } from "@/lib/studio-features";
 import { useI18n } from "@/lib/i18n/provider";
+import { withLocalePrefix } from "@/lib/i18n/routing";
 
 const USER_TRACKS_PAGE_SIZE = 10;
 type StudioFeaturePanelStateProps = Omit<
@@ -90,6 +91,7 @@ type StudioContentProps = {
 const StudioContent = ({ feature, FeaturePanel, panelMode, lockPanelMode }: StudioContentProps) => {
     // Router 和 Search Params
     const router = useRouter();
+    const searchParams = useSearchParams();
 
     // Custom Hooks
     const musicGeneration = useMusicGeneration();
@@ -103,7 +105,8 @@ const StudioContent = ({ feature, FeaturePanel, panelMode, lockPanelMode }: Stud
     } = musicGeneration;
     const { user, signOut, loading: isAuthLoading } = useAuth();
     const { credits, refreshCredits } = useCredits();
-    const { t } = useI18n();
+    const { t, locale } = useI18n();
+    const withCurrentLocale = React.useCallback((path: string) => withLocalePrefix(path, locale), [locale]);
 
     // UI States
     const [mobileCreateOpen, setMobileCreateOpen] = useState(false);
@@ -119,8 +122,6 @@ const StudioContent = ({ feature, FeaturePanel, panelMode, lockPanelMode }: Stud
     const [panelOpen, setPanelOpen] = useState(true);
     const [pendingExtendSourceTrack, setPendingExtendSourceTrack] = useState<ExtendSourceTrack | null>(null);
     const [lyricsPanelOpen, setLyricsPanelOpen] = useState(false);
-    const [sidebarWidth, setSidebarWidth] = useState(72);
-    const sidebarOffsetRef = React.useRef(sidebarWidth);
     const [musicGeneratorMode, setMusicGeneratorMode] = useState<"simple" | "custom">("simple");
 
     const normalizeDuration = React.useCallback((value: unknown) => {
@@ -188,6 +189,27 @@ const StudioContent = ({ feature, FeaturePanel, panelMode, lockPanelMode }: Stud
         trackExistingTask,
     } = musicGeneration;
 
+    const promptFromQuery = React.useMemo(() => {
+        const value = searchParams?.get("prompt");
+        return typeof value === "string" ? value.trim() : "";
+    }, [searchParams]);
+    const appliedPromptFromQueryRef = React.useRef<string | null>(null);
+
+    React.useEffect(() => {
+        if (feature !== "music-generator" || !promptFromQuery) {
+            return;
+        }
+        if (appliedPromptFromQueryRef.current === promptFromQuery) {
+            return;
+        }
+
+        setSimplePrompt(promptFromQuery);
+        if (!lockPanelMode) {
+            setMusicGeneratorMode("simple");
+        }
+        appliedPromptFromQueryRef.current = promptFromQuery;
+    }, [feature, lockPanelMode, promptFromQuery, setSimplePrompt]);
+
     const activeFeatureMode = React.useMemo<"simple" | "custom">(() => {
         if (feature === "music-generator" && !lockPanelMode) {
             return musicGeneratorMode;
@@ -217,27 +239,6 @@ const StudioContent = ({ feature, FeaturePanel, panelMode, lockPanelMode }: Stud
         isAuthLoading,
         pageSize: USER_TRACKS_PAGE_SIZE,
     });
-
-    React.useEffect(() => {
-        const updateSidebarOffset = () => {
-            if (typeof document === 'undefined') return;
-            const isDesktopViewport = typeof window !== 'undefined' && window.innerWidth >= 768;
-            const offsetValue = isDesktopViewport ? `${sidebarOffsetRef.current}px` : '0px';
-            document.documentElement.style.setProperty('--sidebar-offset', offsetValue);
-        };
-
-        sidebarOffsetRef.current = sidebarWidth;
-        updateSidebarOffset();
-        if (typeof window !== 'undefined') {
-            window.addEventListener('resize', updateSidebarOffset);
-        }
-
-        return () => {
-            if (typeof window !== 'undefined') {
-                window.removeEventListener('resize', updateSidebarOffset);
-            }
-        };
-    }, [sidebarWidth]);
 
     // 页面卸载时清理状态
     React.useEffect(() => {
@@ -857,13 +858,13 @@ const StudioContent = ({ feature, FeaturePanel, panelMode, lockPanelMode }: Stud
         setPanelOpen(true);
 
         if (feature !== "music-extender") {
-            router.push(getStudioFeaturePath("music-extender"));
+            router.push(withCurrentLocale(getStudioFeaturePath("music-extender")));
         }
 
         if (typeof window !== 'undefined' && window.innerWidth < 768) {
             setMobileCreateOpen(true);
         }
-    }, [feature, router]);
+    }, [feature, router, withCurrentLocale]);
 
     const handlePendingExtendSourceTrackConsumed = React.useCallback(() => {
         setPendingExtendSourceTrack(null);
@@ -1001,13 +1002,8 @@ const StudioContent = ({ feature, FeaturePanel, panelMode, lockPanelMode }: Stud
             id="studio"
             className="relative h-screen overflow-hidden"
         >
-            <div aria-hidden className="pointer-events-none absolute inset-0">
-                <div className="absolute -top-24 -left-20 h-56 w-56 rounded-full bg-[radial-gradient(circle,rgba(56,189,248,0.28)_0%,rgba(56,189,248,0)_70%)]" />
-            </div>
-
             <div
-                className="relative h-full flex flex-col md:flex-row md:gap-0 md:px-4 md:py-0 transition-[margin] duration-500"
-                style={{ marginLeft: 'var(--sidebar-offset, 0px)' }}
+                className={`relative h-full flex flex-col md:flex-row md:gap-0 md:px-4 md:py-0 md:pl-[calc(var(--studio-sidebar-width,72px)+1rem)]`}
             >
                 <div className="hidden md:block md:order-2 flex-shrink-0 md:pr-2 md:py-2">
                     <FeaturePanel
@@ -1164,7 +1160,7 @@ const StudioContent = ({ feature, FeaturePanel, panelMode, lockPanelMode }: Stud
 
     return (
         <>
-            <CommonSidebar onWidthChange={setSidebarWidth} />
+            <CommonSidebar variant="studio" />
             {studioMainLayout}
 
             {/* Lyrics Generation Dialog */}

@@ -14,7 +14,7 @@ import { AddMelodyPanel } from "@/components/ui/feature-panels/add-melody-panel"
 import {
   DEFAULT_STUDIO_FEATURE,
   type StudioFeatureKey,
-  getStudioFeatureFromSegment,
+  getStudioFeatureFromPathname,
 } from "@/lib/studio-features";
 
 const FEATURE_WORKSPACE_CONFIG: Record<
@@ -71,8 +71,7 @@ const FEATURE_WORKSPACE_CONFIG: Record<
 
 export default function StudioFeaturePagesLayout() {
   const pathname = usePathname();
-  const segment = pathname.split("/").filter(Boolean)[0] ?? "";
-  const feature = getStudioFeatureFromSegment(segment) ?? DEFAULT_STUDIO_FEATURE;
+  const feature = getStudioFeatureFromPathname(pathname) ?? DEFAULT_STUDIO_FEATURE;
   const config = FEATURE_WORKSPACE_CONFIG[feature];
 
   return (

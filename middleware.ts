@@ -1,48 +1,121 @@
-import { NextResponse } from 'next/server';
-import type { NextRequest } from 'next/server';
+import { NextResponse } from "next/server";
+import type { NextRequest } from "next/server";
+import {
+  LOCALE_COOKIE_KEY,
+  getLocalePathSegment,
+  normalizeLocale,
+  stripLocalePrefix,
+  resolveLocaleFromPathSegment,
+  withLocalePrefix,
+} from "@/lib/i18n/routing";
+import { DEFAULT_LOCALE } from "@/lib/i18n/config";
 
-/**
- * Middleware to handle URL trailing slash normalization
- * - API routes: Remove trailing slash (except /api/)
- * - All page routes: Remove trailing slash
- * Note: Home page canonical URL is handled in the client component
- */
+const PERMANENT_REDIRECT_STATUS = 308;
+const STATIC_FILE_PATTERN = /\.[^/]+$/;
+
+function resolvePreferredLocale(request: NextRequest) {
+  const localeFromCookie = request.cookies.get(LOCALE_COOKIE_KEY)?.value;
+  if (localeFromCookie) {
+    return normalizeLocale(localeFromCookie);
+  }
+
+  // Keep default language deterministic: no cookie means English.
+  return DEFAULT_LOCALE;
+}
+
+function attachLocaleCookie(response: NextResponse, locale: string) {
+  response.cookies.set({
+    name: LOCALE_COOKIE_KEY,
+    value: locale,
+    path: "/",
+    sameSite: "lax",
+    maxAge: 60 * 60 * 24 * 365,
+  });
+  return response;
+}
+
+function withNoIndexHeader(response: NextResponse) {
+  response.headers.set("X-Robots-Tag", "noindex, nofollow");
+  return response;
+}
+
 export function middleware(request: NextRequest) {
-  const { pathname } = request.nextUrl;
+  const { pathname, search } = request.nextUrl;
 
-  // Handle API routes: normalize to version without trailing slash
-  if (pathname.startsWith('/api/')) {
-    if (pathname.endsWith('/') && pathname !== '/api/') {
+  // Keep callback and API routes path-stable; only normalize trailing slash.
+  const isApiRoute = pathname === "/api" || pathname.startsWith("/api/");
+  const isAuthRoute = pathname === "/auth" || pathname.startsWith("/auth/");
+  if (isApiRoute || isAuthRoute) {
+    if (pathname.endsWith("/") && pathname !== "/" && pathname !== "/api/" && pathname !== "/auth/") {
       const url = request.nextUrl.clone();
       url.pathname = pathname.slice(0, -1);
-      return NextResponse.redirect(url, 307); // Use 307 temporary redirect
+      return NextResponse.redirect(url, PERMANENT_REDIRECT_STATUS);
     }
     return NextResponse.next();
   }
 
-  // Handle all page routes: remove trailing slash if present
-  // Exception: home page (/) is allowed to keep or not keep trailing slash
-  if (pathname.endsWith('/') && pathname !== '/') {
-    const url = request.nextUrl.clone();
-    url.pathname = pathname.slice(0, -1);
-    return NextResponse.redirect(url, 307); // Use 307 temporary redirect
+  if (pathname.startsWith("/_next/") || pathname === "/favicon.ico" || STATIC_FILE_PATTERN.test(pathname)) {
+    return NextResponse.next();
   }
 
-  // Let the request pass through normally
-  return NextResponse.next();
+  // Normalize trailing slash before locale handling.
+  if (pathname.endsWith("/") && pathname !== "/") {
+    const url = request.nextUrl.clone();
+    url.pathname = pathname.slice(0, -1);
+    return NextResponse.redirect(url, PERMANENT_REDIRECT_STATUS);
+  }
+
+  const firstSegment = pathname.split("/").filter(Boolean)[0] ?? null;
+  const localeFromPath = resolveLocaleFromPathSegment(firstSegment);
+
+  if (localeFromPath) {
+    // Default locale should not appear in the URL path.
+    if (localeFromPath === DEFAULT_LOCALE) {
+      const url = request.nextUrl.clone();
+      url.pathname = stripLocalePrefix(pathname).split("?")[0] || "/";
+      return withNoIndexHeader(
+        attachLocaleCookie(
+          NextResponse.redirect(url, PERMANENT_REDIRECT_STATUS),
+          localeFromPath
+        )
+      );
+    }
+
+    const canonicalSegment = getLocalePathSegment(localeFromPath);
+    if (firstSegment !== canonicalSegment) {
+      const url = request.nextUrl.clone();
+      const remainingPath = pathname.split("/").filter(Boolean).slice(1).join("/");
+      url.pathname = remainingPath ? `/${canonicalSegment}/${remainingPath}` : `/${canonicalSegment}`;
+      return withNoIndexHeader(
+        attachLocaleCookie(
+          NextResponse.redirect(url, PERMANENT_REDIRECT_STATUS),
+          localeFromPath
+        )
+      );
+    }
+
+    return attachLocaleCookie(NextResponse.next(), localeFromPath);
+  }
+
+  const preferredLocale = resolvePreferredLocale(request);
+  if (preferredLocale === DEFAULT_LOCALE) {
+    return attachLocaleCookie(NextResponse.next(), preferredLocale);
+  }
+
+  const targetPath = withLocalePrefix(`${pathname}${search}`, preferredLocale);
+  if (targetPath === `${pathname}${search}`) {
+    return attachLocaleCookie(NextResponse.next(), preferredLocale);
+  }
+  const targetUrl = new URL(targetPath, request.url);
+
+  return withNoIndexHeader(
+    attachLocaleCookie(
+      NextResponse.redirect(targetUrl, PERMANENT_REDIRECT_STATUS),
+      preferredLocale
+    )
+  );
 }
 
 export const config = {
-  // Match all routes except static files and Next.js internals
-  matcher: [
-    /*
-     * Match all request paths except for the ones starting with:
-     * - _next/static (static files)
-     * - _next/image (image optimization files)
-     * - favicon.ico (favicon file)
-     * - public files (public folder)
-     */
-    '/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp|ico|css|js)$).*)',
-  ],
+  matcher: ["/((?!_next/static|_next/image).*)"],
 };
-

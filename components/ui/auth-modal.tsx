@@ -13,6 +13,7 @@ import { Turnstile } from '@marsidev/react-turnstile';
 import Image from "next/image";
 import { cn } from "@/lib/utils";
 import { useI18n } from "@/lib/i18n/provider";
+import { withLocalePrefix } from "@/lib/i18n/routing";
 
 interface AuthModalProps {
   isOpen: boolean;
@@ -21,6 +22,7 @@ interface AuthModalProps {
 
 export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
   const { t, locale } = useI18n();
+  const withCurrentLocale = React.useCallback((path: string) => withLocalePrefix(path, locale), [locale]);
   const [email, setEmail] = useState('');
   const [loading, setLoading] = useState(false);
   const [isGoogleAuthLoading, setIsGoogleAuthLoading] = useState(false);
@@ -493,11 +495,11 @@ export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
                 <div className="text-center">
                   <p className="text-sm leading-relaxed text-muted-foreground/80">
                     {t("authModal.termsAgreementPrefix")}{" "}
-                    <a href="/terms" className="text-primary hover:underline" target="_blank" rel="noopener noreferrer">
+                    <a href={withCurrentLocale("/terms")} className="text-primary hover:underline" target="_blank" rel="noopener noreferrer">
                       {t("authModal.termsLink")}
                     </a>{" "}
                     {t("authModal.termsAgreementBetween")}{" "}
-                    <a href="/privacy" className="text-primary hover:underline" target="_blank" rel="noopener noreferrer">
+                    <a href={withCurrentLocale("/privacy")} className="text-primary hover:underline" target="_blank" rel="noopener noreferrer">
                       {t("authModal.privacyPolicyLink")}
                     </a>
                     {t("authModal.termsAgreementSuffix")}

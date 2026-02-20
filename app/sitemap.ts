@@ -1,5 +1,6 @@
 import { MetadataRoute } from 'next';
 import { query } from '@/lib/db-pool';
+import { getNonDefaultLocalePathSegments } from '@/lib/i18n/routing';
 
 const SITE_URL = process.env.NEXT_PUBLIC_BASE_URL || 'https://makernb.com';
 
@@ -20,27 +21,31 @@ interface Track {
  */
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const baseUrl = SITE_URL;
+  const nonDefaultLocaleSegments = getNonDefaultLocalePathSegments();
 
-  // Static pages
+  const staticPagesConfig: Array<{ path: string; changeFrequency: MetadataRoute.Sitemap[number]["changeFrequency"]; priority: number }> = [
+    { path: "", changeFrequency: 'daily', priority: 1 },
+    { path: "/explore", changeFrequency: 'hourly', priority: 0.8 },
+    { path: "/library", changeFrequency: 'daily', priority: 0.7 },
+    { path: "/pricing", changeFrequency: 'daily', priority: 0.6 },
+    { path: "/blog", changeFrequency: 'daily', priority: 0.6 },
+  ];
+
   const staticPages: MetadataRoute.Sitemap = [
-    {
-      url: baseUrl,
+    ...staticPagesConfig.map((entry) => ({
+      url: `${baseUrl}${entry.path}`,
       lastModified: new Date(),
-      changeFrequency: 'daily',
-      priority: 1,
-    },
-    {
-      url: `${baseUrl}/explore`,
-      lastModified: new Date(),
-      changeFrequency: 'hourly',
-      priority: 0.8,
-    },
-    {
-      url: `${baseUrl}/library`,
-      lastModified: new Date(),
-      changeFrequency: 'daily',
-      priority: 0.7,
-    },
+      changeFrequency: entry.changeFrequency,
+      priority: entry.priority,
+    })),
+    ...nonDefaultLocaleSegments.flatMap((segment) =>
+      staticPagesConfig.map((entry) => ({
+        url: `${baseUrl}/${segment}${entry.path}`,
+        lastModified: new Date(),
+        changeFrequency: entry.changeFrequency,
+        priority: entry.priority,
+      }))
+    ),
   ];
 
   try {
@@ -56,12 +61,21 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       LIMIT 1000
     `);
 
-    const trackPages: MetadataRoute.Sitemap = result.rows.map((track) => ({
-      url: `${baseUrl}/track/${track.id}`,
-      lastModified: new Date(track.updated_at),
-      changeFrequency: 'weekly',
-      priority: 0.6,
-    }));
+    const trackPages: MetadataRoute.Sitemap = result.rows.flatMap((track): MetadataRoute.Sitemap => {
+      const defaultEntry: MetadataRoute.Sitemap[number] = {
+        url: `${baseUrl}/track/${track.id}`,
+        lastModified: new Date(track.updated_at),
+        changeFrequency: 'weekly',
+        priority: 0.6,
+      };
+      const localizedEntries: MetadataRoute.Sitemap = nonDefaultLocaleSegments.map((segment) => ({
+        url: `${baseUrl}/${segment}/track/${track.id}`,
+        lastModified: new Date(track.updated_at),
+        changeFrequency: 'weekly' as const,
+        priority: 0.6,
+      }));
+      return [defaultEntry, ...localizedEntries];
+    });
 
     return [...staticPages, ...trackPages];
   } catch (error) {

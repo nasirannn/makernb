@@ -1,6 +1,12 @@
 const DEFAULT_LOCALE = "en-US";
 
 export const getPreferredLocale = (fallback: string = DEFAULT_LOCALE): string => {
+  if (typeof document !== "undefined") {
+    const documentLocale = document.documentElement?.lang;
+    if (documentLocale) {
+      return documentLocale;
+    }
+  }
   if (typeof navigator !== "undefined" && navigator.language) {
     return navigator.language;
   }

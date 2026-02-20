@@ -22,10 +22,6 @@ import {
 import { formatDateTime } from "@/lib/format-utils";
 import { useI18n } from "@/lib/i18n/provider";
 
-function VocalSeparationCreditsDisplay() {
-  return <span className="text-primary font-medium">{CLIENT_VOCAL_SEPARATION_CREDITS.local}</span>;
-}
-
 export default function VocalSeparationDemo() {
   const { t } = useI18n();
   const [isOriginalPlaying, setIsOriginalPlaying] = useState(false);

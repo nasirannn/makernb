@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import Script from "next/script";
+import { cookies } from "next/headers";
 import "./globals.css";
 import { cn } from "@/lib/utils";
 import { ThemeProvider } from "@/components/layout/theme-provider";
@@ -12,6 +13,7 @@ import { PricingModal } from "@/components/ui/pricing-modal";
 import { Toaster } from "@/components/ui/sonner";
 import { Suspense } from "react";
 import { I18nProvider } from "@/lib/i18n/provider";
+import { LOCALE_COOKIE_KEY, normalizeLocale } from "@/lib/i18n/routing";
 
 export const viewport: Viewport = {
   width: 'device-width',
@@ -38,13 +40,17 @@ export const metadata: Metadata = {
   },
 };
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  const cookieStore = await cookies();
+  const localeCookie = cookieStore.get(LOCALE_COOKIE_KEY)?.value;
+  const htmlLang = normalizeLocale(localeCookie);
+
   return (
-    <html lang="en" suppressHydrationWarning>
+    <html lang={htmlLang} suppressHydrationWarning>
       <body className={cn("min-h-screen bg-background font-sans")}>
         {/* Google Analytics */}
         <Script

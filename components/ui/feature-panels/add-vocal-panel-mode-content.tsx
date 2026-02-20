@@ -414,11 +414,6 @@ export const StudioCustomModeContent: React.FC<StudioCustomModeContentProps> = (
       : uploadIntent === "track"
         ? Disc3
         : UploadCloud;
-  const primaryUploadLabel = singleUploadIntent === "vocal"
-    ? t("featurePanel.vocal")
-    : singleUploadIntent === "melody"
-      ? t("featurePanel.melody")
-      : t("featurePanel.track");
   const handlePrimaryUploadClick = singleUploadIntent === "vocal"
     ? onAddVocal
     : singleUploadIntent === "melody"

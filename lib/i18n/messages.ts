@@ -1,8 +1,6 @@
-export const SUPPORTED_LOCALES = ["en", "zh-CN"] as const;
+import { DEFAULT_LOCALE, SUPPORTED_LOCALES, type AppLocale } from "@/lib/i18n/config";
 
-export type AppLocale = (typeof SUPPORTED_LOCALES)[number];
-
-export const DEFAULT_LOCALE: AppLocale = "en";
+export { DEFAULT_LOCALE, SUPPORTED_LOCALES, type AppLocale };
 
 export const messages = {
   en: {
@@ -41,6 +39,8 @@ export const messages = {
       lyricsGenerator: "Lyrics Generator",
       expandSidebar: "Expand Sidebar",
       expandSidebarSrOnly: "Expand sidebar",
+      collapseSidebar: "Collapse Sidebar",
+      collapseSidebarSrOnly: "Collapse sidebar",
     },
     aiTools: {
       vocalSeparationDescription: "Separate vocals from music",
@@ -660,14 +660,138 @@ export const messages = {
     },
     heroSection: {
       badgeText: "Especially For The R&B Lovers",
+      heading: "Turn Your Mood Into R&B in Seconds.",
       headingPrefix: "Free Online",
       headingSuffix: "Music Generator",
       subheading: "Create songs in different Contemporary Rhythm and Blues musical styles",
+      promptInputLabel: "Describe your mood",
+      promptInputPlaceholder: "Describe your vibe, mood, or scene...",
+      promptInputAction: "Create",
       tryForFree: "Try for free",
       listenToExamples: "Listen to examples",
       metaFreeDailyCredits: "Free daily credits",
       metaNoExperience: "No experience needed",
       metaRoyaltyFree: "100% Royalty-Free",
+    },
+    introductionSection: {
+      header: {
+        label: "Introduction",
+        title: "Discover The Rich History of R&B",
+        subtitle: "From soulful roots to modern evolution, explore the genres that shaped music",
+      },
+      timeline: {
+        label: "R&B Timeline",
+        title: "What Is R&B?",
+        descriptionPrimary:
+          "Rhythm and Blues blends soulful vocals with rhythm-driven grooves. Emerging in the 1940s and evolving through soul, funk, and disco, it became one of the most influential genres shaping modern popular music.",
+        descriptionSecondary:
+          "Explore four key eras to see how artists reshaped R&B while preserving its emotional core.",
+        readFullArticle: "Read full article",
+        coverImageAlt: "A Journey Through the Eras of R&B cover",
+        iconAlt: "{title} icon",
+        eras: {
+          origins: {
+            title: "The Origins",
+            description:
+              "R&B was born out of gospel, blues, and jazz. Back in the 1940s, artists like Ray Charles and Ruth Brown were crafting music that felt both spiritual and raw, pulling church sounds into dance halls. Sam Cooke gave us smooth ballads that melted hearts, while groups like The Drifters built the blueprint for vocal harmony groups to come.",
+          },
+          soulFunkEra: {
+            title: "The Soul & Funk Era",
+            description:
+              "By the '70s, R&B had grown up. The music got funkier, more political, and undeniably groovy. Stevie Wonder and Marvin Gaye delivered records that spoke to love, hope, and social change. Bands like Earth, Wind & Fire and Parliament-Funkadelic kept dance floors alive with explosive energy. And then there was Aretha Franklin, reminding the world that R&B vocals could be pure power and soul.",
+          },
+          goldenAge: {
+            title: "The Golden Age",
+            description:
+              "Ask any R&B fan, and they'll tell you: the '90s were magic. This was the decade when R&B ruled the charts and gave us unforgettable sounds. New Jack Swing fused hip-hop beats with slick R&B. Hip-Hop Soul was raw and emotional. Quiet Storm delivered lush ballads. Neo-Soul brought a jazzy, funk-inspired twist.",
+          },
+          contemporary: {
+            title: "Contemporary R&B",
+            description:
+              "Fast-forward to the present, and R&B has gone global. It blends with hip-hop, pop, electronic, and even indie. Usher and Beyoncé carried R&B into the mainstream, while artists like Frank Ocean, The Weeknd, and H.E.R. pushed boundaries with moody, intimate, genre-blurring music.",
+          },
+        },
+      },
+      genres: {
+        title: "Classic R&B Genres Of The Golden Age",
+        description:
+          "A quick guide to the signature sounds that defined 90s R&B and shaped today's generation workflows.",
+        learnMore: "Learn more",
+        items: {
+          newJackSwing: {
+            title: "New Jack Swing",
+            description:
+              "New Jack Swing was the heartbeat of dance floors in the early 90s. Created by producer Teddy Riley, it fused R&B melodies with hip-hop beats, giving R&B a harder, funkier edge. Characteristics: Swing beats, punchy drum machines, funky basslines, choreographed group performances.",
+          },
+          hipHopSoul: {
+            title: "Hip-Hop Soul",
+            description:
+              "If New Jack Swing was about fun, Hip-Hop Soul was about raw honesty. Coined in the early 90s, this style blended hip-hop's gritty beats with the emotional storytelling of R&B, making it the \"real voice of the streets.\" Characteristics: Urban edge, hip-hop rhythms, deeply personal lyrics.",
+          },
+          neoSoul: {
+            title: "Neo-Soul",
+            description:
+              "By the mid-to-late 90s, a new wave arrived: Neo-Soul. Mixing classic soul with modern R&B, jazz, and funk, this genre was poetic, organic, and deeply introspective. It spoke to listeners looking for depth and authenticity. Characteristics: Organic instruments, jazzy harmonies, laid-back grooves, thoughtful lyrics.",
+          },
+          quietStorm: {
+            title: "Quiet Storm",
+            description:
+              "Originally a 70s radio format, Quiet Storm R&B took on a new life in the 90s. This was the soundtrack of late nights - silky, romantic, and designed for candlelit moods. Characteristics: Slow tempos, lush arrangements, intimate lyrics.",
+          },
+        },
+      },
+    },
+    faqSection: {
+      sectionLabel: "Frequently Asked Questions",
+      title: "Everything You Need to Know",
+      subtitle: "Get answers to common questions about our AI-powered R&B music generation platform",
+      items: {
+        item1: {
+          question: "Is MakeRNB really free to use?",
+          answer:
+            "Yes! MakeRNB offers free daily credits that allow you to create original R&B tracks without any subscription fees. You get fresh credits every day to continue your music creation journey.",
+        },
+        item2: {
+          question: "How does the credits system work?",
+          answer:
+            "You automatically receive 15 free credits every day when you log in. Each song generation costs 12 credits. Daily login credits expire at midnight (UTC) if unused, and you get a fresh batch with each new login.",
+        },
+        item3: {
+          question: "Can I generate AI cover songs or create music based on specific artists?",
+          answer:
+            "MakeRNB doesn't create direct copies of existing songs, our AI music generator can create original music inspired by different genres and styles. This ensures your creations are unique while maintaining professional quality.",
+        },
+        item4: {
+          question: "Can I use the generated music commercially?",
+          answer:
+            "Yes. If you are on a paid plan, you can use the music you generate in commercial projects such as videos, games, podcasts, websites, apps, and advertisements. You do not need to pay additional royalties for these uses.",
+        },
+        item5: {
+          question: "Do I own the copyright to the generated music?",
+          answer:
+            "No. The music is licensed to you for use, but ownership of the generated audio itself is not transferred. This allows you to use the music commercially, while preventing resale or redistribution of the audio as standalone files.",
+        },
+        item6: {
+          question: "Can I upload the music to YouTube, TikTok, or Spotify?",
+          answer:
+            "Yes, for use as part of your content. However, you may not register the music with Content ID systems or copyright registries.",
+        },
+        item7: {
+          question: "Can I sell the music or offer it as stock music?",
+          answer:
+            "No. You may not resell, sublicense, or distribute the generated music as standalone audio tracks.",
+        },
+        item8: {
+          question: "Is the music guaranteed to be copyright-safe?",
+          answer:
+            "No. AI-generated music may share similarities with existing works. We do not provide guarantees of non-infringement. You are responsible for how the music is used in your projects.",
+        },
+        item9: {
+          question: "Why are there these limitations?",
+          answer:
+            "These limitations help keep the service affordable, fair for all users, and compliant with third-party technology providers.",
+        },
+      },
     },
     footerSection: {
       featuredOnLaunchYourApp: "Featured on LaunchYourApp",
@@ -1070,6 +1194,8 @@ export const messages = {
       lyricsGenerator: "歌词生成",
       expandSidebar: "展开侧边栏",
       expandSidebarSrOnly: "展开侧边栏",
+      collapseSidebar: "收起侧边栏",
+      collapseSidebarSrOnly: "收起侧边栏",
     },
     aiTools: {
       vocalSeparationDescription: "从音乐中分离人声",
@@ -1689,14 +1815,137 @@ export const messages = {
     },
     heroSection: {
       badgeText: "献给每一位 R&B 爱好者",
+      heading: "几秒钟，把你的心情变成 R&B。",
       headingPrefix: "免费在线",
       headingSuffix: "音乐生成器",
       subheading: "创作不同当代节奏蓝调风格的歌曲",
+      promptInputLabel: "描述你的心情",
+      promptInputPlaceholder: "描述你的氛围、情绪或场景...",
+      promptInputAction: "开始创作",
       tryForFree: "免费试用",
       listenToExamples: "试听示例",
       metaFreeDailyCredits: "每日免费积分",
       metaNoExperience: "零门槛上手",
       metaRoyaltyFree: "100% 免版税",
+    },
+    introductionSection: {
+      header: {
+        label: "导读",
+        title: "探索 R&B 丰富的历史脉络",
+        subtitle: "从灵魂根源到当代演化，了解塑造音乐版图的关键流派",
+      },
+      timeline: {
+        label: "R&B 时间线",
+        title: "什么是 R&B？",
+        descriptionPrimary:
+          "Rhythm and Blues 将富有灵魂感的人声与节奏驱动的律动融合在一起。它起源于 1940 年代，并在灵魂乐、放克和迪斯科时期不断演进，最终成为塑造现代流行音乐的重要流派之一。",
+        descriptionSecondary:
+          "通过四个关键时期，看看艺术家们如何在保留情感核心的同时不断重塑 R&B。",
+        readFullArticle: "阅读完整文章",
+        coverImageAlt: "R&B 各时代演进之旅封面",
+        iconAlt: "{title} 图标",
+        eras: {
+          origins: {
+            title: "起源时期",
+            description:
+              "R&B 诞生于福音、布鲁斯与爵士的交汇。早在 1940 年代，Ray Charles、Ruth Brown 等艺术家就把教堂里的灵魂气质带进舞厅，形成既真挚又有力量的声音。Sam Cooke 用丝滑情歌打动人心，The Drifters 等组合则奠定了后续和声团体的基础。",
+          },
+          soulFunkEra: {
+            title: "灵魂与放克时代",
+            description:
+              "到了 70 年代，R&B 进入成熟期，声音更放克、更有态度，也更具社会表达。Stevie Wonder 与 Marvin Gaye 用作品讲述爱、希望与时代议题。Earth, Wind & Fire、Parliament-Funkadelic 让舞池持续沸腾，而 Aretha Franklin 也再次证明：R&B 人声可以兼具力量与灵魂。",
+          },
+          goldenAge: {
+            title: "黄金年代",
+            description:
+              "许多 R&B 乐迷都会说，90 年代是最闪耀的时期。这个十年里，R&B 占据主流榜单并诞生了大量经典声音。New Jack Swing 将嘻哈节拍与顺滑 R&B 融为一体；Hip-Hop Soul 更真实直接；Quiet Storm 带来细腻抒情；Neo-Soul 则注入爵士与放克的气质。",
+          },
+          contemporary: {
+            title: "当代 R&B",
+            description:
+              "来到今天，R&B 已走向全球，并与嘻哈、流行、电子甚至独立音乐不断融合。Usher、Beyoncé 把 R&B 推向更广阔的大众舞台，而 Frank Ocean、The Weeknd、H.E.R. 等艺术家则持续突破边界，带来更私密、朦胧且跨风格的表达。",
+          },
+        },
+      },
+      genres: {
+        title: "黄金年代的经典 R&B 流派",
+        description: "快速了解定义 90 年代 R&B 声音，并影响当下创作流程的代表风格。",
+        learnMore: "了解更多",
+        items: {
+          newJackSwing: {
+            title: "新杰克摇摆 (New Jack Swing)",
+            description:
+              "在 90 年代初的舞池里，新杰克摇摆几乎就是心跳本身。它由制作人 Teddy Riley 推动成型，把 R&B 旋律与嘻哈节拍结合，让 R&B 拥有更硬朗、更具律动感的边缘。典型特征包括：swing 节奏、冲击感鼓机、放克低音线与强舞台编排。",
+          },
+          hipHopSoul: {
+            title: "嘻哈灵魂 (Hip-Hop Soul)",
+            description:
+              "如果说新杰克摇摆偏向派对感，Hip-Hop Soul 更强调真实与直面情绪。这个风格在 90 年代初被广泛定义，用更粗粝的嘻哈底色承载 R&B 的情感叙事，被称为“街头的真声音”。典型特征包括：都市感、嘻哈律动与高度个人化的歌词表达。",
+          },
+          neoSoul: {
+            title: "新灵魂乐 (Neo-Soul)",
+            description:
+              "到了 90 年代中后期，Neo-Soul 成为新的浪潮。它把经典灵魂乐与现代 R&B、爵士、放克融合，整体气质更诗性、更有机、也更内省，吸引了追求深度和真实感的听众。典型特征包括：真乐器编制、爵士和声、松弛律动与思辨型歌词。",
+          },
+          quietStorm: {
+            title: "静夜风暴 (Quiet Storm)",
+            description:
+              "Quiet Storm 原本是 70 年代的电台概念，但在 90 年代被重新激活，成为深夜氛围的代表声音。它丝滑、浪漫，像为烛光时刻量身打造。典型特征包括：慢速节拍、丰润编曲与亲密细腻的歌词。",
+          },
+        },
+      },
+    },
+    faqSection: {
+      sectionLabel: "常见问题",
+      title: "你需要了解的一切",
+      subtitle: "了解关于 AI 驱动 R&B 音乐生成平台的常见问题",
+      items: {
+        item1: {
+          question: "MakeRNB 真的可以免费使用吗？",
+          answer:
+            "是的！MakeRNB 提供每日免费积分，让你无需订阅也能创作原创 R&B 音乐。你每天都会获得新的积分，持续你的音乐创作旅程。",
+        },
+        item2: {
+          question: "积分系统是如何运作的？",
+          answer:
+            "你每天登录后会自动获得 15 个免费积分。每次歌曲生成消耗 12 个积分。每日登录积分若未使用会在 UTC 零点过期，下次登录会重新获得新一轮积分。",
+        },
+        item3: {
+          question: "我可以生成 AI 翻唱，或按特定艺人风格创作音乐吗？",
+          answer:
+            "MakeRNB 不会直接复制现有歌曲。我们的 AI 音乐生成器会基于不同流派和风格创作原创音乐，既保持专业品质，也确保你的作品具有独特性。",
+        },
+        item4: {
+          question: "生成的音乐可以商用吗？",
+          answer:
+            "可以。如果你使用的是付费套餐，你可以将生成音乐用于视频、游戏、播客、网站、应用和广告等商业项目，并且无需为这些用途额外支付版税。",
+        },
+        item5: {
+          question: "我拥有生成音乐的版权吗？",
+          answer:
+            "不完全是。你获得的是音乐使用许可，生成音频本身的所有权不会被转移。这让你可以进行商业使用，但不能将音频作为独立文件进行转售或再分发。",
+        },
+        item6: {
+          question: "我可以把音乐上传到 YouTube、TikTok 或 Spotify 吗？",
+          answer:
+            "可以，前提是作为你内容的一部分使用。但你不能将这些音乐注册到 Content ID 系统或版权登记系统中。",
+        },
+        item7: {
+          question: "我可以出售这些音乐，或作为素材库音乐提供吗？",
+          answer:
+            "不可以。你不能将生成音乐作为独立音频进行转售、再授权或分发。",
+        },
+        item8: {
+          question: "这些音乐能保证绝对没有版权风险吗？",
+          answer:
+            "不能。AI 生成音乐可能与现有作品存在相似性。我们不提供非侵权保证，你需要对音乐在项目中的使用方式负责。",
+        },
+        item9: {
+          question: "为什么会有这些限制？",
+          answer:
+            "这些限制有助于让服务保持可负担、对所有用户公平，并符合第三方技术提供方的合规要求。",
+        },
+      },
     },
     footerSection: {
       featuredOnLaunchYourApp: "收录于 LaunchYourApp",

@@ -19,7 +19,7 @@ import { CLIENT_FEATURE_CREDITS, CLIENT_VOCAL_SEPARATION_CREDITS } from '@/lib/c
 import { useVocalRemovalManager } from '@/features/vocal-tools/hooks/use-vocal-removal-manager';
 import { TrackItem } from './track-item';
 import { formatDurationInMinutes } from '@/lib/format-utils';
-import { getStudioFeatureDefinition, getStudioFeatureMusicTypes, type StudioFeatureKey } from '@/lib/studio-features';
+import { getStudioFeatureMusicTypes, type StudioFeatureKey } from '@/lib/studio-features';
 import { useAuth } from '@/contexts/AuthContext';
 import { useCredits } from '@/contexts/CreditsContext';
 import { getEventBus, TRACK_EVENTS } from "@/lib/event-bus";
@@ -28,6 +28,7 @@ import type { ExtendSourceTrack } from "@/types/extend-track-source";
 import { MusicPersonaDialogs } from "@/components/ui/music-persona-dialogs";
 import { useStudioPersonaManager } from "@/hooks/use-studio-persona-manager";
 import { useI18n } from "@/lib/i18n/provider";
+import { withLocalePrefix } from "@/lib/i18n/routing";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -178,7 +179,8 @@ export const StudioTracksList: React.FC<StudioTracksListProps> = React.memo(func
   extendMusicStartPolling,
   onCreate,
 }) {
-  const { t } = useI18n();
+  const { t, locale } = useI18n();
+  const withCurrentLocale = useCallback((path: string) => withLocalePrefix(path, locale), [locale]);
   const getStudioFeatureLabel = useCallback(
     (featureKey: StudioFeatureKey) => t(STUDIO_FEATURE_LABEL_KEYS[featureKey]),
     [t]
@@ -521,12 +523,12 @@ export const StudioTracksList: React.FC<StudioTracksListProps> = React.memo(func
   
   // 处理分享
   const handleShare = useCallback((trackId: string) => {
-    const url = `${window.location.origin}/track/${trackId}`;
+    const url = `${window.location.origin}${withCurrentLocale(`/track/${trackId}`)}`;
     navigator.clipboard.writeText(url).then(() => {
       setCopiedTrackId(trackId);
       setTimeout(() => setCopiedTrackId(null), 2000);
     });
-  }, []);
+  }, [withCurrentLocale]);
 
   const handleCreatePersonaFromTrack = useCallback((track: any) => {
     if (!user) {
@@ -1614,7 +1616,7 @@ export const StudioTracksList: React.FC<StudioTracksListProps> = React.memo(func
   return (
     <div className="flex flex-col h-full min-h-0 overflow-hidden">
       {/* Search Bar */}
-      <div className="flex-shrink-0 px-3 pt-4 md:pt-6 pb-4">
+      <div className="flex-shrink-0 px-3 pt-4 md:pt-4 pb-4">
         <div className="flex items-center gap-4 flex-wrap md:justify-end flex-1 min-w-[240px] self-center w-full">
           <div className="studio-panel-card rounded-2xl flex-1 h-11 px-1 shadow-[0_1px_2px_rgba(0,0,0,0.06)] transition-colors hover:bg-foreground/10 dark:hover:bg-white/10">
           <div className="relative h-full w-full">

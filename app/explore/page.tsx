@@ -16,6 +16,7 @@ import { toast } from 'sonner';
 import { useRouter } from 'next/navigation';
 import { SolidThumbsUpIcon } from '@/components/icons/solid-thumbs-up-icon';
 import { useI18n } from '@/lib/i18n/provider';
+import { withLocalePrefix } from '@/lib/i18n/routing';
 
 interface Track {
   id: string;
@@ -52,7 +53,8 @@ interface ExploreData {
 
 export default function ExplorePage() {
   const router = useRouter();
-  const { t } = useI18n();
+  const { t, locale } = useI18n();
+  const withCurrentLocale = useCallback((path: string) => withLocalePrefix(path, locale), [locale]);
   const [exploreData, setExploreData] = useState<ExploreData | null>(null);
   const [loading, setLoading] = useState(true);
   const [loadingMore, setLoadingMore] = useState(false);
@@ -205,7 +207,7 @@ export default function ExplorePage() {
   const handleShare = async (trackId: string) => {
     try {
       if (!trackId) return;
-      const shareUrl = `${window.location.origin}/track/${trackId}`;
+      const shareUrl = `${window.location.origin}${withCurrentLocale(`/track/${trackId}`)}`;
       await navigator.clipboard.writeText(shareUrl);
       toast.success(t("trackActions.linkCopied"), {
         duration: 1500,
@@ -260,7 +262,7 @@ export default function ExplorePage() {
       const headers = await getAuthHeaders();
       if (!headers.Authorization) {
         toast(t("toasts.pleaseLogInFavoriteTracks"));
-        router.push('/login');
+        router.push(withCurrentLocale("/login"));
         return;
       }
 
@@ -274,7 +276,7 @@ export default function ExplorePage() {
       if (!response.ok || !result.success) {
         if (response.status === 401) {
           toast(t("toasts.pleaseLogInFavoriteTracks"));
-          router.push('/login');
+          router.push(withCurrentLocale("/login"));
           return;
         }
 
@@ -292,7 +294,7 @@ export default function ExplorePage() {
     } finally {
       setFavoriteLoadingTrackId(null);
     }
-  }, [favoriteLoadingTrackId, getAuthHeaders, router, updateFavoriteState, t]);
+  }, [favoriteLoadingTrackId, getAuthHeaders, router, t, updateFavoriteState, withCurrentLocale]);
 
   const formatPlayCount = (count?: number) => {
     if (!count || count < 0) return '0';

@@ -10,15 +10,21 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useSubscription } from "@/contexts/SubscriptionContext";
 import { usePricingModal } from "@/contexts/PricingModalContext";
 import { SubscriptionBadge } from "@/components/ui/subscription-badge";
+import { DesktopUserDropdown } from "@/components/layout/desktop-user-dropdown";
 import AuthModal from "../ui/auth-modal";
 import { LogOut } from "lucide-react";
 import { getZIndexClass } from "@/lib/z-index";
 import { EditNicknameDialog } from "@/components/ui/edit-nickname-dialog";
 import { ThemeModeToggle } from "@/components/ui/theme-mode-toggle";
 import { LanguageToggle } from "@/components/ui/language-toggle";
+import {
+  NAV_DESKTOP_RIGHT_CLASSES,
+} from "@/components/layout/nav-shared-styles";
 import { formatIsoDateUTC, formatLocalizedNumber } from "@/lib/locale-format";
 import { getStudioFeatureDefinition, isStudioAreaPath, type StudioFeatureKey } from "@/lib/studio-features";
 import { useI18n } from "@/lib/i18n/provider";
+import { stripLocalePrefix, withLocalePrefix } from "@/lib/i18n/routing";
+import { TopNavShell } from "@/components/layout/top-nav-shell";
 
 interface RouteProps {
   href: string;
@@ -58,19 +64,20 @@ interface NavbarProps {
 }
 
 export const Navbar = ({ credits = null }: NavbarProps) => {
-  const { t } = useI18n();
+  const { t, locale } = useI18n();
+  const [isHydrated, setIsHydrated] = React.useState(false);
   const [isOpen, setIsOpen] = React.useState(false);
   const [isAuthModalOpen, setIsAuthModalOpen] = React.useState(false);
-  const [isUserMenuOpen, setIsUserMenuOpen] = React.useState(false);
   const [isNicknameDialogOpen, setIsNicknameDialogOpen] = React.useState(false);
   const [openDropdown, setOpenDropdown] = React.useState<DropdownKey | null>(null);
   const [openMobileDropdown, setOpenMobileDropdown] = React.useState<DropdownKey | null>(null);
   const [dropdownTimeout, setDropdownTimeout] = React.useState<NodeJS.Timeout | null>(null);
-  const userMenuHoverTimeoutRef = React.useRef<NodeJS.Timeout | null>(null);
   const pathname = usePathname();
+  const normalizedPathname = React.useMemo(() => stripLocalePrefix(pathname), [pathname]);
   const { user, signOut, loading: authLoading } = useAuth();
   const { tierCode, tierName, hasSubscription, cancelAtPeriodEnd, cancelAt, currentPeriodEnd } = useSubscription();
   const { openModal } = usePricingModal();
+  const withCurrentLocale = React.useCallback((path: string) => withLocalePrefix(path, locale), [locale]);
   const getStudioFeatureLabel = React.useCallback(
     (featureKey: StudioFeatureKey) => t(STUDIO_FEATURE_LABEL_KEYS[featureKey]),
     [t]
@@ -113,6 +120,10 @@ export const Navbar = ({ credits = null }: NavbarProps) => {
         label: t("nav.library"),
       },
       {
+        href: "/explore",
+        label: t("nav.explore"),
+      },
+      {
         href: "#ai",
         label: t("nav.aiMusicTool"),
         hasDropdown: true,
@@ -151,11 +162,6 @@ export const Navbar = ({ credits = null }: NavbarProps) => {
     if (options?.closeMobileMenu) {
       setIsOpen(false);
     }
-    if (userMenuHoverTimeoutRef.current) {
-      clearTimeout(userMenuHoverTimeoutRef.current);
-      userMenuHoverTimeoutRef.current = null;
-    }
-    setIsUserMenuOpen(false);
     openModal();
   };
 
@@ -175,35 +181,9 @@ export const Navbar = ({ credits = null }: NavbarProps) => {
     setDropdownTimeout(timeout);
   };
 
-  const handleUserMenuMouseEnter = () => {
-    if (userMenuHoverTimeoutRef.current) {
-      clearTimeout(userMenuHoverTimeoutRef.current);
-      userMenuHoverTimeoutRef.current = null;
-    }
-    setIsUserMenuOpen(true);
-  };
-
-  const handleUserMenuMouseLeave = () => {
-    if (userMenuHoverTimeoutRef.current) {
-      clearTimeout(userMenuHoverTimeoutRef.current);
-    }
-    userMenuHoverTimeoutRef.current = setTimeout(() => {
-      setIsUserMenuOpen(false);
-      userMenuHoverTimeoutRef.current = null;
-    }, 120);
-  };
-
   React.useEffect(() => {
-    const handleScroll = () => {
-      // 滚动时关闭用户菜单
-      if (isUserMenuOpen) {
-        setIsUserMenuOpen(false);
-      }
-    };
-
-    window.addEventListener('scroll', handleScroll);
-    return () => window.removeEventListener('scroll', handleScroll);
-  }, [isUserMenuOpen]);
+    setIsHydrated(true);
+  }, []);
 
   // 移动端菜单打开时锁定滚动
   React.useEffect(() => {
@@ -241,28 +221,19 @@ export const Navbar = ({ credits = null }: NavbarProps) => {
 
   React.useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
-      const userMenuContainer = document.querySelector('.user-menu-container');
       const target = event.target as HTMLElement | null;
       const inDropdownContainer = !!target?.closest('.dropdown-container');
-      
-      if (userMenuContainer && !userMenuContainer.contains(event.target as Node)) {
-        if (userMenuHoverTimeoutRef.current) {
-          clearTimeout(userMenuHoverTimeoutRef.current);
-          userMenuHoverTimeoutRef.current = null;
-        }
-        setIsUserMenuOpen(false);
-      }
-      
+
       if (!inDropdownContainer) {
         setOpenDropdown(null);
       }
     };
 
-    if (isUserMenuOpen || openDropdown !== null) {
+    if (openDropdown !== null) {
       document.addEventListener('mousedown', handleClickOutside);
       return () => document.removeEventListener('mousedown', handleClickOutside);
     }
-  }, [isUserMenuOpen, openDropdown]);
+  }, [openDropdown]);
 
   // 清理timeout
   React.useEffect(() => {
@@ -270,39 +241,67 @@ export const Navbar = ({ credits = null }: NavbarProps) => {
       if (dropdownTimeout) {
         clearTimeout(dropdownTimeout);
       }
-      if (userMenuHoverTimeoutRef.current) {
-        clearTimeout(userMenuHoverTimeoutRef.current);
-        userMenuHoverTimeoutRef.current = null;
-      }
     };
   }, [dropdownTimeout]);
 
+  const handleDesktopSignOut = React.useCallback(async () => {
+    try {
+      await signOut();
+    } catch (error) {
+      console.error("Sign out error:", error);
+    }
+  }, [signOut]);
+
+  const showAuthSkeleton = !isHydrated || authLoading;
+
   return (
-    <header 
-      className={`w-full flex items-center px-6 lg:px-20 py-3 lg:py-4 absolute top-0 left-0 text-foreground ${getZIndexClass('NAVBAR')} bg-transparent`}
+    <TopNavShell
+      brandHref={withCurrentLocale("/")}
+      brandAlt={t("common.brandLogo")}
+      className={getZIndexClass('NAVBAR')}
+      rightContent={
+        <div className={NAV_DESKTOP_RIGHT_CLASSES}>
+          <LanguageToggle size="md" variant="nav" />
+          <ThemeModeToggle size="md" variant="icon" className="rounded-2xl" />
+          {showAuthSkeleton ? (
+            <div className="h-10 w-24 rounded-md bg-black/10 animate-pulse" />
+          ) : user ? (
+            <DesktopUserDropdown
+              user={user}
+              displayName={displayName}
+              credits={credits}
+              tierCode={tierCode}
+              tierName={tierName}
+              billingNotice={billingNotice}
+              t={t}
+              onOpenPricing={() => handleOpenPricingModal()}
+              onEditProfile={() => setIsNicknameDialogOpen(true)}
+              onSignOut={handleDesktopSignOut}
+            />
+          ) : (
+            <Button 
+              onClick={() => setIsAuthModalOpen(true)}
+              size="default" 
+              className="bg-primary hover:bg-primary/90 text-primary-foreground px-4 py-2 rounded-md text-base font-semibold h-10"
+            >
+              {t("common.signIn")}
+            </Button>
+          )}
+        </div>
+      }
     >
-      <Link href="/" className="flex items-center gap-3">
-        <Image
-          src="/logo.svg"
-          alt={t("common.brandLogo")}
-          width={36}
-          height={36}
-          className="h-9 w-9"
-        />
-        <span className="sidebar-brand">MakeRNB</span>
-      </Link>
       
       {/* <!-- Desktop Navigation --> */}
       <nav className="hidden lg:block ml-8">
         <ul className="flex items-center space-x-2">
           {routeList.map(({ href, label, hasDropdown, dropdownItems, dropdownKey }) => {
             const isActive =
-              href === "/blog" ? pathname.startsWith("/blog") :
-              href === "/explore" ? pathname.startsWith("/explore") :
+              href === "/blog" ? normalizedPathname.startsWith("/blog") :
+              href === "/explore" ? normalizedPathname.startsWith("/explore") :
               hasDropdown && dropdownKey === "studio" ? isStudioAreaPath(pathname) :
-              href === "/library" ? pathname.startsWith("/library") :
-              hasDropdown && dropdownKey === "ai" ? (pathname.startsWith("/vocal-separation") || pathname.startsWith("/lyrics-generator")) :
-              pathname === href;
+              href === "/library" ? normalizedPathname.startsWith("/library") :
+              hasDropdown && dropdownKey === "ai" ? (normalizedPathname.startsWith("/vocal-separation") || normalizedPathname.startsWith("/lyrics-generator")) :
+              normalizedPathname === href;
             
             if (hasDropdown && dropdownItems && dropdownKey) {
               const isOpenDropdown = openDropdown === dropdownKey;
@@ -330,11 +329,11 @@ export const Navbar = ({ credits = null }: NavbarProps) => {
                       onMouseLeave={handleDropdownMouseLeave}
                     >
                       {dropdownItems.map((item) => {
-                        const isDropdownItemActive = pathname.startsWith(item.href);
+                        const isDropdownItemActive = normalizedPathname.startsWith(item.href);
                         return (
                           <Link
                             key={item.href}
-                            href={item.href}
+                            href={withCurrentLocale(item.href)}
                             onClick={() => setOpenDropdown(null)}
                             className={`group flex items-center px-3 py-2 my-1 transition-colors rounded-lg hover:bg-accent hover:text-accent-foreground ${
                               isDropdownItemActive
@@ -361,7 +360,7 @@ export const Navbar = ({ credits = null }: NavbarProps) => {
             return (
               <li key={href}>
                 <Link
-                  href={href}
+                  href={withCurrentLocale(href)}
                   className={`text-base px-5 py-3 rounded-lg transition-colors duration-200 font-medium ${
                     isActive
                       ? 'text-primary font-semibold'
@@ -388,7 +387,7 @@ export const Navbar = ({ credits = null }: NavbarProps) => {
             <div className="fixed inset-0 bg-black/50" onClick={() => setIsOpen(false)} />
             <div className="fixed right-0 top-0 h-full w-80 bg-card shadow-none p-5 flex flex-col">
               <div className="flex items-center justify-between mb-4">
-                <Link href="/" className="flex items-center" onClick={() => setIsOpen(false)}>
+                <Link href={withCurrentLocale("/")} className="flex items-center" onClick={() => setIsOpen(false)}>
                   <Image
                     src="/logo.svg"
                     alt={t("common.brandLogo")}
@@ -496,12 +495,12 @@ export const Navbar = ({ credits = null }: NavbarProps) => {
               
               <div className="flex flex-col gap-2">
                 {routeList.map(({ href, label, hasDropdown, dropdownItems, dropdownKey }) => {
-                  const isActive = pathname === href ||
-                                 (href === "/blog" && pathname.startsWith("/blog")) ||
-                                 (href === "/explore" && pathname.startsWith("/explore")) ||
+                  const isActive = normalizedPathname === href ||
+                                 (href === "/blog" && normalizedPathname.startsWith("/blog")) ||
+                                 (href === "/explore" && normalizedPathname.startsWith("/explore")) ||
                                  (hasDropdown && dropdownKey === "studio" && isStudioAreaPath(pathname)) ||
-                                 (href === "/library" && pathname.startsWith("/library")) ||
-                                 (hasDropdown && dropdownKey === "ai" && (pathname.startsWith("/vocal-separation") || pathname.startsWith("/lyrics-generator")));
+                                 (href === "/library" && normalizedPathname.startsWith("/library")) ||
+                                 (hasDropdown && dropdownKey === "ai" && (normalizedPathname.startsWith("/vocal-separation") || normalizedPathname.startsWith("/lyrics-generator")));
                   
                   if (hasDropdown && dropdownItems && dropdownKey) {
                     const isMobileDropdownOpen = openMobileDropdown === dropdownKey;
@@ -531,7 +530,7 @@ export const Navbar = ({ credits = null }: NavbarProps) => {
                                   variant="ghost"
                                   className="w-full justify-start text-sm h-auto py-1.5 px-3 my-1 hover:bg-transparent hover:text-foreground text-foreground/70"
                                 >
-                                  <Link href={item.href} className="flex items-center gap-2">
+                                  <Link href={withCurrentLocale(item.href)} className="flex items-center gap-2">
                                     <div className="font-medium">{item.label}</div>
                                   </Link>
                                 </Button>
@@ -556,7 +555,7 @@ export const Navbar = ({ credits = null }: NavbarProps) => {
                         isActive ? 'bg-primary/10 text-primary font-medium' : 'text-foreground/80 hover:text-foreground'
                       }`}
                     >
-                      <Link href={href}>{label}</Link>
+                      <Link href={withCurrentLocale(href)}>{label}</Link>
                     </Button>
                   );
                 })}
@@ -583,132 +582,6 @@ export const Navbar = ({ credits = null }: NavbarProps) => {
         )}
       </div>
 
-      {/* <!-- Desktop Right Side --> */}
-      <div className="hidden lg:flex ml-auto items-center gap-4">
-        <LanguageToggle size="md" variant="nav" />
-        <ThemeModeToggle size="md" variant="icon" className="rounded-2xl" />
-        {authLoading ? (
-          <div className="h-10 w-24 rounded-md bg-black/10 animate-pulse" />
-        ) : user ? (
-          <>
-            <div 
-              className="relative user-menu-container"
-              onMouseEnter={handleUserMenuMouseEnter}
-              onMouseLeave={handleUserMenuMouseLeave}
-            >
-            {/* User Avatar */}
-            <button
-              type="button"
-              onClick={() => setIsUserMenuOpen((prev) => !prev)}
-              onFocus={handleUserMenuMouseEnter}
-              className="rounded-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background"
-              aria-haspopup="menu"
-              aria-expanded={isUserMenuOpen}
-              aria-label={t("common.openUserMenu")}
-            >
-                <Avatar 
-                  className="w-10 h-10 cursor-pointer hover:scale-105 transition-transform duration-200"
-                >
-                  <AvatarImage
-                    src={user.user_metadata?.avatar_url || user.user_metadata?.picture || `https://api.dicebear.com/7.x/initials/svg?seed=${user.email}`}
-                    alt={t("common.userAvatar")}
-                  />
-                <AvatarFallback className="bg-gradient-to-br from-purple-600 to-purple-600 text-white font-semibold text-sm">
-                  {displayName?.charAt(0)?.toUpperCase() ||
-                   user.email?.charAt(0).toUpperCase()}
-                </AvatarFallback>
-              </Avatar>
-            </button>
-
-            {/* User Dropdown Menu */}
-            {isUserMenuOpen && (
-              <div 
-    className="absolute right-0 top-12 min-w-52 w-max bg-background border border-black/10 rounded-2xl p-1.5 shadow-[0_18px_55px_rgba(0,0,0,0.12)] z-[110]"
-  >
-                {/* User Info */}
-                <div className="px-2.5 py-1.5">
-                  <div className="flex items-center justify-between gap-2 mb-1">
-                    <p className="text-foreground font-semibold text-sm truncate flex-1">
-                      {displayName || t("common.user")}
-                    </p>
-                    <button
-                      type="button"
-                      onClick={() => handleOpenPricingModal()}
-                      className="group inline-flex items-center gap-1.5 flex-shrink-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background"
-                      aria-label={t("common.openPricing")}
-                      title={billingNotice ?? undefined}
-                    >
-                      <SubscriptionBadge
-                        tone={tierCode ?? "free"}
-                        label={tierName}
-                        tooltip={billingNotice ?? undefined}
-                        className="cursor-pointer transition-colors !bg-primary !text-primary-foreground hover:!bg-primary/90 !border-primary/40 dark:!border-primary/50 !py-1"
-                      />
-                    </button>
-                  </div>
-                  <p className="text-muted-foreground text-xs truncate">
-                    {user.email}
-                  </p>
-                </div>
-
-                {/* Credits */}
-                <div className="w-full flex items-center justify-between gap-3 rounded-xl px-3 py-2">
-                  <div className="flex items-center gap-3">
-                    <div className="flex-shrink-0 h-8 w-8 rounded-lg flex items-center justify-center text-primary">
-                      <Coins className="h-3.5 w-3.5" />
-                    </div>
-                    <span className="text-sm font-medium text-foreground">{t("common.credits")}</span>
-                  </div>
-                  <span className="min-w-6 text-right text-xs font-semibold text-foreground tabular-nums">
-                    {credits === null ? '...' : formatLocalizedNumber(credits)}
-                  </span>
-                </div>
-
-                <button
-                  onClick={() => {
-                    setIsUserMenuOpen(false);
-                    setIsNicknameDialogOpen(true);
-                      }}
-                      className="w-full flex items-center gap-3 rounded-xl px-3 py-2 text-sm text-foreground/70 hover:bg-black/5 hover:text-foreground transition-colors"
-                    >
-                  <div className="flex-shrink-0 h-8 w-8 rounded-lg flex items-center justify-center text-foreground/70">
-                    <PencilLine className="h-3.5 w-3.5" />
-                  </div>
-                  <span className="text-foreground font-medium text-sm">{t("common.editProfile")}</span>
-                </button>
-
-                {/* Sign Out Button */}
-                    <button
-                      onClick={async () => {
-                        try {
-                          await signOut();
-                          setIsUserMenuOpen(false);
-                        } catch (error) {
-                          console.error('Sign out error:', error);
-                        }
-                      }}
-                      className="w-full flex items-center gap-3 rounded-xl px-3 py-2 text-sm text-foreground/70 hover:bg-black/5 hover:text-foreground transition-colors"
-                    >
-                  <div className="flex-shrink-0 h-8 w-8 rounded-lg flex items-center justify-center text-foreground/70">
-                    <LogOut className="h-3.5 w-3.5" />
-                  </div>
-                  <span className="text-foreground font-medium text-sm">{t("common.signOut")}</span>
-                </button>
-              </div>
-            )}
-            </div>
-          </>
-        ) : (
-          <Button 
-            onClick={() => setIsAuthModalOpen(true)}
-            size="default" 
-            className="bg-primary hover:bg-primary/90 text-primary-foreground px-4 py-2 rounded-md text-base font-semibold h-10"
-          >
-            {t("common.signIn")}
-          </Button>
-        )}
-      </div>
-
       {/* Auth Modal */}
       <AuthModal 
         isOpen={isAuthModalOpen} 
@@ -723,6 +596,6 @@ export const Navbar = ({ credits = null }: NavbarProps) => {
         />
       )}
 
-    </header>
+    </TopNavShell>
   );
 };

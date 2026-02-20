@@ -65,12 +65,9 @@ export const PricingSection = ({ initialPlans }: PricingSectionProps) => {
         <div className="mt-16 space-y-12">
           <div className="mx-auto max-w-4xl">
             <div className="text-center mb-8">
-              <h3 className="text-lg text-primary text-center mb-2 tracking-wider">
-                Frequently Asked Questions
-              </h3>
-              <h4 className="text-3xl md:text-4xl text-center font-bold mb-4">
+              <h3 className="text-3xl md:text-4xl text-center font-bold mb-4">
                 Everything You Need to Know
-              </h4>
+              </h3>
               <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
                 Get answers to common questions about plans, billing, and credits.
               </p>

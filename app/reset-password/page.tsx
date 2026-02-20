@@ -11,10 +11,12 @@ import { useRouter } from 'next/navigation';
 import Image from 'next/image';
 import { Check, Lock } from 'lucide-react';
 import { useI18n } from '@/lib/i18n/provider';
+import { withLocalePrefix } from '@/lib/i18n/routing';
 
 export default function ResetPasswordPage() {
   const router = useRouter();
-  const { t } = useI18n();
+  const { t, locale } = useI18n();
+  const withCurrentLocale = (path: string) => withLocalePrefix(path, locale);
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [loading, setLoading] = useState(false);
@@ -91,7 +93,7 @@ export default function ResetPasswordPage() {
       
       // 等待2秒后跳转到首页
       setTimeout(() => {
-        router.push('/');
+        router.push(withCurrentLocale('/'));
       }, 2000);
     } catch (error: any) {
       setMessage(error instanceof Error ? error.message : t('resetPasswordPage.unknownError'));
@@ -133,7 +135,7 @@ export default function ResetPasswordPage() {
           </CardHeader>
           <CardContent>
             <Button
-              onClick={() => router.push('/')}
+              onClick={() => router.push(withCurrentLocale('/'))}
               className="w-full h-12 bg-primary hover:bg-primary/90 text-primary-foreground font-medium rounded-xl"
             >
               {t('resetPasswordPage.returnHome')}
@@ -255,7 +257,7 @@ export default function ResetPasswordPage() {
 
           <div className="mt-6 text-center">
             <button
-              onClick={() => router.push('/')}
+              onClick={() => router.push(withCurrentLocale('/'))}
               className="text-sm text-muted-foreground hover:text-foreground transition-colors"
             >
               {t('resetPasswordPage.backToHome')}

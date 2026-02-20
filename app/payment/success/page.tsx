@@ -6,12 +6,16 @@ import { Button } from "@/components/ui/button";
 import { CheckCircle, Music, AlertCircle } from "lucide-react";
 import { useCredits } from "@/contexts/CreditsContext";
 import { useFeaturePermissions } from "@/contexts/FeaturePermissionsContext";
+import { useI18n } from "@/lib/i18n/provider";
+import { withLocalePrefix } from "@/lib/i18n/routing";
 
 function PaymentSuccessContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
+  const { locale } = useI18n();
   const { refreshCredits } = useCredits();
   const { refreshPermissions } = useFeaturePermissions();
+  const withCurrentLocale = (path: string) => withLocalePrefix(path, locale);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -76,7 +80,7 @@ function PaymentSuccessContent() {
           </div>
           <Button 
             className="w-full" 
-            onClick={() => router.push('/')}
+            onClick={() => router.push(withCurrentLocale('/'))}
           >
             Back to Home
           </Button>
@@ -116,7 +120,7 @@ function PaymentSuccessContent() {
         <div className="space-y-6">
           <Button 
             className="w-full" 
-            onClick={() => router.push('/music-generator')}
+            onClick={() => router.push(withCurrentLocale('/music-generator'))}
           >
             <Music className="h-4 w-4 mr-2" />
             Start Creating Music
@@ -125,7 +129,7 @@ function PaymentSuccessContent() {
           <Button 
             variant="outline" 
             className="w-full"
-            onClick={() => router.push('/')}
+            onClick={() => router.push(withCurrentLocale('/'))}
           >
             Back to Home
           </Button>

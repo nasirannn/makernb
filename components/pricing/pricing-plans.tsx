@@ -12,6 +12,7 @@ import { usePricingState } from "@/hooks/use-pricing-state";
 import { formatLocalizedNumber } from "@/lib/locale-format";
 import type { PricingPlan } from "@/lib/pricing-config";
 import { useI18n } from "@/lib/i18n/provider";
+import { withLocalePrefix } from "@/lib/i18n/routing";
 
 type PricingVariant = "section" | "modal";
 
@@ -38,6 +39,7 @@ const variantConfig: Record<PricingVariant, { grid: string; freeCard: string; to
 
 export const PricingPlans = ({ variant = "section", onNavigate, initialPlans }: PricingPlansProps) => {
   const { t, locale } = useI18n();
+  const withCurrentLocale = (path: string) => withLocalePrefix(path, locale);
   const {
     user,
     billingPeriod,
@@ -224,7 +226,7 @@ export const PricingPlans = ({ variant = "section", onNavigate, initialPlans }: 
               asChild
               className="mt-6 w-full rounded-full py-6 text-base font-semibold bg-foreground text-background hover:bg-foreground/90 dark:bg-white dark:text-black dark:hover:bg-white/90"
             >
-              <Link href="/music-generator" onClick={onNavigate}>
+              <Link href={withCurrentLocale("/music-generator")} onClick={onNavigate}>
                 {freeCtaLabel}
               </Link>
             </Button>
@@ -410,7 +412,7 @@ export const PricingPlans = ({ variant = "section", onNavigate, initialPlans }: 
                             />
                             {feature === commercialLicenseText ? (
                               <Link
-                                href="/license"
+                                href={withCurrentLocale("/license")}
                                 onClick={onNavigate}
                                 className={cn(
                                   "leading-relaxed underline underline-offset-4 transition-colors",

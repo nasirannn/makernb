@@ -1,9 +1,16 @@
 "use client";
 
 import React from "react";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { DEFAULT_LOCALE, messages, SUPPORTED_LOCALES, type AppLocale } from "@/lib/i18n/messages";
+import {
+  LOCALE_COOKIE_KEY,
+  getLocaleFromPathname,
+  normalizeLocale,
+  replaceLocaleInPathname,
+} from "@/lib/i18n/routing";
 
-const LOCALE_STORAGE_KEY = "makernb.locale";
+const LOCALE_STORAGE_KEY = LOCALE_COOKIE_KEY;
 
 type TranslationVars = Record<string, string | number | null | undefined>;
 
@@ -14,14 +21,6 @@ interface I18nContextValue {
 }
 
 const I18nContext = React.createContext<I18nContextValue | undefined>(undefined);
-
-function normalizeLocale(locale: string | null | undefined): AppLocale {
-  if (!locale) return DEFAULT_LOCALE;
-  const normalized = locale.toLowerCase();
-  if (normalized === "en" || normalized.startsWith("en-")) return "en";
-  if (normalized === "zh" || normalized.startsWith("zh-")) return "zh-CN";
-  return DEFAULT_LOCALE;
-}
 
 function getMessage(locale: AppLocale, key: string): string | undefined {
   const path = key.split(".");
@@ -46,9 +45,31 @@ function formatMessage(template: string, vars?: TranslationVars): string {
 }
 
 export function I18nProvider({ children }: { children: React.ReactNode }) {
-  const [locale, setLocaleState] = React.useState<AppLocale>(DEFAULT_LOCALE);
+  const pathname = usePathname();
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const [fallbackLocale, setFallbackLocale] = React.useState<AppLocale>(DEFAULT_LOCALE);
+  const routeLocale = React.useMemo(() => getLocaleFromPathname(pathname), [pathname]);
+  const locale = routeLocale ?? fallbackLocale;
+
+  const persistLocale = React.useCallback((nextLocale: AppLocale) => {
+    try {
+      window.localStorage.setItem(LOCALE_STORAGE_KEY, nextLocale);
+    } catch {
+      // ignore localStorage write errors
+    }
+    if (typeof document !== "undefined") {
+      document.documentElement.lang = nextLocale;
+      document.cookie = `${LOCALE_COOKIE_KEY}=${encodeURIComponent(nextLocale)}; path=/; max-age=31536000; samesite=lax`;
+    }
+  }, []);
 
   React.useEffect(() => {
+    if (routeLocale) {
+      setFallbackLocale(routeLocale);
+      return;
+    }
+
     const storedLocale = (() => {
       try {
         return window.localStorage.getItem(LOCALE_STORAGE_KEY);
@@ -56,28 +77,39 @@ export function I18nProvider({ children }: { children: React.ReactNode }) {
         return null;
       }
     })();
-    const browserLocale = typeof navigator !== "undefined" ? navigator.language : undefined;
-    const nextLocale = normalizeLocale(storedLocale || browserLocale);
-    setLocaleState(nextLocale);
-  }, []);
+    const nextLocale = normalizeLocale(storedLocale || DEFAULT_LOCALE);
+    setFallbackLocale(nextLocale);
+  }, [routeLocale]);
 
   React.useEffect(() => {
-    try {
-      window.localStorage.setItem(LOCALE_STORAGE_KEY, locale);
-    } catch {
-      // ignore localStorage write errors
-    }
-    if (typeof document !== "undefined") {
-      document.documentElement.lang = locale;
-    }
-  }, [locale]);
+    persistLocale(locale);
+  }, [locale, persistLocale]);
 
-  const setLocale = React.useCallback((nextLocale: AppLocale) => {
-    if (!SUPPORTED_LOCALES.includes(nextLocale)) {
-      return;
-    }
-    setLocaleState(nextLocale);
-  }, []);
+  const setLocale = React.useCallback(
+    (nextLocale: AppLocale) => {
+      if (!SUPPORTED_LOCALES.includes(nextLocale)) {
+        return;
+      }
+
+      if (nextLocale === locale) {
+        return;
+      }
+
+      setFallbackLocale(nextLocale);
+      persistLocale(nextLocale);
+
+      const currentPath = pathname ?? "/";
+      const nextPath = replaceLocaleInPathname(currentPath, nextLocale);
+      const query = searchParams?.toString();
+      const currentHref = query ? `${currentPath}?${query}` : currentPath;
+      const nextHref = query ? `${nextPath}?${query}` : nextPath;
+
+      if (nextHref !== currentHref) {
+        router.push(nextHref);
+      }
+    },
+    [locale, pathname, persistLocale, router, searchParams]
+  );
 
   const t = React.useCallback(
     (key: string, vars?: TranslationVars) => {

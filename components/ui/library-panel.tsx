@@ -65,6 +65,7 @@ import {
 import { EditMusicInfoDialog } from '@/components/ui/edit-music-info-dialog';
 import { Mp4BrandingDialog } from '@/components/ui/mp4-branding-dialog';
 import { useI18n } from '@/lib/i18n/provider';
+import { withLocalePrefix } from '@/lib/i18n/routing';
 
 interface LibraryPanelProps {
   tracks: LibraryTrack[];
@@ -149,7 +150,8 @@ export const LibraryPanel = ({
   onFavoriteToggle
 }: LibraryPanelProps) => {
   const { user, loading: authLoading, signOut } = useAuth();
-  const { t } = useI18n();
+  const { t, locale } = useI18n();
+  const withCurrentLocale = useCallback((path: string) => withLocalePrefix(path, locale), [locale]);
   const { credits } = useCredits();
   const { openModal: openPricingModal } = usePricingModal();
   const displayName = user?.user_metadata?.nickname || user?.user_metadata?.full_name || user?.user_metadata?.name || user?.email?.split('@')[0] || '';
@@ -175,7 +177,6 @@ export const LibraryPanel = ({
   const [selectedTrackForMenu, setSelectedTrackForMenu] = useState<LibraryTrack | null>(null);
   const [userMenuOpen, setUserMenuOpen] = useState(false);
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc' | null>(null);
-  const [sortColumn, setSortColumn] = useState<'createdAt' | 'duration'>('createdAt');
   
   // tags展开状态管理
   const [expandedTags, setExpandedTags] = useState<Record<string, boolean>>({});
@@ -241,16 +242,11 @@ export const LibraryPanel = ({
         ? t("libraryPage.noPublishedTracksYet")
         : t("libraryPage.noTracksYet");
 
-  const handleSortClick = (column: 'createdAt' | 'duration') => {
-    setSortColumn(column);
-    if (column === sortColumn) {
-      if (sortOrder === 'desc') {
-        setSortOrder('asc');
-      } else if (sortOrder === 'asc') {
-        setSortOrder(null);
-      } else {
-        setSortOrder('desc');
-      }
+  const handleSortClick = () => {
+    if (sortOrder === 'desc') {
+      setSortOrder('asc');
+    } else if (sortOrder === 'asc') {
+      setSortOrder(null);
     } else {
       setSortOrder('desc');
     }
@@ -259,16 +255,10 @@ export const LibraryPanel = ({
   // 根据排序规则对tracks进行排序
   const sortedTracks = [...filteredTracks].sort((a, b) => {
     if (sortOrder === null) return 0;
-    
-    if (sortColumn === 'createdAt') {
-      const dateA = new Date(a.createdAt || 0).getTime();
-      const dateB = new Date(b.createdAt || 0).getTime();
-      return sortOrder === 'asc' ? dateA - dateB : dateB - dateA;
-    }
-    
-    const durationA = typeof a.duration === 'string' ? parseFloat(a.duration) : (a.duration || 0);
-    const durationB = typeof b.duration === 'string' ? parseFloat(b.duration) : (b.duration || 0);
-    return sortOrder === 'asc' ? durationA - durationB : durationB - durationA;
+
+    const dateA = new Date(a.createdAt || 0).getTime();
+    const dateB = new Date(b.createdAt || 0).getTime();
+    return sortOrder === 'asc' ? dateA - dateB : dateB - dateA;
   });
 
   // Show all tracks without pagination
@@ -308,7 +298,7 @@ export const LibraryPanel = ({
     }
 
     try {
-      const shareUrl = `${window.location.origin}/track/${track.id}`;
+      const shareUrl = `${window.location.origin}${withCurrentLocale(`/track/${track.id}`)}`;
       await navigator.clipboard.writeText(shareUrl);
       setCopiedTrackId(track.id);
 
@@ -326,7 +316,7 @@ export const LibraryPanel = ({
       toast.error(t("toasts.failedCopyLink"));
       return false;
     }
-  }, [t]);
+  }, [t, withCurrentLocale]);
 
   const handleDownload = async (
     track: LibraryTrack,
@@ -957,7 +947,7 @@ export const LibraryPanel = ({
       {/* Mobile Header - 移动端显示 logo 和品牌 */}
       <div className="app-card-muted app-hairline flex-shrink-0 md:hidden px-6 py-4 border-0 border-b-0">
         <div className="flex items-center justify-between gap-3">
-          <Link href="/" className="font-bold text-lg flex items-center">
+          <Link href={withCurrentLocale("/")} className="font-bold text-lg flex items-center">
             <Image
               src="/logo.svg"
               alt={t("common.brandLogo")}
@@ -1139,13 +1129,13 @@ export const LibraryPanel = ({
               </div>
               <div 
                 className="col-span-1 flex items-center gap-0.5 cursor-pointer select-none hover:text-foreground transition-colors"
-                onClick={() => handleSortClick('createdAt')}
+                onClick={handleSortClick}
               >
                 <span className="whitespace-nowrap">
                   {t("libraryPage.createdTimeColumn")}
                 </span>
                 <div className="relative inline-flex items-center">
-                  {sortColumn !== 'createdAt' || sortOrder === null ? (
+                  {sortOrder === null ? (
                     <ArrowUpDown className="h-4 w-4" />
                   ) : sortOrder === 'asc' ? (
                     <ArrowUp className="h-4 w-4 text-primary" />
@@ -1154,20 +1144,8 @@ export const LibraryPanel = ({
                   )}
                 </div>
               </div>
-              <div 
-                className="col-span-1 flex items-center justify-end gap-1 cursor-pointer select-none hover:text-foreground transition-colors"
-                onClick={() => handleSortClick('duration')}
-              >
+              <div className="col-span-1 flex items-center justify-end">
                 <span>{t("libraryPage.durationColumn")}</span>
-                <div className="relative inline-flex items-center">
-                  {sortColumn !== 'duration' || sortOrder === null ? (
-                    <ArrowUpDown className="h-4 w-4" />
-                  ) : sortOrder === 'asc' ? (
-                    <ArrowUp className="h-4 w-4 text-primary" />
-                  ) : (
-                    <ArrowDownIcon className="h-4 w-4 text-primary" />
-                  )}
-                </div>
               </div>
               <div className="col-span-2 flex items-center justify-center">
                 <span>{t("libraryPage.actionsColumn")}</span>

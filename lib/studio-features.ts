@@ -1,4 +1,5 @@
 import type { MusicType } from "@/types/music";
+import { stripLocalePrefix } from "@/lib/i18n/routing";
 
 export type StudioFeatureKey =
   | "music-generator"
@@ -83,6 +84,13 @@ export function getStudioFeatureFromSegment(segment: string): StudioFeatureKey |
   return isStudioFeatureKey(segment) ? segment : null;
 }
 
+export function getStudioFeatureFromPathname(pathname: string | null | undefined): StudioFeatureKey | null {
+  if (!pathname) return null;
+  const normalizedPath = stripLocalePrefix(pathname);
+  const firstSegment = normalizedPath.split("/").filter(Boolean)[0] ?? "";
+  return getStudioFeatureFromSegment(firstSegment);
+}
+
 export function getStudioFeatureDefinition(feature: StudioFeatureKey): StudioFeatureDefinition {
   return studioFeatureMap.get(feature) ?? studioFeatureMap.get(DEFAULT_STUDIO_FEATURE)!;
 }
@@ -96,7 +104,8 @@ export function getStudioFeatureMusicTypes(feature: StudioFeatureKey): MusicType
 }
 
 function isPathMatch(pathname: string, path: string): boolean {
-  return pathname === path || pathname.startsWith(`${path}/`);
+  const normalizedPathname = stripLocalePrefix(pathname).split(/[?#]/)[0] || "/";
+  return normalizedPathname === path || normalizedPathname.startsWith(`${path}/`);
 }
 
 export function isStudioFeaturePath(pathname?: string | null): boolean {

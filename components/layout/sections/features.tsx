@@ -117,7 +117,6 @@ export const FeaturesSection = () => {
       <div className="container">
         <div className="mx-auto max-w-7xl">
           <div className="mb-8 text-center sm:mb-10">
-            <p className="mb-2 text-lg font-medium tracking-wider text-primary">{t("landingFeatures.sectionLabel")}</p>
             <h2 className="mx-auto mb-4 max-w-4xl text-3xl font-bold tracking-tight md:text-4xl">
               {t("landingFeatures.sectionTitle")}
             </h2>

@@ -2050,7 +2050,7 @@ export const MusicCoverPanel = (props: FeatureCreatePanelProps) => {
     <div
       className={`studio-panel-cards transition-all duration-300 ease-in-out ${
         // 桌面：左侧固定宽度；移动端：当 forceVisibleOnMobile=true 时占满宽度
-        panelOpen ? (forceVisibleOnMobile ? 'w-full md:w-[32rem]' : 'w-[32rem]') : 'w-0'
+        panelOpen ? (forceVisibleOnMobile ? 'w-full md:w-[clamp(21rem,30vw,32rem)]' : 'md:w-[clamp(21rem,30vw,32rem)]') : 'w-0'
       } ${forceVisibleOnMobile ? 'flex flex-col' : 'h-full flex flex-col overflow-hidden'} ${forceVisibleOnMobile ? 'flex md:flex' : 'hidden md:flex'}`}
       style={
         hasPlayer && !forceVisibleOnMobile
@@ -2061,7 +2061,7 @@ export const MusicCoverPanel = (props: FeatureCreatePanelProps) => {
       {panelOpen && (
         <>
           {/* Header */}
-          <div className="flex-shrink-0 px-0 pt-4 md:pt-6 pb-4">
+          <div className="flex-shrink-0 px-0 pt-2 md:pt-4 pb-4">
             {resolvedPanelTitle && (
               <div className="mb-3 px-1 space-y-1.5">
                 <div className="flex items-center justify-between gap-3">
