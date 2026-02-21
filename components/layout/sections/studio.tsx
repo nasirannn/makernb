@@ -1114,7 +1114,7 @@ const StudioContent = ({ feature, FeaturePanel, panelMode, lockPanelMode }: Stud
 
                                     <div
                                         className={`absolute right-0 top-0 h-full w-full max-w-[min(90vw,400px)] md:right-0 md:max-w-[20rem] ${
-                                            player.currentTrack ? 'md:h-[calc(100%-var(--player-height,0px)-1rem)]' : ''
+                                            player.currentTrack ? 'md:h-[calc(100%-var(--player-height,0px)-0.5rem)]' : ''
                                         } transform-gpu transition-transform duration-300 ease-out ${
                                             showInlinePanel ? 'translate-x-0' : 'translate-x-full'
                                         }`}
@@ -1140,7 +1140,7 @@ const StudioContent = ({ feature, FeaturePanel, panelMode, lockPanelMode }: Stud
 
                 {player.currentTrack && (
                     <div
-                        className="fixed md:absolute left-3 right-3 md:left-4 md:right-4 bottom-[calc(var(--mobile-nav-height,0px)+0.75rem)] md:bottom-4 z-[45] pointer-events-auto"
+                        className="fixed left-3 right-3 bottom-[calc(var(--mobile-nav-height,0px)+0.75rem)] md:bottom-2 md:left-[calc(var(--studio-sidebar-width,72px)+1rem)] md:right-4 z-[45] pointer-events-auto"
                     >
                         <MusicPlayer {...musicPlayerProps} />
                     </div>

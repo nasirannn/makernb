@@ -6,6 +6,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getUserInfoFromRequest } from '@/lib/auth';
 import { getFeatureCredits } from '@/lib/credits-config';
+import { DEFAULT_NEGATIVE_TAGS } from '@/lib/music-generation-config';
 import { consumeUserCredit, getUserCredits, addUserCredits } from '@/lib/user-db';
 import { hasFeaturePermission } from '@/lib/feature-permissions';
 import { query } from '@/lib/db-query-builder';
@@ -15,7 +16,6 @@ import {
   KIEReplaceSectionRequest,
   KIEReplaceSectionResponse
 } from '@/features/music-upload/types/replace-section';
-import { DEFAULT_NEGATIVE_TAGS } from '@/lib/music-generation-config';
 
 // 强制动态渲染
 export const dynamic = 'force-dynamic';

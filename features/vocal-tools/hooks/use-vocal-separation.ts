@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from "react";
 import { supabase } from '@/lib/supabase';
 import { toast } from 'sonner';
+import { useI18n } from '@/lib/i18n/provider';
 
 // ============================================================================
 // TYPES AND INTERFACES
@@ -31,6 +32,7 @@ export interface VocalSeparationRequest {
 // ============================================================================
 
 export const useVocalSeparation = () => {
+  const { t } = useI18n();
   // ============================================================================
   // STATE MANAGEMENT
   // ============================================================================
@@ -75,7 +77,7 @@ export const useVocalSeparation = () => {
    */
   const validateRequest = (request: VocalSeparationRequest): boolean => {
     if (!request.file && !request.audioUrl) {
-      toast.error("Please provide either a file or audio URL");
+      toast.error(t("toasts.provideFileOrAudioUrl"));
       return false;
     }
 
@@ -117,11 +119,11 @@ export const useVocalSeparation = () => {
     // Update separation status to error
     setSeparations(prev => prev.map(sep => 
       sep.predictionId === predictionId 
-        ? { ...sep, status: 'error' as VocalSeparationStatus, errorMessage: payload.msg || 'Separation failed' }
+        ? { ...sep, status: 'error' as VocalSeparationStatus, errorMessage: payload.msg || t("toasts.vocalSeparationFailedTryAgain") }
         : sep
     ));
 
-    toast.error(payload.msg || 'Vocal separation failed');
+    toast.error(payload.msg || t("toasts.vocalSeparationFailedTryAgain"));
   };
 
   /**
@@ -158,12 +160,12 @@ export const useVocalSeparation = () => {
       setIsProcessing(false);
       setProcessingTimer(0);
       cleanupResources();
-      toast.success('Vocal separation completed successfully!');
+      toast.success(t("toasts.vocalSeparationCompletedSuccessfully"));
     } else if (responseData.status === 'error') {
       setIsProcessing(false);
       setProcessingTimer(0);
       cleanupResources();
-      toast.error(responseData.errorMessage || 'Vocal separation failed');
+      toast.error(responseData.errorMessage || t("toasts.vocalSeparationFailedTryAgain"));
     }
   };
 
@@ -183,11 +185,11 @@ export const useVocalSeparation = () => {
       
       setSeparations(prev => prev.map(sep => 
         sep.predictionId === predictionId 
-          ? { ...sep, status: 'error' as VocalSeparationStatus, errorMessage: 'Separation timeout' }
+          ? { ...sep, status: 'error' as VocalSeparationStatus, errorMessage: t("toasts.vocalSeparationTimeoutTryAgain") }
           : sep
       ));
       
-      toast.error('Vocal separation timeout. Please try again.');
+      toast.error(t("toasts.vocalSeparationTimeoutTryAgain"));
     }, 5 * 60 * 1000);
 
     const poll = async () => {
@@ -250,7 +252,7 @@ export const useVocalSeparation = () => {
     refreshCredits?: () => Promise<void>
   ) => {
     if (!validateRequest(request)) {
-      throw new Error('Invalid vocal separation request');
+      throw new Error(t("toasts.invalidVocalSeparationRequest"));
     }
 
     setIsProcessing(true);
@@ -268,7 +270,7 @@ export const useVocalSeparation = () => {
       // Get Supabase session token
       const { data: { session } } = await supabase.auth.getSession();
       if (!session?.access_token) {
-        throw new Error('No valid session found');
+        throw new Error(t("toasts.noValidSessionFound"));
       }
 
       // Add processing separation to state
@@ -304,9 +306,9 @@ export const useVocalSeparation = () => {
       if (!response.ok) {
         const errorData = await response.json();
         if (errorData.error === 'Insufficient credits') {
-          throw new Error('Insufficient credits! Please check your credit balance.');
+          throw new Error(t("toasts.insufficientCreditsCheckBalance"));
         }
-        throw new Error(errorData.error || 'Vocal separation failed');
+        throw new Error(errorData.error || t("toasts.vocalSeparationFailedTryAgain"));
       }
 
       const result = await response.json();
@@ -319,7 +321,7 @@ export const useVocalSeparation = () => {
 
         const data = result.data;
         if (!data?.predictionId) {
-          throw new Error('No prediction ID received from server');
+          throw new Error(t("toasts.noPredictionIdReceivedFromServer"));
         }
 
         // Cache hit: completed result can be rendered immediately without polling.
@@ -345,7 +347,7 @@ export const useVocalSeparation = () => {
           cleanupResources();
           setIsProcessing(false);
           setProcessingTimer(0);
-          toast.success('Loaded existing separation result');
+          toast.success(t("toasts.loadedExistingSeparationResult"));
           return;
         }
 
@@ -361,7 +363,7 @@ export const useVocalSeparation = () => {
         // Start polling for status updates
         startPollingStatus(data.predictionId);
       } else {
-        throw new Error(result.error || 'Vocal separation failed');
+        throw new Error(result.error || t("toasts.vocalSeparationFailedTryAgain"));
       }
     } catch (error) {
       console.error('Vocal separation error:', error);
@@ -373,13 +375,13 @@ export const useVocalSeparation = () => {
 
       // Add error separation to display
       const errorSeparation = createFailedSeparation(
-        error instanceof Error ? error.message : 'Vocal separation failed',
+        error instanceof Error ? error.message : t("toasts.vocalSeparationFailedTryAgain"),
         request
       );
       setSeparations(prev => [errorSeparation, ...prev]);
 
       // Show error message
-      toast.error(error instanceof Error ? error.message : 'Vocal separation failed');
+      toast.error(error instanceof Error ? error.message : t("toasts.vocalSeparationFailedTryAgain"));
       
       // Re-throw error for outer handling
       throw error;
@@ -405,7 +407,7 @@ export const useVocalSeparation = () => {
       });
 
       if (!response.ok) {
-        throw new Error('Failed to fetch vocal separations');
+        throw new Error(t("toasts.failedToFetchVocalSeparations"));
       }
 
       const result = await response.json();
@@ -430,7 +432,7 @@ export const useVocalSeparation = () => {
     } catch (error) {
       console.error('Error fetching vocal separations:', error);
       if (showErrorToast) {
-        toast.error('Failed to load vocal separations');
+        toast.error(t("toasts.failedToLoadVocalSeparations"));
       }
     }
   };
@@ -457,7 +459,7 @@ export const useVocalSeparation = () => {
       // Get Supabase session token
       const { data: { session } } = await supabase.auth.getSession();
       if (!session?.access_token) {
-        throw new Error('No valid session found');
+        throw new Error(t("toasts.noValidSessionFound"));
       }
 
       // Add processing separation to state
@@ -490,9 +492,9 @@ export const useVocalSeparation = () => {
       if (!response.ok) {
         const errorData = await response.json();
         if (errorData.error === 'Insufficient credits') {
-          throw new Error('Insufficient credits! Please check your credit balance.');
+          throw new Error(t("toasts.insufficientCreditsCheckBalance"));
         }
-        throw new Error(errorData.error || 'Vocal removal failed');
+        throw new Error(errorData.error || t("toasts.vocalRemovalFailed"));
       }
 
       const result = await response.json();
@@ -505,7 +507,7 @@ export const useVocalSeparation = () => {
 
         const data = result.data;
         if (!data?.taskId) {
-          throw new Error('No task ID received from server');
+          throw new Error(t("toasts.noTaskIdReceivedFromServer"));
         }
 
         // Cache hit: completed result can be rendered immediately without polling.
@@ -531,7 +533,7 @@ export const useVocalSeparation = () => {
           cleanupResources();
           setIsProcessing(false);
           setProcessingTimer(0);
-          toast.success('Loaded existing separation result');
+          toast.success(t("toasts.loadedExistingSeparationResult"));
           return;
         }
 
@@ -547,7 +549,7 @@ export const useVocalSeparation = () => {
         // Start polling for status updates
         startPollingKieStatus(data.taskId);
       } else {
-        throw new Error(result.error || 'Vocal removal failed');
+        throw new Error(result.error || t("toasts.vocalRemovalFailed"));
       }
     } catch (error) {
       console.error('Vocal removal from Studio error:', error);
@@ -559,13 +561,13 @@ export const useVocalSeparation = () => {
 
       // Add error separation to display
       const errorSeparation = createFailedSeparation(
-        error instanceof Error ? error.message : 'Vocal removal failed',
+        error instanceof Error ? error.message : t("toasts.vocalRemovalFailed"),
         { audioUrl: `track:${trackId}` }
       );
       setSeparations(prev => [errorSeparation, ...prev]);
 
       // Show error message
-      toast.error(error instanceof Error ? error.message : 'Vocal removal failed');
+      toast.error(error instanceof Error ? error.message : t("toasts.vocalRemovalFailed"));
       
       // Re-throw error for outer handling
       throw error;
@@ -588,11 +590,11 @@ export const useVocalSeparation = () => {
       
       setSeparations(prev => prev.map(sep => 
         sep.predictionId === taskId 
-          ? { ...sep, status: 'error' as VocalSeparationStatus, errorMessage: 'Separation timeout' }
+          ? { ...sep, status: 'error' as VocalSeparationStatus, errorMessage: t("toasts.vocalRemovalTimeoutTryAgain") }
           : sep
       ));
       
-      toast.error('Vocal removal timeout. Please try again.');
+      toast.error(t("toasts.vocalRemovalTimeoutTryAgain"));
     }, 5 * 60 * 1000);
 
     const poll = async () => {
@@ -629,7 +631,7 @@ export const useVocalSeparation = () => {
             vocalUrl: payload.data.vocalUrl,
             // 优先使用 instrumentalUrl，如果没有则使用 accompanimentUrl（向后兼容）
             instrumentalUrl: payload.data.instrumentalUrl || payload.data.accompanimentUrl,
-            errorMessage: payload.data.status === 'error' ? 'Vocal removal failed' : undefined,
+            errorMessage: payload.data.status === 'error' ? t("toasts.vocalRemovalFailed") : undefined,
             createdAt: payload.data.createdAt,
             updatedAt: payload.data.updatedAt,
             source: 'kie'
@@ -651,12 +653,12 @@ export const useVocalSeparation = () => {
             setIsProcessing(false);
             setProcessingTimer(0);
             cleanupResources();
-            toast.success('Vocal separation completed successfully!');
+            toast.success(t("toasts.vocalSeparationCompletedSuccessfully"));
           } else if (payload.data.status === 'error') {
             setIsProcessing(false);
             setProcessingTimer(0);
             cleanupResources();
-            toast.error('Vocal separation failed');
+            toast.error(t("toasts.vocalSeparationFailedTryAgain"));
           }
         } else if (payload.error) {
           handlePollingError(payload, taskId);
@@ -681,7 +683,7 @@ export const useVocalSeparation = () => {
     try {
       const { data: { session } } = await supabase.auth.getSession();
       if (!session?.access_token) {
-        throw new Error('No valid session found');
+        throw new Error(t("toasts.noValidSessionFound"));
       }
 
       const response = await fetch(`/api/vocal/separation/${separationId}`, {
@@ -692,15 +694,15 @@ export const useVocalSeparation = () => {
       });
 
       if (!response.ok) {
-        throw new Error('Failed to delete vocal separation');
+        throw new Error(t("toasts.failedDeleteVocalSeparation"));
       }
 
       // Remove from local state
       setSeparations(prev => prev.filter(sep => sep.id !== separationId));
-      toast.success('Vocal separation deleted successfully');
+      toast.success(t("toasts.vocalSeparationDeletedSuccessfully"));
     } catch (error) {
       console.error('Error deleting vocal separation:', error);
-      toast.error('Failed to delete vocal separation');
+      toast.error(t("toasts.failedDeleteVocalSeparation"));
     }
   };
 

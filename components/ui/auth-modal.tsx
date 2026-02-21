@@ -459,7 +459,7 @@ export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
                         options={{
                           size: 'flexible',
                           theme: turnstileTheme,
-                          language: locale === "zh-CN" ? "zh-CN" : "en"
+                          language: locale === "zh-CN" ? "zh-CN" : locale === "ja" ? "ja" : "en"
                         }}
                       />
                     </div>

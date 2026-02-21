@@ -6,6 +6,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getUserIdFromRequest } from '@/lib/auth';
 import { getExtendMusicCredits } from '@/lib/credits-config';
+import { DEFAULT_NEGATIVE_TAGS } from '@/lib/music-generation-config';
 import { consumeUserCredit } from '@/lib/user-db';
 import { createExtendMusicTask, getOriginalTrackInfo } from '@/features/music-upload/lib/extend-music-db';
 import { hasFeaturePermission } from '@/lib/feature-permissions';
@@ -15,7 +16,6 @@ import {
   KIEExtendMusicRequest,
   KIEExtendMusicResponse
 } from '@/features/music-upload/types/extend-music';
-import { DEFAULT_NEGATIVE_TAGS } from '@/lib/music-generation-config';
 
 // 强制动态渲染
 export const dynamic = 'force-dynamic';

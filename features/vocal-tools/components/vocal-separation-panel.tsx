@@ -7,6 +7,8 @@ import { Badge } from '@/components/ui/badge';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import { useVocalSeparation, VocalSeparationRequest } from '@/features/vocal-tools/hooks/use-vocal-separation';
 import { LoadingDots } from '@/components/ui/loading-dots';
+import { useI18n } from '@/lib/i18n/provider';
+import { CLIENT_VOCAL_SEPARATION_CREDITS } from '@/lib/credits-config';
 import { toast } from 'sonner';
 import { Trash2, Play, Pause, Download, Music, Mic, Clock, CheckCircle, XCircle, AlertCircle } from 'lucide-react';
 
@@ -29,6 +31,7 @@ export const VocalSeparationPanel: React.FC<VocalSeparationPanelProps> = ({
   duration,
   onClose
 }) => {
+  const { t } = useI18n();
   const { 
     isProcessing, 
     separations, 
@@ -38,6 +41,7 @@ export const VocalSeparationPanel: React.FC<VocalSeparationPanelProps> = ({
   } = useVocalSeparation();
 
   const [playingAudio, setPlayingAudio] = useState<string | null>(null);
+  const creditCost = CLIENT_VOCAL_SEPARATION_CREDITS.studio;
 
   // 获取当前轨道的分离记录
   const currentSeparations = separations;
@@ -49,10 +53,10 @@ export const VocalSeparationPanel: React.FC<VocalSeparationPanelProps> = ({
       };
 
       await startVocalSeparation(request);
-      toast.success('Vocal separation started! Processing time: ~1 minute');
+      toast.success(t("vocalTools.panel.separationStarted"));
     } catch (error) {
       console.error('Failed to start vocal separation:', error);
-      toast.error('Failed to start vocal separation');
+      toast.error(t("vocalTools.panel.failedStartSeparation"));
     }
   };
 
@@ -105,13 +109,24 @@ export const VocalSeparationPanel: React.FC<VocalSeparationPanelProps> = ({
     }
   };
 
+  const getStatusText = (status: string) => {
+    switch (status) {
+      case 'processing':
+        return t("vocalTools.panel.statusProcessing");
+      case 'completed':
+        return t("vocalTools.panel.statusCompleted");
+      default:
+        return t("vocalTools.panel.statusFailed");
+    }
+  };
+
   return (
     <div className="space-y-6">
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-2xl font-bold">AI Vocal Separation</h2>
-          <p className="text-muted-foreground">Split vocals and instrumentals with AI.</p>
+          <h2 className="text-2xl font-bold">{t("vocalTools.panel.title")}</h2>
+          <p className="text-muted-foreground">{t("vocalTools.panel.subtitle")}</p>
         </div>
         {onClose && (
           <Button variant="ghost" size="sm" onClick={onClose}>
@@ -125,14 +140,16 @@ export const VocalSeparationPanel: React.FC<VocalSeparationPanelProps> = ({
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Music className="h-5 w-5" />
-            Original Track
+            {t("vocalTools.panel.originalTrack")}
           </CardTitle>
         </CardHeader>
         <CardContent>
           <div className="space-y-3">
             <div>
               <h3 className="font-medium">{trackTitle}</h3>
-              <p className="text-sm text-muted-foreground">Duration: {formatTime(duration)}</p>
+              <p className="text-sm text-muted-foreground">
+                {t("vocalTools.panel.durationWithValue", { duration: formatTime(duration) })}
+              </p>
             </div>
             <div className="flex items-center gap-2">
               <Button
@@ -141,7 +158,7 @@ export const VocalSeparationPanel: React.FC<VocalSeparationPanelProps> = ({
                 onClick={() => handlePlayAudio(audioUrl)}
               >
                 {playingAudio === audioUrl ? <Pause className="h-4 w-4" /> : <Play className="h-4 w-4" />}
-                {playingAudio === audioUrl ? 'Pause' : 'Play'}
+                {playingAudio === audioUrl ? t("trackActions.pause") : t("trackActions.play")}
               </Button>
               <Button
                 variant="outline"
@@ -149,7 +166,7 @@ export const VocalSeparationPanel: React.FC<VocalSeparationPanelProps> = ({
                 onClick={() => handleDownload(audioUrl, `${trackTitle}_original.mp3`)}
               >
                 <Download className="h-4 w-4" />
-                Download
+                {t("trackActions.download")}
               </Button>
             </div>
           </div>
@@ -159,16 +176,16 @@ export const VocalSeparationPanel: React.FC<VocalSeparationPanelProps> = ({
       {/* Separation Controls */}
       <Card>
         <CardHeader>
-          <CardTitle>Start Separation</CardTitle>
+          <CardTitle>{t("vocalTools.panel.startSeparationTitle")}</CardTitle>
           <CardDescription>
-            Start the AI vocal separation process.
+            {t("vocalTools.panel.startSeparationDescription")}
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="bg-blue-50 p-4 rounded-lg">
             <div className="flex items-center gap-2 text-sm text-blue-800">
               <Clock className="h-4 w-4" />
-              <span>Estimated time: 1 min • Credits used: 3</span>
+              <span>{t("vocalTools.panel.estimateTimeAndCredits", { credits: creditCost })}</span>
             </div>
           </div>
 
@@ -180,10 +197,10 @@ export const VocalSeparationPanel: React.FC<VocalSeparationPanelProps> = ({
             {isProcessing ? (
               <>
                 <LoadingDots />
-                Processing... ({formatTime(processingTimer)})
+                {t("vocalTools.panel.processingWithTime", { time: formatTime(processingTimer) })}
               </>
             ) : (
-              'Start Separation'
+              t("vocalTools.panel.startSeparationButton")
             )}
           </Button>
         </CardContent>
@@ -193,9 +210,9 @@ export const VocalSeparationPanel: React.FC<VocalSeparationPanelProps> = ({
       {currentSeparations.length > 0 && (
         <Card>
           <CardHeader>
-            <CardTitle>Separation Results</CardTitle>
+            <CardTitle>{t("vocalTools.panel.resultsTitle")}</CardTitle>
             <CardDescription>
-              View and manage your separation results.
+              {t("vocalTools.panel.resultsDescription")}
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -206,11 +223,10 @@ export const VocalSeparationPanel: React.FC<VocalSeparationPanelProps> = ({
                     <div className="flex items-center gap-2">
                       {getStatusIcon(separation.status)}
                       <span className="font-medium">
-                        Vocal + Instrumental Split
+                        {t("vocalTools.panel.splitLabel")}
                       </span>
                       <Badge className={getStatusColor(separation.status)}>
-                        {separation.status === 'processing' ? 'Processing' : 
-                         separation.status === 'completed' ? 'Completed' : 'Failed'}
+                        {getStatusText(separation.status)}
                       </Badge>
                     </div>
                     <AlertDialog>
@@ -221,17 +237,17 @@ export const VocalSeparationPanel: React.FC<VocalSeparationPanelProps> = ({
                       </AlertDialogTrigger>
                       <AlertDialogContent>
                         <AlertDialogHeader>
-                          <AlertDialogTitle>Delete Separation</AlertDialogTitle>
+                          <AlertDialogTitle>{t("vocalTools.panel.deleteTitle")}</AlertDialogTitle>
                           <AlertDialogDescription>
-                            Delete this separation result? This action cannot be undone.
+                            {t("vocalTools.panel.deleteDescription")}
                           </AlertDialogDescription>
                         </AlertDialogHeader>
                         <AlertDialogFooter>
-                          <AlertDialogCancel>Cancel</AlertDialogCancel>
+                          <AlertDialogCancel>{t("common.cancel")}</AlertDialogCancel>
                           <AlertDialogAction onClick={() => {
                             deleteSeparation(separation.id);
                           }}>
-                            Delete
+                            {t("trackActions.delete")}
                           </AlertDialogAction>
                         </AlertDialogFooter>
                       </AlertDialogContent>
@@ -245,7 +261,7 @@ export const VocalSeparationPanel: React.FC<VocalSeparationPanelProps> = ({
                         <div className="flex items-center justify-between p-3 bg-pink-50 rounded-lg">
                           <div className="flex items-center gap-2">
                             <Mic className="h-4 w-4 text-pink-600" />
-                            <span className="font-medium">Vocal Track</span>
+                            <span className="font-medium">{t("vocalTools.panel.vocalTrack")}</span>
                           </div>
                           <div className="flex items-center gap-2">
                             <Button
@@ -271,7 +287,7 @@ export const VocalSeparationPanel: React.FC<VocalSeparationPanelProps> = ({
                         <div className="flex items-center justify-between p-3 bg-blue-50 rounded-lg">
                           <div className="flex items-center gap-2">
                             <Music className="h-4 w-4 text-blue-600" />
-                            <span className="font-medium">Instrumental Track</span>
+                            <span className="font-medium">{t("vocalTools.panel.instrumentalTrack")}</span>
                           </div>
                           <div className="flex items-center gap-2">
                             <Button
@@ -304,7 +320,7 @@ export const VocalSeparationPanel: React.FC<VocalSeparationPanelProps> = ({
                     <div className="p-3 bg-blue-50 rounded-lg">
                       <div className="flex items-center gap-2">
                         <LoadingDots />
-                        <span className="text-sm text-blue-800">Processing...</span>
+                        <span className="text-sm text-blue-800">{t("vocalTools.common.processing")}</span>
                       </div>
                     </div>
                   )}
@@ -319,9 +335,13 @@ export const VocalSeparationPanel: React.FC<VocalSeparationPanelProps> = ({
       {playingAudio && (
         <div className="fixed bottom-4 left-4 right-4 z-50">
           <div className="bg-white p-4 rounded-lg shadow-lg">
-            <p className="text-sm">Now playing: {playingAudio === audioUrl ? trackTitle : 'Separated Track'}</p>
+            <p className="text-sm">
+              {t("vocalTools.panel.nowPlayingWithTrack", {
+                track: playingAudio === audioUrl ? trackTitle : t("vocalTools.panel.separatedTrack"),
+              })}
+            </p>
             <Button onClick={() => setPlayingAudio(null)} className="mt-2">
-              Close Player
+              {t("vocalTools.panel.closePlayer")}
             </Button>
           </div>
         </div>

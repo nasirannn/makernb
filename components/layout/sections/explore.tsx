@@ -376,7 +376,7 @@ export const ExploreSection = () => {
 
     return {
       id: matched.primaryTrack.id,
-      title: matched.title || "Untitled Track",
+      title: matched.title || t("studioTracks.untitledTrack"),
       tags: matched.tags || "",
       lyrics: matched.lyrics || "",
       coverImage: matched.primaryTrack.coverR2Url || null,
@@ -391,7 +391,7 @@ export const ExploreSection = () => {
       isCompleted: true,
       audioUrl: matched.primaryTrack.audioUrl || "",
     };
-  }, [lyricsTrackId, playlist]);
+  }, [lyricsTrackId, playlist, t]);
 
   const isInlineTrackPlaying = Boolean(
     inlineTrackDetails &&
@@ -419,12 +419,12 @@ export const ExploreSection = () => {
     <section id="explore" className="py-24 sm:py-32" ref={sectionRef}>
       <div className="container">
         <div className="text-center mb-12 sm:mb-14">
-          <p className="text-primary text-lg font-medium mb-2 tracking-wider">Explore</p>
+          <p className="text-primary text-lg font-medium mb-2 tracking-wider">{t("explorePage.sectionLabel")}</p>
           <h2 className="text-3xl md:text-4xl font-bold mb-4">
-            Listen to The AI-Generated R&B Songs
+            {t("explorePage.sectionTitle")}
           </h2>
           <p className="mx-auto max-w-2xl text-base md:text-lg text-muted-foreground">
-            Experience soulful R&B music crafted by artificial intelligence
+            {t("explorePage.sectionDescription")}
           </p>
         </div>
 
@@ -670,7 +670,7 @@ export const ExploreSection = () => {
                   audioUrl: music.primaryTrack.audioUrl || "",
                   duration: music.totalDuration,
                   coverImage: music.primaryTrack.coverR2Url || "",
-                  artist: music.primaryTrack.artist || "Unknown Artist",
+                  artist: music.primaryTrack.artist || t("libraryPage.unknownArtist"),
                   tags: music.tags || "",
                   lyrics: music.lyrics || "",
                   allTracks: music.allTracks.map((track) => ({

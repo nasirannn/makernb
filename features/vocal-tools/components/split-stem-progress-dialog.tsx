@@ -13,6 +13,7 @@ import { AudioLines, Download, Loader2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { WaveformPlayer } from "@/components/ui/waveform-player";
 import { CLIENT_FEATURE_CREDITS } from "@/lib/credits-config";
+import { useI18n } from "@/lib/i18n/provider";
 
 export interface SplitStemProgressDialogProps {
   isOpen: boolean;
@@ -30,7 +31,7 @@ export interface SplitStemProgressDialogProps {
 export const SplitStemProgressDialog: React.FC<SplitStemProgressDialogProps> = ({
   isOpen,
   onClose,
-  trackTitle = 'Track',
+  trackTitle,
   progress,
   status,
   statusText,
@@ -39,10 +40,12 @@ export const SplitStemProgressDialog: React.FC<SplitStemProgressDialogProps> = (
   onStartSplitStem,
   onReSplitStem,
 }) => {
+  const { t } = useI18n();
   const [activeStemKey, setActiveStemKey] = useState<string | null>(null);
   const [activeStemTabKey, setActiveStemTabKey] = useState<string | null>(null);
   const [stemErrorMap, setStemErrorMap] = useState<Record<string, boolean>>({});
 
+  const resolvedTrackTitle = trackTitle || t("vocalTools.common.trackFallback");
   const canClose = status !== 'processing';
   const canTriggerAction = status !== 'checking' && status !== 'processing';
   const hasActionHandler = status === 'completed'
@@ -127,17 +130,17 @@ export const SplitStemProgressDialog: React.FC<SplitStemProgressDialogProps> = (
 
     switch (status) {
       case 'checking':
-        return 'Checking existing results...';
+        return t("vocalTools.common.checkingExistingResults");
       case 'ready':
-        return 'No existing split stem results found.';
+        return t("vocalTools.splitStemDialog.statusReady");
       case 'processing':
-        return 'Splitting track into stems...';
+        return t("vocalTools.splitStemDialog.statusProcessing");
       case 'completed':
-        return 'Stem split completed!';
+        return t("vocalTools.splitStemDialog.statusCompleted");
       case 'error':
-        return 'Stem split failed';
+        return t("vocalTools.splitStemDialog.statusError");
       default:
-        return 'Processing...';
+        return t("vocalTools.splitStemDialog.statusDefault");
     }
   };
 
@@ -185,6 +188,10 @@ export const SplitStemProgressDialog: React.FC<SplitStemProgressDialogProps> = (
         className={cn(
           "studio-panel-card max-w-[calc(100vw-2rem)] sm:max-w-[760px] max-h-[84vh] flex flex-col overflow-hidden p-0 border-0 shadow-xl"
         )}
+        onOpenAutoFocus={(event) => {
+          event.preventDefault();
+          (event.currentTarget as HTMLElement).focus();
+        }}
         onInteractOutside={(e) => {
           if (!canClose) {
             e.preventDefault();
@@ -194,10 +201,10 @@ export const SplitStemProgressDialog: React.FC<SplitStemProgressDialogProps> = (
         <DialogHeader className="flex-shrink-0 px-5 pr-14 pt-4 pb-3 text-left sm:pr-16">
           <div className="min-w-0 space-y-1 pr-2">
             <DialogTitle className="text-xl font-semibold tracking-tight">
-              Split Stem
+              {t("vocalTools.splitStemDialog.title")}
             </DialogTitle>
             <p className="truncate text-sm text-muted-foreground">
-              Separates the song into multiple stems - vocals, drums, bass, and other instruments.
+              {t("vocalTools.splitStemDialog.subtitle")}
             </p>
           </div>
         </DialogHeader>
@@ -209,10 +216,10 @@ export const SplitStemProgressDialog: React.FC<SplitStemProgressDialogProps> = (
                 <AudioLines className="h-12 w-12 text-muted-foreground" />
               </div>
               <p className="text-base font-medium text-foreground">
-                No split stem results yet
+                {t("vocalTools.splitStemDialog.noResultsTitle")}
               </p>
               <p className="mt-1 text-sm text-muted-foreground">
-                Start split stem to generate instrument stems for advanced editing.
+                {t("vocalTools.splitStemDialog.noResultsDescription")}
               </p>
             </section>
           )}
@@ -223,9 +230,9 @@ export const SplitStemProgressDialog: React.FC<SplitStemProgressDialogProps> = (
                 <Loader2 className="h-12 w-12 text-primary animate-spin" />
               </div>
               <p className="text-base font-medium text-foreground">
-                Split Stem
+                {t("vocalTools.splitStemDialog.checkingTitle")}
               </p>
-              <p className="mt-1 text-sm text-muted-foreground">Checking existing results...</p>
+              <p className="mt-1 text-sm text-muted-foreground">{t("vocalTools.splitStemDialog.checkingDescription")}</p>
             </section>
           )}
 
@@ -257,15 +264,15 @@ export const SplitStemProgressDialog: React.FC<SplitStemProgressDialogProps> = (
             <div className="space-y-3">
               <div className="flex items-center justify-between gap-3">
                 <p className="text-xs font-semibold uppercase tracking-[0.08em] text-muted-foreground">
-                  {trackTitle}
+                  {resolvedTrackTitle}
                 </p>
                 <p className="text-sm text-muted-foreground">
-                  {`${splitStemEntries.length} stems`}
+                  {t("vocalTools.splitStemDialog.stemCount", { count: splitStemEntries.length })}
                 </p>
               </div>
               <div
                 role="tablist"
-                aria-label="Split stem tracks"
+                aria-label={t("vocalTools.splitStemDialog.tabListLabel")}
                 className="studio-panel-card flex gap-1 overflow-x-auto rounded-xl p-1"
               >
                 {splitStemEntries.map(([stemKey]) => (
@@ -299,7 +306,7 @@ export const SplitStemProgressDialog: React.FC<SplitStemProgressDialogProps> = (
                       onClick={() => !stemErrorMap[activeSplitStemEntry[0]] && window.open(activeSplitStemEntry[1], '_blank')}
                     >
                       <Download className="h-4 w-4" />
-                      <span>Download</span>
+                      <span>{t("trackActions.download")}</span>
                     </Button>
                   </div>
                   <section className="studio-panel-card rounded-2xl p-3">
@@ -319,7 +326,9 @@ export const SplitStemProgressDialog: React.FC<SplitStemProgressDialogProps> = (
                   </section>
                   {stemErrorMap[activeSplitStemEntry[0]] && (
                     <p className="text-sm text-red-500">
-                      Failed to load {getStemLabel(activeSplitStemEntry[0]).toLowerCase()} track.
+                      {t("vocalTools.splitStemDialog.failedLoadStemTrack", {
+                        stem: getStemLabel(activeSplitStemEntry[0]),
+                      })}
                     </p>
                   )}
                 </div>
@@ -329,7 +338,7 @@ export const SplitStemProgressDialog: React.FC<SplitStemProgressDialogProps> = (
 
           {status === 'completed' && !showSplitStemCards && !isViewingSplitStemWithoutData && (
             <div className="rounded-xl bg-emerald-500/10 p-3 text-sm text-emerald-700 dark:text-emerald-300">
-              Your track has been successfully processed.
+              {t("vocalTools.common.processedSuccessfully")}
             </div>
           )}
 
@@ -344,7 +353,7 @@ export const SplitStemProgressDialog: React.FC<SplitStemProgressDialogProps> = (
               className="h-11 flex-1 rounded-2xl border-0 bg-foreground/5 text-sm font-semibold text-foreground/75 transition-colors hover:bg-foreground/10 hover:text-foreground"
               disabled={!canClose}
             >
-              Cancel
+              {t("common.cancel")}
             </Button>
             <Button
               onClick={handleSplitStemAction}
@@ -352,8 +361,8 @@ export const SplitStemProgressDialog: React.FC<SplitStemProgressDialogProps> = (
               disabled={actionDisabled || !canClose}
             >
               {status === 'completed'
-                ? `Re-Split Stem • cost ${creditCost} credits`
-                : `Split Stem • cost ${creditCost} credits`}
+                ? t("vocalTools.splitStemDialog.actionResplit", { credits: creditCost })
+                : t("vocalTools.splitStemDialog.actionSplit", { credits: creditCost })}
             </Button>
           </div>
         </div>

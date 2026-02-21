@@ -7,6 +7,7 @@
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
+    "check:blog-locales": "node scripts/check-blog-locales.mjs",
     "physical-delete:preview": "npx tsx scripts/physical-delete-cleanup.ts",
     "physical-delete:db-only": "npx tsx scripts/physical-delete-cleanup.ts --delete --skip-r2 --force",
     "physical-delete:r2-only": "npx tsx scripts/physical-delete-cleanup.ts --delete --skip-db --force",

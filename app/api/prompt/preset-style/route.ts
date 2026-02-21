@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from 'next/server';
 import Replicate from 'replicate';
 
 import { getUserIdFromRequest } from '@/lib/auth';
+import { type AppLocale } from '@/lib/i18n/config';
+import { normalizeLocale } from '@/lib/i18n/routing';
 
 export const dynamic = 'force-dynamic';
 
@@ -14,16 +16,27 @@ const SUPPORTED_GENRES: Record<string, string> = {
   'crunk-rnb': 'Crunk R&B',
 };
 
-const SYSTEM_PROMPT = [
-  'You are a music prompt writer for AI song generation.',
-  'Generate exactly one English sentence using this 6-part structure, separated by commas:',
-  'era, style anchor, rhythm groove, instrumentation, vocals, mood.',
-  'Era can be a concise decade token (80s, 90s, 00s, 10s, 20s) or include timing modifiers like early, mid/middle, or late (for example: early 90s, mid 00s, late 10s).',
-  'The first segment must be era only.',
-  'No labels, no bullet points, no line breaks, no extra explanation.',
-  'Keep it concise, vivid, and production-ready.',
-  'Return only the final prompt sentence.',
-].join(' ');
+const LOCALE_LANGUAGE_MAP: Record<AppLocale, string> = {
+  en: 'English',
+  'zh-CN': 'Simplified Chinese',
+  ja: 'Japanese',
+};
+
+const buildSystemPrompt = (locale: AppLocale): string => {
+  const outputLanguage = LOCALE_LANGUAGE_MAP[locale] ?? LOCALE_LANGUAGE_MAP.en;
+
+  return [
+    'You are a music prompt writer for AI song generation.',
+    `Generate exactly one sentence in ${outputLanguage} using this 6-part structure, separated by commas:`,
+    'era, style anchor, rhythm groove, instrumentation, vocals, mood.',
+    'Era can be a concise decade token (80s, 90s, 00s, 10s, 20s) or include timing modifiers like early, mid/middle, or late (for example: early 90s, mid 00s, late 10s).',
+    'The first segment must be era only.',
+    'No labels, no bullet points, no line breaks, no extra explanation.',
+    'Keep it concise, vivid, and production-ready.',
+    `The full sentence must be in ${outputLanguage}.`,
+    'Return only the final prompt sentence.',
+  ].join(' ');
+};
 
 const normalizeReplicateOutput = (output: unknown): string => {
   if (typeof output === 'string') {
@@ -82,6 +95,7 @@ export async function POST(request: NextRequest) {
     const genreId = typeof body?.genreId === 'string' ? body.genreId.trim() : '';
     const genreName = typeof body?.genreName === 'string' ? body.genreName.trim() : '';
     const currentPrompt = typeof body?.currentPrompt === 'string' ? body.currentPrompt.trim() : '';
+    const locale = normalizeLocale(typeof body?.locale === 'string' ? body.locale.trim() : '');
 
     if (!genreId || !SUPPORTED_GENRES[genreId]) {
       return NextResponse.json(
@@ -117,7 +131,7 @@ export async function POST(request: NextRequest) {
     const output = await replicate.run('openai/gpt-4o-mini', {
       input: {
         prompt,
-        system_prompt: SYSTEM_PROMPT,
+        system_prompt: buildSystemPrompt(locale),
       },
     });
 
@@ -137,7 +151,7 @@ export async function POST(request: NextRequest) {
       },
     });
   } catch (error) {
-    console.error('Generate simple genre prompt error:', error);
+    console.error('Generate preset style prompt error:', error);
 
     return NextResponse.json(
       {

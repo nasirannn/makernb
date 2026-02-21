@@ -99,7 +99,7 @@ type TrackTypeFilter =
   | "disliked";
 
 type MidiTrackState = {
-  status: 'idle' | 'checking' | 'generating' | 'completed' | 'error';
+  status: 'idle' | 'checking' | 'generating' | 'completed' | 'error' | 'requires_split_stem';
   taskId?: string;
   instrumentsCount?: number;
   midiData?: MidiGenerationData | null;
@@ -476,31 +476,6 @@ export const StudioTracksList: React.FC<StudioTracksListProps> = React.memo(func
 
     return tracksWithSource;
   }, [currentTracks, allTracksCombined, createdAtSortOrder, unknownTrackLabel]);
-
-  const groupedTracks = React.useMemo(() => {
-    const groups: Array<{ id: string; tracks: any[] }> = [];
-    const groupMap = new Map<string, number>();
-
-    flatTracks.forEach((track) => {
-      const groupId = track.generationId || track.musicGeneration?.id || track.id;
-
-      if (!groupMap.has(groupId)) {
-        groupMap.set(groupId, groups.length);
-        groups.push({
-          id: groupId,
-          tracks: [track],
-        });
-        return;
-      }
-
-      const index = groupMap.get(groupId);
-      if (index !== undefined) {
-        groups[index].tracks.push(track);
-      }
-    });
-
-    return groups;
-  }, [flatTracks]);
 
   // 处理歌曲选择
   const handleTrackSelect = useCallback((track: any) => {
@@ -1287,16 +1262,13 @@ export const StudioTracksList: React.FC<StudioTracksListProps> = React.memo(func
       );
 
       if (!completedSplitStem) {
-        setShowMidiResultDialog(false);
         updateMidiTrackState(trackId, {
-          status: 'idle',
+          status: 'requires_split_stem',
           taskId: undefined,
           instrumentsCount: undefined,
           midiData: undefined,
-          errorMessage: undefined,
+          errorMessage: t("toasts.splitStemRequiredBeforeMidi"),
         });
-        toast.info(t("toasts.splitStemRequiredBeforeMidi"));
-        await openRemovalDialogForMode(trackId, 'split_stem');
         return;
       }
 
@@ -1381,13 +1353,22 @@ export const StudioTracksList: React.FC<StudioTracksListProps> = React.memo(func
     findTrackById,
     handleGenerateMidi,
     openPricingModal,
-    openRemovalDialogForMode,
     startMidiStatusPolling,
     t,
     unknownTrackLabel,
     updateMidiTrackState,
     vocalRemovalManager,
   ]);
+
+  const handleOpenSplitStemFromMidiDialog = useCallback(async () => {
+    if (!currentProcessingTrackId) return;
+    if (!canSplitStem) {
+      openPricingModal();
+      return;
+    }
+    setShowMidiResultDialog(false);
+    await openRemovalDialogForMode(currentProcessingTrackId, 'split_stem');
+  }, [canSplitStem, currentProcessingTrackId, openPricingModal, openRemovalDialogForMode]);
 
   // 处理 Vocal Removal：仅 separate_vocal 模式
   const handleVocalRemoval = useCallback(async (trackId: string) => {
@@ -1716,7 +1697,7 @@ export const StudioTracksList: React.FC<StudioTracksListProps> = React.memo(func
           className="h-full overflow-y-auto scrollbar-hidden px-0 relative"
           ref={scrollContainerRef}
           style={{
-            paddingBottom: hasPlayer ? 'calc(var(--player-height, 80px) + 1.5rem)' : '5rem'
+            paddingBottom: hasPlayer ? 'calc(var(--player-height, 80px) + 0.5rem)' : '5rem'
           }}
         >
         <div className="relative">
@@ -1724,95 +1705,88 @@ export const StudioTracksList: React.FC<StudioTracksListProps> = React.memo(func
             <TrackListSkeleton />
           ) : (
             <>
-            {/* All Tracks (包含 generatedTracks 和 userTracks，使用分组显示) */}
-          {groupedTracks.length > 0 && (
-            <div className="space-y-2">
-              {groupedTracks.map((group) => (
-                <div key={group.id} className="space-y-2">
-
-                  <div className="space-y-1 px-3">
-                    {group.tracks.map((track) => {
-                      const isGeneratedTrack = track.isGenerating !== undefined || track.isPlaceholder !== undefined;
-                      return (
-                        <div key={track.id} className="p-0">
-                          <TrackItem
-                            track={track}
-                            variant="studio"
-                            isSelected={selectedTrack === track.id}
-                            isPlaying={globalAudioState.isPlaying}
-                            isCurrentTrack={globalAudioState.currentPlayingTrackId === track.id}
-                            isCopied={copiedTrackId === track.id}
-                            modelBadgePlacement="title"
-                            canDownloadMP3={canDownloadMP3}
-                            canDownloadWAV={canDownloadWAV}
-                            canDownloadMP4={canDownloadMP4}
-                            canDownloadCover={canDownloadCover}
-                            canVocalRemoval={canVocalRemoval}
-                            canSplitStem={canSplitStem}
-                            canGenerateMidi={canGenerateMidi}
-                            canExtendMusic={canExtendMusic}
-                            canReplaceSection={canReplaceSection}
-                            canCreatePersona={canCreatePersona}
-                            onSelect={() => {
-                              if (isGeneratedTrack && !track.isError && track.audioUrl && onGeneratedTrackSelect) {
-                                onTrackPreview?.(track);
-                                onGeneratedTrackSelect(track.id);
-                              } else {
-                                handleTrackSelect(track);
-                              }
-                            }}
-                            onPreviewLyrics={onTrackPreview ? () => onTrackPreview(track) : undefined}
-                            onPlayPause={() => handlePlayPause(track)}
-                            onFavoriteToggle={onFavoriteToggle ? () => handleFavoriteToggle(track) : undefined}
-                            onShare={() => handleShare(track.id)}
-                            onDislikeToggle={onDislikeToggle ? () => handleDislikeToggle(track) : undefined}
-                            onLikeToggle={onLikeToggle ? () => handleLikeToggle(track) : undefined}
-                            onDownload={onDownload ? (format) => handleDownload(track, track.musicGeneration, format) : undefined}
-                            onVocalRemoval={() => handleVocalRemoval(track.id)}
-                            onSplitStem={() => handleSplitStem(track.id)}
-                            onGenerateMidi={() => handleMidiAction(track.id)}
-                            onExtendMusic={() => handleExtendMusic(track.id)}
-                            onReplaceSection={() => handleReplaceSection(track.id)}
-                            onCreatePersona={() => handleCreatePersonaFromTrack(track)}
-                            onDelete={onDelete ? () => handleDelete(track.id) : undefined}
-                            onPublishToggle={() => handlePublishToggle(track)}
-                            isPublishing={publishingTrackIds.includes(track.id)}
-                            onPricingModalOpen={openPricingModal}
-                            onEditTitle={onEditTitle}
-                            onEditMusicInfo={onEditMusicInfo}
-                          />
-                        </div>
-                      );
-                    })}
+            {/* All Tracks (包含 generatedTracks 和 userTracks，统一平铺间距) */}
+          {flatTracks.length > 0 && (
+            <div className="space-y-2 px-3">
+              {flatTracks.map((track) => {
+                const isGeneratedTrack = track.isGenerating !== undefined || track.isPlaceholder !== undefined;
+                return (
+                  <div key={track.id} className="p-0">
+                    <TrackItem
+                      track={track}
+                      variant="studio"
+                      isSelected={selectedTrack === track.id}
+                      isPlaying={globalAudioState.isPlaying}
+                      isCurrentTrack={globalAudioState.currentPlayingTrackId === track.id}
+                      isCopied={copiedTrackId === track.id}
+                      modelBadgePlacement="title"
+                      canDownloadMP3={canDownloadMP3}
+                      canDownloadWAV={canDownloadWAV}
+                      canDownloadMP4={canDownloadMP4}
+                      canDownloadCover={canDownloadCover}
+                      canVocalRemoval={canVocalRemoval}
+                      canSplitStem={canSplitStem}
+                      canGenerateMidi={canGenerateMidi}
+                      canExtendMusic={canExtendMusic}
+                      canReplaceSection={canReplaceSection}
+                      canCreatePersona={canCreatePersona}
+                      onSelect={() => {
+                        if (isGeneratedTrack && !track.isError && track.audioUrl && onGeneratedTrackSelect) {
+                          onTrackPreview?.(track);
+                          onGeneratedTrackSelect(track.id);
+                        } else {
+                          handleTrackSelect(track);
+                        }
+                      }}
+                      onPreviewLyrics={onTrackPreview ? () => onTrackPreview(track) : undefined}
+                      onPlayPause={() => handlePlayPause(track)}
+                      onFavoriteToggle={onFavoriteToggle ? () => handleFavoriteToggle(track) : undefined}
+                      onShare={() => handleShare(track.id)}
+                      onDislikeToggle={onDislikeToggle ? () => handleDislikeToggle(track) : undefined}
+                      onLikeToggle={onLikeToggle ? () => handleLikeToggle(track) : undefined}
+                      onDownload={onDownload ? (format) => handleDownload(track, track.musicGeneration, format) : undefined}
+                      onVocalRemoval={() => handleVocalRemoval(track.id)}
+                      onSplitStem={() => handleSplitStem(track.id)}
+                      onGenerateMidi={() => handleMidiAction(track.id)}
+                      onExtendMusic={() => handleExtendMusic(track.id)}
+                      onReplaceSection={() => handleReplaceSection(track.id)}
+                      onCreatePersona={() => handleCreatePersonaFromTrack(track)}
+                      onDelete={onDelete ? () => handleDelete(track.id) : undefined}
+                      onPublishToggle={() => handlePublishToggle(track)}
+                      isPublishing={publishingTrackIds.includes(track.id)}
+                      onPricingModalOpen={openPricingModal}
+                      onEditTitle={onEditTitle}
+                      onEditMusicInfo={onEditMusicInfo}
+                    />
                   </div>
-                </div>
-              ))}
-              
-              {/* Tracks Summary */}
-              {currentTracks.length > 0 && (
-                <div className="flex justify-center items-center py-2 px-4">
-                  <span className="inline-flex items-center px-2 py-0.5 text-xs font-semibold tracking-tight text-foreground/80 dark:text-foreground/85">
-                    {(() => {
-                      const useTotalSummary = Boolean(summary) && !searchQuery.trim() && !hasActiveTypeFilter;
-                      const totalSongs = useTotalSummary ? summary!.totalTracks : currentTracks.length;
-                      const totalDuration = useTotalSummary
-                        ? summary!.totalDuration
-                        : currentTracks.reduce((sum, track) => {
-                            const duration = typeof track.duration === 'string' ? parseFloat(track.duration) : (track.duration || 0);
-                            return sum + (isNaN(duration) ? 0 : duration);
-                          }, 0);
-                      const durationText = formatDurationInMinutes(totalDuration);
-                      const songLabel = totalSongs > 1 ? t("studioTracks.songPlural") : t("studioTracks.songSingular");
-                      const songsText = `${totalSongs} ${songLabel}`;
-                      return durationText
-                        ? t("studioTracks.summaryWithDuration", { songs: songsText, duration: durationText })
-                        : songsText;
-                    })()}
-                  </span>
-                </div>
-              )}
+                );
+              })}
             </div>
           )}
+
+            {/* Tracks Summary */}
+            {currentTracks.length > 0 && (
+              <div className="flex justify-center items-center py-2 px-4">
+                <span className="inline-flex items-center px-2 py-0.5 text-xs font-semibold tracking-tight text-foreground/80 dark:text-foreground/85">
+                  {(() => {
+                    const useTotalSummary = Boolean(summary) && !searchQuery.trim() && !hasActiveTypeFilter;
+                    const totalSongs = useTotalSummary ? summary!.totalTracks : currentTracks.length;
+                    const totalDuration = useTotalSummary
+                      ? summary!.totalDuration
+                      : currentTracks.reduce((sum, track) => {
+                          const duration = typeof track.duration === 'string' ? parseFloat(track.duration) : (track.duration || 0);
+                          return sum + (isNaN(duration) ? 0 : duration);
+                        }, 0);
+                    const durationText = formatDurationInMinutes(totalDuration);
+                    const songLabel = totalSongs > 1 ? t("studioTracks.songPlural") : t("studioTracks.songSingular");
+                    const songsText = `${totalSongs} ${songLabel}`;
+                    return durationText
+                      ? t("studioTracks.summaryWithDuration", { songs: songsText, duration: durationText })
+                      : songsText;
+                  })()}
+                </span>
+              </div>
+            )}
 
             {shouldShowLoadMore && (
               <div ref={loadMoreTriggerRef} className="h-1" />
@@ -1976,7 +1950,12 @@ export const StudioTracksList: React.FC<StudioTracksListProps> = React.memo(func
             setShowMidiResultDialog(false);
             if (!showTrackProcessingDialog) {
               const status = currentVocalRemovalState?.status;
-              if (status === 'completed' || status === 'error' || status === 'ready') {
+              if (
+                currentMidiTrackState.status === 'requires_split_stem' ||
+                status === 'completed' ||
+                status === 'error' ||
+                status === 'ready'
+              ) {
                 setCurrentProcessingTrackId(null);
                 setCurrentProcessingTrackTitle('');
                 setCurrentProcessingFeatureMode('separate_vocal');
@@ -1988,6 +1967,9 @@ export const StudioTracksList: React.FC<StudioTracksListProps> = React.memo(func
           midiErrorMessage={currentMidiTrackState.errorMessage}
           midiInstrumentsCount={currentMidiTrackState.instrumentsCount}
           midiData={currentMidiTrackState.midiData}
+          onStartSplitStem={handleOpenSplitStemFromMidiDialog}
+          splitStemRequiredMessage={t("toasts.splitStemRequiredBeforeMidi")}
+          splitStemActionLabel={t("trackActions.splitStem")}
         />
       )}
 

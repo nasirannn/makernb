@@ -2,10 +2,10 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getUserInfoFromRequest } from '@/lib/auth';
 import { uploadAudioFileToKIE } from '@/lib/kie-file-upload';
 import { FeatureKey, getFeatureCredits } from '@/lib/credits-config';
+import { DEFAULT_NEGATIVE_TAGS } from '@/lib/music-generation-config';
 import { consumeUserCredit, getUserCredits, addUserCredits } from '@/lib/user-db';
 import { createMusicGeneration } from '@/lib/music-db';
 import { MusicType } from '@/types/music';
-import { DEFAULT_NEGATIVE_TAGS } from '@/lib/music-generation-config';
 import { hasFeaturePermission } from '@/lib/feature-permissions';
 
 export const dynamic = 'force-dynamic';

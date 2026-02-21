@@ -17,14 +17,21 @@ interface LanguageToggleProps {
   className?: string;
   size?: "sm" | "md";
   variant?: "default" | "nav";
+  navMenuDirection?: "top" | "bottom";
 }
 
 const LANGUAGE_OPTIONS: Array<{ value: AppLocale; label: string }> = [
   { value: "en", label: "English" },
   { value: "zh-CN", label: "中文" },
+  { value: "ja", label: "日本語" },
 ];
 
-export function LanguageToggle({ className, size = "sm", variant = "default" }: LanguageToggleProps) {
+export function LanguageToggle({
+  className,
+  size = "sm",
+  variant = "default",
+  navMenuDirection = "bottom",
+}: LanguageToggleProps) {
   const { locale, setLocale, t } = useI18n();
   const [open, setOpen] = React.useState(false);
   const closeTimeoutRef = React.useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -88,7 +95,7 @@ export function LanguageToggle({ className, size = "sm", variant = "default" }: 
     return (
       <div
         ref={navContainerRef}
-        className="relative dropdown-container"
+        className="relative language-dropdown-container"
         onMouseEnter={openMenu}
         onMouseLeave={closeMenu}
       >
@@ -129,7 +136,8 @@ export function LanguageToggle({ className, size = "sm", variant = "default" }: 
           <div
             role="menu"
             className={cn(
-              "absolute right-0 top-full z-[110] mt-2 min-w-[120px] rounded-2xl border border-black/10 bg-background p-1.5 shadow-[0_18px_55px_rgba(0,0,0,0.12)]",
+              "absolute right-0 z-[110] min-w-[120px] rounded-2xl border border-black/10 bg-background p-1.5 shadow-[0_18px_55px_rgba(0,0,0,0.12)]",
+              navMenuDirection === "top" ? "bottom-full mb-2" : "top-full mt-2",
               size === "md" ? "w-[132px]" : "w-[120px]"
             )}
             onMouseEnter={openMenu}

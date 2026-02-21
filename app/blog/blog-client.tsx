@@ -6,6 +6,7 @@ import type { BlogPost } from '@/lib/mdx';
 import { FooterSection } from '@/components/layout/sections/footer';
 import { formatLocalizedDate } from '@/lib/locale-format';
 import { useI18n } from '@/lib/i18n/provider';
+import { withLocalePrefix } from '@/lib/i18n/routing';
 
 interface BlogClientProps {
   allPosts: BlogPost[];
@@ -13,6 +14,7 @@ interface BlogClientProps {
 
 export default function BlogClient({ allPosts }: BlogClientProps) {
   const { t, locale } = useI18n();
+  const withCurrentLocale = React.useCallback((path: string) => withLocalePrefix(path, locale), [locale]);
 
   return (
     <div className="min-h-screen bg-background">
@@ -37,7 +39,7 @@ export default function BlogClient({ allPosts }: BlogClientProps) {
           {allPosts.map((post) => (
             <Link 
               key={post.slug}
-              href={`/blog/${post.slug}`}
+              href={withCurrentLocale(`/blog/${post.slug}`)}
               className="group bg-background/80 backdrop-blur-sm overflow-hidden hover:bg-background/90 transition-all duration-300"
             >
               {/* Image */}
@@ -60,9 +62,9 @@ export default function BlogClient({ allPosts }: BlogClientProps) {
                   {post.excerpt}
                 </p>
 
-                {/* Author and Date */}
+                {/* Category and Date */}
                 <div className="flex items-center justify-between text-sm text-muted-foreground pb-3 border-b border-gray-200/30">
-                  <span>{post.author}</span>
+                  <span>{post.category}</span>
                   <span>
                     {formatLocalizedDate(post.date, {
                       month: 'numeric',

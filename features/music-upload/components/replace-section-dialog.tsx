@@ -16,6 +16,7 @@ import { Label } from "@/components/ui/label";
 import { Play, Pause, ChevronDown } from "lucide-react";
 import { WaveformPlayer, WaveformPlayerHandle } from "@/components/ui/waveform-player";
 import { getFeatureCredits } from '@/lib/credits-config';
+import { useI18n } from "@/lib/i18n/provider";
 
 // Replace Section API 参数接口
 export interface ReplaceSectionParams {
@@ -54,12 +55,13 @@ export const ReplaceSectionDialog: React.FC<ReplaceSectionDialogProps> = ({
   isOpen,
   onClose,
   onConfirm,
-  trackTitle = 'Track',
+  trackTitle,
   trackDuration = 120,
   originalStyle = '',
   audioUrl,
   userCredits,
 }) => {
+  const { t } = useI18n();
   // ==================== 基础状态 ====================
   const [isReplacing, setIsReplacing] = useState(false);
 
@@ -236,6 +238,7 @@ export const ReplaceSectionDialog: React.FC<ReplaceSectionDialogProps> = ({
     selectionLength >= minSegmentSeconds &&
     selectionLength <= Math.min(maxSegmentSeconds, audioDuration);
   const isSelectionOverHalf = audioDuration > 0 && selectionLength > audioDuration * 0.5;
+  const effectiveTrackTitle = trackTitle?.trim() || t("vocalTools.common.trackFallback");
 
   // 表单验证
   const isFormValid =
@@ -282,11 +285,11 @@ export const ReplaceSectionDialog: React.FC<ReplaceSectionDialogProps> = ({
           <DialogHeader className="flex-shrink-0 px-5 pt-4 pb-2 text-left">
           <div className="pr-8">
             <DialogTitle className="text-xl font-semibold tracking-tight">
-              Replace Section
+              {t("replaceSectionDialog.title")}
             </DialogTitle>
           </div>
           <DialogDescription className="text-sm text-muted-foreground">
-            Replace a selected part of the track. Selection must be 6–60 seconds.
+            {t("replaceSectionDialog.description")}
           </DialogDescription>
         </DialogHeader>
 
@@ -297,7 +300,7 @@ export const ReplaceSectionDialog: React.FC<ReplaceSectionDialogProps> = ({
               <div className="flex flex-col items-center gap-2">
                 <div className="grid w-full grid-cols-[minmax(0,1fr)_auto] items-center gap-x-3 gap-y-1">
                   <div className="truncate text-left text-sm font-semibold leading-tight tracking-tight text-foreground">
-                    {trackTitle}
+                    {effectiveTrackTitle}
                   </div>
                   <div className="tabular-nums whitespace-nowrap text-right text-sm text-muted-foreground">
                     {formatClockTime(currentTime)} / {formatClockTime(audioDuration || 0)}
@@ -382,13 +385,18 @@ export const ReplaceSectionDialog: React.FC<ReplaceSectionDialogProps> = ({
               {!isSelectionLengthValid && (
                 <div className="rounded-xl bg-destructive/10 px-3 py-2 text-xs text-destructive">
                   {audioDuration < minSegmentSeconds
-                    ? `Track must be at least ${minSegmentSeconds}s to replace.`
-                    : `Selection must be between ${minSegmentSeconds}s and ${Math.min(maxSegmentSeconds, Math.floor(audioDuration))}s.`}
+                    ? t("replaceSectionDialog.validation.trackTooShort", {
+                        min: minSegmentSeconds,
+                      })
+                    : t("replaceSectionDialog.validation.selectionRange", {
+                        min: minSegmentSeconds,
+                        max: Math.min(maxSegmentSeconds, Math.floor(audioDuration)),
+                      })}
                 </div>
               )}
               {isSelectionOverHalf && (
                 <div className="rounded-xl bg-amber-500/10 px-3 py-2 text-xs text-amber-700 dark:text-amber-300">
-                  Tip: keep the replacement under 50% of the track for best results.
+                  {t("replaceSectionDialog.tip.keepUnderHalf")}
                 </div>
               )}
             </section>
@@ -396,36 +404,42 @@ export const ReplaceSectionDialog: React.FC<ReplaceSectionDialogProps> = ({
 
           {/* Title */}
           <section className="studio-panel-card rounded-2xl p-3 space-y-2">
-            <Label htmlFor="title" className="text-xs md:text-sm font-semibold text-foreground">Title</Label>
+            <Label htmlFor="title" className="text-xs md:text-sm font-semibold text-foreground">
+              {t("replaceSectionDialog.fields.title.label")}
+            </Label>
             <Input
               id="title"
               value={title}
               onChange={(e) => setTitle(e.target.value)}
-              placeholder="Enter track title"
+              placeholder={t("replaceSectionDialog.fields.title.placeholder")}
               className="h-11 border-0 bg-transparent px-0 focus-visible:ring-0 focus-visible:ring-offset-0"
             />
           </section>
 
           {/* Tags/Style */}
           <section className="studio-panel-card rounded-2xl p-3 space-y-2">
-            <Label htmlFor="tags" className="text-xs md:text-sm font-semibold text-foreground">Style Tags</Label>
+            <Label htmlFor="tags" className="text-xs md:text-sm font-semibold text-foreground">
+              {t("replaceSectionDialog.fields.tags.label")}
+            </Label>
             <Input
               id="tags"
               value={tags}
               onChange={(e) => setTags(e.target.value)}
-              placeholder="e.g., pop, acoustic, upbeat"
+              placeholder={t("replaceSectionDialog.fields.tags.placeholder")}
               className="h-11 border-0 bg-transparent px-0 focus-visible:ring-0 focus-visible:ring-offset-0"
             />
           </section>
 
           {/* Prompt */}
           <section className="studio-panel-card rounded-2xl p-3 space-y-2">
-            <Label htmlFor="prompt" className="text-xs md:text-sm font-semibold text-foreground">Prompt</Label>
+            <Label htmlFor="prompt" className="text-xs md:text-sm font-semibold text-foreground">
+              {t("replaceSectionDialog.fields.prompt.label")}
+            </Label>
             <Textarea
               id="prompt"
               value={prompt}
               onChange={(e) => setPrompt(e.target.value)}
-              placeholder="Describe the music for this section..."
+              placeholder={t("replaceSectionDialog.fields.prompt.placeholder")}
               rows={3}
               className="min-h-[104px] resize-y border-0 bg-transparent px-0 focus-visible:ring-0 focus-visible:ring-offset-0"
             />
@@ -438,11 +452,15 @@ export const ReplaceSectionDialog: React.FC<ReplaceSectionDialogProps> = ({
               className="flex w-full min-h-[28px] items-center justify-between gap-3 rounded-xl p-1 text-left"
               onClick={() => setIsFullLyricsOpen((prev) => !prev)}
               aria-expanded={isFullLyricsOpen}
-              aria-label="Toggle lyrics section"
+              aria-label={t("replaceSectionDialog.lyrics.toggleAriaLabel")}
             >
-              <h3 className="text-xs md:text-sm font-semibold text-foreground">Lyrics</h3>
+              <h3 className="text-xs md:text-sm font-semibold text-foreground">
+                {t("replaceSectionDialog.lyrics.title")}
+              </h3>
               <span className="inline-flex items-center gap-2">
-                <span className="text-xs uppercase tracking-[0.14em] text-muted-foreground">Optional</span>
+                <span className="text-xs uppercase tracking-[0.14em] text-muted-foreground">
+                  {t("replaceSectionDialog.lyrics.optional")}
+                </span>
                 <ChevronDown
                   className={`h-3.5 w-3.5 text-muted-foreground transition-transform ${
                     isFullLyricsOpen ? "rotate-180" : ""
@@ -454,18 +472,18 @@ export const ReplaceSectionDialog: React.FC<ReplaceSectionDialogProps> = ({
             {isFullLyricsOpen && (
               <div className="mt-3 space-y-2">
                 <Label htmlFor="fullLyrics" className="text-sm font-medium text-muted-foreground">
-                  Lyrics Content
+                  {t("replaceSectionDialog.lyrics.contentLabel")}
                 </Label>
                 <Textarea
                   id="fullLyrics"
                   value={fullLyrics}
                   onChange={(e) => setFullLyrics(e.target.value)}
-                  placeholder="Enter the full lyrics with the modified section..."
+                  placeholder={t("replaceSectionDialog.lyrics.contentPlaceholder")}
                   rows={4}
                   className="min-h-[120px] resize-y border-0 bg-transparent px-0 focus-visible:ring-0 focus-visible:ring-offset-0"
                 />
                 <p className="text-sm text-muted-foreground">
-                  Provide merged lyrics to keep the replaced section aligned with the full song.
+                  {t("replaceSectionDialog.lyrics.helpText")}
                 </p>
               </div>
             )}
@@ -473,7 +491,7 @@ export const ReplaceSectionDialog: React.FC<ReplaceSectionDialogProps> = ({
 
           {insufficientCredits && (
             <div className="rounded-2xl bg-destructive/10 px-3 py-2 text-sm text-destructive">
-              Insufficient credits. You need {cost} credits but only have {credits}.
+              {t("replaceSectionDialog.credits.insufficient", { cost, credits })}
             </div>
           )}
         </div>
@@ -487,10 +505,10 @@ export const ReplaceSectionDialog: React.FC<ReplaceSectionDialogProps> = ({
             {isReplacing ? (
               <>
                 <div className="mr-2 h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent" />
-                Replacing...
+                {t("replaceSectionDialog.actions.replacing")}
               </>
             ) : (
-              `Replace Section • cost ${cost} credits`
+              t("replaceSectionDialog.actions.confirmWithCost", { cost })
             )}
           </Button>
         </DialogFooter>

@@ -11,6 +11,7 @@ import {
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
+import { useI18n } from "@/lib/i18n/provider";
 
 export type MusicModel = "V4" | "V4_5" | "V4_5PLUS" | "V5";
 
@@ -20,6 +21,7 @@ export interface ModelHighlightBadge {
   label: string;
   tone?: ModelHighlightTone;
   withCrown?: boolean;
+  i18nKey?: string;
 }
 
 export interface ModelOption {
@@ -27,6 +29,8 @@ export interface ModelOption {
   label: string;
   description: string;
   capabilities: string[];
+  descriptionKey?: string;
+  capabilityKeys?: string[];
   tierHint?: string;
   highlightBadges?: ModelHighlightBadge[];
 }
@@ -49,30 +53,63 @@ export const modelOptions: ModelOption[] = [
     value: "V5",
     label: "V5",
     description: "Best melody control and richer expression for premium outputs.",
+    descriptionKey: "modelSelectionDialog.models.V5.description",
     capabilities: ["Genuine Vocals", "Creative Control", "Up to 8 min", "High Fidelity"],
+    capabilityKeys: [
+      "modelSelectionDialog.models.V5.capabilities.genuineVocals",
+      "modelSelectionDialog.models.V5.capabilities.creativeControl",
+      "modelSelectionDialog.models.V5.capabilities.upTo8Min",
+      "modelSelectionDialog.models.V5.capabilities.highFidelity",
+    ],
     tierHint: "Hobby+",
     highlightBadges: [
-      { label: "Premium model", tone: "cyan", withCrown: true },
-      { label: "Latest", tone: "sunset" },
+      {
+        label: "Premium model",
+        tone: "cyan",
+        withCrown: true,
+        i18nKey: "modelSelectionDialog.badges.premiumModel",
+      },
+      { label: "Latest", tone: "sunset", i18nKey: "modelSelectionDialog.badges.latest" },
     ],
   },
   {
     value: "V4_5PLUS",
     label: "V4.5+",
     description: "Long-form, cleaner stems, and stronger composition stability.",
+    descriptionKey: "modelSelectionDialog.models.V4_5PLUS.description",
     capabilities: ["Long-form", "Cleaner Stems", "Rich Harmonies", "Stable Structure"],
+    capabilityKeys: [
+      "modelSelectionDialog.models.V4_5PLUS.capabilities.longForm",
+      "modelSelectionDialog.models.V4_5PLUS.capabilities.cleanerStems",
+      "modelSelectionDialog.models.V4_5PLUS.capabilities.richHarmonies",
+      "modelSelectionDialog.models.V4_5PLUS.capabilities.stableStructure",
+    ],
   },
   {
     value: "V4_5",
     label: "V4.5",
     description: "Balanced quality with fast turnaround for daily generation.",
+    descriptionKey: "modelSelectionDialog.models.V4_5.description",
     capabilities: ["Fast Generation", "Balanced Quality", "Smarter Prompts", "Up to 8 min"],
+    capabilityKeys: [
+      "modelSelectionDialog.models.V4_5.capabilities.fastGeneration",
+      "modelSelectionDialog.models.V4_5.capabilities.balancedQuality",
+      "modelSelectionDialog.models.V4_5.capabilities.smarterPrompts",
+      "modelSelectionDialog.models.V4_5.capabilities.upTo8Min",
+    ],
   },
   {
     value: "V4",
     label: "V4",
     description: "Lightweight model optimized for quick iteration.",
+    descriptionKey: "modelSelectionDialog.models.V4.description",
     capabilities: ["Quick Drafts", "Richer Timbral Detail", "Reliable Vocals", "Up to 4 min"],
+    capabilityKeys: [
+      "modelSelectionDialog.models.V4.capabilities.quickDrafts",
+      "modelSelectionDialog.models.V4.capabilities.richerTimbralDetail",
+      "modelSelectionDialog.models.V4.capabilities.reliableVocals",
+      "modelSelectionDialog.models.V4.capabilities.upTo4Min",
+    ],
   },
 ];
 
@@ -95,7 +132,17 @@ export const ModelSelectionDialog: React.FC<ModelSelectionDialogProps> = ({
   isModelLocked,
   onLockedModelSelect,
 }) => {
+  const { t } = useI18n();
   const [pendingModel, setPendingModel] = React.useState<MusicModel>(selectedModel);
+
+  const getLocalizedText = React.useCallback(
+    (key: string | undefined, fallback: string) => {
+      if (!key) return fallback;
+      const translated = t(key);
+      return translated === key ? fallback : translated;
+    },
+    [t]
+  );
 
   React.useEffect(() => {
     if (open) {
@@ -130,11 +177,11 @@ export const ModelSelectionDialog: React.FC<ModelSelectionDialogProps> = ({
           <DialogHeader className="relative z-[1] flex-shrink-0 px-5 pt-4 pb-3 text-left">
           <div className="pr-8">
             <DialogTitle className="text-xl font-semibold tracking-tight">
-              Select Model
+              {t("modelSelectionDialog.title")}
             </DialogTitle>
           </div>
           <DialogDescription className="text-sm text-muted-foreground">
-            Compare quality, speed, and creative control to choose the best fit for this track.
+            {t("modelSelectionDialog.description")}
           </DialogDescription>
           </DialogHeader>
 
@@ -191,7 +238,7 @@ export const ModelSelectionDialog: React.FC<ModelSelectionDialogProps> = ({
                             )}
                           >
                             {badge.withCrown ? <Crown className="h-3 w-3" /> : null}
-                            {badge.label}
+                            {getLocalizedText(badge.i18nKey, badge.label)}
                           </span>
                         ))}
                         {isLocked && option.tierHint ? (
@@ -203,7 +250,7 @@ export const ModelSelectionDialog: React.FC<ModelSelectionDialogProps> = ({
                                 : "bg-foreground/5 text-foreground/75 dark:bg-white/[0.08] dark:text-foreground/80"
                             )}
                           >
-                            Requires {option.tierHint}
+                            {t("modelSelectionDialog.requiresTier", { tier: option.tierHint })}
                           </span>
                         ) : null}
                       </div>
@@ -216,11 +263,11 @@ export const ModelSelectionDialog: React.FC<ModelSelectionDialogProps> = ({
                             : "text-foreground/70 dark:text-foreground/72"
                         )}
                       >
-                        {option.description}
+                        {getLocalizedText(option.descriptionKey, option.description)}
                       </p>
 
                       <div className="mt-2.5 flex flex-wrap gap-2">
-                        {option.capabilities.map((capability) => (
+                        {option.capabilities.map((capability, index) => (
                           <span
                             key={`${option.value}-${capability}`}
                             className={cn(
@@ -230,7 +277,7 @@ export const ModelSelectionDialog: React.FC<ModelSelectionDialogProps> = ({
                                 : "bg-foreground/5 text-foreground/72 dark:bg-white/[0.08] dark:text-foreground/80"
                             )}
                           >
-                            {capability}
+                            {getLocalizedText(option.capabilityKeys?.[index], capability)}
                           </span>
                         ))}
                       </div>
@@ -250,7 +297,7 @@ export const ModelSelectionDialog: React.FC<ModelSelectionDialogProps> = ({
               onClick={handleConfirm}
               className="h-11 w-full rounded-xl bg-primary text-primary-foreground hover:bg-primary/90"
             >
-              Confirm
+              {t("modelSelectionDialog.confirm")}
             </Button>
           </div>
         </div>

@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   Dialog,
   DialogContent,
@@ -12,6 +12,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Download } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { MidiGenerationData } from "@/types/track";
+import { useI18n } from "@/lib/i18n/provider";
 
 type MidiNoteView = {
   pitch: number;
@@ -216,7 +217,10 @@ const formatSeconds = (value: number): string => {
   return `${minutes}:${String(seconds).padStart(2, '0')}`;
 };
 
-const normalizeMidiInstruments = (midiData?: MidiGenerationData | null): MidiInstrumentView[] => {
+const normalizeMidiInstruments = (
+  midiData: MidiGenerationData | null | undefined,
+  getFallbackInstrumentName: (index: number) => string
+): MidiInstrumentView[] => {
   if (!midiData || !Array.isArray(midiData.instruments)) {
     return [];
   }
@@ -226,7 +230,7 @@ const normalizeMidiInstruments = (midiData?: MidiGenerationData | null): MidiIns
       const name =
         typeof instrument?.name === 'string' && instrument.name.trim().length > 0
           ? instrument.name.trim()
-          : `Instrument ${index + 1}`;
+          : getFallbackInstrumentName(index + 1);
 
       const rawNotes = Array.isArray(instrument?.notes) ? instrument.notes : [];
       const notes: MidiNoteView[] = rawNotes
@@ -276,25 +280,40 @@ export interface MidiResultDialogProps {
   isOpen: boolean;
   onClose: () => void;
   trackTitle?: string;
-  midiStatus?: 'idle' | 'checking' | 'generating' | 'completed' | 'error';
+  midiStatus?: 'idle' | 'checking' | 'generating' | 'completed' | 'error' | 'requires_split_stem';
   midiErrorMessage?: string;
   midiInstrumentsCount?: number;
   midiData?: MidiGenerationData | null;
+  onStartSplitStem?: () => void;
+  splitStemRequiredMessage?: string;
+  splitStemActionLabel?: string;
 }
 
 export const MidiResultDialog: React.FC<MidiResultDialogProps> = ({
   isOpen,
   onClose,
-  trackTitle = 'Track',
+  trackTitle,
   midiStatus = 'idle',
   midiErrorMessage,
   midiInstrumentsCount,
   midiData,
+  onStartSplitStem,
+  splitStemRequiredMessage,
+  splitStemActionLabel,
 }) => {
+  const { t } = useI18n();
+  const resolvedTrackTitle = trackTitle?.trim() || t("vocalTools.common.trackFallback");
   const [activeMidiInstrumentId, setActiveMidiInstrumentId] = useState<string | null>(null);
   const isLoadingState = midiStatus === 'checking' || midiStatus === 'generating';
+  const getFallbackInstrumentName = useCallback(
+    (index: number) => t("midiResultDialog.labels.instrumentFallback", { index }),
+    [t]
+  );
 
-  const midiInstruments = useMemo(() => normalizeMidiInstruments(midiData), [midiData]);
+  const midiInstruments = useMemo(
+    () => normalizeMidiInstruments(midiData, getFallbackInstrumentName),
+    [getFallbackInstrumentName, midiData]
+  );
 
   const activeMidiInstrument = useMemo(() => {
     if (midiInstruments.length === 0) return null;
@@ -354,7 +373,7 @@ export const MidiResultDialog: React.FC<MidiResultDialogProps> = ({
     const blob = new Blob([midiBinary.buffer], { type: 'audio/midi' });
     const url = URL.createObjectURL(blob);
     const anchor = document.createElement('a');
-    const safeTrackTitle = (trackTitle || 'track')
+    const safeTrackTitle = resolvedTrackTitle
       .toLowerCase()
       .replace(/[^a-z0-9]+/g, '-')
       .replace(/(^-|-$)/g, '');
@@ -394,10 +413,10 @@ export const MidiResultDialog: React.FC<MidiResultDialogProps> = ({
         <DialogHeader className="flex-shrink-0 px-5 pr-14 pt-4 pb-3 text-left sm:pr-16">
           <div className="min-w-0 space-y-1 pr-2">
             <DialogTitle className="text-xl font-semibold tracking-tight">
-              MIDI Result
+              {t("midiResultDialog.title")}
             </DialogTitle>
             <p className="truncate text-sm text-muted-foreground">
-              Extracts and visualizes note data for each detected instrument.
+              {t("midiResultDialog.description")}
             </p>
           </div>
         </DialogHeader>
@@ -432,31 +451,52 @@ export const MidiResultDialog: React.FC<MidiResultDialogProps> = ({
 
           {midiStatus === 'idle' && (
             <p className="text-sm text-muted-foreground">
-              MIDI generation has not started yet.
+              {t("midiResultDialog.status.idle")}
             </p>
           )}
 
           {midiStatus === 'error' && (
             <p className="text-sm text-destructive">
-              {midiErrorMessage || 'Failed to generate MIDI. Please try again.'}
+              {midiErrorMessage || t("midiResultDialog.status.failed")}
             </p>
+          )}
+
+          {midiStatus === 'requires_split_stem' && (
+            <section className="studio-panel-card rounded-2xl p-6 text-center">
+              <p className="text-sm text-muted-foreground">
+                {splitStemRequiredMessage || t("midiResultDialog.status.splitStemRequired")}
+              </p>
+              {onStartSplitStem && (
+                <div className="mt-4">
+                  <Button
+                    type="button"
+                    onClick={onStartSplitStem}
+                    className="h-10 rounded-xl px-5 text-sm font-semibold"
+                  >
+                    {splitStemActionLabel || t("trackActions.splitStem")}
+                  </Button>
+                </div>
+              )}
+            </section>
           )}
 
           {midiStatus === 'completed' && (
             <div className="space-y-3">
               <div className="flex items-center justify-between gap-3">
                 <p className="min-w-0 truncate text-xs font-semibold uppercase tracking-[0.08em] text-muted-foreground">
-                  {trackTitle}
+                  {resolvedTrackTitle}
                 </p>
                 <p className="text-sm text-emerald-700 dark:text-emerald-300">
-                  MIDI ready{typeof midiInstrumentsCount === 'number' ? ` • ${midiInstrumentsCount} instruments detected` : ''}.
+                  {typeof midiInstrumentsCount === 'number'
+                    ? t("midiResultDialog.status.readyWithCount", { count: midiInstrumentsCount })
+                    : t("midiResultDialog.status.ready")}
                 </p>
               </div>
               {midiInstruments.length > 0 ? (
                 <div className="space-y-2">
                   <div
                     role="tablist"
-                    aria-label="MIDI instruments"
+                    aria-label={t("midiResultDialog.labels.instrumentsTabAria")}
                     className="studio-panel-card flex gap-1 overflow-x-auto rounded-xl p-1"
                   >
                     {midiInstruments.map((instrument) => (
@@ -481,9 +521,9 @@ export const MidiResultDialog: React.FC<MidiResultDialogProps> = ({
                   {activeMidiInstrument && midiRollData && (
                     <div className="space-y-2">
                       <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-muted-foreground">
-                        <span>{midiRollData.totalNotes} notes</span>
-                        <span>Range {midiRollData.minPitch} - {midiRollData.maxPitch}</span>
-                        <span>Length {formatSeconds(midiRollData.timelineEnd)}</span>
+                        <span>{t("midiResultDialog.labels.notesCount", { count: midiRollData.totalNotes })}</span>
+                        <span>{t("midiResultDialog.labels.pitchRange", { min: midiRollData.minPitch, max: midiRollData.maxPitch })}</span>
+                        <span>{t("midiResultDialog.labels.length", { duration: formatSeconds(midiRollData.timelineEnd) })}</span>
                       </div>
                       <div className="studio-panel-card rounded-xl p-2">
                         <div className="w-full overflow-x-auto">
@@ -492,7 +532,7 @@ export const MidiResultDialog: React.FC<MidiResultDialogProps> = ({
                             className="h-44 min-w-[680px] w-full"
                             preserveAspectRatio="none"
                             role="img"
-                            aria-label={`MIDI piano roll for ${activeMidiInstrument.name}`}
+                            aria-label={t("midiResultDialog.labels.pianoRollAria", { instrument: activeMidiInstrument.name })}
                           >
                             <rect
                               x={0}
@@ -558,7 +598,7 @@ export const MidiResultDialog: React.FC<MidiResultDialogProps> = ({
                         </div>
                         {midiRollData.truncated && (
                           <p className="mt-2 text-sm text-muted-foreground">
-                            Showing first {MIDI_MAX_RENDERED_NOTES} notes for performance.
+                            {t("midiResultDialog.labels.truncatedNotes", { count: MIDI_MAX_RENDERED_NOTES })}
                           </p>
                         )}
                       </div>
@@ -567,7 +607,7 @@ export const MidiResultDialog: React.FC<MidiResultDialogProps> = ({
                 </div>
               ) : (
                 <p className="text-sm text-muted-foreground">
-                  MIDI generated successfully, but no playable notes were detected in this track.
+                  {t("midiResultDialog.status.noPlayableNotes")}
                 </p>
               )}
             </div>
@@ -583,7 +623,7 @@ export const MidiResultDialog: React.FC<MidiResultDialogProps> = ({
                 onClick={onClose}
                 className="h-11 flex-1 rounded-2xl border-0 bg-foreground/5 text-sm font-semibold text-foreground/75 transition-colors hover:bg-foreground/10 hover:text-foreground"
               >
-                Cancel
+                {t("common.cancel")}
               </Button>
               <Button
                 type="button"
@@ -591,7 +631,7 @@ export const MidiResultDialog: React.FC<MidiResultDialogProps> = ({
                 className="h-11 flex-1 rounded-2xl text-sm font-semibold"
               >
                 <Download className="mr-1 h-4 w-4" />
-                Download MIDI (.mid)
+                {t("midiResultDialog.actions.download")}
               </Button>
             </div>
           </div>

@@ -506,7 +506,7 @@ export const CommonSidebar = ({
                 />
                 {isSidebarExpanded && <span className="sidebar-brand">MakeRNB</span>}
               </Link>
-              {isStudioVariant && (
+              {isStudioVariant && isSidebarExpanded && (
                 <Button
                   type="button"
                   variant="ghost"
@@ -916,7 +916,7 @@ export const CommonSidebar = ({
 
                   {isSidebarExpanded ? (
                     <div
-                      className="w-full min-h-12 rounded-2xl bg-transparent px-3 py-2 transition-all duration-300 border border-transparent hover:bg-muted/30"
+                      className="w-full min-h-12 rounded-2xl bg-transparent px-3 py-2 transition-all duration-300 border border-transparent"
                     >
                       <div className="flex min-h-8 w-full items-center gap-2">
                         {user && (
@@ -944,6 +944,8 @@ export const CommonSidebar = ({
                         )}
                         <LanguageToggle
                           size="sm"
+                          variant="nav"
+                          navMenuDirection="top"
                           className="h-9 w-9 rounded-2xl text-foreground/60 hover:text-foreground"
                         />
                         <ThemeModeToggle
@@ -956,15 +958,17 @@ export const CommonSidebar = ({
                   ) : (
                     <>
                       <Tooltip content={t("common.switchLanguage")} position="right">
-                        <div className="flex h-14 w-full items-center justify-center rounded-2xl transition-all duration-300 hover:bg-muted/30">
+                        <div className="flex h-14 w-full items-center justify-center rounded-2xl transition-all duration-300">
                           <LanguageToggle
                             size="md"
+                            variant="nav"
+                            navMenuDirection="top"
                             className="h-10 w-10 rounded-2xl text-foreground/60 hover:text-foreground"
                           />
                         </div>
                       </Tooltip>
                       <Tooltip content={t("common.toggleTheme")} position="right">
-                        <div className="flex h-14 w-full items-center justify-center rounded-2xl transition-all duration-300 hover:bg-muted/30">
+                        <div className="flex h-14 w-full items-center justify-center rounded-2xl transition-all duration-300">
                           <ThemeModeToggle
                             size="md"
                             variant="icon"

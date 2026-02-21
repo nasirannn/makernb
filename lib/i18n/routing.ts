@@ -5,12 +5,15 @@ export const LOCALE_COOKIE_KEY = "makernb.locale";
 const LOCALE_TO_PATH_SEGMENT: Record<AppLocale, string> = {
   en: "en",
   "zh-CN": "zh",
+  ja: "ja",
 };
 
 const PATH_SEGMENT_TO_LOCALE: Record<string, AppLocale> = {
   en: "en",
   zh: "zh-CN",
   "zh-cn": "zh-CN",
+  ja: "ja",
+  "ja-jp": "ja",
 };
 
 const EXTERNAL_PROTOCOL_PATTERN = /^[a-zA-Z][a-zA-Z\d+\-.]*:/;
@@ -46,6 +49,7 @@ export function normalizeLocale(locale: string | null | undefined): AppLocale {
   }
   if (normalized === "en" || normalized.startsWith("en-")) return "en";
   if (normalized === "zh" || normalized.startsWith("zh-")) return "zh-CN";
+  if (normalized === "ja" || normalized.startsWith("ja-")) return "ja";
   return DEFAULT_LOCALE;
 }
 

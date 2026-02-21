@@ -5,6 +5,8 @@ import { MDXRemote } from 'next-mdx-remote/rsc';
 import { notFound } from 'next/navigation';
 import { FooterSection } from '@/components/layout/sections/footer';
 import type { Metadata } from 'next';
+import { DEFAULT_LOCALE, type AppLocale } from '@/lib/i18n/config';
+import { formatLocalizedDate } from '@/lib/locale-format';
 
 interface BlogPostPageProps {
   params: Promise<{
@@ -12,22 +14,30 @@ interface BlogPostPageProps {
   }>;
 }
 
-export async function generateStaticParams() {
-  const posts = getAllPosts();
+interface LocalizedBlogPostContentProps {
+  slug: string;
+  locale: AppLocale;
+}
+
+function buildPostNotFoundMetadata(): Metadata {
+  return {
+    title: 'Post Not Found | MakeRNB',
+    description: 'The requested blog post could not be found.',
+  };
+}
+
+export function getLocalizedBlogPostStaticParams(locale: AppLocale) {
+  const posts = getAllPosts(locale);
   return posts.map((post) => ({
     slug: post.slug,
   }));
 }
 
-export async function generateMetadata({ params }: BlogPostPageProps): Promise<Metadata> {
-  const { slug } = await params;
-  const post = getPostBySlug(slug);
+export async function getLocalizedBlogPostMetadata(slug: string, locale: AppLocale): Promise<Metadata> {
+  const post = getPostBySlug(slug, locale);
 
   if (!post) {
-    return {
-      title: 'Post Not Found | MakeRNB',
-      description: 'The requested blog post could not be found.',
-    };
+    return buildPostNotFoundMetadata();
   }
 
   // Ensure excerpt is within 150-160 characters for optimal SEO
@@ -46,7 +56,6 @@ export async function generateMetadata({ params }: BlogPostPageProps): Promise<M
       description: description,
       type: 'article',
       publishedTime: post.date,
-      authors: [post.author],
       url: `https://makernb.com/blog/${slug}`,
       images: post.image ? [
         {
@@ -66,13 +75,31 @@ export async function generateMetadata({ params }: BlogPostPageProps): Promise<M
   };
 }
 
-export default async function BlogPostPage({ params }: BlogPostPageProps) {
+export async function generateStaticParams() {
+  return getLocalizedBlogPostStaticParams(DEFAULT_LOCALE);
+}
+
+export async function generateMetadata({ params }: BlogPostPageProps): Promise<Metadata> {
   const { slug } = await params;
-  const post = getPostBySlug(slug);
-  
+  return getLocalizedBlogPostMetadata(slug, DEFAULT_LOCALE);
+}
+
+export async function BlogPostPageContent({ slug, locale }: LocalizedBlogPostContentProps) {
+  const post = getPostBySlug(slug, locale);
+
   if (!post) {
     notFound();
   }
+
+  const formattedDate = formatLocalizedDate(
+    post.date,
+    {
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric',
+    },
+    locale
+  ) ?? post.date;
 
   return (
     <div className="min-h-screen bg-background">
@@ -85,30 +112,13 @@ export default async function BlogPostPage({ params }: BlogPostPageProps) {
               {post.title}
             </h1>
             
-            {/* Author, Date & Category */}
-            <div className="flex items-center justify-center gap-6 text-muted-foreground flex-wrap">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-full overflow-hidden bg-gradient-to-br from-purple-600 to-purple-600 flex items-center justify-center">
-                  {post.author === 'Darius Coleman' ? (
-                    <Image src="/avatars/Darius_Coleman.webp" alt={post.author} width={40} height={40} className="w-full h-full object-cover" />
-                  ) : post.author === 'Keisha Thompson' ? (
-                    <Image src="/avatars/Keisha_Thompson.webp" alt={post.author} width={40} height={40} className="w-full h-full object-cover" />
-                  ) : post.author === 'Malik Washington' ? (
-                    <Image src="/avatars/Malik_Washington.webp" alt={post.author} width={40} height={40} className="w-full h-full object-cover" />
-                  ) : (
-                    <span className="text-white font-semibold text-sm">
-                      {post.author.charAt(0)}
-                    </span>
-                  )}
-                </div>
-                <span className="font-medium">{post.author}</span>
-              </div>
-              <div className="w-1 h-1 bg-muted-foreground/50 rounded-full"></div>
+            {/* Category, Date & Read Time */}
+            <div className="flex items-center justify-center gap-3 text-muted-foreground flex-wrap">
               <span className="text-sm">
                 {post.category}
               </span>
               <div className="w-1 h-1 bg-muted-foreground/50 rounded-full"></div>
-              <span className="text-sm">{post.date}</span>
+              <span className="text-sm">{formattedDate}</span>
               <div className="w-1 h-1 bg-muted-foreground/50 rounded-full"></div>
               <span className="text-sm">{post.readTime}</span>
             </div>
@@ -118,6 +128,20 @@ export default async function BlogPostPage({ params }: BlogPostPageProps) {
 
       {/* Article Content */}
       <main className="container mx-auto px-4 pt-12 pb-8">
+        <div className="max-w-4xl mx-auto">
+          {post.image ? (
+            <div className="mb-10 overflow-hidden rounded-3xl border border-border/40 bg-muted/10">
+              <Image
+                src={post.image}
+                alt={post.title}
+                width={1600}
+                height={900}
+                className="h-auto w-full object-cover"
+                priority
+              />
+            </div>
+          ) : null}
+        </div>
         <div className="max-w-3xl mx-auto">
           <article className="prose prose-lg max-w-none prose-headings:text-foreground prose-p:text-muted-foreground prose-strong:text-foreground prose-em:text-foreground prose-a:text-primary prose-a:no-underline hover:prose-a:underline prose-ul:text-muted-foreground prose-ol:text-muted-foreground prose-li:text-muted-foreground">
             <MDXRemote source={post.content} />
@@ -129,4 +153,9 @@ export default async function BlogPostPage({ params }: BlogPostPageProps) {
       <FooterSection />
     </div>
   );
+}
+
+export default async function BlogPostPage({ params }: BlogPostPageProps) {
+  const { slug } = await params;
+  return <BlogPostPageContent slug={slug} locale={DEFAULT_LOCALE} />;
 }

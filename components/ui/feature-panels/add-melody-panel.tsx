@@ -226,7 +226,7 @@ export const AddMelodyPanel = (props: FeatureCreatePanelProps) => {
   const { user } = useAuth();
   const { credits } = useCredits();
   const { resolvedTheme } = useTheme();
-  const { t } = useI18n();
+  const { t, locale } = useI18n();
   const resolvedPanelTitle = panelTitle ?? t("studioFeatures.addMelody");
   const userSelectedModelRef = React.useRef(false);
   const defaultSimplePromptMaxLength = 400;
@@ -558,7 +558,7 @@ export const AddMelodyPanel = (props: FeatureCreatePanelProps) => {
         throw new Error(t("toasts.pleaseLogInToContinue"));
       }
 
-      const response = await fetch("/api/prompt/simple-genre", {
+      const response = await fetch("/api/prompt/preset-style", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -569,6 +569,7 @@ export const AddMelodyPanel = (props: FeatureCreatePanelProps) => {
           genreId,
           genreName,
           currentPrompt: currentText,
+          locale,
         }),
       });
 
@@ -611,7 +612,7 @@ export const AddMelodyPanel = (props: FeatureCreatePanelProps) => {
         genrePromptAbortRef.current = null;
       }
     }
-  }, [user, setIsAuthModalOpen, t]);
+  }, [locale, user, setIsAuthModalOpen, t]);
   // Function to update states based on textarea content with debouncing
   const handleUpdateStatesFromTextarea = React.useCallback((text: string) => {
     const timeoutId = setTimeout(() => {
@@ -2049,7 +2050,7 @@ export const AddMelodyPanel = (props: FeatureCreatePanelProps) => {
       } ${forceVisibleOnMobile ? 'flex flex-col' : 'h-full flex flex-col overflow-hidden'} ${forceVisibleOnMobile ? 'flex md:flex' : 'hidden md:flex'}`}
       style={
         hasPlayer && !forceVisibleOnMobile
-          ? { height: 'calc(100% - var(--player-height, 0px) - 1rem)' }
+          ? { height: 'calc(100% - var(--player-height, 0px) - 0.5rem)' }
           : undefined
       }
     >

@@ -96,21 +96,21 @@ export default function ExplorePage() {
             setExploreData(result.data);
             setPlaylist(result.data.music || []);
           } else {
-            setError('Failed to load music data');
+            setError(t("explorePage.failedToLoadMusicData"));
           }
         } else {
-          setError('Failed to load music data');
+          setError(t("explorePage.failedToLoadMusicData"));
         }
       } catch (error) {
         console.error('Error fetching explore data:', error);
-        setError('Failed to load music data');
+        setError(t("explorePage.failedToLoadMusicData"));
       } finally {
         setLoading(false);
       }
     };
 
     loadData();
-  }, [getAuthHeaders]);
+  }, [getAuthHeaders, t]);
 
   // 组件卸载时清理音频
   useEffect(() => {
@@ -161,16 +161,16 @@ export default function ExplorePage() {
           setHasMore(data.data.music.length < data.data.count);
         }
       } else {
-        setError(data.error || 'Failed to load music');
+        setError(data.error || t("explorePage.failedToLoadMusic"));
       }
     } catch (err) {
-      setError('Failed to load music');
+      setError(t("explorePage.failedToLoadMusic"));
       console.error('Error fetching explore data:', err);
     } finally {
       setLoading(false);
       setLoadingMore(false);
     }
-  }, [exploreData, getAuthHeaders]);
+  }, [exploreData, getAuthHeaders, t]);
 
   const loadMore = useCallback(() => {
     if (exploreData && exploreData.music && !loadingMore && hasMore) {
@@ -413,7 +413,7 @@ export default function ExplorePage() {
 
     return {
       id: matched.primaryTrack.id,
-      title: matched.title || 'Untitled Track',
+      title: matched.title || t("studioTracks.untitledTrack"),
       tags: matched.tags || '',
       lyrics: matched.lyrics || '',
       coverImage: matched.primaryTrack.coverR2Url || null,
@@ -428,7 +428,7 @@ export default function ExplorePage() {
       isCompleted: true,
       audioUrl: matched.primaryTrack.audioUrl || '',
     };
-  }, [lyricsTrackId, playlist]);
+  }, [lyricsTrackId, playlist, t]);
 
   const isInlineTrackPlaying = Boolean(
     inlineTrackDetails &&
@@ -447,13 +447,13 @@ export default function ExplorePage() {
             {/* Header */}
             <div className="text-center mb-8">
               <p className="text-sm font-medium text-muted-foreground uppercase tracking-wider mb-4">
-                MUSIC & CREATIVITY RESOURCES
+                {t("explorePage.sectionEyebrow")}
               </p>
               <h1 className="text-5xl md:text-6xl font-bold text-foreground mb-4 tracking-tight">
-                Listen to The AI-Generated R&B Songs
+                {t("explorePage.sectionTitle")}
               </h1>
               <p className="text-muted-foreground text-lg max-w-2xl mx-auto mb-8">
-                Experience soulful R&B music crafted by artificial intelligence
+                {t("explorePage.sectionDescription")}
               </p>
             </div>
 
@@ -477,7 +477,7 @@ export default function ExplorePage() {
             <div className="text-center">
               <p className="text-red-400 mb-4">{error}</p>
               <Button onClick={() => fetchExploreData()} variant="outline">
-                Try Again
+                {t("explorePage.tryAgain")}
               </Button>
             </div>
           </div>
@@ -493,13 +493,13 @@ export default function ExplorePage() {
           {/* Header */}
           <div className="text-center mb-8">
             <p className="text-sm font-medium text-muted-foreground uppercase tracking-wider mb-4">
-              MUSIC & CREATIVITY RESOURCES
+              {t("explorePage.sectionEyebrow")}
             </p>
             <h1 className="text-5xl md:text-6xl font-bold text-foreground mb-4 tracking-tight">
-              Listen to The AI-Generated R&B Songs
+              {t("explorePage.sectionTitle")}
             </h1>
             <p className="text-muted-foreground text-lg max-w-2xl mx-auto mb-8">
-              Experience soulful R&B music crafted by artificial intelligence
+              {t("explorePage.sectionDescription")}
             </p>
           </div>
 
@@ -754,7 +754,7 @@ export default function ExplorePage() {
                 audioUrl: music.primaryTrack.audioUrl,
                 duration: typeof music.totalDuration === 'string' ? parseFloat(music.totalDuration) : music.totalDuration,
                 coverImage: music.primaryTrack.coverR2Url,
-                artist: music.tags || "Unknown Artist",
+                artist: music.tags || t("libraryPage.unknownArtist"),
                 tags: music.tags || "",
                 lyrics: music.lyrics || "",
                 allTracks: music.allTracks.map(track => ({

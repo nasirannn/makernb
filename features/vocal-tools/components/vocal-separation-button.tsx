@@ -4,6 +4,7 @@ import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogTrigger } from '@/components/ui/dialog';
 import { VocalSeparationPanel } from '@/features/vocal-tools/components/vocal-separation-panel';
+import { useI18n } from '@/lib/i18n/provider';
 import { Mic } from 'lucide-react';
 
 interface VocalSeparationButtonProps {
@@ -30,6 +31,7 @@ export const VocalSeparationButton: React.FC<VocalSeparationButtonProps> = ({
   size = 'sm'
 }) => {
   const [isOpen, setIsOpen] = useState(false);
+  const { t } = useI18n();
 
   return (
     <Dialog open={isOpen} onOpenChange={setIsOpen}>
@@ -41,7 +43,7 @@ export const VocalSeparationButton: React.FC<VocalSeparationButtonProps> = ({
           className="flex items-center gap-2"
         >
           <Mic className="h-4 w-4" />
-          Vocal Separation
+          {t("vocalTools.panel.buttonLabel")}
         </Button>
       </DialogTrigger>
       <DialogContent className="studio-panel-card max-w-4xl max-h-[90vh] overflow-y-auto border-0 p-5 shadow-xl">

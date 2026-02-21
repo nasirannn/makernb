@@ -7,11 +7,13 @@ const SITE_URL = process.env.NEXT_PUBLIC_BASE_URL || "https://makernb.com";
 const OPEN_GRAPH_LOCALE_MAP: Record<AppLocale, string> = {
   en: "en_US",
   "zh-CN": "zh_CN",
+  ja: "ja_JP",
 };
 
 const HREFLANG_MAP: Record<AppLocale, string> = {
   en: "en",
   "zh-CN": "zh-CN",
+  ja: "ja",
 };
 
 function normalizePath(path: string): string {

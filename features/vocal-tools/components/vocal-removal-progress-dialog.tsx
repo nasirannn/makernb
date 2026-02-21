@@ -13,6 +13,7 @@ import { AudioLines, Loader2, Download } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { WaveformPlayer } from "@/components/ui/waveform-player";
 import { CLIENT_VOCAL_SEPARATION_CREDITS } from "@/lib/credits-config";
+import { useI18n } from "@/lib/i18n/provider";
 
 type SeparatePreviewEntry = {
   key: 'vocal' | 'instrumental';
@@ -39,7 +40,7 @@ export interface VocalRemovalProgressDialogProps {
 export const VocalRemovalProgressDialog: React.FC<VocalRemovalProgressDialogProps> = ({
   isOpen,
   onClose,
-  trackTitle = 'Track',
+  trackTitle,
   progress,
   status,
   statusText,
@@ -49,11 +50,13 @@ export const VocalRemovalProgressDialog: React.FC<VocalRemovalProgressDialogProp
   onReSeparate,
   onStartSeparation,
 }) => {
+  const { t } = useI18n();
   const [isVocalsPlaying, setIsVocalsPlaying] = useState(false);
   const [isInstrumentalPlaying, setIsInstrumentalPlaying] = useState(false);
   const [hasVocalsError, setHasVocalsError] = useState(false);
   const [hasInstrumentalError, setHasInstrumentalError] = useState(false);
 
+  const resolvedTrackTitle = trackTitle || t("vocalTools.common.trackFallback");
   const canClose = status !== 'processing';
   const canTriggerAction = status !== 'checking' && status !== 'processing';
   const hasActionHandler = status === 'completed' ? Boolean(onReSeparate) : Boolean(onStartSeparation);
@@ -66,23 +69,23 @@ export const VocalRemovalProgressDialog: React.FC<VocalRemovalProgressDialogProp
     if (vocalUrl && vocalUrl.trim().length > 0) {
       entries.push({
         key: 'vocal',
-        label: 'Vocal',
+        label: t("vocalSeparationPage.results.vocal"),
         url: vocalUrl,
         hasError: hasVocalsError,
-        errorMessage: 'Failed to load vocal track.',
+        errorMessage: t("vocalTools.vocalRemovalDialog.failedLoadVocalTrack"),
       });
     }
     if (instrumentalUrl && instrumentalUrl.trim().length > 0) {
       entries.push({
         key: 'instrumental',
-        label: 'Instrumental',
+        label: t("vocalSeparationPage.results.instrumental"),
         url: instrumentalUrl,
         hasError: hasInstrumentalError,
-        errorMessage: 'Failed to load instrumental track.',
+        errorMessage: t("vocalTools.vocalRemovalDialog.failedLoadInstrumentalTrack"),
       });
     }
     return entries;
-  }, [hasInstrumentalError, hasVocalsError, instrumentalUrl, vocalUrl]);
+  }, [hasInstrumentalError, hasVocalsError, instrumentalUrl, t, vocalUrl]);
 
   const showSeparateVocalCards = status === 'completed' && hasSeparateVocalResult;
 
@@ -91,17 +94,17 @@ export const VocalRemovalProgressDialog: React.FC<VocalRemovalProgressDialogProp
 
     switch (status) {
       case 'checking':
-        return 'Checking existing results...';
+        return t("vocalTools.common.checkingExistingResults");
       case 'ready':
-        return 'No existing separation results found.';
+        return t("vocalTools.vocalRemovalDialog.statusReady");
       case 'processing':
-        return 'Removing vocals from track...';
+        return t("vocalTools.vocalRemovalDialog.statusProcessing");
       case 'completed':
-        return 'Vocal separation completed!';
+        return t("vocalTools.vocalRemovalDialog.statusCompleted");
       case 'error':
-        return 'Vocal separation failed';
+        return t("vocalTools.vocalRemovalDialog.statusError");
       default:
-        return 'Processing...';
+        return t("vocalTools.vocalRemovalDialog.statusDefault");
     }
   };
 
@@ -168,10 +171,10 @@ export const VocalRemovalProgressDialog: React.FC<VocalRemovalProgressDialogProp
         <DialogHeader className="flex-shrink-0 px-5 pr-14 pt-4 pb-3 text-left sm:pr-16">
           <div className="min-w-0 space-y-1 pr-2">
             <DialogTitle className="text-xl font-semibold tracking-tight">
-              Vocal Separation
+              {t("vocalTools.vocalRemovalDialog.title")}
             </DialogTitle>
             <p className="truncate text-sm text-muted-foreground">
-              Separates the song into two tracks - vocals and instrumentals.
+              {t("vocalTools.vocalRemovalDialog.subtitle")}
             </p>
           </div>
         </DialogHeader>
@@ -183,10 +186,10 @@ export const VocalRemovalProgressDialog: React.FC<VocalRemovalProgressDialogProp
                 <AudioLines className="h-12 w-12 text-muted-foreground" />
               </div>
               <p className="text-base font-medium text-foreground">
-                No separation results yet
+                {t("vocalTools.vocalRemovalDialog.noResultsTitle")}
               </p>
               <p className="mt-1 text-sm text-muted-foreground">
-                Start vocal separation to generate vocal and instrumental tracks.
+                {t("vocalTools.vocalRemovalDialog.noResultsDescription")}
               </p>
             </section>
           )}
@@ -197,9 +200,9 @@ export const VocalRemovalProgressDialog: React.FC<VocalRemovalProgressDialogProp
                 <Loader2 className="h-12 w-12 text-primary animate-spin" />
               </div>
               <p className="text-base font-medium text-foreground">
-                Vocal Separation
+                {t("vocalTools.vocalRemovalDialog.checkingTitle")}
               </p>
-              <p className="mt-1 text-sm text-muted-foreground">Checking existing results...</p>
+              <p className="mt-1 text-sm text-muted-foreground">{t("vocalTools.vocalRemovalDialog.checkingDescription")}</p>
             </section>
           )}
 
@@ -231,10 +234,10 @@ export const VocalRemovalProgressDialog: React.FC<VocalRemovalProgressDialogProp
             <section className="space-y-3">
               <div className="flex items-center justify-between gap-3">
                 <p className="text-xs font-semibold uppercase tracking-[0.08em] text-muted-foreground">
-                  {trackTitle}
+                  {resolvedTrackTitle}
                 </p>
                 <p className="text-sm text-muted-foreground">
-                  {`${separateVocalEntries.length} tracks`}
+                  {t("vocalTools.vocalRemovalDialog.trackCount", { count: separateVocalEntries.length })}
                 </p>
               </div>
 
@@ -251,7 +254,7 @@ export const VocalRemovalProgressDialog: React.FC<VocalRemovalProgressDialogProp
                         onClick={() => !entry.hasError && window.open(entry.url, '_blank')}
                       >
                         <Download className="h-4 w-4" />
-                        <span>Download</span>
+                        <span>{t("trackActions.download")}</span>
                       </Button>
                     </div>
                     <section className="studio-panel-card rounded-2xl p-3">
@@ -292,7 +295,7 @@ export const VocalRemovalProgressDialog: React.FC<VocalRemovalProgressDialogProp
 
           {status === 'completed' && !showSeparateVocalCards && (
             <div className="rounded-xl bg-emerald-500/10 p-3 text-sm text-emerald-700 dark:text-emerald-300">
-              Your track has been successfully processed.
+              {t("vocalTools.common.processedSuccessfully")}
             </div>
           )}
         </div>
@@ -306,7 +309,7 @@ export const VocalRemovalProgressDialog: React.FC<VocalRemovalProgressDialogProp
               className="h-11 flex-1 rounded-2xl border-0 bg-foreground/5 text-sm font-semibold text-foreground/75 transition-colors hover:bg-foreground/10 hover:text-foreground"
               disabled={!canClose}
             >
-              Cancel
+              {t("common.cancel")}
             </Button>
             <Button
               onClick={handleAction}
@@ -314,8 +317,8 @@ export const VocalRemovalProgressDialog: React.FC<VocalRemovalProgressDialogProp
               disabled={actionDisabled || !canClose}
             >
               {status === 'completed'
-                ? `Re-Separate Vocal • cost ${creditCost} credits`
-                : `Separate Vocal • cost ${creditCost} credits`}
+                ? t("vocalTools.vocalRemovalDialog.actionReseparate", { credits: creditCost })
+                : t("vocalTools.vocalRemovalDialog.actionSeparate", { credits: creditCost })}
             </Button>
           </div>
         </div>
