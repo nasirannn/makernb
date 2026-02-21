@@ -1,4 +1,3 @@
-import React from 'react';
 import { getAllPosts } from '@/lib/mdx';
 import BlogClient from '@/app/blog/blog-client';
 import type { Metadata } from 'next';
@@ -17,7 +16,7 @@ export const metadata: Metadata = {
   },
 };
 
-export function BlogPageContent({ locale }: { locale: AppLocale }) {
+function BlogPageContent({ locale }: { locale: AppLocale }) {
   const allPosts = getAllPosts(locale);
   return <BlogClient allPosts={allPosts} />;
 }

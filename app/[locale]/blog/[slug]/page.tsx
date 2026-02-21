@@ -3,7 +3,7 @@ import {
   BlogPostPageContent,
   getLocalizedBlogPostMetadata,
   getLocalizedBlogPostStaticParams,
-} from "../../../blog/[slug]/page";
+} from "@/lib/blog-post-page";
 import { applyLocaleMetadata, resolveRouteLocale } from "@/lib/i18n/metadata";
 import { getNonDefaultLocalePathSegments } from "@/lib/i18n/routing";
 
