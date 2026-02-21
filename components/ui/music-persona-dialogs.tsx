@@ -25,6 +25,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Textarea } from "@/components/ui/textarea";
 import { formatDuration } from "@/lib/format-utils";
 import { useI18n } from "@/lib/i18n/provider";
+import { getZIndexClass } from "@/lib/z-index";
 import type { PersonaOption, PersonaTrackOption } from "@/hooks/use-studio-persona-manager";
 
 interface MusicPersonaDialogsProps {
@@ -221,7 +222,7 @@ export const MusicPersonaDialogs: React.FC<MusicPersonaDialogsProps> = ({
                                 <MoreHorizontal className="h-4 w-4" aria-hidden="true" />
                               </button>
                             </DropdownMenuTrigger>
-                            <DropdownMenuContent align="end" className="z-[180] w-36">
+                            <DropdownMenuContent align="end" className={`${getZIndexClass("PRIORITY_DROPDOWN")} w-36`}>
                               <DropdownMenuItem
                                 onSelect={() => {
                                   toast.info(t("personaDialog.editComingSoon"));

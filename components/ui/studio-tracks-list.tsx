@@ -261,6 +261,23 @@ export const StudioTracksList: React.FC<StudioTracksListProps> = React.memo(func
     });
   }, []);
 
+  const resetMidiTrackState = useCallback(
+    (
+      trackId: string,
+      status: MidiTrackState["status"],
+      taskId?: string
+    ) => {
+      updateMidiTrackState(trackId, {
+        status,
+        taskId,
+        instrumentsCount: undefined,
+        midiData: undefined,
+        errorMessage: undefined,
+      });
+    },
+    [updateMidiTrackState]
+  );
+
   const clearMidiPollingForTrack = useCallback((trackId: string) => {
     const pollingTimer = midiPollingTimersRef.current.get(trackId);
     if (pollingTimer) {
@@ -548,6 +565,56 @@ export const StudioTracksList: React.FC<StudioTracksListProps> = React.memo(func
     }
   }, [onDislikeToggle]);
 
+  const getAccessTokenWithRefresh = useCallback(async () => {
+    let { data: { session }, error: sessionError } = await supabase.auth.getSession();
+
+    if (!session?.access_token || sessionError) {
+      const { data: refreshData, error: refreshError } = await supabase.auth.refreshSession();
+      if (refreshError || !refreshData?.session?.access_token) {
+        return null;
+      }
+      session = refreshData.session;
+    }
+
+    return session.access_token;
+  }, []);
+
+  const requireAccessToken = useCallback(
+    async (onMissingToken?: () => void) => {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session?.access_token) {
+        onMissingToken?.();
+        return null;
+      }
+
+      return session.access_token;
+    },
+    []
+  );
+
+  const getAuthHeaders = useCallback(
+    (accessToken: string) => ({
+      'Authorization': `Bearer ${accessToken}`,
+    }),
+    []
+  );
+
+  const getJsonAuthHeaders = useCallback(
+    (accessToken: string) => ({
+      'Content-Type': 'application/json',
+      ...getAuthHeaders(accessToken),
+    }),
+    [getAuthHeaders]
+  );
+
+  const getResponseArrayData = useCallback((payload: any): any[] => {
+    return Array.isArray(payload?.data) ? payload.data : [];
+  }, []);
+
+  const getMidiInstrumentsCount = useCallback((midiData: any): number => {
+    return Array.isArray(midiData?.instruments) ? midiData.instruments.length : 0;
+  }, []);
+
   const handlePublishToggle = useCallback(async (track: any) => {
     if (!track?.id) {
       toast.error(t("toasts.trackNotFound"));
@@ -563,23 +630,15 @@ export const StudioTracksList: React.FC<StudioTracksListProps> = React.memo(func
     setPublishingTrackIds((prev) => [...prev, track.id]);
 
     try {
-      let { data: { session }, error: sessionError } = await supabase.auth.getSession();
-
-      if (!session?.access_token || sessionError) {
-        const { data: refreshData, error: refreshError } = await supabase.auth.refreshSession();
-        if (refreshError || !refreshData?.session?.access_token) {
-          toast.error(t("toasts.sessionExpiredLogInAgain"));
-          return;
-        }
-        session = refreshData.session;
+      const accessToken = await getAccessTokenWithRefresh();
+      if (!accessToken) {
+        toast.error(t("toasts.sessionExpiredLogInAgain"));
+        return;
       }
 
       const response = await fetch('/api/toggle-track-publish', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${session.access_token}`,
-        },
+        headers: getJsonAuthHeaders(accessToken),
         body: JSON.stringify({
           trackId: track.id,
           isPublished: nextPublished,
@@ -606,7 +665,7 @@ export const StudioTracksList: React.FC<StudioTracksListProps> = React.memo(func
     } finally {
       setPublishingTrackIds((prev) => prev.filter((id) => id !== track.id));
     }
-  }, [publishingTrackIds, t]);
+  }, [publishingTrackIds, getAccessTokenWithRefresh, getJsonAuthHeaders, t]);
   
   // 处理删除 - 显示确认弹窗
   const handleDelete = useCallback((trackId: string) => {
@@ -625,40 +684,16 @@ export const StudioTracksList: React.FC<StudioTracksListProps> = React.memo(func
     if (!trackToDelete) return;
 
     try {
-      // Get session with refresh to ensure token is valid
-      let { data: { session }, error: sessionError } = await supabase.auth.getSession();
-
-      console.log('[Delete Track] Initial session check:', {
-        hasSession: !!session,
-        hasToken: !!session?.access_token,
-        tokenLength: session?.access_token?.length,
-        sessionError: sessionError?.message,
-      });
-
-      // If no session or error, try to refresh
-      if (!session?.access_token || sessionError) {
-        console.log('[Delete Track] Attempting to refresh session');
-        const { data: refreshData, error: refreshError } = await supabase.auth.refreshSession();
-
-        if (refreshError || !refreshData?.session?.access_token) {
-          console.error('[Delete Track] Session refresh failed:', refreshError?.message);
-          toast.error(t("toasts.sessionExpiredLogInAgain"));
-          setDeleteDialogOpen(false);
-          setTrackToDelete(null);
-          return;
-        }
-
-        session = refreshData.session;
-        console.log('[Delete Track] Session refreshed successfully');
+      const accessToken = await getAccessTokenWithRefresh();
+      if (!accessToken) {
+        toast.error(t("toasts.sessionExpiredLogInAgain"));
+        return;
       }
 
       console.log('[Delete Track] Sending DELETE request to:', `/api/delete-track/${trackToDelete.id}`);
       const response = await fetch(`/api/delete-track/${trackToDelete.id}`, {
         method: 'DELETE',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${session.access_token}`,
-        },
+        headers: getJsonAuthHeaders(accessToken),
       });
 
       console.log('[Delete Track] Response status:', response.status);
@@ -692,7 +727,7 @@ export const StudioTracksList: React.FC<StudioTracksListProps> = React.memo(func
       setDeleteDialogOpen(false);
       setTrackToDelete(null);
     }
-  }, [t, trackToDelete]);
+  }, [getAccessTokenWithRefresh, getJsonAuthHeaders, t, trackToDelete]);
 
   // 处理 Extend Music
   const handleExtendMusic = useCallback((trackId: string) => {
@@ -762,9 +797,10 @@ export const StudioTracksList: React.FC<StudioTracksListProps> = React.memo(func
 
     try {
       // 获取认证令牌
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session?.access_token) {
+      const accessToken = await requireAccessToken(() => {
         toast.error(t("toasts.authRequiredLogInAgain"));
+      });
+      if (!accessToken) {
         return;
       }
 
@@ -782,10 +818,7 @@ export const StudioTracksList: React.FC<StudioTracksListProps> = React.memo(func
       // 调用 Replace Section API
       const response = await fetch('/api/music/replace-section', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${session.access_token}`,
-        },
+        headers: getJsonAuthHeaders(accessToken),
         body: JSON.stringify(requestBody),
       });
 
@@ -842,24 +875,24 @@ export const StudioTracksList: React.FC<StudioTracksListProps> = React.memo(func
       toast.error(error.message || t("toasts.failedReplaceSection"));
       return;
     }
-  }, [pendingReplaceSectionTrackId, refreshCredits, startExtendMusicPolling, t]);
+  }, [getJsonAuthHeaders, pendingReplaceSectionTrackId, refreshCredits, requireAccessToken, startExtendMusicPolling, t]);
 
   const startMidiStatusPolling = useCallback(async (trackId: string, taskId: string) => {
     const POLL_INTERVAL = 3000;
     const MAX_POLL_DURATION = 5 * 60 * 1000;
 
-    const { data: { session } } = await supabase.auth.getSession();
-    if (!session?.access_token) {
+    const accessToken = await requireAccessToken(() => {
       updateMidiTrackState(trackId, {
         status: 'error',
         taskId,
         midiData: undefined,
         errorMessage: t("toasts.authRequiredLogInAgain"),
       });
+    });
+    if (!accessToken) {
       return;
     }
 
-    const accessToken = session.access_token;
     const startedAt = Date.now();
     let requestInFlight = false;
 
@@ -882,9 +915,7 @@ export const StudioTracksList: React.FC<StudioTracksListProps> = React.memo(func
         }
 
         const response = await fetch(`/api/midi-status?taskId=${encodeURIComponent(taskId)}`, {
-          headers: {
-            'Authorization': `Bearer ${accessToken}`,
-          },
+          headers: getAuthHeaders(accessToken),
         });
 
         if (!response.ok) {
@@ -900,9 +931,7 @@ export const StudioTracksList: React.FC<StudioTracksListProps> = React.memo(func
 
         if (midiStatus === 'completed') {
           clearMidiPollingForTrack(trackId);
-          const instrumentsCount = Array.isArray(result.data?.midiData?.instruments)
-            ? result.data.midiData.instruments.length
-            : 0;
+          const instrumentsCount = getMidiInstrumentsCount(result.data?.midiData);
 
           updateMidiTrackState(trackId, {
             status: 'completed',
@@ -946,7 +975,7 @@ export const StudioTracksList: React.FC<StudioTracksListProps> = React.memo(func
     const timerId = setInterval(pollOnce, POLL_INTERVAL);
     midiPollingTimersRef.current.set(trackId, timerId);
     await pollOnce();
-  }, [clearMidiPollingForTrack, refreshCredits, t, updateMidiTrackState]);
+  }, [clearMidiPollingForTrack, getAuthHeaders, getMidiInstrumentsCount, refreshCredits, requireAccessToken, t, updateMidiTrackState]);
 
   const handleGenerateMidi = useCallback(async (
     trackId: string,
@@ -959,26 +988,18 @@ export const StudioTracksList: React.FC<StudioTracksListProps> = React.memo(func
     }
 
     try {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session?.access_token) {
+      const accessToken = await requireAccessToken(() => {
         toast.error(t("toasts.authRequired"));
+      });
+      if (!accessToken) {
         return;
       }
 
-      updateMidiTrackState(trackId, {
-        status: 'generating',
-        taskId: undefined,
-        instrumentsCount: undefined,
-        midiData: undefined,
-        errorMessage: undefined,
-      });
+      resetMidiTrackState(trackId, 'generating');
 
       const response = await fetch('/api/generate-midi', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${session.access_token}`,
-        },
+        headers: getJsonAuthHeaders(accessToken),
         body: JSON.stringify({
           trackId,
           separationTaskId: options?.separationTaskId,
@@ -1010,9 +1031,7 @@ export const StudioTracksList: React.FC<StudioTracksListProps> = React.memo(func
       const generatedTaskId = typeof result.data?.taskId === 'string' ? result.data.taskId : undefined;
 
       if (result.data?.status === 'completed' && result.data?.midiData) {
-        const instrumentsCount = Array.isArray(result.data.midiData?.instruments)
-          ? result.data.midiData.instruments.length
-          : 0;
+        const instrumentsCount = getMidiInstrumentsCount(result.data.midiData);
 
         updateMidiTrackState(trackId, {
           status: 'completed',
@@ -1035,12 +1054,7 @@ export const StudioTracksList: React.FC<StudioTracksListProps> = React.memo(func
         return;
       }
 
-      updateMidiTrackState(trackId, {
-        status: 'generating',
-        taskId: generatedTaskId,
-        midiData: undefined,
-        errorMessage: undefined,
-      });
+      resetMidiTrackState(trackId, 'generating', generatedTaskId);
 
       toast.success(t("toasts.midiGenerationStarted"));
       await startMidiStatusPolling(trackId, generatedTaskId);
@@ -1054,7 +1068,7 @@ export const StudioTracksList: React.FC<StudioTracksListProps> = React.memo(func
       });
       toast.error(errorMessage);
     }
-  }, [credits, openPricingModal, refreshCredits, startMidiStatusPolling, t, updateMidiTrackState]);
+  }, [credits, getJsonAuthHeaders, getMidiInstrumentsCount, openPricingModal, refreshCredits, requireAccessToken, resetMidiTrackState, startMidiStatusPolling, t, updateMidiTrackState]);
 
   const openRemovalDialogForMode = useCallback(async (
     trackId: string,
@@ -1062,9 +1076,10 @@ export const StudioTracksList: React.FC<StudioTracksListProps> = React.memo(func
   ) => {
     const track = findTrackById(trackId);
     try {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session?.access_token) {
+      const accessToken = await requireAccessToken(() => {
         toast.error(t("toasts.authRequired"));
+      });
+      if (!accessToken) {
         return;
       }
 
@@ -1086,19 +1101,11 @@ export const StudioTracksList: React.FC<StudioTracksListProps> = React.memo(func
       });
 
       if (mode === 'split_stem') {
-        updateMidiTrackState(trackId, {
-          status: 'idle',
-          taskId: undefined,
-          instrumentsCount: undefined,
-          midiData: undefined,
-          errorMessage: undefined,
-        });
+        resetMidiTrackState(trackId, 'idle');
       }
 
       const statusResponse = await fetch(`/api/vocal/removal-status?trackId=${trackId}`, {
-        headers: {
-          'Authorization': `Bearer ${session.access_token}`,
-        },
+        headers: getAuthHeaders(accessToken),
       });
 
       let completedRemoval: any = null;
@@ -1106,10 +1113,11 @@ export const StudioTracksList: React.FC<StudioTracksListProps> = React.memo(func
 
       if (statusResponse.ok) {
         const statusResult = await statusResponse.json();
-        if (statusResult.success && statusResult.data && Array.isArray(statusResult.data) && statusResult.data.length > 0) {
+        const statusRecords = getResponseArrayData(statusResult);
+        if (statusResult.success && statusRecords.length > 0) {
           if (mode === 'split_stem') {
             completedRemoval =
-              statusResult.data.find(
+              statusRecords.find(
                 (r: any) =>
                   r.status === 'completed' &&
                   r.separationType === 'split_stem' &&
@@ -1117,7 +1125,7 @@ export const StudioTracksList: React.FC<StudioTracksListProps> = React.memo(func
                   Object.keys(r.stemsData).length > 0
               ) || null;
             processingRemoval =
-              statusResult.data.find(
+              statusRecords.find(
                 (r: any) =>
                   r.status === 'processing' &&
                   r.taskId &&
@@ -1125,20 +1133,20 @@ export const StudioTracksList: React.FC<StudioTracksListProps> = React.memo(func
               ) || null;
           } else {
             completedRemoval =
-              statusResult.data.find(
+              statusRecords.find(
                 (r: any) =>
                   r.status === 'completed' &&
                   r.separationType !== 'split_stem' &&
                   (r.vocalUrl || r.instrumentalUrl)
               ) ||
-              statusResult.data.find(
+              statusRecords.find(
                 (r: any) =>
                   r.status === 'completed' &&
                   (r.vocalUrl || r.instrumentalUrl)
               ) ||
               null;
             processingRemoval =
-              statusResult.data.find(
+              statusRecords.find(
                 (r: any) =>
                   r.status === 'processing' &&
                   r.taskId &&
@@ -1192,7 +1200,7 @@ export const StudioTracksList: React.FC<StudioTracksListProps> = React.memo(func
         errorMessage: error instanceof Error ? error.message : 'Failed to check separation status',
       });
     }
-  }, [findTrackById, t, unknownTrackLabel, updateMidiTrackState, vocalRemovalManager]);
+  }, [findTrackById, getAuthHeaders, getResponseArrayData, requireAccessToken, resetMidiTrackState, t, unknownTrackLabel, vocalRemovalManager]);
 
   const handleMidiAction = useCallback(async (trackId: string) => {
     if (!canGenerateMidi) {
@@ -1210,32 +1218,23 @@ export const StudioTracksList: React.FC<StudioTracksListProps> = React.memo(func
       setCurrentProcessingFeatureMode('split_stem');
       setShowTrackProcessingDialog(false);
       setShowMidiResultDialog(true);
-      updateMidiTrackState(trackId, {
-        status: 'checking',
-        taskId: undefined,
-        instrumentsCount: undefined,
-        midiData: undefined,
-        errorMessage: undefined,
-      });
+      resetMidiTrackState(trackId, 'checking');
 
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session?.access_token) {
+      const accessToken = await requireAccessToken(() => {
         updateMidiTrackState(trackId, {
           status: 'error',
           errorMessage: t("toasts.authRequired"),
         });
         toast.error(t("toasts.authRequired"));
+      });
+      if (!accessToken) {
         return;
       }
-
-      const accessToken = session.access_token;
 
       const splitStemStatusResponse = await fetch(
         `/api/vocal/removal-status?trackId=${encodeURIComponent(trackId)}`,
         {
-          headers: {
-            'Authorization': `Bearer ${accessToken}`,
-          },
+          headers: getAuthHeaders(accessToken),
         }
       );
 
@@ -1249,9 +1248,7 @@ export const StudioTracksList: React.FC<StudioTracksListProps> = React.memo(func
       }
 
       const splitStemStatusResult = await splitStemStatusResponse.json();
-      const splitStemRecords = Array.isArray(splitStemStatusResult?.data)
-        ? splitStemStatusResult.data
-        : [];
+      const splitStemRecords = getResponseArrayData(splitStemStatusResult);
 
       const completedSplitStem = splitStemRecords.find(
         (record: any) =>
@@ -1284,9 +1281,7 @@ export const StudioTracksList: React.FC<StudioTracksListProps> = React.memo(func
       });
 
       const midiStatusResponse = await fetch(`/api/midi-status?trackId=${encodeURIComponent(trackId)}`, {
-        headers: {
-          'Authorization': `Bearer ${accessToken}`,
-        },
+        headers: getAuthHeaders(accessToken),
       });
 
       if (!midiStatusResponse.ok) {
@@ -1299,7 +1294,7 @@ export const StudioTracksList: React.FC<StudioTracksListProps> = React.memo(func
       }
 
       const midiStatusResult = await midiStatusResponse.json();
-      const midiRecords = Array.isArray(midiStatusResult?.data) ? midiStatusResult.data : [];
+      const midiRecords = getResponseArrayData(midiStatusResult);
 
       const completedMidiRecord = midiRecords.find(
         (record: any) => record.status === 'completed' && record.midiData
@@ -1307,7 +1302,7 @@ export const StudioTracksList: React.FC<StudioTracksListProps> = React.memo(func
 
       if (completedMidiRecord) {
         const midiData = completedMidiRecord.midiData;
-        const instrumentsCount = Array.isArray(midiData?.instruments) ? midiData.instruments.length : 0;
+        const instrumentsCount = getMidiInstrumentsCount(midiData);
 
         clearMidiPollingForTrack(trackId);
         updateMidiTrackState(trackId, {
@@ -1329,13 +1324,7 @@ export const StudioTracksList: React.FC<StudioTracksListProps> = React.memo(func
 
       if (generatingMidiRecord) {
         clearMidiPollingForTrack(trackId);
-        updateMidiTrackState(trackId, {
-          status: 'generating',
-          taskId: generatingMidiRecord.taskId,
-          instrumentsCount: undefined,
-          midiData: undefined,
-          errorMessage: undefined,
-        });
+        resetMidiTrackState(trackId, 'generating', generatingMidiRecord.taskId);
         await startMidiStatusPolling(trackId, generatingMidiRecord.taskId);
         return;
       }
@@ -1353,7 +1342,12 @@ export const StudioTracksList: React.FC<StudioTracksListProps> = React.memo(func
     findTrackById,
     handleGenerateMidi,
     openPricingModal,
+    resetMidiTrackState,
     startMidiStatusPolling,
+    getAuthHeaders,
+    getMidiInstrumentsCount,
+    getResponseArrayData,
+    requireAccessToken,
     t,
     unknownTrackLabel,
     updateMidiTrackState,
@@ -1395,9 +1389,10 @@ export const StudioTracksList: React.FC<StudioTracksListProps> = React.memo(func
     options?: { force?: boolean; type?: 'separate_vocal' | 'split_stem' }
   ) => {
     try {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session?.access_token) {
+      const accessToken = await requireAccessToken(() => {
         toast.error(t("toasts.authRequired"));
+      });
+      if (!accessToken) {
         return;
       }
       
@@ -1411,13 +1406,7 @@ export const StudioTracksList: React.FC<StudioTracksListProps> = React.memo(func
       setShowTrackProcessingDialog(true);
       setShowMidiResultDialog(false);
 
-      updateMidiTrackState(trackId, {
-        status: 'idle',
-        taskId: undefined,
-        instrumentsCount: undefined,
-        midiData: undefined,
-        errorMessage: undefined,
-      });
+      resetMidiTrackState(trackId, 'idle');
       clearMidiPollingForTrack(trackId);
       
       vocalRemovalManager.updateTrackState(trackId, {
@@ -1433,10 +1422,7 @@ export const StudioTracksList: React.FC<StudioTracksListProps> = React.memo(func
 
       const response = await fetch('/api/vocal/removal', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${session.access_token}`,
-        },
+        headers: getJsonAuthHeaders(accessToken),
         body: JSON.stringify({
           trackId,
           type: requestedMode,
@@ -1528,7 +1514,7 @@ export const StudioTracksList: React.FC<StudioTracksListProps> = React.memo(func
         errorMessage,
       });
     }
-  }, [clearMidiPollingForTrack, findTrackById, openPricingModal, t, unknownTrackLabel, updateMidiTrackState, vocalRemovalManager]);
+  }, [clearMidiPollingForTrack, findTrackById, getJsonAuthHeaders, openPricingModal, requireAccessToken, resetMidiTrackState, t, unknownTrackLabel, vocalRemovalManager]);
 
   // 渲染空状态
   const showEmptyState = !isLoading && (!userTracks || userTracks.length === 0 || allTracks.length === 0) 
@@ -1536,6 +1522,20 @@ export const StudioTracksList: React.FC<StudioTracksListProps> = React.memo(func
 
   const shouldShowLoadMore = Boolean(onLoadMore) && !searchQuery.trim() && hasMore;
   const shouldShowNoResults = currentTracks.length === 0 && (Boolean(searchQuery.trim()) || hasActiveTypeFilter);
+  const allTracksSummaryText = useMemo(() => {
+    const totalSongs = summary?.totalTracks ?? allTracksCombined.length;
+    const totalDuration = summary?.totalDuration
+      ?? allTracksCombined.reduce((sum, track) => {
+        const duration = typeof track.duration === 'string' ? parseFloat(track.duration) : (track.duration || 0);
+        return sum + (isNaN(duration) ? 0 : duration);
+      }, 0);
+    const durationText = formatDurationInMinutes(totalDuration);
+    const songLabel = totalSongs > 1 ? t("studioTracks.songPlural") : t("studioTracks.songSingular");
+    const songsText = `${totalSongs} ${songLabel}`;
+    return durationText
+      ? t("studioTracks.summaryWithDuration", { songs: songsText, duration: durationText })
+      : songsText;
+  }, [allTracksCombined, summary, t]);
   const currentVocalRemovalState = currentProcessingTrackId
     ? vocalRemovalManager.getTrackState(currentProcessingTrackId)
     : null;
@@ -1597,97 +1597,124 @@ export const StudioTracksList: React.FC<StudioTracksListProps> = React.memo(func
   return (
     <div className="flex flex-col h-full min-h-0 overflow-hidden">
       {/* Search Bar */}
-      <div className="flex-shrink-0 px-3 pt-4 md:pt-4 pb-4">
-        <div className="flex items-center gap-4 flex-wrap md:justify-end flex-1 min-w-[240px] self-center w-full">
-          <div className="studio-panel-card rounded-2xl flex-1 h-11 px-1 shadow-[0_1px_2px_rgba(0,0,0,0.06)] transition-colors hover:bg-foreground/10 dark:hover:bg-white/10">
-          <div className="relative h-full w-full">
-            <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-foreground/55" />
-            <input
-              type="text"
-              placeholder={t("studioTracks.searchBySongTitle")}
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full h-full rounded-2xl bg-transparent pl-11 pr-10 text-sm text-foreground placeholder:text-foreground/40 transition-colors focus:bg-transparent focus:outline-none border-0"
-            />
+      <div className="flex-shrink-0 px-3 pt-4 md:pt-4 pb-3">
+        <div className="studio-panel-card rounded-2xl p-2.5 md:p-3">
+          <div className="space-y-2.5">
+            <div className="flex items-center gap-2">
+              <div className="relative h-11 flex-1 rounded-xl bg-background/70 text-foreground/90 transition-colors">
+                <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-foreground/55" />
+                <input
+                  type="text"
+                  placeholder={t("studioTracks.searchBySongTitle")}
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="h-full w-full rounded-xl bg-transparent pl-10 pr-9 text-sm text-foreground placeholder:text-foreground/40 focus:outline-none"
+                />
                 {searchQuery && (
                   <button
+                    type="button"
                     onClick={() => setSearchQuery('')}
-                    className="absolute right-4 top-1/2 -translate-y-1/2 h-4 w-4 text-foreground/45 hover:text-foreground transition-colors"
+                    className="absolute right-3 top-1/2 inline-flex h-6 w-6 -translate-y-1/2 items-center justify-center rounded-full text-foreground/50 transition-colors hover:bg-black/5 hover:text-foreground dark:hover:bg-white/10"
+                    aria-label={t("common.clear")}
+                    title={t("common.clear")}
                   >
-                    <X className="h-4 w-4" />
+                    <X className="h-3.5 w-3.5" />
                   </button>
                 )}
-          </div>
-        </div>
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <button
-                type="button"
-                className="inline-flex studio-panel-card h-11 min-w-[130px] items-center justify-center gap-1.5 rounded-2xl px-3 text-xs md:text-sm font-semibold text-foreground/80 shadow-[0_1px_2px_rgba(0,0,0,0.06)] transition-colors hover:bg-accent hover:text-accent-foreground"
-                aria-label={t("studioTracks.filterTracksByType")}
-                title={t("studioTracks.filterTracksByType")}
-              >
-                {React.createElement(selectedTypeFilterOption.icon, { className: "h-3.5 w-3.5" })}
-                <span className="truncate">{selectedTypeFilterOption.label}</span>
-              </button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="w-56">
-              {trackTypeFilterOptions.map((option) => {
-                const isSelected = option.value === selectedTypeFilter;
-                return (
-                  <React.Fragment key={option.value}>
-                    {option.value === "disliked" && <DropdownMenuSeparator className="my-1" />}
-                    <DropdownMenuItem
-                      onClick={() => setSelectedTypeFilter(option.value)}
-                      className="group flex items-center justify-between gap-2 rounded-xl px-3.5 py-2 text-xs md:text-sm transition-colors hover:bg-black/5 focus:bg-black/5 data-[highlighted]:bg-black/5 dark:hover:bg-white/5 dark:focus:bg-white/5 dark:data-[highlighted]:bg-white/5"
+              </div>
+
+              <div className="flex shrink-0 items-center gap-2">
+                {onCreate && (
+                  <button
+                    type="button"
+                    onClick={onCreate}
+                    className="inline-flex h-11 w-11 items-center justify-center rounded-xl bg-primary text-primary-foreground shadow-sm transition-colors hover:bg-primary/90"
+                    aria-label={t("studioTracks.startCreating")}
+                    title={t("studioTracks.startCreating")}
+                  >
+                    <Wand2 className="h-4 w-4" />
+                  </button>
+                )}
+
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <button
+                      type="button"
+                      className="inline-flex h-10 min-w-[130px] items-center justify-center gap-1.5 rounded-xl bg-background/70 px-3 text-xs md:text-sm font-semibold text-foreground/80 transition-colors hover:bg-accent hover:text-accent-foreground"
+                      aria-label={t("studioTracks.filterTracksByType")}
+                      title={t("studioTracks.filterTracksByType")}
                     >
-                      <span className="flex items-center gap-2">
-                        {React.createElement(option.icon, {
-                          className: `h-4 w-4 ${isSelected ? "text-primary" : "text-foreground/60"}`
-                        })}
-                        <span className="font-medium text-foreground">{option.label}</span>
-                      </span>
-                      {isSelected && (
-                        <span className="inline-flex h-4 w-4 items-center justify-center rounded-full bg-primary">
-                          <Check className="h-2.5 w-2.5 text-primary-foreground" strokeWidth={2.5} aria-hidden="true" />
-                        </span>
-                      )}
-                    </DropdownMenuItem>
-                  </React.Fragment>
-                );
-              })}
-            </DropdownMenuContent>
-          </DropdownMenu>
-          <button
-            type="button"
-            onClick={() => setCreatedAtSortOrder((prev) => (prev === 'desc' ? 'asc' : 'desc'))}
-            className={`inline-flex studio-panel-card h-11 w-[108px] items-center justify-center gap-1.5 rounded-2xl px-3 text-xs md:text-sm font-semibold shadow-[0_1px_2px_rgba(0,0,0,0.06)] transition-colors hover:bg-accent hover:text-accent-foreground ${
-              createdAtSortOrder === 'desc'
-                ? 'text-foreground'
-                : 'text-foreground/80'
-            }`}
-            aria-label={createdAtSortOrder === 'desc' ? t("studioTracks.sortByNewestFirst") : t("studioTracks.sortByOldestFirst")}
-            title={createdAtSortOrder === 'desc' ? t("studioTracks.sortedNewestFirst") : t("studioTracks.sortedOldestFirst")}
-            aria-pressed={createdAtSortOrder === 'asc'}
-          >
-            <ArrowDownUp
-              className={`h-3.5 w-3.5 transition-transform duration-200 ${
-                createdAtSortOrder === 'asc' ? 'rotate-180' : ''
-              }`}
-            />
-            <span>{createdAtSortOrder === 'desc' ? t("studioTracks.newest") : t("studioTracks.oldest")}</span>
-          </button>
-          {onCreate && (
-            <button
-              type="button"
-              onClick={onCreate}
-              className="inline-flex h-11 w-11 items-center justify-center rounded-2xl bg-primary text-primary-foreground shadow-sm transition-colors hover:bg-primary/90"
-              aria-label={t("studioTracks.startCreating")}
-              title={t("studioTracks.startCreating")}
-            >
-              <Wand2 className="h-4 w-4" />
-            </button>
-          )}
+                      {React.createElement(selectedTypeFilterOption.icon, { className: "h-3.5 w-3.5" })}
+                      <span className="truncate">{selectedTypeFilterOption.label}</span>
+                    </button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="start" className="w-56">
+                    {trackTypeFilterOptions.map((option) => {
+                      const isSelected = option.value === selectedTypeFilter;
+                      return (
+                        <React.Fragment key={option.value}>
+                          {option.value === "disliked" && <DropdownMenuSeparator className="my-1" />}
+                          <DropdownMenuItem
+                            onClick={() => setSelectedTypeFilter(option.value)}
+                            className="group flex items-center justify-between gap-2 rounded-xl px-3.5 py-2 text-xs md:text-sm transition-colors hover:bg-black/5 focus:bg-black/5 data-[highlighted]:bg-black/5 dark:hover:bg-white/5 dark:focus:bg-white/5 dark:data-[highlighted]:bg-white/5"
+                          >
+                            {option.value === 'all' ? (
+                              <span className="flex min-w-0 items-start gap-2">
+                                {React.createElement(option.icon, {
+                                  className: `mt-0.5 h-4 w-4 shrink-0 ${isSelected ? "text-primary" : "text-foreground/60"}`
+                                })}
+                                <span className="min-w-0">
+                                  <span className="block font-medium leading-tight text-foreground">
+                                    {option.label}
+                                  </span>
+                                  <span className="block text-[11px] leading-tight text-muted-foreground/80">
+                                    {allTracksSummaryText}
+                                  </span>
+                                </span>
+                              </span>
+                            ) : (
+                              <span className="flex items-center gap-2">
+                                {React.createElement(option.icon, {
+                                  className: `h-4 w-4 ${isSelected ? "text-primary" : "text-foreground/60"}`
+                                })}
+                                <span className="font-medium text-foreground">{option.label}</span>
+                              </span>
+                            )}
+                            {isSelected && (
+                              <span className="inline-flex h-4 w-4 items-center justify-center rounded-full bg-primary">
+                                <Check className="h-2.5 w-2.5 text-primary-foreground" strokeWidth={2.5} aria-hidden="true" />
+                              </span>
+                            )}
+                          </DropdownMenuItem>
+                        </React.Fragment>
+                      );
+                    })}
+                  </DropdownMenuContent>
+                </DropdownMenu>
+
+                <button
+                  type="button"
+                  onClick={() => setCreatedAtSortOrder((prev) => (prev === 'desc' ? 'asc' : 'desc'))}
+                  className={`inline-flex h-10 min-w-[112px] items-center justify-center gap-1.5 rounded-xl bg-background/70 px-3 text-xs md:text-sm font-semibold transition-colors hover:bg-accent hover:text-accent-foreground ${
+                    createdAtSortOrder === 'desc'
+                      ? 'text-foreground'
+                      : 'text-foreground/80'
+                  }`}
+                  aria-label={createdAtSortOrder === 'desc' ? t("studioTracks.sortByNewestFirst") : t("studioTracks.sortByOldestFirst")}
+                  title={createdAtSortOrder === 'desc' ? t("studioTracks.sortedNewestFirst") : t("studioTracks.sortedOldestFirst")}
+                  aria-pressed={createdAtSortOrder === 'asc'}
+                >
+                  <ArrowDownUp
+                    className={`h-3.5 w-3.5 transition-transform duration-200 ${
+                      createdAtSortOrder === 'asc' ? 'rotate-180' : ''
+                    }`}
+                  />
+                  <span>{createdAtSortOrder === 'desc' ? t("studioTracks.newest") : t("studioTracks.oldest")}</span>
+                </button>
+              </div>
+            </div>
+
+          </div>
         </div>
       </div>
 
@@ -1700,18 +1727,21 @@ export const StudioTracksList: React.FC<StudioTracksListProps> = React.memo(func
             paddingBottom: hasPlayer ? 'calc(var(--player-height, 80px) + 0.5rem)' : '5rem'
           }}
         >
-        <div className="relative">
+        <div className="relative min-h-full">
           {isLoading ? (
             <TrackListSkeleton />
           ) : (
             <>
             {/* All Tracks (包含 generatedTracks 和 userTracks，统一平铺间距) */}
           {flatTracks.length > 0 && (
-            <div className="space-y-2 px-3">
+            <div className="space-y-2.5 px-3 pb-1">
               {flatTracks.map((track) => {
                 const isGeneratedTrack = track.isGenerating !== undefined || track.isPlaceholder !== undefined;
                 return (
-                  <div key={track.id} className="p-0">
+                  <div
+                    key={track.id}
+                    className="studio-panel-card rounded-2xl p-1"
+                  >
                     <TrackItem
                       track={track}
                       variant="studio"
@@ -1764,30 +1794,6 @@ export const StudioTracksList: React.FC<StudioTracksListProps> = React.memo(func
             </div>
           )}
 
-            {/* Tracks Summary */}
-            {currentTracks.length > 0 && (
-              <div className="flex justify-center items-center py-2 px-4">
-                <span className="inline-flex items-center px-2 py-0.5 text-xs font-semibold tracking-tight text-foreground/80 dark:text-foreground/85">
-                  {(() => {
-                    const useTotalSummary = Boolean(summary) && !searchQuery.trim() && !hasActiveTypeFilter;
-                    const totalSongs = useTotalSummary ? summary!.totalTracks : currentTracks.length;
-                    const totalDuration = useTotalSummary
-                      ? summary!.totalDuration
-                      : currentTracks.reduce((sum, track) => {
-                          const duration = typeof track.duration === 'string' ? parseFloat(track.duration) : (track.duration || 0);
-                          return sum + (isNaN(duration) ? 0 : duration);
-                        }, 0);
-                    const durationText = formatDurationInMinutes(totalDuration);
-                    const songLabel = totalSongs > 1 ? t("studioTracks.songPlural") : t("studioTracks.songSingular");
-                    const songsText = `${totalSongs} ${songLabel}`;
-                    return durationText
-                      ? t("studioTracks.summaryWithDuration", { songs: songsText, duration: durationText })
-                      : songsText;
-                  })()}
-                </span>
-              </div>
-            )}
-
             {shouldShowLoadMore && (
               <div ref={loadMoreTriggerRef} className="h-1" />
             )}
@@ -1800,31 +1806,44 @@ export const StudioTracksList: React.FC<StudioTracksListProps> = React.memo(func
 
             {/* No Search Results */}
           {shouldShowNoResults && (
-            <div className="flex items-center justify-center h-full relative min-h-[400px]">
-              <div className="text-center max-w-md px-6 py-12">
-                <div className="mb-6 flex justify-center">
-                  <div className="relative">
-                    <Search className="h-20 w-20 text-muted-foreground/30" strokeWidth={1.5} />
-                    <div className="absolute inset-0 bg-gradient-to-br from-primary/10 to-transparent rounded-full blur-2xl" />
-                  </div>
+            <div className="absolute inset-0 flex items-center justify-center px-3">
+              <div className="w-full max-w-[560px] px-6 py-9 text-center">
+                <div className="mx-auto mb-4 inline-flex h-10 w-10 items-center justify-center rounded-full border border-black/10 bg-background/65 text-foreground/60 dark:border-white/15 dark:bg-white/[0.08]">
+                  <Search className="h-4 w-4" strokeWidth={1.9} />
                 </div>
-                <h3 className="text-xl font-semibold text-foreground mb-3">
+
+                <h3 className="text-lg md:text-xl font-semibold tracking-tight text-foreground">
                   {searchQuery.trim() ? t("studioTracks.noMatchingTracks") : t("studioTracks.noTracksInType")}
                 </h3>
-                <p className="text-muted-foreground mb-6 leading-relaxed">
+
+                <p className="mx-auto mt-2 max-w-[44ch] text-sm md:text-base text-muted-foreground leading-relaxed">
                   {searchQuery.trim()
                     ? t("studioTracks.noTracksForQuery", { query: searchQuery })
                     : t("studioTracks.noTracksForType", { type: selectedTypeFilterOption.label })}
                 </p>
-                <button
-                  onClick={() => {
-                    setSearchQuery('');
-                    setSelectedTypeFilter('all');
-                  }}
-                  className="px-4 py-2 bg-primary text-primary-foreground rounded-lg text-sm font-medium hover:bg-primary/90 transition-colors"
-                >
-                  {t("studioTracks.reset")}
-                </button>
+
+                <div className="mt-6 flex flex-wrap items-center justify-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setSearchQuery('');
+                      setSelectedTypeFilter('all');
+                    }}
+                    className="inline-flex h-10 items-center justify-center rounded-2xl px-4 text-sm font-semibold text-foreground/80 studio-panel-card transition-colors hover:bg-accent hover:text-accent-foreground"
+                  >
+                    {t("studioTracks.reset")}
+                  </button>
+
+                  {onCreate && (
+                    <button
+                      type="button"
+                      onClick={onCreate}
+                      className="inline-flex h-10 items-center justify-center rounded-2xl bg-gradient-create px-4 text-sm font-semibold text-white transition-opacity hover:opacity-90"
+                    >
+                      {t("studioTracks.startCreating")}
+                    </button>
+                  )}
+                </div>
               </div>
             </div>
           )}

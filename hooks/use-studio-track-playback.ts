@@ -36,6 +36,15 @@ export const useStudioTrackPlayback = ({
   setSelectedStudioTrack,
   setLyricsPanelOpen,
 }: UseStudioTrackPlaybackParams) => {
+  const getAccessToken = React.useCallback(async () => {
+    const { data: { session } } = await supabase.auth.getSession();
+    return session?.access_token ?? null;
+  }, []);
+
+  const getAuthHeaders = React.useCallback((accessToken: string | null) => ({
+    Authorization: `Bearer ${accessToken ?? ""}`,
+  }), []);
+
   const playTrackById = React.useCallback(async (trackId: string) => {
     try {
       let localTrack = allTracks.find((track) => track.id === trackId);
@@ -44,12 +53,10 @@ export const useStudioTrackPlayback = ({
         console.log("Track not found in local cache, fetching from server:", trackId);
 
         try {
-          const { data: { session } } = await supabase.auth.getSession();
+          const accessToken = await getAccessToken();
 
           const response = await fetch(`/api/track-info/${trackId}`, {
-            headers: {
-              Authorization: `Bearer ${session?.access_token}`,
-            },
+            headers: getAuthHeaders(accessToken),
           });
 
           if (response.ok) {
@@ -104,7 +111,7 @@ export const useStudioTrackPlayback = ({
     } catch (error) {
       console.error("Error playing track:", error);
     }
-  }, [allTracks, createTrackObject, player]);
+  }, [allTracks, createTrackObject, getAccessToken, getAuthHeaders, player]);
 
   const handlePrevious = React.useCallback(() => {
     if (!player.currentTrack || allTracks.length === 0) return;

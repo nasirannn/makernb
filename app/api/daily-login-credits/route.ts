@@ -1,37 +1,14 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { supabaseServer } from '@/lib/supabase-server';
 import { cleanupExpiredDailyCreditsForUser, grantDailyLoginCredits, hasReceivedTodayCredits } from '@/lib/daily-login-credits';
+import { getUserIdFromRequest } from '@/lib/auth';
 
 export const dynamic = 'force-dynamic';
 
 export async function POST(request: NextRequest) {
   try {
-    // 从Authorization header获取token
-    const authHeader = request.headers.get('authorization');
-    
-    if (!authHeader || !authHeader.startsWith('Bearer ')) {
-      console.error('[daily-login-credits] No authorization header provided');
-      return NextResponse.json(
-        { error: 'Authentication required' },
-        { status: 401 }
-      );
-    }
-
-    const token = authHeader.split(' ')[1];
-
-    // 验证token (使用服务端 Supabase client)
-    const { data: { user }, error } = await supabaseServer.auth.getUser(token);
-
-    if (error) {
-      console.error('[daily-login-credits] Token validation error:', error.message);
-      return NextResponse.json(
-        { error: 'Authentication required', details: error.message },
-        { status: 401 }
-      );
-    }
-
-    if (!user) {
-      console.error('[daily-login-credits] No user found for token');
+    const userId = await getUserIdFromRequest(request);
+    if (!userId) {
+      console.error('[daily-login-credits] Authentication failed');
       return NextResponse.json(
         { error: 'Authentication required' },
         { status: 401 }
@@ -39,17 +16,17 @@ export async function POST(request: NextRequest) {
     }
 
     try {
-      await cleanupExpiredDailyCreditsForUser(user.id);
+      await cleanupExpiredDailyCreditsForUser(userId);
     } catch (cleanupError) {
       console.error('[daily-login-credits] Failed to cleanup expired credits for user:', cleanupError);
     }
 
     // 尝试发放每日登录积分
-    const credits = await grantDailyLoginCredits(user.id);
+    const credits = await grantDailyLoginCredits(userId);
     
     if (!credits) {
       // 检查是否已经获得今日积分
-      const hasCredits = await hasReceivedTodayCredits(user.id);
+      const hasCredits = await hasReceivedTodayCredits(userId);
       
       if (hasCredits) {
         return NextResponse.json({
@@ -90,32 +67,9 @@ export async function POST(request: NextRequest) {
 
 export async function GET(request: NextRequest) {
   try {
-    // 从Authorization header获取token
-    const authHeader = request.headers.get('authorization');
-    
-    if (!authHeader || !authHeader.startsWith('Bearer ')) {
-      console.error('[daily-login-credits GET] No authorization header provided');
-      return NextResponse.json(
-        { error: 'Authentication required' },
-        { status: 401 }
-      );
-    }
-
-    const token = authHeader.split(' ')[1];
-
-    // 验证token (使用服务端 Supabase client)
-    const { data: { user }, error } = await supabaseServer.auth.getUser(token);
-
-    if (error) {
-      console.error('[daily-login-credits GET] Token validation error:', error.message);
-      return NextResponse.json(
-        { error: 'Authentication required', details: error.message },
-        { status: 401 }
-      );
-    }
-
-    if (!user) {
-      console.error('[daily-login-credits GET] No user found for token');
+    const userId = await getUserIdFromRequest(request);
+    if (!userId) {
+      console.error('[daily-login-credits GET] Authentication failed');
       return NextResponse.json(
         { error: 'Authentication required' },
         { status: 401 }
@@ -123,7 +77,7 @@ export async function GET(request: NextRequest) {
     }
 
     // 检查今日是否已获得积分
-    const hasCredits = await hasReceivedTodayCredits(user.id);
+    const hasCredits = await hasReceivedTodayCredits(userId);
     
     return NextResponse.json({
       hasReceivedToday: hasCredits,

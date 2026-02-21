@@ -11,6 +11,7 @@ import { LibraryTrack } from '@/types/track';
 import { Check, Share2, Star, ThumbsUp, Trash2 } from 'lucide-react';
 import { SolidThumbsUpIcon } from '@/components/icons/solid-thumbs-up-icon';
 import { useI18n } from '@/lib/i18n/provider';
+import { getZIndexClass } from '@/lib/z-index';
 
 interface TrackItemProps {
   track: LibraryTrack & any;
@@ -184,7 +185,7 @@ export const TrackItem: React.FC<TrackItemProps> = ({
     >
       {/* Loading 状态遮罩 */}
       {track.isLoading && !track.isGenerating && (
-        <div className="absolute inset-0 bg-black/60 flex items-center justify-center pointer-events-none z-10">
+        <div className={`absolute inset-0 bg-black/60 flex items-center justify-center pointer-events-none ${getZIndexClass('MAIN_CONTENT')}`}>
           <LoadingDots size="md" color="white" />
         </div>
       )}

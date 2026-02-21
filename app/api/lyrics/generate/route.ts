@@ -20,7 +20,8 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const { prompt } = await request.json();
+    const { prompt, title } = await request.json();
+    const normalizedTitle = typeof title === 'string' ? title.trim() : '';
 
     // Validate required parameters
     if (!prompt) {
@@ -78,7 +79,8 @@ export async function POST(request: NextRequest) {
         // 有taskId，创建正常的生成记录
         try {
           await createLyricsGeneration(taskId, userId, {
-            title: 'Generating...', // 临时标题，回调时会更新
+            title: normalizedTitle || undefined,
+            user_prompt: prompt,
             content: prompt // 使用用户输入的prompt作为初始文本
           });
         } catch (dbError) {
@@ -98,7 +100,8 @@ export async function POST(request: NextRequest) {
         try {
           // 创建失败的歌词生成记录
           const failedGeneration = await createLyricsGeneration(null, userId, {
-            title: 'Failed Generation',
+            title: normalizedTitle || undefined,
+            user_prompt: prompt,
             content: prompt,
             status: 'error'
           });

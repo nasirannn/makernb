@@ -17,6 +17,7 @@ import { InlineTrackDetailsPanel } from "@/components/ui/inline-track-details";
 import AuthModal from "@/components/ui/auth-modal";
 import { toast } from "sonner";
 import { useI18n } from "@/lib/i18n/provider";
+import { getZIndexClass } from "@/lib/z-index";
 
 interface LibraryInlineTrackDetails {
     id: string;
@@ -420,7 +421,7 @@ const LibraryContent = () => {
             >
                 {/* Main Library Interface */}
                 <div
-                    className="flex-1 h-full flex z-10 relative pb-[var(--mobile-nav-height,64px)] md:pb-0 transition-[margin] duration-500"
+                    className={`flex-1 h-full flex ${getZIndexClass('MAIN_CONTENT')} relative pb-[var(--mobile-nav-height,64px)] md:pb-0 transition-[margin] duration-500`}
                     style={{
                         marginLeft: 'var(--sidebar-offset, 0px)'
                     }}
@@ -448,7 +449,7 @@ const LibraryContent = () => {
                         </div>
 
                         <div
-                            className={`relative transition-all duration-300 flex-shrink-0 overflow-hidden z-[80] ${
+                            className={`relative transition-all duration-300 flex-shrink-0 overflow-hidden ${getZIndexClass('INLINE_PANEL_CONTAINER')} ${
                                 showInlinePanel
                                     ? 'opacity-100 w-full md:w-80 px-0 md:px-0 md:py-4'
                                     : 'opacity-0 pointer-events-none w-0 md:w-0 px-0'
@@ -472,7 +473,7 @@ const LibraryContent = () => {
                     {/* Music Player - Fixed on mobile, Absolute on desktop */}
                     {player.currentTrack && (
                         <div
-                            className="fixed md:absolute left-3 z-[10]"
+                            className={`fixed md:absolute left-3 ${getZIndexClass('MAIN_CONTENT')}`}
                             style={{
                                 right: showInlinePanel ? 'calc(20rem + 1.5rem)' : '0.75rem',
                                 bottom: 'calc(var(--mobile-nav-height, 0px) + 0.75rem)'

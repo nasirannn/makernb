@@ -224,6 +224,109 @@ class MusicApiService {
     throw new Error(`API call failed after ${retries} attempts: ${lastError?.message || 'Unknown error'}`);
   }
 
+  private getAuthHeaders(includeJsonContentType = false): Record<string, string> {
+    const headers: Record<string, string> = {
+      Authorization: `Bearer ${this.apiKey}`,
+    };
+
+    if (includeJsonContentType) {
+      headers["Content-Type"] = "application/json";
+    }
+
+    return headers;
+  }
+
+  private async getWithAuth(endpoint: string): Promise<Response> {
+    return fetch(`${this.baseUrl}${endpoint}`, {
+      method: "GET",
+      headers: this.getAuthHeaders(),
+    });
+  }
+
+  private async postJson(endpoint: string, payload: unknown, retries: number = this.maxRetries): Promise<Response> {
+    return this.fetchWithRetry(
+      `${this.baseUrl}${endpoint}`,
+      {
+        method: "POST",
+        headers: this.getAuthHeaders(true),
+        body: JSON.stringify(payload),
+      },
+      retries
+    );
+  }
+
+  private createInProgressStatusResponse<TData extends { taskId: string }>(
+    msg: string,
+    data: TData
+  ): { code: number; msg: string; data: TData } {
+    return {
+      code: 202,
+      msg,
+      data,
+    };
+  }
+
+  private async handleStatusQueryResponse<T>({
+    response,
+    unavailableLog,
+    unavailableResponse,
+    errorPrefix,
+  }: {
+    response: Response;
+    unavailableLog: string;
+    unavailableResponse: T;
+    errorPrefix: string;
+  }): Promise<T | null> {
+    if (response.ok) {
+      return null;
+    }
+
+    if (response.status === 401) {
+      console.warn(unavailableLog);
+      return unavailableResponse;
+    }
+
+    const errorData = await response.text();
+    throw new Error(`${errorPrefix}: ${response.statusText} - ${errorData}`);
+  }
+
+  private async sleep(ms: number): Promise<void> {
+    await new Promise((resolve) => setTimeout(resolve, ms));
+  }
+
+  private async pollUntil<T>({
+    maxAttempts,
+    poll,
+    isSuccess,
+    isFailure,
+    failureMessage,
+    timeoutMessage,
+    intervalMs = 5000,
+  }: {
+    maxAttempts: number;
+    poll: () => Promise<T>;
+    isSuccess: (status: T) => boolean;
+    isFailure: (status: T) => boolean;
+    failureMessage: string;
+    timeoutMessage: string;
+    intervalMs?: number;
+  }): Promise<T> {
+    for (let i = 0; i < maxAttempts; i++) {
+      const status = await poll();
+
+      if (isSuccess(status)) {
+        return status;
+      }
+      if (isFailure(status)) {
+        throw new Error(failureMessage);
+      }
+
+      await this.sleep(intervalMs);
+    }
+
+    throw new Error(timeoutMessage);
+  }
+
   async boostMusicStyle(content: string): Promise<string | null> {
     const trimmedContent = content.trim();
     if (!trimmedContent) {
@@ -231,16 +334,13 @@ class MusicApiService {
     }
 
     try {
-      const response = await this.fetchWithRetry(`${this.baseUrl}/api/v1/style/generate`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${this.apiKey}`,
-        },
-        body: JSON.stringify({
+      const response = await this.postJson(
+        '/api/v1/style/generate',
+        {
           content: trimmedContent,
-        }),
-      }, 1);
+        },
+        1
+      );
 
       if (!response.ok) {
         const errorData = await response.text().catch(() => '');
@@ -360,14 +460,7 @@ class MusicApiService {
     }
 
     // ⚠️ 生成任务创建接口不做自动重试，避免上游已创建成功但本地因5xx重试导致重复task
-    const response = await this.fetchWithRetry(`${this.baseUrl}/api/v1/generate`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${this.apiKey}`,
-      },
-      body: JSON.stringify(apiParams),
-    }, 1);
+    const response = await this.postJson('/api/v1/generate', apiParams, 1);
 
     if (!response.ok) {
       const errorData = await response.text();
@@ -395,12 +488,7 @@ class MusicApiService {
 
   // Get generation status
   async getGenerationStatus(taskId: string): Promise<SunoApiResponse> {
-    const response = await fetch(`${this.baseUrl}/api/v1/generate/record-info?taskId=${taskId}`, {
-      method: 'GET',
-      headers: {
-        'Authorization': `Bearer ${this.apiKey}`,
-      },
-    });
+    const response = await this.getWithAuth(`/api/v1/generate/record-info?taskId=${taskId}`);
 
     if (!response.ok) {
       const errorData = await response.text();
@@ -412,20 +500,14 @@ class MusicApiService {
 
   // Poll until generation complete
   async waitForCompletion(taskId: string, maxAttempts = 30): Promise<SunoApiResponse> {
-    for (let i = 0; i < maxAttempts; i++) {
-      const status = await this.getGenerationStatus(taskId);
-      
-      if (status.status === 'complete') {
-        return status;
-      } else if (status.status === 'error') {
-        throw new Error('Music generation failed');
-      }
-      
-      // Wait 5 seconds before retry
-      await new Promise(resolve => setTimeout(resolve, 5000));
-    }
-    
-    throw new Error('Music generation timeout');
+    return this.pollUntil({
+      maxAttempts,
+      poll: () => this.getGenerationStatus(taskId),
+      isSuccess: (status) => status.status === 'complete',
+      isFailure: (status) => status.status === 'error',
+      failureMessage: 'Music generation failed',
+      timeoutMessage: 'Music generation timeout',
+    });
   }
 
   // Generate cover for existing music task
@@ -436,14 +518,7 @@ class MusicApiService {
       callBackUrl: request.callBackUrl || `${process.env.CallBackURL}/api/callbacks/cover`,
     };
     
-    const response = await this.fetchWithRetry(`${this.baseUrl}/api/v1/suno/cover/generate`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${this.apiKey}`,
-      },
-      body: JSON.stringify(apiParams),
-    });
+    const response = await this.postJson('/api/v1/suno/cover/generate', apiParams);
 
     if (!response.ok) {
       const errorData = await response.text();
@@ -484,29 +559,20 @@ class MusicApiService {
   // Get cover generation status (fallback method)
   async getCoverStatus(taskId: string): Promise<CoverApiResponse> {
     try {
-      const response = await fetch(`${this.baseUrl}/api/v1/suno/cover/record-info?taskId=${taskId}`, {
-        method: 'GET',
-        headers: {
-          'Authorization': `Bearer ${this.apiKey}`,
-        },
+      const response = await this.getWithAuth(`/api/v1/suno/cover/record-info?taskId=${taskId}`);
+
+      const unavailableStatus = await this.handleStatusQueryResponse<CoverApiResponse>({
+        response,
+        unavailableLog: 'Cover status query not available: API key lacks permissions',
+        unavailableResponse: this.createInProgressStatusResponse('Cover generation in progress (status query unavailable)', {
+          taskId,
+          images: null,
+        }),
+        errorPrefix: 'Get cover status failed',
       });
 
-      if (!response.ok) {
-        // 如果API Key没有权限，返回默认状态
-        if (response.status === 401) {
-          console.warn('Cover status query not available: API key lacks permissions');
-          return {
-            code: 202,
-            msg: 'Cover generation in progress (status query unavailable)',
-            data: {
-              taskId: taskId,
-              images: null
-            }
-          };
-        }
-        
-        const errorData = await response.text();
-        throw new Error(`Get cover status failed: ${response.statusText} - ${errorData}`);
+      if (unavailableStatus) {
+        return unavailableStatus;
       }
 
       const data = await response.json();
@@ -522,33 +588,23 @@ class MusicApiService {
     } catch (error) {
       console.warn('Cover status query failed, falling back to callback-only mode:', error);
       // 返回进行中状态，依赖回调机制
-      return {
-        code: 202,
-        msg: 'Cover generation in progress (callback-only mode)',
-        data: {
-          taskId: taskId,
-          images: null
-        }
-      };
+      return this.createInProgressStatusResponse('Cover generation in progress (callback-only mode)', {
+        taskId,
+        images: null,
+      });
     }
   }
 
   // Poll until cover generation complete
   async waitForCoverCompletion(taskId: string, maxAttempts = 30): Promise<CoverApiResponse> {
-    for (let i = 0; i < maxAttempts; i++) {
-      const status = await this.getCoverStatus(taskId);
-      
-      if (status.code === 200 && status.data.images) {
-        return status;
-      } else if (status.code === 501) {
-        throw new Error('Cover generation failed');
-      }
-      
-      // Wait 5 seconds before retry
-      await new Promise(resolve => setTimeout(resolve, 5000));
-    }
-    
-    throw new Error('Cover generation timeout');
+    return this.pollUntil({
+      maxAttempts,
+      poll: () => this.getCoverStatus(taskId),
+      isSuccess: (status) => status.code === 200 && Boolean(status.data.images),
+      isFailure: (status) => status.code === 501,
+      failureMessage: 'Cover generation failed',
+      timeoutMessage: 'Cover generation timeout',
+    });
   }
 
   // ============================================================================
@@ -566,14 +622,7 @@ class MusicApiService {
       callBackUrl: request.callBackUrl || `${process.env.CallBackURL}/api/callbacks/vocal-separation`,
     };
     
-    const response = await this.fetchWithRetry(`${this.baseUrl}/api/v1/vocal-removal/generate`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${this.apiKey}`,
-      },
-      body: JSON.stringify(apiParams),
-    });
+    const response = await this.postJson('/api/v1/vocal-removal/generate', apiParams);
 
     if (!response.ok) {
       const errorData = await response.text();
@@ -603,29 +652,20 @@ class MusicApiService {
    */
   async getVocalSeparationStatus(taskId: string): Promise<VocalSeparationStatusResponse> {
     try {
-      const response = await fetch(`${this.baseUrl}/api/v1/vocal-removal/record-info?taskId=${taskId}`, {
-        method: 'GET',
-        headers: {
-          'Authorization': `Bearer ${this.apiKey}`,
-        },
+      const response = await this.getWithAuth(`/api/v1/vocal-removal/record-info?taskId=${taskId}`);
+
+      const unavailableStatus = await this.handleStatusQueryResponse<VocalSeparationStatusResponse>({
+        response,
+        unavailableLog: 'Vocal separation status query not available: API key lacks permissions',
+        unavailableResponse: this.createInProgressStatusResponse('Vocal separation in progress (status query unavailable)', {
+          taskId,
+          status: 'processing',
+        }),
+        errorPrefix: 'Get vocal separation status failed',
       });
 
-      if (!response.ok) {
-        // 如果API Key没有权限，返回默认状态
-        if (response.status === 401) {
-          console.warn('Vocal separation status query not available: API key lacks permissions');
-          return {
-            code: 202,
-            msg: 'Vocal separation in progress (status query unavailable)',
-            data: {
-              taskId: taskId,
-              status: 'processing'
-            }
-          };
-        }
-        
-        const errorData = await response.text();
-        throw new Error(`Get vocal separation status failed: ${response.statusText} - ${errorData}`);
+      if (unavailableStatus) {
+        return unavailableStatus;
       }
 
       const data = await response.json();
@@ -645,14 +685,10 @@ class MusicApiService {
     } catch (error) {
       console.warn('Vocal separation status query failed, falling back to callback-only mode:', error);
       // 返回进行中状态，依赖回调机制
-      return {
-        code: 202,
-        msg: 'Vocal separation in progress (callback-only mode)',
-        data: {
-          taskId: taskId,
-          status: 'processing'
-        }
-      };
+      return this.createInProgressStatusResponse('Vocal separation in progress (callback-only mode)', {
+        taskId,
+        status: 'processing',
+      });
     }
   }
 
@@ -660,20 +696,14 @@ class MusicApiService {
    * Poll until vocal separation complete
    */
   async waitForVocalSeparationCompletion(taskId: string, maxAttempts = 30): Promise<VocalSeparationStatusResponse> {
-    for (let i = 0; i < maxAttempts; i++) {
-      const status = await this.getVocalSeparationStatus(taskId);
-      
-      if (status.code === 200 && status.data.status === 'completed') {
-        return status;
-      } else if (status.code === 501 || status.data.status === 'error') {
-        throw new Error('Vocal separation failed');
-      }
-      
-      // Wait 5 seconds before retry
-      await new Promise(resolve => setTimeout(resolve, 5000));
-    }
-    
-    throw new Error('Vocal separation timeout');
+    return this.pollUntil({
+      maxAttempts,
+      poll: () => this.getVocalSeparationStatus(taskId),
+      isSuccess: (status) => status.code === 200 && status.data.status === 'completed',
+      isFailure: (status) => status.code === 501 || status.data.status === 'error',
+      failureMessage: 'Vocal separation failed',
+      timeoutMessage: 'Vocal separation timeout',
+    });
   }
 
   // ============================================================================
@@ -693,14 +723,7 @@ class MusicApiService {
       callBackUrl: callBackUrl,
     };
     
-    const response = await this.fetchWithRetry(`${this.baseUrl}/api/v1/wav/generate`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${this.apiKey}`,
-      },
-      body: JSON.stringify(apiParams),
-    });
+    const response = await this.postJson('/api/v1/wav/generate', apiParams);
 
     if (!response.ok) {
       const errorData = await response.text();
@@ -730,29 +753,20 @@ class MusicApiService {
    */
   async getWavConversionStatus(taskId: string): Promise<WavConversionStatusResponse> {
     try {
-      const response = await fetch(`${this.baseUrl}/api/v1/wav/record-info?taskId=${taskId}`, {
-        method: 'GET',
-        headers: {
-          'Authorization': `Bearer ${this.apiKey}`,
-        },
+      const response = await this.getWithAuth(`/api/v1/wav/record-info?taskId=${taskId}`);
+
+      const unavailableStatus = await this.handleStatusQueryResponse<WavConversionStatusResponse>({
+        response,
+        unavailableLog: 'WAV conversion status query not available: API key lacks permissions',
+        unavailableResponse: this.createInProgressStatusResponse('WAV conversion in progress (status query unavailable)', {
+          taskId,
+          status: 'processing',
+        }),
+        errorPrefix: 'Get WAV conversion status failed',
       });
 
-      if (!response.ok) {
-        // 如果API Key没有权限，返回默认状态
-        if (response.status === 401) {
-          console.warn('WAV conversion status query not available: API key lacks permissions');
-          return {
-            code: 202,
-            msg: 'WAV conversion in progress (status query unavailable)',
-            data: {
-              taskId: taskId,
-              status: 'processing'
-            }
-          };
-        }
-        
-        const errorData = await response.text();
-        throw new Error(`Get WAV conversion status failed: ${response.statusText} - ${errorData}`);
+      if (unavailableStatus) {
+        return unavailableStatus;
       }
 
       const data = await response.json();
@@ -770,14 +784,10 @@ class MusicApiService {
     } catch (error) {
       console.warn('WAV conversion status query failed, falling back to callback-only mode:', error);
       // 返回进行中状态，依赖回调机制
-      return {
-        code: 202,
-        msg: 'WAV conversion in progress (callback-only mode)',
-        data: {
-          taskId: taskId,
-          status: 'processing'
-        }
-      };
+      return this.createInProgressStatusResponse('WAV conversion in progress (callback-only mode)', {
+        taskId,
+        status: 'processing',
+      });
     }
   }
 
@@ -785,20 +795,14 @@ class MusicApiService {
    * Poll until WAV conversion complete
    */
   async waitForWavConversionCompletion(taskId: string, maxAttempts = 30): Promise<WavConversionStatusResponse> {
-    for (let i = 0; i < maxAttempts; i++) {
-      const status = await this.getWavConversionStatus(taskId);
-      
-      if (status.code === 200 && status.data.audio_wav_url) {
-        return status;
-      } else if (status.code === 501 || status.data.status === 'error') {
-        throw new Error('WAV conversion failed');
-      }
-      
-      // Wait 5 seconds before retry
-      await new Promise(resolve => setTimeout(resolve, 5000));
-    }
-    
-    throw new Error('WAV conversion timeout');
+    return this.pollUntil({
+      maxAttempts,
+      poll: () => this.getWavConversionStatus(taskId),
+      isSuccess: (status) => status.code === 200 && Boolean(status.data.audio_wav_url),
+      isFailure: (status) => status.code === 501 || status.data.status === 'error',
+      failureMessage: 'WAV conversion failed',
+      timeoutMessage: 'WAV conversion timeout',
+    });
   }
 
   // ============================================================================
@@ -824,14 +828,7 @@ class MusicApiService {
       apiParams.domainName = request.domainName.trim().slice(0, 50);
     }
 
-    const response = await this.fetchWithRetry(`${this.baseUrl}/api/v1/mp4/generate`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${this.apiKey}`,
-      },
-      body: JSON.stringify(apiParams),
-    });
+    const response = await this.postJson('/api/v1/mp4/generate', apiParams);
 
     if (!response.ok) {
       const errorData = await response.text();
@@ -873,14 +870,7 @@ class MusicApiService {
       apiParams.audioId = request.audioId.trim();
     }
 
-    const response = await this.fetchWithRetry(`${this.baseUrl}/api/v1/midi/generate`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${this.apiKey}`,
-      },
-      body: JSON.stringify(apiParams),
-    });
+    const response = await this.postJson('/api/v1/midi/generate', apiParams);
 
     if (!response.ok) {
       const errorData = await response.text();
@@ -914,14 +904,7 @@ class MusicApiService {
       description: request.description.trim(),
     };
 
-    const response = await this.fetchWithRetry(`${this.baseUrl}/api/v1/generate/generate-persona`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${this.apiKey}`,
-      },
-      body: JSON.stringify(apiParams),
-    });
+    const response = await this.postJson('/api/v1/generate/generate-persona', apiParams);
 
     let data: any = null;
     try {

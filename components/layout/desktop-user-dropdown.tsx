@@ -8,6 +8,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { SubscriptionBadge } from "@/components/ui/subscription-badge";
 import type { SubscriptionBadgeTone } from "@/components/ui/subscription-badge";
 import { formatLocalizedNumber } from "@/lib/locale-format";
+import { getZIndexClass } from "@/lib/z-index";
 import { cn } from "@/lib/utils";
 
 type TranslationVars = Record<string, string | number | null | undefined>;
@@ -119,7 +120,7 @@ export function DesktopUserDropdown({
       </button>
 
       {open && (
-        <div className="absolute right-0 top-12 min-w-52 w-max bg-background border border-black/10 rounded-2xl p-1.5 shadow-[0_18px_55px_rgba(0,0,0,0.12)] z-[110]">
+        <div className={`absolute right-0 top-12 min-w-52 w-max bg-background border border-black/10 rounded-2xl p-1.5 shadow-[0_18px_55px_rgba(0,0,0,0.12)] ${getZIndexClass('DROPDOWN')}`}>
           <div className="px-2.5 py-1.5">
             <div className="flex items-center justify-between gap-2 mb-1">
               <p className="text-foreground font-semibold text-sm truncate flex-1">

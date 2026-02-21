@@ -34,6 +34,14 @@ export const useStudioTrackDownload = ({ user }: UseStudioTrackDownloadParams) =
   const [mp4Author, setMp4Author] = React.useState("");
   const [mp4DomainName, setMp4DomainName] = React.useState("");
 
+  const getAuthHeaders = React.useCallback((accessToken: string) => ({
+    Authorization: `Bearer ${accessToken}`,
+  }), []);
+
+  const getTrackDownloadTitle = React.useCallback((track: any, music: any) => {
+    return track.title || music.title || t("download.trackDefaultTitle");
+  }, [t]);
+
   const downloadFile = React.useCallback((blob: Blob, filename: string, format: string) => {
     const blobUrl = window.URL.createObjectURL(blob);
     const link = document.createElement("a");
@@ -60,7 +68,8 @@ export const useStudioTrackDownload = ({ user }: UseStudioTrackDownloadParams) =
     setWavDownloadStatus("preparing");
     setWavDownloadStatusText(t("download.preparingDownload"));
     setWavDownloadErrorMessage("");
-    setWavDownloadTrackTitle(track.title || music.title || t("download.trackDefaultTitle"));
+    const downloadTitle = getTrackDownloadTitle(track, music);
+    setWavDownloadTrackTitle(downloadTitle);
 
     const calculateProgress = (hasWavUrl: boolean, elapsedTime: number): number => {
       if (hasWavUrl) {
@@ -77,9 +86,7 @@ export const useStudioTrackDownload = ({ user }: UseStudioTrackDownloadParams) =
     const pollForWav = async (): Promise<void> => {
       try {
         const response = await fetch(`/api/download-track?trackId=${track.id}&format=wav`, {
-          headers: {
-            Authorization: `Bearer ${accessToken}`,
-          },
+          headers: getAuthHeaders(accessToken),
         });
 
         const elapsedTime = Date.now() - startTime;
@@ -127,7 +134,7 @@ export const useStudioTrackDownload = ({ user }: UseStudioTrackDownloadParams) =
                 throw new Error(`Failed to fetch WAV: ${wavResponse.status}`);
               }
               const blob = await wavResponse.blob();
-              downloadFile(blob, track.title || music.title || t("download.trackDefaultTitle"), "wav");
+              downloadFile(blob, downloadTitle, "wav");
 
               setWavDownloadProgress(100);
               setWavDownloadStatus("completed");
@@ -139,7 +146,7 @@ export const useStudioTrackDownload = ({ user }: UseStudioTrackDownloadParams) =
           }
 
           const blob = await response.blob();
-          downloadFile(blob, track.title || music.title || t("download.trackDefaultTitle"), "wav");
+          downloadFile(blob, downloadTitle, "wav");
 
           setWavDownloadProgress(100);
           setWavDownloadStatus("completed");
@@ -158,7 +165,7 @@ export const useStudioTrackDownload = ({ user }: UseStudioTrackDownloadParams) =
     };
 
     await pollForWav();
-  }, [downloadFile, t]);
+  }, [downloadFile, getAuthHeaders, getTrackDownloadTitle, t]);
 
   const handleDownload = React.useCallback(async (
     track: any,
@@ -198,15 +205,15 @@ export const useStudioTrackDownload = ({ user }: UseStudioTrackDownloadParams) =
         });
         return;
       }
+      const accessToken = session.access_token;
+      const downloadTitle = getTrackDownloadTitle(track, music);
 
       if (format === "cover") {
         try {
           const apiUrl = `/api/download-cover?trackId=${encodeURIComponent(track.id)}`;
           const coverResponse = await fetch(apiUrl, {
             method: "GET",
-            headers: {
-              Authorization: `Bearer ${session.access_token}`,
-            },
+            headers: getAuthHeaders(accessToken),
             cache: "no-store",
           });
           if (!coverResponse.ok) {
@@ -241,7 +248,7 @@ export const useStudioTrackDownload = ({ user }: UseStudioTrackDownloadParams) =
       }
 
       if (format === "wav") {
-        await handleWavDownloadWithPolling(track, music, session.access_token);
+        await handleWavDownloadWithPolling(track, music, accessToken);
         return;
       }
 
@@ -270,9 +277,7 @@ export const useStudioTrackDownload = ({ user }: UseStudioTrackDownloadParams) =
 
         const pollForMp4 = async (): Promise<void> => {
           const response = await fetch(mp4RequestUrl, {
-            headers: {
-              Authorization: `Bearer ${session.access_token}`,
-            },
+            headers: getAuthHeaders(accessToken),
           });
 
           const elapsedTime = Date.now() - startTime;
@@ -303,21 +308,21 @@ export const useStudioTrackDownload = ({ user }: UseStudioTrackDownloadParams) =
                 throw new Error(`Failed to fetch MP4: ${videoResponse.status}`);
               }
               const blob = await videoResponse.blob();
-              downloadFile(blob, track.title || music.title || t("download.trackDefaultTitle"), "mp4");
+              downloadFile(blob, downloadTitle, "mp4");
               return;
             }
             throw new Error(data.error || t("download.downloadFailed"));
           }
 
           const blob = await response.blob();
-          downloadFile(blob, track.title || music.title || t("download.trackDefaultTitle"), "mp4");
+          downloadFile(blob, downloadTitle, "mp4");
         };
 
         try {
           await pollForMp4();
           toast.success(t("download.mp4DownloadStarted"), {
             id: mp4ToastId,
-            description: `${track.title || music.title || t("download.trackDefaultTitle")}.mp4`,
+            description: `${downloadTitle}.mp4`,
           });
         } catch (error) {
           console.error("MP4 download error:", error);
@@ -345,7 +350,7 @@ export const useStudioTrackDownload = ({ user }: UseStudioTrackDownloadParams) =
           }
 
           const blob = await audioResponse.blob();
-          downloadFile(blob, track.title || music.title || t("download.trackDefaultTitle"), "mp3");
+          downloadFile(blob, downloadTitle, "mp3");
           return;
         } catch (error) {
           console.error("[DOWNLOAD] Error downloading MP3 from audio URL:", error);
@@ -353,9 +358,7 @@ export const useStudioTrackDownload = ({ user }: UseStudioTrackDownloadParams) =
       }
 
       const response = await fetch(`/api/download-track?trackId=${track.id}&format=mp3`, {
-        headers: {
-          Authorization: `Bearer ${session.access_token}`,
-        },
+        headers: getAuthHeaders(accessToken),
       });
 
       if (!response.ok) {
@@ -372,18 +375,18 @@ export const useStudioTrackDownload = ({ user }: UseStudioTrackDownloadParams) =
             throw new Error(`Failed to fetch audio: ${audioResponse.status}`);
           }
           const blob = await audioResponse.blob();
-          downloadFile(blob, track.title || music.title || t("download.trackDefaultTitle"), "mp3");
+          downloadFile(blob, downloadTitle, "mp3");
         } else {
           throw new Error(data.error || t("download.downloadFailed"));
         }
       } else {
         const blob = await response.blob();
-        downloadFile(blob, track.title || music.title || t("download.trackDefaultTitle"), "mp3");
+        downloadFile(blob, downloadTitle, "mp3");
       }
     } catch (error) {
       console.error("Download error:", error);
     }
-  }, [downloadFile, handleWavDownloadWithPolling, mp4Author, user, t]);
+  }, [downloadFile, getAuthHeaders, getTrackDownloadTitle, handleWavDownloadWithPolling, mp4Author, user, t]);
 
   const closeWavDownloadDialog = React.useCallback(() => {
     setWavDownloadDialogOpen(false);

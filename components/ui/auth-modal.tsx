@@ -8,7 +8,7 @@ import { Label } from '@/components/ui/label';
 import { supabase } from '@/lib/supabase';
 import { Loader2, X, ArrowLeft } from 'lucide-react';
 import { LoadingDots } from '@/components/ui/loading-dots';
-import { Z_INDEX_COMBINATIONS } from '@/lib/z-index';
+import { Z_INDEX_COMBINATIONS, getZIndexClass } from '@/lib/z-index';
 import { Turnstile } from '@marsidev/react-turnstile';
 import Image from "next/image";
 import { cn } from "@/lib/utils";
@@ -308,7 +308,7 @@ export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
               {/* Close Button - 桌面端显示在右上角 */}
               <button
                 onClick={handleClose}
-                className="hidden md:inline-flex absolute top-4 right-4 z-10 h-9 w-9 items-center justify-center rounded-full app-card-muted text-foreground/70 hover:text-foreground hover:bg-foreground/10 transition-colors"
+                className={`hidden md:inline-flex absolute top-4 right-4 ${getZIndexClass('MAIN_CONTENT')} h-9 w-9 items-center justify-center rounded-full app-card-muted text-foreground/70 hover:text-foreground hover:bg-foreground/10 transition-colors`}
                 aria-label={t("authModal.close")}
               >
                 <X className="h-4 w-4" />

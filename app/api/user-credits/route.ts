@@ -1,37 +1,14 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getUserCredits } from '@/lib/user-db';
-import { supabaseServer } from '@/lib/supabase-server';
+import { getUserInfoFromRequest } from '@/lib/auth';
 
 export const dynamic = 'force-dynamic';
 
 export async function GET(request: NextRequest) {
   try {
-    // 从Authorization header获取token
-    const authHeader = request.headers.get('authorization');
-
-    if (!authHeader || !authHeader.startsWith('Bearer ')) {
-      console.error('[user-credits] No authorization header provided');
-      return NextResponse.json(
-        { error: 'Authentication required' },
-        { status: 401 }
-      );
-    }
-
-    const token = authHeader.split(' ')[1];
-
-    // 验证token (使用服务端 Supabase client)
-    const { data: { user }, error } = await supabaseServer.auth.getUser(token);
-
-    if (error) {
-      console.error('[user-credits] Token validation error:', error.message);
-      return NextResponse.json(
-        { error: 'Authentication required', details: error.message },
-        { status: 401 }
-      );
-    }
-
-    if (!user) {
-      console.error('[user-credits] No user found for token');
+    const userInfo = await getUserInfoFromRequest(request);
+    if (!userInfo) {
+      console.error('[user-credits] Authentication failed');
       return NextResponse.json(
         { error: 'Authentication required' },
         { status: 401 }
@@ -39,12 +16,12 @@ export async function GET(request: NextRequest) {
     }
 
     // 获取用户积分
-    const userCredits = await getUserCredits(user.id);
+    const userCredits = await getUserCredits(userInfo.userId);
 
     return NextResponse.json({
       user: {
-        id: user.id,
-        email: user.email,
+        id: userInfo.userId,
+        email: userInfo.email,
         credits: userCredits?.credits || 0
       }
     });

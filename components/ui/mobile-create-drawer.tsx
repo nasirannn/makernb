@@ -2,24 +2,9 @@
 
 import React from 'react';
 import { X } from "lucide-react";
-import type { FeatureCreatePanelProps } from "@/components/ui/feature-panels/music-generator-panel";
+import type { StudioFeaturePanelProps, StudioFeaturePanelStateProps } from "@/types/studio-feature-panel";
 import { useI18n } from "@/lib/i18n/provider";
-
-type StudioFeaturePanelStateProps = Omit<
-  FeatureCreatePanelProps,
-  | "panelOpen"
-  | "setPanelOpen"
-  | "hasPlayer"
-  | "showModeTabs"
-  | "lockModeSelector"
-  | "showUploadAction"
-  | "allowedUploadIntents"
-  | "forcedUploadIntent"
-  | "forcedTrackUploadMode"
-  | "allowMashupAction"
->;
-
-type StudioFeaturePanelProps = StudioFeaturePanelStateProps & Pick<FeatureCreatePanelProps, "panelOpen" | "setPanelOpen" | "hasPlayer">;
+import { getZIndexClass } from "@/lib/z-index";
 
 interface MobileCreateDrawerProps {
   isOpen: boolean;
@@ -42,7 +27,7 @@ export const MobileCreateDrawer = React.memo(({
   if (!isOpen) return null;
 
   return (
-    <div className="md:hidden fixed inset-0 z-[130]">
+    <div className={`md:hidden fixed inset-0 ${getZIndexClass('MOBILE_DRAWER')}`}>
       <div className="absolute inset-0 bg-black/50" onClick={onClose} />
       <div 
         className="absolute bottom-0 left-0 right-0 bg-background border-t border-border/30 rounded-t-3xl shadow-2xl transform-gpu transition-transform duration-300 ease-out will-change-transform overflow-hidden pb-[env(safe-area-inset-bottom)]" 

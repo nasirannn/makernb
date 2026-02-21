@@ -13,6 +13,7 @@ import { formatLocalizedNumber } from "@/lib/locale-format";
 import type { PricingPlan } from "@/lib/pricing-config";
 import { useI18n } from "@/lib/i18n/provider";
 import { withLocalePrefix } from "@/lib/i18n/routing";
+import { getZIndexClass } from "@/lib/z-index";
 
 type PricingVariant = "section" | "modal";
 
@@ -150,22 +151,22 @@ export const PricingPlans = ({ variant = "section", onNavigate, initialPlans }: 
       <div className={toggle}>
         <div className={cn("relative w-full", variant === "modal" ? "max-w-[19rem]" : "max-w-[22rem]")}>
           {yearlySavingsPercent && (
-            <span className="pointer-events-none absolute -top-2 right-2.5 z-10 inline-flex items-center rounded-md bg-gradient-to-r from-cyan-400 via-sky-400 to-indigo-400 px-2 py-0.5 text-xs font-semibold tracking-wide text-slate-950 shadow-[0_6px_14px_rgba(56,189,248,0.32)]">
+            <span className={`pointer-events-none absolute -top-2 right-2.5 ${getZIndexClass("MAIN_CONTENT")} inline-flex items-center rounded-md bg-gradient-to-r from-cyan-400 via-sky-400 to-indigo-400 px-2 py-0.5 text-xs font-semibold tracking-wide text-slate-950 shadow-[0_6px_14px_rgba(56,189,248,0.32)]`}>
               {yearlySavingsBadge}
             </span>
           )}
 
           <div
             className={cn(
-              "relative grid grid-cols-2 items-center rounded-[1.45rem] p-[3px] bg-[linear-gradient(180deg,rgba(255,255,255,0.08),rgba(255,255,255,0.02))] shadow-[0_10px_24px_rgba(0,0,0,0.22)] backdrop-blur-md",
-              "dark:bg-[linear-gradient(180deg,rgba(255,255,255,0.08),rgba(255,255,255,0.015))]",
+                "relative grid grid-cols-2 items-center rounded-[1.45rem] p-[3px] bg-[linear-gradient(180deg,rgba(255,255,255,0.08),rgba(255,255,255,0.02))] shadow-[0_10px_24px_rgba(0,0,0,0.22)] backdrop-blur-md",
+                "dark:bg-[linear-gradient(180deg,rgba(255,255,255,0.08),rgba(255,255,255,0.015))]",
               toggleInner
             )}
           >
-            <button
-              onClick={() => setBillingPeriod("monthly")}
-              className={cn(
-                "relative z-[1] h-[44px] rounded-[1.15rem] px-3.5 text-sm font-semibold transition-colors duration-200",
+              <button
+                onClick={() => setBillingPeriod("monthly")}
+                className={cn(
+                `relative ${getZIndexClass("BASE_CONTENT")} h-[44px] rounded-[1.15rem] px-3.5 text-sm font-semibold transition-colors duration-200`,
                 "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background",
                 billingPeriod === "monthly"
                   ? "bg-background text-foreground shadow-[0_7px_16px_rgba(0,0,0,0.22)]"
@@ -175,10 +176,10 @@ export const PricingPlans = ({ variant = "section", onNavigate, initialPlans }: 
               {t("pricing.billMonthly")}
             </button>
 
-            <button
-              onClick={() => setBillingPeriod("yearly")}
-              className={cn(
-                "relative z-[1] h-[44px] rounded-[1.15rem] px-3.5 text-sm font-semibold transition-colors duration-200",
+              <button
+                onClick={() => setBillingPeriod("yearly")}
+                className={cn(
+                `relative ${getZIndexClass("BASE_CONTENT")} h-[44px] rounded-[1.15rem] px-3.5 text-sm font-semibold transition-colors duration-200`,
                 "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background",
                 billingPeriod === "yearly"
                   ? "bg-background text-foreground shadow-[0_7px_16px_rgba(0,0,0,0.22)]"

@@ -8,6 +8,8 @@ import { supabaseServer } from '@/lib/supabase-server';
 
 interface CachedAuth {
   userId: string;
+  authorName: string | null;
+  email: string | null;
   timestamp: number;
   ttl: number;
 }
@@ -16,15 +18,21 @@ class AuthCache {
   private cache = new Map<string, CachedAuth>();
   private readonly DEFAULT_TTL = 300000; // 5 minutes
 
-  set(token: string, userId: string, ttlMs: number = this.DEFAULT_TTL): void {
+  set(
+    token: string,
+    data: { userId: string; authorName?: string | null; email?: string | null },
+    ttlMs: number = this.DEFAULT_TTL
+  ): void {
     this.cache.set(token, {
-      userId,
+      userId: data.userId,
+      authorName: data.authorName ?? null,
+      email: data.email ?? null,
       timestamp: Date.now(),
       ttl: ttlMs
     });
   }
 
-  get(token: string): string | null {
+  get(token: string): CachedAuth | null {
     const entry = this.cache.get(token);
     if (!entry) return null;
 
@@ -33,15 +41,23 @@ class AuthCache {
       return null;
     }
 
-    return entry.userId;
+    return entry;
   }
 
-  clear(): void {
-    this.cache.clear();
+  getUserId(token: string): string | null {
+    return this.get(token)?.userId ?? null;
   }
 
-  size(): number {
-    return this.cache.size;
+  getUserInfo(token: string): { userId: string; authorName: string | null; email: string | null } | null {
+    const entry = this.get(token);
+    if (!entry) {
+      return null;
+    }
+    return {
+      userId: entry.userId,
+      authorName: entry.authorName,
+      email: entry.email,
+    };
   }
 
   // Clean expired entries
@@ -59,9 +75,10 @@ class AuthCache {
 const authCache = new AuthCache();
 
 // Cleanup expired entries every 5 minutes
-setInterval(() => {
+const cleanupInterval = setInterval(() => {
   authCache.cleanup();
 }, 300000);
+cleanupInterval.unref?.();
 
 // ============================================================================
 // OPTIMIZED AUTH FUNCTIONS
@@ -78,6 +95,41 @@ function extractTokenFromRequest(request: NextRequest): string | null {
   return authHeader.substring(7); // Remove 'Bearer ' prefix
 }
 
+const inflightUserLookups = new Map<string, Promise<User | null>>();
+
+/**
+ * 使用 token 获取 Supabase User（并发去重）
+ */
+async function getUserFromToken(token: string): Promise<User | null> {
+  const inflight = inflightUserLookups.get(token);
+  if (inflight) {
+    return inflight;
+  }
+
+  const lookupPromise = (async () => {
+    const startTime = Date.now();
+    const { data: { user }, error: authError } = await supabaseServer.auth.getUser(token);
+    const authDuration = Date.now() - startTime;
+
+    if (authDuration > 1000) {
+      console.warn(`Slow Supabase auth request: ${authDuration}ms`);
+    }
+
+    if (authError || !user) {
+      return null;
+    }
+
+    return user;
+  })();
+
+  inflightUserLookups.set(token, lookupPromise);
+  try {
+    return await lookupPromise;
+  } finally {
+    inflightUserLookups.delete(token);
+  }
+}
+
 /**
  * 优化的用户身份验证函数 - 带缓存
  * @param request NextRequest对象
@@ -89,37 +141,29 @@ export async function getUserIdFromRequest(
   useCache: boolean = true
 ): Promise<string | null> {
   try {
-
     const token = extractTokenFromRequest(request);
     if (!token) {
       return null;
     }
 
-    // Check cache first if enabled
     if (useCache) {
-      const cachedUserId = authCache.get(token);
+      const cachedUserId = authCache.getUserId(token);
       if (cachedUserId) {
         return cachedUserId;
       }
     }
 
-    // Verify token with Supabase (using server-side client with anon key)
-    const startTime = Date.now();
-    const { data: { user }, error: authError } = await supabaseServer.auth.getUser(token);
-    const authDuration = Date.now() - startTime;
-
-    // Log slow auth requests
-    if (authDuration > 1000) {
-      console.warn(`Slow Supabase auth request: ${authDuration}ms`);
-    }
-
-    if (authError || !user) {
+    const user = await getUserFromToken(token);
+    if (!user) {
       return null;
     }
 
-    // Cache the result if caching is enabled
     if (useCache) {
-      authCache.set(token, user.id);
+      authCache.set(token, {
+        userId: user.id,
+        authorName: getDisplayNameFromUser(user),
+        email: user.email ?? null,
+      });
     }
 
     return user.id;
@@ -161,133 +205,39 @@ export async function getUserInfoFromRequest(
     }
 
     if (useCache) {
-      const cachedUserId = authCache.get(token);
-      if (cachedUserId) {
-        const { data: { user }, error: authError } = await supabaseServer.auth.getUser(token);
-        if (authError || !user) {
-          return null;
-        }
+      const cachedUserInfo = authCache.getUserInfo(token);
+      if (cachedUserInfo) {
         return {
-          userId: cachedUserId,
-          authorName: getDisplayNameFromUser(user),
-          email: user.email ?? null,
+          userId: cachedUserInfo.userId,
+          authorName: cachedUserInfo.authorName ?? 'Anonymous',
+          email: cachedUserInfo.email,
         };
       }
     }
 
-    const { data: { user }, error: authError } = await supabaseServer.auth.getUser(token);
-    if (authError || !user) {
+    const user = await getUserFromToken(token);
+    if (!user) {
       return null;
     }
 
+    const authorName = getDisplayNameFromUser(user);
+    const email = user.email ?? null;
+
     if (useCache) {
-      authCache.set(token, user.id);
+      authCache.set(token, {
+        userId: user.id,
+        authorName,
+        email,
+      });
     }
 
     return {
       userId: user.id,
-      authorName: getDisplayNameFromUser(user),
-      email: user.email ?? null,
+      authorName,
+      email,
     };
   } catch (error) {
     console.error('[Auth] Error extracting user info from request:', error);
     return null;
   }
-}
-
-/**
- * 超快速的用户身份验证 - 仅使用缓存
- * 用于对性能要求极高的场景
- */
-export function getUserIdFromRequestCacheOnly(request: NextRequest): string | null {
-  const token = extractTokenFromRequest(request);
-  if (!token) {
-    return null;
-  }
-  return authCache.get(token);
-}
-
-/**
- * 预加载用户身份验证到缓存
- * 可以在应用启动时或定期调用
- */
-export async function preloadAuthCache(tokens: string[]): Promise<void> {
-  const promises = tokens.map(async (token) => {
-    try {
-      const { data: { user }, error } = await supabaseServer.auth.getUser(token);
-      if (!error && user) {
-        authCache.set(token, user.id);
-      }
-    } catch (error) {
-      // Ignore errors in preload
-    }
-  });
-
-  await Promise.all(promises);
-}
-
-/**
- * 检查请求是否包含有效的用户身份验证
- * @param request NextRequest对象
- * @param useCache 是否使用缓存
- * @returns 是否验证成功
- */
-export async function isAuthenticated(
-  request: NextRequest,
-  useCache: boolean = true
-): Promise<boolean> {
-  const userId = await getUserIdFromRequest(request, useCache);
-  return userId !== null;
-}
-
-/**
- * 批量验证多个token
- */
-export async function batchVerifyTokens(tokens: string[]): Promise<Map<string, string | null>> {
-  const results = new Map<string, string | null>();
-
-  // First check cache
-  const uncachedTokens: string[] = [];
-  for (const token of tokens) {
-    const cachedUserId = authCache.get(token);
-    if (cachedUserId) {
-      results.set(token, cachedUserId);
-    } else {
-      uncachedTokens.push(token);
-    }
-  }
-
-  // Batch verify uncached tokens
-  if (uncachedTokens.length > 0) {
-    const promises = uncachedTokens.map(async (token) => {
-      try {
-        const { data: { user }, error } = await supabaseServer.auth.getUser(token);
-        if (!error && user) {
-          authCache.set(token, user.id);
-          return { token, userId: user.id };
-        }
-      } catch (error) {
-        // Ignore individual errors
-      }
-      return { token, userId: null };
-    });
-
-    const batchResults = await Promise.all(promises);
-    for (const { token, userId } of batchResults) {
-      results.set(token, userId);
-    }
-  }
-
-  return results;
-}
-
-// ============================================================================
-// CACHE STATS (for monitoring)
-// ============================================================================
-
-export function getAuthCacheStats() {
-  return {
-    size: authCache.size(),
-    hitRate: 0, // TODO: Implement hit rate tracking
-  };
 }

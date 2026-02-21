@@ -12,6 +12,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { useI18n } from "@/lib/i18n/provider";
+import { getZIndexClass } from "@/lib/z-index";
 
 export type MusicModel = "V4" | "V4_5" | "V4_5PLUS" | "V5";
 
@@ -174,7 +175,7 @@ export const ModelSelectionDialog: React.FC<ModelSelectionDialogProps> = ({
             <div className="absolute -bottom-24 -left-16 h-64 w-64 rounded-full bg-[radial-gradient(circle,rgba(99,102,241,0.2)_0%,rgba(99,102,241,0)_72%)]" />
           </div>
 
-          <DialogHeader className="relative z-[1] flex-shrink-0 px-5 pt-4 pb-3 text-left">
+          <DialogHeader className={`relative ${getZIndexClass("BASE_CONTENT")} flex-shrink-0 px-5 pt-4 pb-3 text-left`}>
           <div className="pr-8">
             <DialogTitle className="text-xl font-semibold tracking-tight">
               {t("modelSelectionDialog.title")}
@@ -185,7 +186,7 @@ export const ModelSelectionDialog: React.FC<ModelSelectionDialogProps> = ({
           </DialogDescription>
           </DialogHeader>
 
-          <div className="relative z-[1] flex-1 overflow-y-auto px-5 pb-5 pt-3.5">
+          <div className={`relative ${getZIndexClass("BASE_CONTENT")} flex-1 overflow-y-auto px-5 pb-5 pt-3.5`}>
             <div className="space-y-2.5">
             {options.map((option) => {
               const isSelected = option.value === pendingModel;
@@ -290,7 +291,7 @@ export const ModelSelectionDialog: React.FC<ModelSelectionDialogProps> = ({
             </div>
           </div>
 
-          <div className="relative z-[1] flex-shrink-0 px-5 pb-5">
+          <div className={`relative ${getZIndexClass("BASE_CONTENT")} flex-shrink-0 px-5 pb-5`}>
             <Button
               type="button"
               variant="default"

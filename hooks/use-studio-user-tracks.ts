@@ -34,18 +34,102 @@ export const useStudioUserTracks = ({
   const [isFetchingUserTracks, setIsFetchingUserTracks] = React.useState(true);
   const [userTracksSummary, setUserTracksSummary] = React.useState<StudioTracksSummary>(EMPTY_SUMMARY);
 
+  const resetUserTracksState = React.useCallback(() => {
+    setUserTracks([]);
+    setUserTracksOffset(0);
+    setHasMoreUserTracks(false);
+    setIsFetchingUserTracks(false);
+    setIsFetchingMoreUserTracks(false);
+    setUserTracksSummary(EMPTY_SUMMARY);
+  }, []);
+
+  const setFetchStateByMode = React.useCallback((mode: StudioTracksFetchMode, isFetching: boolean) => {
+    if (mode === "append") {
+      setIsFetchingMoreUserTracks(isFetching);
+      return;
+    }
+    setIsFetchingUserTracks(isFetching);
+  }, []);
+
+  const prepareInitialUserTracksLoad = React.useCallback(() => {
+    setUserTracks([]);
+    setUserTracksOffset(0);
+    setHasMoreUserTracks(true);
+  }, []);
+
+  const buildUserTracksUrl = React.useCallback((offset: number) => {
+    return `/api/user-music/${userId}?limit=${pageSize}&offset=${offset}&_t=${Date.now()}`;
+  }, [userId, pageSize]);
+
+  const getUserTracksRequestHeaders = React.useCallback(async () => {
+    const {
+      data: { session },
+    } = await supabase.auth.getSession();
+
+    return {
+      Authorization: `Bearer ${session?.access_token}`,
+      "Cache-Control": "no-cache",
+    };
+  }, []);
+
+  const normalizeUserTracksPayload = React.useCallback((payload: any) => {
+    const tracks = (Array.isArray(payload?.data?.music) ? payload.data.music : []) as any[];
+    const totalTracks = Number(payload?.data?.totalTracks ?? 0);
+    const totalDuration = Number(payload?.data?.totalDuration ?? 0);
+    return { tracks, totalTracks, totalDuration };
+  }, []);
+
+  const mergeTracksByMode = React.useCallback((
+    prevTracks: any[],
+    incomingTracks: any[],
+    mode: StudioTracksFetchMode,
+  ) => {
+    if (mode === "append") {
+      const existingIds = new Set(prevTracks.map((track: any) => track.id));
+      const merged = [...prevTracks];
+      incomingTracks.forEach((track: any) => {
+        if (!existingIds.has(track.id)) {
+          merged.push(track);
+        }
+      });
+      return merged;
+    }
+
+    if (mode === "merge") {
+      const incomingIds = new Set(incomingTracks.map((track: any) => track.id));
+      const merged = [...incomingTracks];
+      prevTracks.forEach((track: any) => {
+        if (!incomingIds.has(track.id)) {
+          merged.push(track);
+        }
+      });
+      return merged;
+    }
+
+    return incomingTracks;
+  }, []);
+
+  const updateOffsetByMode = React.useCallback((mode: StudioTracksFetchMode, tracksLength: number) => {
+    if (mode === "append") {
+      setUserTracksOffset((prevOffset) => prevOffset + tracksLength);
+      return;
+    }
+
+    if (mode === "merge") {
+      setUserTracksOffset((prevOffset) => (prevOffset === 0 ? tracksLength : prevOffset));
+      return;
+    }
+
+    setUserTracksOffset(tracksLength);
+  }, []);
+
   const fetchUserTracks = React.useCallback(async (options?: { mode?: StudioTracksFetchMode }) => {
     const mode = options?.mode ?? "reset";
     const isAppend = mode === "append";
     const isMerge = mode === "merge";
 
     if (!userId) {
-      setUserTracks([]);
-      setUserTracksOffset(0);
-      setHasMoreUserTracks(false);
-      setIsFetchingUserTracks(false);
-      setIsFetchingMoreUserTracks(false);
-      setUserTracksSummary(EMPTY_SUMMARY);
+      resetUserTracksState();
       return;
     }
 
@@ -53,54 +137,18 @@ export const useStudioUserTracks = ({
       return;
     }
 
-    if (isAppend) {
-      setIsFetchingMoreUserTracks(true);
-    } else {
-      setIsFetchingUserTracks(true);
-    }
+    setFetchStateByMode(mode, true);
 
     try {
-      const { data: { session } } = await supabase.auth.getSession();
-      const timestamp = Date.now();
       const offset = isAppend ? userTracksOffset : 0;
-      const response = await fetch(`/api/user-music/${userId}?limit=${pageSize}&offset=${offset}&_t=${timestamp}`, {
-        headers: {
-          Authorization: `Bearer ${session?.access_token}`,
-          "Cache-Control": "no-cache",
-        },
-      });
+      const headers = await getUserTracksRequestHeaders();
+      const response = await fetch(buildUserTracksUrl(offset), { headers });
 
       if (response.ok) {
-        const data = await response.json();
-        const tracks = (Array.isArray(data.data?.music) ? data.data.music : []) as any[];
-        const totalTracks = Number(data.data?.totalTracks ?? 0);
-        const totalDuration = Number(data.data?.totalDuration ?? 0);
+        const payload = await response.json();
+        const { tracks, totalTracks, totalDuration } = normalizeUserTracksPayload(payload);
 
-        setUserTracks((prevTracks) => {
-          if (isAppend) {
-            const existingIds = new Set(prevTracks.map((track: any) => track.id));
-            const merged = [...prevTracks];
-            tracks.forEach((track: any) => {
-              if (!existingIds.has(track.id)) {
-                merged.push(track);
-              }
-            });
-            return merged;
-          }
-
-          if (isMerge) {
-            const incomingIds = new Set(tracks.map((track: any) => track.id));
-            const merged = [...tracks];
-            prevTracks.forEach((track: any) => {
-              if (!incomingIds.has(track.id)) {
-                merged.push(track);
-              }
-            });
-            return merged;
-          }
-
-          return tracks;
-        });
+        setUserTracks((prevTracks) => mergeTracksByMode(prevTracks, tracks, mode));
 
         if (Number.isFinite(totalTracks) && Number.isFinite(totalDuration)) {
           setUserTracksSummary({
@@ -109,13 +157,7 @@ export const useStudioUserTracks = ({
           });
         }
 
-        if (isAppend) {
-          setUserTracksOffset((prevOffset) => prevOffset + tracks.length);
-        } else if (isMerge) {
-          setUserTracksOffset((prevOffset) => (prevOffset === 0 ? tracks.length : prevOffset));
-        } else {
-          setUserTracksOffset(tracks.length);
-        }
+        updateOffsetByMode(mode, tracks.length);
 
         if (!isMerge) {
           setHasMoreUserTracks(tracks.length === pageSize);
@@ -129,13 +171,23 @@ export const useStudioUserTracks = ({
     } catch (error) {
       console.error("Error fetching user tracks:", error);
     } finally {
-      if (isAppend) {
-        setIsFetchingMoreUserTracks(false);
-      } else {
-        setIsFetchingUserTracks(false);
-      }
+      setFetchStateByMode(mode, false);
     }
-  }, [userId, pageSize, userTracksOffset, isFetchingMoreUserTracks, isFetchingUserTracks, hasMoreUserTracks]);
+  }, [
+    userId,
+    pageSize,
+    userTracksOffset,
+    isFetchingMoreUserTracks,
+    isFetchingUserTracks,
+    hasMoreUserTracks,
+    buildUserTracksUrl,
+    getUserTracksRequestHeaders,
+    normalizeUserTracksPayload,
+    mergeTracksByMode,
+    updateOffsetByMode,
+    resetUserTracksState,
+    setFetchStateByMode,
+  ]);
 
   const fetchUserTracksRef = React.useRef(fetchUserTracks);
   React.useEffect(() => {
@@ -153,19 +205,12 @@ export const useStudioUserTracks = ({
   React.useEffect(() => {
     if (isAuthLoading) return;
     if (userId) {
-      setUserTracks([]);
-      setUserTracksOffset(0);
-      setHasMoreUserTracks(true);
+      prepareInitialUserTracksLoad();
       void fetchUserTracksRef.current({ mode: "reset" });
     } else {
-      setUserTracks([]);
-      setUserTracksOffset(0);
-      setHasMoreUserTracks(false);
-      setIsFetchingMoreUserTracks(false);
-      setIsFetchingUserTracks(false);
-      setUserTracksSummary(EMPTY_SUMMARY);
+      resetUserTracksState();
     }
-  }, [userId, isAuthLoading]);
+  }, [userId, isAuthLoading, prepareInitialUserTracksLoad, resetUserTracksState]);
 
   return {
     userTracks,

@@ -10,6 +10,7 @@ import { downloadFromUrl, uploadAudioFile, uploadCoverImage } from '@/lib/r2-sto
 import { addUserCredits } from '@/lib/user-db';
 import { createGenerationError } from '@/lib/generation-errors-db';
 import { getFeatureCredits } from '@/lib/credits-config';
+import { resolveLyricsTitle } from '@/lib/lyrics-title';
 
 // Cache for processed tasks to handle idempotency
 const processedTasks = new Set<string>();
@@ -161,8 +162,7 @@ async function processCallbackAsync(callbackData: any, callbackId: string) {
       const firstTrack = tracks[0];
       if (firstTrack && firstTrack.prompt) {
         try {
-          // 使用用户输入的 title（从 music 表获取）
-          const lyricsTitle = musicRecord.title || 'Untitled';
+          const lyricsTitle = resolveLyricsTitle(musicRecord.title, firstTrack.prompt);
 
           // 检查是否已存在 lyrics 记录
           const existingLyricsQuery = await query(

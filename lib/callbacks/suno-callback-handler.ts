@@ -8,6 +8,7 @@ import { query } from '@/lib/db-query-builder';
 import { getMusicCredits, getFeatureCredits, FeatureKey } from '@/lib/credits-config';
 import { MusicType } from '@/types/music';
 import { submitExplorePageToIndexNow } from '@/lib/indexnow';
+import { resolveLyricsTitle } from '@/lib/lyrics-title';
 
 // Cache for processed tasks to handle idempotency
 const processedTasks = new Map<string, number>();
@@ -444,12 +445,13 @@ const isUploadDerivedMusicType = (musicType: MusicType | null | undefined) => {
 
 const upsertLyrics = async (
   musicId: string,
-  title: string,
+  title: string | null | undefined,
   content: string,
   callbackId: string
 ) => {
   const normalized = (content || '').trim();
   if (!normalized) return;
+  const lyricsTitle = resolveLyricsTitle(title, normalized);
   try {
     const existing = await query(
       'SELECT id, content FROM lyrics WHERE music_id = $1',
@@ -462,12 +464,12 @@ const upsertLyrics = async (
       }
       await query(
         'UPDATE lyrics SET title = $1, content = $2 WHERE music_id = $3',
-        [title, normalized, musicId]
+        [lyricsTitle, normalized, musicId]
       );
     } else {
       await query(
         'INSERT INTO lyrics (music_id, title, content) VALUES ($1, $2, $3)',
-        [musicId, title, normalized]
+        [musicId, lyricsTitle, normalized]
       );
     }
   } catch (lyricsError) {
@@ -747,12 +749,11 @@ async function processCallbackAsync(callback: NormalizedKieCallback, callbackId:
         const shouldUsePromptFallback = !(isUploadDerivedMusicType(musicType));
         const primaryPrompt = typeof primaryTrack.prompt === 'string' ? primaryTrack.prompt : '';
         const lyricsContent = primaryPrompt || (shouldUsePromptFallback ? promptFallback : '') || '';
-        // 对于upload类型，使用existingTitle；对于普通类型，使用extractedTitle
-        const titleForLyrics = clampTitle(
+        // 对于 upload 类型或用户自定义标题，优先使用现有标题；否则使用回调标题并允许空值回退到歌词首句。
+        const titleForLyrics =
           (isUploadDerivedMusicType(musicType) || hasUserProvidedTitle)
-            ? (trimmedExistingTitle || existingTitle)
-            : extractedTitle
-        );
+            ? (trimmedExistingTitle || existingTitle || '')
+            : (typeof primaryTrack.title === 'string' ? primaryTrack.title : '');
 
         if (lyricsContent.trim().length > 0) {
           await upsertLyrics(musicGenerationId, titleForLyrics, lyricsContent, callbackId);
@@ -907,7 +908,7 @@ async function processCallbackAsync(callback: NormalizedKieCallback, callbackId:
           if (!(isUploadDerivedMusicType(musicType))) {
             await upsertLyrics(
               musicGenerationId,
-              clampTitle(finalTitle, 'Untitled'),
+              finalTitle,
               promptFallback,
               callbackId
             );
@@ -1106,7 +1107,7 @@ async function processCallbackAsync(callback: NormalizedKieCallback, callbackId:
 
         await upsertLyrics(
           musicGenerationId,
-          clampTitle(finalTitle, 'Untitled'),
+          finalTitle,
           promptFallback,
           callbackId
         );

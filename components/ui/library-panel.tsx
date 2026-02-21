@@ -66,6 +66,7 @@ import { EditMusicInfoDialog } from '@/components/ui/edit-music-info-dialog';
 import { Mp4BrandingDialog } from '@/components/ui/mp4-branding-dialog';
 import { useI18n } from '@/lib/i18n/provider';
 import { withLocalePrefix } from '@/lib/i18n/routing';
+import { getZIndexClass } from '@/lib/z-index';
 
 interface LibraryPanelProps {
   tracks: LibraryTrack[];
@@ -219,6 +220,20 @@ export const LibraryPanel = ({
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const shareResetTimeout = useRef<number | null>(null);
 
+  const getAccessToken = useCallback(async () => {
+    const { data: { session } } = await supabase.auth.getSession();
+    return session?.access_token ?? null;
+  }, []);
+
+  const getAuthHeaders = useCallback((accessToken: string) => ({
+    'Authorization': `Bearer ${accessToken}`
+  }), []);
+
+  const getJsonAuthHeaders = useCallback((accessToken: string) => ({
+    'Content-Type': 'application/json',
+    ...getAuthHeaders(accessToken)
+  }), [getAuthHeaders]);
+
   // Filter tracks based on active filter + search query
   const filteredTracks = tracks.filter(track => {
     if (track.isDeleted) return false;
@@ -360,9 +375,8 @@ export const LibraryPanel = ({
         }
 
         try {
-          // 获取 session token
-          const { data: { session } } = await supabase.auth.getSession();
-          if (!session?.access_token) {
+          const accessToken = await getAccessToken();
+          if (!accessToken) {
             toast.error(t("toasts.authRequired"), {
               id: downloadToast,
               description: t("download.pleaseLogInDownloadTracks")
@@ -372,9 +386,7 @@ export const LibraryPanel = ({
 
           // 通过 API 代理下载封面
           const response = await fetch(`/api/download-cover?trackId=${track.id}`, {
-            headers: {
-              'Authorization': `Bearer ${session.access_token}`
-            }
+            headers: getAuthHeaders(accessToken)
           });
 
           if (!response.ok) {
@@ -422,15 +434,13 @@ export const LibraryPanel = ({
       }
 
       // MP3格式直接下载
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session?.access_token) {
+      const accessToken = await getAccessToken();
+      if (!accessToken) {
         throw new Error(t("trackDetail.authenticationRequired"));
       }
 
       const response = await fetch(`/api/download-track?trackId=${track.id}&format=${format}`, {
-        headers: {
-          'Authorization': `Bearer ${session.access_token}`
-        }
+        headers: getAuthHeaders(accessToken)
       });
       
       if (!response.ok) {
@@ -514,15 +524,13 @@ export const LibraryPanel = ({
 
     const pollForWav = async (): Promise<void> => {
       try {
-        const { data: { session } } = await supabase.auth.getSession();
-        if (!session?.access_token) {
+        const accessToken = await getAccessToken();
+        if (!accessToken) {
           throw new Error(t("trackDetail.authenticationRequired"));
         }
 
         const response = await fetch(`/api/download-track?trackId=${track.id}&format=wav`, {
-          headers: {
-            'Authorization': `Bearer ${session.access_token}`
-          }
+          headers: getAuthHeaders(accessToken)
         });
         const elapsedTime = Date.now() - startTime;
         
@@ -656,15 +664,13 @@ export const LibraryPanel = ({
 
     const pollForMp4 = async (): Promise<void> => {
       try {
-        const { data: { session } } = await supabase.auth.getSession();
-        if (!session?.access_token) {
+        const accessToken = await getAccessToken();
+        if (!accessToken) {
           throw new Error(t("trackDetail.authenticationRequired"));
         }
 
         const response = await fetch(mp4RequestUrl, {
-          headers: {
-            'Authorization': `Bearer ${session.access_token}`
-          }
+          headers: getAuthHeaders(accessToken)
         });
         const elapsedTime = Date.now() - startTime;
 
@@ -759,8 +765,8 @@ export const LibraryPanel = ({
     }
 
     try {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session?.access_token) {
+      const accessToken = await getAccessToken();
+      if (!accessToken) {
         toast(t("toasts.pleaseLogInPublishTracks"));
         setPublishDialogOpen(false);
         setTrackToPublish(null);
@@ -769,10 +775,7 @@ export const LibraryPanel = ({
 
       const response = await fetch('/api/toggle-track-publish', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${session.access_token}`
-        },
+        headers: getJsonAuthHeaders(accessToken),
         body: JSON.stringify({
           trackId: trackToPublish.id,
           isPublished: !trackToPublish.isPublished
@@ -815,19 +818,15 @@ export const LibraryPanel = ({
     if (!trackToDelete) return;
 
     try {
-      // 获取当前session的access token
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session?.access_token) {
+      const accessToken = await getAccessToken();
+      if (!accessToken) {
         toast(t("toasts.pleaseLogInDeleteTracks"));
         return;
       }
 
       const response = await fetch(`/api/delete-track/${trackToDelete.id}`, {
         method: 'DELETE',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${session.access_token}`
-        },
+        headers: getJsonAuthHeaders(accessToken),
       });
 
       const data = await response.json();
@@ -886,8 +885,8 @@ export const LibraryPanel = ({
     }
 
     try {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session?.access_token) {
+      const accessToken = await getAccessToken();
+      if (!accessToken) {
         toast(t("toasts.pleaseLogInEditTrackInfo"));
         throw new Error(t("trackDetail.authenticationRequired"));
       }
@@ -903,10 +902,7 @@ export const LibraryPanel = ({
 
       const response = await fetch('/api/update-track-info', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${session.access_token}`
-        },
+        headers: getJsonAuthHeaders(accessToken),
         body: JSON.stringify(body)
       });
 
@@ -989,7 +985,7 @@ export const LibraryPanel = ({
                 
                 {/* User Menu Dropdown */}
                 {userMenuOpen && (
-                  <div className="absolute top-full right-0 mt-2 w-48 bg-background border border-border/30 rounded-lg shadow-lg z-[60]">
+                  <div className={`absolute top-full right-0 mt-2 w-48 bg-background border border-border/30 rounded-lg shadow-lg ${getZIndexClass('DROPDOWN')}`}>
                     <div className="flex flex-col gap-1 p-2">
                       <div className="px-3 py-2 border-b border-border/20 mb-2">
                         <div className="text-sm font-medium text-foreground truncate">

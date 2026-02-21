@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { supabaseServer } from '@/lib/supabase-server';
 import { creemUrl } from '@/lib/creem';
+import { getUserInfoFromRequest } from '@/lib/auth';
 
 export const dynamic = 'force-dynamic';
 
@@ -17,20 +17,8 @@ export async function POST(request: NextRequest) {
     }
 
     // 验证用户身份
-    const authHeader = request.headers.get('authorization');
-    if (!authHeader || !authHeader.startsWith('Bearer ')) {
-      return NextResponse.json(
-        { error: 'Authentication required' },
-        { status: 401 }
-      );
-    }
-
-    const token = authHeader.split(' ')[1];
-
-    // 验证token (使用服务端 Supabase client)
-    const { data: { user }, error } = await supabaseServer.auth.getUser(token);
-
-    if (error || !user || user.id !== userId) {
+    const userInfo = await getUserInfoFromRequest(request);
+    if (!userInfo || userInfo.userId !== userId) {
       return NextResponse.json(
         { error: 'Invalid user' },
         { status: 401 }

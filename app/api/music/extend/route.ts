@@ -10,6 +10,7 @@ import { DEFAULT_NEGATIVE_TAGS } from '@/lib/music-generation-config';
 import { consumeUserCredit } from '@/lib/user-db';
 import { createExtendMusicTask, getOriginalTrackInfo } from '@/features/music-upload/lib/extend-music-db';
 import { hasFeaturePermission } from '@/lib/feature-permissions';
+import { resolveLyricsTitle } from '@/lib/lyrics-title';
 import {
   ExtendMusicAPIRequest,
   ExtendMusicAPIResponse,
@@ -360,6 +361,7 @@ export async function POST(request: NextRequest) {
       if (prompt && prompt.trim().length > 0) {
         try {
           const { query } = await import('@/lib/db-query-builder');
+          const lyricsTitle = resolveLyricsTitle(extendTitle, prompt);
           const existingLyrics = await query(
             'SELECT id FROM lyrics WHERE music_id = $1::uuid',
             [musicId]
@@ -367,12 +369,12 @@ export async function POST(request: NextRequest) {
           if (existingLyrics.rows.length > 0) {
             await query(
               'UPDATE lyrics SET title = $1, content = $2 WHERE music_id = $3::uuid',
-              [extendTitle, prompt, musicId]
+              [lyricsTitle, prompt, musicId]
             );
           } else {
             await query(
               'INSERT INTO lyrics (music_id, title, content) VALUES ($1::uuid, $2, $3)',
-              [musicId, extendTitle, prompt]
+              [musicId, lyricsTitle, prompt]
             );
           }
         } catch (lyricsError) {

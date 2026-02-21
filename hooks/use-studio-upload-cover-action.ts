@@ -75,6 +75,48 @@ export const useStudioUploadCoverAction = ({
   openGenerationConfirm,
 }: UseStudioUploadCoverActionParams) => {
   const { t } = useI18n();
+
+  const appendUploadTuningToFormData = React.useCallback((
+    formData: FormData,
+    options?: UploadCoverOptions,
+  ) => {
+    if (typeof options?.styleWeight === "number") {
+      formData.append("styleWeight", options.styleWeight.toString());
+    }
+    if (typeof options?.weirdnessConstraint === "number") {
+      formData.append("weirdnessConstraint", options.weirdnessConstraint.toString());
+    }
+    if (typeof options?.audioWeight === "number") {
+      formData.append("audioWeight", options.audioWeight.toString());
+    }
+  }, []);
+
+  const handleUploadFailure = React.useCallback((
+    removePlaceholderTracks: () => void,
+    status?: number,
+    errorMessage?: string,
+  ) => {
+    removePlaceholderTracks();
+    if (status === 402) {
+      toast.error(errorMessage || t("toasts.insufficientCreditsTopUp"));
+      return;
+    }
+    toast.error(errorMessage || t("toasts.uploadFailedTryAgain"));
+  }, [t]);
+
+  const getAccessTokenOrThrow = React.useCallback(async () => {
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session?.access_token) {
+      throw new Error(t("toasts.authenticationExpiredSignInAgain"));
+    }
+
+    return session.access_token;
+  }, [t]);
+
+  const getAuthHeaders = React.useCallback((accessToken: string) => ({
+    Authorization: `Bearer ${accessToken}`,
+  }), []);
+
   return React.useCallback(async (options?: UploadCoverOptions) => {
     if (!userId) {
       setIsAuthModalOpen(true);
@@ -139,49 +181,31 @@ export const useStudioUploadCoverAction = ({
     const placeholderTitle = trimmedTitle || (uploadFile?.name ? uploadFile.name.replace(/\.[^/.]+$/, "") : t("studioTracks.untitledTrack"));
     const generationMode = useCustomUploadParams ? "custom" : "simple";
     const placeholderMusicType: MusicType = isExtendUploadRequest ? "upload_extend" : "upload_cover";
+    const createPlaceholderTrack = (index: number): MusicGenerationTrack => ({
+      id: `${placeholderGenerationId}_placeholder_${index}`,
+      generationId: placeholderGenerationId,
+      sunoTrackId: null,
+      title: placeholderTitle,
+      audioUrl: "",
+      streamAudioUrl: "",
+      duration: undefined,
+      coverImage: undefined,
+      tags: placeholderTags,
+      prompt: placeholderPrompt,
+      lyrics: "",
+      model: effectiveModel,
+      createdAt: new Date().toISOString(),
+      isGenerating: true,
+      isCompleted: false,
+      isPlaceholder: true,
+      generationMode,
+      musicType: placeholderMusicType,
+    });
 
     flushSync(() => {
       updateTracks((prevTracks) => ([
-        {
-          id: `${placeholderGenerationId}_placeholder_0`,
-          generationId: placeholderGenerationId,
-          sunoTrackId: null,
-          title: placeholderTitle,
-          audioUrl: "",
-          streamAudioUrl: "",
-          duration: undefined,
-          coverImage: undefined,
-          tags: placeholderTags,
-          prompt: placeholderPrompt,
-          lyrics: "",
-          model: effectiveModel,
-          createdAt: new Date().toISOString(),
-          isGenerating: true,
-          isCompleted: false,
-          isPlaceholder: true,
-          generationMode,
-          musicType: placeholderMusicType,
-        },
-        {
-          id: `${placeholderGenerationId}_placeholder_1`,
-          generationId: placeholderGenerationId,
-          sunoTrackId: null,
-          title: placeholderTitle,
-          audioUrl: "",
-          streamAudioUrl: "",
-          duration: undefined,
-          coverImage: undefined,
-          tags: placeholderTags,
-          prompt: placeholderPrompt,
-          lyrics: "",
-          model: effectiveModel,
-          createdAt: new Date().toISOString(),
-          isGenerating: true,
-          isCompleted: false,
-          isPlaceholder: true,
-          generationMode,
-          musicType: placeholderMusicType,
-        },
+        createPlaceholderTrack(0),
+        createPlaceholderTrack(1),
         ...prevTracks,
       ]));
     });
@@ -193,12 +217,7 @@ export const useStudioUploadCoverAction = ({
     };
 
     try {
-      const { data: { session } } = await supabase.auth.getSession();
-
-      if (!session?.access_token) {
-        removePlaceholderTracks();
-        throw new Error(t("toasts.authenticationExpiredSignInAgain"));
-      }
+      const accessToken = await getAccessTokenOrThrow();
 
       const formData = new FormData();
       const limits = getModelLimits(effectiveModel);
@@ -229,35 +248,20 @@ export const useStudioUploadCoverAction = ({
           formData.append("personaId", selectedPersonaId);
           formData.append("personaModel", selectedPersonaModel);
         }
-        if (typeof options?.styleWeight === "number") {
-          formData.append("styleWeight", options.styleWeight.toString());
-        }
-        if (typeof options?.weirdnessConstraint === "number") {
-          formData.append("weirdnessConstraint", options.weirdnessConstraint.toString());
-        }
-        if (typeof options?.audioWeight === "number") {
-          formData.append("audioWeight", options.audioWeight.toString());
-        }
+        appendUploadTuningToFormData(formData, options);
       } else if (trimmedSimplePrompt) {
         formData.append("prompt", trimmedSimplePrompt.slice(0, 500));
       }
 
       const response = await fetch("/api/music/upload", {
         method: "POST",
-        headers: {
-          Authorization: `Bearer ${session.access_token}`,
-        },
+        headers: getAuthHeaders(accessToken),
         body: formData,
       });
 
       const result = await response.json();
       if (!response.ok || !result?.success) {
-        removePlaceholderTracks();
-        if (response.status === 402) {
-          toast.error(result?.error || t("toasts.insufficientCreditsTopUp"));
-        } else {
-          toast.error(result?.error || t("toasts.uploadFailedTryAgain"));
-        }
+        handleUploadFailure(removePlaceholderTracks, response.status, result?.error);
         return false;
       }
 
@@ -292,11 +296,15 @@ export const useStudioUploadCoverAction = ({
     selectedPersonaId,
     selectedPersonaModel,
     isPublished,
+    appendUploadTuningToFormData,
+    handleUploadFailure,
     getModelLimits,
     refreshCredits,
     updateTracks,
     trackExistingTask,
     setIsAuthModalOpen,
+    getAccessTokenOrThrow,
+    getAuthHeaders,
     clearSelectedStudioTrack,
     openGenerationConfirm,
     t,

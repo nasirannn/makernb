@@ -14,6 +14,7 @@ import {
 import { handleKieCallback, NormalizedKieCallback } from '@/lib/callbacks/suno-callback-handler';
 import { query } from '@/lib/db-query-builder';
 import { downloadFromUrl, uploadAudioFile, uploadCoverImage } from '@/lib/r2-storage';
+import { resolveLyricsTitle } from '@/lib/lyrics-title';
 
 // 强制动态渲染
 export const dynamic = 'force-dynamic';
@@ -318,6 +319,7 @@ async function processCallbackAsync(
       if (lyricsContent && lyricsContent.trim() !== '') {
         try {
           console.log(`[EXTEND-CALLBACK-${callbackId}] Creating lyrics record`);
+          const lyricsTitle = resolveLyricsTitle(firstTrack.title || musicTitle, lyricsContent);
           
           // 先检查是否已存在歌词记录
           const existingLyricsQuery = await query(
@@ -331,7 +333,7 @@ async function processCallbackAsync(
               // 更新已存在但为空的歌词记录
               await query(
                 `UPDATE lyrics SET title = $1, content = $2 WHERE music_id = $3::uuid`,
-                [firstTrack.title || musicTitle, lyricsContent, musicId]
+                [lyricsTitle, lyricsContent, musicId]
               );
               console.log(`[EXTEND-CALLBACK-${callbackId}] Lyrics updated for extended music: ${musicId}`);
             } else {
@@ -342,7 +344,7 @@ async function processCallbackAsync(
             await query(
               `INSERT INTO lyrics (music_id, title, content)
                VALUES ($1::uuid, $2, $3)`,
-              [musicId, firstTrack.title || musicTitle, lyricsContent]
+              [musicId, lyricsTitle, lyricsContent]
             );
             console.log(`[EXTEND-CALLBACK-${callbackId}] Lyrics created for extended music: ${musicId}`);
           }

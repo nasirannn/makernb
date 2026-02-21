@@ -1,1 +1,1 @@
-export { default } from "../../lyrics-generator/page";
+export { default } from "../../(studio-features)/lyrics-generator/page";

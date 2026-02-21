@@ -3,6 +3,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import WaveSurfer from 'wavesurfer.js';
 import { Play, Pause, GripVertical } from 'lucide-react';
+import { getZIndexClass } from '@/lib/z-index';
 
 interface WaveformPlayerProps {
   audioUrl?: string | null;
@@ -660,7 +661,7 @@ export const WaveformPlayer = React.forwardRef<WaveformPlayerHandle, WaveformPla
                   )}
                   {showSelector && selectorOverlay && effectiveDuration > 0 && (
                     <div
-                      className="absolute inset-0 z-10 cursor-pointer select-none"
+                      className={`absolute inset-0 ${getZIndexClass('MAIN_CONTENT')} cursor-pointer select-none`}
                       style={{ userSelect: 'none' }}
                     >
                       <div
@@ -793,7 +794,7 @@ export const WaveformPlayer = React.forwardRef<WaveformPlayerHandle, WaveformPla
 
             {/* 开始手柄 */}
             <div
-              className="absolute top-1/2 -translate-y-1/2 -translate-x-1/2 cursor-ew-resize z-10 group"
+              className={`absolute top-1/2 -translate-y-1/2 -translate-x-1/2 cursor-ew-resize ${getZIndexClass('MAIN_CONTENT')} group`}
               style={{ left: `${(selectorStart / effectiveDuration) * 100}%` }}
               onMouseDown={handleStartHandleMouseDown}
             >
@@ -816,7 +817,7 @@ export const WaveformPlayer = React.forwardRef<WaveformPlayerHandle, WaveformPla
             {/* 结束手柄 */}
             {showSelectorEndHandle && (
               <div
-                className="absolute top-1/2 -translate-y-1/2 -translate-x-1/2 cursor-ew-resize z-10 group"
+                className={`absolute top-1/2 -translate-y-1/2 -translate-x-1/2 cursor-ew-resize ${getZIndexClass('MAIN_CONTENT')} group`}
                 style={{ left: `${(selectorEnd / effectiveDuration) * 100}%` }}
                 onMouseDown={handleEndHandleMouseDown}
               >

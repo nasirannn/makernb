@@ -12,7 +12,6 @@ import { useCredits } from "@/contexts/CreditsContext";
 import { useAudioPlayer } from "@/hooks/use-audio-player";
 import {
     useStudioGenerationActions,
-    type GenerationStartOptions,
 } from "@/hooks/use-studio-generation-actions";
 import { useStudioTrackDownload } from "@/hooks/use-studio-track-download";
 import { useStudioInlineTrackPanel } from "@/hooks/use-studio-inline-track-panel";
@@ -56,30 +55,20 @@ import { Music } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 import { toast } from "sonner";
 import type { ExtendSourceTrack } from "@/types/extend-track-source";
-import type { FeatureCreatePanelProps } from "@/components/ui/feature-panels/music-generator-panel";
+import type {
+    GenerationStartOptions,
+    StudioFeaturePanelProps,
+    StudioFeaturePanelStateProps,
+} from "@/types/studio-feature-panel";
 import {
     getStudioFeaturePath,
     type StudioFeatureKey,
 } from "@/lib/studio-features";
 import { useI18n } from "@/lib/i18n/provider";
 import { withLocalePrefix } from "@/lib/i18n/routing";
+import { getZIndexClass } from "@/lib/z-index";
 
 const USER_TRACKS_PAGE_SIZE = 10;
-type StudioFeaturePanelStateProps = Omit<
-    FeatureCreatePanelProps,
-    | "panelOpen"
-    | "setPanelOpen"
-    | "hasPlayer"
-    | "showModeTabs"
-    | "lockModeSelector"
-    | "showUploadAction"
-    | "allowedUploadIntents"
-    | "forcedUploadIntent"
-    | "forcedTrackUploadMode"
-    | "allowMashupAction"
->;
-
-type StudioFeaturePanelProps = StudioFeaturePanelStateProps & Pick<FeatureCreatePanelProps, "panelOpen" | "setPanelOpen" | "hasPlayer">;
 
 type StudioContentProps = {
     feature: StudioFeatureKey;
@@ -193,10 +182,83 @@ const StudioContent = ({ feature, FeaturePanel, panelMode, lockPanelMode }: Stud
         const value = searchParams?.get("prompt");
         return typeof value === "string" ? value.trim() : "";
     }, [searchParams]);
+    const modeFromQuery = React.useMemo(() => {
+        const value = searchParams?.get("mode");
+        return typeof value === "string" ? value.trim().toLowerCase() : "";
+    }, [searchParams]);
+    const tabFromQuery = React.useMemo(() => {
+        const value = searchParams?.get("tab");
+        return typeof value === "string" ? value.trim().toLowerCase() : "";
+    }, [searchParams]);
+    const shouldForceLyricsModeFromQuery = React.useMemo(() => (
+        modeFromQuery === "custom" || modeFromQuery === "lyrics" || tabFromQuery === "lyrics"
+    ), [modeFromQuery, tabFromQuery]);
+    const lyricsPrefillKeyFromQuery = React.useMemo(() => {
+        const value = searchParams?.get("lyricsPrefillKey");
+        return typeof value === "string" ? value.trim() : "";
+    }, [searchParams]);
+    const [lyricsPrefillPayload, setLyricsPrefillPayload] = React.useState<{ lyrics: string; title: string } | null>(null);
+    const lyricsFromQuery = React.useMemo(() => {
+        if (lyricsPrefillPayload?.lyrics) {
+            return lyricsPrefillPayload.lyrics.trim();
+        }
+        const value = searchParams?.get("lyrics");
+        return typeof value === "string" ? value.trim() : "";
+    }, [lyricsPrefillPayload, searchParams]);
+    const titleFromLyricsQuery = React.useMemo(() => {
+        if (lyricsPrefillPayload?.title) {
+            return lyricsPrefillPayload.title.trim();
+        }
+        const value = searchParams?.get("title");
+        return typeof value === "string" ? value.trim() : "";
+    }, [lyricsPrefillPayload, searchParams]);
+    const lyricsPrefillSignature = React.useMemo(() => {
+        if (lyricsPrefillKeyFromQuery) {
+            return `key:${lyricsPrefillKeyFromQuery}`;
+        }
+        if (!lyricsFromQuery) {
+            return "";
+        }
+        return `inline:${lyricsFromQuery}\n\ntitle:${titleFromLyricsQuery}`;
+    }, [lyricsPrefillKeyFromQuery, lyricsFromQuery, titleFromLyricsQuery]);
     const appliedPromptFromQueryRef = React.useRef<string | null>(null);
+    const appliedLyricsPrefillSignatureRef = React.useRef<string | null>(null);
 
     React.useEffect(() => {
-        if (feature !== "music-generator" || !promptFromQuery) {
+        if (!lyricsPrefillKeyFromQuery || typeof window === "undefined") {
+            setLyricsPrefillPayload(null);
+            return;
+        }
+        try {
+            const rawPayload = window.sessionStorage.getItem(lyricsPrefillKeyFromQuery);
+            if (!rawPayload) {
+                return;
+            }
+            const parsed = JSON.parse(rawPayload) as { lyrics?: unknown; title?: unknown };
+            const lyrics = typeof parsed?.lyrics === "string" ? parsed.lyrics.trim() : "";
+            if (!lyrics) {
+                return;
+            }
+            const title = typeof parsed?.title === "string" ? parsed.title.trim() : "";
+            setLyricsPrefillPayload({ lyrics, title });
+            window.sessionStorage.removeItem(lyricsPrefillKeyFromQuery);
+        } catch (error) {
+            console.warn("Failed to parse lyrics prefill payload:", error);
+        }
+    }, [lyricsPrefillKeyFromQuery]);
+
+    React.useEffect(() => {
+        if (feature !== "music-generator" || lockPanelMode) {
+            return;
+        }
+        if (!shouldForceLyricsModeFromQuery) {
+            return;
+        }
+        setMusicGeneratorMode("custom");
+    }, [feature, lockPanelMode, shouldForceLyricsModeFromQuery]);
+
+    React.useEffect(() => {
+        if (feature !== "music-generator" || !promptFromQuery || shouldForceLyricsModeFromQuery) {
             return;
         }
         if (appliedPromptFromQueryRef.current === promptFromQuery) {
@@ -208,7 +270,39 @@ const StudioContent = ({ feature, FeaturePanel, panelMode, lockPanelMode }: Stud
             setMusicGeneratorMode("simple");
         }
         appliedPromptFromQueryRef.current = promptFromQuery;
-    }, [feature, lockPanelMode, promptFromQuery, setSimplePrompt]);
+    }, [feature, lockPanelMode, promptFromQuery, setSimplePrompt, shouldForceLyricsModeFromQuery]);
+
+    React.useEffect(() => {
+        if (feature !== "music-generator" || !lyricsFromQuery) {
+            return;
+        }
+        if (appliedLyricsPrefillSignatureRef.current === lyricsPrefillSignature) {
+            return;
+        }
+
+        setCustomLyrics(lyricsFromQuery);
+        if (titleFromLyricsQuery) {
+            setSongTitle(titleFromLyricsQuery.slice(0, 80));
+        }
+        setPanelOpen(true);
+        if (typeof window !== "undefined" && window.innerWidth < 768) {
+            setMobileCreateOpen(true);
+        }
+        if (!lockPanelMode) {
+            setMusicGeneratorMode("custom");
+        }
+        setInstrumentalMode(false);
+        appliedLyricsPrefillSignatureRef.current = lyricsPrefillSignature;
+    }, [
+        feature,
+        lockPanelMode,
+        lyricsFromQuery,
+        lyricsPrefillSignature,
+        setCustomLyrics,
+        setInstrumentalMode,
+        setSongTitle,
+        titleFromLyricsQuery,
+    ]);
 
     const activeFeatureMode = React.useMemo<"simple" | "custom">(() => {
         if (feature === "music-generator" && !lockPanelMode) {
@@ -649,6 +743,25 @@ const StudioContent = ({ feature, FeaturePanel, panelMode, lockPanelMode }: Stud
         setShowLyricsDialog(true);
     }, [user?.id, setShowLyricsDialog]);
 
+    const getAccessTokenOrThrow = React.useCallback(async () => {
+        const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+
+        if (sessionError) {
+            throw new Error(t("toasts.failedGetSessionTryLogInAgain"));
+        }
+
+        if (!session?.access_token) {
+            throw new Error(t("toasts.pleaseLogInToContinue"));
+        }
+
+        return session.access_token;
+    }, [t]);
+
+    const getJsonAuthHeaders = React.useCallback((accessToken: string) => ({
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${accessToken}`,
+    }), []);
+
     const handleWriteNextLyricLine = React.useCallback(async () => {
         if (!user?.id) {
             setIsAuthModalOpen(true);
@@ -664,22 +777,11 @@ const StudioContent = ({ feature, FeaturePanel, panelMode, lockPanelMode }: Stud
         setIsWritingNextLyricLine(true);
 
         try {
-            const { data: { session }, error: sessionError } = await supabase.auth.getSession();
-
-            if (sessionError) {
-                throw new Error(t("toasts.failedGetSessionTryLogInAgain"));
-            }
-
-            if (!session?.access_token) {
-                throw new Error(t("toasts.pleaseLogInToContinue"));
-            }
+            const accessToken = await getAccessTokenOrThrow();
 
             const response = await fetch('/api/lyrics/next-line', {
                 method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    Authorization: `Bearer ${session.access_token}`,
-                },
+                headers: getJsonAuthHeaders(accessToken),
                 body: JSON.stringify({
                     lyrics: trimmedLyrics,
                 }),
@@ -711,7 +813,7 @@ const StudioContent = ({ feature, FeaturePanel, panelMode, lockPanelMode }: Stud
         } finally {
             setIsWritingNextLyricLine(false);
         }
-    }, [user?.id, customLyrics, setCustomLyrics, setIsAuthModalOpen, t]);
+    }, [user?.id, customLyrics, getAccessTokenOrThrow, getJsonAuthHeaders, setCustomLyrics, setIsAuthModalOpen, t]);
 
     const {
         handleFavoriteToggle,
@@ -1026,14 +1128,14 @@ const StudioContent = ({ feature, FeaturePanel, panelMode, lockPanelMode }: Stud
                 </div>
 
                 <div 
-                    className="flex-1 min-w-0 h-full flex z-10 md:order-3 relative pb-[calc(var(--mobile-nav-height,64px)+var(--player-height,48px)+1rem)] md:pb-0 md:pl-2"
+                    className={`flex-1 min-w-0 h-full flex ${getZIndexClass('MAIN_CONTENT')} md:order-3 relative pb-[calc(var(--mobile-nav-height,64px)+var(--player-height,48px)+1rem)] md:pb-0 md:pl-2`}
                     style={{
                         paddingBottom: player.currentTrack 
                             ? undefined
                             : 'calc(var(--mobile-nav-height, 64px))'
                     }}
                 >
-                    <div className="min-h-0 h-full flex flex-col relative w-full z-10">
+                    <div className={`min-h-0 h-full flex flex-col relative w-full ${getZIndexClass('MAIN_CONTENT')}`}>
                 <div className="md:hidden flex-shrink-0 px-6 py-4 bg-background/60 backdrop-blur-sm">
                     <div className="flex items-center gap-3">
                         <Music className="h-8 w-8 text-primary" />
@@ -1100,7 +1202,7 @@ const StudioContent = ({ feature, FeaturePanel, panelMode, lockPanelMode }: Stud
                                     />
                                 </div>
                                 <div
-                                    className={`absolute inset-0 z-[90] transition-opacity duration-200 ${
+                                    className={`absolute inset-0 ${getZIndexClass('INLINE_PANEL_STUDIO_OVERLAY')} transition-opacity duration-200 ${
                                         showInlinePanel ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none'
                                     }`}
                                     aria-hidden={!showInlinePanel}
@@ -1140,7 +1242,7 @@ const StudioContent = ({ feature, FeaturePanel, panelMode, lockPanelMode }: Stud
 
                 {player.currentTrack && (
                     <div
-                        className="fixed left-3 right-3 bottom-[calc(var(--mobile-nav-height,0px)+0.75rem)] md:bottom-2 md:left-[calc(var(--studio-sidebar-width,72px)+1rem)] md:right-4 z-[45] pointer-events-auto"
+                        className={`fixed left-3 right-3 bottom-[calc(var(--mobile-nav-height,0px)+0.75rem)] md:bottom-2 md:left-[calc(var(--studio-sidebar-width,72px)+1rem)] md:right-4 ${getZIndexClass('MUSIC_PLAYER')} pointer-events-auto`}
                     >
                         <MusicPlayer {...musicPlayerProps} />
                     </div>

@@ -66,6 +66,13 @@ export const useStudioUploadWorkflow = ({ mode }: UseStudioUploadWorkflowParams)
   const [pendingAudioFile, setPendingAudioFile] = React.useState<File | null>(null);
   const [pendingAudioUrl, setPendingAudioUrl] = React.useState<string | null>(null);
 
+  const revokeObjectUrl = React.useCallback((url?: string | null) => {
+    if (!url) {
+      return;
+    }
+    URL.revokeObjectURL(url);
+  }, []);
+
   const updateUploadState = React.useCallback((targetMode: UploadPanelMode, patch: Partial<UploadState>) => {
     setUploadStateByMode((prev) => ({
       ...prev,
@@ -111,12 +118,8 @@ export const useStudioUploadWorkflow = ({ mode }: UseStudioUploadWorkflowParams)
   } = currentUploadState;
 
   const clearUploadCoverFile = React.useCallback(() => {
-    if (readyAudioUrl) {
-      URL.revokeObjectURL(readyAudioUrl);
-    }
-    if (audioUrl) {
-      URL.revokeObjectURL(audioUrl);
-    }
+    revokeObjectUrl(readyAudioUrl);
+    revokeObjectUrl(audioUrl);
     if (uploadAudioRef.current) {
       uploadAudioRef.current.pause();
       uploadAudioRef.current.src = '';
@@ -143,16 +146,7 @@ export const useStudioUploadWorkflow = ({ mode }: UseStudioUploadWorkflowParams)
       progressError: null,
       audioUrl: null,
     });
-  }, [readyAudioUrl, audioUrl, updateCurrentUploadState]);
-
-  React.useEffect(() => {
-    if (!audioUrl) {
-      updateCurrentUploadState({
-        isPlaying: false,
-        audioCurrentTime: 0,
-      });
-    }
-  }, [audioUrl, updateCurrentUploadState]);
+  }, [readyAudioUrl, audioUrl, revokeObjectUrl, updateCurrentUploadState]);
 
   React.useEffect(() => {
     if (audioDuration && extendStartTime > audioDuration) {
@@ -175,25 +169,30 @@ export const useStudioUploadWorkflow = ({ mode }: UseStudioUploadWorkflowParams)
   }, [audioDuration, updateCurrentUploadState]);
 
   const resetPendingAudio = React.useCallback(() => {
-    if (pendingAudioUrl) {
-      URL.revokeObjectURL(pendingAudioUrl);
-    }
+    revokeObjectUrl(pendingAudioUrl);
     setPendingAudioFile(null);
     setPendingAudioUrl(null);
     setIsEditAudioOpen(false);
-  }, [pendingAudioUrl]);
+  }, [pendingAudioUrl, revokeObjectUrl]);
 
-  const uploadAudioToServer = React.useCallback(async (file: File) => {
-    const { data: { session } } = await supabase.auth.getSession();
+  const getAccessToken = React.useCallback(async () => {
+    const {
+      data: { session },
+    } = await supabase.auth.getSession();
     if (!session?.access_token) {
       throw new Error("Authentication expired. Please sign in again.");
     }
+    return session.access_token;
+  }, []);
+
+  const uploadAudioToServer = React.useCallback(async (file: File) => {
+    const accessToken = await getAccessToken();
     const formData = new FormData();
     formData.append("file", file);
     const response = await fetch("/api/music/upload-file", {
       method: "POST",
       headers: {
-        Authorization: `Bearer ${session.access_token}`,
+        Authorization: `Bearer ${accessToken}`,
       },
       body: formData,
     });
@@ -202,12 +201,10 @@ export const useStudioUploadWorkflow = ({ mode }: UseStudioUploadWorkflowParams)
       throw new Error(result?.error || "Upload failed. Please try again.");
     }
     return result.data?.downloadUrl as string;
-  }, []);
+  }, [getAccessToken]);
 
   const handleCoverFileSelected = React.useCallback((file: File) => {
-    if (pendingAudioUrl) {
-      URL.revokeObjectURL(pendingAudioUrl);
-    }
+    revokeObjectUrl(pendingAudioUrl);
     const nextUrl = URL.createObjectURL(file);
     setPendingAudioFile(file);
     setPendingAudioUrl(nextUrl);
@@ -221,11 +218,11 @@ export const useStudioUploadWorkflow = ({ mode }: UseStudioUploadWorkflowParams)
       audioUploadUrl: null,
     });
     if (readyAudioUrl) {
-      URL.revokeObjectURL(readyAudioUrl);
+      revokeObjectUrl(readyAudioUrl);
       updateCurrentUploadState({ readyAudioUrl: null });
     }
     setIsEditAudioOpen(true);
-  }, [pendingAudioUrl, mode, updateCurrentUploadState, readyAudioUrl]);
+  }, [pendingAudioUrl, mode, revokeObjectUrl, updateCurrentUploadState, readyAudioUrl]);
 
   const handlePromptFileChange = React.useCallback((event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0] || null;

@@ -33,6 +33,7 @@ import { supabase } from "@/lib/supabase";
 import { Mp4BrandingDialog } from "@/components/ui/mp4-branding-dialog";
 import { useI18n } from "@/lib/i18n/provider";
 import { withLocalePrefix } from "@/lib/i18n/routing";
+import { getZIndexClass } from "@/lib/z-index";
 
 interface TrackDetailViewProps {
   trackData?: TrackInfo;
@@ -215,6 +216,19 @@ export const TrackDetailView: React.FC<TrackDetailViewProps> = ({
     return canDownloadMP4;
   }, [canDownloadMP3, canDownloadWAV, canDownloadMP4]);
 
+  const getAccessTokenOrThrow = React.useCallback(async () => {
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session?.access_token) {
+      throw new Error(t("trackDetail.authenticationRequired"));
+    }
+
+    return session.access_token;
+  }, [t]);
+
+  const getAuthHeaders = React.useCallback((accessToken: string) => ({
+    Authorization: `Bearer ${accessToken}`,
+  }), []);
+
   const ensureDownloadAccess = React.useCallback((format?: "mp3" | "wav" | "mp4") => {
     if (!trackInfo?.audioUrl) {
       return false;
@@ -280,10 +294,7 @@ export const TrackDetailView: React.FC<TrackDetailViewProps> = ({
 
     const downloadingToast = toast.loading(t("download.preparingDownload"));
     try {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session?.access_token) {
-        throw new Error(t("trackDetail.authenticationRequired"));
-      }
+      const accessToken = await getAccessTokenOrThrow();
 
       const triggerBlobDownload = (blob: Blob) => {
         const blobUrl = window.URL.createObjectURL(blob);
@@ -340,9 +351,7 @@ export const TrackDetailView: React.FC<TrackDetailViewProps> = ({
 
         while (true) {
           const response = await fetch(requestUrl, {
-            headers: {
-              Authorization: `Bearer ${session.access_token}`,
-            },
+            headers: getAuthHeaders(accessToken),
           });
 
           if (response.status === 202) {
@@ -368,9 +377,7 @@ export const TrackDetailView: React.FC<TrackDetailViewProps> = ({
       }
 
       const response = await fetch(`/api/download-track?trackId=${track.id}&format=${format}`, {
-        headers: {
-          Authorization: `Bearer ${session.access_token}`,
-        },
+        headers: getAuthHeaders(accessToken),
       });
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}));
@@ -383,7 +390,7 @@ export const TrackDetailView: React.FC<TrackDetailViewProps> = ({
     } catch (error) {
       toast.error(error instanceof Error ? error.message : t("download.unableDownloadFile"), { id: downloadingToast });
     }
-  }, [mp4Author, mp4DomainName, ensureDownloadAccess, t]);
+  }, [mp4Author, mp4DomainName, ensureDownloadAccess, getAccessTokenOrThrow, getAuthHeaders, t]);
 
   const effectiveOnDownload = onDownload ?? internalDownload;
   const isDownloadableResolved = Boolean(trackInfo?.audioUrl && effectiveOnDownload);
@@ -706,7 +713,7 @@ export const TrackDetailView: React.FC<TrackDetailViewProps> = ({
   if (!fullPage) {
     return (
       <div className="relative h-full w-full overflow-y-auto">
-        <div className="relative z-10 mx-auto flex max-w-5xl flex-col gap-6 px-4 pb-12 pt-6 sm:px-6">
+        <div className={`relative ${getZIndexClass('MAIN_CONTENT')} mx-auto flex max-w-5xl flex-col gap-6 px-4 pb-12 pt-6 sm:px-6`}>
           {detailContent}
         </div>
         <AuthModal isOpen={authModalOpen} onClose={() => setAuthModalOpen(false)} />
@@ -716,7 +723,7 @@ export const TrackDetailView: React.FC<TrackDetailViewProps> = ({
 
   return (
     <div className="relative min-h-screen w-full overflow-hidden text-foreground">
-      <div className="relative z-10 flex min-h-screen flex-col">
+      <div className={`relative ${getZIndexClass('MAIN_CONTENT')} flex min-h-screen flex-col`}>
         <main className="flex-1">
           <div className="w-full px-4 pb-24 pt-24 sm:px-8 lg:px-14">
             {detailContent}
@@ -729,7 +736,7 @@ export const TrackDetailView: React.FC<TrackDetailViewProps> = ({
       <AuthModal isOpen={authModalOpen} onClose={() => setAuthModalOpen(false)} />
       {playerTracks.length > 0 && (
         <div
-          className="fixed left-3 right-3 md:right-3 z-[60]"
+          className={`fixed left-3 right-3 md:right-3 ${getZIndexClass('FLOATING_PLAYER')}`}
           style={{ bottom: 'calc(var(--mobile-nav-height, 0px) + 0.75rem)' }}
         >
           <MusicPlayer {...musicPlayerProps} />

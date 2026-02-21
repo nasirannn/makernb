@@ -82,6 +82,15 @@ export const EditMusicInfoDialog: React.FC<EditMusicInfoDialogProps> = ({
     setPreviewUrl(url);
   }, [t]);
 
+  const getAccessToken = useCallback(async () => {
+    const { data: { session } } = await supabase.auth.getSession();
+    return session?.access_token ?? null;
+  }, []);
+
+  const getAuthHeaders = useCallback((accessToken: string) => ({
+    Authorization: `Bearer ${accessToken}`,
+  }), []);
+
   const loadImageFromBlob = (blob: Blob) =>
     new Promise<HTMLImageElement>((resolve, reject) => {
       const url = URL.createObjectURL(blob);
@@ -101,15 +110,12 @@ export const EditMusicInfoDialog: React.FC<EditMusicInfoDialogProps> = ({
     async (src: string) => {
       const isRemote = src.startsWith('http');
       if (isRemote && trackId) {
-        const { data: { session } } = await supabase.auth.getSession();
-        const authToken = session?.access_token;
+        const accessToken = await getAccessToken();
         const proxyResponse = await fetch(
           `/api/download-cover?trackId=${encodeURIComponent(trackId)}&purpose=edit`,
-          authToken
+          accessToken
             ? {
-                headers: {
-                  Authorization: `Bearer ${authToken}`,
-                },
+                headers: getAuthHeaders(accessToken),
               }
             : undefined
         );
@@ -124,7 +130,7 @@ export const EditMusicInfoDialog: React.FC<EditMusicInfoDialogProps> = ({
       }
       return response.blob();
     },
-    [trackId]
+    [getAccessToken, getAuthHeaders, trackId]
   );
 
   const buildScaledCoverDataUrl = useCallback(async (src: string, scale: number) => {

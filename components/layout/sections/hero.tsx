@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { Sparkles } from "lucide-react";
 import { useI18n } from "@/lib/i18n/provider";
 import { withLocalePrefix } from "@/lib/i18n/routing";
+import { getZIndexClass } from "@/lib/z-index";
 
 export const HeroSection = () => {
   const router = useRouter();
@@ -34,7 +35,7 @@ export const HeroSection = () => {
         <div className="absolute inset-x-0 bottom-0 h-32 bg-[linear-gradient(180deg,transparent_0%,hsl(var(--background))_100%)]" />
       </div>
 
-      <div className="relative z-10 container mx-auto min-h-screen flex items-center pt-28 pb-24 md:pt-28">
+      <div className={`relative ${getZIndexClass("MAIN_CONTENT")} container mx-auto min-h-screen flex items-center pt-28 pb-24 md:pt-28`}>
         <div className="w-full max-w-5xl mx-auto text-center">
           <div className="inline-flex items-center gap-2 whitespace-nowrap rounded-full bg-[linear-gradient(132deg,rgba(255,255,255,0.66),rgba(255,255,255,0.28))] px-2.5 py-1.5 text-foreground/85 shadow-[0_12px_30px_rgba(0,0,0,0.12)] backdrop-blur-md dark:bg-[linear-gradient(132deg,rgba(255,255,255,0.16),rgba(255,255,255,0.06))] dark:shadow-[0_14px_30px_rgba(0,0,0,0.32)]">
             <span className="inline-flex items-center rounded-full bg-primary px-3 py-1 text-xs font-semibold leading-none text-primary-foreground">

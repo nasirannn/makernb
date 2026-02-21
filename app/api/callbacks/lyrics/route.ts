@@ -3,10 +3,27 @@ import { consumeUserCredit } from '@/lib/user-db';
 import { createGenerationError } from '@/lib/generation-errors-db';
 import { query } from '@/lib/db-query-builder';
 import { getFeatureCredits } from '@/lib/credits-config';
-
+import { resolveLyricsTitle } from '@/lib/lyrics-title';
 
 // Cache for processed tasks to handle idempotency
 const processedLyricsTasks = new Set<string>();
+
+const pickFailedLyricsMessage = (lyricsItems: any[] | null | undefined): string | null => {
+  if (!Array.isArray(lyricsItems) || lyricsItems.length === 0) {
+    return null;
+  }
+
+  const messages = lyricsItems
+    .filter((item: any) => item?.status === 'failed')
+    .map((item: any) => (typeof item?.error_message === 'string' ? item.error_message.trim() : ''))
+    .filter(Boolean);
+
+  if (messages.length === 0) {
+    return null;
+  }
+
+  return Array.from(new Set(messages)).join(' | ');
+};
 
 // Handle Lyrics API callbacks
 export async function POST(request: NextRequest) {
@@ -49,13 +66,12 @@ export async function POST(request: NextRequest) {
     });
 
     return response;
-
   } catch (error) {
     console.error('Lyrics callback processing error:', error);
-    
+
     // Return quick response even on error
     return NextResponse.json(
-      { 
+      {
         error: 'Internal server error',
         success: false,
         processedAt: new Date().toISOString()
@@ -70,7 +86,8 @@ async function processLyricsCallbackAsync(callbackData: any) {
   try {
     const { code, msg, data } = callbackData;
     const taskId = data?.task_id;
-    
+    const failedLyricsMessage = pickFailedLyricsMessage(data?.data);
+
     if (code === 200 && data?.callbackType === 'complete') {
       // Handle successfully completed callback
       // 检查是否有歌词数据 - API返回data.data数组，可能包含多个歌词版本
@@ -82,17 +99,33 @@ async function processLyricsCallbackAsync(callbackData: any) {
           // 更新数据库中的歌词内容与状态
           // 将所有成功的歌词存储为JSON数组
           try {
-            const lyricsArray = successfulLyrics.map((item: any) => ({
-              title: item.title || 'Untitled',
-              text: (item.text || '').trim()
-            }));
+            const lyricsArray = successfulLyrics
+              .map((item: any) => {
+                const text = (item.text || '').trim();
+                if (!text) return null;
+
+                return {
+                  title: resolveLyricsTitle(item.title, text),
+                  text,
+                };
+              })
+              .filter(
+                (item: { title: string | null; text: string } | null): item is { title: string | null; text: string } =>
+                  item !== null
+              );
+
+            if (lyricsArray.length === 0) {
+              throw new Error('No valid lyrics text in callback payload');
+            }
+
+            const primaryTitle = resolveLyricsTitle(lyricsArray[0].title, lyricsArray[0].text);
 
             await query(
               `UPDATE lyrics_generations
                SET title = $1, content = $2, status = 'complete', updated_at = NOW()
                WHERE task_id = $3`,
               [
-                lyricsArray[0].title, // 使用第一个歌词的标题
+                primaryTitle,
                 JSON.stringify(lyricsArray), // 存储所有歌词为JSON
                 taskId
               ]
@@ -123,7 +156,6 @@ async function processLyricsCallbackAsync(callbackData: any) {
           } catch (error) {
             console.error('Error deducting credits for lyrics generation:', error);
           }
-
         } else {
           // 所有歌词都失败
           try {
@@ -140,8 +172,8 @@ async function processLyricsCallbackAsync(callbackData: any) {
                 'lyrics_generation',
                 result.rows[0].user_id,
                 result.rows[0].id,
-                'All lyrics generation attempts failed',
-                'GENERATION_FAILED'
+                failedLyricsMessage || msg || 'All lyrics generation attempts failed',
+                failedLyricsMessage ? 'LYRICS_ITEM_FAILED' : 'GENERATION_FAILED'
               );
             }
           } catch (error) {
@@ -164,15 +196,14 @@ async function processLyricsCallbackAsync(callbackData: any) {
               'lyrics_generation',
               result.rows[0].user_id,
               result.rows[0].id,
-              msg || 'Lyrics generation failed - content moderation failed',
-              'MODERATION_FAILED'
+              failedLyricsMessage || msg || 'Lyrics generation failed - content moderation failed',
+              failedLyricsMessage ? 'LYRICS_ITEM_FAILED' : 'MODERATION_FAILED'
             );
           }
         } catch (error) {
           console.error('Failed to update lyrics generation status:', error);
         }
       }
-
     } else {
       // Handle failed callback (非200状态码)
       try {
@@ -189,15 +220,14 @@ async function processLyricsCallbackAsync(callbackData: any) {
             'lyrics_generation',
             result.rows[0].user_id,
             result.rows[0].id,
-            msg || 'Lyrics generation API call failed',
-            `API_ERROR_${code}`
+            failedLyricsMessage || msg || 'Lyrics generation API call failed',
+            failedLyricsMessage ? 'LYRICS_ITEM_FAILED' : `API_ERROR_${code}`
           );
         }
       } catch (error) {
         console.error('Failed to update lyrics generation status:', error);
       }
     }
-    
   } catch (error) {
     console.error('Async lyrics callback processing failed:', error);
     // Errors here won't affect callback response, only log

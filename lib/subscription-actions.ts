@@ -17,14 +17,16 @@ const getAccessTokenOrThrow = async () => {
   return session.access_token;
 };
 
+const getJsonAuthHeaders = (accessToken: string) => ({
+  "Content-Type": "application/json",
+  Authorization: `Bearer ${accessToken}`,
+});
+
 export const createCheckoutSession = async (payload: CheckoutPayload) => {
   const accessToken = await getAccessTokenOrThrow();
   const response = await fetch("/api/creem-checkout", {
     method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${accessToken}`,
-    },
+    headers: getJsonAuthHeaders(accessToken),
     body: JSON.stringify(payload),
   });
 
@@ -44,10 +46,7 @@ export const createBillingPortalLink = async () => {
   const accessToken = await getAccessTokenOrThrow();
   const response = await fetch("/api/billing-portal", {
     method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${accessToken}`,
-    },
+    headers: getJsonAuthHeaders(accessToken),
   });
 
   if (!response.ok) {
@@ -66,10 +65,7 @@ export const switchSubscription = async (productId: string) => {
   const accessToken = await getAccessTokenOrThrow();
   const response = await fetch("/api/switch-subscription", {
     method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${accessToken}`,
-    },
+    headers: getJsonAuthHeaders(accessToken),
     body: JSON.stringify({ productId }),
   });
 
@@ -82,10 +78,7 @@ export const scheduleCancellation = async () => {
   const accessToken = await getAccessTokenOrThrow();
   const response = await fetch("/api/cancel-subscription", {
     method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${accessToken}`,
-    },
+    headers: getJsonAuthHeaders(accessToken),
   });
 
   if (!response.ok) {

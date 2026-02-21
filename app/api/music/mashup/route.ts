@@ -6,6 +6,7 @@ import { consumeUserCredit, getUserCredits, addUserCredits } from '@/lib/user-db
 import { createMusicGeneration } from '@/lib/music-db';
 import { MusicType } from '@/types/music';
 import { hasFeaturePermission } from '@/lib/feature-permissions';
+import { resolveLyricsTitle } from '@/lib/lyrics-title';
 
 export const dynamic = 'force-dynamic';
 
@@ -209,6 +210,7 @@ export async function POST(request: NextRequest) {
     if (customMode && prompt && prompt.trim().length > 0) {
       try {
         const { query } = await import('@/lib/db-query-builder');
+        const lyricsTitle = resolveLyricsTitle(title, prompt);
         const existingLyrics = await query(
           'SELECT id FROM lyrics WHERE music_id = $1::uuid',
           [musicRecord.id]
@@ -216,12 +218,12 @@ export async function POST(request: NextRequest) {
         if (existingLyrics.rows.length > 0) {
           await query(
             'UPDATE lyrics SET title = $1, content = $2 WHERE music_id = $3::uuid',
-            [title, prompt, musicRecord.id]
+            [lyricsTitle, prompt, musicRecord.id]
           );
         } else {
           await query(
             'INSERT INTO lyrics (music_id, title, content) VALUES ($1::uuid, $2, $3)',
-            [musicRecord.id, title, prompt]
+            [musicRecord.id, lyricsTitle, prompt]
           );
         }
       } catch (lyricsError) {

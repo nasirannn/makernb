@@ -9,6 +9,7 @@ import { Sparkles, LogOut, LogIn } from "lucide-react";
 import { useSubscription } from "@/contexts/SubscriptionContext";
 import { useI18n } from "@/lib/i18n/provider";
 import { withLocalePrefix } from "@/lib/i18n/routing";
+import { getZIndexClass } from "@/lib/z-index";
 
 interface MobileStudioHeaderProps {
   user: any;
@@ -37,7 +38,7 @@ export const MobileStudioHeader = React.memo(({
   const withCurrentLocale = (path: string) => withLocalePrefix(path, locale);
 
   return (
-    <div className="app-card-muted app-hairline flex-shrink-0 px-6 py-4 border-0 border-b-0 relative z-[130]">
+    <div className={`app-card-muted app-hairline flex-shrink-0 px-6 py-4 border-0 border-b-0 relative ${getZIndexClass('MOBILE_DRAWER')}`}>
       <div className="flex items-center justify-between gap-3">
         <Link href={withCurrentLocale("/")} className="font-bold text-lg flex items-center">
           <Image
@@ -81,7 +82,7 @@ export const MobileStudioHeader = React.memo(({
               
               {/* User Menu Dropdown */}
               {userMenuOpen && (
-                <div className="absolute top-full right-0 mt-2 w-48 bg-background border border-border/30 rounded-lg shadow-lg z-[120]">
+                <div className={`absolute top-full right-0 mt-2 w-48 bg-background border border-border/30 rounded-lg shadow-lg ${getZIndexClass('DROPDOWN')}`}>
                   <div className="flex flex-col gap-1 p-2">
                     <div className="px-1 pb-2">
                       <div className="flex items-center justify-between gap-2 mb-1">

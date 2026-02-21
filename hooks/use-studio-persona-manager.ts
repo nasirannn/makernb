@@ -100,6 +100,51 @@ export const useStudioPersonaManager = ({
     return formatDateTime(value);
   }, [t]);
 
+  const getAccessToken = React.useCallback(async () => {
+    const {
+      data: { session },
+    } = await supabase.auth.getSession();
+
+    return session?.access_token ?? null;
+  }, []);
+
+  const getAuthHeaders = React.useCallback((accessToken: string) => {
+    return {
+      Authorization: `Bearer ${accessToken}`,
+    };
+  }, []);
+
+  const getJsonAuthHeaders = React.useCallback((accessToken: string) => {
+    return {
+      "Content-Type": "application/json",
+      ...getAuthHeaders(accessToken),
+    };
+  }, [getAuthHeaders]);
+
+  const requireAccessToken = React.useCallback(async () => {
+    const accessToken = await getAccessToken();
+    if (!accessToken) {
+      toast.error(t("personaDialog.authenticationExpiredSignInAgain"));
+      return null;
+    }
+    return accessToken;
+  }, [getAccessToken, t]);
+
+  const parseMutationResult = React.useCallback(async (
+    response: Response,
+    fallbackErrorKey: string,
+    options?: { preferMessage?: boolean },
+  ) => {
+    const result = await response.json();
+    if (!response.ok || !result?.success) {
+      const message = options?.preferMessage
+        ? result?.message || result?.error || t(fallbackErrorKey)
+        : result?.error || t(fallbackErrorKey);
+      throw new Error(message);
+    }
+    return result;
+  }, [t]);
+
   const loadPersonaOptions = React.useCallback(async () => {
     if (!user) {
       setPersonaOptions([]);
@@ -108,17 +153,15 @@ export const useStudioPersonaManager = ({
 
     setIsPersonaLoading(true);
     try {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session?.access_token) {
+      const accessToken = await getAccessToken();
+      if (!accessToken) {
         setPersonaOptions([]);
         return;
       }
 
       const response = await fetch('/api/personas', {
         method: 'GET',
-        headers: {
-          Authorization: `Bearer ${session.access_token}`,
-        },
+        headers: getAuthHeaders(accessToken),
       });
 
       if (!response.ok) {
@@ -139,7 +182,7 @@ export const useStudioPersonaManager = ({
     } finally {
       setIsPersonaLoading(false);
     }
-  }, [user, selectedPersonaId, setSelectedPersonaId, t]);
+  }, [user, selectedPersonaId, setSelectedPersonaId, getAccessToken, getAuthHeaders, t]);
 
   const loadSelectMusicOptions = React.useCallback(async () => {
     if (!user) {
@@ -149,8 +192,8 @@ export const useStudioPersonaManager = ({
 
     setIsSelectMusicLoading(true);
     try {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session?.access_token) {
+      const accessToken = await getAccessToken();
+      if (!accessToken) {
         setSelectMusicOptions([]);
         return;
       }
@@ -158,9 +201,7 @@ export const useStudioPersonaManager = ({
       const response = await fetch(`/api/studio-tracks-for-separation?limit=50&t=${Date.now()}`, {
         method: 'GET',
         cache: 'no-store',
-        headers: {
-          Authorization: `Bearer ${session.access_token}`,
-        },
+        headers: getAuthHeaders(accessToken),
       });
 
       if (!response.ok) {
@@ -193,7 +234,7 @@ export const useStudioPersonaManager = ({
     } finally {
       setIsSelectMusicLoading(false);
     }
-  }, [user, t]);
+  }, [user, getAccessToken, getAuthHeaders, t]);
 
   const handleDeletePersona = React.useCallback(async (persona: PersonaOption) => {
     if (!user) {
@@ -207,27 +248,20 @@ export const useStudioPersonaManager = ({
 
     setDeletingPersonaRecordId(persona.id);
     try {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session?.access_token) {
-        toast.error(t("personaDialog.authenticationExpiredSignInAgain"));
+      const accessToken = await requireAccessToken();
+      if (!accessToken) {
         return;
       }
 
       const response = await fetch('/api/personas', {
         method: 'DELETE',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${session.access_token}`,
-        },
+        headers: getJsonAuthHeaders(accessToken),
         body: JSON.stringify({
           personaRecordId: persona.id,
         }),
       });
 
-      const result = await response.json();
-      if (!response.ok || !result?.success) {
-        throw new Error(result?.error || t("personaDialog.failedDeletePersona"));
-      }
+      await parseMutationResult(response, "personaDialog.failedDeletePersona");
 
       if (selectedPersonaId === persona.personaId) {
         setSelectedPersonaId?.('');
@@ -241,7 +275,7 @@ export const useStudioPersonaManager = ({
     } finally {
       setDeletingPersonaRecordId(null);
     }
-  }, [user, deletingPersonaRecordId, selectedPersonaId, setSelectedPersonaId, loadPersonaOptions, t]);
+  }, [user, deletingPersonaRecordId, selectedPersonaId, setSelectedPersonaId, loadPersonaOptions, requireAccessToken, getJsonAuthHeaders, parseMutationResult, t]);
 
   const openSelectMusicDialog = React.useCallback(() => {
     setPendingMusicTrackId(selectedMusicTrackId);
@@ -355,18 +389,14 @@ export const useStudioPersonaManager = ({
 
     setIsCreatingPersona(true);
     try {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session?.access_token) {
-        toast.error(t("personaDialog.authenticationExpiredSignInAgain"));
+      const accessToken = await requireAccessToken();
+      if (!accessToken) {
         return;
       }
 
       const response = await fetch('/api/generate-persona', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${session.access_token}`,
-        },
+        headers: getJsonAuthHeaders(accessToken),
         body: JSON.stringify({
           trackId,
           name,
@@ -374,11 +404,11 @@ export const useStudioPersonaManager = ({
         }),
       });
 
-      const result = await response.json();
-      if (!response.ok || !result?.success) {
-        const message = result?.message || result?.error || t("personaDialog.failedCreatePersona");
-        throw new Error(message);
-      }
+      const result = await parseMutationResult(
+        response,
+        "personaDialog.failedCreatePersona",
+        { preferMessage: true },
+      );
 
       const personaId = result?.data?.personaId as string | undefined;
       if (personaId) {
@@ -394,7 +424,7 @@ export const useStudioPersonaManager = ({
     } finally {
       setIsCreatingPersona(false);
     }
-  }, [selectedMusicTrackId, selectMusicOptions, getPersonaTrackUnavailableReason, createPersonaName, createPersonaDescription, user, setSelectedPersonaId, loadPersonaOptions, t]);
+  }, [selectedMusicTrackId, selectMusicOptions, getPersonaTrackUnavailableReason, createPersonaName, createPersonaDescription, user, setSelectedPersonaId, loadPersonaOptions, requireAccessToken, getJsonAuthHeaders, parseMutationResult, t]);
 
   React.useEffect(() => {
     if (!pendingMusicTrackId || !pendingMusicTrackUnavailableReason) {

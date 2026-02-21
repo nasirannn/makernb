@@ -4,6 +4,7 @@ import * as React from "react"
 import * as AlertDialogPrimitive from "@radix-ui/react-alert-dialog"
 
 import { cn } from "@/lib/utils"
+import { Z_INDEX_COMBINATIONS } from "@/lib/z-index"
 import { buttonVariants } from "@/components/ui/button"
 
 const AlertDialog = AlertDialogPrimitive.Root
@@ -18,7 +19,7 @@ const AlertDialogOverlay = React.forwardRef<
 >(({ className, ...props }, ref) => (
   <AlertDialogPrimitive.Overlay
     className={cn(
-      "fixed inset-0 z-50 bg-black/65 dark:bg-black/60 backdrop-blur-[1px] data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0",
+      `fixed inset-0 ${Z_INDEX_COMBINATIONS.DIALOG.backdrop} bg-black/65 dark:bg-black/60 backdrop-blur-[1px] data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0`,
       className
     )}
     {...props}
@@ -36,7 +37,7 @@ const AlertDialogContent = React.forwardRef<
     <AlertDialogPrimitive.Content
       ref={ref}
       className={cn(
-        "fixed left-1/2 top-1/2 z-50 w-full max-w-lg -translate-x-1/2 -translate-y-1/2 rounded-lg bg-muted/95 dark:bg-zinc-900 p-6 shadow-lg",
+        `fixed left-1/2 top-1/2 ${Z_INDEX_COMBINATIONS.DIALOG.content} w-full max-w-lg -translate-x-1/2 -translate-y-1/2 rounded-lg bg-muted/95 dark:bg-zinc-900 p-6 shadow-lg`,
         className
       )}
       {...props}

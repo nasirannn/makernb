@@ -2,7 +2,14 @@
 
 import React from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
-import { DEFAULT_LOCALE, messages, SUPPORTED_LOCALES, type AppLocale } from "@/lib/i18n/messages";
+import {
+  DEFAULT_LOCALE,
+  getCachedMessages,
+  loadMessages,
+  SUPPORTED_LOCALES,
+  type AppLocale,
+  type MessageDictionary,
+} from "@/lib/i18n/messages";
 import {
   LOCALE_COOKIE_KEY,
   getLocaleFromPathname,
@@ -22,9 +29,13 @@ interface I18nContextValue {
 
 const I18nContext = React.createContext<I18nContextValue | undefined>(undefined);
 
-function getMessage(locale: AppLocale, key: string): string | undefined {
+function getMessage(dictionary: MessageDictionary | undefined, key: string): string | undefined {
+  if (!dictionary) {
+    return undefined;
+  }
+
   const path = key.split(".");
-  let current: unknown = messages[locale];
+  let current: unknown = dictionary;
 
   for (const segment of path) {
     if (typeof current !== "object" || current === null || !(segment in current)) {
@@ -49,6 +60,10 @@ export function I18nProvider({ children }: { children: React.ReactNode }) {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [fallbackLocale, setFallbackLocale] = React.useState<AppLocale>(DEFAULT_LOCALE);
+  const [messagesByLocale, setMessagesByLocale] = React.useState<Partial<Record<AppLocale, MessageDictionary>>>(() => {
+    const initialDefaultMessages = getCachedMessages(DEFAULT_LOCALE);
+    return initialDefaultMessages ? { [DEFAULT_LOCALE]: initialDefaultMessages } : {};
+  });
   const routeLocale = React.useMemo(() => getLocaleFromPathname(pathname), [pathname]);
   const locale = routeLocale ?? fallbackLocale;
 
@@ -85,6 +100,46 @@ export function I18nProvider({ children }: { children: React.ReactNode }) {
     persistLocale(locale);
   }, [locale, persistLocale]);
 
+  React.useEffect(() => {
+    let cancelled = false;
+
+    const localesToLoad = Array.from(new Set<AppLocale>([DEFAULT_LOCALE, locale]));
+
+    void Promise.all(
+      localesToLoad.map(async (targetLocale) => {
+        const dictionary = await loadMessages(targetLocale);
+        return [targetLocale, dictionary] as const;
+      })
+    )
+      .then((entries) => {
+        if (cancelled) {
+          return;
+        }
+
+        setMessagesByLocale((current) => {
+          let changed = false;
+          const next = { ...current };
+
+          for (const [targetLocale, dictionary] of entries) {
+            if (next[targetLocale] === dictionary) {
+              continue;
+            }
+            changed = true;
+            next[targetLocale] = dictionary;
+          }
+
+          return changed ? next : current;
+        });
+      })
+      .catch((error) => {
+        console.error("[I18N] Failed to load message dictionaries:", error);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [locale]);
+
   const setLocale = React.useCallback(
     (nextLocale: AppLocale) => {
       if (!SUPPORTED_LOCALES.includes(nextLocale)) {
@@ -113,10 +168,13 @@ export function I18nProvider({ children }: { children: React.ReactNode }) {
 
   const t = React.useCallback(
     (key: string, vars?: TranslationVars) => {
-      const resolved = getMessage(locale, key) ?? getMessage(DEFAULT_LOCALE, key) ?? key;
+      const resolved =
+        getMessage(messagesByLocale[locale], key) ??
+        getMessage(messagesByLocale[DEFAULT_LOCALE], key) ??
+        key;
       return formatMessage(resolved, vars);
     },
-    [locale]
+    [locale, messagesByLocale]
   );
 
   const value = React.useMemo(

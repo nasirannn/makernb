@@ -21,6 +21,7 @@ import { BUTTON_CLASSES, STYLES } from '@/lib/studio-constants';
 import { useAudioPlayer } from '@/hooks/use-audio-player';
 import { useStudioUploadWorkflow } from '@/hooks/use-studio-upload-workflow';
 import type { UploadPanelMode } from '@/hooks/use-studio-upload-workflow';
+import { useStudioPresetStyleGenerator } from "@/hooks/use-studio-preset-style-generator";
 import { formatDuration } from '@/lib/format-utils';
 import { WaveformPlayer } from "@/components/ui/waveform-player";
 import { EditAudioDialog } from "@/features/music-upload/components/edit-audio-dialog";
@@ -31,9 +32,11 @@ import { MusicPersonaDialogs } from "@/components/ui/music-persona-dialogs";
 import { useStudioPersonaManager } from "@/hooks/use-studio-persona-manager";
 import { ModelSelectionDialog, MusicModel, modelOptions } from '@/components/ui/model-selection-dialog';
 import type { ExtendSourceTrack } from "@/types/extend-track-source";
-import { PricingSection } from '@/components/layout/sections/pricing';
+import { PanelPricingModal } from "@/components/ui/feature-panels/shared/panel-pricing-modal";
 import { useTheme } from "next-themes";
 import { useI18n } from "@/lib/i18n/provider";
+import type { FeatureCreatePanelProps } from "@/types/studio-feature-panel";
+import { getZIndexClass } from "@/lib/z-index";
 
 // Extract options from musicOptions
 const { genres, vibes, grooveTypes, leadInstruments, drumKits, bassTones, vocalGenders, harmonyPalettes } = musicOptions;
@@ -69,102 +72,7 @@ type SelectedExtendSource = {
 };
 
 
-export interface FeatureCreatePanelProps {
-  panelOpen: boolean;
-  setPanelOpen: (open: boolean) => void;
-  hasPlayer?: boolean;
-  panelTitle?: string;
-  
-  // Music generation states
-  mode: "simple" | "custom";
-  setMode: (mode: "simple" | "custom") => void;
-  selectedGenre: string;
-  setSelectedGenre: (genre: string) => void;
-  selectedVibe: string;
-  setSelectedVibe: (vibe: string) => void;
-  simplePrompt: string;
-  setSimplePrompt: (prompt: string) => void;
-  customLyrics: string;
-  setCustomLyrics: (lyrics: string) => void;
-  songTitle: string;
-  setSongTitle: (title: string) => void;
-  instrumentalMode: boolean;
-  setInstrumentalMode: (mode: boolean) => void;
-  isPublished: boolean;
-  styleText: string;
-  setStyleText: (text: string) => void;
-  enhanceStyle: boolean;
-  setEnhanceStyle: (enabled: boolean) => void;
-  bpm: number[];
-  setBpm: (bpm: number[]) => void;
-  grooveType: string;
-  setGrooveType: (type: string) => void;
-  leadInstrument: string[];
-  setLeadInstrument: (instruments: string[]) => void;
-  drumKit: string;
-  setDrumKit: (kit: string) => void;
-  bassTone: string;
-  setBassTone: (tone: string) => void;
-  vocalGender: string;
-  setVocalGender: (gender: string) => void;
-  harmonyPalette: string;
-  setHarmonyPalette: (palette: string) => void;
-  styleWeight?: number;
-  setStyleWeight?: (value: number) => void;
-  weirdnessConstraint?: number;
-  setWeirdnessConstraint?: (value: number) => void;
-  audioWeight?: number;
-  setAudioWeight?: (value: number) => void;
-  
-  // BPM Mode
-  bpmMode: 'slow' | 'moderate' | 'medium' | '';
-  setBpmMode: (mode: 'slow' | 'moderate' | 'medium' | '') => void;
-  
-  // Generation
-  isGenerating: boolean;
-  onGenerationStart?: (options?: {
-    uploadFile?: File | null;
-    uploadUrl?: string | null;
-    trackId?: string;
-    audioId?: string;
-    uploadUrlList?: string[];
-    mode?: "cover" | "extend" | "mashup" | "vocal" | "melody";
-    continueAt?: number;
-    tags?: string;
-    negativeTags?: string;
-    styleWeight?: number;
-    weirdnessConstraint?: number;
-    audioWeight?: number;
-  }) => Promise<boolean> | void;
-  onGenerateLyrics?: () => void;
-  onWriteNextLyricLine?: () => void;
-  isWritingNextLyricLine?: boolean;
-  // 新增：在移动端强制可见（用于移动端Tab中的创作页）
-  forceVisibleOnMobile?: boolean;
-  // 新增：点击收起并显示tracks列表
-  onCollapseToTracks?: () => void;
-  // 新增：收起（关闭）面板
-  onCollapse?: () => void;
-  // 上传任务回调
-  // AuthModal相关
-  isAuthModalOpen?: boolean;
-  setIsAuthModalOpen?: (open: boolean) => void;
-  // Model selection
-  selectedModel?: MusicModel;
-  setSelectedModel?: (model: MusicModel) => void;
-  selectedPersonaId?: string;
-  setSelectedPersonaId?: (personaId: string) => void;
-  selectedPersonaModel?: 'style_persona' | 'voice_persona';
-  setSelectedPersonaModel?: (model: 'style_persona' | 'voice_persona') => void;
-  showUploadAction?: boolean;
-  allowedUploadIntents?: AudioUploadIntent[];
-  forcedUploadIntent?: AudioUploadIntent | null;
-  forcedTrackUploadMode?: "cover" | "extend" | null;
-  allowMashupAction?: boolean;
-  extendSourceTracks?: ExtendSourceTrack[];
-  pendingExtendSourceTrack?: ExtendSourceTrack | null;
-  onPendingExtendSourceTrackConsumed?: () => void;
-}
+export type { FeatureCreatePanelProps } from "@/types/studio-feature-panel";
 
 export const MusicExtenderPanel = (props: FeatureCreatePanelProps) => {
   const {
@@ -301,8 +209,6 @@ export const MusicExtenderPanel = (props: FeatureCreatePanelProps) => {
   // Pricing dialog state
   const [isPricingOpen, setIsPricingOpen] = React.useState(false);
   const [isModelDialogOpen, setIsModelDialogOpen] = React.useState(false);
-  const [isGeneratingGenrePrompt, setIsGeneratingGenrePrompt] = React.useState(false);
-  const [pendingGenreId, setPendingGenreId] = React.useState<string | null>(null);
   const [isMashupEditOpen, setIsMashupEditOpen] = React.useState(false);
   const [isMashupConfirmOpen, setIsMashupConfirmOpen] = React.useState(false);
   const [isMashupPreparing, setIsMashupPreparing] = React.useState(false);
@@ -313,14 +219,16 @@ export const MusicExtenderPanel = (props: FeatureCreatePanelProps) => {
   const [mashupPlayingIndex, setMashupPlayingIndex] = React.useState<number | null>(null);
   const [mashupCurrentTimes, setMashupCurrentTimes] = React.useState<number[]>([]);
   const [selectedExtendSource, setSelectedExtendSource] = React.useState<SelectedExtendSource | null>(null);
-  const genrePromptAbortRef = React.useRef<AbortController | null>(null);
-  const genrePromptRequestIdRef = React.useRef(0);
-
-  React.useEffect(() => {
-    return () => {
-      genrePromptAbortRef.current?.abort();
-    };
-  }, []);
+  const {
+    isGeneratingGenrePrompt,
+    pendingGenreId,
+    generateGenrePrompt: handleGenerateGenrePrompt,
+  } = useStudioPresetStyleGenerator({
+    locale,
+    isAuthenticated: Boolean(user),
+    onRequireAuth: () => setIsAuthModalOpen?.(true),
+    t,
+  });
 
   const clearMashupPreviewTracks = React.useCallback((tracks: MashupPreviewTrack[]) => {
     tracks.forEach((track) => {
@@ -562,99 +470,6 @@ export const MusicExtenderPanel = (props: FeatureCreatePanelProps) => {
 
     updateSelectedModel(model, { userInitiated: true });
   }, [canUseV5Model, updateSelectedModel]);
-
-  const handleGenerateGenrePrompt = React.useCallback(async ({
-    genreId,
-    genreName,
-    currentText,
-    onSuccess,
-  }: {
-    genreId: string;
-    genreName: string;
-    currentText: string;
-    onSuccess: (value: string) => void;
-  }) => {
-    if (!user) {
-      setIsAuthModalOpen?.(true);
-      return;
-    }
-
-    const requestId = genrePromptRequestIdRef.current + 1;
-    genrePromptRequestIdRef.current = requestId;
-
-    genrePromptAbortRef.current?.abort();
-    const abortController = new AbortController();
-    genrePromptAbortRef.current = abortController;
-
-    setPendingGenreId(genreId);
-    setIsGeneratingGenrePrompt(true);
-
-    try {
-      const { data: { session }, error: sessionError } = await supabase.auth.getSession();
-
-      if (sessionError) {
-        throw new Error(t("toasts.failedGetSessionTryLogInAgain"));
-      }
-
-      if (!session?.access_token) {
-        throw new Error(t("toasts.pleaseLogInToContinue"));
-      }
-
-      const response = await fetch("/api/prompt/preset-style", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: "Bearer " + session.access_token,
-        },
-        signal: abortController.signal,
-        body: JSON.stringify({
-          genreId,
-          genreName,
-          currentPrompt: currentText,
-          locale,
-        }),
-      });
-
-      const result = await response.json().catch(() => ({}));
-
-      if (abortController.signal.aborted || requestId !== genrePromptRequestIdRef.current) {
-        return;
-      }
-
-      if (!response.ok || !result?.success) {
-        if (response.status === 401) {
-          setIsAuthModalOpen?.(true);
-          throw new Error(t("toasts.sessionExpiredLogInAgain"));
-        }
-
-        throw new Error(result?.error || t("toasts.failedGeneratePrompt"));
-      }
-
-      const generatedPrompt = typeof result?.data?.prompt === "string"
-        ? result.data.prompt.trim()
-        : "";
-
-      if (!generatedPrompt) {
-        throw new Error(t("toasts.modelReturnedEmptyPromptTryAgain"));
-      }
-
-      onSuccess(generatedPrompt);
-    } catch (error) {
-      if (error instanceof Error && error.name === "AbortError") {
-        return;
-      }
-
-      console.error("Generate genre prompt failed:", error);
-      const message = error instanceof Error ? error.message : t("toasts.failedGeneratePrompt");
-      toast.error(message);
-    } finally {
-      if (requestId === genrePromptRequestIdRef.current) {
-        setIsGeneratingGenrePrompt(false);
-        setPendingGenreId(null);
-        genrePromptAbortRef.current = null;
-      }
-    }
-  }, [locale, user, setIsAuthModalOpen, t]);
   // Function to update states based on textarea content with debouncing
   const handleUpdateStatesFromTextarea = React.useCallback((text: string) => {
     const timeoutId = setTimeout(() => {
@@ -2331,7 +2146,7 @@ export const MusicExtenderPanel = (props: FeatureCreatePanelProps) => {
           <div
             className={`flex-shrink-0 px-0 pt-3 ${
               forceVisibleOnMobile
-                ? 'sticky bottom-0 z-20 bg-background/95 pb-[calc(env(safe-area-inset-bottom)+0.75rem)] backdrop-blur supports-[backdrop-filter]:bg-background/80'
+                ? `sticky bottom-0 ${getZIndexClass('CARD')} bg-background/95 pb-[calc(env(safe-area-inset-bottom)+0.75rem)] backdrop-blur supports-[backdrop-filter]:bg-background/80`
                 : 'pb-4'
             }`}
           >
@@ -2380,7 +2195,7 @@ export const MusicExtenderPanel = (props: FeatureCreatePanelProps) => {
                     disabled={isDisabled}
                     className="flex-1 h-12 px-4 text-base font-semibold bg-gradient-create text-white hover:opacity-90 transition-opacity rounded-2xl disabled:opacity-50"
                   >
-                    <div className="relative z-10 flex items-center justify-center">
+                    <div className={`relative ${getZIndexClass('MAIN_CONTENT')} flex items-center justify-center`}>
                       {isGenerating ? (
                         <div className="flex items-center justify-center gap-2">
                           <span>{t("featurePanel.creating")}</span>
@@ -2514,22 +2329,7 @@ export const MusicExtenderPanel = (props: FeatureCreatePanelProps) => {
         errorMessage={mashupError}
       />
 
-      {/* Pricing Dialog */}
-      {isPricingOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/65 dark:bg-black/60 backdrop-blur-[1px] p-4" onClick={() => setIsPricingOpen(false)}>
-          <div className="relative max-w-6xl w-full max-h-[90vh] overflow-y-auto bg-background rounded-2xl" onClick={(e) => e.stopPropagation()}>
-            <button
-              onClick={() => setIsPricingOpen(false)}
-              className="sticky top-4 right-4 float-right text-muted-foreground hover:text-foreground transition-colors z-10"
-            >
-              <X className="w-6 h-6" />
-            </button>
-            <div className="pt-8">
-              <PricingSection />
-            </div>
-          </div>
-        </div>
-      )}
+      <PanelPricingModal open={isPricingOpen} onOpenChange={setIsPricingOpen} />
     </div>
   );
 };

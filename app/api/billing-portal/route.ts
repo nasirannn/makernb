@@ -1,22 +1,15 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { supabaseServer } from '@/lib/supabase-server';
 import { creemUrl } from '@/lib/creem';
 import { query } from '@/lib/db-query-builder';
+import { getUserInfoFromRequest } from '@/lib/auth';
 
 export const dynamic = 'force-dynamic';
 
 export async function POST(request: NextRequest) {
   try {
-    const authHeader = request.headers.get('authorization');
-    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+    const userInfo = await getUserInfoFromRequest(request);
+    if (!userInfo) {
       return NextResponse.json({ error: 'Authentication required' }, { status: 401 });
-    }
-
-    const token = authHeader.split(' ')[1];
-    const { data: { user }, error } = await supabaseServer.auth.getUser(token);
-
-    if (error || !user) {
-      return NextResponse.json({ error: 'Invalid user' }, { status: 401 });
     }
 
     const apiKey = process.env.CREEM_API_KEY;
@@ -32,14 +25,14 @@ export async function POST(request: NextRequest) {
        AND customer_id IS NOT NULL
        ORDER BY created_at DESC
        LIMIT 1`,
-      [user.id]
+      [userInfo.userId]
     );
 
     let customerId = subscriptionResult.rows[0]?.customer_id || null;
 
-    if (!customerId && user.email) {
+    if (!customerId && userInfo.email) {
       const customerResponse = await fetch(
-        creemUrl(`/v1/customers?email=${encodeURIComponent(user.email)}`),
+        creemUrl(`/v1/customers?email=${encodeURIComponent(userInfo.email)}`),
         {
           method: 'GET',
           headers: {
@@ -65,7 +58,7 @@ export async function POST(request: NextRequest) {
            WHERE user_id = $2::uuid
            AND status = 'active'
            AND customer_id IS NULL`,
-          [customerId, user.id]
+          [customerId, userInfo.userId]
         );
       }
     }
@@ -74,7 +67,7 @@ export async function POST(request: NextRequest) {
       const fallbackUrl = process.env.CREEM_BILLING_PORTAL_URL;
       if (fallbackUrl) {
         const url = fallbackUrl.includes('{{email}}')
-          ? fallbackUrl.replace('{{email}}', encodeURIComponent(user.email || ''))
+          ? fallbackUrl.replace('{{email}}', encodeURIComponent(userInfo.email || ''))
           : fallbackUrl;
         return NextResponse.json({ url });
       }

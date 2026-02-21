@@ -324,7 +324,7 @@ export const Navbar = ({ credits = null }: NavbarProps) => {
                   {/* Dropdown Menu */}
                   {isOpenDropdown && (
                     <div 
-                      className="absolute top-full left-0 mt-2 min-w-48 w-max bg-background rounded-2xl p-2 z-[110] shadow-[0_18px_55px_rgba(0,0,0,0.10)]"
+                      className={`absolute top-full left-0 mt-2 min-w-48 w-max bg-background rounded-2xl p-2 ${getZIndexClass('DROPDOWN')} shadow-[0_18px_55px_rgba(0,0,0,0.10)]`}
                       onMouseEnter={() => handleDropdownMouseEnter(dropdownKey)}
                       onMouseLeave={handleDropdownMouseLeave}
                     >
@@ -383,7 +383,7 @@ export const Navbar = ({ credits = null }: NavbarProps) => {
         />
         
         {isOpen && (
-          <div className="fixed inset-0 lg:hidden z-[100]">
+          <div className={`fixed inset-0 lg:hidden ${getZIndexClass('MOBILE_NAV')}`}>
             <div className="fixed inset-0 bg-black/50" onClick={() => setIsOpen(false)} />
             <div className="fixed right-0 top-0 h-full w-80 bg-card shadow-none p-5 flex flex-col">
               <div className="flex items-center justify-between mb-4">

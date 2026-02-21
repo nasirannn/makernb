@@ -10,6 +10,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { useI18n } from "@/lib/i18n/provider";
+import { getZIndexClass } from "@/lib/z-index";
 import { cn } from "@/lib/utils";
 import type { AppLocale } from "@/lib/i18n/messages";
 
@@ -136,7 +137,7 @@ export function LanguageToggle({
           <div
             role="menu"
             className={cn(
-              "absolute right-0 z-[110] min-w-[120px] rounded-2xl border border-black/10 bg-background p-1.5 shadow-[0_18px_55px_rgba(0,0,0,0.12)]",
+              `absolute right-0 ${getZIndexClass('DROPDOWN')} min-w-[120px] rounded-2xl border border-black/10 bg-background p-1.5 shadow-[0_18px_55px_rgba(0,0,0,0.12)]`,
               navMenuDirection === "top" ? "bottom-full mb-2" : "top-full mt-2",
               size === "md" ? "w-[132px]" : "w-[120px]"
             )}

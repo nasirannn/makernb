@@ -17,6 +17,7 @@ import { useRouter } from 'next/navigation';
 import { SolidThumbsUpIcon } from '@/components/icons/solid-thumbs-up-icon';
 import { useI18n } from '@/lib/i18n/provider';
 import { withLocalePrefix } from '@/lib/i18n/routing';
+import { getZIndexClass } from '@/lib/z-index';
 
 interface Track {
   id: string;
@@ -559,7 +560,7 @@ export default function ExplorePage() {
                         {/* Play Button Overlay - 只在有封面图时显示 */}
                         {hasCover && (
                           <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
-                            <div className="absolute right-3 top-3 z-10 flex items-center gap-2">
+                            <div className={`absolute right-3 top-3 ${getZIndexClass('MAIN_CONTENT')} flex items-center gap-2`}>
                               <Button
                                 variant="ghost"
                                 size="sm"
@@ -692,7 +693,7 @@ export default function ExplorePage() {
       <FooterSection />
 
       <div
-        className={`fixed inset-0 z-[70] transition-opacity duration-200 ${
+        className={`fixed inset-0 ${getZIndexClass('INLINE_PANEL_OVERLAY')} transition-opacity duration-200 ${
           showInlinePanel ? 'pointer-events-auto opacity-100' : 'pointer-events-none opacity-0'
         }`}
         aria-hidden={!showInlinePanel}

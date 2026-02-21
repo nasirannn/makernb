@@ -22,22 +22,3 @@ export const supabaseServer = createClient(supabaseUrl, supabaseAnonKey, {
     persistSession: false,
   },
 });
-
-/**
- * Server-side Supabase client with service role key
- * Use this ONLY for database operations that need to bypass RLS
- */
-const supabaseServiceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY!;
-
-if (!supabaseServiceRoleKey) {
-  console.warn('Missing SUPABASE_SERVICE_ROLE_KEY - admin operations will not be available');
-}
-
-export const supabaseAdmin = supabaseServiceRoleKey
-  ? createClient(supabaseUrl, supabaseServiceRoleKey, {
-      auth: {
-        autoRefreshToken: false,
-        persistSession: false,
-      },
-    })
-  : null;

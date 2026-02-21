@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -45,6 +45,19 @@ export function EditNicknameDialog({ open, onOpenChange, initialValue = "" }: Ed
   const trimmedNickname = useMemo(() => nickname.trim(), [nickname]);
   const isUnchanged = trimmedNickname === initialValue.trim();
   const canSave = trimmedNickname.length > 0 && !isUnchanged && !saving;
+
+  const getAccessTokenOrThrow = useCallback(async () => {
+    const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+    if (sessionError || !session?.access_token) {
+      throw new Error(t("toasts.authRequired"));
+    }
+
+    return session.access_token;
+  }, [t]);
+
+  const getAuthHeaders = useCallback((accessToken: string) => ({
+    Authorization: `Bearer ${accessToken}`,
+  }), []);
 
   const handleSave = async () => {
     if (!trimmedNickname) {
@@ -104,19 +117,14 @@ export function EditNicknameDialog({ open, onOpenChange, initialValue = "" }: Ed
     setError(null);
 
     try {
-      const { data: { session }, error: sessionError } = await supabase.auth.getSession();
-      if (sessionError || !session?.access_token) {
-        throw new Error(t("toasts.authRequired"));
-      }
+      const accessToken = await getAccessTokenOrThrow();
 
       const formData = new FormData();
       formData.append("file", file);
 
       const response = await fetch("/api/profile/avatar", {
         method: "POST",
-        headers: {
-          Authorization: `Bearer ${session.access_token}`,
-        },
+        headers: getAuthHeaders(accessToken),
         body: formData,
       });
 

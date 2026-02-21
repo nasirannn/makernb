@@ -6,6 +6,7 @@ import { consumeUserCredit } from '@/lib/user-db';
 import { getUserInfoFromRequest } from '@/lib/auth';
 import { getFeatureCredits, getMusicCredits } from '@/lib/credits-config';
 import { hasFeaturePermission } from '@/lib/feature-permissions';
+import { resolveLyricsTitle } from '@/lib/lyrics-title';
 
 export const dynamic = 'force-dynamic';
 
@@ -104,6 +105,7 @@ async function upsertLyricsForGeneration(
   title: string,
   lyrics: string
 ) {
+  const resolvedTitle = resolveLyricsTitle(title, lyrics);
   const existingLyrics = await query(
     'SELECT id FROM lyrics WHERE music_id = $1::uuid',
     [generationId]
@@ -111,12 +113,12 @@ async function upsertLyricsForGeneration(
   if (existingLyrics.rows.length > 0) {
     await query(
       'UPDATE lyrics SET title = $1, content = $2 WHERE music_id = $3::uuid',
-      [title, lyrics, generationId]
+      [resolvedTitle, lyrics, generationId]
     );
   } else {
     await query(
       'INSERT INTO lyrics (music_id, title, content) VALUES ($1::uuid, $2, $3)',
-      [generationId, title, lyrics]
+      [generationId, resolvedTitle, lyrics]
     );
   }
 }
@@ -300,7 +302,7 @@ async function processSuccessfulGenerationPostTasks(params: {
       await upsertLyricsForGeneration(
         query,
         generationId,
-        songTitle || 'Untitled Track',
+        songTitle || '',
         trimmedPrompt
       );
     } catch (error) {

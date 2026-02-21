@@ -5,9 +5,7 @@ import { toast } from "sonner";
 
 import { useI18n } from "@/lib/i18n/provider";
 import { supabase } from "@/lib/supabase";
-import type { FeatureCreatePanelProps } from "@/components/ui/feature-panels/music-generator-panel";
-
-export type GenerationStartOptions = Parameters<NonNullable<FeatureCreatePanelProps["onGenerationStart"]>>[0];
+import type { GenerationStartOptions } from "@/types/studio-feature-panel";
 
 interface ModelLimits {
   prompt: number;
@@ -30,6 +28,22 @@ interface UseStudioGenerationActionsParams {
   openGenerationConfirm: () => void;
 }
 
+interface GenerationApiResult {
+  success?: boolean;
+  error?: string;
+  data?: {
+    taskId?: string;
+    initialTracks?: unknown[];
+  };
+}
+
+interface GenerationRequestParams {
+  endpoint: string;
+  body: FormData | string;
+  failedToastKey: string;
+  json?: boolean;
+}
+
 export const useStudioGenerationActions = ({
   userId,
   customLyrics,
@@ -45,6 +59,102 @@ export const useStudioGenerationActions = ({
   openGenerationConfirm,
 }: UseStudioGenerationActionsParams) => {
   const { t } = useI18n();
+
+  const getAccessToken = React.useCallback(async () => {
+    const {
+      data: { session },
+    } = await supabase.auth.getSession();
+
+    if (!session?.access_token) {
+      throw new Error(t("toasts.authenticationExpiredSignInAgain"));
+    }
+
+    return session.access_token;
+  }, [t]);
+
+  const runGenerationRequest = React.useCallback(async ({
+    endpoint,
+    body,
+    failedToastKey,
+    json = false,
+  }: GenerationRequestParams): Promise<GenerationApiResult | null> => {
+    const accessToken = await getAccessToken();
+    const headers: Record<string, string> = {
+      Authorization: `Bearer ${accessToken}`,
+    };
+
+    if (json) {
+      headers["Content-Type"] = "application/json";
+    }
+
+    const response = await fetch(endpoint, {
+      method: "POST",
+      headers,
+      body,
+    });
+
+    const result = await response.json().catch(() => ({} as GenerationApiResult));
+
+    if (!response.ok || result?.success !== true) {
+      if (response.status === 402) {
+        toast.error(result?.error || t("toasts.insufficientCreditsTopUp"));
+      } else {
+        toast.error(result?.error || t(failedToastKey));
+      }
+      return null;
+    }
+
+    return result;
+  }, [getAccessToken, t]);
+
+  const finalizeGenerationTask = React.useCallback(async (
+    result: GenerationApiResult,
+    missingTaskToastKey: string,
+  ) => {
+    const taskId = result?.data?.taskId;
+    const initialTracks = result?.data?.initialTracks;
+
+    if (!taskId) {
+      toast.error(t(missingTaskToastKey));
+      return false;
+    }
+
+    trackExistingTask(taskId, initialTracks);
+    openGenerationConfirm();
+    await refreshCredits?.();
+    return true;
+  }, [openGenerationConfirm, refreshCredits, t, trackExistingTask]);
+
+  const appendGenerationTuningToFormData = React.useCallback((
+    formData: FormData,
+    options?: GenerationStartOptions,
+  ) => {
+    if (typeof options?.styleWeight === "number") {
+      formData.append("styleWeight", options.styleWeight.toString());
+    }
+    if (typeof options?.weirdnessConstraint === "number") {
+      formData.append("weirdnessConstraint", options.weirdnessConstraint.toString());
+    }
+    if (typeof options?.audioWeight === "number") {
+      formData.append("audioWeight", options.audioWeight.toString());
+    }
+  }, []);
+
+  const appendGenerationTuningToRequestBody = React.useCallback((
+    requestBody: Record<string, unknown>,
+    options?: GenerationStartOptions,
+  ) => {
+    if (typeof options?.styleWeight === "number") {
+      requestBody.styleWeight = options.styleWeight;
+    }
+    if (typeof options?.weirdnessConstraint === "number") {
+      requestBody.weirdnessConstraint = options.weirdnessConstraint;
+    }
+    if (typeof options?.audioWeight === "number") {
+      requestBody.audioWeight = options.audioWeight;
+    }
+  }, []);
+
   const handleMashupGenerationStart = React.useCallback(async (options?: GenerationStartOptions) => {
     if (options?.mode !== "mashup") {
       return false;
@@ -81,12 +191,6 @@ export const useStudioGenerationActions = ({
     const modelLimits = getModelLimits(selectedModel);
 
     try {
-      const { data: { session } } = await supabase.auth.getSession();
-
-      if (!session?.access_token) {
-        throw new Error(t("toasts.authenticationExpiredSignInAgain"));
-      }
-
       const formData = new FormData();
       formData.append("uploadUrlList", uploadUrlList.join(","));
       formData.append("customMode", "true");
@@ -97,47 +201,19 @@ export const useStudioGenerationActions = ({
       if (vocalGender) {
         formData.append("vocalGender", vocalGender);
       }
-      if (typeof options.styleWeight === "number") {
-        formData.append("styleWeight", options.styleWeight.toString());
-      }
-      if (typeof options.weirdnessConstraint === "number") {
-        formData.append("weirdnessConstraint", options.weirdnessConstraint.toString());
-      }
-      if (typeof options.audioWeight === "number") {
-        formData.append("audioWeight", options.audioWeight.toString());
-      }
+      appendGenerationTuningToFormData(formData, options);
 
-      const response = await fetch("/api/music/mashup", {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${session.access_token}`,
-        },
+      const result = await runGenerationRequest({
+        endpoint: "/api/music/mashup",
         body: formData,
+        failedToastKey: "toasts.mashupGenerationFailedTryAgain",
       });
 
-      const result = await response.json().catch(() => ({}));
-
-      if (!response.ok || !result?.success) {
-        if (response.status === 402) {
-          toast.error(result?.error || t("toasts.insufficientCreditsTopUp"));
-        } else {
-          toast.error(result?.error || t("toasts.mashupGenerationFailedTryAgain"));
-        }
+      if (!result) {
         return false;
       }
 
-      const taskId = result?.data?.taskId;
-      const initialTracks = result?.data?.initialTracks;
-
-      if (!taskId) {
-        toast.error(t("toasts.mashupTaskIdMissingTryAgain"));
-        return false;
-      }
-
-      trackExistingTask(taskId, initialTracks);
-      openGenerationConfirm();
-      await refreshCredits?.();
-      return true;
+      return await finalizeGenerationTask(result, "toasts.mashupTaskIdMissingTryAgain");
     } catch (error) {
       console.error("Mashup generation failed:", error);
       const message = error instanceof Error ? error.message : t("toasts.mashupGenerationFailedTryAgain");
@@ -145,18 +221,21 @@ export const useStudioGenerationActions = ({
       return false;
     }
   }, [
-    userId,
     customLyrics,
-    styleText,
-    songTitle,
-    selectedModel,
-    vocalGender,
+    appendGenerationTuningToFormData,
+    finalizeGenerationTask,
     getModelLimits,
-    refreshCredits,
-    trackExistingTask,
     openGenerationConfirm,
+    refreshCredits,
+    runGenerationRequest,
+    selectedModel,
     setIsAuthModalOpen,
+    songTitle,
+    styleText,
     t,
+    trackExistingTask,
+    userId,
+    vocalGender,
   ]);
 
   const handleUploadTransformGenerationStart = React.useCallback(async (options?: GenerationStartOptions) => {
@@ -207,12 +286,6 @@ export const useStudioGenerationActions = ({
     }
 
     try {
-      const { data: { session } } = await supabase.auth.getSession();
-
-      if (!session?.access_token) {
-        throw new Error(t("toasts.authenticationExpiredSignInAgain"));
-      }
-
       const formData = new FormData();
       formData.append("mode", options.mode);
       formData.append("uploadUrl", uploadUrl);
@@ -237,47 +310,19 @@ export const useStudioGenerationActions = ({
         }
       }
 
-      if (typeof options.styleWeight === "number") {
-        formData.append("styleWeight", options.styleWeight.toString());
-      }
-      if (typeof options.weirdnessConstraint === "number") {
-        formData.append("weirdnessConstraint", options.weirdnessConstraint.toString());
-      }
-      if (typeof options.audioWeight === "number") {
-        formData.append("audioWeight", options.audioWeight.toString());
-      }
+      appendGenerationTuningToFormData(formData, options);
 
-      const response = await fetch("/api/music/upload", {
-        method: "POST",
-        headers: {
-          Authorization: "Bearer " + session.access_token,
-        },
+      const result = await runGenerationRequest({
+        endpoint: "/api/music/upload",
         body: formData,
+        failedToastKey: "toasts.uploadGenerationFailedTryAgain",
       });
 
-      const result = await response.json().catch(() => ({}));
-
-      if (!response.ok || !result?.success) {
-        if (response.status === 402) {
-          toast.error(result?.error || t("toasts.insufficientCreditsTopUp"));
-        } else {
-          toast.error(result?.error || t("toasts.uploadGenerationFailedTryAgain"));
-        }
+      if (!result) {
         return false;
       }
 
-      const taskId = result?.data?.taskId;
-      const initialTracks = result?.data?.initialTracks;
-
-      if (!taskId) {
-        toast.error(t("toasts.uploadTaskIdMissingTryAgain"));
-        return false;
-      }
-
-      trackExistingTask(taskId, initialTracks);
-      openGenerationConfirm();
-      await refreshCredits?.();
-      return true;
+      return await finalizeGenerationTask(result, "toasts.uploadTaskIdMissingTryAgain");
     } catch (error) {
       console.error("Upload transform generation failed:", error);
       const message = error instanceof Error ? error.message : t("toasts.uploadGenerationFailedTryAgain");
@@ -285,18 +330,21 @@ export const useStudioGenerationActions = ({
       return false;
     }
   }, [
-    userId,
-    songTitle,
-    selectedModel,
-    getModelLimits,
-    styleText,
     customLyrics,
-    vocalGender,
-    refreshCredits,
-    trackExistingTask,
+    appendGenerationTuningToFormData,
+    finalizeGenerationTask,
+    getModelLimits,
     openGenerationConfirm,
+    refreshCredits,
+    runGenerationRequest,
+    selectedModel,
     setIsAuthModalOpen,
+    songTitle,
+    styleText,
     t,
+    trackExistingTask,
+    userId,
+    vocalGender,
   ]);
 
   const handleExtendGenerationStart = React.useCallback(async (options?: GenerationStartOptions) => {
@@ -341,12 +389,6 @@ export const useStudioGenerationActions = ({
     }
 
     try {
-      const { data: { session } } = await supabase.auth.getSession();
-
-      if (!session?.access_token) {
-        throw new Error(t("toasts.authenticationExpiredSignInAgain"));
-      }
-
       const requestBody: Record<string, unknown> = {
         trackId,
         model: effectiveModel,
@@ -366,49 +408,20 @@ export const useStudioGenerationActions = ({
       if (selectedPersonaId) {
         requestBody.personaId = selectedPersonaId;
       }
+      appendGenerationTuningToRequestBody(requestBody, options);
 
-      if (typeof options.styleWeight === "number") {
-        requestBody.styleWeight = options.styleWeight;
-      }
-      if (typeof options.weirdnessConstraint === "number") {
-        requestBody.weirdnessConstraint = options.weirdnessConstraint;
-      }
-      if (typeof options.audioWeight === "number") {
-        requestBody.audioWeight = options.audioWeight;
-      }
-
-      const response = await fetch("/api/music/extend", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${session.access_token}`,
-        },
+      const result = await runGenerationRequest({
+        endpoint: "/api/music/extend",
         body: JSON.stringify(requestBody),
+        json: true,
+        failedToastKey: "toasts.extendGenerationFailedTryAgain",
       });
 
-      const result = await response.json().catch(() => ({}));
-
-      if (!response.ok || !result?.success) {
-        if (response.status === 402) {
-          toast.error(result?.error || t("toasts.insufficientCreditsTopUp"));
-        } else {
-          toast.error(result?.error || t("toasts.extendGenerationFailedTryAgain"));
-        }
+      if (!result) {
         return false;
       }
 
-      const taskId = result?.data?.taskId;
-      const initialTracks = result?.data?.initialTracks;
-
-      if (!taskId) {
-        toast.error(t("toasts.extendTaskIdMissingTryAgain"));
-        return false;
-      }
-
-      trackExistingTask(taskId, initialTracks);
-      openGenerationConfirm();
-      await refreshCredits?.();
-      return true;
+      return await finalizeGenerationTask(result, "toasts.extendTaskIdMissingTryAgain");
     } catch (error) {
       console.error("Extend generation failed:", error);
       const message = error instanceof Error ? error.message : t("toasts.extendGenerationFailedTryAgain");
@@ -416,19 +429,22 @@ export const useStudioGenerationActions = ({
       return false;
     }
   }, [
-    userId,
     customLyrics,
-    styleText,
-    songTitle,
-    selectedModel,
-    vocalGender,
-    selectedPersonaId,
+    appendGenerationTuningToRequestBody,
+    finalizeGenerationTask,
     getModelLimits,
-    refreshCredits,
-    trackExistingTask,
     openGenerationConfirm,
+    refreshCredits,
+    runGenerationRequest,
+    selectedModel,
+    selectedPersonaId,
     setIsAuthModalOpen,
+    songTitle,
+    styleText,
     t,
+    trackExistingTask,
+    userId,
+    vocalGender,
   ]);
 
   return {

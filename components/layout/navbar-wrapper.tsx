@@ -14,7 +14,9 @@ export const NavbarWrapper = () => {
   const hideNavbarPaths = ["/privacy", "/terms", "/refund", "/payment"];
   const shouldHideNavbarByPath = hideNavbarPaths.some(path => 
     normalizedPathname === path || normalizedPathname.startsWith(`${path}/`)
-  ) || isStudioAreaPath(pathname) || normalizedPathname === "/library" || normalizedPathname.startsWith("/library/");
+  ) || isStudioAreaPath(pathname)
+    || normalizedPathname === "/library" || normalizedPathname.startsWith("/library/")
+    || normalizedPathname === "/lyrics-generator" || normalizedPathname.startsWith("/lyrics-generator/");
 
   if (shouldHideNavbarByPath) {
     return null;

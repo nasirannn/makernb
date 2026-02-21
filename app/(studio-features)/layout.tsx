@@ -12,7 +12,6 @@ import { AddTrackPanel } from "@/components/ui/feature-panels/add-track-panel";
 import { AddVocalPanel } from "@/components/ui/feature-panels/add-vocal-panel";
 import { AddMelodyPanel } from "@/components/ui/feature-panels/add-melody-panel";
 import {
-  DEFAULT_STUDIO_FEATURE,
   type StudioFeatureKey,
   getStudioFeatureFromPathname,
 } from "@/lib/studio-features";
@@ -69,9 +68,18 @@ const FEATURE_WORKSPACE_CONFIG: Record<
   },
 };
 
-export default function StudioFeaturePagesLayout() {
+interface StudioFeaturePagesLayoutProps {
+  children: React.ReactNode;
+}
+
+export default function StudioFeaturePagesLayout({ children }: StudioFeaturePagesLayoutProps) {
   const pathname = usePathname();
-  const feature = getStudioFeatureFromPathname(pathname) ?? DEFAULT_STUDIO_FEATURE;
+  const feature = getStudioFeatureFromPathname(pathname);
+
+  if (!feature) {
+    return <>{children}</>;
+  }
+
   const config = FEATURE_WORKSPACE_CONFIG[feature];
 
   return (

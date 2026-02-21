@@ -58,7 +58,7 @@ export const TrackInfo: React.FC<TrackInfoProps> = ({
     : 'h-7 min-h-0 min-w-0 -mt-px items-end gap-2';
   const titleMainGapClass = isStudio ? 'gap-2' : 'gap-1.5';
   const tagsRowClass = isStudio
-    ? 'h-5 min-h-0 items-center gap-2'
+    ? 'h-[22px] min-h-0 items-center gap-2'
     : 'h-4 min-h-0 items-center gap-2';
   const footerRowClass = isStudio
     ? 'h-8 min-h-0 items-center'
@@ -198,7 +198,7 @@ export const TrackInfo: React.FC<TrackInfoProps> = ({
                 )}
 
                 {hasPlainTextTags ? (
-                  <p className={`${textSizeClass} min-w-0 flex-1 truncate leading-none text-muted-foreground`}>
+                  <p className={`${textSizeClass} min-w-0 flex-1 truncate leading-tight text-muted-foreground`}>
                     {plainTagsText}
                   </p>
                 ) : hasParsedTags ? (
@@ -209,13 +209,13 @@ export const TrackInfo: React.FC<TrackInfoProps> = ({
                     className="!block min-w-0 flex-1"
                     contentClassName="!inline-block !items-start !rounded-none !bg-transparent !border-0 !shadow-none !p-0 !text-left !transition-none !duration-0"
                   >
-                    <p className={`${textSizeClass} min-w-0 flex-1 cursor-pointer truncate leading-none text-muted-foreground transition-colors duration-150 hover:text-foreground/90`}>
+                    <p className={`${textSizeClass} min-w-0 flex-1 cursor-pointer truncate leading-tight text-muted-foreground transition-colors duration-150 hover:text-foreground/90`}>
                       {tagsPreviewText}
                     </p>
                   </Tooltip>
                 ) : (
                   isGenerating && (
-                    <p className={`${textSizeClass} min-w-0 flex-1 truncate leading-none text-muted-foreground`}>
+                    <p className={`${textSizeClass} min-w-0 flex-1 truncate leading-tight text-muted-foreground`}>
                       Generating your track, please wait...
                     </p>
                   )

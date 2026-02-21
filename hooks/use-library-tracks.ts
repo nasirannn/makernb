@@ -40,6 +40,24 @@ export const useLibraryTracks = (userId: string | undefined) => {
   const [isLoading, setIsLoading] = useState<boolean>(() => Boolean(userId));
   const [error, setError] = useState<string | null>(null);
 
+  const getAccessTokenOrThrow = useCallback(async () => {
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session?.access_token) {
+      throw new Error('Authentication required');
+    }
+
+    return session.access_token;
+  }, []);
+
+  const getAuthHeaders = useCallback((accessToken: string) => ({
+    'Authorization': `Bearer ${accessToken}`,
+  }), []);
+
+  const getJsonAuthHeaders = useCallback((accessToken: string) => ({
+    'Content-Type': 'application/json',
+    ...getAuthHeaders(accessToken),
+  }), [getAuthHeaders]);
+
   /**
    * 获取用户的所有歌曲数据
    */
@@ -54,15 +72,12 @@ export const useLibraryTracks = (userId: string | undefined) => {
     setError(null);
 
     try {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session?.access_token) {
-        throw new Error('Authentication required');
-      }
+      const accessToken = await getAccessTokenOrThrow();
 
       const timestamp = Date.now();
       const response = await fetch(`/api/user-music/${userId}?limit=100&offset=0&_t=${timestamp}`, {
         headers: {
-          'Authorization': `Bearer ${session.access_token}`,
+          ...getAuthHeaders(accessToken),
           'Cache-Control': 'no-cache'
         }
       });
@@ -136,7 +151,7 @@ export const useLibraryTracks = (userId: string | undefined) => {
     } finally {
       setIsLoading(false);
     }
-  }, [userId]);
+  }, [getAccessTokenOrThrow, getAuthHeaders, userId]);
 
   /**
    * 更新单个track的状态
@@ -161,14 +176,11 @@ export const useLibraryTracks = (userId: string | undefined) => {
    */
   const toggleFavorite = useCallback(async (trackId: string) => {
     try {
-      const { data: { session } } = await supabase.auth.getSession();
+      const accessToken = await getAccessTokenOrThrow();
       
       const response = await fetch('/api/favorites/toggle', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${session?.access_token}`,
-        },
+        headers: getJsonAuthHeaders(accessToken),
         body: JSON.stringify({ trackId })
       });
 
@@ -189,7 +201,7 @@ export const useLibraryTracks = (userId: string | undefined) => {
       console.error('Error toggling favorite:', err);
       throw err;
     }
-  }, [updateTrack]);
+  }, [getAccessTokenOrThrow, getJsonAuthHeaders, updateTrack]);
 
   /**
    * 初始化：获取tracks

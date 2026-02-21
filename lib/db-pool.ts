@@ -40,7 +40,8 @@ const POOL_CONFIG = {
 
   // 连接配置
   ssl: {
-    rejectUnauthorized: false
+    // 默认保持与当前线上行为一致；如需严格校验可通过环境变量开启
+    rejectUnauthorized: process.env.PG_SSL_REJECT_UNAUTHORIZED === 'true'
   },
 
   // Neon specific
@@ -60,6 +61,26 @@ let poolInitializing = false;
 let lastConnectionError: Error | null = null;
 let consecutiveErrors = 0;
 const MAX_CONSECUTIVE_ERRORS = 5;
+let poolResetPromise: Promise<void> | null = null;
+
+const CLOSED_POOL_ERROR = 'cannot use a pool after calling end on the pool';
+
+function sleep(ms: number): Promise<void> {
+  return new Promise(resolve => setTimeout(resolve, ms));
+}
+
+function withJitter(delayMs: number): number {
+  // 20% 抖动，避免错误高峰时所有请求在同一时刻重试
+  const jitterFactor = 0.9 + Math.random() * 0.2;
+  return Math.max(50, Math.round(delayMs * jitterFactor));
+}
+
+function getRetryDelayMs(attempt: number, useNeonBackoff: boolean): number {
+  const baseDelay = useNeonBackoff
+    ? Math.min(2000 * Math.pow(1.5, attempt - 1), 8000)
+    : Math.min(1000 * Math.pow(2, attempt - 1), 5000);
+  return withJitter(baseDelay);
+}
 
 /**
  * 创建数据库连接池
@@ -88,7 +109,9 @@ function createPool(): Pool {
     // 如果连续错误过多，重置连接池
     if (consecutiveErrors >= MAX_CONSECUTIVE_ERRORS) {
       console.error('[DB-POOL] Too many consecutive errors, resetting pool');
-      resetPool();
+      void resetPool('pool_error_threshold').catch((resetError) => {
+        console.error('[DB-POOL] Failed to reset pool from pool error handler:', resetError);
+      });
     }
   });
 
@@ -124,24 +147,36 @@ function getPool(): Pool {
 /**
  * 重置连接池
  */
-async function resetPool(): Promise<void> {
-  console.log('[DB-POOL] Resetting connection pool...');
-  
-  if (pool) {
-    try {
-      await pool.end();
-    } catch (error) {
-      console.error('[DB-POOL] Error ending pool:', error);
-    }
-    pool = null;
+async function resetPool(reason: string = 'unknown'): Promise<void> {
+  if (poolResetPromise) {
+    return poolResetPromise;
   }
-  
-  consecutiveErrors = 0;
-  lastConnectionError = null;
-  
-  // 短暂延迟后重新创建
-  await new Promise(resolve => setTimeout(resolve, 1000));
-  console.log('[DB-POOL] Pool reset complete');
+
+  poolResetPromise = (async () => {
+    console.log(`[DB-POOL] Resetting connection pool (reason: ${reason})...`);
+
+    if (pool) {
+      try {
+        await pool.end();
+      } catch (error) {
+        console.error('[DB-POOL] Error ending pool:', error);
+      }
+      pool = null;
+    }
+
+    consecutiveErrors = 0;
+    lastConnectionError = null;
+
+    // 给上层重试留一点缓冲时间，避免立即重连打到同一故障窗口
+    await sleep(500);
+    console.log('[DB-POOL] Pool reset complete');
+  })();
+
+  try {
+    await poolResetPromise;
+  } finally {
+    poolResetPromise = null;
+  }
 }
 
 // ============================================================================
@@ -265,31 +300,32 @@ export async function query<T extends QueryResultRow = any>(
       // 如果是可重试的错误且不是最后一次尝试
       if (attempt < maxRetries && isRetryableError(error)) {
         // 检查是否是已关闭的 pool 错误
-        const isClosedPoolError = lastError.message.includes('Cannot use a pool after calling end on the pool');
+        const normalizedErrorMessage = (lastError.message || '').toLowerCase();
+        const isClosedPoolError = normalizedErrorMessage.includes(CLOSED_POOL_ERROR);
         
         // 针对不同错误的特殊延迟策略
-        let delayMs;
+        let delayMs: number;
         if (isClosedPoolError) {
           // Pool 已关闭，立即重置并重试
           pool = null; // 直接设置为 null，让 getPool() 重新创建
-          delayMs = 100; // 短暂延迟
+          delayMs = withJitter(120); // 短暂延迟
         } else if (isNeonConnectionError(error)) {
           // Neon错误需要更长的等待时间
-          delayMs = Math.min(2000 * Math.pow(1.5, attempt - 1), 8000);
+          delayMs = getRetryDelayMs(attempt, true);
           console.log(`[DB-POOL] Neon-specific error detected, longer retry delay: ${delayMs}ms`);
 
           // 重置连接池以处理Neon的连接状态问题
-          await resetPool();
+          await resetPool('neon_retry');
         } else {
           // 标准指数退避
-          delayMs = Math.min(1000 * Math.pow(2, attempt - 1), 5000);
+          delayMs = getRetryDelayMs(attempt, false);
           
           // 如果是连接相关错误，重置连接池
           if (isConnectionError(error)) {
-            await resetPool();
+            await resetPool('connection_error_retry');
           }
         }
-        await new Promise(resolve => setTimeout(resolve, delayMs));
+        await sleep(delayMs);
 
         continue;
       }
@@ -369,101 +405,3 @@ export async function withTransaction<T>(
     client.release();
   }
 }
-
-/**
- * 批量执行查询
- */
-export async function batchQuery<T = any>(
-  queries: Array<{ text: string; params?: any[] }>
-): Promise<QueryResult<T>[]> {
-  const currentPool = getPool();
-  const client = await currentPool.connect();
-  
-  try {
-    const results: QueryResult<T>[] = [];
-    
-    for (const { text, params } of queries) {
-      const result = await client.query(text, params);
-      results.push({
-        rows: result.rows,
-        rowCount: result.rowCount,
-        command: result.command,
-      });
-    }
-    
-    return results;
-    
-  } finally {
-    client.release();
-  }
-}
-
-// ============================================================================
-// UTILITY FUNCTIONS
-// ============================================================================
-
-/**
- * 测试数据库连接
- */
-export async function testConnection(): Promise<boolean> {
-  try {
-    await query('SELECT NOW() as current_time');
-    return true;
-  } catch (error) {
-    console.error('[DB-POOL] Connection test failed:', error);
-    return false;
-  }
-}
-
-/**
- * 获取连接池统计信息
- */
-export function getPoolStats() {
-  if (!pool) {
-    return {
-      status: 'not_initialized',
-      consecutiveErrors,
-      lastError: lastConnectionError?.message,
-    };
-  }
-  
-  return {
-    status: 'active',
-    totalCount: pool.totalCount,
-    idleCount: pool.idleCount,
-    waitingCount: pool.waitingCount,
-    consecutiveErrors,
-    lastError: lastConnectionError?.message,
-  };
-}
-
-/**
- * 关闭连接池
- */
-export async function closePool(): Promise<void> {
-  if (pool) {
-    try {
-      await pool.end();
-      pool = null;
-    } catch (error) {
-      console.error('[DB-POOL] Error closing pool:', error);
-    }
-  }
-}
-
-// ============================================================================
-// LEGACY COMPATIBILITY
-// ============================================================================
-
-export const pool_legacy = {
-  get totalCount() { return pool?.totalCount || 0; },
-  get idleCount() { return pool?.idleCount || 0; },
-  get waitingCount() { return pool?.waitingCount || 0; },
-  async connect() {
-    const currentPool = getPool();
-    return await currentPool.connect();
-  },
-  async end() {
-    return closePool();
-  },
-};

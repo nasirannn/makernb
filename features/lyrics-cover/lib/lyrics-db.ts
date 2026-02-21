@@ -1,12 +1,15 @@
 import { query } from '@/lib/db-query-builder';
+import { resolveLyricsTitle } from '@/lib/lyrics-title';
 
 export interface LyricsGeneration {
   id: string;
   task_id: string | null; // 可以为null，失败的生成没有task_id
   user_id: string; // 必需，用于积分扣减
-  title: string;
-  content: string;
+  title: string | null;
+  user_prompt?: string | null;
+  content: string | null;
   status: 'generating' | 'complete' | 'error';
+  is_deleted?: boolean | null;
   created_at: string;
   updated_at: string;
 }
@@ -16,21 +19,45 @@ export const createLyricsGeneration = async (
   taskId: string | null,
   userId: string,
   data: {
-    title: string;
+    title?: string | null;
+    user_prompt?: string | null;
     content: string;
     status?: 'generating' | 'complete' | 'error';
   }
 ): Promise<LyricsGeneration> => {
   try {
     const status = data.status || 'generating';
-    const result = await query(
-      `INSERT INTO lyrics_generations (task_id, user_id, title, content, status)
-       VALUES ($1, $2, $3, $4, $5)
-       RETURNING *`,
-      [taskId, userId, data.title, data.content, status]
-    );
+    const title = resolveLyricsTitle(data.title, data.content);
+    try {
+      const result = await query(
+        `INSERT INTO lyrics_generations (task_id, user_id, title, user_prompt, content, status)
+         VALUES ($1, $2, $3, $4, $5, $6)
+         RETURNING *`,
+        [taskId, userId, title, data.user_prompt || null, data.content, status]
+      );
 
-    return result.rows[0];
+      return result.rows[0];
+    } catch (insertError) {
+      // Backward-compatible fallback before DB migration is applied.
+      const message = insertError instanceof Error ? insertError.message : '';
+      const isMissingUserPromptColumn =
+        /column .*user_prompt.* does not exist/i.test(message) ||
+        /column \"user_prompt\" of relation \"lyrics_generations\" does not exist/i.test(message);
+
+      if (!isMissingUserPromptColumn) {
+        throw insertError;
+      }
+
+      const fallbackResult = await query(
+        `INSERT INTO lyrics_generations (task_id, user_id, title, content, status)
+         VALUES ($1, $2, $3, $4, $5)
+         RETURNING *`,
+        [taskId, userId, title, data.content, status]
+      );
+
+      return fallbackResult.rows[0];
+    }
+
   } catch (error) {
     console.error('Error creating lyrics generation:', error);
     throw error;
@@ -73,7 +100,10 @@ export const updateLyricsGeneration = async (
 export const getLyricsGeneration = async (taskId: string): Promise<LyricsGeneration | null> => {
   try {
     const result = await query(
-      'SELECT * FROM lyrics_generations WHERE task_id = $1',
+      `SELECT *
+       FROM lyrics_generations
+       WHERE task_id = $1
+         AND (is_deleted IS NULL OR is_deleted = FALSE)`,
       [taskId]
     );
 
@@ -84,7 +114,7 @@ export const getLyricsGeneration = async (taskId: string): Promise<LyricsGenerat
   }
 };
 
-// 获取所有歌词生成记录（lyrics_generations表没有user_id字段）
+// 获取所有未删除的歌词生成记录
 export const getAllLyricsGenerations = async (
   limit: number = 10, 
   offset: number = 0
@@ -92,6 +122,7 @@ export const getAllLyricsGenerations = async (
   try {
     const result = await query(
       `SELECT * FROM lyrics_generations 
+       WHERE (is_deleted IS NULL OR is_deleted = FALSE)
        ORDER BY created_at DESC 
        LIMIT $1 OFFSET $2`,
       [limit, offset]
@@ -104,11 +135,14 @@ export const getAllLyricsGenerations = async (
   }
 };
 
-// 删除歌词生成记录（lyrics_generations表没有user_id字段）
+// 逻辑删除歌词生成记录
 export const deleteLyricsGeneration = async (taskId: string): Promise<boolean> => {
   try {
     const result = await query(
-      `DELETE FROM lyrics_generations WHERE task_id = $1`,
+      `UPDATE lyrics_generations
+       SET is_deleted = TRUE, updated_at = NOW()
+       WHERE task_id = $1
+         AND (is_deleted IS NULL OR is_deleted = FALSE)`,
       [taskId]
     );
 

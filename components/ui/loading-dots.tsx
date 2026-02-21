@@ -1,4 +1,5 @@
 import React from 'react';
+import { getZIndexClass } from '@/lib/z-index';
 import { cn } from '@/lib/utils';
 
 // 内联样式用于loading dots动画
@@ -124,7 +125,7 @@ export const LoadingOverlay: React.FC<LoadingOverlayProps> = ({
 }) => {
   return (
     <div className={cn(
-      'absolute inset-0 flex items-center justify-center rounded-lg z-10',
+      `absolute inset-0 flex items-center justify-center rounded-lg ${getZIndexClass('MAIN_CONTENT')}`,
       blur ? 'bg-black/60' : 'bg-black/60',
       className
     )}>

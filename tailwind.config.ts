@@ -7,10 +7,22 @@ module.exports = {
   safelist: [
     "dark",
     // Z-index classes for dynamic values
+    "z-[1]",
+    "z-[10]",
+    "z-[20]",
+    "z-[45]",
+    "z-[50]",
+    "z-[55]",
+    "z-[60]",
+    "z-[70]",
+    "z-[80]",
+    "z-[90]",
     "z-[100]",
     "z-[110]",
     "z-[120]",
     "z-[121]",
+    "z-[130]",
+    "z-[180]",
   ],
   
   prefix: "",

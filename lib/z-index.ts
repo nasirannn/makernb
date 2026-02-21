@@ -1,83 +1,94 @@
 /**
  * Z-Index 层级管理
  * 统一管理所有组件的 z-index 值，避免层级冲突
- * 
- * 层级规范：
- * -10: 页面背景（在所有内容之下）
- * 0-9: 基础内容
- * 10-19: 内容层
- * 20-29: 卡片和面板
- * 30-39: 工具提示和选择器
- * 40-49: 侧边栏
- * 50-59: 模态框和对话框
- * 60-69: 音乐播放器
- * 70-79: 通知和提示
- * 80-89: 特殊交互
- * 90-99: 开发工具
- * 100+: 导航栏和下拉菜单（最高优先级）
+ *
+ * 层级规范（由低到高）：
+ * -10: 页面背景
+ * 0-29: 页面内容层
+ * 30-49: 交互辅助层（tooltip/select 等）
+ * 50-69: Studio 本地层（sidebar/player/backdrop）
+ * 70-99: 通知与调试
+ * 100-119: 导航与菜单
+ * 120-129: 全局模态框/对话框
+ * 130-179: 移动端抽屉等全屏浮层
+ * 180+: 特殊高优先级菜单
  */
 
 export const Z_INDEX = {
-  // 页面背景 (-10)
+  // 页面背景
   HERO_BACKGROUND: -10,
-  
-  // 基础内容 (0-9)
+
+  // 基础内容
   BACKGROUND: 0,
   ANIMATED_BACKGROUND: 0,
   BASE_CONTENT: 1,
 
-  // 内容层 (10-19)
+  // 内容层
   MAIN_CONTENT: 10,
   MUSIC_PLAYER_CONTROLS: 10,
   LOADING_OVERLAY: 10,
   TRACK_OVERLAY: 10,
 
-  // 卡片和面板 (20-29)
+  // 卡片和面板
   CARD: 20,
   PANEL: 25,
 
-  // 工具提示和选择器 (30-39)
+  // 工具提示和选择器
   TOOLTIP: 35,
   SELECT: 30,
 
-  // 侧边栏 (40-49)
-  SIDEBAR: 40,
-  SIDEBAR_DROPDOWN: 40,
+  // 侧边栏（Studio）
+  SIDEBAR_HOVER_BACKDROP: 50,
+  SIDEBAR: 55,
+  SIDEBAR_MENU_ANCHOR: 40,
+  SIDEBAR_DROPDOWN: 110,
 
-  // 模态框和对话框 (50-59)
-  MODAL_BACKDROP: 50,
-  MODAL_CONTENT: 50,
-  DIALOG_BACKDROP: 50,
-  DIALOG_CONTENT: 50,
-  CONFIRM_DIALOG: 50,
+  // 模态框和对话框
+  MODAL_BACKDROP: 120,
+  MODAL_CONTENT: 121,
+  DIALOG_BACKDROP: 120,
+  DIALOG_CONTENT: 121,
+  CONFIRM_DIALOG: 121,
 
-  // 导航栏和下拉菜单 (100+)
+  // 导航与菜单
   NAVBAR: 100,
   MOBILE_NAV: 100,
   DROPDOWN: 110,
 
-  // 音乐播放器 (60-69)
-  MUSIC_PLAYER: 60,
-  LYRICS_PANEL: 55,
+  // Studio 播放器与歌词层
+  MUSIC_PLAYER: 45,
+  FLOATING_PLAYER: 60,
+  LYRICS_PANEL: 60,
   LYRICS_BACKDROP: 50,
 
-  // 通知和提示 (70-79)
+  // 通知和提示
   NOTIFICATION: 70,
-  DAILY_CREDITS: 50,
+  DAILY_CREDITS: 70,
 
-  // 特殊交互 (80-89)
-  STUDIO_CREATE_MODAL: 50,
-  STUDIO_PANEL_TOOLTIP: 50,
+  // Inline panel 交互层
+  INLINE_PANEL_OVERLAY: 70,
+  INLINE_PANEL_CONTAINER: 80,
+  INLINE_PANEL_STUDIO_OVERLAY: 90,
 
-  // 开发工具 (90-99)
+  // 特殊交互
+  STUDIO_CREATE_MODAL: 130,
+  STUDIO_PANEL_TOOLTIP: 122,
+
+  // 开发工具
   DEBUG: 90,
   DEV_TOOLS: 100,
 
-  // 最高优先级 (100+)
+  // 认证模态框（与标准 Dialog 对齐）
   AUTH_MODAL_BACKDROP: 120,
   AUTH_MODAL_CONTENT: 121,
 
-  // 最高层级 (99999+)
+  // 移动端浮层
+  MOBILE_DRAWER: 130,
+
+  // 特殊高优先级菜单（仅在必要时使用）
+  PRIORITY_DROPDOWN: 180,
+
+  // 最高层级
   EMERGENCY: 999999,
 } as const;
 
@@ -129,6 +140,7 @@ export const Z_INDEX_COMBINATIONS = {
   
   // 侧边栏
   SIDEBAR: {
+    backdrop: getZIndexClass('SIDEBAR_HOVER_BACKDROP'),
     container: getZIndexClass('SIDEBAR'),
     dropdown: getZIndexClass('SIDEBAR_DROPDOWN'),
   },
@@ -163,11 +175,11 @@ export const Z_INDEX_COMBINATIONS = {
  * 
  * 1. 优先使用预定义的常量，避免硬编码数字
  * 2. 新增组件时，根据功能选择合适的层级范围
- * 3. 避免使用过高的 z-index 值（> 200）
+ * 3. 避免使用过高的 z-index 值（通常不超过 180）
  * 4. 页面背景使用 HERO_BACKGROUND (-10)
- * 5. 模态框和对话框使用 50-59 范围
- * 6. 导航栏使用 100+ 范围（最高优先级）
- * 7. 音乐播放器使用 60-69 范围
+ * 5. 模态框和对话框使用 120-129 范围
+ * 6. 导航和菜单使用 100-119 范围
+ * 7. Studio 局部浮层使用 50-69 范围
  * 
  * 示例：
  * ```tsx

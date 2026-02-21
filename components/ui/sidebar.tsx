@@ -468,7 +468,7 @@ export const CommonSidebar = ({
         <div
           aria-hidden="true"
           className={cn(
-            "hidden md:block fixed inset-0 top-0 z-[50] bg-background/20 backdrop-blur-[1px] transition-opacity duration-200 pointer-events-none",
+            `hidden md:block fixed inset-0 top-0 ${getZIndexClass('SIDEBAR_HOVER_BACKDROP')} bg-background/20 backdrop-blur-[1px] transition-opacity duration-200 pointer-events-none`,
             isStudioHoverExpanded ? "opacity-100" : "opacity-0"
           )}
         />
@@ -479,13 +479,13 @@ export const CommonSidebar = ({
         className={cn(
           "hidden md:flex fixed left-0 bottom-0 flex-col",
           isStudioVariant
-            ? `top-0 z-[55] transition-[width,box-shadow] duration-200 ease-out ${isStudioHoverExpanded ? "shadow-[0_30px_60px_rgba(2,8,23,0.22)]" : "shadow-none"}`
+            ? `top-0 ${getZIndexClass('SIDEBAR')} transition-[width,box-shadow] duration-200 ease-out ${isStudioHoverExpanded ? "shadow-[0_30px_60px_rgba(2,8,23,0.22)]" : "shadow-none"}`
             : `top-0 ${getZIndexClass('SIDEBAR')} ${isExpanded ? 'w-56' : 'w-[72px]'}`,
         )}
         style={isStudioVariant ? { width: isSidebarExpanded ? expandedWidth : collapsedWidth } : undefined}
       >
         <div className="relative flex h-full flex-col backdrop-blur-md">
-          <div className="relative z-10 flex h-full flex-col">
+          <div className={`relative ${getZIndexClass('MAIN_CONTENT')} flex h-full flex-col`}>
             {/* Home Button */}
             <div className={`flex items-center h-[72px] px-4 ${isSidebarExpanded ? 'justify-start' : 'justify-center'}`}>
               <Link
@@ -528,7 +528,7 @@ export const CommonSidebar = ({
               {user ? (
                 <>
                   {isSidebarExpanded ? (
-                    <div className="relative user-menu-container z-[40]">
+                    <div className={`relative user-menu-container ${getZIndexClass('SIDEBAR_MENU_ANCHOR')}`}>
                       <Button
                         onClick={() => setUserMenuOpen(!userMenuOpen)}
                         variant="ghost"
@@ -559,7 +559,7 @@ export const CommonSidebar = ({
                       </Button>
 
                       {userMenuOpen && (
-                        <div className="absolute top-0 left-full ml-5 min-w-52 w-max bg-background border border-black/10 rounded-2xl p-1.5 shadow-[0_18px_55px_rgba(0,0,0,0.12)] z-[110]">
+                        <div className={`absolute top-0 left-full ml-5 min-w-52 w-max bg-background border border-black/10 rounded-2xl p-1.5 shadow-[0_18px_55px_rgba(0,0,0,0.12)] ${getZIndexClass('SIDEBAR_DROPDOWN')}`}>
                           <div className="px-2.5 py-1.5">
                             <div className="flex items-center justify-between gap-2 mb-1">
                               <p className="text-foreground font-semibold text-sm truncate flex-1">
@@ -625,7 +625,7 @@ export const CommonSidebar = ({
                       )}
                     </div>
                   ) : (
-                    <div className="relative user-menu-container z-[40] flex h-14 items-center justify-center">
+                    <div className={`relative user-menu-container ${getZIndexClass('SIDEBAR_MENU_ANCHOR')} flex h-14 items-center justify-center`}>
                       <Avatar
                         onClick={() => setUserMenuOpen(!userMenuOpen)}
                         className="w-9 h-9 cursor-pointer"
@@ -641,7 +641,7 @@ export const CommonSidebar = ({
                       </Avatar>
 
                       {userMenuOpen && (
-                        <div className="absolute top-0 left-full ml-3 min-w-52 w-max bg-background border border-black/10 rounded-2xl p-1.5 shadow-[0_18px_55px_rgba(0,0,0,0.12)] z-[110]">
+                        <div className={`absolute top-0 left-full ml-3 min-w-52 w-max bg-background border border-black/10 rounded-2xl p-1.5 shadow-[0_18px_55px_rgba(0,0,0,0.12)] ${getZIndexClass('SIDEBAR_DROPDOWN')}`}>
                           <div className="px-2.5 py-1.5">
                             <div className="flex items-center justify-between gap-2 mb-1">
                               <div className="text-sm font-semibold text-foreground truncate flex-1">
@@ -985,7 +985,7 @@ export const CommonSidebar = ({
         </div>
       </div>
       {/* Mobile Bottom Navigation */}
-      <div ref={mobileNavRef} className={`md:hidden fixed bottom-0 left-0 right-0 bg-background/95 backdrop-blur-sm border-t-0 z-[100] transition-transform duration-300 ${hideMobileNav ? 'translate-y-full' : 'translate-y-0'}`}>
+      <div ref={mobileNavRef} className={`md:hidden fixed bottom-0 left-0 right-0 bg-background/95 backdrop-blur-sm border-t-0 ${getZIndexClass('MOBILE_NAV')} transition-transform duration-300 ${hideMobileNav ? 'translate-y-full' : 'translate-y-0'}`}>
         <div className="flex items-center justify-around py-2">
           {/* Studio Button */}
           <Button
@@ -1025,7 +1025,7 @@ export const CommonSidebar = ({
             
             {/* Mobile Dropdown Menu */}
             {isDropdownOpen && (
-              <div className="absolute bottom-12 left-1/2 transform -translate-x-1/2 min-w-48 w-max bg-background border border-border/30 rounded-lg shadow-lg p-2 z-[60]">
+              <div className={`absolute bottom-12 left-1/2 transform -translate-x-1/2 min-w-48 w-max bg-background border border-border/30 rounded-lg shadow-lg p-2 ${getZIndexClass('DROPDOWN')}`}>
                 {aiMusicToolsDropdown.map((item) => (
                   <Link
                     key={item.href}

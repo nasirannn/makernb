@@ -15,6 +15,7 @@ import { supabase } from "@/lib/supabase";
 import { SolidThumbsUpIcon } from "@/components/icons/solid-thumbs-up-icon";
 import { useI18n } from "@/lib/i18n/provider";
 import { withLocalePrefix } from "@/lib/i18n/routing";
+import { getZIndexClass } from "@/lib/z-index";
 
 interface Track {
   id: string;
@@ -64,17 +65,21 @@ export const ExploreSection = () => {
   const audioPlayerRef = useRef(audioPlayer);
   const [playlist, setPlaylist] = useState<MusicGeneration[]>([]);
 
-  const getAuthHeaders = useCallback(async () => {
-    const headers: Record<string, string> = {
-      "Content-Type": "application/json",
-    };
-
+  const getAccessToken = useCallback(async () => {
     const {
       data: { session },
     } = await supabase.auth.getSession();
 
-    if (session?.access_token) {
-      headers.Authorization = `Bearer ${session.access_token}`;
+    return session?.access_token ?? null;
+  }, []);
+
+  const getJsonHeaders = useCallback((accessToken?: string | null) => {
+    const headers: Record<string, string> = {
+      "Content-Type": "application/json",
+    };
+
+    if (accessToken) {
+      headers.Authorization = `Bearer ${accessToken}`;
     }
 
     return headers;
@@ -83,9 +88,10 @@ export const ExploreSection = () => {
   const fetchExploreData = useCallback(async () => {
     try {
       setLoading(true);
+      const accessToken = await getAccessToken();
       const response = await fetch("/api/pinned-tracks?limit=8&offset=0", {
         method: "GET",
-        headers: await getAuthHeaders(),
+        headers: getJsonHeaders(accessToken),
         cache: "no-store",
       });
       const data = await response.json();
@@ -136,7 +142,7 @@ export const ExploreSection = () => {
     } finally {
       setLoading(false);
     }
-  }, [getAuthHeaders]);
+  }, [getAccessToken, getJsonHeaders]);
 
   useEffect(() => {
     audioPlayerRef.current = audioPlayer;
@@ -262,8 +268,8 @@ export const ExploreSection = () => {
     setFavoriteLoadingTrackId(trackId);
 
     try {
-      const headers = await getAuthHeaders();
-      if (!headers.Authorization) {
+      const accessToken = await getAccessToken();
+      if (!accessToken) {
         toast(t("toasts.pleaseLogInFavoriteTracks"));
         router.push(withCurrentLocale("/login"));
         return;
@@ -271,7 +277,7 @@ export const ExploreSection = () => {
 
       const response = await fetch("/api/favorites/toggle", {
         method: "POST",
-        headers,
+        headers: getJsonHeaders(accessToken),
         body: JSON.stringify({ trackId }),
       });
 
@@ -296,7 +302,7 @@ export const ExploreSection = () => {
     } finally {
       setFavoriteLoadingTrackId(null);
     }
-  }, [favoriteLoadingTrackId, getAuthHeaders, router, t, updateFavoriteState, withCurrentLocale]);
+  }, [favoriteLoadingTrackId, getAccessToken, getJsonHeaders, router, t, updateFavoriteState, withCurrentLocale]);
 
   const playTrack = async (index: number, specificTrackId?: string, specificAudioUrl?: string) => {
     if (index < 0 || index >= playlist.length) return;
@@ -498,7 +504,7 @@ export const ExploreSection = () => {
 
                         {hasCover && (
                           <div className="absolute inset-0 bg-black/50 opacity-0 transition-opacity duration-300 group-hover:opacity-100">
-                            <div className="absolute right-3 top-3 z-10 flex items-center gap-2">
+                            <div className={`absolute right-3 top-3 ${getZIndexClass('MAIN_CONTENT')} flex items-center gap-2`}>
                               <Button
                                 variant="ghost"
                                 size="sm"
@@ -607,7 +613,7 @@ export const ExploreSection = () => {
         </div>
 
         <div
-          className={`fixed inset-0 z-[70] transition-opacity duration-200 ${
+          className={`fixed inset-0 ${getZIndexClass('INLINE_PANEL_OVERLAY')} transition-opacity duration-200 ${
             showInlinePanel ? "pointer-events-auto opacity-100" : "pointer-events-none opacity-0"
           }`}
           aria-hidden={!showInlinePanel}
