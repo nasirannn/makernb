@@ -297,6 +297,16 @@ export const enMessages = {
           bulletThree: "Generate multiple cover concepts from one original track source",
           imageAlt: "Music cover workflow preview",
         },
+        vocalSeparation: {
+          headline: "Hear Stem Separation Before You Export",
+          description: "Preview vocal and instrumental outputs in waveform view, so you can quickly evaluate clarity, balance, and artifact levels before downloading stems.",
+          bulletOne: "Listen to both vocal and instrumental stems in one place",
+          bulletTwo: "Validate separation quality before committing to export",
+          bulletThree: "Use stem previews as a faster checkpoint in your workflow",
+          imageAlt: "Vocal separation workflow preview",
+          vocalPreview: "Vocal Preview",
+          instrumentalPreview: "Instrumental Preview",
+        },
         mashup: {
           headline: "Blend Two Tracks into One Concept",
           description: "Combine two tracks into a single cohesive result by merging rhythm, melody, and vibe. Great for creative prototyping, crossover ideas, and hybrid production experiments.",

@@ -300,6 +300,17 @@ export const jaMessages = {
           bulletThree: "1つの原曲から複数のカバー案を生成",
           imageAlt: "音楽カバーワークフロープレビュー",
         },
+        vocalSeparation: {
+          headline: "書き出し前に分離結果を試聴",
+          description:
+            "waveform プレイヤーでボーカルとインストの分離結果を先に確認し、明瞭さやバランス、ノイズ感をチェックしてから書き出せます。",
+          bulletOne: "ボーカルとインストを同じ場所で聴き比べ可能",
+          bulletTwo: "書き出し前に分離品質を素早く確認できる",
+          bulletThree: "分離フローの中で効率よく品質チェックできる",
+          imageAlt: "ボーカル分離ワークフロープレビュー",
+          vocalPreview: "ボーカル試聴",
+          instrumentalPreview: "インスト試聴",
+        },
         mashup: {
           headline: "2曲を1つのコンセプトに融合",
           description:

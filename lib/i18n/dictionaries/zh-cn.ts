@@ -297,6 +297,16 @@ export const zhCNMessages = {
           bulletThree: "基于同一首原曲快速生成多个翻唱方案",
           imageAlt: "音乐翻唱流程预览",
         },
+        vocalSeparation: {
+          headline: "导出前先试听分离质量",
+          description: "在 waveform 播放器中先试听人声与伴奏结果，快速判断分离清晰度、平衡度和伪影情况，再决定是否导出。",
+          bulletOne: "在同一区域试听人声与伴奏两条分离结果",
+          bulletTwo: "导出之前先确认分离质量是否达标",
+          bulletThree: "把试听作为分离流程中的快速质检环节",
+          imageAlt: "人声分离流程预览",
+          vocalPreview: "人声试听",
+          instrumentalPreview: "伴奏试听",
+        },
         mashup: {
           headline: "将两首歌融合成一个新概念",
           description: "把两条音频在节奏、旋律和氛围上融合为一个完整结果。适合创意原型、跨风格尝试和混合编曲实验。",
