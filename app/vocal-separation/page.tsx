@@ -1,77 +1,185 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
-import { Card, CardContent } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Separator } from '@/components/ui/separator';
-import { Progress } from '@/components/ui/progress';
-import { WaveformPlayer } from '@/components/ui/waveform-player';
-import { Download, Mic, Music, Volume2, Upload } from 'lucide-react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import Image from 'next/image';
-import { FooterSection } from '@/components/layout/sections/footer';
-import { supabase } from '@/lib/supabase';
+import { Button } from '@/components/ui/button';
+import { Progress } from '@/components/ui/progress';
+import { Skeleton } from '@/components/ui/skeleton';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { WaveformPlayer, type WaveformLoadErrorDetail } from '@/components/ui/waveform-player';
 import AuthModal from '@/components/ui/auth-modal';
-import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
-import { CLIENT_VOCAL_SEPARATION_CREDITS } from '@/lib/credits-config';
 import {
-  Accordion,
-  AccordionContent,
-  AccordionItem,
-  AccordionTrigger,
-} from "@/components/ui/accordion";
-import { formatDateTime } from "@/lib/format-utils";
-import { useI18n } from "@/lib/i18n/provider";
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
+import { Download, Mic, Music, Volume2, Upload, RefreshCw, AlertCircle, Info } from 'lucide-react';
+import { supabase } from '@/lib/supabase';
+import { CLIENT_FEATURE_CREDITS, CLIENT_VOCAL_SEPARATION_CREDITS } from '@/lib/credits-config';
+import { formatDateTime, formatDuration } from '@/lib/format-utils';
+import { useI18n } from '@/lib/i18n/provider';
+import { CommonSidebar } from '@/components/ui/sidebar';
+import { getZIndexClass } from '@/lib/z-index';
+import { toast } from 'sonner';
 
-export default function VocalSeparationDemo() {
+type SeparationResults = {
+  vocals: string;
+  accompaniment: string;
+};
+
+type SourceTab = 'upload' | 'my-music';
+
+type UserMusicTrack = {
+  id: string;
+  title: string;
+  tags: string;
+  createdAt: string;
+  audioUrl: string;
+  coverR2Url?: string;
+  duration?: number;
+};
+
+type PendingStartPayload = {
+  force: boolean;
+  requestKey: string;
+  file: File | null;
+  audioUrl: string;
+  sourceType: 'replicate' | 'kie';
+  trackId?: string;
+  separationType?: 'separate_vocal' | 'split_stem';
+};
+
+type LibrarySeparationType = 'separate_vocal' | 'split_stem';
+
+type SeparationResultSource = 'replicate' | 'kie';
+
+type SeparationHistoryRecord = {
+  id: string;
+  source: SeparationResultSource;
+  separationType?: string;
+  status: 'processing' | 'completed' | 'error';
+  originalFilename: string;
+  originalAudioUrl?: string;
+  vocalUrl?: string;
+  instrumentalUrl?: string;
+  hasPersistentAudio?: boolean;
+  errorCode?: string;
+  errorMessage?: string;
+  createdAt: string;
+  updatedAt: string;
+};
+
+const getHistoryRecordKey = (record: SeparationHistoryRecord): string => `${record.source}:${record.id}`;
+
+const toNonEmptyString = (value: unknown): string | undefined => {
+  if (typeof value !== 'string') return undefined;
+  const normalized = value.trim();
+  return normalized.length > 0 ? normalized : undefined;
+};
+
+const normalizeHistoryStatus = (
+  rawStatus: unknown,
+  context: { hasOutput: boolean; hasError: boolean }
+): SeparationHistoryRecord['status'] => {
+  const status = typeof rawStatus === 'string' ? rawStatus.trim().toLowerCase() : '';
+  if (status === 'completed' || status === 'complete' || status === 'success' || status === 'succeeded' || status === 'done') {
+    return 'completed';
+  }
+  if (status === 'error' || status === 'failed' || status === 'fail' || status === 'failure' || status === 'cancelled' || status === 'canceled') {
+    return 'error';
+  }
+  if (context.hasError) return 'error';
+  if (context.hasOutput) return 'completed';
+  return 'processing';
+};
+
+export default function VocalSeparationPage() {
   const { t } = useI18n();
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
+  const pollingCancelRef = useRef<(() => void) | null>(null);
+  const outputRef = useRef<{ audioUrl: string; vocals: string; accompaniment: string }>({
+    audioUrl: '',
+    vocals: '',
+    accompaniment: '',
+  });
+
   const [isOriginalPlaying, setIsOriginalPlaying] = useState(false);
   const [isVocalsPlaying, setIsVocalsPlaying] = useState(false);
   const [isAccompanimentPlaying, setIsAccompanimentPlaying] = useState(false);
   const [hasOriginalError, setHasOriginalError] = useState(false);
   const [hasVocalsError, setHasVocalsError] = useState(false);
   const [hasAccompanimentError, setHasAccompanimentError] = useState(false);
+  const [originalLoadIssue, setOriginalLoadIssue] = useState<WaveformLoadErrorDetail | null>(null);
+  const [vocalsLoadIssue, setVocalsLoadIssue] = useState<WaveformLoadErrorDetail | null>(null);
+  const [accompanimentLoadIssue, setAccompanimentLoadIssue] = useState<WaveformLoadErrorDetail | null>(null);
+
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
-  const [audioUrl, setAudioUrl] = useState<string>('');
-  const [userInputUrl, setUserInputUrl] = useState<string>('');
-  const [urlValidationError, setUrlValidationError] = useState<string>('');
+  const [audioUrl, setAudioUrl] = useState('');
+  const [sourceTab, setSourceTab] = useState<SourceTab>('upload');
+  const [latestResultSource, setLatestResultSource] = useState<SourceTab | null>(null);
+  const [latestFileResultTitle, setLatestFileResultTitle] = useState('');
+  const [myMusicTracks, setMyMusicTracks] = useState<UserMusicTrack[]>([]);
+  const [isMyMusicLoading, setIsMyMusicLoading] = useState(false);
+  const [myMusicError, setMyMusicError] = useState<string | null>(null);
+  const [myMusicLoadedUserId, setMyMusicLoadedUserId] = useState<string | null>(null);
+  const [librarySeparationType, setLibrarySeparationType] = useState<LibrarySeparationType>('separate_vocal');
+  const [selectedMyMusicTrackId, setSelectedMyMusicTrackId] = useState<string | null>(null);
+  const [currentUserId, setCurrentUserId] = useState<string | null>(null);
+
   const [isGenerating, setIsGenerating] = useState(false);
   const [separationComplete, setSeparationComplete] = useState(false);
-  const [separationResults, setSeparationResults] = useState<{
-    vocals: string;
-    accompaniment: string;
-  } | null>(null);
+  const [separationResults, setSeparationResults] = useState<SeparationResults | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [separationProgress, setSeparationProgress] = useState(0);
+
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [showAuthModal, setShowAuthModal] = useState(false);
   const [showConfirmDialog, setShowConfirmDialog] = useState(false);
-  const [pendingStart, setPendingStart] = useState<{
-    force: boolean;
-    requestKey: string;
-    file: File | null;
-    audioUrl: string;
-  } | null>(null);
+  const [pendingStart, setPendingStart] = useState<PendingStartPayload | null>(null);
   const [resultKey, setResultKey] = useState<string | null>(null);
   const [isCacheHit, setIsCacheHit] = useState(false);
   const [cacheUpdatedAt, setCacheUpdatedAt] = useState<string | null>(null);
-  
+  const [historyRecords, setHistoryRecords] = useState<SeparationHistoryRecord[]>([]);
+  const [isHistoryLoading, setIsHistoryLoading] = useState(false);
+  const [historyError, setHistoryError] = useState<string | null>(null);
+  const [activeHistoryRecordKey, setActiveHistoryRecordKey] = useState<string | null>(null);
+  const [pendingDeleteRecord, setPendingDeleteRecord] = useState<SeparationHistoryRecord | null>(null);
+  const [isDeletingRecord, setIsDeletingRecord] = useState(false);
+
   useEffect(() => {
-    // Only sync login status for upload permission control; no historical data requests
     const syncAuth = async () => {
       try {
-        const { data: { session } } = await supabase.auth.getSession();
-        const loggedIn = !!session?.access_token;
-        setIsLoggedIn(loggedIn);
-      } catch (error) {
-        console.error('Error checking user session:', error);
+        const {
+          data: { session },
+        } = await supabase.auth.getSession();
+        setIsLoggedIn(Boolean(session?.access_token));
+        setCurrentUserId(session?.user?.id ?? null);
+      } catch (syncError) {
+        console.error('Error checking user session:', syncError);
         setIsLoggedIn(false);
+        setCurrentUserId(null);
       }
     };
 
-    syncAuth();
+    void syncAuth();
 
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-      setIsLoggedIn(!!session);
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((_event, session) => {
+      setIsLoggedIn(Boolean(session?.access_token));
+      setCurrentUserId(session?.user?.id ?? null);
+
+      if (!session?.access_token) {
+        setMyMusicTracks([]);
+        setMyMusicError(null);
+        setMyMusicLoadedUserId(null);
+        setSelectedMyMusicTrackId(null);
+      }
     });
 
     return () => {
@@ -79,53 +187,309 @@ export default function VocalSeparationDemo() {
     };
   }, []);
 
+  useEffect(() => {
+    outputRef.current = {
+      audioUrl,
+      vocals: separationResults?.vocals || '',
+      accompaniment: separationResults?.accompaniment || '',
+    };
+  }, [audioUrl, separationResults]);
+
+  useEffect(() => {
+    return () => {
+      pollingCancelRef.current?.();
+      pollingCancelRef.current = null;
+    };
+  }, []);
+
+  const selectedMyMusicTrack = useMemo(
+    () => myMusicTracks.find((track) => track.id === selectedMyMusicTrackId) ?? null,
+    [myMusicTracks, selectedMyMusicTrackId]
+  );
+
+  const formatSeparationTypeLabel = useCallback((value?: string): string => {
+    const normalized = value?.trim().toLowerCase();
+    if (!normalized) return 'Separate Vocal';
+    if (normalized === 'split_stem') return 'Split Stem';
+    if (normalized === 'separate_vocal') return 'Separate Vocal';
+
+    return normalized
+      .split(/[_\s-]+/)
+      .filter(Boolean)
+      .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
+      .join(' ');
+  }, []);
+
+  const fetchMyMusicTracks = useCallback(async () => {
+    if (!isLoggedIn || !currentUserId) {
+      setMyMusicTracks([]);
+      setIsMyMusicLoading(false);
+      setMyMusicError(null);
+      return;
+    }
+
+    setIsMyMusicLoading(true);
+    setMyMusicError(null);
+
+    try {
+      const {
+        data: { session },
+      } = await supabase.auth.getSession();
+
+      const accessToken = session?.access_token;
+      if (!accessToken) {
+        setMyMusicTracks([]);
+        setMyMusicError(t('vocalSeparationPage.inputs.myMusic.signInToView'));
+        return;
+      }
+
+      const response = await fetch(`/api/user-music/${currentUserId}?limit=60&offset=0`, {
+        cache: 'no-store',
+        headers: {
+          Authorization: `Bearer ${accessToken}`,
+        },
+      });
+
+      if (!response.ok) {
+        throw new Error(`Failed to load music list: ${response.status}`);
+      }
+
+      const payload = await response.json();
+      const generations = Array.isArray(payload?.data?.music) ? payload.data.music : [];
+      const flattenedTracks: UserMusicTrack[] = [];
+
+      generations.forEach((generation: any) => {
+        const tracks = Array.isArray(generation?.allTracks) ? generation.allTracks : [];
+        const generationTitle = typeof generation?.title === 'string' ? generation.title.trim() : '';
+        const generationTags = typeof generation?.tags === 'string' ? generation.tags.trim() : '';
+        const generationCreatedAt =
+          typeof generation?.createdAt === 'string'
+            ? generation.createdAt
+            : typeof generation?.created_at === 'string'
+              ? generation.created_at
+              : '';
+
+        tracks.forEach((track: any, index: number) => {
+          const audioUrlFromTrack = typeof track?.audioUrl === 'string' ? track.audioUrl.trim() : '';
+          if (!audioUrlFromTrack) return;
+
+          const trackId = typeof track?.id === 'string' ? track.id : `${generation?.id || 'gen'}-${index}`;
+          const trackTitle = typeof track?.title === 'string' ? track.title.trim() : '';
+          const trackCreatedAt = typeof track?.createdAt === 'string' ? track.createdAt : generationCreatedAt;
+
+          flattenedTracks.push({
+            id: trackId,
+            title: trackTitle || generationTitle || '',
+            tags: generationTags,
+            createdAt: trackCreatedAt,
+            audioUrl: audioUrlFromTrack,
+            coverR2Url: typeof track?.coverR2Url === 'string' ? track.coverR2Url : undefined,
+            duration:
+              typeof track?.duration === 'number'
+                ? track.duration
+                : typeof track?.duration === 'string'
+                  ? Number.parseFloat(track.duration)
+                  : undefined,
+          });
+        });
+      });
+
+      flattenedTracks.sort((a, b) => {
+        const aTs = a.createdAt ? Date.parse(a.createdAt) : 0;
+        const bTs = b.createdAt ? Date.parse(b.createdAt) : 0;
+        return bTs - aTs;
+      });
+
+      setMyMusicTracks(flattenedTracks);
+      setMyMusicLoadedUserId(currentUserId);
+      setSelectedMyMusicTrackId((prev) =>
+        prev && flattenedTracks.some((track) => track.id === prev) ? prev : null
+      );
+    } catch (fetchError) {
+      console.error('Failed to fetch my music tracks:', fetchError);
+      setMyMusicTracks([]);
+      setMyMusicError(t('vocalSeparationPage.inputs.myMusic.loadFailed'));
+    } finally {
+      setIsMyMusicLoading(false);
+    }
+  }, [currentUserId, isLoggedIn, t]);
+
+  const fetchHistoryRecords = useCallback(async () => {
+    if (!isLoggedIn || !currentUserId) {
+      setHistoryRecords([]);
+      setIsHistoryLoading(false);
+      setHistoryError(null);
+      return;
+    }
+
+    setIsHistoryLoading(true);
+    setHistoryError(null);
+
+    try {
+      const {
+        data: { session },
+      } = await supabase.auth.getSession();
+
+      const accessToken = session?.access_token;
+      if (!accessToken) {
+        setHistoryRecords([]);
+        return;
+      }
+
+      const response = await fetch('/api/vocal/separation-unified?source=kie&limit=80&offset=0', {
+        cache: 'no-store',
+        headers: {
+          Authorization: `Bearer ${accessToken}`,
+        },
+      });
+
+      if (!response.ok) {
+        throw new Error(`Failed to load vocal separation history: ${response.status}`);
+      }
+
+      const payload = await response.json();
+      if (Array.isArray(payload?.warnings) && payload.warnings.length > 0) {
+        console.warn('Unified separation history warnings:', payload.warnings);
+      }
+      const rows = Array.isArray(payload?.data) ? payload.data : [];
+
+      const normalizedRows: SeparationHistoryRecord[] = rows
+        .map((row: any): SeparationHistoryRecord | null => {
+          const id = row?.id != null ? String(row.id).trim() : '';
+          if (!id) return null;
+
+          const source: SeparationResultSource = row?.source === 'kie' ? 'kie' : 'replicate';
+          const vocalUrl = toNonEmptyString(row?.vocalUrl);
+          const instrumentalUrl = toNonEmptyString(
+            typeof row?.instrumentalUrl === 'string' ? row.instrumentalUrl : row?.accompanimentUrl
+          );
+          const originalAudioUrl = toNonEmptyString(row?.originalAudioUrl);
+          const separationTypeRaw =
+            typeof row?.separationType === 'string'
+              ? row.separationType
+              : typeof row?.separation_type === 'string'
+                ? row.separation_type
+                : '';
+          const separationType = separationTypeRaw.trim().toLowerCase();
+          const errorCode =
+            typeof row?.errorCode === 'string' || typeof row?.errorCode === 'number'
+              ? String(row.errorCode)
+              : typeof row?.error_code === 'string' || typeof row?.error_code === 'number'
+                ? String(row.error_code)
+                : undefined;
+          const errorMessage =
+            typeof row?.errorMessage === 'string'
+              ? row.errorMessage
+              : typeof row?.error_message === 'string'
+                ? row.error_message
+                : undefined;
+          const status = normalizeHistoryStatus(row?.status, {
+            hasOutput: Boolean(originalAudioUrl || vocalUrl || instrumentalUrl),
+            hasError: Boolean(errorCode || errorMessage),
+          });
+
+          const originalFilename =
+            typeof row?.originalFilename === 'string' && row.originalFilename.trim().length > 0
+              ? row.originalFilename.trim()
+              : t('vocalSeparationPage.results.separationResultsTitle');
+
+          const createdAt = typeof row?.createdAt === 'string' ? row.createdAt : '';
+          const updatedAt = typeof row?.updatedAt === 'string' ? row.updatedAt : createdAt;
+          const hasPersistentAudio = Boolean(row?.hasPersistentAudio);
+
+          return {
+            id,
+            source,
+            separationType: separationType || undefined,
+            status,
+            originalFilename,
+            originalAudioUrl: originalAudioUrl || undefined,
+            vocalUrl: vocalUrl || undefined,
+            instrumentalUrl: instrumentalUrl || undefined,
+            hasPersistentAudio,
+            errorCode,
+            errorMessage,
+            createdAt,
+            updatedAt,
+          };
+        })
+        .filter((row: SeparationHistoryRecord | null): row is SeparationHistoryRecord => row !== null)
+        .sort((a: SeparationHistoryRecord, b: SeparationHistoryRecord) => {
+          const aTs = a.createdAt ? Date.parse(a.createdAt) : 0;
+          const bTs = b.createdAt ? Date.parse(b.createdAt) : 0;
+          return bTs - aTs;
+        });
+
+      setHistoryRecords(normalizedRows);
+    } catch (historyFetchError) {
+      console.error('Failed to fetch unified vocal separation history:', historyFetchError);
+      setHistoryRecords([]);
+      setHistoryError(t('toasts.failedToLoadVocalSeparations'));
+    } finally {
+      setIsHistoryLoading(false);
+    }
+  }, [currentUserId, isLoggedIn, t]);
+
+  useEffect(() => {
+    if (sourceTab !== 'my-music') return;
+    if (!isLoggedIn || !currentUserId) return;
+    if (isMyMusicLoading) return;
+    if (myMusicLoadedUserId === currentUserId) return;
+    void fetchMyMusicTracks();
+  }, [currentUserId, fetchMyMusicTracks, isLoggedIn, isMyMusicLoading, myMusicLoadedUserId, sourceTab]);
+
+  useEffect(() => {
+    if (!isLoggedIn || !currentUserId) {
+      setHistoryRecords([]);
+      setActiveHistoryRecordKey(null);
+      return;
+    }
+    void fetchHistoryRecords();
+  }, [currentUserId, fetchHistoryRecords, isLoggedIn]);
+
   const handleWaveformPlayPause = (audioType: 'original' | 'vocals' | 'accompaniment') => {
     if (audioType === 'original') {
       if (isOriginalPlaying) {
-        // Pause original
         setIsOriginalPlaying(false);
       } else {
-        // Stop others and play original
         setIsVocalsPlaying(false);
         setIsAccompanimentPlaying(false);
         setIsOriginalPlaying(true);
       }
-    } else if (audioType === 'vocals') {
+      return;
+    }
+
+    if (audioType === 'vocals') {
       if (isVocalsPlaying) {
-        // Pause vocals
         setIsVocalsPlaying(false);
       } else {
-        // Stop others and play vocals
         setIsOriginalPlaying(false);
         setIsAccompanimentPlaying(false);
         setIsVocalsPlaying(true);
       }
-    } else if (audioType === 'accompaniment') {
-      if (isAccompanimentPlaying) {
-        // Pause accompaniment
-        setIsAccompanimentPlaying(false);
-      } else {
-        // Stop others and play accompaniment
-        setIsOriginalPlaying(false);
-        setIsVocalsPlaying(false);
-        setIsAccompanimentPlaying(true);
-      }
+      return;
+    }
+
+    if (isAccompanimentPlaying) {
+      setIsAccompanimentPlaying(false);
+    } else {
+      setIsOriginalPlaying(false);
+      setIsVocalsPlaying(false);
+      setIsAccompanimentPlaying(true);
     }
   };
 
   const handleWaveformFinish = () => {
-    // When audio finishes, stop all players
     setIsOriginalPlaying(false);
     setIsVocalsPlaying(false);
     setIsAccompanimentPlaying(false);
   };
 
   const handleFileSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
-    if (file) {
-      setSelectedFile(file);
-      // Origin轨道只显示数据库中的URL，不显示本地预览
-    }
+    const file = event.target.files?.[0] || null;
+    setSelectedFile(file);
+    setSourceTab('upload');
+    setSelectedMyMusicTrackId(null);
   };
 
   const handleUploadAreaClick = () => {
@@ -133,104 +497,376 @@ export default function VocalSeparationDemo() {
       setShowAuthModal(true);
       return;
     }
-    
-    const fileInput = document.getElementById('file-upload') as HTMLInputElement;
-    fileInput?.click();
+
+    fileInputRef.current?.click();
   };
 
-  // URL输入处理函数
-  const handleUrlInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const url = e.target.value;
-    setUserInputUrl(url);
-    
-    // 实时验证
-    if (url.trim()) {
-      const validation = validateAudioUrl(url);
-      if (!validation.isValid) {
-        setUrlValidationError(validation.error || t('vocalSeparationPage.validation.invalidUrl'));
-      } else {
-        setUrlValidationError('');
+  const handleMyMusicTrackSelect = (track: UserMusicTrack) => {
+    if (!track.audioUrl) return;
+    setSourceTab('my-music');
+    setSelectedMyMusicTrackId(track.id);
+    setSelectedFile(null);
+    setError(null);
+  };
+
+  const formatStatusError = useCallback(
+    (fallbackMessage: string, errorCode?: string, errorMessage?: string): string => {
+      const message = errorMessage && errorMessage.trim().length > 0 ? errorMessage.trim() : fallbackMessage;
+      if (errorCode && errorCode.trim().length > 0) {
+        return `${message} (Code: ${errorCode.trim()})`;
       }
-    } else {
-      setUrlValidationError('');
-    }
-  };
+      return message;
+    },
+    []
+  );
 
-  // URL验证函数
-  const validateAudioUrl = (url: string): { isValid: boolean; error?: string } => {
-    if (!url.trim()) {
-      return { isValid: false, error: t('vocalSeparationPage.validation.enterAudioUrl') };
-    }
+  const handleOriginLoadError = useCallback((hasError: boolean, detail?: WaveformLoadErrorDetail) => {
+    setHasOriginalError(hasError);
+    setOriginalLoadIssue(hasError ? (detail || null) : null);
+  }, []);
 
-    // 基本URL格式验证
+  const handleAccompanimentLoadError = useCallback((hasError: boolean, detail?: WaveformLoadErrorDetail) => {
+    setHasAccompanimentError(hasError);
+    setAccompanimentLoadIssue(hasError ? (detail || null) : null);
+  }, []);
+
+  const handleVocalLoadError = useCallback((hasError: boolean, detail?: WaveformLoadErrorDetail) => {
+    setHasVocalsError(hasError);
+    setVocalsLoadIssue(hasError ? (detail || null) : null);
+  }, []);
+
+  const handleRequestDeleteRecord = useCallback((record: SeparationHistoryRecord | null) => {
+    if (!record) return;
+    setPendingDeleteRecord(record);
+  }, []);
+
+  const handleConfirmDeleteRecord = useCallback(async () => {
+    if (!pendingDeleteRecord) return;
+
+    setIsDeletingRecord(true);
     try {
-      new URL(url);
-    } catch {
-      return { isValid: false, error: t('vocalSeparationPage.validation.enterValidUrl') };
+      const {
+        data: { session },
+      } = await supabase.auth.getSession();
+
+      if (!session?.access_token) {
+        throw new Error(t('toasts.noValidSessionFound'));
+      }
+
+      const response = await fetch(
+        `/api/vocal/separation-unified/${encodeURIComponent(pendingDeleteRecord.id)}?source=${encodeURIComponent(pendingDeleteRecord.source)}`,
+        {
+          method: 'DELETE',
+          headers: {
+            Authorization: `Bearer ${session.access_token}`,
+          },
+        }
+      );
+
+      if (!response.ok) {
+        throw new Error(t('toasts.failedDeleteVocalSeparation'));
+      }
+
+      setHistoryRecords((prev) =>
+        prev.filter(
+          (record) =>
+            !(record.id === pendingDeleteRecord.id && record.source === pendingDeleteRecord.source)
+        )
+      );
+      setActiveHistoryRecordKey((prev) =>
+        prev === `${pendingDeleteRecord.source}:${pendingDeleteRecord.id}` ? null : prev
+      );
+
+      setHasOriginalError(false);
+      setHasVocalsError(false);
+      setHasAccompanimentError(false);
+      setOriginalLoadIssue(null);
+      setVocalsLoadIssue(null);
+      setAccompanimentLoadIssue(null);
+
+      toast.success(t('toasts.vocalSeparationDeletedSuccessfully'));
+      setPendingDeleteRecord(null);
+      await fetchHistoryRecords();
+    } catch (deleteError) {
+      console.error('Failed to delete vocal separation record:', deleteError);
+      toast.error(
+        deleteError instanceof Error && deleteError.message
+          ? deleteError.message
+          : t('toasts.failedDeleteVocalSeparation')
+      );
+    } finally {
+      setIsDeletingRecord(false);
     }
+  }, [fetchHistoryRecords, pendingDeleteRecord, t]);
 
-    // 检查协议
-    if (!url.startsWith('http://') && !url.startsWith('https://')) {
-      return { isValid: false, error: t('vocalSeparationPage.validation.urlMustStartWithHttp') };
-    }
+  const startPollingStatus = (predictionId: string, requestKey: string) => {
+    const startTime = Date.now();
+    const maxPollSeconds = 300;
+    let cancelled = false;
 
-    // 检查音频文件扩展名
-    const audioExtensions = ['.mp3', '.wav', '.flac', '.ogg', '.opus', '.m4a', '.aac', '.wma'];
-    const urlLower = url.toLowerCase();
-    const hasAudioExtension = audioExtensions.some(ext => urlLower.includes(ext));
-    
-    if (!hasAudioExtension) {
-      return { isValid: false, error: t('vocalSeparationPage.validation.urlToAudioFile') };
-    }
+    const calculateProgress = (elapsed: number, hasResults: boolean): number => {
+      if (hasResults) {
+        const base = 60;
+        const timeBased = Math.min(30, (elapsed / maxPollSeconds) * 30);
+        return Math.min(90, base + timeBased);
+      }
 
-    return { isValid: true };
-  };
+      const base = 10;
+      const timeBased = Math.min(40, (elapsed / maxPollSeconds) * 40);
+      return Math.min(50, base + timeBased);
+    };
 
-  const handleStartSeparating = async () => {
-    // 原有的上传文件/URL 逻辑
-    if (!selectedFile && !userInputUrl) {
-      setError(t('vocalSeparationPage.errors.selectFileOrAudioUrl'));
-      return;
-    }
+    const poll = async () => {
+      if (cancelled) return;
 
-    // 如果用户输入了URL，进行验证
-    if (userInputUrl && !selectedFile) {
-      const validation = validateAudioUrl(userInputUrl);
-      if (!validation.isValid) {
-        setError(validation.error || t('vocalSeparationPage.errors.invalidAudioUrl'));
+      const elapsed = Math.floor((Date.now() - startTime) / 1000);
+      if (elapsed > maxPollSeconds) {
+        setError(t('vocalSeparationPage.errors.separationTimeout'));
+        setIsGenerating(false);
+        setSeparationProgress(0);
         return;
       }
-    }
 
-    const requestKey = selectedFile
-      ? `file:${selectedFile.name}:${selectedFile.size}:${selectedFile.lastModified}`
-      : `url:${userInputUrl.trim()}`;
+      try {
+        const {
+          data: { session },
+        } = await supabase.auth.getSession();
 
-    const hasPlayerTracks = !!(audioUrl || separationResults?.vocals || separationResults?.accompaniment);
-    if (hasPlayerTracks && resultKey && resultKey !== requestKey) {
-      setPendingStart({ force: false, requestKey, file: selectedFile, audioUrl: userInputUrl });
-      setShowConfirmDialog(true);
-      return;
-    }
+        if (!session?.access_token) {
+          setIsGenerating(false);
+          setSeparationProgress(0);
+          return;
+        }
 
-    await startSeparation({ force: false, requestKey, file: selectedFile, audioUrl: userInputUrl });
+        const response = await fetch(`/api/vocal/separation-status?predictionId=${predictionId}`, {
+          cache: 'no-store',
+          headers: {
+            Authorization: `Bearer ${session.access_token}`,
+          },
+        });
+
+        if (!response.ok) {
+          const hasResults = Boolean(
+            outputRef.current.audioUrl || outputRef.current.vocals || outputRef.current.accompaniment
+          );
+          setSeparationProgress(calculateProgress(elapsed, hasResults));
+          setTimeout(poll, 2000);
+          return;
+        }
+
+        const payload = await response.json();
+        if (!payload?.success || !payload.data) {
+          const hasResults = Boolean(
+            outputRef.current.audioUrl || outputRef.current.vocals || outputRef.current.accompaniment
+          );
+          setSeparationProgress(calculateProgress(elapsed, hasResults));
+          setTimeout(poll, 2000);
+          return;
+        }
+
+        const data = payload.data;
+        const hasOriginalUrl = Boolean(data.originalAudioUrl);
+        const hasSplitResults = Boolean(data.vocalUrl || data.instrumentalUrl);
+
+        if (hasOriginalUrl && data.originalAudioUrl !== outputRef.current.audioUrl) {
+          setAudioUrl(data.originalAudioUrl);
+        }
+
+        if (hasSplitResults) {
+          setSeparationResults({
+            vocals: data.vocalUrl || '',
+            accompaniment: data.instrumentalUrl || '',
+          });
+        }
+
+        setSeparationProgress(calculateProgress(elapsed, hasOriginalUrl || hasSplitResults));
+
+        if (data.status === 'completed') {
+          setSeparationProgress(100);
+          setSeparationComplete(true);
+          setIsGenerating(false);
+          setResultKey(requestKey);
+          return;
+        }
+
+        if (data.status === 'error') {
+          setError(
+            formatStatusError(
+              t('vocalSeparationPage.errors.separationFailed'),
+              typeof data.errorCode === 'string' || typeof data.errorCode === 'number' ? String(data.errorCode) : undefined,
+              typeof data.errorMessage === 'string' ? data.errorMessage : undefined
+            )
+          );
+          setIsGenerating(false);
+          setSeparationProgress(0);
+          return;
+        }
+
+        const nextDelay = elapsed < 30 ? 1000 : elapsed < 120 ? 2000 : 3000;
+        setTimeout(poll, nextDelay);
+      } catch (pollError) {
+        console.error('Polling error:', pollError);
+        const hasResults = Boolean(
+          outputRef.current.audioUrl || outputRef.current.vocals || outputRef.current.accompaniment
+        );
+        setSeparationProgress(calculateProgress(elapsed, hasResults));
+        setTimeout(poll, 2000);
+      }
+    };
+
+    void poll();
+
+    return () => {
+      cancelled = true;
+      setSeparationProgress(0);
+    };
   };
 
-  const handleConfirmDialog = () => {
-    setShowConfirmDialog(false);
-    const next = pendingStart;
-    setPendingStart(null);
-    if (next) {
-      startSeparation(next);
+  const startPollingLibraryStatus = (
+    taskId: string,
+    requestKey: string,
+    separationType: LibrarySeparationType = 'separate_vocal'
+  ) => {
+    const startTime = Date.now();
+    const maxPollSeconds = 300;
+    let cancelled = false;
+
+    const calculateProgress = (elapsed: number, hasResults: boolean): number => {
+      if (hasResults) {
+        const base = 60;
+        const timeBased = Math.min(30, (elapsed / maxPollSeconds) * 30);
+        return Math.min(90, base + timeBased);
+      }
+
+      const base = 10;
+      const timeBased = Math.min(40, (elapsed / maxPollSeconds) * 40);
+      return Math.min(50, base + timeBased);
+    };
+
+    const poll = async () => {
+      if (cancelled) return;
+
+      const elapsed = Math.floor((Date.now() - startTime) / 1000);
+      if (elapsed > maxPollSeconds) {
+        setError(t('toasts.vocalRemovalTimeoutTryAgain'));
+        setIsGenerating(false);
+        setSeparationProgress(0);
+        return;
+      }
+
+      try {
+        const {
+          data: { session },
+        } = await supabase.auth.getSession();
+
+        if (!session?.access_token) {
+          setIsGenerating(false);
+          setSeparationProgress(0);
+          return;
+        }
+
+        const response = await fetch(`/api/vocal/removal-status?taskId=${taskId}`, {
+          cache: 'no-store',
+          headers: {
+            Authorization: `Bearer ${session.access_token}`,
+          },
+        });
+
+        if (!response.ok) {
+          const hasResults = Boolean(
+            outputRef.current.audioUrl || outputRef.current.vocals || outputRef.current.accompaniment
+          );
+          setSeparationProgress(calculateProgress(elapsed, hasResults));
+          setTimeout(poll, 2000);
+          return;
+        }
+
+        const payload = await response.json();
+        if (!payload?.success || !payload.data) {
+          const hasResults = Boolean(
+            outputRef.current.audioUrl || outputRef.current.vocals || outputRef.current.accompaniment
+          );
+          setSeparationProgress(calculateProgress(elapsed, hasResults));
+          setTimeout(poll, 2000);
+          return;
+        }
+
+        const data = payload.data;
+        const sourceAudioUrl = selectedMyMusicTrack?.audioUrl?.trim() || '';
+        const hasSourceUrl = Boolean(sourceAudioUrl);
+        const hasSplitResults = Boolean(data.vocalUrl || data.instrumentalUrl);
+        const hasStemResults = Boolean(data.stemsData && Object.keys(data.stemsData).length > 0);
+
+        if (hasSourceUrl && sourceAudioUrl !== outputRef.current.audioUrl) {
+          setAudioUrl(sourceAudioUrl);
+        }
+
+        if (hasSplitResults) {
+          setSeparationResults({
+            vocals: data.vocalUrl || '',
+            accompaniment: data.instrumentalUrl || '',
+          });
+        }
+
+        setSeparationProgress(calculateProgress(elapsed, hasSourceUrl || hasSplitResults || hasStemResults));
+
+        if (data.status === 'completed') {
+          setSeparationProgress(100);
+          setSeparationComplete(true);
+          setIsGenerating(false);
+          setResultKey(requestKey);
+          void fetchHistoryRecords();
+          return;
+        }
+
+        if (data.status === 'error') {
+          const fallbackMessage =
+            separationType === 'split_stem'
+              ? t('toasts.splitStemFailedTryAgain')
+              : t('toasts.vocalSeparationFailedTryAgain');
+          setError(
+            formatStatusError(
+              fallbackMessage,
+              typeof data.errorCode === 'string' || typeof data.errorCode === 'number' ? String(data.errorCode) : undefined,
+              typeof data.errorMessage === 'string' ? data.errorMessage : undefined
+            )
+          );
+          setIsGenerating(false);
+          setSeparationProgress(0);
+          void fetchHistoryRecords();
+          return;
+        }
+
+        const nextDelay = elapsed < 30 ? 1000 : elapsed < 120 ? 2000 : 3000;
+        setTimeout(poll, nextDelay);
+      } catch (pollError) {
+        console.error('KIE polling error:', pollError);
+        const hasResults = Boolean(
+          outputRef.current.audioUrl || outputRef.current.vocals || outputRef.current.accompaniment
+        );
+        setSeparationProgress(calculateProgress(elapsed, hasResults));
+        setTimeout(poll, 2000);
+      }
+    };
+
+    void poll();
+
+    return () => {
+      cancelled = true;
+      setSeparationProgress(0);
+    };
+  };
+
+  const startSeparation = async (options: PendingStartPayload) => {
+    const nextResultSource: SourceTab = options.sourceType === 'kie' ? 'my-music' : 'upload';
+    setLatestResultSource(nextResultSource);
+    if (nextResultSource === 'upload') {
+      setLatestFileResultTitle(options.file?.name?.trim() || t('vocalSeparationPage.inputs.uploadLocalFileLabel'));
     }
-  };
 
-  const handleCancelDialog = () => {
-    setShowConfirmDialog(false);
-    setPendingStart(null);
-  };
+    pollingCancelRef.current?.();
+    pollingCancelRef.current = null;
 
-  const startSeparation = async (options: { force: boolean; requestKey: string; file: File | null; audioUrl: string }) => {
     setIsGenerating(true);
     setError(null);
     setSeparationComplete(false);
@@ -238,20 +874,83 @@ export default function VocalSeparationDemo() {
     setSeparationProgress(0);
     setIsCacheHit(false);
     setCacheUpdatedAt(null);
-    // 重置播放状态
+    setResultKey(null);
+    setActiveHistoryRecordKey(null);
+
     setIsOriginalPlaying(false);
     setIsVocalsPlaying(false);
     setIsAccompanimentPlaying(false);
+    setHasOriginalError(false);
+    setHasVocalsError(false);
+    setHasAccompanimentError(false);
+    setOriginalLoadIssue(null);
+    setVocalsLoadIssue(null);
+    setAccompanimentLoadIssue(null);
 
-    // 清空audioUrl，无论是URL还是文件上传，都等待从数据库轮询获取
-    // Origin播放器会显示loading状态
     setAudioUrl('');
 
     try {
-      // Get login session to attach auth header
-      const { data: { session } } = await supabase.auth.getSession();
+      const {
+        data: { session },
+      } = await supabase.auth.getSession();
+
       if (!session?.access_token) {
         setShowAuthModal(true);
+        setIsGenerating(false);
+        return;
+      }
+
+      if (options.sourceType === 'kie') {
+        if (!options.trackId) {
+          throw new Error(t('vocalSeparationPage.errors.selectFileOrAudioUrl'));
+        }
+
+        const response = await fetch('/api/vocal/removal', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${session.access_token}`,
+          },
+          body: JSON.stringify({
+            trackId: options.trackId,
+            type: options.separationType || 'separate_vocal',
+            force: options.force,
+          }),
+        });
+
+        const result = await response.json();
+        if (!response.ok) {
+          throw new Error(result?.message || result?.error || t('toasts.vocalRemovalFailed'));
+        }
+
+        if (result?.success && result?.cacheHit && result?.data?.status === 'completed') {
+          const data = result.data;
+          setAudioUrl(selectedMyMusicTrack?.audioUrl?.trim() || '');
+          setSeparationResults({
+            vocals: data.vocalUrl || '',
+            accompaniment: data.instrumentalUrl || '',
+          });
+          setSeparationProgress(100);
+          setSeparationComplete(true);
+          setIsGenerating(false);
+          setIsCacheHit(true);
+          setCacheUpdatedAt(data.updatedAt || data.createdAt || null);
+          setResultKey(options.requestKey);
+          void fetchHistoryRecords();
+          return;
+        }
+
+        const taskId = typeof result?.data?.taskId === 'string' ? result.data.taskId : '';
+        if (!taskId) {
+          throw new Error(t('toasts.noTaskIdReceivedFromServer'));
+        }
+
+        void fetchHistoryRecords();
+        pollingCancelRef.current = startPollingLibraryStatus(
+          taskId,
+          options.requestKey,
+          options.separationType || 'separate_vocal'
+        );
         return;
       }
 
@@ -275,12 +974,10 @@ export default function VocalSeparationDemo() {
       });
 
       const result = await response.json();
-
       if (!response.ok) {
-        throw new Error(result.error || t('vocalSeparationPage.errors.separationFailed'));
+        throw new Error(result?.error || t('vocalSeparationPage.errors.separationFailed'));
       }
 
-      // Cache hit: completed result can be rendered immediately without polling.
       if (result?.success && result?.cacheHit && result?.data?.status === 'completed') {
         const data = result.data;
         setAudioUrl(data.originalAudioUrl || '');
@@ -297,720 +994,940 @@ export default function VocalSeparationDemo() {
         return;
       }
 
-      // Poll status until completion
-      if (result.data?.predictionId) {
-        startPollingStatus(result.data.predictionId, options.requestKey);
+      const predictionId = typeof result?.data?.predictionId === 'string' ? result.data.predictionId : '';
+      if (!predictionId) {
+        throw new Error(t('toasts.noPredictionIdReceivedFromServer'));
       }
-    } catch (error) {
-      console.error('Separation error:', error);
-      setError(error instanceof Error ? error.message : t('vocalSeparationPage.errors.separationFailed'));
+
+      pollingCancelRef.current = startPollingStatus(predictionId, options.requestKey);
+    } catch (startError) {
+      console.error('Separation error:', startError);
+      setError(startError instanceof Error ? startError.message : t('vocalSeparationPage.errors.separationFailed'));
       setIsGenerating(false);
+      setSeparationProgress(0);
     }
   };
 
-  const startPollingStatus = (predictionId: string, requestKey: string) => {
-    const startTime = Date.now();
-    const MAX_POLL_TIME = 300; // 最大轮询时间：5分钟（300秒）
-    let cancelled = false;
+  const usingUploadTab = sourceTab === 'upload';
+  const activeSourceFile = usingUploadTab ? selectedFile : null;
+  const activeSourceAudioUrl = sourceTab === 'my-music'
+    ? selectedMyMusicTrack?.audioUrl?.trim() || ''
+    : '';
+  const activeSourceTrackId = sourceTab === 'my-music'
+    ? selectedMyMusicTrack?.id || ''
+    : '';
 
-    // 计算进度百分比
-    const calculateProgress = (elapsed: number, hasResults: boolean): number => {
-      // 基于时间和结果状态计算进度
-      if (hasResults) {
-        // 已有部分结果，进度在 60-90% 之间
-        const baseProgress = 60;
-        const timeBasedProgress = Math.min(30, (elapsed / MAX_POLL_TIME) * 30);
-        return Math.min(90, baseProgress + timeBasedProgress);
-      } else {
-        // 还在等待结果，进度在 10-50% 之间
-        const baseProgress = 10;
-        const timeBasedProgress = Math.min(40, (elapsed / MAX_POLL_TIME) * 40);
-        return Math.min(50, baseProgress + timeBasedProgress);
+  const canStartSeparation = Boolean(activeSourceFile || activeSourceAudioUrl) && !isGenerating;
+
+  const handleStartSeparating = async () => {
+    if (sourceTab === 'my-music') {
+      if (!activeSourceTrackId) {
+        setError(t('vocalSeparationPage.errors.selectFileOrAudioUrl'));
+        return;
       }
-    };
 
-    const poll = async () => {
-      if (cancelled) return;
+      const requestKey = `track:${activeSourceTrackId}:${librarySeparationType}`;
+      const hasPlayerTracks = Boolean(audioUrl || separationResults?.vocals || separationResults?.accompaniment);
 
-      const elapsed = Math.floor((Date.now() - startTime) / 1000);
-      
-      try {
-        const { data: { session } } = await supabase.auth.getSession();
-        if (!session) {
-          setIsGenerating(false);
-          setSeparationProgress(0);
-          return;
-        }
-
-        const res = await fetch(`/api/vocal/separation-status?predictionId=${predictionId}`, { 
-          cache: 'no-store',
-          headers: {
-            Authorization: `Bearer ${session.access_token}`,
-          },
+      if (hasPlayerTracks && resultKey && resultKey !== requestKey) {
+        setPendingStart({
+          force: false,
+          requestKey,
+          file: null,
+          audioUrl: '',
+          sourceType: 'kie',
+          trackId: activeSourceTrackId,
+          separationType: librarySeparationType,
         });
-
-        if (!res.ok) {
-          // 更新进度（即使请求失败也显示进度）
-          const hasResults = !!(audioUrl || separationResults?.vocals || separationResults?.accompaniment);
-          const progress = calculateProgress(elapsed, hasResults);
-          setSeparationProgress(progress);
-          setTimeout(poll, 2000);
-          return;
-        }
-
-        const payload = await res.json();
-
-        if (!payload?.success || !payload.data) {
-          // 更新进度
-          const hasResults = !!(audioUrl || separationResults?.vocals || separationResults?.accompaniment);
-          const progress = calculateProgress(elapsed, hasResults);
-          setSeparationProgress(progress);
-          setTimeout(poll, 2000);
-          return;
-        }
-
-        const data = payload.data;
-
-        // 立即设置所有可用的URL
-        const hasOriginalUrl = !!(data.originalAudioUrl && data.originalAudioUrl !== audioUrl);
-        const hasResults = !!(data.vocalUrl || data.instrumentalUrl);
-
-        if (hasOriginalUrl) {
-          setAudioUrl(data.originalAudioUrl);
-        }
-
-        if (hasResults) {
-          setSeparationResults({ 
-            vocals: data.vocalUrl || '', 
-            accompaniment: data.instrumentalUrl || '' 
-          });
-        }
-
-        // 更新进度
-        const progress = calculateProgress(elapsed, hasOriginalUrl || hasResults);
-        setSeparationProgress(progress);
-
-        // 检查状态
-        if (data.status === 'completed') {
-          setSeparationProgress(100);
-          setSeparationComplete(true);
-          setIsGenerating(false);
-          setResultKey(requestKey);
-          return;
-        }
-
-        if (data.status === 'error') {
-          setError(data.errorMessage || t('vocalSeparationPage.errors.separationFailed'));
-          setIsGenerating(false);
-          setSeparationProgress(0);
-          return;
-        }
-
-        // 继续轮询
-        if (elapsed > MAX_POLL_TIME) {
-          setError(t('vocalSeparationPage.errors.separationTimeout'));
-          setIsGenerating(false);
-          setSeparationProgress(0);
-          return;
-        }
-
-        // 根据时间调整轮询间隔
-        const nextDelay = elapsed < 30 ? 1000 : elapsed < 120 ? 2000 : 3000;
-        setTimeout(poll, nextDelay);
-
-      } catch (error) {
-        console.error('Polling error:', error);
-        // 更新进度（即使出错也显示进度）
-        const hasResults = !!(audioUrl || separationResults?.vocals || separationResults?.accompaniment);
-        const progress = calculateProgress(elapsed, hasResults);
-        setSeparationProgress(progress);
-        setTimeout(poll, 2000);
+        setShowConfirmDialog(true);
+        return;
       }
-    };
 
-    // 立即开始第一次轮询
-    poll();
+      await startSeparation({
+        force: false,
+        requestKey,
+        file: null,
+        audioUrl: '',
+        sourceType: 'kie',
+        trackId: activeSourceTrackId,
+        separationType: librarySeparationType,
+      });
+      return;
+    }
 
-    // 返回取消函数
-    return () => {
-      cancelled = true;
-      setSeparationProgress(0);
-    };
+    if (!activeSourceFile && !activeSourceAudioUrl) {
+      setError(t('vocalSeparationPage.errors.selectFileOrAudioUrl'));
+      return;
+    }
+
+    const requestKey = activeSourceFile
+      ? `file:${activeSourceFile.name}:${activeSourceFile.size}:${activeSourceFile.lastModified}`
+      : `url:${activeSourceAudioUrl}`;
+
+    const hasPlayerTracks = Boolean(audioUrl || separationResults?.vocals || separationResults?.accompaniment);
+    if (hasPlayerTracks && resultKey && resultKey !== requestKey) {
+      setPendingStart({
+        force: false,
+        requestKey,
+        file: activeSourceFile,
+        audioUrl: activeSourceAudioUrl,
+        sourceType: 'replicate',
+      });
+      setShowConfirmDialog(true);
+      return;
+    }
+
+    await startSeparation({
+      force: false,
+      requestKey,
+      file: activeSourceFile,
+      audioUrl: activeSourceAudioUrl,
+      sourceType: 'replicate',
+    });
   };
 
-  const renderActionBlock = () => (
-    <div className="pt-4 space-y-3">
-      <Button
-        size="lg"
-        className="w-full h-12 bg-gradient-create text-white text-base font-semibold hover:opacity-90 transition-opacity rounded-2xl"
-        onClick={handleStartSeparating}
-        disabled={(!selectedFile && !userInputUrl) || isGenerating || !!urlValidationError}
-      >
-        {isGenerating ? (
-          <div className="flex items-center gap-2">
-            {t('vocalSeparationPage.action.separatingProgress', { progress: Math.round(separationProgress) })}
-            <div className="flex items-center gap-1.5">
-              <div className="w-2 h-2 bg-white rounded-full animate-bounce" style={{ animationDelay: '0ms' }}></div>
-              <div className="w-2 h-2 bg-white rounded-full animate-bounce" style={{ animationDelay: '150ms' }}></div>
-              <div className="w-2 h-2 bg-white rounded-full animate-bounce" style={{ animationDelay: '300ms' }}></div>
+  const handleConfirmDialog = () => {
+    setShowConfirmDialog(false);
+    const next = pendingStart;
+    setPendingStart(null);
+    if (next) {
+      void startSeparation(next);
+    }
+  };
+
+  const handleCancelDialog = () => {
+    setShowConfirmDialog(false);
+    setPendingStart(null);
+  };
+
+  const hasLiveResultTracks = Boolean(separationResults?.vocals || separationResults?.accompaniment);
+  const hasLiveResultState = isGenerating || hasLiveResultTracks || Boolean(error);
+  const historyPreviewRecords = useMemo(() => historyRecords, [historyRecords]);
+
+  const activeHistoryRecord = useMemo(() => {
+    if (!activeHistoryRecordKey) return null;
+    const selected = historyPreviewRecords.find((record) => getHistoryRecordKey(record) === activeHistoryRecordKey);
+    return selected ?? null;
+  }, [activeHistoryRecordKey, historyPreviewRecords]);
+
+  const showUploadCurrentResult = hasLiveResultState && latestResultSource === 'upload';
+  const hasActiveLiveResult = showUploadCurrentResult;
+  const showResultState = isHistoryLoading || Boolean(historyError) || historyPreviewRecords.length > 0 || hasActiveLiveResult;
+  const isShowingHistoryPreview = Boolean(activeHistoryRecord);
+  const displayOriginalUrl = isShowingHistoryPreview ? activeHistoryRecord?.originalAudioUrl || '' : audioUrl;
+  const displayVocalUrl = isShowingHistoryPreview ? activeHistoryRecord?.vocalUrl || '' : separationResults?.vocals || '';
+  const displayInstrumentalUrl = isShowingHistoryPreview
+    ? activeHistoryRecord?.instrumentalUrl || ''
+    : separationResults?.accompaniment || '';
+
+  const hasLiveDisplayedTracks = Boolean(separationResults?.vocals || separationResults?.accompaniment);
+  const hasDisplayedTracks = Boolean(displayVocalUrl || displayInstrumentalUrl);
+  const shouldRenderResultPlayers = hasActiveLiveResult && !isShowingHistoryPreview && (isGenerating || hasLiveDisplayedTracks);
+  const showTabError = Boolean(error);
+  const resultCardTitle = isShowingHistoryPreview
+    ? activeHistoryRecord?.originalFilename || t('studioTracks.untitledTrack')
+    : latestFileResultTitle || t('vocalSeparationPage.inputs.uploadLocalFileLabel');
+
+  const showOriginExpired = hasOriginalError;
+  const showInstrumentalExpired = hasAccompanimentError;
+  const showVocalExpired = hasVocalsError;
+
+  useEffect(() => {
+    if (historyPreviewRecords.length === 0) {
+      setActiveHistoryRecordKey(null);
+      return;
+    }
+
+    setActiveHistoryRecordKey((prev) => {
+      if (prev && historyPreviewRecords.some((record) => getHistoryRecordKey(record) === prev)) {
+        return prev;
+      }
+      if (latestResultSource === 'upload' && showUploadCurrentResult) {
+        return null;
+      }
+      return getHistoryRecordKey(historyPreviewRecords[0]);
+    });
+  }, [historyPreviewRecords, latestResultSource, showUploadCurrentResult]);
+
+  useEffect(() => {
+    setHasOriginalError(false);
+    setHasVocalsError(false);
+    setHasAccompanimentError(false);
+    setOriginalLoadIssue(null);
+    setVocalsLoadIssue(null);
+    setAccompanimentLoadIssue(null);
+  }, [displayOriginalUrl, displayVocalUrl, displayInstrumentalUrl]);
+
+  const resultPlayerBackend: 'WebAudio' | 'MediaElement' = 'MediaElement';
+
+  const resultsHeading = t('vocalSeparationPage.results.separationResultsTitle');
+
+  const getExpiredStatusText = useCallback(
+    (issue: WaveformLoadErrorDetail | null): string | null => {
+      if (!issue) return null;
+      if (typeof issue.statusCode === 'number') {
+        return t('vocalSeparationPage.results.audioExpiredStatusCode', { code: issue.statusCode });
+      }
+      if (issue.message && issue.message.trim().length > 0) {
+        return issue.message.trim();
+      }
+      return null;
+    },
+    [t]
+  );
+
+  const renderExpiredState = useCallback(
+    (issue: WaveformLoadErrorDetail | null) => {
+      const statusText = getExpiredStatusText(issue);
+
+      return (
+        <div className="mt-1 rounded-xl bg-amber-500/10 px-3 py-3">
+          <div className="flex items-start gap-2 text-amber-700 dark:text-amber-300">
+            <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" />
+            <div className="min-w-0 space-y-1">
+              <p className="text-xs font-semibold leading-relaxed md:text-sm">
+                {t('vocalSeparationPage.results.audioExpiredTitle')}
+              </p>
+              <p className="text-xs leading-relaxed text-amber-700/90 dark:text-amber-200/90 md:text-sm">
+                {t('vocalSeparationPage.results.audioExpiredHint')}
+              </p>
+              {statusText ? (
+                <p className="text-[11px] font-medium uppercase tracking-[0.08em] text-amber-700/90 dark:text-amber-200/90">
+                  {statusText}
+                </p>
+              ) : null}
             </div>
           </div>
+        </div>
+      );
+    },
+    [getExpiredStatusText, t]
+  );
+
+  const resultPlayers = (
+    <div className="space-y-2.5">
+      <div className="space-y-2 pb-2.5">
+        <div className="flex items-center justify-between gap-2">
+          <div className="flex items-center gap-2">
+            <span className="inline-flex h-7 w-7 items-center justify-center rounded-full bg-primary/10 text-primary">
+              <Volume2 className="h-4 w-4" />
+            </span>
+            <p className="text-sm font-semibold text-foreground">{t('vocalSeparationPage.results.instrumental')}</p>
+          </div>
+          <Button
+            type="button"
+            variant="ghost"
+            size="sm"
+            disabled={!displayInstrumentalUrl || showInstrumentalExpired}
+            onClick={() => window.open(displayInstrumentalUrl, '_blank', 'noopener,noreferrer')}
+            className="h-8 w-8 rounded-full bg-foreground/5 p-0 text-foreground/75 transition-colors hover:bg-foreground/10 hover:text-foreground disabled:cursor-not-allowed disabled:opacity-50"
+            aria-label={t('common.download')}
+            title={t('common.download')}
+          >
+            <Download className="h-3.5 w-3.5" />
+          </Button>
+        </div>
+        {showInstrumentalExpired ? (
+          renderExpiredState(accompanimentLoadIssue)
         ) : (
-          t('vocalSeparationPage.action.startSeparation')
+          <WaveformPlayer
+            key={`accompaniment-${displayInstrumentalUrl || 'empty'}`}
+            audioUrl={displayInstrumentalUrl || undefined}
+            backend={resultPlayerBackend}
+            isPlaying={isAccompanimentPlaying}
+            onPlayPause={() => handleWaveformPlayPause('accompaniment')}
+            onFinish={handleWaveformFinish}
+            isLoading={
+              !isShowingHistoryPreview &&
+              isGenerating &&
+              (!displayInstrumentalUrl || displayInstrumentalUrl.trim() === '')
+            }
+            onLoadError={handleAccompanimentLoadError}
+            className="mt-1"
+          />
+        )}
+      </div>
+
+      <div className="space-y-2">
+        <div className="flex items-center justify-between gap-2">
+          <div className="flex items-center gap-2">
+            <span className="inline-flex h-7 w-7 items-center justify-center rounded-full bg-primary/10 text-primary">
+              <Mic className="h-4 w-4" />
+            </span>
+            <p className="text-sm font-semibold text-foreground">{t('vocalSeparationPage.results.vocal')}</p>
+          </div>
+          <Button
+            type="button"
+            variant="ghost"
+            size="sm"
+            disabled={!displayVocalUrl || showVocalExpired}
+            onClick={() => window.open(displayVocalUrl, '_blank', 'noopener,noreferrer')}
+            className="h-8 w-8 rounded-full bg-foreground/5 p-0 text-foreground/75 transition-colors hover:bg-foreground/10 hover:text-foreground disabled:cursor-not-allowed disabled:opacity-50"
+            aria-label={t('common.download')}
+            title={t('common.download')}
+          >
+            <Download className="h-3.5 w-3.5" />
+          </Button>
+        </div>
+        {showVocalExpired ? (
+          renderExpiredState(vocalsLoadIssue)
+        ) : (
+          <WaveformPlayer
+            key={`vocals-${displayVocalUrl || 'empty'}`}
+            audioUrl={displayVocalUrl || undefined}
+            backend={resultPlayerBackend}
+            isPlaying={isVocalsPlaying}
+            onPlayPause={() => handleWaveformPlayPause('vocals')}
+            onFinish={handleWaveformFinish}
+            isLoading={!isShowingHistoryPreview && isGenerating && (!displayVocalUrl || displayVocalUrl.trim() === '')}
+            onLoadError={handleVocalLoadError}
+            className="mt-1"
+          />
+        )}
+      </div>
+    </div>
+  );
+
+  const sourceTabs = (
+    <section>
+      <div
+        role="tablist"
+        aria-label={t('vocalSeparationPage.inputs.tabs.tabListLabel')}
+        className="app-card-muted flex w-full items-center gap-1 rounded-2xl bg-foreground/5 p-1 shadow-[0_1px_2px_rgba(0,0,0,0.06)] dark:bg-white/10"
+      >
+        <button
+          type="button"
+          role="tab"
+          aria-selected={sourceTab === 'upload'}
+          onClick={() => setSourceTab('upload')}
+          className={`h-10 flex-1 rounded-2xl px-4 text-xs font-medium transition-colors duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background md:text-sm ${
+            sourceTab === 'upload'
+              ? 'bg-primary font-semibold text-primary-foreground shadow-[0_1px_1px_rgba(0,0,0,0.08)]'
+              : 'text-foreground/60 hover:bg-foreground/5 hover:text-foreground'
+          }`}
+        >
+          {t('vocalSeparationPage.inputs.tabs.upload')}
+        </button>
+        <button
+          type="button"
+          role="tab"
+          aria-selected={sourceTab === 'my-music'}
+          onClick={() => setSourceTab('my-music')}
+          className={`h-10 flex-1 rounded-2xl px-4 text-xs font-medium transition-colors duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background md:text-sm ${
+            sourceTab === 'my-music'
+              ? 'bg-primary font-semibold text-primary-foreground shadow-[0_1px_1px_rgba(0,0,0,0.08)]'
+              : 'text-foreground/60 hover:bg-foreground/5 hover:text-foreground'
+          }`}
+        >
+          {t('vocalSeparationPage.inputs.tabs.myMusic')}
+        </button>
+      </div>
+    </section>
+  );
+
+  const panelHeader = (
+    <div className="mb-3 px-1 space-y-1.5">
+      <h2 className="text-lg md:text-xl font-semibold tracking-tight text-foreground">
+        {t('nav.vocalSeparation')}
+      </h2>
+      <p className="mt-1 text-sm text-muted-foreground">
+        {t('aiTools.vocalSeparationDescription')}
+      </p>
+    </div>
+  );
+
+  const panelFields = (
+    <div className={sourceTab === 'my-music' ? 'flex h-full min-h-0 flex-col gap-2' : 'space-y-3'}>
+      {sourceTab === 'upload' ? (
+        <>
+          <section className="studio-panel-card rounded-2xl p-3 space-y-3">
+            <div className="flex items-center gap-2">
+              <h3 className="text-sm font-medium text-foreground">
+                {t('vocalSeparationPage.inputs.uploadLocalFileLabel')}
+              </h3>
+            </div>
+
+            <button
+              type="button"
+              onClick={handleUploadAreaClick}
+              disabled={isGenerating}
+              className="h-[160px] w-full rounded-2xl border border-dashed border-slate-300/35 bg-background/20 px-4 py-8 text-center transition-colors hover:border-primary/45 hover:bg-background/30 disabled:cursor-not-allowed disabled:opacity-60 dark:border-slate-700/25"
+            >
+              <span className="mx-auto mb-3 inline-flex h-10 w-10 items-center justify-center text-muted-foreground">
+                <Upload className="h-6 w-6" strokeWidth={2} />
+              </span>
+              {selectedFile ? (
+                <>
+                  <span className="mx-auto block max-w-full truncate text-sm font-semibold leading-tight text-foreground md:text-base">
+                    {selectedFile.name}
+                  </span>
+                  <p className="mt-1 text-xs leading-relaxed text-muted-foreground">
+                    {(selectedFile.size / (1024 * 1024)).toFixed(2)} MB
+                  </p>
+                </>
+              ) : (
+                <>
+                  <span className="block text-sm font-semibold leading-tight text-foreground md:text-base">
+                    {t('vocalSeparationPage.inputs.dragDropOrBrowse')}
+                  </span>
+                  <p className="mt-1 line-clamp-2 text-xs leading-relaxed text-muted-foreground">
+                    {t('vocalSeparationPage.inputs.supportedFormats')}
+                  </p>
+                </>
+              )}
+            </button>
+          </section>
+
+          <section className="studio-panel-card rounded-2xl px-3.5 py-3.5">
+            <div className="flex items-start gap-2.5">
+              <span className="mt-0.5 inline-flex h-5 w-5 shrink-0 items-center justify-center text-muted-foreground/90">
+                <Info className="h-4 w-4" />
+              </span>
+              <p className="text-sm leading-relaxed text-muted-foreground">
+                {t('vocalSeparationPage.inputs.uploadTemporaryHint')}
+              </p>
+            </div>
+          </section>
+        </>
+      ) : (
+        <div className="flex min-h-0 flex-1 flex-col">
+          {!isLoggedIn ? (
+            <div className="rounded-xl bg-foreground/5 px-3 py-2.5 text-sm text-muted-foreground">
+              {t('vocalSeparationPage.inputs.myMusic.signInToView')}
+            </div>
+          ) : isMyMusicLoading ? (
+            <div className="scrollbar-hidden min-h-0 flex-1 space-y-2.5 overflow-y-auto pb-0.5">
+              {Array.from({ length: 4 }).map((_, index) => (
+                <div key={`my-music-skeleton-${index}`} className="studio-panel-card rounded-2xl border border-transparent p-1">
+                  <div className="flex w-full items-center gap-2.5 rounded-2xl px-3 py-2.5 md:gap-3">
+                    <Skeleton className="h-[80px] w-[80px] shrink-0 rounded-md" />
+
+                    <div className="min-w-0 flex-1">
+                      <div className="flex h-[80px] min-h-0 w-full min-w-0 items-center gap-2.5">
+                        <div className="flex min-h-0 min-w-0 flex-1 flex-col justify-start gap-0.5 py-0">
+                          <div className="flex h-6 min-h-0 min-w-0 items-center gap-2">
+                            <Skeleton
+                              className={`h-4 ${
+                                index % 3 === 0 ? 'w-[52%]' : index % 3 === 1 ? 'w-[60%]' : 'w-[46%]'
+                              }`}
+                            />
+                          </div>
+
+                          <div className="flex h-[22px] min-h-0 min-w-0 items-center gap-2">
+                            <Skeleton className="h-3 w-10" />
+                            <Skeleton className="h-1.5 w-1.5 rounded-full" />
+                            <Skeleton className={`h-3 ${index % 2 === 0 ? 'w-[42%]' : 'w-[56%]'}`} />
+                          </div>
+
+                          <div className="flex h-8 min-h-0 items-center">
+                            <Skeleton className="h-3 w-24" />
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          ) : myMusicError ? (
+            <div className="space-y-2 rounded-xl bg-destructive/10 px-3 py-2.5">
+              <p className="text-sm text-destructive">{myMusicError}</p>
+              <button
+                type="button"
+                onClick={() => {
+                  void fetchMyMusicTracks();
+                }}
+                className="text-xs font-medium text-foreground/80 transition-colors hover:text-foreground"
+              >
+                {t('vocalSeparationPage.inputs.myMusic.retry')}
+              </button>
+            </div>
+          ) : myMusicTracks.length === 0 ? (
+            <div className="rounded-xl bg-foreground/5 px-3 py-2.5 text-sm text-muted-foreground">
+              {t('vocalSeparationPage.inputs.myMusic.empty')}
+            </div>
+          ) : (
+            <div className="scrollbar-hidden min-h-0 flex-1 space-y-2.5 overflow-y-auto pb-0.5">
+              {myMusicTracks.map((track) => {
+                const isSelected = selectedMyMusicTrackId === track.id;
+                return (
+                  <div
+                    key={track.id}
+                    className={`studio-panel-card rounded-2xl p-1 border transition-all duration-150 ${
+                      isSelected
+                        ? 'border-primary/65 bg-primary/[0.06] shadow-[0_0_0_1px_hsl(var(--primary)/0.35),0_10px_24px_hsl(var(--primary)/0.12)]'
+                        : 'border-transparent'
+                    }`}
+                  >
+                    <button
+                      type="button"
+                      disabled={isGenerating}
+                      onClick={() => handleMyMusicTrackSelect(track)}
+                      className={`relative flex w-full items-center gap-2.5 md:gap-3 rounded-2xl px-3 py-2.5 text-left transition-all duration-150 ${
+                        isSelected
+                          ? 'bg-primary/[0.1] dark:bg-primary/[0.16]'
+                          : 'bg-transparent hover:bg-foreground/[0.04] dark:hover:bg-white/[0.06]'
+                      } disabled:opacity-60`}
+                    >
+                      {isSelected ? (
+                        <span
+                          aria-hidden="true"
+                          className="absolute left-0 top-2 bottom-2 w-1 rounded-r-full bg-primary/85"
+                        />
+                      ) : null}
+
+                      <div className="relative h-[80px] w-[80px] shrink-0 overflow-hidden rounded-md border border-white/10">
+                        {track.coverR2Url ? (
+                          <Image
+                            src={track.coverR2Url}
+                            alt={track.title || t('studioTracks.untitledTrack')}
+                            width={80}
+                            height={80}
+                            className="h-full w-full object-cover"
+                          />
+                        ) : (
+                          <div className="relative h-full w-full overflow-hidden bg-muted/55 dark:bg-muted/25">
+                            <div className="absolute inset-0 bg-gradient-to-br from-primary/20 via-transparent to-primary/10" />
+                          </div>
+                        )}
+                      </div>
+
+                      <div className="min-w-0 flex-1">
+                        <div className="flex h-[80px] min-h-0 w-full min-w-0 items-center gap-2.5">
+                          <div className="flex min-h-0 min-w-0 flex-1 flex-col justify-start gap-0.5 py-0">
+                            <div className="flex h-6 min-h-0 min-w-0 items-center gap-2">
+                              <p
+                                className={`min-w-0 flex-shrink truncate text-sm font-semibold leading-tight ${
+                                  isSelected ? 'text-primary' : 'text-foreground'
+                                }`}
+                              >
+                                {track.title || t('studioTracks.untitledTrack')}
+                              </p>
+                            </div>
+
+                            <div className="flex h-[22px] min-w-0 min-h-0 items-center gap-2">
+                              <span className="inline-flex whitespace-nowrap text-xs leading-none text-muted-foreground">
+                                {track.duration && track.duration > 0 ? formatDuration(track.duration) : '--:--'}
+                              </span>
+                              {track.tags ? <span className="text-xs leading-none text-muted-foreground/45">|</span> : null}
+                              {track.tags ? (
+                                <p className="min-w-0 flex-1 truncate text-xs leading-tight text-muted-foreground">
+                                  {track.tags}
+                                </p>
+                              ) : null}
+                            </div>
+
+                            <div className="flex h-8 min-h-0 items-center">
+                              <p className="truncate text-xs leading-none text-muted-foreground/60">
+                                {track.createdAt
+                                  ? formatDateTime(track.createdAt)
+                                  : t('vocalSeparationPage.inputs.myMusic.unknownDate')}
+                              </p>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+
+                    </button>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+
+          <section className="studio-panel-card mt-2 rounded-2xl p-3 space-y-3">
+            <div className="flex items-center justify-between gap-3">
+              <h3 className="text-sm font-medium text-foreground whitespace-nowrap">
+                {t('vocalSeparationPage.inputs.separationTypeLabel')}
+              </h3>
+              <Select
+                value={librarySeparationType}
+                onValueChange={(value) => setLibrarySeparationType(value as LibrarySeparationType)}
+              >
+                <SelectTrigger className="h-8 w-[172px] shrink-0 rounded-full border-0 bg-foreground/5 px-3 text-xs font-medium shadow-none focus:ring-primary/40">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="separate_vocal">Separate Vocal</SelectItem>
+                  <SelectItem value="split_stem">Split Stem</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </section>
+        </div>
+      )}
+
+      {error ? (
+        <div className="studio-panel-card rounded-xl bg-destructive/10 p-3">
+          <div className="flex items-start gap-2 text-destructive">
+            <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" />
+            <p className="text-sm leading-relaxed">{error}</p>
+          </div>
+        </div>
+      ) : null}
+    </div>
+  );
+
+  const estimatedCredits = sourceTab === 'my-music'
+    ? (
+      librarySeparationType === 'split_stem'
+        ? CLIENT_FEATURE_CREDITS.split_stem_from_music_studio.credits
+        : CLIENT_VOCAL_SEPARATION_CREDITS.studio
+    )
+    : CLIENT_VOCAL_SEPARATION_CREDITS.local;
+
+  const panelActions = (
+    <div className="space-y-2">
+      <Button
+        size="lg"
+        onClick={handleStartSeparating}
+        disabled={!canStartSeparation}
+        className="h-12 w-full rounded-2xl bg-gradient-create text-white text-base font-semibold transition-opacity hover:opacity-90"
+      >
+        {isGenerating ? (
+          <span className="inline-flex items-center gap-2">
+            <RefreshCw className="h-4 w-4 animate-spin" />
+            {t('vocalSeparationPage.action.separatingProgress', { progress: Math.round(separationProgress) })}
+          </span>
+        ) : (
+          <span className="inline-flex items-center gap-2">
+            <Music className="h-4 w-4" />
+            {t('vocalSeparationPage.action.startSeparation')}
+          </span>
         )}
       </Button>
-      {isGenerating && (
-        <div className="w-full space-y-2 mt-2">
+
+      {isGenerating ? (
+        <div className="space-y-2 px-1 pt-1">
           <Progress value={separationProgress} className="h-2" />
-          <p className="text-xs text-center text-muted-foreground">
+          <p className="text-center text-xs text-muted-foreground">
             {t('vocalSeparationPage.action.processingProgress', { progress: Math.round(separationProgress) })}
           </p>
         </div>
-      )}
-      <div className="text-center text-sm text-muted-foreground">
-        <p>
-          {t('vocalSeparationPage.action.estimatedTimeCost', { credits: CLIENT_VOCAL_SEPARATION_CREDITS.local })}
-        </p>
+      ) : null}
+
+      <p className="text-center text-xs text-muted-foreground">
+        {t('vocalSeparationPage.action.estimatedTimeCost', { credits: estimatedCredits })}
+      </p>
+    </div>
+  );
+
+  const resultContent = (
+    <div className="flex h-full flex-col px-3 pt-3 pb-4">
+      <div className="flex flex-1 flex-col space-y-3">
+        <div className="flex items-start justify-between gap-2">
+          <div className="min-w-0">
+            <h3 className="min-w-0 truncate text-sm font-semibold text-foreground md:text-base">{resultsHeading}</h3>
+            <p className="mt-1 text-xs leading-relaxed text-muted-foreground">
+              {t('vocalSeparationPage.results.currentSessionDescription')}
+            </p>
+          </div>
+          <div className="flex items-center gap-2">
+            {isGenerating ? (
+              <span className="inline-flex h-7 min-w-[56px] items-center justify-center rounded-full bg-primary/10 px-2.5 text-xs font-semibold text-primary">
+                {Math.round(separationProgress)}%
+              </span>
+            ) : null}
+          </div>
+        </div>
+
+        {!showResultState ? (
+          <div className="flex flex-1 items-center justify-center px-6 py-6">
+            <div className="w-full max-w-[34rem] text-center">
+              <div className="mx-auto mb-4 inline-flex h-10 w-10 items-center justify-center rounded-full border border-black/10 bg-background/65 text-foreground/60 dark:border-white/15 dark:bg-white/[0.08]">
+                <Music className="h-4 w-4" strokeWidth={1.9} />
+              </div>
+              <p className="text-sm font-semibold text-foreground md:text-base">
+                {t('vocalSeparationPage.results.separationResultsTitle')}
+              </p>
+              <p className="mt-2 text-sm leading-relaxed text-muted-foreground">
+                {t('vocalSeparationPage.results.noSessionResult')}
+              </p>
+            </div>
+          </div>
+        ) : (
+          <>
+            {isHistoryLoading ? (
+              <div className="space-y-2.5">
+                <div className="rounded-xl bg-background/75 px-3 py-2.5">
+                  <Skeleton className="h-4 w-24" />
+                  <Skeleton className="mt-3 h-10 w-full rounded-lg" />
+                </div>
+                <div className="rounded-xl bg-background/75 px-3 py-2.5">
+                  <Skeleton className="h-4 w-40" />
+                  <Skeleton className="mt-3 h-10 w-full rounded-lg" />
+                </div>
+              </div>
+            ) : null}
+
+            {!isHistoryLoading && historyError ? (
+              <div className="rounded-xl bg-destructive/10 px-3 py-2.5">
+                <div className="flex items-start gap-2 text-destructive">
+                  <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" />
+                  <p className="text-xs leading-relaxed md:text-sm">{historyError}</p>
+                </div>
+              </div>
+            ) : null}
+
+            {!isHistoryLoading && !historyError && historyPreviewRecords.length > 0 ? (
+              <div className="space-y-2.5">
+                {historyPreviewRecords.map((record) => {
+                  const recordKey = getHistoryRecordKey(record);
+                  const isActive = activeHistoryRecordKey === recordKey;
+                  const separationTypeLabel = formatSeparationTypeLabel(record.separationType);
+                  const isSplitStem = (record.separationType || '').toLowerCase() === 'split_stem';
+                  const tagClass = isSplitStem
+                    ? 'bg-primary/15 text-primary dark:bg-primary/25 dark:text-primary-foreground/90'
+                    : 'bg-foreground/10 text-foreground/75 dark:bg-foreground/15 dark:text-foreground/85';
+
+                  return (
+                    <div
+                      key={recordKey}
+                      className={`studio-panel-card rounded-2xl border p-1 transition-all duration-200 ${
+                        isActive
+                          ? 'border-primary/55 bg-primary/[0.06] shadow-[0_10px_24px_hsl(var(--primary)/0.14)]'
+                          : 'border-transparent bg-transparent hover:border-border/60 hover:bg-foreground/[0.03]'
+                      }`}
+                    >
+                      <button
+                        type="button"
+                        onClick={() => setActiveHistoryRecordKey(recordKey)}
+                        className="w-full min-w-0 cursor-pointer rounded-[0.95rem] px-2.5 py-2.5 text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/60"
+                      >
+                        <p className={`line-clamp-1 text-sm font-semibold ${isActive ? 'text-primary' : 'text-foreground'}`}>
+                          {record.originalFilename}
+                        </p>
+                        <div className="mt-1.5 flex items-center gap-1.5">
+                          <span className={`inline-flex h-6 items-center rounded-full px-2 text-[11px] font-medium ${tagClass}`}>
+                            {separationTypeLabel}
+                          </span>
+                        </div>
+                      </button>
+                      {isActive && isShowingHistoryPreview && hasDisplayedTracks ? (
+                        <div className="mx-2 mb-2 rounded-xl bg-background/55 p-2.5">
+                          {resultPlayers}
+                        </div>
+                      ) : null}
+                    </div>
+                  );
+                })}
+              </div>
+            ) : null}
+
+            {showUploadCurrentResult && separationComplete && resultKey?.startsWith('url:') ? (
+              <div
+                className={`rounded-xl border px-3 py-2.5 ${
+                  isCacheHit ? 'border-blue-200 bg-blue-50 dark:border-blue-500/40 dark:bg-blue-500/10' : 'border-border bg-background/55'
+                }`}
+              >
+                <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                  <p className={`text-xs md:text-sm ${isCacheHit ? 'text-blue-700 dark:text-blue-200' : 'text-muted-foreground'}`}>
+                    {isCacheHit
+                      ? t('vocalSeparationPage.results.showingExistingResult', {
+                          updatedAt: cacheUpdatedAt
+                            ? ` • ${t('vocalSeparationPage.results.updatedPrefix')} ${formatDateTime(cacheUpdatedAt)}`
+                            : '',
+                        })
+                      : t('vocalSeparationPage.results.freshResultPrompt')}
+                  </p>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    disabled={isGenerating}
+                    onClick={() => {
+                      if (!resultKey?.startsWith('url:')) return;
+                      const cachedUrl = resultKey.slice('url:'.length);
+                      void startSeparation({
+                        force: true,
+                        requestKey: resultKey,
+                        file: null,
+                        audioUrl: cachedUrl,
+                        sourceType: 'replicate',
+                      });
+                    }}
+                    className="h-8 rounded-full bg-foreground/5 px-3 text-xs font-medium text-foreground/75 transition-colors hover:bg-foreground/10 hover:text-foreground"
+                  >
+                    {t('vocalSeparationPage.results.reseparate')}
+                  </Button>
+                </div>
+              </div>
+            ) : null}
+
+            {showTabError ? (
+              <div className="rounded-xl bg-destructive/10 px-3 py-2.5">
+                <div className="flex items-start gap-2 text-destructive">
+                  <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" />
+                  <p className="text-xs leading-relaxed md:text-sm">{error}</p>
+                </div>
+              </div>
+            ) : null}
+
+            {shouldRenderResultPlayers ? (
+              <div className="grid flex-1 grid-cols-1 content-start">
+                <div
+                  className={`studio-panel-card rounded-2xl border p-1 ${
+                    latestResultSource === 'upload'
+                      ? 'border-primary/55 bg-primary/[0.06]'
+                      : 'border-border/70 bg-background/60'
+                  }`}
+                >
+                  <div className="rounded-[0.95rem] px-2.5 py-2.5">
+                    <p
+                      className={`line-clamp-1 text-sm font-semibold ${
+                        latestResultSource === 'upload' ? 'text-primary' : 'text-foreground'
+                      }`}
+                    >
+                      {resultCardTitle}
+                    </p>
+                  </div>
+                  <div className="mx-2 mb-2 rounded-xl bg-background/55 p-2.5">
+                    {resultPlayers}
+                  </div>
+                </div>
+              </div>
+            ) : null}
+          </>
+        )}
       </div>
     </div>
   );
 
   return (
-    <div className="min-h-screen bg-background">
-      <div className="container mx-auto px-4 pt-32 pb-6 sm:pb-12">
-        <div className="max-w-4xl mx-auto">
-        {/* Header */}
-        <div className="text-center mb-8">
-          <p className="text-sm font-semibold text-foreground/70 dark:text-white/60 uppercase tracking-wider mb-4">
-            {t('vocalSeparationPage.hero.toolLabel')}
-          </p>
-          <h1 className="text-5xl md:text-6xl font-bold text-foreground mb-4 tracking-tight">
-            {t('vocalSeparationPage.hero.title')}
-          </h1>
-          <p className="text-foreground/70 dark:text-white/70 text-lg max-w-2xl mx-auto mb-8">
-            {t('vocalSeparationPage.hero.subtitle')}
-          </p>
-        </div>
-
-
-          {/* Main Content */}
-          <div className="space-y-8">
-            <div className="studio-panel-card rounded-2xl p-4">
-              {/* Track URL Input with Button */}
-              <div className="w-full space-y-2">
-                <label className="text-sm font-medium text-foreground text-left block">{t('vocalSeparationPage.inputs.audioUrlLabel')}</label>
-                <div className="relative">
-                  <input
-                    type="url"
-                    placeholder={t("vocalSeparationPage.audioUrlPlaceholder")}
-                    className="w-full px-4 py-3 pr-14 rounded-lg border border-transparent bg-muted text-foreground placeholder:text-muted-foreground transition-colors focus:outline-none focus:ring-2 focus:ring-primary/70 dark:border-white/10 dark:bg-white/5 dark:placeholder:text-white/40"
-                    value={userInputUrl}
-                    onChange={handleUrlInputChange}
-                  />
-                  {urlValidationError && (
-                    <p className="text-red-500 text-xs mt-1">{urlValidationError}</p>
-                  )}
-                </div>
+    <>
+      <section id="vocal-separation" className="relative h-screen overflow-hidden">
+        <div className="relative h-full flex flex-col md:flex-row md:gap-0 md:px-4 md:py-0 md:pl-[calc(var(--studio-sidebar-width,72px)+1rem)]">
+          <div className="flex-1 min-h-0 overflow-y-auto space-y-3 px-4 pb-[calc(var(--mobile-nav-height,64px)+0.75rem)] pt-4 md:hidden">
+            <section className="studio-panel-cards rounded-[1.5rem]">
+              <div className="space-y-3">
+                {panelHeader}
+                {sourceTabs}
+                {panelFields}
+                {panelActions}
               </div>
+            </section>
 
-              {/* Upload Area */}
-              <div className="w-full space-y-2 mt-4">
-                <label className="text-sm font-medium text-foreground text-left block">{t('vocalSeparationPage.inputs.uploadLocalFileLabel')}</label>
-                <Card
-                  className={`border-2 border-dashed transition-colors cursor-pointer ${
-                    isLoggedIn
-                      ? 'border-primary/50 hover:border-primary/70'
-                      : 'border-muted-foreground/50 hover:border-muted-foreground/70'
-                  }`}
-                  onClick={handleUploadAreaClick}
-                >
-                  <CardContent className="p-8">
-                    <div className="text-center space-y-4">
-                      <div className={`w-16 h-16 rounded-lg flex items-center justify-center mx-auto ${
-                        isLoggedIn ? 'bg-primary/20' : 'bg-muted-foreground/20'
-                      }`}>
-                        <Upload className={`h-8 w-8 ${isLoggedIn ? 'text-primary' : 'text-muted-foreground'}`} />
-                      </div>
-                      <div className="space-y-2">
-                        {selectedFile ? (
-                          <div className="space-y-2">
-                            <p className="text-sm text-foreground font-medium">
-                              {selectedFile.name}
-                            </p>
-                            <p className="text-xs text-muted-foreground">
-                              {(selectedFile.size / (1024 * 1024)).toFixed(2)} MB
-                            </p>
-                          </div>
-                        ) : (
-                          <>
-                            <p className="text-sm text-muted-foreground">
-                              {t('vocalSeparationPage.inputs.dragDropOrBrowse')}
-                            </p>
-                            <p className="text-xs text-muted-foreground">
-                              {t('vocalSeparationPage.inputs.supportedFormats')}
-                            </p>
-                          </>
-                        )}
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-                <input
-                  id="file-upload"
-                  type="file"
-                  accept="audio/*,video/*"
-                  onChange={handleFileSelect}
-                  className="hidden"
-                  disabled={!isLoggedIn}
-                />
-              </div>
-              {renderActionBlock()}
-            </div>
+            <section className="studio-panel-cards flex min-h-[240px] flex-col overflow-hidden rounded-[1.5rem]">
+              <div className="min-h-0 flex-1 overflow-y-auto">{resultContent}</div>
+            </section>
           </div>
 
-          {/* Separation Results */}
-          {(isGenerating || separationComplete) && (
-            <div className="w-full max-w-6xl mt-8">
-              <Separator className="mb-8" />
-              <h3 className="text-xl font-semibold text-foreground mb-6 text-left">
-                {selectedFile
-                  ? selectedFile.name
-                  : audioUrl
-                    ? t('vocalSeparationPage.results.audioUrlTitle')
-                    : t('vocalSeparationPage.results.separationResultsTitle')}
-              </h3>
-
-              {separationComplete && resultKey?.startsWith('url:') && (
-                <div className={`mb-6 p-4 rounded-lg border ${isCacheHit ? 'bg-blue-50 border-blue-200' : 'bg-muted/30 border-border'}`}>
-                  <div className="flex flex-col sm:flex-row gap-3 sm:items-center sm:justify-between">
-                    <p className={`text-sm ${isCacheHit ? 'text-blue-700' : 'text-muted-foreground'}`}>
-                      {isCacheHit
-                        ? t('vocalSeparationPage.results.showingExistingResult', {
-                            updatedAt: cacheUpdatedAt ? ` • ${t('vocalSeparationPage.results.updatedPrefix')} ${formatDateTime(cacheUpdatedAt)}` : '',
-                          })
-                        : t('vocalSeparationPage.results.freshResultPrompt')}
-                    </p>
-                    <Button
-                      variant="secondary"
-                      size="sm"
-                      disabled={isGenerating}
-                      onClick={() => {
-                        const url = resultKey.slice('url:'.length);
-                        startSeparation({ force: true, requestKey: resultKey, file: null, audioUrl: url });
-                      }}
-                    >
-                      {t('vocalSeparationPage.results.reseparate')}
-                    </Button>
-                  </div>
-                </div>
-              )}
-
-              {error && (
-                <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg">
-                  <p className="text-red-600 text-sm">{error}</p>
-                </div>
-              )}
-
-              <div className="grid grid-cols-1 gap-4">
-                {/* Original Track */}
-                <div className="space-y-2">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                      <Music className="h-4 w-4 text-primary" />
-                      <p className="text-sm font-medium text-foreground">{t('vocalSeparationPage.results.origin')}</p>
-                    </div>
-                    {audioUrl && (
-                      <button 
-                        disabled={hasOriginalError}
-                        className="p-1 hover:bg-muted/50 rounded transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                        onClick={() => !hasOriginalError && window.open(audioUrl, '_blank')}
-                      >
-                        <Download className="h-4 w-4 text-muted-foreground hover:text-foreground" />
-                      </button>
-                    )}
-                  </div>
-                  <WaveformPlayer
-                    key={`origin-${audioUrl}`}
-                    audioUrl={audioUrl}
-                    isPlaying={isOriginalPlaying}
-                    onPlayPause={() => handleWaveformPlayPause('original')}
-                    onFinish={handleWaveformFinish}
-                    isLoading={!audioUrl || audioUrl.trim() === ''}
-                    onLoadError={setHasOriginalError}
-                    className="mt-2"
-                  />
-                </div>
-
-                {/* Vocal Track */}
-                <div className="space-y-2">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                      <Mic className="h-4 w-4 text-primary" />
-                      <p className="text-sm font-medium text-foreground">{t('vocalSeparationPage.results.vocal')}</p>
-                    </div>
-                    {separationComplete && separationResults?.vocals && (
-                      <button
-                        disabled={hasVocalsError}
-                        className="p-1 hover:bg-muted/50 rounded transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                        onClick={() => !hasVocalsError && window.open(separationResults.vocals, '_blank')}
-                      >
-                        <Download className="h-4 w-4 text-muted-foreground hover:text-foreground" />
-                      </button>
-                    )}
-                  </div>
-                  <WaveformPlayer
-                    key={`vocals-${separationResults?.vocals || 'empty'}`}
-                    audioUrl={separationResults?.vocals}
-                    isPlaying={isVocalsPlaying}
-                    onPlayPause={() => handleWaveformPlayPause('vocals')}
-                    onFinish={handleWaveformFinish}
-                    isLoading={!separationResults?.vocals || separationResults.vocals.trim() === ''}
-                    onLoadError={setHasVocalsError}
-                    className="mt-2"
-                  />
-                </div>
-
-                {/* Instrumental Track */}
-                <div className="space-y-2">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                      <Volume2 className="h-4 w-4 text-primary" />
-                      <p className="text-sm font-medium text-foreground">{t('vocalSeparationPage.results.instrumental')}</p>
-                    </div>
-                    {separationComplete && separationResults?.accompaniment && (
-                      <button
-                        disabled={hasAccompanimentError}
-                        className="p-1 hover:bg-muted/50 rounded transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                        onClick={() => !hasAccompanimentError && window.open(separationResults.accompaniment, '_blank')}
-                      >
-                        <Download className="h-4 w-4 text-muted-foreground hover:text-foreground" />
-                      </button>
-                    )}
-                  </div>
-                  <WaveformPlayer
-                    key={`accompaniment-${separationResults?.accompaniment || 'empty'}`}
-                    audioUrl={separationResults?.accompaniment}
-                    isPlaying={isAccompanimentPlaying}
-                    onPlayPause={() => handleWaveformPlayPause('accompaniment')}
-                    onFinish={handleWaveformFinish}
-                    isLoading={!separationResults?.accompaniment || separationResults.accompaniment.trim() === ''}
-                    onLoadError={setHasAccompanimentError}
-                    className="mt-2"
-                  />
-                </div>
+          <div className="hidden flex-shrink-0 md:order-2 md:block md:py-2 md:pr-2">
+            <section className="studio-panel-cards h-full flex-col overflow-hidden transition-all duration-300 ease-in-out md:flex md:w-[clamp(21rem,30vw,32rem)]">
+              <div className="flex-shrink-0 px-0 pt-2 md:pt-4 pb-4">
+                {panelHeader}
               </div>
-            </div>
-          )}
-        </div>
-        </div>
+              <div className="flex-shrink-0 px-0 pb-3">{sourceTabs}</div>
 
-      {/* What is MakeRNB's Vocal Separation Section */}
-      <section className="py-16 px-4 bg-background">
-        <div className="max-w-6xl mx-auto">
-          <div className="flex flex-col lg:flex-row items-center gap-8">
-            {/* Left Side - Text Content */}
-            <div className="flex-1 lg:w-3/5 space-y-6 text-center lg:text-left">
-              <h2 className="text-4xl lg:text-5xl font-bold text-foreground leading-tight">
-                {t('vocalSeparationPage.about.title')}
-              </h2>
-              <p className="text-lg text-muted-foreground leading-relaxed">
-                {t('vocalSeparationPage.about.description')}
-              </p>
-            </div>
-            
-            {/* Right Side - Visual Content */}
-            <div className="flex-1 lg:w-2/5 flex justify-center">
-              <div className="flex items-center justify-center">
-                <Image 
-                  src="/icons/Vocal-Remover.svg" 
-                  alt={t('vocalSeparationPage.about.imageAlt')}
-                  width={256}
-                  height={256}
-                  className="h-64 w-64 object-contain"
-                />
-              </div>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* Key Features Section */}
-      <section className="py-16 px-4 bg-muted/20">
-        <div className="max-w-6xl mx-auto">
-          {/* Section Title */}
-          <div className="text-center mb-12">
-            <h2 className="text-lg text-primary text-center mb-2 tracking-wider">
-              {t('vocalSeparationPage.features.sectionLabel')}
-            </h2>
-
-            <h2 className="text-3xl md:text-4xl text-center font-bold mb-4">
-              {t('vocalSeparationPage.features.title')}
-            </h2>
-
-            <h3 className="md:w-1/2 mx-auto text-lg text-center text-muted-foreground mb-8">
-              {t('vocalSeparationPage.features.subtitle')}
-            </h3>
-          </div>
-
-          {/* Features Grid */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            {/* Feature 1: AI-Powered Online Processing */}
-            <div className="text-center">
-              <div className="w-12 h-12 bg-primary rounded-full flex items-center justify-center mx-auto mb-4">
-                <span className="text-primary-foreground font-bold text-lg">AI</span>
-              </div>
-              <h3 className="text-xl font-semibold text-foreground mb-3">
-                {t('vocalSeparationPage.features.items.aiPoweredOnlineProcessing.title')}
-              </h3>
-              <p className="text-muted-foreground leading-relaxed">
-                {t('vocalSeparationPage.features.items.aiPoweredOnlineProcessing.description')}
-              </p>
-            </div>
-
-            {/* Feature 2: Studio-Quality Output */}
-            <div className="text-center">
-              <div className="w-12 h-12 bg-primary rounded-full flex items-center justify-center mx-auto mb-4">
-                <span className="text-primary-foreground font-bold text-sm">HQ</span>
-              </div>
-              <h3 className="text-xl font-semibold text-foreground mb-3">
-                {t('vocalSeparationPage.features.items.studioQualityOutput.title')}
-              </h3>
-              <p className="text-muted-foreground leading-relaxed">
-                {t('vocalSeparationPage.features.items.studioQualityOutput.description')}
-              </p>
-            </div>
-
-            {/* Feature 3: Universal Format Support */}
-            <div className="text-center">
-              <div className="w-12 h-12 bg-primary rounded-full flex items-center justify-center mx-auto mb-4">
-                <Music className="h-6 w-6 text-primary-foreground" />
-              </div>
-              <h3 className="text-xl font-semibold text-foreground mb-3">
-                {t('vocalSeparationPage.features.items.universalFormatSupport.title')}
-              </h3>
-              <p className="text-muted-foreground leading-relaxed">
-                {t('vocalSeparationPage.features.items.universalFormatSupport.description')}
-              </p>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* How To Use Section */}
-      <section className="py-20 bg-muted/20">
-        <div className="container">
-          <div className="max-w-6xl mx-auto">
-            {/* Section Header */}
-            <div className="text-center mb-16">
-              <h2 className="text-4xl font-bold text-foreground mb-4">
-                {t('vocalSeparationPage.howTo.title')}
-              </h2>
-              <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
-                {t('vocalSeparationPage.howTo.subtitle')}
-              </p>
-            </div>
-
-            {/* Steps */}
-            <div className="grid md:grid-cols-3 gap-8">
-              <div className="text-left">
-                {/* Step Number and Title in same row */}
-                <div className="mb-4 flex items-center justify-start gap-3">
-                  {/* Step Number */}
-                  <div className="relative">
-                    <div className="w-10 h-10 rounded-full bg-gradient-to-r from-primary to-primary/70 flex items-center justify-center shadow-lg">
-                      <span className="text-white text-sm font-bold">1</span>
-                    </div>
-                    {/* Glow effect */}
-                    <div className="absolute inset-0 w-10 h-10 rounded-full bg-gradient-to-r from-primary to-primary/70 opacity-30 blur-md"></div>
-                  </div>
-                  
-                  {/* Title */}
-                  <h3 className="text-xl font-semibold text-foreground">
-                    {t('vocalSeparationPage.howTo.step1.title')}
-                  </h3>
-                </div>
-                
-                {/* Description */}
-                <p className="text-muted-foreground leading-relaxed">
-                  {t('vocalSeparationPage.howTo.step1.description')}
-                </p>
-              </div>
-
-              <div className="text-left">
-                {/* Step Number and Title in same row */}
-                <div className="mb-4 flex items-center justify-start gap-3">
-                  {/* Step Number */}
-                  <div className="relative">
-                    <div className="w-10 h-10 rounded-full bg-gradient-to-r from-primary to-primary/70 flex items-center justify-center shadow-lg">
-                      <span className="text-white text-sm font-bold">2</span>
-                    </div>
-                    {/* Glow effect */}
-                    <div className="absolute inset-0 w-10 h-10 rounded-full bg-gradient-to-r from-primary to-primary/70 opacity-30 blur-md"></div>
-                  </div>
-                  
-                  {/* Title */}
-                  <h3 className="text-xl font-semibold text-foreground">
-                    {t('vocalSeparationPage.howTo.step2.title')}
-                  </h3>
-                </div>
-                
-                {/* Description */}
-                <p className="text-muted-foreground leading-relaxed">
-                  {t('vocalSeparationPage.howTo.step2.description')}
-                </p>
-              </div>
-
-              <div className="text-left">
-                {/* Step Number and Title in same row */}
-                <div className="mb-4 flex items-center justify-start gap-3">
-                  {/* Step Number */}
-                  <div className="relative">
-                    <div className="w-10 h-10 rounded-full bg-gradient-to-r from-primary to-primary/70 flex items-center justify-center shadow-lg">
-                      <span className="text-white text-sm font-bold">3</span>
-                    </div>
-                    {/* Glow effect */}
-                    <div className="absolute inset-0 w-10 h-10 rounded-full bg-gradient-to-r from-primary to-primary/70 opacity-30 blur-md"></div>
-                  </div>
-                  
-                  {/* Title */}
-                  <h3 className="text-xl font-semibold text-foreground">
-                    {t('vocalSeparationPage.howTo.step3.title')}
-                  </h3>
-                </div>
-                
-                {/* Description */}
-                <p className="text-muted-foreground leading-relaxed">
-                  {t('vocalSeparationPage.howTo.step3.description')}
-                </p>
-              </div>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* FAQ Section */}
-      <section id="faq" className="container max-w-4xl py-12 sm:py-16">
-        <div className="text-center mb-8">
-          <h2 className="text-lg text-primary text-center mb-2 tracking-wider">
-            {t('vocalSeparationPage.faq.sectionLabel')}
-          </h2>
-
-          <h2 className="text-3xl md:text-4xl text-center font-bold mb-4">
-            {t('vocalSeparationPage.faq.title')}
-          </h2>
-          
-          <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
-            {t('vocalSeparationPage.faq.subtitle')}
-          </p>
-        </div>
-
-        <Accordion type="single" collapsible className="space-y-2">
-          <AccordionItem value="item-1" className="border-b border-border px-4 py-1">
-            <AccordionTrigger className="text-left text-lg font-semibold py-4 hover:no-underline [&[data-state=open]]:text-primary">
-              {t('vocalSeparationPage.faq.items.item1.question')}
-            </AccordionTrigger>
-            <AccordionContent className="text-base text-muted-foreground pb-4 leading-relaxed">
-              {t('vocalSeparationPage.faq.items.item1.answer')}
-            </AccordionContent>
-          </AccordionItem>
-
-          <AccordionItem value="item-2" className="border-b border-border px-4 py-1">
-            <AccordionTrigger className="text-left text-lg font-semibold py-4 hover:no-underline [&[data-state=open]]:text-primary">
-              {t('vocalSeparationPage.faq.items.item2.question')}
-            </AccordionTrigger>
-            <AccordionContent className="text-base text-muted-foreground pb-4 leading-relaxed">
-              {t('vocalSeparationPage.faq.items.item2.answer')}
-            </AccordionContent>
-          </AccordionItem>
-
-          <AccordionItem value="item-3" className="border-b border-border px-4 py-1">
-            <AccordionTrigger className="text-left text-lg font-semibold py-4 hover:no-underline [&[data-state=open]]:text-primary">
-              {t('vocalSeparationPage.faq.items.item3.question')}
-            </AccordionTrigger>
-            <AccordionContent className="text-base text-muted-foreground pb-4 leading-relaxed">
-              {t('vocalSeparationPage.faq.items.item3.answer')}
-            </AccordionContent>
-          </AccordionItem>
-
-          <AccordionItem value="item-4" className="border-b border-border px-4 py-1">
-            <AccordionTrigger className="text-left text-lg font-semibold py-4 hover:no-underline [&[data-state=open]]:text-primary">
-              {t('vocalSeparationPage.faq.items.item4.question')}
-            </AccordionTrigger>
-            <AccordionContent className="text-base text-muted-foreground pb-4 leading-relaxed">
-              {t('vocalSeparationPage.faq.items.item4.answer')}
-            </AccordionContent>
-          </AccordionItem>
-
-          <AccordionItem value="item-5" className="border-b border-border px-4 py-1">
-            <AccordionTrigger className="text-left text-lg font-semibold py-4 hover:no-underline [&[data-state=open]]:text-primary">
-              {t('vocalSeparationPage.faq.items.item5.question')}
-            </AccordionTrigger>
-            <AccordionContent className="text-base text-muted-foreground pb-4 leading-relaxed">
-              {t('vocalSeparationPage.faq.items.item5.answer')}
-            </AccordionContent>
-          </AccordionItem>
-
-          <AccordionItem value="item-6" className="border-b border-border px-4 py-1">
-            <AccordionTrigger className="text-left text-lg font-semibold py-4 hover:no-underline [&[data-state=open]]:text-primary">
-              {t('vocalSeparationPage.faq.items.item6.question')}
-            </AccordionTrigger>
-            <AccordionContent className="text-base text-muted-foreground pb-4 leading-relaxed">
-              {t('vocalSeparationPage.faq.items.item6.answer')}
-            </AccordionContent>
-          </AccordionItem>
-
-          <AccordionItem value="item-7" className="border-b border-border px-4 py-1">
-            <AccordionTrigger className="text-left text-lg font-semibold py-4 hover:no-underline [&[data-state=open]]:text-primary">
-              {t('vocalSeparationPage.faq.items.item7.question')}
-            </AccordionTrigger>
-            <AccordionContent className="text-base text-muted-foreground pb-4 leading-relaxed">
-              {t('vocalSeparationPage.faq.items.item7.answer')}
-            </AccordionContent>
-          </AccordionItem>
-
-          <AccordionItem value="item-8" className="border-b border-border px-4 py-1">
-            <AccordionTrigger className="text-left text-lg font-semibold py-4 hover:no-underline [&[data-state=open]]:text-primary">
-              {t('vocalSeparationPage.faq.items.item8.question')}
-            </AccordionTrigger>
-            <AccordionContent className="text-base text-muted-foreground pb-4 leading-relaxed">
-              {t('vocalSeparationPage.faq.items.item8.answer')}
-            </AccordionContent>
-          </AccordionItem>
-        </Accordion>
-      </section>
-
-        {/* Footer */}
-        <FooterSection />
-
-
-        {/* Auth Modal */}
-        <AuthModal 
-          isOpen={showAuthModal} 
-          onClose={() => setShowAuthModal(false)} 
-        />
-
-        {/* Confirmation Dialog */}
-        <AlertDialog open={showConfirmDialog} onOpenChange={setShowConfirmDialog}>
-          <AlertDialogContent className="max-w-[calc(100vw-2rem)] sm:max-w-[425px]">
-            <AlertDialogHeader className="space-y-2 sm:space-y-3">
-              <AlertDialogTitle className="text-lg sm:text-xl">{t('vocalSeparationPage.confirmDialog.title')}</AlertDialogTitle>
-              <AlertDialogDescription className="text-sm sm:text-base">
-                {t('vocalSeparationPage.confirmDialog.description')}
-              </AlertDialogDescription>
-            </AlertDialogHeader>
-            <AlertDialogFooter className="flex-col sm:flex-row gap-2 sm:gap-0">
-              <AlertDialogCancel className="w-full sm:w-auto" onClick={handleCancelDialog}>
-                {t('vocalSeparationPage.confirmDialog.cancel')}
-              </AlertDialogCancel>
-              <AlertDialogAction 
-                onClick={handleConfirmDialog}
-                className="w-full sm:w-auto bg-primary text-primary-foreground hover:bg-primary/90"
+              <div
+                className={`scrollbar-hidden flex-1 overflow-y-auto px-0 ${
+                  sourceTab === 'my-music' ? 'pb-2 md:pb-2' : 'pb-6 md:pb-6'
+                }`}
+                style={{ scrollbarGutter: 'stable both-edges' }}
               >
-                {t('vocalSeparationPage.confirmDialog.continue')}
-              </AlertDialogAction>
-            </AlertDialogFooter>
-          </AlertDialogContent>
-        </AlertDialog>
-      </div>
-    );
+                {panelFields}
+              </div>
+
+              <div className={`flex-shrink-0 px-0 ${sourceTab === 'my-music' ? 'pb-3 pt-1.5' : 'pb-4 pt-3'}`}>
+                {panelActions}
+              </div>
+            </section>
+          </div>
+
+          <div
+            className={`hidden md:flex flex-1 min-w-0 h-full ${getZIndexClass('MAIN_CONTENT')} md:order-3 relative md:pb-0 md:pl-2`}
+          >
+            <div className={`min-h-0 h-full flex flex-col relative w-full ${getZIndexClass('MAIN_CONTENT')}`}>
+              <div className="flex flex-col flex-1 min-h-0 min-w-0">
+                <div className="relative flex flex-col flex-1 min-h-0 min-w-0 px-0 md:px-0 md:py-2">
+                  <section className="studio-panel-cards flex flex-col min-h-0 flex-1 overflow-hidden">
+                    <div className="flex-1 min-h-0 overflow-y-auto">{resultContent}</div>
+                  </section>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <CommonSidebar variant="studio" />
+      </section>
+
+      <input
+        ref={fileInputRef}
+        type="file"
+        accept="audio/*,video/*"
+        onChange={handleFileSelect}
+        className="hidden"
+        disabled={!isLoggedIn}
+      />
+
+      <AuthModal isOpen={showAuthModal} onClose={() => setShowAuthModal(false)} />
+
+      <AlertDialog open={showConfirmDialog} onOpenChange={setShowConfirmDialog}>
+        <AlertDialogContent className="max-w-[calc(100vw-2rem)] sm:max-w-[520px]">
+          <AlertDialogHeader className="space-y-2 sm:space-y-3">
+            <AlertDialogTitle className="text-lg sm:text-xl">{t('vocalSeparationPage.confirmDialog.title')}</AlertDialogTitle>
+            <AlertDialogDescription className="text-sm sm:text-base">
+              {t('vocalSeparationPage.confirmDialog.description')}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter className="flex-col gap-2 sm:flex-row sm:gap-0">
+            <AlertDialogCancel className="w-full sm:w-auto" onClick={handleCancelDialog}>
+              {t('vocalSeparationPage.confirmDialog.cancel')}
+            </AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleConfirmDialog}
+              className="w-full bg-primary text-primary-foreground hover:bg-primary/90 sm:w-auto"
+            >
+              {t('vocalSeparationPage.confirmDialog.continue')}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      <AlertDialog
+        open={Boolean(pendingDeleteRecord)}
+        onOpenChange={(open) => {
+          if (!open && !isDeletingRecord) {
+            setPendingDeleteRecord(null);
+          }
+        }}
+      >
+        <AlertDialogContent className="max-w-[calc(100vw-2rem)] sm:max-w-[520px]">
+          <AlertDialogHeader className="space-y-2 sm:space-y-3">
+            <AlertDialogTitle className="text-lg sm:text-xl">
+              {t('vocalTools.panel.deleteTitle')}
+            </AlertDialogTitle>
+            <AlertDialogDescription className="text-sm sm:text-base">
+              {t('vocalTools.panel.deleteDescription')}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter className="flex-col gap-2 sm:flex-row sm:gap-0">
+            <AlertDialogCancel
+              className="w-full sm:w-auto"
+              disabled={isDeletingRecord}
+              onClick={() => setPendingDeleteRecord(null)}
+            >
+              {t('common.cancel')}
+            </AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => {
+                void handleConfirmDeleteRecord();
+              }}
+              disabled={isDeletingRecord}
+              className="w-full bg-destructive text-destructive-foreground hover:bg-destructive/90 sm:w-auto"
+            >
+              {isDeletingRecord ? (
+                <span className="inline-flex items-center gap-2">
+                  <RefreshCw className="h-4 w-4 animate-spin" />
+                  {t('trackActions.delete')}
+                </span>
+              ) : (
+                t('trackActions.delete')
+              )}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+    </>
+  );
 }

@@ -16,7 +16,8 @@ export const NavbarWrapper = () => {
     normalizedPathname === path || normalizedPathname.startsWith(`${path}/`)
   ) || isStudioAreaPath(pathname)
     || normalizedPathname === "/library" || normalizedPathname.startsWith("/library/")
-    || normalizedPathname === "/lyrics-generator" || normalizedPathname.startsWith("/lyrics-generator/");
+    || normalizedPathname === "/lyrics-generator" || normalizedPathname.startsWith("/lyrics-generator/")
+    || normalizedPathname === "/vocal-separation" || normalizedPathname.startsWith("/vocal-separation/");
 
   if (shouldHideNavbarByPath) {
     return null;

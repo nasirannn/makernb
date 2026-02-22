@@ -94,6 +94,8 @@ export async function GET(request: NextRequest) {
       status: separationRecord.status,
       originalFilename: separationRecord.original_filename,
       originalAudioUrl: separationRecord.original_audio_url, // 始终返回原始音频URL
+      errorCode: separationRecord.error_code || undefined,
+      errorMessage: separationRecord.error_message || undefined,
       createdAt: separationRecord.created_at,
       updatedAt: separationRecord.updated_at
     };

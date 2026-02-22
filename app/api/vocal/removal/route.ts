@@ -45,14 +45,14 @@ export async function POST(request: NextRequest) {
     if (shouldUseCache) {
       const existing = await getVocalRemovalsByTrackId(trackId, userId);
       const reusableCompleted = existing.find(r => {
-        const vocalUrl = r.r2_vocal_url || r.vocal_url;
-        const instrumentalUrl = r.r2_instrumental_url || r.instrumental_url;
+        const vocalUrl = r.r2_vocal_url;
+        const instrumentalUrl = r.r2_instrumental_url;
         return r.status === 'completed' && !!vocalUrl && !!instrumentalUrl;
       });
 
       if (reusableCompleted) {
-        const vocalUrl = reusableCompleted.r2_vocal_url || reusableCompleted.vocal_url;
-        const instrumentalUrl = reusableCompleted.r2_instrumental_url || reusableCompleted.instrumental_url;
+        const vocalUrl = reusableCompleted.r2_vocal_url || undefined;
+        const instrumentalUrl = reusableCompleted.r2_instrumental_url || undefined;
         return NextResponse.json(
           {
             success: true,

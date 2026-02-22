@@ -10,6 +10,8 @@ export interface VocalRemoval {
   user_id: string;
   track_id: string;
   music_id?: string;
+  track_title?: string;
+  track_audio_url?: string;
   task_id: string; // KIE API任务ID
   audio_id: string; // Original audio's audioId
   separation_type?: 'separate_vocal' | 'split_stem';
@@ -19,6 +21,9 @@ export interface VocalRemoval {
   stems_data?: Record<string, string> | null; // split_stem 的多轨 URL
   r2_vocal_url?: string; // R2 持久化 URL
   r2_instrumental_url?: string; // R2 持久化 URL
+  error_code?: string | null;
+  error_message?: string | null;
+  is_deleted?: boolean;
   created_at: string;
   updated_at: string;
 }
@@ -42,6 +47,8 @@ export interface VocalRemovalWithTrack {
   user_id: string;
   track_id: string;
   music_id?: string;
+  track_title?: string;
+  track_audio_url?: string;
   task_id: string;
   audio_id: string;
   separation_type?: 'separate_vocal' | 'split_stem';
@@ -51,6 +58,9 @@ export interface VocalRemovalWithTrack {
   stems_data?: Record<string, string> | null;
   r2_vocal_url?: string; // R2 持久化 URL
   r2_instrumental_url?: string; // R2 持久化 URL
+  error_code?: string | null;
+  error_message?: string | null;
+  is_deleted?: boolean;
   created_at: string;
   updated_at: string;
   // 关联的原始轨道信息
@@ -167,6 +177,7 @@ export const getVocalRemovalsByTrackId = async (
     let queryString = `
       SELECT * FROM vocal_removals 
       WHERE track_id = $1::uuid
+        AND (is_deleted IS NULL OR is_deleted = FALSE)
       ORDER BY created_at DESC
     `;
     const params: any[] = [trackId];
@@ -174,7 +185,9 @@ export const getVocalRemovalsByTrackId = async (
     if (userId) {
       queryString = `
         SELECT * FROM vocal_removals 
-        WHERE track_id = $1::uuid AND user_id = $2::uuid
+        WHERE track_id = $1::uuid
+          AND user_id = $2::uuid
+          AND (is_deleted IS NULL OR is_deleted = FALSE)
         ORDER BY created_at DESC
       `;
       params.push(userId);
@@ -199,15 +212,46 @@ export const getUserVocalRemovals = async (
   try {
     validateRequiredParams({ userId }, ['userId']);
 
-    const result = await query(
-      `SELECT * FROM vocal_removals 
-       WHERE user_id = $1 
-       ORDER BY created_at DESC 
-       LIMIT $2 OFFSET $3`,
-      [userId, limit, offset]
-    );
+    try {
+      const result = await query(
+        `SELECT
+          vr.*,
+          COALESCE(NULLIF(mt.title, ''), NULLIF(m.title, ''), NULL) AS track_title,
+          NULLIF(mt.audio_url, '') AS track_audio_url
+         FROM vocal_removals vr
+         LEFT JOIN tracks mt ON vr.track_id = mt.id
+         LEFT JOIN music m ON vr.music_id = m.id
+         WHERE vr.user_id = $1::uuid
+           AND (vr.is_deleted IS NULL OR vr.is_deleted = FALSE)
+         ORDER BY vr.created_at DESC
+         LIMIT $2 OFFSET $3`,
+        [userId, limit, offset]
+      );
 
-    return result.rows;
+      return result.rows;
+    } catch (joinQueryError) {
+      const errorCode = (joinQueryError as { code?: string })?.code;
+      // Fallback query: avoid hard dependency on joined tables when schema differs across environments.
+      if (errorCode === '42P01' || errorCode === '42703' || errorCode === '42883') {
+        console.warn('Fallback to base vocal_removals query due to join query error:', joinQueryError);
+        const fallbackResult = await query(
+          `SELECT
+            vr.*,
+            NULL::text AS track_title,
+            NULL::text AS track_audio_url
+           FROM vocal_removals vr
+           WHERE vr.user_id = $1::uuid
+             AND (vr.is_deleted IS NULL OR vr.is_deleted = FALSE)
+           ORDER BY vr.created_at DESC
+           LIMIT $2 OFFSET $3`,
+          [userId, limit, offset]
+        );
+
+        return fallbackResult.rows;
+      }
+
+      throw joinQueryError;
+    }
   } catch (error) {
     console.error('Error getting user vocal removals:', error);
     throw error;
@@ -234,7 +278,9 @@ export const getVocalRemovalById = async (
       FROM vocal_removals vr
       LEFT JOIN tracks mt ON vr.track_id = mt.id
         AND (mt.is_deleted IS NULL OR mt.is_deleted = FALSE)
-      WHERE vr.id = $1 AND vr.user_id = $2::uuid
+      WHERE vr.id = $1
+        AND vr.user_id = $2::uuid
+        AND (vr.is_deleted IS NULL OR vr.is_deleted = FALSE)
     `, [removalId, userId]);
 
     if (result.rows.length === 0) {
@@ -256,6 +302,9 @@ export const getVocalRemovalById = async (
       separation_type: row.separation_type,
       r2_vocal_url: row.r2_vocal_url,
       r2_instrumental_url: row.r2_instrumental_url,
+      error_code: row.error_code || null,
+      error_message: row.error_message || null,
+      is_deleted: row.is_deleted ?? false,
       created_at: row.created_at,
       updated_at: row.updated_at,
       original_track: row.track_id ? {
@@ -272,15 +321,18 @@ export const getVocalRemovalById = async (
 };
 
 /**
- * Deletes a vocal removal record (physical delete)
+ * Deletes a vocal removal record (logical delete)
  */
 export const deleteVocalRemoval = async (removalId: string, userId: string): Promise<boolean> => {
   try {
     validateRequiredParams({ removalId, userId }, ['removalId', 'userId']);
 
     const result = await query(
-      `DELETE FROM vocal_removals
-       WHERE id = $1 AND user_id = $2::uuid
+      `UPDATE vocal_removals
+       SET is_deleted = TRUE, updated_at = NOW()
+       WHERE id = $1
+         AND user_id = $2::uuid
+         AND (is_deleted IS NULL OR is_deleted = FALSE)
        RETURNING id`,
       [removalId, userId]
     );

@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import WaveSurfer from 'wavesurfer.js';
 import { Play, Pause, GripVertical } from 'lucide-react';
 import { getZIndexClass } from '@/lib/z-index';
@@ -18,7 +18,7 @@ interface WaveformPlayerProps {
   onPlayStateChange?: (isPlaying: boolean) => void;
   backend?: 'WebAudio' | 'MediaElement';
   isLoading?: boolean;
-  onLoadError?: (hasError: boolean) => void;
+  onLoadError?: (hasError: boolean, detail?: WaveformLoadErrorDetail) => void;
   className?: string;
   externalCurrentTime?: number;
   mediaElement?: HTMLMediaElement | null;
@@ -63,6 +63,37 @@ interface WaveformPlayerProps {
   /** 音频总时长（用于选择器） */
   audioDuration?: number;
 }
+
+export interface WaveformLoadErrorDetail {
+  statusCode?: number;
+  mediaErrorCode?: number;
+  message: string;
+  type: 'http' | 'media' | 'network' | 'unknown';
+}
+
+const DEFAULT_AUDIO_LOAD_ERROR_MESSAGE = 'Failed to load audio. The file may have expired or been deleted.';
+
+const buildAudioLoadErrorMessage = (statusCode?: number): string => {
+  if (typeof statusCode === 'number') {
+    return `Failed to load audio (HTTP ${statusCode}). The file may have expired or been deleted.`;
+  }
+  return DEFAULT_AUDIO_LOAD_ERROR_MESSAGE;
+};
+
+const probeAudioStatusCode = async (audioUrl: string): Promise<number | undefined> => {
+  try {
+    const response = await fetch(audioUrl, {
+      method: 'HEAD',
+      cache: 'no-store',
+    });
+    if (!response.ok) {
+      return response.status;
+    }
+  } catch {
+    // Cross-origin and opaque responses may fail to expose status codes.
+  }
+  return undefined;
+};
 
 export interface WaveformPlayerHandle {
   play: () => boolean;
@@ -125,6 +156,42 @@ export const WaveformPlayer = React.forwardRef<WaveformPlayerHandle, WaveformPla
   const [duration, setDuration] = useState(0);
   const [currentTime, setCurrentTime] = useState(0);
 
+  const applyLoadError = useCallback(
+    (detail: WaveformLoadErrorDetail) => {
+      setIsWaveformLoading(false);
+      setLoadError(detail.message);
+      if (onLoadError) onLoadError(true, detail);
+    },
+    [onLoadError]
+  );
+
+  const handleAudioLoadFailure = useCallback(
+    async (options?: {
+      type?: WaveformLoadErrorDetail['type'];
+      statusCode?: number;
+      mediaErrorCode?: number;
+    }) => {
+      const activeLoadKey = audioBlob ? 'blob' : (audioUrl || null);
+      if (lastLoadKeyRef.current && activeLoadKey && lastLoadKeyRef.current !== activeLoadKey) {
+        return;
+      }
+
+      const resolvedStatusCode =
+        options?.statusCode ??
+        ((!audioBlob && audioUrl && audioUrl.trim().length > 0)
+          ? await probeAudioStatusCode(audioUrl)
+          : undefined);
+
+      applyLoadError({
+        statusCode: resolvedStatusCode,
+        mediaErrorCode: options?.mediaErrorCode,
+        message: buildAudioLoadErrorMessage(resolvedStatusCode),
+        type: resolvedStatusCode ? 'http' : (options?.type || 'unknown'),
+      });
+    },
+    [applyLoadError, audioBlob, audioUrl]
+  );
+
   // 选择器拖动状态
   const progressBarRef = useRef<HTMLDivElement | null>(null);
   const [isDraggingStart, setIsDraggingStart] = useState(false);
@@ -148,15 +215,13 @@ export const WaveformPlayer = React.forwardRef<WaveformPlayerHandle, WaveformPla
       if (event.message && event.message.includes('Failed to fetch') && event.message.includes(audioUrl)) {
         event.preventDefault(); // 阻止错误冒泡到 Next.js 的错误边界
         console.warn('Audio load error caught:', event.message);
-        setLoadError('Failed to load audio. The file may have expired or been deleted.');
-        setIsWaveformLoading(false);
-        if (onLoadError) onLoadError(true);
+        void handleAudioLoadFailure({ type: 'network' });
       }
     };
 
     window.addEventListener('error', handleError);
     return () => window.removeEventListener('error', handleError);
-  }, [audioUrl, onLoadError]);
+  }, [audioUrl, handleAudioLoadFailure]);
 
   useEffect(() => {
     if (!waveformRef.current) {
@@ -190,6 +255,7 @@ export const WaveformPlayer = React.forwardRef<WaveformPlayerHandle, WaveformPla
       // Event listeners
       wavesurfer.on('ready', () => {
         setIsWaveformLoading(false);
+        setLoadError(null);
         const readyDuration = wavesurfer.getDuration();
         setDuration(readyDuration);
         isReadyRef.current = true;
@@ -215,9 +281,8 @@ export const WaveformPlayer = React.forwardRef<WaveformPlayerHandle, WaveformPla
           return;
         }
         console.error('WaveSurfer error:', error);
-        setIsWaveformLoading(false);
-        setLoadError('Failed to load audio. The file may have expired or been deleted.');
-        if (onLoadError) onLoadError(true);
+        const mediaErrorCode = wavesurfer.getMediaElement?.()?.error?.code;
+        void handleAudioLoadFailure({ type: 'media', mediaErrorCode });
       });
 
       wavesurfer.on('audioprocess', () => {
@@ -243,9 +308,14 @@ export const WaveformPlayer = React.forwardRef<WaveformPlayerHandle, WaveformPla
       });
     } catch (error) {
       console.error('Failed to initialize WaveSurfer:', error);
-      setLoadError('Failed to initialize audio player.');
+      applyLoadError({
+        message: 'Failed to initialize audio player.',
+        type: 'unknown',
+      });
     }
   }, [
+    applyLoadError,
+    handleAudioLoadFailure,
     onFinish,
     onLoadError,
     onPlayPause,
@@ -293,6 +363,7 @@ export const WaveformPlayer = React.forwardRef<WaveformPlayerHandle, WaveformPla
     if (!audioBlob && (!audioUrl || audioUrl.trim() === '')) {
       setIsWaveformLoading(false);
       setLoadError(null);
+      if (onLoadError) onLoadError(false);
       return;
     }
 
@@ -328,15 +399,13 @@ export const WaveformPlayer = React.forwardRef<WaveformPlayerHandle, WaveformPla
             return;
           }
           console.error('Failed to load audio:', error);
-          setIsWaveformLoading(false);
-          setLoadError('Failed to load audio. The file may have expired or been deleted.');
-          if (onLoadError) onLoadError(true);
+          await handleAudioLoadFailure({ type: 'network' });
         }
       };
       
       loadAudio();
     }
-  }, [audioBlob, audioUrl, mediaElement, onLoadError]);
+  }, [audioBlob, audioUrl, handleAudioLoadFailure, mediaElement, onLoadError]);
 
   useEffect(() => {
     if (!wavesurferRef.current) return;

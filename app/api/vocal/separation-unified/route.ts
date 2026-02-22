@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getUserVocalSeparations } from '@/features/vocal-tools/lib/vocal-separation-db';
-import { getUserVocalRemovals } from '@/features/vocal-tools/lib/vocal-removal-db';
+import {
+  getUserVocalSeparationHistory,
+  type VocalSeparationHistorySourceFilter,
+} from '@/features/vocal-tools/lib/vocal-separation-history-db';
 import { getUserIdFromRequest } from '@/lib/auth';
 
 export const dynamic = 'force-dynamic';
@@ -19,9 +21,50 @@ const parseStemsData = (value: unknown): Record<string, string> | null => {
   return null;
 };
 
+const resolveOriginUrlFromStems = (stemsData: Record<string, string> | null): string | undefined => {
+  if (!stemsData) return undefined;
+  const candidateKeys = ['origin', 'original', 'source', 'audio', 'originUrl', 'originalUrl'];
+  for (const key of candidateKeys) {
+    const value = stemsData[key];
+    if (typeof value === 'string' && value.trim().length > 0) {
+      return value;
+    }
+  }
+  return undefined;
+};
+
+const toNonEmptyString = (value: unknown): string | undefined => {
+  if (typeof value !== 'string') return undefined;
+  const normalized = value.trim();
+  return normalized.length > 0 ? normalized : undefined;
+};
+
+const normalizeUnifiedStatus = (
+  rawStatus: unknown,
+  context: { hasOutput: boolean; hasError: boolean }
+): 'processing' | 'completed' | 'error' => {
+  const status = typeof rawStatus === 'string' ? rawStatus.trim().toLowerCase() : '';
+  if (status === 'completed' || status === 'complete' || status === 'success' || status === 'succeeded' || status === 'done') {
+    return 'completed';
+  }
+
+  if (status === 'error' || status === 'failed' || status === 'fail' || status === 'failure' || status === 'canceled' || status === 'cancelled') {
+    return 'error';
+  }
+
+  if (context.hasError) return 'error';
+  if (context.hasOutput) return 'completed';
+  return 'processing';
+};
+
+const parseSourceFilter = (value: string | null): VocalSeparationHistorySourceFilter => {
+  if (value === 'replicate' || value === 'kie') return value;
+  return 'all';
+};
+
 /**
  * 统一获取用户的所有人声分离记录（包括两种来源）
- * GET /api/vocal/separation-unified?limit=20&offset=0
+ * GET /api/vocal/separation-unified?source=all|replicate|kie&limit=20&offset=0
  */
 export async function GET(request: NextRequest) {
   const requestId = `unified-separations_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
@@ -45,80 +88,99 @@ export async function GET(request: NextRequest) {
     const { searchParams } = new URL(request.url);
     const limit = parseInt(searchParams.get('limit') || '20');
     const offset = parseInt(searchParams.get('offset') || '0');
+    const sourceFilter = parseSourceFilter(searchParams.get('source'));
+    const effectiveSourceFilter: VocalSeparationHistorySourceFilter = sourceFilter === 'all' ? 'kie' : sourceFilter;
 
-    console.log(`[UNIFIED-SEPARATIONS-${requestId}] Querying unified separations for user: ${userId}, limit: ${limit}, offset: ${offset}`);
+    if (sourceFilter === 'replicate') {
+      return NextResponse.json(
+        {
+          error: 'Unsupported source',
+          message: 'Replicate separation is one-time only and does not provide history records.',
+        },
+        { status: 400 }
+      );
+    }
 
-    // 并行获取两种来源的数据
-    const [replicateSeparations, kieRemovals] = await Promise.all([
-      getUserVocalSeparations(userId, limit * 2, 0), // 获取更多以便合并排序
-      getUserVocalRemovals(userId, limit * 2, 0)
-    ]);
-
-    // 统一数据格式
-    const unifiedSeparations = [
-      // Replicate API 来源
-      ...replicateSeparations.map((sep: any) => ({
-        id: sep.id,
-        source: 'replicate' as const,
-        predictionId: sep.predictionId || sep.prediction_id, // 映射数据库字段为 JavaScript 字段名
-        status: sep.status,
-        originalFilename: sep.originalFilename || sep.original_filename, // 映射数据库字段为 JavaScript 字段名
-        vocalUrl: sep.vocalUrl || sep.vocal_audio_url, // 映射数据库字段为 JavaScript 字段名
-        instrumentalUrl: sep.instrumentalUrl || sep.instrumental_audio_url, // 映射数据库字段为 JavaScript 字段名
-        errorMessage: sep.errorMessage,
-        createdAt: sep.createdAt || sep.created_at, // 映射数据库字段为 JavaScript 字段名
-        updatedAt: sep.updatedAt || sep.updated_at, // 映射数据库字段为 JavaScript 字段名
-        // 兼容字段
-        accompanimentUrl: sep.instrumentalUrl || sep.instrumental_audio_url,
-        trackId: undefined,
-        taskId: undefined
-      })),
-      // KIE API 来源
-      ...kieRemovals.map(removal => {
-        // 优先使用 R2 URL，如果没有则使用临时 URL
-        const vocalUrl = removal.r2_vocal_url || removal.vocal_url;
-        const instrumentalUrl = removal.r2_instrumental_url || removal.instrumental_url;
-        const stemsData = parseStemsData(removal.stems_data);
-        
-        return {
-          id: removal.id,
-          source: 'kie' as const,
-          predictionId: removal.task_id, // 映射数据库字段为 JavaScript 字段名
-          separationType: removal.separation_type || 'separate_vocal',
-          status: removal.status,
-          originalFilename: removal.track_id ? `Track ${removal.track_id.substring(0, 8)}...` : 'Studio Track',
-          vocalUrl, // 映射数据库字段为 JavaScript 字段名
-          instrumentalUrl, // 映射数据库字段为 JavaScript 字段名
-          stemsData,
-          errorMessage: removal.status === 'error' ? 'Vocal removal failed' : undefined,
-          createdAt: removal.created_at, // 映射数据库字段为 JavaScript 字段名
-          updatedAt: removal.updated_at, // 映射数据库字段为 JavaScript 字段名
-          // KIE 特有字段（保持向后兼容）
-          accompanimentUrl: instrumentalUrl,
-          trackId: removal.track_id, // 映射数据库字段为 JavaScript 字段名
-          taskId: removal.task_id // 映射数据库字段为 JavaScript 字段名
-        };
-      })
-    ];
-
-    // 按创建时间排序（最新的在前）
-    unifiedSeparations.sort((a, b) => 
-      new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+    console.log(
+      `[UNIFIED-SEPARATIONS-${requestId}] Querying unified separations for user: ${userId}, source: ${effectiveSourceFilter}, limit: ${limit}, offset: ${offset}`
     );
 
-    // 分页处理
-    const paginatedSeparations = unifiedSeparations.slice(offset, offset + limit);
+    const { rows, total } = await getUserVocalSeparationHistory(userId, effectiveSourceFilter, limit, offset);
 
-    console.log(`[UNIFIED-SEPARATIONS-${requestId}] Found ${unifiedSeparations.length} total separations, returning ${paginatedSeparations.length}`);
+    const paginatedSeparations = rows.map((row: any) => {
+      const stemsData = parseStemsData(row.stems_data);
+      const vocalUrl = toNonEmptyString(row.vocal_url);
+      const instrumentalUrl = toNonEmptyString(row.instrumental_url);
+      const originalAudioUrl =
+        toNonEmptyString(row.original_audio_url) ||
+        toNonEmptyString(row.track_audio_url) ||
+        resolveOriginUrlFromStems(stemsData);
+      const errorCode =
+        typeof row.error_code === 'string' || typeof row.error_code === 'number'
+          ? String(row.error_code)
+          : undefined;
+      const errorMessage = typeof row.error_message === 'string' ? row.error_message : undefined;
+
+      const status = normalizeUnifiedStatus(row.status, {
+        hasOutput: Boolean(originalAudioUrl || vocalUrl || instrumentalUrl),
+        hasError: Boolean(errorCode || errorMessage),
+      });
+
+      const source = row.source === 'kie' ? 'kie' : 'replicate';
+      const originalFilename =
+        source === 'kie'
+          ? (typeof row.resolved_title === 'string' && row.resolved_title.trim().length > 0
+              ? row.resolved_title.trim()
+              : typeof row.track_id === 'string' && row.track_id.length > 0
+                ? `Track ${row.track_id.substring(0, 8)}...`
+                : 'Studio Track')
+          : (typeof row.original_filename === 'string' && row.original_filename.trim().length > 0
+              ? row.original_filename.trim()
+              : 'Uploaded Audio');
+
+      return {
+        id: typeof row.id === 'string' ? row.id : '',
+        source,
+        predictionId: source === 'replicate' ? row.prediction_id : row.task_id,
+        separationType:
+          typeof row.separation_type === 'string' && row.separation_type.trim().length > 0
+            ? row.separation_type
+            : 'separate_vocal',
+        status,
+        originalFilename,
+        originalAudioUrl,
+        vocalUrl,
+        instrumentalUrl,
+        stemsData,
+        errorCode,
+        errorMessage: errorMessage || (status === 'error' ? 'Vocal removal failed' : undefined),
+        createdAt: typeof row.created_at === 'string' ? row.created_at : '',
+        updatedAt:
+          typeof row.updated_at === 'string'
+            ? row.updated_at
+            : typeof row.created_at === 'string'
+              ? row.created_at
+              : '',
+        accompanimentUrl: instrumentalUrl,
+        hasPersistentAudio: Boolean(row.has_persistent_audio),
+        trackId: typeof row.track_id === 'string' ? row.track_id : undefined,
+        taskId: source === 'kie' ? row.task_id : undefined,
+      };
+    }).filter((record) => Boolean(record.id));
+
+    console.log(
+      `[UNIFIED-SEPARATIONS-${requestId}] Found ${total} total separations, returning ${paginatedSeparations.length}`
+    );
 
     return NextResponse.json({
       success: true,
       data: paginatedSeparations,
+      source: effectiveSourceFilter,
       pagination: {
         limit,
         offset,
-        total: unifiedSeparations.length,
-        hasMore: offset + limit < unifiedSeparations.length
+        total,
+        hasMore: offset + limit < total
       }
     });
   } catch (error) {

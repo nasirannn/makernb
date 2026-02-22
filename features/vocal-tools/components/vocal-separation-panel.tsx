@@ -245,7 +245,7 @@ export const VocalSeparationPanel: React.FC<VocalSeparationPanelProps> = ({
                         <AlertDialogFooter>
                           <AlertDialogCancel>{t("common.cancel")}</AlertDialogCancel>
                           <AlertDialogAction onClick={() => {
-                            deleteSeparation(separation.id);
+                            deleteSeparation(separation.id, separation.source || 'replicate');
                           }}>
                             {t("trackActions.delete")}
                           </AlertDialogAction>

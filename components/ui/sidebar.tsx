@@ -43,6 +43,7 @@ type SidebarNavItem = {
 };
 
 const SIDEBAR_EXPANDED_STORAGE_KEY = "makernb.sidebar.expanded";
+const STUDIO_SIDEBAR_EXPANDED_STORAGE_KEY = "makernb.sidebar.studio.expanded";
 const SIDEBAR_TOGGLE_EVENT = "makernb:sidebar-toggle";
 const STUDIO_SIDEBAR_WIDTH_VAR = "--studio-sidebar-width";
 
@@ -96,6 +97,24 @@ const readSidebarExpandedFromStorage = () => {
   }
 };
 
+const readStudioSidebarExpandedFromStorage = () => {
+  if (typeof window === "undefined") return false;
+  try {
+    return window.localStorage.getItem(STUDIO_SIDEBAR_EXPANDED_STORAGE_KEY) === "1";
+  } catch {
+    return false;
+  }
+};
+
+const writeSidebarExpandedToStorage = (key: string, isExpanded: boolean) => {
+  if (typeof window === "undefined") return;
+  try {
+    window.localStorage.setItem(key, isExpanded ? "1" : "0");
+  } catch {
+    // ignore localStorage write failures
+  }
+};
+
 export const CommonSidebar = ({
   hideMobileNav = false,
   onWidthChange,
@@ -127,7 +146,9 @@ export const CommonSidebar = ({
   const [isAuthModalOpen, setIsAuthModalOpen] = React.useState(false);
   const [isDropdownOpen, setIsDropdownOpen] = React.useState(false);
   const [isRefreshingCredits, setIsRefreshingCredits] = React.useState(false);
-  const [isExpanded, setIsExpanded] = React.useState(() => (isStudioVariant ? false : readSidebarExpandedFromStorage()));
+  const [isExpanded, setIsExpanded] = React.useState(() =>
+    isStudioVariant ? readStudioSidebarExpandedFromStorage() : readSidebarExpandedFromStorage()
+  );
   const [isStudioDrawerOpen, setIsStudioDrawerOpen] = React.useState(false);
   const [isNicknameDialogOpen, setIsNicknameDialogOpen] = React.useState(false);
   const [isCollapsedCreditsHovered, setIsCollapsedCreditsHovered] = React.useState(false);
@@ -166,25 +187,20 @@ export const CommonSidebar = ({
         clearTimeout(studioHoverTimeoutRef.current);
         studioHoverTimeoutRef.current = null;
       }
-      if (isExpanded) {
-        setIsExpanded(false);
-        setIsStudioDrawerOpen(false);
-      } else {
-        setIsStudioDrawerOpen(false);
-        setIsExpanded(true);
-      }
+      setIsStudioDrawerOpen(false);
+      setIsExpanded((prev) => {
+        const next = !prev;
+        writeSidebarExpandedToStorage(STUDIO_SIDEBAR_EXPANDED_STORAGE_KEY, next);
+        return next;
+      });
       return;
     }
     setIsExpanded((prev) => {
       const next = !prev;
-      try {
-        window.localStorage.setItem(SIDEBAR_EXPANDED_STORAGE_KEY, next ? "1" : "0");
-      } catch {
-        // ignore localStorage write failures
-      }
+      writeSidebarExpandedToStorage(SIDEBAR_EXPANDED_STORAGE_KEY, next);
       return next;
     });
-  }, [isExpanded, isStudioVariant]);
+  }, [isStudioVariant]);
 
   React.useEffect(() => {
     if (typeof window === "undefined") return;
@@ -284,7 +300,6 @@ export const CommonSidebar = ({
 
   React.useEffect(() => {
     if (!isStudioVariant) return;
-    setIsStudioDrawerOpen(false);
     setUserMenuOpen(false);
   }, [isStudioVariant, normalizedPathname]);
 
@@ -382,9 +397,6 @@ export const CommonSidebar = ({
     const Icon = item.icon;
     const active = isActive(item.href);
     const handleNavigate = () => {
-      if (isStudioVariant) {
-        setIsStudioDrawerOpen(false);
-      }
       router.push(withCurrentLocale(item.href));
     };
 

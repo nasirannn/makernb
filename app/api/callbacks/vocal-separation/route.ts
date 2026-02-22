@@ -58,7 +58,9 @@ export async function POST(request: NextRequest) {
         const result = await updateVocalSeparationByPredictionId(predictionId, {
           status: 'completed',
           vocal_audio_url: output.vocals,
-          instrumental_audio_url: output.accompaniment
+          instrumental_audio_url: output.accompaniment,
+          error_code: null,
+          error_message: null,
         });
         
         console.log(`[CALLBACK-${callbackId}] Successfully updated separation:`, result);
@@ -84,11 +86,26 @@ export async function POST(request: NextRequest) {
       
     } else if (status === 'failed') {
       console.error(`[CALLBACK-${callbackId}] Separation failed for prediction ${predictionId}:`, error);
-      
+
+      const errorCode =
+        typeof (error as any)?.code === 'string' || typeof (error as any)?.code === 'number'
+          ? String((error as any).code)
+          : typeof (error as any)?.name === 'string'
+            ? (error as any).name
+            : 'replicate_failed';
+      const errorMessage =
+        typeof error === 'string'
+          ? error
+          : typeof (error as any)?.message === 'string'
+            ? (error as any).message
+            : 'Vocal separation failed';
+
       // 标记失败
       try {
         await updateVocalSeparationByPredictionId(predictionId, {
-          status: 'error'
+          status: 'error',
+          error_code: errorCode,
+          error_message: errorMessage,
         });
         
         // 失败也标记为已处理，避免重复处理

@@ -93,7 +93,7 @@ export const HeroSection = () => {
               type="button"
               onClick={() => router.push(resolveMusicGeneratorPath())}
               aria-label={t("heroSection.tryForFree")}
-              className="inline-flex h-12 cursor-pointer items-center justify-center rounded-2xl bg-gradient-create px-6 text-base font-semibold text-white transition-opacity hover:opacity-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/60 focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+              className="inline-flex h-12 cursor-pointer items-center justify-center rounded-full bg-gradient-create px-6 text-base font-semibold text-white transition-opacity hover:opacity-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/60 focus-visible:ring-offset-2 focus-visible:ring-offset-background"
             >
               <Sparkles className="mr-1.5 h-3.5 w-3.5" aria-hidden="true" />
               <span>{t("heroSection.tryForFree")}</span>

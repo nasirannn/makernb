@@ -58,9 +58,9 @@ export async function GET(request: NextRequest) {
         );
       }
 
-      // 优先使用 R2 URL，如果没有则使用临时 URL
-      const vocalUrl = removal.r2_vocal_url || removal.vocal_url;
-      const instrumentalUrl = removal.r2_instrumental_url || removal.instrumental_url;
+      // 仅使用持久化 R2 URL，不回退到临时 URL
+      const vocalUrl = removal.r2_vocal_url || undefined;
+      const instrumentalUrl = removal.r2_instrumental_url || undefined;
       const stemsData = parseStemsData(removal.stems_data);
 
       return NextResponse.json({
@@ -70,6 +70,8 @@ export async function GET(request: NextRequest) {
           taskId: removal.task_id,
           separationType: removal.separation_type || 'separate_vocal',
           status: removal.status,
+          errorCode: removal.error_code || undefined,
+          errorMessage: removal.error_message || undefined,
           vocalUrl,
           instrumentalUrl,
           stemsData,
@@ -93,9 +95,9 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({
         success: true,
         data: removals.map(removal => {
-          // 优先使用 R2 URL，如果没有则使用临时 URL
-          const vocalUrl = removal.r2_vocal_url || removal.vocal_url;
-          const instrumentalUrl = removal.r2_instrumental_url || removal.instrumental_url;
+          // 仅使用持久化 R2 URL，不回退到临时 URL
+          const vocalUrl = removal.r2_vocal_url || undefined;
+          const instrumentalUrl = removal.r2_instrumental_url || undefined;
           const stemsData = parseStemsData(removal.stems_data);
           
           return {
@@ -103,6 +105,8 @@ export async function GET(request: NextRequest) {
             taskId: removal.task_id,
             separationType: removal.separation_type || 'separate_vocal',
             status: removal.status,
+            errorCode: removal.error_code || undefined,
+            errorMessage: removal.error_message || undefined,
             vocalUrl,
             instrumentalUrl,
             stemsData,

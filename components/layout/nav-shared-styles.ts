@@ -1,5 +1,5 @@
 export const NAV_HEADER_BASE_CLASSES =
-  "w-full absolute top-0 left-0 flex h-[72px] lg:h-20 items-center px-6 lg:px-20 text-foreground bg-transparent";
+  "w-full absolute top-0 left-0 flex h-[72px] lg:h-20 items-center px-6 lg:px-14 text-foreground bg-transparent";
 
 export const NAV_BRAND_LINK_CLASSES = "flex h-12 items-center gap-3";
 

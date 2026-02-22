@@ -220,7 +220,9 @@ async function processVocalRemovalCallbackAsync(callbackData: any, callbackId: s
           separation_type: separationType,
           vocal_url: vocalUrl || undefined,
           instrumental_url: instrumentalUrl || undefined,
-          stems_data: Object.keys(stemData).length > 0 ? stemData : null
+          stems_data: Object.keys(stemData).length > 0 ? stemData : null,
+          error_code: null,
+          error_message: null,
         });
 
         console.log(`[VOCAL-REMOVAL-CALLBACK-${callbackId}] Successfully updated vocal removal record for taskId: ${taskId}`);
@@ -418,9 +420,17 @@ async function handleVocalRemovalError(
   const taskConfig: TaskTypeConfig = {
     featureKey,
     descriptionKeywords,
-    updateStatus: async (taskId: string, status: { status: string }) => {
+    updateStatus: async (
+      taskId: string,
+      status: { status: string; errorCode?: number | string | null; errorMessage?: string | null }
+    ) => {
       await updateVocalRemovalByTaskId(taskId, {
-        status: status.status as 'error' | 'processing' | 'completed'
+        status: status.status as 'error' | 'processing' | 'completed',
+        error_code:
+          status.errorCode !== undefined && status.errorCode !== null
+            ? String(status.errorCode)
+            : undefined,
+        error_message: status.errorMessage ?? undefined,
       });
     },
     getUserId: async () => removal?.user_id || null,

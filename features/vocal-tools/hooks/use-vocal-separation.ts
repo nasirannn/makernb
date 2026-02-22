@@ -679,14 +679,19 @@ export const useVocalSeparation = () => {
   /**
    * Deletes a vocal separation
    */
-  const deleteSeparation = async (separationId: string) => {
+  const deleteSeparation = async (
+    separationId: string,
+    source: 'replicate' | 'kie' = 'replicate'
+  ) => {
     try {
       const { data: { session } } = await supabase.auth.getSession();
       if (!session?.access_token) {
         throw new Error(t("toasts.noValidSessionFound"));
       }
 
-      const response = await fetch(`/api/vocal/separation/${separationId}`, {
+      const response = await fetch(
+        `/api/vocal/separation-unified/${encodeURIComponent(separationId)}?source=${encodeURIComponent(source)}`,
+        {
         method: 'DELETE',
         headers: {
           'Authorization': `Bearer ${session.access_token}`,
@@ -698,7 +703,7 @@ export const useVocalSeparation = () => {
       }
 
       // Remove from local state
-      setSeparations(prev => prev.filter(sep => sep.id !== separationId));
+      setSeparations(prev => prev.filter(sep => !(sep.id === separationId && (sep.source || 'replicate') === source)));
       toast.success(t("toasts.vocalSeparationDeletedSuccessfully"));
     } catch (error) {
       console.error('Error deleting vocal separation:', error);

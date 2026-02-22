@@ -157,14 +157,11 @@ export function LanguageToggle({
                     closeMenuImmediately();
                   }}
                   className={cn(
-                    "flex w-full cursor-pointer items-center rounded-lg px-2.5 py-2 text-left text-sm font-medium transition-colors",
-                    active
-                      ? "bg-primary/10 text-primary"
-                      : "text-foreground/70 hover:bg-accent hover:text-accent-foreground"
+                    "flex w-full cursor-pointer items-center rounded-lg px-2.5 py-2 text-left text-sm font-medium transition-colors text-foreground/70 hover:bg-accent hover:text-accent-foreground"
                   )}
                 >
                   <span>{option.label}</span>
-                  {active ? <Check className="ml-auto h-3.5 w-3.5" /> : null}
+                  {active ? <Check className="ml-auto h-3.5 w-3.5 text-primary" /> : null}
                 </button>
               );
             })}
@@ -211,12 +208,11 @@ export function LanguageToggle({
               key={option.value}
               onClick={() => setLocale(option.value)}
               className={cn(
-                "cursor-pointer rounded-lg px-2.5 py-2 text-sm font-medium",
-                active ? "bg-primary/10 text-primary" : ""
+                "cursor-pointer rounded-lg px-2.5 py-2 text-sm font-medium text-foreground/70"
               )}
             >
               <span>{option.label}</span>
-              {active ? <Check className="ml-auto h-3.5 w-3.5" /> : null}
+              {active ? <Check className="ml-auto h-3.5 w-3.5 text-primary" /> : null}
             </DropdownMenuItem>
           );
         })}

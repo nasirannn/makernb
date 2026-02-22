@@ -16,6 +16,9 @@ export interface VocalSeparation {
   created_at: string;
   updated_at: string;
   original_filename: string;
+  is_deleted?: boolean;
+  error_code?: string | null;
+  error_message?: string | null;
 }
 
 export interface CreateVocalSeparationData {
@@ -38,6 +41,9 @@ export interface VocalSeparationWithTrack {
   created_at: string;
   updated_at: string;
   original_filename: string;
+  is_deleted?: boolean;
+  error_code?: string | null;
+  error_message?: string | null;
   // 关联的原始轨道信息
   original_track?: {
     id: string;
@@ -119,6 +125,7 @@ export const getLatestVocalSeparationByOriginalAudioUrl = async (
        FROM vocal_separations
        WHERE user_id = $1::uuid
          AND original_audio_url = $2
+         AND (is_deleted IS NULL OR is_deleted = FALSE)
        ORDER BY updated_at DESC NULLS LAST, created_at DESC
        LIMIT 1`,
       [userId, originalAudioUrl]
@@ -165,14 +172,49 @@ export const updateVocalSeparationByPredictionId = async (
  */
 export const getUserVocalSeparations = async (
   userId: string,
-  _limit: number = 10,
-  _offset: number = 0
+  limit: number = 10,
+  offset: number = 0
 ): Promise<VocalSeparationWithTrack[]> => {
   try {
-    // 历史记录已关闭：不做持久化，直接返回空列表以避免访问不存在的列
-    // 这样也避免了与旧schema (original_track_id 等) 的不兼容查询
     validateRequiredParams({ userId }, ['userId']);
-    return [];
+
+    const result = await query(
+      `SELECT
+        id,
+        user_id,
+        prediction_id,
+        status,
+        original_audio_url,
+        vocal_audio_url,
+        instrumental_audio_url,
+        error_code,
+        error_message,
+        created_at,
+        updated_at,
+        original_filename
+      FROM vocal_separations
+      WHERE user_id = $1::uuid
+        AND (is_deleted IS NULL OR is_deleted = FALSE)
+      ORDER BY created_at DESC
+      LIMIT $2 OFFSET $3`,
+      [userId, limit, offset]
+    );
+
+    return result.rows.map((row) => ({
+      id: row.id,
+      user_id: row.user_id,
+      prediction_id: row.prediction_id,
+      status: row.status,
+      original_audio_url: row.original_audio_url || undefined,
+      vocal_audio_url: row.vocal_audio_url || undefined,
+      instrumental_audio_url: row.instrumental_audio_url || undefined,
+      error_code: row.error_code || null,
+      error_message: row.error_message || null,
+      created_at: row.created_at,
+      updated_at: row.updated_at,
+      original_filename: row.original_filename,
+      original_track: undefined,
+    }));
   } catch (error) {
     console.error('Error getting user vocal separations:', error);
     throw error;
@@ -187,8 +229,11 @@ export const deleteVocalSeparation = async (separationId: string, userId: string
     validateRequiredParams({ separationId, userId }, ['separationId', 'userId']);
 
     const result = await query(
-      `DELETE FROM vocal_separations
-       WHERE id = $1 AND user_id = $2::uuid
+      `UPDATE vocal_separations
+       SET is_deleted = TRUE, updated_at = NOW()
+       WHERE id = $1
+         AND user_id = $2::uuid
+         AND (is_deleted IS NULL OR is_deleted = FALSE)
        RETURNING id`,
       [separationId, userId]
     );
@@ -213,7 +258,9 @@ export const getVocalSeparationById = async (
     const result = await query(
       `SELECT *
        FROM vocal_separations
-       WHERE id = $1 AND user_id = $2::uuid`,
+       WHERE id = $1
+         AND user_id = $2::uuid
+         AND (is_deleted IS NULL OR is_deleted = FALSE)`,
       [separationId, userId]
     );
 

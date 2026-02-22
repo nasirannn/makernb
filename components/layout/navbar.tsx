@@ -292,7 +292,7 @@ export const Navbar = ({ credits = null }: NavbarProps) => {
     >
       
       {/* <!-- Desktop Navigation --> */}
-      <nav className="hidden lg:block ml-8">
+      <nav className="hidden lg:block ml-6">
         <ul className="flex items-center space-x-2">
           {routeList.map(({ href, label, hasDropdown, dropdownItems, dropdownKey }) => {
             const isActive =

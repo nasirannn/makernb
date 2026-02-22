@@ -511,6 +511,17 @@ export default function LyricsGeneratorPage() {
     }
   };
 
+  const panelHeader = (
+    <div className="mb-3 px-1 space-y-1.5">
+      <h2 className="text-lg md:text-xl font-semibold tracking-tight text-foreground">
+        {t('nav.lyricsGenerator')}
+      </h2>
+      <p className="mt-1 text-sm text-muted-foreground">
+        {t('aiTools.lyricsGeneratorDescription')}
+      </p>
+    </div>
+  );
+
   const panelFields = (
     <div className="space-y-3">
       <section className="studio-panel-card rounded-2xl p-3 space-y-2">
@@ -949,17 +960,8 @@ export default function LyricsGeneratorPage() {
         <div className="relative h-full flex flex-col md:flex-row md:gap-0 md:px-4 md:py-0 md:pl-[calc(var(--studio-sidebar-width,72px)+1rem)]">
           <div className="md:hidden flex-1 min-h-0 overflow-y-auto px-4 pt-4 pb-[calc(var(--mobile-nav-height,64px)+0.75rem)] space-y-3">
             <section className="studio-panel-cards rounded-[1.5rem]">
-              <div className="flex-shrink-0 px-0 pt-2 pb-4">
-                <div className="mb-3 px-1 space-y-1.5">
-                  <h2 className="text-lg md:text-xl font-semibold tracking-tight text-foreground">
-                    {t('lyricsGeneratorPage.hero.title')}
-                  </h2>
-                  <p className="mt-1 text-sm text-muted-foreground">
-                    {t('lyricsGeneratorPage.hero.subtitle')}
-                  </p>
-                </div>
-              </div>
               <div className="space-y-3">
+                {panelHeader}
                 {panelFields}
                 {panelActions}
               </div>
@@ -976,14 +978,7 @@ export default function LyricsGeneratorPage() {
           <div className="hidden md:block md:order-2 flex-shrink-0 md:pr-2 md:py-2">
             <section className="studio-panel-cards transition-all duration-300 ease-in-out md:w-[clamp(21rem,30vw,32rem)] h-full flex flex-col overflow-hidden">
               <div className="flex-shrink-0 px-0 pt-2 md:pt-4 pb-4">
-                <div className="mb-3 px-1 space-y-1.5">
-                  <h2 className="text-lg md:text-xl font-semibold tracking-tight text-foreground">
-                    {t('lyricsGeneratorPage.hero.title')}
-                  </h2>
-                  <p className="mt-1 text-sm text-muted-foreground">
-                    {t('lyricsGeneratorPage.hero.subtitle')}
-                  </p>
-                </div>
+                {panelHeader}
               </div>
               <div
                 className="flex-1 overflow-y-auto scrollbar-hidden px-0 pb-6 md:pb-6"

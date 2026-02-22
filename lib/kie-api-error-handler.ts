@@ -31,7 +31,14 @@ export interface TaskTypeConfig {
   /** 描述关键词（用于查找积分交易记录） */
   descriptionKeywords: string[];
   /** 更新状态函数 */
-  updateStatus: (taskId: string, status: { status: string }) => Promise<void>;
+  updateStatus: (
+    taskId: string,
+    status: {
+      status: string;
+      errorCode?: number | string | null;
+      errorMessage?: string | null;
+    }
+  ) => Promise<void>;
   /** 获取用户ID的函数 */
   getUserId: (taskId: string) => Promise<string | null>;
 }
@@ -108,7 +115,9 @@ export async function handleKieApiError(options: ErrorHandlerOptions): Promise<v
   try {
     // 更新状态为错误
     await taskConfig.updateStatus(taskId, {
-      status: 'error'
+      status: 'error',
+      errorCode: code,
+      errorMessage: msg || getErrorCodeDescription(code),
     });
 
     // 判断是否需要回退积分
@@ -218,4 +227,3 @@ export async function handleKieApiErrorByCode(
     errorDescription,
   });
 }
-
