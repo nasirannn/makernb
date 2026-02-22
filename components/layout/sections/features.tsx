@@ -113,7 +113,7 @@ export const FeaturesSection = () => {
   ];
 
   return (
-    <section id="features" className="pt-24 pb-10 sm:pt-32 sm:pb-12">
+    <section id="features" className="relative isolate pt-24 pb-16 sm:pt-32 sm:pb-20">
       <div className="container">
         <div className="mx-auto max-w-7xl">
           <div className="mb-8 text-center sm:mb-10">
@@ -201,6 +201,15 @@ export const FeaturesSection = () => {
           </div>
         </div>
       </div>
+
+      <div
+        aria-hidden="true"
+        className="pointer-events-none absolute inset-x-0 bottom-0 h-32 bg-gradient-to-b from-transparent via-primary/8 to-transparent dark:via-primary/12"
+      />
+      <div
+        aria-hidden="true"
+        className="pointer-events-none absolute bottom-[-6.5rem] left-1/2 h-56 w-[min(92vw,74rem)] -translate-x-1/2 rounded-full bg-gradient-to-r from-primary/18 via-cyan-400/12 to-primary/10 blur-3xl dark:from-primary/22 dark:via-cyan-300/14 dark:to-primary/14"
+      />
     </section>
   );
 };

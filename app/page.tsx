@@ -1,4 +1,5 @@
 import { HeroSection } from "@/components/layout/sections/hero";
+import { HowItWorksSection } from "@/components/layout/sections/how-it-works";
 import { IntroductionSection } from "@/components/layout/sections/introduction";
 import { ExploreSection } from "@/components/layout/sections/explore";
 import { FooterSection } from "@/components/layout/sections/footer";
@@ -44,6 +45,7 @@ export default function Home() {
       <HeroSection />
       <ExploreSection />
       <FeaturesSection />
+      <HowItWorksSection />
       <IntroductionSection />
       <FAQSection />
       <FooterSection />

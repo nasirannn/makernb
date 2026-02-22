@@ -245,6 +245,29 @@ export const enMessages = {
       noPublicMusicAvailableYet: "No public music available yet",
       allSongsLoaded: "All songs loaded",
     },
+    homeStepsSection: {
+      badge: "How AI Music Comes Together",
+      title: "Create AI Music in 3 Practical Steps",
+      subtitle:
+        "Move from a rough concept to a release-ready track with a clear workflow. Define your creative direction, let AI build the musical foundation, then polish and export the version you want to share.",
+      steps: {
+        step1: {
+          title: "Start with an Idea",
+          description:
+            "Begin in the format that feels natural: a short prompt, a detailed lyric draft, or a reference track. Add style, mood, era, and tempo cues so the model understands both your technical direction and your intended emotional tone.",
+        },
+        step2: {
+          title: "Generate a Full Arrangement",
+          description:
+            "After submission, AI composes melody, rhythm, harmony, and section structure around your input. Instead of isolated fragments, you get a coherent full-song draft that is easy to audition, compare, and iterate.",
+        },
+        step3: {
+          title: "Refine and Release",
+          description:
+            "Use the first result as a working version: refine sections, regenerate weaker moments, split stems, isolate vocals, or export MIDI for deeper production workflows. When the track aligns with your direction, export and publish with confidence.",
+        },
+      },
+    },
     landingFeatures: {
       sectionLabel: "Features",
       sectionTitle: "Six core workflows, one studio",
