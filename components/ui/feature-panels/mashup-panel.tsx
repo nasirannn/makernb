@@ -4,7 +4,7 @@ import React from "react";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
-import { ChevronRight, Play, CreditCard, X, Pause, Wand2, Trash2, Loader2 } from "lucide-react";
+import { ChevronRight, Play, CreditCard, X, Pause, Disc3, Wand2, Trash2, Loader2 } from "lucide-react";
 import musicOptions from '@/data/music-options.json';
 import { useAuth } from '@/contexts/AuthContext';
 import { useCredits } from '@/contexts/CreditsContext';
@@ -25,7 +25,6 @@ import { useStudioPresetStyleGenerator } from "@/hooks/use-studio-preset-style-g
 import { UploadProgressDialog } from "@/components/ui/upload-progress-dialog";
 import { formatDuration } from '@/lib/format-utils';
 import { WaveformPlayer } from "@/components/ui/waveform-player";
-import { EditAudioDialog } from "@/features/music-upload/components/edit-audio-dialog";
 import { StudioCustomModeContent, StudioSimpleModeContent, type AudioUploadIntent } from "@/components/ui/feature-panels/mashup-panel-mode-content";
 import { MusicPersonaDialogs } from "@/components/ui/music-persona-dialogs";
 import { useStudioPersonaManager } from "@/hooks/use-studio-persona-manager";
@@ -540,13 +539,7 @@ export const MashupPanel = (props: FeatureCreatePanelProps) => {
 
   const {
     uploadFileInputRef,
-    isEditAudioOpen,
-    pendingAudioFile,
-    pendingAudioUrl,
-    pendingAudioMode,
-    updateUploadState,
     updateCurrentUploadState,
-    pendingUploadState,
     uploadCoverFile,
     uploadCoverFileName,
     uploadAudioUrl,
@@ -566,9 +559,7 @@ export const MashupPanel = (props: FeatureCreatePanelProps) => {
     uploadProgressStatus,
     uploadProgressError,
     clearUploadCoverFile,
-    resetPendingAudio,
     uploadAudioToServer,
-    handlePromptFileChange,
     handleUploadAudioPlayPause,
   } = useStudioUploadWorkflow({
     mode: mode as UploadPanelMode,
@@ -731,6 +722,9 @@ export const MashupPanel = (props: FeatureCreatePanelProps) => {
       const result = await onGenerationStart?.({
         uploadFile: uploadCoverFile,
         uploadUrl: uploadAudioUploadUrl,
+        audioDuration: activeUploadIntent === "track"
+          ? (Math.max(uploadAudioTotalDuration || uploadAudioDuration || 0, 0) || undefined)
+          : undefined,
         mode: activeUploadIntent === "track"
           ? uploadAudioMode
           : activeUploadIntent === "vocal"
@@ -804,7 +798,6 @@ export const MashupPanel = (props: FeatureCreatePanelProps) => {
     }
 
     if (intent !== "track") {
-      resetPendingAudio();
       updateCurrentUploadState({
         progressOpen: false,
         progressStatus: "uploading",
@@ -822,7 +815,6 @@ export const MashupPanel = (props: FeatureCreatePanelProps) => {
     user,
     setIsAuthModalOpen,
     mashupTracks.length,
-    resetPendingAudio,
     updateCurrentUploadState,
     uploadFileInputRef,
     t,
@@ -1967,7 +1959,7 @@ export const MashupPanel = (props: FeatureCreatePanelProps) => {
               type="file"
               accept="audio/*"
               className="hidden"
-              onChange={mode === "custom" && audioUploadIntent !== null && audioUploadIntent !== "track" ? handleDirectAudioFileChange : handlePromptFileChange}
+              onChange={handleDirectAudioFileChange}
             />
             <input
               ref={(node) => {
@@ -2196,6 +2188,7 @@ export const MashupPanel = (props: FeatureCreatePanelProps) => {
                     <div className={`relative ${getZIndexClass('MAIN_CONTENT')} flex items-center justify-center`}>
                       {isGenerating ? (
                         <div className="flex items-center justify-center gap-2">
+                          <Disc3 className="h-4 w-4 animate-spin" />
                           <span>{t("featurePanel.creating")}</span>
                           <div className="flex items-center gap-1">
                             <div className="w-1 h-1 bg-white rounded-full animate-pulse"></div>
@@ -2223,47 +2216,6 @@ export const MashupPanel = (props: FeatureCreatePanelProps) => {
           </div>
         </>
       )}
-
-      <EditAudioDialog
-        isOpen={isEditAudioOpen}
-        onClose={resetPendingAudio}
-        audioFile={pendingAudioFile}
-        audioUrl={pendingAudioUrl}
-        minDuration={3}
-        maxDuration={maxUploadDurationSeconds}
-        modelLabel={modelOptions.find((option) => option.value === effectiveModel)?.label || effectiveModel}
-        onSave={async (file, durationValue, title) => {
-          const nextReadyUrl = URL.createObjectURL(file);
-          updateUploadState(pendingAudioMode, {
-            readyFile: file,
-            readyFileName: title,
-            readyDuration: durationValue,
-            readyAudioUrl: nextReadyUrl,
-            progressOpen: true,
-            progressStatus: "uploading",
-            progressError: null,
-          });
-          if (pendingUploadState.readyAudioUrl) {
-            URL.revokeObjectURL(pendingUploadState.readyAudioUrl);
-          }
-          resetPendingAudio();
-
-          try {
-            const downloadUrl = await uploadAudioToServer(file);
-            updateUploadState(pendingAudioMode, {
-              audioUploadUrl: downloadUrl,
-              progressStatus: "ready",
-            });
-          } catch (error) {
-            const message = error instanceof Error ? error.message : t("toasts.uploadFailedTryAgain");
-            updateUploadState(pendingAudioMode, {
-              audioUploadUrl: null,
-              progressStatus: "error",
-              progressError: message,
-            });
-          }
-        }}
-      />
 
       <MusicPersonaDialogs
         isPersonaDialogOpen={isPersonaDialogOpen}
@@ -2327,7 +2279,7 @@ export const MashupPanel = (props: FeatureCreatePanelProps) => {
           if (uploadAudioUrl) {
             URL.revokeObjectURL(uploadAudioUrl);
           }
-          const nextUrl = readyFile ? URL.createObjectURL(readyFile) : null;
+          const nextUrl = readyAudioUrl || (readyFile ? URL.createObjectURL(readyFile) : null);
           updateCurrentUploadState({
             audioMode: nextMode,
             coverFile: readyFile,

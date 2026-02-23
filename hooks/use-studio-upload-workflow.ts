@@ -14,6 +14,7 @@ type UploadState = {
   audioTotalDuration: number | null;
   audioCurrentTime: number;
   isPlaying: boolean;
+  isMuted: boolean;
   isAnalyzing: boolean;
   audioMode: UploadAudioMode;
   audioUploadUrl: string | null;
@@ -39,6 +40,7 @@ const createUploadState = (): UploadState => ({
   audioTotalDuration: null,
   audioCurrentTime: 0,
   isPlaying: false,
+  isMuted: false,
   isAnalyzing: false,
   audioMode: "cover",
   audioUploadUrl: null,
@@ -53,34 +55,18 @@ const createUploadState = (): UploadState => ({
 });
 
 export const useStudioUploadWorkflow = ({ mode }: UseStudioUploadWorkflowParams) => {
-  const maxUploadBytes = 100 * 1024 * 1024;
-
   const [uploadStateByMode, setUploadStateByMode] = React.useState<Record<UploadPanelMode, UploadState>>(() => ({
     simple: createUploadState(),
     custom: createUploadState(),
   }));
-  const [pendingAudioMode, setPendingAudioMode] = React.useState<UploadPanelMode>("simple");
   const uploadFileInputRef = React.useRef<HTMLInputElement | null>(null);
   const uploadAudioRef = React.useRef<HTMLAudioElement | null>(null);
-  const [isEditAudioOpen, setIsEditAudioOpen] = React.useState(false);
-  const [pendingAudioFile, setPendingAudioFile] = React.useState<File | null>(null);
-  const [pendingAudioUrl, setPendingAudioUrl] = React.useState<string | null>(null);
 
   const revokeObjectUrl = React.useCallback((url?: string | null) => {
     if (!url) {
       return;
     }
     URL.revokeObjectURL(url);
-  }, []);
-
-  const updateUploadState = React.useCallback((targetMode: UploadPanelMode, patch: Partial<UploadState>) => {
-    setUploadStateByMode((prev) => ({
-      ...prev,
-      [targetMode]: {
-        ...prev[targetMode],
-        ...patch,
-      },
-    }));
   }, []);
 
   const updateCurrentUploadState = React.useCallback((patch: Partial<UploadState>) => {
@@ -94,7 +80,6 @@ export const useStudioUploadWorkflow = ({ mode }: UseStudioUploadWorkflowParams)
   }, [mode]);
 
   const currentUploadState = uploadStateByMode[mode];
-  const pendingUploadState = uploadStateByMode[pendingAudioMode];
 
   const {
     coverFile,
@@ -104,6 +89,7 @@ export const useStudioUploadWorkflow = ({ mode }: UseStudioUploadWorkflowParams)
     audioTotalDuration,
     audioCurrentTime,
     isPlaying,
+    isMuted,
     isAnalyzing,
     audioMode,
     audioUploadUrl,
@@ -133,6 +119,7 @@ export const useStudioUploadWorkflow = ({ mode }: UseStudioUploadWorkflowParams)
       audioTotalDuration: null,
       audioCurrentTime: 0,
       isPlaying: false,
+      isMuted: false,
       isAnalyzing: false,
       audioMode: "cover",
       audioUploadUrl: null,
@@ -168,13 +155,6 @@ export const useStudioUploadWorkflow = ({ mode }: UseStudioUploadWorkflowParams)
     }
   }, [audioDuration, updateCurrentUploadState]);
 
-  const resetPendingAudio = React.useCallback(() => {
-    revokeObjectUrl(pendingAudioUrl);
-    setPendingAudioFile(null);
-    setPendingAudioUrl(null);
-    setIsEditAudioOpen(false);
-  }, [pendingAudioUrl, revokeObjectUrl]);
-
   const getAccessToken = React.useCallback(async () => {
     const {
       data: { session },
@@ -196,51 +176,44 @@ export const useStudioUploadWorkflow = ({ mode }: UseStudioUploadWorkflowParams)
       },
       body: formData,
     });
-    const result = await response.json();
+
+    let result: { success?: boolean; error?: string; data?: { downloadUrl?: string } } | null = null;
+    let responseText = "";
+
+    try {
+      responseText = await response.text();
+      result = responseText
+        ? (JSON.parse(responseText) as { success?: boolean; error?: string; data?: { downloadUrl?: string } })
+        : null;
+    } catch {
+      result = null;
+    }
+
     if (!response.ok || !result?.success) {
-      throw new Error(result?.error || "Upload failed. Please try again.");
+      const serverMessage = typeof result?.error === "string" ? result.error : null;
+      const fallbackMessage = response.ok
+        ? "Upload failed. Please try again."
+        : `Upload failed (HTTP ${response.status}). Please try again.`;
+
+      if (serverMessage) {
+        throw new Error(serverMessage);
+      }
+
+      // Preserve textual error bodies from non-JSON upstream responses when available.
+      if (responseText && !result) {
+        throw new Error(responseText);
+      }
+
+      throw new Error(fallbackMessage);
     }
-    return result.data?.downloadUrl as string;
+
+    const downloadUrl = result.data?.downloadUrl;
+    if (!downloadUrl) {
+      throw new Error("Upload succeeded but no download URL was returned.");
+    }
+
+    return downloadUrl;
   }, [getAccessToken]);
-
-  const handleCoverFileSelected = React.useCallback((file: File) => {
-    revokeObjectUrl(pendingAudioUrl);
-    const nextUrl = URL.createObjectURL(file);
-    setPendingAudioFile(file);
-    setPendingAudioUrl(nextUrl);
-    setPendingAudioMode(mode);
-    updateCurrentUploadState({
-      audioTotalDuration: null,
-      readyFile: null,
-      readyFileName: null,
-      readyDuration: null,
-      coverFileName: null,
-      audioUploadUrl: null,
-    });
-    if (readyAudioUrl) {
-      revokeObjectUrl(readyAudioUrl);
-      updateCurrentUploadState({ readyAudioUrl: null });
-    }
-    setIsEditAudioOpen(true);
-  }, [pendingAudioUrl, mode, revokeObjectUrl, updateCurrentUploadState, readyAudioUrl]);
-
-  const handlePromptFileChange = React.useCallback((event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0] || null;
-    if (!file) return;
-
-    if (file.size > maxUploadBytes) {
-      event.target.value = "";
-      throw new Error("File size must be under 100MB.");
-    }
-
-    if (!file.type.startsWith("audio/")) {
-      event.target.value = "";
-      throw new Error("Unsupported file type. Please upload audio.");
-    }
-
-    handleCoverFileSelected(file);
-    event.target.value = "";
-  }, [handleCoverFileSelected, maxUploadBytes]);
 
   React.useEffect(() => {
     if (!audioUrl) {
@@ -252,13 +225,16 @@ export const useStudioUploadWorkflow = ({ mode }: UseStudioUploadWorkflowParams)
       updateCurrentUploadState({
         isPlaying: false,
         audioCurrentTime: 0,
+        isMuted: false,
       });
       return;
     }
 
     const audio = new Audio(audioUrl);
     audio.preload = 'metadata';
+    audio.muted = false;
     uploadAudioRef.current = audio;
+    updateCurrentUploadState({ isMuted: false });
 
     const handleLoadedMetadata = () => {
       if (Number.isFinite(audio.duration)) {
@@ -282,6 +258,10 @@ export const useStudioUploadWorkflow = ({ mode }: UseStudioUploadWorkflowParams)
       updateCurrentUploadState({ isPlaying: false });
     };
 
+    const handleVolumeChange = () => {
+      updateCurrentUploadState({ isMuted: audio.muted });
+    };
+
     const handleEnded = () => {
       updateCurrentUploadState({ isPlaying: false, audioCurrentTime: 0 });
       audio.currentTime = 0;
@@ -295,6 +275,7 @@ export const useStudioUploadWorkflow = ({ mode }: UseStudioUploadWorkflowParams)
     audio.addEventListener('timeupdate', handleTimeUpdate);
     audio.addEventListener('play', handlePlay);
     audio.addEventListener('pause', handlePause);
+    audio.addEventListener('volumechange', handleVolumeChange);
     audio.addEventListener('ended', handleEnded);
     audio.addEventListener('error', handleError);
 
@@ -303,6 +284,7 @@ export const useStudioUploadWorkflow = ({ mode }: UseStudioUploadWorkflowParams)
       audio.removeEventListener('timeupdate', handleTimeUpdate);
       audio.removeEventListener('play', handlePlay);
       audio.removeEventListener('pause', handlePause);
+      audio.removeEventListener('volumechange', handleVolumeChange);
       audio.removeEventListener('ended', handleEnded);
       audio.removeEventListener('error', handleError);
       audio.pause();
@@ -328,20 +310,16 @@ export const useStudioUploadWorkflow = ({ mode }: UseStudioUploadWorkflowParams)
     }
   }, [isAnalyzing, updateCurrentUploadState]);
 
+  const handleUploadAudioMuteToggle = React.useCallback(() => {
+    const audio = uploadAudioRef.current;
+    if (!audio) return;
+    audio.muted = !audio.muted;
+    updateCurrentUploadState({ isMuted: audio.muted });
+  }, [updateCurrentUploadState]);
+
   return {
     uploadFileInputRef,
-    isEditAudioOpen,
-    setIsEditAudioOpen,
-    pendingAudioFile,
-    pendingAudioUrl,
-
-    uploadStateByMode,
-    pendingAudioMode,
-    setPendingAudioMode,
-    updateUploadState,
     updateCurrentUploadState,
-    currentUploadState,
-    pendingUploadState,
 
     uploadCoverFile: coverFile,
     uploadCoverFileName: coverFileName,
@@ -350,6 +328,7 @@ export const useStudioUploadWorkflow = ({ mode }: UseStudioUploadWorkflowParams)
     uploadAudioTotalDuration: audioTotalDuration,
     uploadAudioCurrentTime: audioCurrentTime,
     isUploadAudioPlaying: isPlaying,
+    isUploadAudioMuted: isMuted,
     isUploadAudioAnalyzing: isAnalyzing,
     uploadAudioMode: audioMode,
     uploadAudioUploadUrl: audioUploadUrl,
@@ -364,10 +343,8 @@ export const useStudioUploadWorkflow = ({ mode }: UseStudioUploadWorkflowParams)
 
     clearUploadCoverFile,
     updateExtendStartTime,
-    resetPendingAudio,
     uploadAudioToServer,
-    handleCoverFileSelected,
-    handlePromptFileChange,
     handleUploadAudioPlayPause,
+    handleUploadAudioMuteToggle,
   };
 };

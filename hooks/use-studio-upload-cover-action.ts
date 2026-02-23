@@ -13,6 +13,7 @@ import type { MusicGenerationTrack } from "@/types/track";
 export interface UploadCoverOptions {
   uploadFile?: File | null;
   uploadUrl?: string | null;
+  audioDuration?: number;
   mode?: "cover" | "extend";
   continueAt?: number;
   isPublished?: boolean;
@@ -162,6 +163,7 @@ export const useStudioUploadCoverAction = ({
 
     const uploadFile = options?.uploadFile ?? null;
     const uploadUrl = options?.uploadUrl ?? null;
+    const audioDuration = options?.audioDuration;
     const continueAt = options?.continueAt ?? 0;
     if (!uploadUrl) {
       toast.error(t("toasts.uploadUrlRequiredUploadAudioFirst"));
@@ -224,6 +226,9 @@ export const useStudioUploadCoverAction = ({
       const requestedIsPublished = options?.isPublished ?? isPublished;
       formData.append("mode", uploadMode);
       formData.append("uploadUrl", uploadUrl);
+      if (typeof audioDuration === "number" && Number.isFinite(audioDuration) && audioDuration > 0) {
+        formData.append("audioDuration", audioDuration.toString());
+      }
       if (isExtendUploadRequest) {
         formData.append("continueAt", continueAt.toString());
       } else {

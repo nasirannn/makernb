@@ -11,6 +11,7 @@ export type StudioGenerationMode = "cover" | "extend" | "mashup" | "vocal" | "me
 export interface GenerationStartOptions {
   uploadFile?: File | null;
   uploadUrl?: string | null;
+  audioDuration?: number;
   trackId?: string;
   audioId?: string;
   uploadUrlList?: string[];

@@ -4,7 +4,7 @@ import React from "react";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
-import { ChevronRight, Play, CreditCard, X, Pause, Wand2, Trash2, Loader2, RefreshCw } from "lucide-react";
+import { ChevronRight, Play, CreditCard, X, Pause, Disc3, Wand2, Trash2, Loader2, RefreshCw } from "lucide-react";
 import musicOptions from '@/data/music-options.json';
 import { useAuth } from '@/contexts/AuthContext';
 import { useCredits } from '@/contexts/CreditsContext';
@@ -25,10 +25,10 @@ import { useStudioPresetStyleGenerator } from "@/hooks/use-studio-preset-style-g
 import { UploadProgressDialog } from "@/components/ui/upload-progress-dialog";
 import { formatDuration } from '@/lib/format-utils';
 import { WaveformPlayer } from "@/components/ui/waveform-player";
-import { EditAudioDialog } from "@/features/music-upload/components/edit-audio-dialog";
 import { MashupEditDialog, type MashupEditedTrack } from "@/features/music-upload/components/mashup-edit-dialog";
 import { MashupUploadConfirmDialog } from "@/components/ui/mashup-upload-confirm-dialog";
 import { StudioCustomModeContent, StudioSimpleModeContent, type AudioUploadIntent } from "@/components/ui/feature-panels/add-melody-panel-mode-content";
+import { UploadAudioPlayerCard } from "@/components/ui/feature-panels/shared/upload-audio-player-card";
 import { MusicPersonaDialogs } from "@/components/ui/music-persona-dialogs";
 import { useStudioPersonaManager } from "@/hooks/use-studio-persona-manager";
 import { ModelSelectionDialog, MusicModel, modelOptions } from '@/components/ui/model-selection-dialog';
@@ -49,8 +49,8 @@ const HERO_GENRE_ICONS: Record<string, string> = {
   "pb-rnb": "PB Icon.webp",
 };
 const UPLOAD_WAVE_COLOR_LIGHT = "#d1d5db";
-const UPLOAD_PROGRESS_COLOR_LIGHT = "hsl(262, 100%, 70%)";
-const UPLOAD_CURSOR_COLOR_LIGHT = "hsl(262, 100%, 70%)";
+const UPLOAD_PROGRESS_COLOR_LIGHT = "hsl(var(--primary))";
+const UPLOAD_CURSOR_COLOR_LIGHT = "hsl(var(--primary))";
 
 const UPLOAD_ACTION_CREDITS: Record<AudioUploadIntent, number> = {
   track: CLIENT_UPLOAD_AUDIO_CREDITS.cover,
@@ -155,8 +155,8 @@ export const AddMelodyPanel = (props: FeatureCreatePanelProps) => {
   );
   const isDark = resolvedTheme === "dark";
   const uploadWaveColor = isDark ? "rgba(255, 255, 255, 0.7)" : UPLOAD_WAVE_COLOR_LIGHT;
-  const uploadProgressColor = isDark ? "rgba(255, 255, 255, 0.95)" : UPLOAD_PROGRESS_COLOR_LIGHT;
-  const uploadCursorColor = isDark ? "rgba(255, 255, 255, 0.95)" : UPLOAD_CURSOR_COLOR_LIGHT;
+  const uploadProgressColor = isDark ? "hsl(var(--primary))" : UPLOAD_PROGRESS_COLOR_LIGHT;
+  const uploadCursorColor = isDark ? "hsl(var(--primary))" : UPLOAD_CURSOR_COLOR_LIGHT;
   const addMelodyModelOptions = React.useMemo(
     () => modelOptions.filter((option) => ADD_MELODY_ALLOWED_MODELS.includes(option.value)),
     []
@@ -365,13 +365,7 @@ export const AddMelodyPanel = (props: FeatureCreatePanelProps) => {
 
   const {
     uploadFileInputRef,
-    isEditAudioOpen,
-    pendingAudioFile,
-    pendingAudioUrl,
-    pendingAudioMode,
-    updateUploadState,
     updateCurrentUploadState,
-    pendingUploadState,
     uploadCoverFile,
     uploadCoverFileName,
     uploadAudioUrl,
@@ -391,9 +385,7 @@ export const AddMelodyPanel = (props: FeatureCreatePanelProps) => {
     uploadProgressStatus,
     uploadProgressError,
     clearUploadCoverFile,
-    resetPendingAudio,
     uploadAudioToServer,
-    handlePromptFileChange,
     handleUploadAudioPlayPause,
   } = useStudioUploadWorkflow({
     mode: mode as UploadPanelMode,
@@ -565,6 +557,9 @@ export const AddMelodyPanel = (props: FeatureCreatePanelProps) => {
       const result = await onGenerationStart?.({
         uploadFile: uploadCoverFile,
         uploadUrl: uploadAudioUploadUrl,
+        audioDuration: activeUploadIntent === "track"
+          ? (Math.max(uploadAudioTotalDuration || uploadAudioDuration || 0, 0) || undefined)
+          : undefined,
         mode: activeUploadIntent === "track"
           ? uploadAudioMode
           : activeUploadIntent === "vocal"
@@ -637,7 +632,6 @@ export const AddMelodyPanel = (props: FeatureCreatePanelProps) => {
     }
 
     if (intent !== "track") {
-      resetPendingAudio();
       updateCurrentUploadState({
         progressOpen: false,
         progressStatus: "uploading",
@@ -655,7 +649,6 @@ export const AddMelodyPanel = (props: FeatureCreatePanelProps) => {
     user,
     setIsAuthModalOpen,
     mashupTracks.length,
-    resetPendingAudio,
     updateCurrentUploadState,
     uploadFileInputRef,
     t,
@@ -887,92 +880,66 @@ export const AddMelodyPanel = (props: FeatureCreatePanelProps) => {
     t,
   ]);
 
+  const uploadTotalSeconds = Math.max(uploadAudioTotalDuration || uploadAudioDuration || 0, 0);
+  const uploadCurrentSecondsRaw = Math.max(uploadAudioCurrentTime || 0, 0);
+  const uploadCurrentSeconds =
+    uploadTotalSeconds > 0 ? Math.min(uploadCurrentSecondsRaw, uploadTotalSeconds) : uploadCurrentSecondsRaw;
+  const uploadProgressPercent = uploadTotalSeconds > 0 ? (uploadCurrentSeconds / uploadTotalSeconds) * 100 : 0;
+  const uploadCurrentLabel = formatDuration(Math.floor(uploadCurrentSeconds)) || "0:00";
+  const uploadTotalLabel = formatDuration(Math.floor(uploadTotalSeconds)) || "0:00";
+  const uploadSubtitle = isUploadAudioAnalyzing
+    ? t("featurePanel.analyzingAudio")
+    : "";
+
   const uploadAudioPreview = uploadCoverFile ? (
     <div className="space-y-2">
-      <div className="rounded-2xl p-[1px] bg-gradient-to-br from-primary/40 via-border/50 to-primary/10">
-        <div className="relative overflow-hidden rounded-2xl bg-background p-3 shadow-sm">
-          <div className="pointer-events-none absolute inset-0 bg-gradient-to-br from-primary/10 via-transparent to-primary/5" />
-          <div className="relative flex flex-col gap-3">
-            <div className="flex items-center gap-4">
-              <button
-                type="button"
-                onClick={handleUploadAudioPlayPause}
-                className="flex items-center justify-center h-10 w-10 rounded-full bg-primary/10 text-primary transition hover:text-primary/80 hover:bg-primary/15 p-0"
-                disabled={!uploadCoverFile || isUploadAudioAnalyzing}
-              >
-                {isUploadAudioPlaying ? (
-                  <Pause className="w-4 h-4 fill-current" />
-                ) : (
-                  <Play className="w-4 h-4 fill-current" />
-                )}
-              </button>
-              <div className="min-w-0 flex-1 flex flex-col justify-center gap-1">
-                <div className="flex items-center gap-2 min-w-0">
-                  <p className="text-sm font-semibold truncate text-foreground leading-none">
-                    {uploadCoverFileName || uploadCoverFile.name}
-                  </p>
-                  <div className="ml-auto flex items-center gap-1">
-                    <button
-                      type="button"
-                      onClick={() => openUploadPickerForIntent("track")}
-                      className="inline-flex h-5 w-5 items-center justify-center rounded-full text-muted-foreground hover:text-foreground transition-colors p-0"
-                      title={t("featurePanel.replaceFile")}
-                    >
-                      <RefreshCw className="h-3 w-3" />
-                    </button>
-                    <button
-                      type="button"
-                      onClick={clearUploadAndResetIntent}
-                      className="inline-flex h-5 w-5 items-center justify-center rounded-full text-muted-foreground hover:text-foreground transition-colors p-0"
-                      title={t("featurePanel.remove")}
-                    >
-                      <X className="h-3 w-3" />
-                    </button>
-                  </div>
-                </div>
-                <div className="flex items-center gap-2">
-                  <p className="text-sm text-muted-foreground leading-none">
-                    {isUploadAudioAnalyzing
-                      ? t("featurePanel.analyzingAudio")
-                      : (() => {
-                          const total = uploadAudioTotalDuration || uploadAudioDuration || 0;
-                          const current = uploadAudioCurrentTime || 0;
-                          const remaining = Math.max(0, total - current);
-                          return formatDuration(Math.floor(remaining)) || "0:00";
-                        })()}
-                  </p>
-                </div>
-              </div>
-            </div>
-            {uploadAudioUrl && (
-              <div className="space-y-2">
-                <div className="w-full h-[54px] rounded-md bg-muted/20 backdrop-blur-md px-3">
-                  <WaveformPlayer
-                    audioUrl={uploadAudioUrl}
-                    audioBlob={uploadCoverFile}
-                    isPlaying={isUploadAudioPlaying}
-                    externalCurrentTime={uploadAudioCurrentTime}
-                    onPlayPause={handleUploadAudioPlayPause}
-                    onFinish={() => updateCurrentUploadState({ isPlaying: false })}
-                    showControls={false}
-                    separateControls={false}
-                    isLoading={!uploadAudioUrl}
-                    syncWithIsPlaying={false}
-                    backend="MediaElement"
-                    waveHeight={54}
-                    waveColor={uploadWaveColor}
-                    progressColor={uploadProgressColor}
-                    cursorColor={uploadCursorColor}
-                    cursorWidth={2}
-                    chrome={false}
-                    className="w-full h-full"
-                  />
-                </div>
-              </div>
-            )}
+      <UploadAudioPlayerCard
+        title={uploadCoverFileName || uploadCoverFile.name}
+        subtitle={uploadSubtitle}
+        durationLabel={
+          uploadTotalSeconds > 0
+            ? t("featurePanel.durationWithValue", { duration: uploadTotalLabel })
+            : undefined
+        }
+        isPlaying={isUploadAudioPlaying}
+        isDisabled={!uploadCoverFile || isUploadAudioAnalyzing}
+        progressPercent={uploadProgressPercent}
+        currentTimeLabel={uploadCurrentLabel}
+        totalTimeLabel={uploadTotalLabel}
+        playLabel={t("trackActions.play")}
+        pauseLabel={t("trackActions.pause")}
+        replaceLabel={t("featurePanel.replaceFile")}
+        removeLabel={t("featurePanel.remove")}
+        onPlayPause={handleUploadAudioPlayPause}
+        onReplace={() => openUploadPickerForIntent("track")}
+        onRemove={clearUploadAndResetIntent}
+        waveform={uploadAudioUrl ? (
+          <WaveformPlayer
+            audioUrl={uploadAudioUrl}
+            audioBlob={uploadCoverFile}
+            isPlaying={isUploadAudioPlaying}
+            externalCurrentTime={uploadAudioCurrentTime}
+            onPlayPause={handleUploadAudioPlayPause}
+            onFinish={() => updateCurrentUploadState({ isPlaying: false })}
+            showControls={false}
+            separateControls={false}
+            isLoading={!uploadAudioUrl}
+            syncWithIsPlaying={false}
+            backend="MediaElement"
+            waveHeight={56}
+            waveColor={uploadWaveColor}
+            progressColor={uploadProgressColor}
+            cursorColor={uploadCursorColor}
+            cursorWidth={2}
+            chrome={false}
+            className="h-[56px] w-full"
+          />
+        ) : (
+          <div className="flex h-[56px] items-center justify-center text-sm text-muted-foreground">
+            {t("featurePanel.analyzingAudio")}
           </div>
-        </div>
-      </div>
+        )}
+      />
     </div>
   ) : null;
 
@@ -1928,7 +1895,7 @@ export const AddMelodyPanel = (props: FeatureCreatePanelProps) => {
               type="file"
               accept="audio/*"
               className="hidden"
-              onChange={mode === "custom" && audioUploadIntent !== null && audioUploadIntent !== "track" ? handleDirectAudioFileChange : handlePromptFileChange}
+              onChange={handleDirectAudioFileChange}
             />
             {panelTabs ? (
               <div className="pb-3 md:pb-3">{panelTabs}</div>
@@ -2135,6 +2102,7 @@ export const AddMelodyPanel = (props: FeatureCreatePanelProps) => {
                     <div className={`relative ${getZIndexClass('MAIN_CONTENT')} flex items-center justify-center`}>
                       {isGenerating ? (
                         <div className="flex items-center justify-center gap-2">
+                          <Disc3 className="h-4 w-4 animate-spin" />
                           <span>{t("featurePanel.creating")}</span>
                           <div className="flex items-center gap-1">
                             <div className="w-1 h-1 bg-white rounded-full animate-pulse"></div>
@@ -2162,47 +2130,6 @@ export const AddMelodyPanel = (props: FeatureCreatePanelProps) => {
           </div>
         </>
       )}
-
-      <EditAudioDialog
-        isOpen={isEditAudioOpen}
-        onClose={resetPendingAudio}
-        audioFile={pendingAudioFile}
-        audioUrl={pendingAudioUrl}
-        minDuration={3}
-        maxDuration={maxUploadDurationSeconds}
-        modelLabel={modelOptions.find((option) => option.value === effectiveModel)?.label || effectiveModel}
-        onSave={async (file, durationValue, title) => {
-          const nextReadyUrl = URL.createObjectURL(file);
-          updateUploadState(pendingAudioMode, {
-            readyFile: file,
-            readyFileName: title,
-            readyDuration: durationValue,
-            readyAudioUrl: nextReadyUrl,
-            progressOpen: true,
-            progressStatus: "uploading",
-            progressError: null,
-          });
-          if (pendingUploadState.readyAudioUrl) {
-            URL.revokeObjectURL(pendingUploadState.readyAudioUrl);
-          }
-          resetPendingAudio();
-
-          try {
-            const downloadUrl = await uploadAudioToServer(file);
-            updateUploadState(pendingAudioMode, {
-              audioUploadUrl: downloadUrl,
-              progressStatus: "ready",
-            });
-          } catch (error) {
-            const message = error instanceof Error ? error.message : t("toasts.uploadFailedTryAgain");
-            updateUploadState(pendingAudioMode, {
-              audioUploadUrl: null,
-              progressStatus: "error",
-              progressError: message,
-            });
-          }
-        }}
-      />
 
       <MusicPersonaDialogs
         isPersonaDialogOpen={isPersonaDialogOpen}
@@ -2266,7 +2193,7 @@ export const AddMelodyPanel = (props: FeatureCreatePanelProps) => {
           if (uploadAudioUrl) {
             URL.revokeObjectURL(uploadAudioUrl);
           }
-          const nextUrl = readyFile ? URL.createObjectURL(readyFile) : null;
+          const nextUrl = readyAudioUrl || (readyFile ? URL.createObjectURL(readyFile) : null);
           updateCurrentUploadState({
             audioMode: nextMode,
             coverFile: readyFile,

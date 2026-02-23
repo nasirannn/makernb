@@ -1737,15 +1737,23 @@ export const StudioTracksList: React.FC<StudioTracksListProps> = React.memo(func
             <div className="space-y-2.5 px-3 pb-1">
               {flatTracks.map((track) => {
                 const isGeneratedTrack = track.isGenerating !== undefined || track.isPlaceholder !== undefined;
+                const isSelectedTrack = selectedTrack === track.id;
+                const canFloatOnHover = !track.isError && !track.isPlaceholder;
                 return (
                   <div
                     key={track.id}
-                    className="studio-panel-card rounded-2xl p-1"
+                    className={`studio-panel-card overflow-hidden rounded-2xl p-0 ${
+                      isSelectedTrack
+                        ? "md:-translate-y-0.5 shadow-[0_16px_38px_rgba(2,8,23,0.14)] dark:shadow-[0_20px_46px_rgba(0,0,0,0.48)]"
+                        : canFloatOnHover
+                          ? "transform-gpu transition-[transform,box-shadow,background-color] duration-200 ease-out motion-reduce:transform-none motion-reduce:transition-none md:hover:-translate-y-1 md:hover:shadow-[0_18px_42px_rgba(2,8,23,0.18)] dark:md:hover:shadow-[0_24px_56px_rgba(0,0,0,0.52)]"
+                          : ""
+                    }`}
                   >
                     <TrackItem
                       track={track}
                       variant="studio"
-                      isSelected={selectedTrack === track.id}
+                      isSelected={isSelectedTrack}
                       isPlaying={globalAudioState.isPlaying}
                       isCurrentTrack={globalAudioState.currentPlayingTrackId === track.id}
                       isCopied={copiedTrackId === track.id}

@@ -463,6 +463,9 @@ ${tag}
                 <span className="mt-1 block text-sm text-muted-foreground transition-colors group-hover:text-primary/80">
                   {t("featurePanel.audioUploadFormatsHint")}
                 </span>
+                <span className="mt-0.5 block text-xs text-muted-foreground/80 transition-colors group-hover:text-primary/70">
+                  {t("featurePanel.audioDurationLimitHint")}
+                </span>
               </button>
             </div>
           )}

@@ -52,6 +52,7 @@ const MODE_CONFIG = {
 
 type UploadMode = keyof typeof MODE_CONFIG;
 type LegacyUploadMode = 'cover' | 'extend';
+const MAX_LEGACY_UPLOAD_DURATION_SECONDS = 8 * 60;
 
 interface UploadPayload {
   uploadUrl: string;
@@ -162,6 +163,15 @@ function parseNumber(value: FormDataEntryValue | null, fallback = 0): number {
   return Number.isFinite(num) ? num : fallback;
 }
 
+function parsePositiveNumber(value: FormDataEntryValue | null): number | null {
+  if (!value) return null;
+  const num = Number.parseFloat(value.toString());
+  if (!Number.isFinite(num) || num <= 0) {
+    return null;
+  }
+  return num;
+}
+
 function parseBoundedWeight(value: FormDataEntryValue | null): number | undefined {
   if (!value) return undefined;
   const num = Number.parseFloat(value.toString());
@@ -249,6 +259,10 @@ export async function POST(request: NextRequest) {
     ? true
     : rawIsPublished.toString().trim() === 'true';
 
+  if (isLegacyUploadMode(mode) && !hasUploadUrl) {
+    return NextResponse.json({ error: 'Upload URL is required' }, { status: 400 });
+  }
+
   if (!hasUploadUrl && !(file instanceof File)) {
     return NextResponse.json({ error: 'Audio file is required' }, { status: 400 });
   }
@@ -285,6 +299,12 @@ export async function POST(request: NextRequest) {
   const requestedInstrumental = formData.get('instrumental') === 'true';
   const instrumental = (mode === 'cover' || mode === 'extend') ? false : requestedInstrumental;
   const continueAt = parseNumber(formData.get('continueAt'), 0);
+  const audioDuration = isLegacyUploadMode(mode)
+    ? (
+      parsePositiveNumber(formData.get('audioDuration')) ??
+      parsePositiveNumber(formData.get('duration'))
+    )
+    : null;
 
   const rawVocalGender = formData.get('vocalGender')?.toString().trim();
   const vocalGender: 'm' | 'f' | undefined = rawVocalGender === 'm' || rawVocalGender === 'f'
@@ -327,6 +347,17 @@ export async function POST(request: NextRequest) {
   }
 
   if (isLegacyUploadMode(mode)) {
+    if (audioDuration === null) {
+      return NextResponse.json({ error: 'Audio duration is required' }, { status: 400 });
+    }
+
+    if (audioDuration > MAX_LEGACY_UPLOAD_DURATION_SECONDS) {
+      return NextResponse.json(
+        { error: 'Audio duration must be 8 minutes or less' },
+        { status: 400 }
+      );
+    }
+
     if (mode === 'cover' && !defaultParamFlag && !prompt) {
       return NextResponse.json({ error: 'Prompt is required' }, { status: 400 });
     }
@@ -401,6 +432,9 @@ export async function POST(request: NextRequest) {
   try {
     let resolvedUploadUrl = uploadUrl;
     if (!resolvedUploadUrl) {
+      if (isLegacyUploadMode(mode)) {
+        throw new Error('Upload URL is required');
+      }
       if (!(file instanceof File)) {
         throw new Error('Audio file is required');
       }

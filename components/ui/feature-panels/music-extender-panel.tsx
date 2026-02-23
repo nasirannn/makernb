@@ -4,7 +4,7 @@ import React from "react";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
-import { ChevronRight, Play, CreditCard, X, Pause, Wand2, Trash2, Loader2, RefreshCw } from "lucide-react";
+import { ChevronRight, Play, CreditCard, X, Pause, Disc3, Wand2, Trash2, Loader2, RefreshCw } from "lucide-react";
 import musicOptions from '@/data/music-options.json';
 import { useAuth } from '@/contexts/AuthContext';
 import { useCredits } from '@/contexts/CreditsContext';
@@ -24,10 +24,10 @@ import type { UploadPanelMode } from '@/hooks/use-studio-upload-workflow';
 import { useStudioPresetStyleGenerator } from "@/hooks/use-studio-preset-style-generator";
 import { formatDuration } from '@/lib/format-utils';
 import { WaveformPlayer } from "@/components/ui/waveform-player";
-import { EditAudioDialog } from "@/features/music-upload/components/edit-audio-dialog";
 import { MashupEditDialog, type MashupEditedTrack } from "@/features/music-upload/components/mashup-edit-dialog";
 import { MashupUploadConfirmDialog } from "@/components/ui/mashup-upload-confirm-dialog";
 import { StudioCustomModeContent, StudioSimpleModeContent, type AudioUploadIntent } from "@/components/ui/feature-panels/music-extender-panel-mode-content";
+import { UploadAudioPlayerCard } from "@/components/ui/feature-panels/shared/upload-audio-player-card";
 import { MusicPersonaDialogs } from "@/components/ui/music-persona-dialogs";
 import { useStudioPersonaManager } from "@/hooks/use-studio-persona-manager";
 import { ModelSelectionDialog, MusicModel, modelOptions } from '@/components/ui/model-selection-dialog';
@@ -49,8 +49,8 @@ const HERO_GENRE_ICONS: Record<string, string> = {
   "pb-rnb": "PB Icon.webp",
 };
 const UPLOAD_WAVE_COLOR_LIGHT = "#d1d5db";
-const UPLOAD_PROGRESS_COLOR_LIGHT = "hsl(262, 100%, 70%)";
-const UPLOAD_CURSOR_COLOR_LIGHT = "hsl(262, 100%, 70%)";
+const UPLOAD_PROGRESS_COLOR_LIGHT = "hsl(var(--primary))";
+const UPLOAD_CURSOR_COLOR_LIGHT = "hsl(var(--primary))";
 
 const UPLOAD_ACTION_CREDITS: Record<AudioUploadIntent, number> = {
   track: CLIENT_UPLOAD_AUDIO_CREDITS.cover,
@@ -159,8 +159,8 @@ export const MusicExtenderPanel = (props: FeatureCreatePanelProps) => {
   );
   const isDark = resolvedTheme === "dark";
   const uploadWaveColor = isDark ? "rgba(255, 255, 255, 0.7)" : UPLOAD_WAVE_COLOR_LIGHT;
-  const uploadProgressColor = isDark ? "rgba(255, 255, 255, 0.95)" : UPLOAD_PROGRESS_COLOR_LIGHT;
-  const uploadCursorColor = isDark ? "rgba(255, 255, 255, 0.95)" : UPLOAD_CURSOR_COLOR_LIGHT;
+  const uploadProgressColor = isDark ? "hsl(var(--primary))" : UPLOAD_PROGRESS_COLOR_LIGHT;
+  const uploadCursorColor = isDark ? "hsl(var(--primary))" : UPLOAD_CURSOR_COLOR_LIGHT;
 
   const updateSelectedModel = React.useCallback((
     model: MusicModel,
@@ -360,9 +360,6 @@ export const MusicExtenderPanel = (props: FeatureCreatePanelProps) => {
 
   const {
     uploadFileInputRef,
-    isEditAudioOpen,
-    pendingAudioFile,
-    pendingAudioUrl,
     updateCurrentUploadState,
     uploadCoverFile,
     uploadCoverFileName,
@@ -377,9 +374,7 @@ export const MusicExtenderPanel = (props: FeatureCreatePanelProps) => {
     uploadExtendStartTime,
     clearUploadCoverFile,
     updateExtendStartTime,
-    resetPendingAudio,
     uploadAudioToServer,
-    handlePromptFileChange,
     handleUploadAudioPlayPause,
   } = useStudioUploadWorkflow({
     mode: mode as UploadPanelMode,
@@ -623,6 +618,9 @@ export const MusicExtenderPanel = (props: FeatureCreatePanelProps) => {
       const result = await onGenerationStart?.({
         uploadFile: uploadCoverFile,
         uploadUrl: uploadAudioUploadUrl,
+        audioDuration: activeUploadIntent === "track"
+          ? (Math.max(uploadAudioTotalDuration || uploadAudioDuration || 0, 0) || undefined)
+          : undefined,
         mode: activeUploadIntent === "track"
           ? uploadAudioMode
           : activeUploadIntent === "vocal"
@@ -697,7 +695,6 @@ export const MusicExtenderPanel = (props: FeatureCreatePanelProps) => {
     }
 
     if (intent !== "track") {
-      resetPendingAudio();
       updateCurrentUploadState({
         progressOpen: false,
         progressStatus: "uploading",
@@ -717,7 +714,6 @@ export const MusicExtenderPanel = (props: FeatureCreatePanelProps) => {
     user,
     setIsAuthModalOpen,
     mashupTracks.length,
-    resetPendingAudio,
     updateCurrentUploadState,
     uploadFileInputRef,
     setSelectedExtendSource,
@@ -770,6 +766,7 @@ export const MusicExtenderPanel = (props: FeatureCreatePanelProps) => {
     }
 
     clearUploadCoverFile();
+    setSelectedExtendSource(null);
 
     const previewUrl = URL.createObjectURL(file);
     updateCurrentUploadState({
@@ -812,6 +809,7 @@ export const MusicExtenderPanel = (props: FeatureCreatePanelProps) => {
   }, [
     clearUploadCoverFile,
     maxDirectUploadBytes,
+    setSelectedExtendSource,
     updateCurrentUploadState,
     uploadAudioToServer,
     t,
@@ -958,103 +956,82 @@ export const MusicExtenderPanel = (props: FeatureCreatePanelProps) => {
     t,
   ]);
 
+  const uploadTotalSeconds = Math.max(uploadAudioTotalDuration || uploadAudioDuration || 0, 0);
+  const uploadCurrentSecondsRaw = Math.max(uploadAudioCurrentTime || 0, 0);
+  const uploadCurrentSeconds =
+    uploadTotalSeconds > 0 ? Math.min(uploadCurrentSecondsRaw, uploadTotalSeconds) : uploadCurrentSecondsRaw;
+  const uploadProgressPercent = uploadTotalSeconds > 0 ? (uploadCurrentSeconds / uploadTotalSeconds) * 100 : 0;
+  const uploadCurrentLabel = formatDuration(Math.floor(uploadCurrentSeconds)) || "0:00";
+  const uploadTotalLabel = formatDuration(Math.floor(uploadTotalSeconds)) || "0:00";
+  const uploadSubtitle = isUploadAudioAnalyzing
+    ? t("featurePanel.analyzingAudio")
+    : "";
+
   const uploadAudioPreview = uploadAudioUrl ? (
     <div className="space-y-2">
-      <div className="studio-panel-card rounded-2xl p-3">
-        <div className="flex flex-col gap-3">
-            <div className="flex items-center gap-4">
-              <button
-                type="button"
-                onClick={handleUploadAudioPlayPause}
-                className="flex items-center justify-center h-10 w-10 rounded-full bg-primary/10 text-primary transition hover:text-primary/80 hover:bg-primary/15 p-0"
-                disabled={!uploadAudioUrl || isUploadAudioAnalyzing}
-              >
-                {isUploadAudioPlaying ? (
-                  <Pause className="w-4 h-4 fill-current" />
-                ) : (
-                  <Play className="w-4 h-4 fill-current" />
-                )}
-              </button>
-              <div className="min-w-0 flex-1 flex flex-col justify-center gap-1">
-                <div className="flex items-center gap-2 min-w-0">
-                  <p className="text-sm font-semibold truncate text-foreground leading-none">
-                    {uploadCoverFileName || uploadCoverFile?.name || t("featurePanel.selectedTrack")}
-                  </p>
-                  <div className="ml-auto flex items-center gap-1">
-                    <button
-                      type="button"
-                      onClick={() => openUploadPickerForIntent("track")}
-                      className="inline-flex h-5 w-5 items-center justify-center rounded-full text-muted-foreground hover:text-foreground transition-colors p-0"
-                      title={t("featurePanel.replaceFile")}
-                    >
-                      <RefreshCw className="h-3 w-3" />
-                    </button>
-                    <button
-                      type="button"
-                      onClick={clearUploadAndResetIntent}
-                      className="inline-flex h-5 w-5 items-center justify-center rounded-full text-muted-foreground hover:text-foreground transition-colors p-0"
-                      title={t("featurePanel.remove")}
-                    >
-                      <X className="h-3 w-3" />
-                    </button>
-                  </div>
-                </div>
-                <div className="flex items-center gap-2">
-                  <p className="text-sm text-muted-foreground leading-none">
-                    {isUploadAudioAnalyzing
-                      ? t("featurePanel.analyzingAudio")
-                      : (() => {
-                          const total = uploadAudioTotalDuration || uploadAudioDuration || 0;
-                          const current = uploadAudioCurrentTime || 0;
-                          const remaining = Math.max(0, total - current);
-                          return formatDuration(Math.floor(remaining)) || "0:00";
-                        })()}
-                  </p>
-                </div>
-              </div>
-            </div>
-            {uploadAudioUrl && (
-              <div className="space-y-2">
-                <div className="w-full h-[54px] rounded-md bg-muted/20 backdrop-blur-md px-3">
-                  <WaveformPlayer
-                    audioUrl={uploadAudioUrl}
-                    audioBlob={uploadCoverFile}
-                    isPlaying={isUploadAudioPlaying}
-                    externalCurrentTime={uploadAudioCurrentTime}
-                    onPlayPause={handleUploadAudioPlayPause}
-                    onFinish={() => updateCurrentUploadState({ isPlaying: false })}
-                    showControls={false}
-                    separateControls={false}
-                    isLoading={!uploadAudioUrl}
-                    syncWithIsPlaying={false}
-                    backend="MediaElement"
-                    waveHeight={54}
-                    waveColor={uploadWaveColor}
-                    progressColor={uploadProgressColor}
-                    cursorColor={uploadCursorColor}
-                    cursorWidth={2}
-                    chrome={false}
-                    className="w-full h-full"
-                    showSelector={activeUploadIntent === "track" && uploadAudioMode === "extend" && isCustomMode}
-                    selectorOverlay={true}
-                    showSelectorEndHandle={false}
-                    showSelectorLabels={false}
-                    selectorStart={uploadExtendStartTime}
-                    selectorEnd={uploadAudioDuration || 0}
-                    onSelectorStartChange={(time) => updateExtendStartTime(time, { syncPlayback: false })}
-                    onSelectorHandleRelease={() => updateExtendStartTime(uploadExtendStartTime, { syncPlayback: true })}
-                  />
-                </div>
-                {activeUploadIntent === "track" && uploadAudioMode === "extend" && isCustomMode && (
-                  <div className="flex items-center justify-between gap-3 text-sm text-muted-foreground">
-                    <p className="truncate">{t("featurePanel.dragHandleSetExtensionStart")}</p>
-                    <p className="shrink-0">{t("featurePanel.continueAt", { time: formatDuration(Math.floor(uploadExtendStartTime)) || "0:00" })}</p>
-                  </div>
-                )}
-              </div>
-            )}
-        </div>
-      </div>
+      <UploadAudioPlayerCard
+        title={uploadCoverFileName || uploadCoverFile?.name || t("featurePanel.selectedTrack")}
+        subtitle={uploadSubtitle}
+        durationLabel={
+          uploadTotalSeconds > 0
+            ? t("featurePanel.durationWithValue", { duration: uploadTotalLabel })
+            : undefined
+        }
+        isPlaying={isUploadAudioPlaying}
+        isDisabled={!uploadAudioUrl || isUploadAudioAnalyzing}
+        progressPercent={uploadProgressPercent}
+        currentTimeLabel={uploadCurrentLabel}
+        totalTimeLabel={uploadTotalLabel}
+        playLabel={t("trackActions.play")}
+        pauseLabel={t("trackActions.pause")}
+        replaceLabel={t("featurePanel.replaceFile")}
+        removeLabel={t("featurePanel.remove")}
+        onPlayPause={handleUploadAudioPlayPause}
+        onReplace={() => openUploadPickerForIntent("track")}
+        onRemove={clearUploadAndResetIntent}
+        waveform={uploadAudioUrl ? (
+          <WaveformPlayer
+            audioUrl={uploadAudioUrl}
+            audioBlob={uploadCoverFile}
+            isPlaying={isUploadAudioPlaying}
+            externalCurrentTime={uploadAudioCurrentTime}
+            onPlayPause={handleUploadAudioPlayPause}
+            onFinish={() => updateCurrentUploadState({ isPlaying: false })}
+            showControls={false}
+            separateControls={false}
+            isLoading={!uploadAudioUrl}
+            syncWithIsPlaying={false}
+            backend="MediaElement"
+            waveHeight={56}
+            waveColor={uploadWaveColor}
+            progressColor={uploadProgressColor}
+            cursorColor={uploadCursorColor}
+            cursorWidth={2}
+            chrome={false}
+            className="h-[56px] w-full"
+            showSelector={activeUploadIntent === "track" && uploadAudioMode === "extend" && isCustomMode}
+            selectorOverlay={true}
+            showSelectorEndHandle={false}
+            showSelectorLabels={false}
+            selectorStart={uploadExtendStartTime}
+            selectorEnd={uploadAudioDuration || 0}
+            onSelectorStartChange={(time) => updateExtendStartTime(time, { syncPlayback: false })}
+            onSelectorHandleRelease={() => updateExtendStartTime(uploadExtendStartTime, { syncPlayback: true })}
+          />
+        ) : (
+          <div className="flex h-[56px] items-center justify-center text-sm text-muted-foreground">
+            {t("featurePanel.analyzingAudio")}
+          </div>
+        )}
+        footer={activeUploadIntent === "track" && uploadAudioMode === "extend" && isCustomMode ? (
+          <div className="flex items-center justify-between gap-3">
+            <p className="truncate">{t("featurePanel.dragHandleSetExtensionStart")}</p>
+            <p className="shrink-0">
+              {t("featurePanel.continueAt", { time: formatDuration(Math.floor(uploadExtendStartTime)) || "0:00" })}
+            </p>
+          </div>
+        ) : undefined}
+      />
     </div>
   ) : null;
 
@@ -2019,7 +1996,7 @@ export const MusicExtenderPanel = (props: FeatureCreatePanelProps) => {
               type="file"
               accept="audio/*"
               className="hidden"
-              onChange={mode === "custom" && audioUploadIntent !== null && audioUploadIntent !== "track" ? handleDirectAudioFileChange : handlePromptFileChange}
+              onChange={handleDirectAudioFileChange}
             />
             {/* Mode Content */}
             {mode === "simple" ? (
@@ -2187,6 +2164,7 @@ export const MusicExtenderPanel = (props: FeatureCreatePanelProps) => {
                     <div className={`relative ${getZIndexClass('MAIN_CONTENT')} flex items-center justify-center`}>
                       {isGenerating ? (
                         <div className="flex items-center justify-center gap-2">
+                          <Disc3 className="h-4 w-4 animate-spin" />
                           <span>{t("featurePanel.creating")}</span>
                           <div className="flex items-center gap-1">
                             <div className="w-1 h-1 bg-white rounded-full animate-pulse"></div>
@@ -2214,49 +2192,6 @@ export const MusicExtenderPanel = (props: FeatureCreatePanelProps) => {
           </div>
         </>
       )}
-
-      <EditAudioDialog
-        isOpen={isEditAudioOpen}
-        onClose={resetPendingAudio}
-        audioFile={pendingAudioFile}
-        audioUrl={pendingAudioUrl}
-        minDuration={3}
-        maxDuration={maxUploadDurationSeconds}
-        modelLabel={modelOptions.find((option) => option.value === effectiveModel)?.label || effectiveModel}
-        onSave={async (file, durationValue, title) => {
-          try {
-            const downloadUrl = await uploadAudioToServer(file);
-            setSelectedExtendSource(null);
-            if (uploadAudioUrl) {
-              URL.revokeObjectURL(uploadAudioUrl);
-            }
-            const nextUrl = URL.createObjectURL(file);
-            updateCurrentUploadState({
-              audioMode: "extend",
-              coverFile: file,
-              coverFileName: title || file.name || null,
-              audioUrl: nextUrl,
-              audioDuration: durationValue,
-              audioTotalDuration: durationValue,
-              audioCurrentTime: 0,
-              isPlaying: false,
-              isAnalyzing: false,
-              audioUploadUrl: downloadUrl,
-              extendStartTime: 0,
-              progressOpen: false,
-              progressStatus: "uploading",
-              progressError: null,
-              readyFile: null,
-              readyFileName: null,
-              readyDuration: null,
-              readyAudioUrl: null,
-            });
-          } catch (error) {
-            const message = error instanceof Error ? error.message : t("toasts.uploadFailedTryAgain");
-            throw new Error(message);
-          }
-        }}
-      />
 
       <MusicPersonaDialogs
         isPersonaDialogOpen={isPersonaDialogOpen}

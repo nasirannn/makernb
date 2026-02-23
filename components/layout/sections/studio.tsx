@@ -717,6 +717,7 @@ const StudioContent = ({ feature, FeaturePanel, panelMode, lockPanelMode }: Stud
             return await handleUploadCover({
                 uploadFile: options.uploadFile,
                 uploadUrl: options.uploadUrl,
+                audioDuration: options.audioDuration,
                 mode: options.mode === "extend" ? "extend" : "cover",
                 continueAt: options.continueAt,
                 isPublished: options.isPublished,

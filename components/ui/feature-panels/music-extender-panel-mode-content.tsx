@@ -474,6 +474,9 @@ ${tag}
                     {t("featurePanel.editFromTrackList")}
                   </button>
                 </p>
+                <span className="mt-1 block text-xs text-muted-foreground/80">
+                  {t("featurePanel.audioDurationLimitHint")}
+                </span>
               </div>
             </div>
           )}

@@ -5,6 +5,11 @@ const nextConfig = {
   // 默认不使用尾部斜杠，但主页需要保留尾部斜杠
   // middleware 会处理主页的尾部斜杠重定向
   trailingSlash: false,
+  experimental: {
+    // We allow up to 100MB audio uploads in /api/music/upload-file.
+    // Keep a small buffer for multipart/form-data overhead to avoid middleware truncation.
+    middlewareClientMaxBodySize: '120mb',
+  },
   async headers() {
     return [
       {
