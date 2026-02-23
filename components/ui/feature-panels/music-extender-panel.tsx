@@ -93,8 +93,6 @@ export const MusicExtenderPanel = (props: FeatureCreatePanelProps) => {
   setCustomLyrics,
     songTitle,
     setSongTitle,
-    instrumentalMode,
-    setInstrumentalMode,
     styleText,
     setStyleText,
     enhanceStyle,
@@ -352,13 +350,6 @@ export const MusicExtenderPanel = (props: FeatureCreatePanelProps) => {
   }, [mode, forcedUploadIntent, audioUploadIntent]);
 
   React.useEffect(() => {
-    if (mode !== "custom") return;
-    if (audioUploadIntent !== null && audioUploadIntent !== "track" && instrumentalMode) {
-      setInstrumentalMode(false);
-    }
-  }, [mode, audioUploadIntent, instrumentalMode, setInstrumentalMode]);
-
-  React.useEffect(() => {
     if (audioUploadIntent === null || audioUploadIntent === "track") return;
     if (enhanceStyle) {
       setEnhanceStyle(false);
@@ -525,7 +516,7 @@ export const MusicExtenderPanel = (props: FeatureCreatePanelProps) => {
         toast.error(t("toasts.pleaseEnterTitleBeforeMashup"));
         return;
       }
-      if (!instrumentalMode && !trimmedCustomLyrics) {
+      if (!trimmedCustomLyrics) {
         toast.error(t("toasts.pleaseEnterLyricsBeforeMashup"));
         return;
       }
@@ -1754,7 +1745,7 @@ export const MusicExtenderPanel = (props: FeatureCreatePanelProps) => {
               handleUpdateStatesFromTextarea(newValue);
             }}
             maxLength={styleTextMaxLength}
-            className="min-h-[180px] md:min-h-[200px] resize-none pl-0 pr-0 pb-2 border-0 bg-transparent focus-visible:ring-0 focus-visible:ring-offset-0"
+            className="min-h-[180px] md:min-h-[200px] resize-none pl-0 pt-2 pr-0 pb-2 border-0 bg-transparent focus-visible:ring-0 focus-visible:ring-offset-0"
           />
         </div>
         <div className="mt-2 space-y-2">
@@ -1938,7 +1929,7 @@ export const MusicExtenderPanel = (props: FeatureCreatePanelProps) => {
             value={melodyTags}
             onChange={(event) => setMelodyTags(event.target.value)}
             maxLength={styleTextMaxLength}
-            className="min-h-[120px] resize-none pl-0 pr-0 pb-2 border-0 bg-transparent focus-visible:ring-0 focus-visible:ring-offset-0"
+            className="min-h-[120px] resize-none pl-0 pt-2 pr-0 pb-2 border-0 bg-transparent focus-visible:ring-0 focus-visible:ring-offset-0"
           />
           <div className="mt-2 text-xs text-muted-foreground">
             {melodyTags.length}/{styleTextMaxLength}
@@ -1956,7 +1947,7 @@ export const MusicExtenderPanel = (props: FeatureCreatePanelProps) => {
             value={melodyNegativeTags}
             onChange={(event) => setMelodyNegativeTags(event.target.value)}
             maxLength={styleTextMaxLength}
-            className="min-h-[120px] resize-none pl-0 pr-0 pb-2 border-0 bg-transparent focus-visible:ring-0 focus-visible:ring-offset-0"
+            className="min-h-[120px] resize-none pl-0 pt-2 pr-0 pb-2 border-0 bg-transparent focus-visible:ring-0 focus-visible:ring-offset-0"
           />
           <div className="mt-2 text-xs text-muted-foreground">
             {melodyNegativeTags.length}/{styleTextMaxLength}
@@ -2112,9 +2103,9 @@ export const MusicExtenderPanel = (props: FeatureCreatePanelProps) => {
                 selectedPersonaModel={selectedPersonaModel}
                 setSelectedPersonaModel={setSelectedPersonaModel}
                 canUseVoicePersonaModel={canUseVoicePersonaModel}
-                instrumentalMode={instrumentalMode}
-                setInstrumentalMode={setInstrumentalMode}
-                showInstrumentalToggle={activeUploadIntent === "track"}
+                instrumentalMode={false}
+                setInstrumentalMode={() => {}}
+                showInstrumentalToggle={false}
                 customLyrics={customLyrics}
                 setCustomLyrics={setCustomLyrics}
                 customPromptMaxLength={customPromptMaxLength}
@@ -2165,11 +2156,9 @@ export const MusicExtenderPanel = (props: FeatureCreatePanelProps) => {
               } else if (activeUploadIntent === "vocal") {
                 isDisabled = isDisabled || !songTitle.trim() || !styleText.trim() || !customLyrics.trim() || !uploadCoverFile;
               } else {
-                // Track mode in custom: style and title are required; lyrics required when instrumental is false
+                // Track mode in custom: style, title and lyrics are always required
                 isDisabled = isDisabled || !styleText.trim() || !songTitle.trim();
-                if (!instrumentalMode) {
-                  isDisabled = isDisabled || !customLyrics.trim();
-                }
+                isDisabled = isDisabled || !customLyrics.trim();
                 if (requiresTrackUpload) {
                   isDisabled = isDisabled || !hasTrackUploadSource;
                 }

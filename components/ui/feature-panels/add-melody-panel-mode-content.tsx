@@ -2,7 +2,7 @@
 
 import React from "react";
 import Image from "next/image";
-import { ChevronDown, ChevronRight, Disc3, Info, Mic, Music2, Play, SlidersHorizontal, Trash2, UploadCloud, Users, Wand2, Tag, Sparkles } from "lucide-react";
+import { ChevronDown, ChevronRight, Disc3, Info, Mic, Music2, Play, Trash2, UploadCloud, Users, Wand2, Tag, Sparkles } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -738,18 +738,15 @@ ${tag}
         )}
 
         {showAdvancedOptions && (
-          <section className="studio-panel-card rounded-2xl p-3">
+          <section className="studio-panel-card rounded-2xl p-3 min-h-[52px]">
             <button
               type="button"
-              className="flex w-full items-center justify-between gap-3 rounded-xl p-1 text-left"
+              className="flex w-full min-h-[28px] items-center justify-between gap-3 rounded-xl text-left"
               onClick={() => setIsAdvancedOptionsOpen((prev) => !prev)}
               aria-expanded={isAdvancedOptionsOpen}
               aria-label={t("featurePanel.toggleAdvancedOptions")}
             >
-              <h3 className="text-xs md:text-sm font-semibold text-foreground inline-flex items-center gap-2">
-                <SlidersHorizontal className="h-3.5 w-3.5" />
-                {t("featurePanel.advancedOptions")}
-              </h3>
+              <h3 className="text-xs md:text-sm font-semibold text-foreground">{t("featurePanel.advancedOptions")}</h3>
               <span className="inline-flex items-center gap-2">
                 <span className="text-xs uppercase tracking-[0.14em] text-muted-foreground">{t("featurePanel.optional")}</span>
                 <ChevronDown

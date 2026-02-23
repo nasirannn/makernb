@@ -34,12 +34,6 @@ export type AudioUploadIntent = "track" | "vocal" | "melody";
 const SINGLE_LINE_CARD_CLASS =
   "studio-panel-card rounded-2xl px-3 py-3 min-h-[52px] flex items-center justify-between gap-3";
 
-const SINGLE_LINE_SEGMENTED_CLASS =
-  "studio-panel-card inline-flex h-8 items-center rounded-full p-0.5 gap-0.5";
-
-const SINGLE_LINE_SEGMENTED_BUTTON_BASE_CLASS =
-  "h-7 rounded-full px-3 text-xs font-medium transition-colors duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background";
-
 interface StudioSimpleModeContentProps {
   showQuickButtonsSection?: boolean;
   promptTitle?: string;
@@ -767,12 +761,12 @@ ${tag}
                 {showVocalGender && (
                   <div className="flex items-center justify-between gap-3">
                     <p className="text-xs font-medium text-foreground whitespace-nowrap">{t("featurePanel.vocalGender")}</p>
-                    <div className={`${SINGLE_LINE_SEGMENTED_CLASS} shrink-0 whitespace-nowrap`}>
+                    <div className="studio-panel-card inline-flex shrink-0 whitespace-nowrap items-center rounded-full p-1 gap-1">
                       {vocalGenders.map((gender) => (
                         <button
                           key={gender.id}
                           onClick={() => setVocalGender(gender.id)}
-                          className={`${SINGLE_LINE_SEGMENTED_BUTTON_BASE_CLASS} ${
+                          className={`px-4 py-2 text-xs md:text-sm font-medium transition-colors duration-200 rounded-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background ${
                             vocalGender === gender.id
                               ? 'bg-primary text-primary-foreground font-semibold shadow-[0_1px_1px_rgba(0,0,0,0.08)]'
                               : 'text-foreground/60 hover:text-foreground hover:bg-foreground/5'

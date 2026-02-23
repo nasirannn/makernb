@@ -1665,7 +1665,7 @@ export const AddMelodyPanel = (props: FeatureCreatePanelProps) => {
               handleUpdateStatesFromTextarea(newValue);
             }}
             maxLength={styleTextMaxLength}
-            className="min-h-[180px] md:min-h-[200px] resize-none pl-0 pr-0 pb-2 border-0 bg-transparent focus-visible:ring-0 focus-visible:ring-offset-0"
+            className="min-h-[180px] md:min-h-[200px] resize-none pl-0 pt-2 pr-0 pb-2 border-0 bg-transparent focus-visible:ring-0 focus-visible:ring-offset-0"
           />
         </div>
         <div className="mt-2 space-y-2">
@@ -1849,7 +1849,7 @@ export const AddMelodyPanel = (props: FeatureCreatePanelProps) => {
             value={melodyTags}
             onChange={(event) => setMelodyTags(event.target.value)}
             maxLength={styleTextMaxLength}
-            className="min-h-[120px] resize-none pl-0 pr-0 pb-2 border-0 bg-transparent focus-visible:ring-0 focus-visible:ring-offset-0"
+            className="min-h-[120px] resize-none pl-0 pt-2 pr-0 pb-2 border-0 bg-transparent focus-visible:ring-0 focus-visible:ring-offset-0"
           />
           <div className="mt-2 text-xs text-muted-foreground">
             {melodyTags.length}/{styleTextMaxLength}
