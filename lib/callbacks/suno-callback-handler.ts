@@ -79,6 +79,83 @@ function normalizeCallbackType(rawValue: unknown): string | undefined {
   return normalized;
 }
 
+function normalizeErrorCodeToken(value: unknown, fallback: string): string {
+  if (typeof value !== 'string') return fallback;
+  const normalized = value
+    .trim()
+    .toUpperCase()
+    .replace(/[^A-Z0-9]+/g, '_')
+    .replace(/^_+|_+$/g, '');
+  return normalized || fallback;
+}
+
+async function recordIncompleteProcessError(params: {
+  taskId: string;
+  callbackType?: string;
+  code: number;
+  sourceLabel: string;
+  callbackId: string;
+}) {
+  const { taskId, callbackType, code, sourceLabel, callbackId } = params;
+
+  try {
+    const musicResult = await query(
+      'SELECT id, user_id FROM music WHERE task_id = $1 LIMIT 1',
+      [taskId]
+    );
+
+    const musicId = musicResult.rows[0]?.id as string | undefined;
+    const userId = musicResult.rows[0]?.user_id as string | undefined;
+
+    if (!musicId || !userId) {
+      console.warn(
+        `[CALLBACK-${callbackId}] Skip generation_errors insert for incomplete callback: music row not found for taskId=${taskId}`
+      );
+      return;
+    }
+
+    const callbackTypeToken = normalizeErrorCodeToken(callbackType, 'UNKNOWN');
+    const sourceToken = normalizeErrorCodeToken(sourceLabel, 'UNKNOWN');
+    const codeToken = Number.isFinite(code) ? String(code) : 'UNKNOWN';
+    const reasonCode = `CALLBACK_PROCESS_INCOMPLETE_${sourceToken}_${callbackTypeToken}_${codeToken}`;
+    const reasonMessage = `Callback processor returned false. source=${sourceLabel}, callbackType=${callbackType || 'unknown'}, code=${code}, taskId=${taskId}`;
+
+    const duplicateResult = await query(
+      `SELECT id
+       FROM generation_errors
+       WHERE error_type = 'music_generation'
+         AND reference_id = $1
+         AND error_code = $2
+         AND created_at >= NOW() - INTERVAL '24 hours'
+       LIMIT 1`,
+      [musicId, reasonCode]
+    );
+
+    if (duplicateResult.rows.length > 0) {
+      console.log(
+        `[CALLBACK-${callbackId}] Skip duplicate incomplete callback error: ${reasonCode}`
+      );
+      return;
+    }
+
+    await query(
+      `INSERT INTO generation_errors (
+        user_id, error_type, reference_id, error_code, error_message
+      ) VALUES ($1, 'music_generation', $2, $3, $4)`,
+      [userId, musicId, reasonCode, reasonMessage]
+    );
+
+    console.warn(
+      `[CALLBACK-${callbackId}] Recorded incomplete callback generation error: ${reasonCode}`
+    );
+  } catch (error) {
+    console.error(
+      `[CALLBACK-${callbackId}] Failed to record incomplete callback generation error:`,
+      error
+    );
+  }
+}
+
 function extractTracksFromPayload(root: JsonRecord, data: JsonRecord, payload: JsonRecord): any[] {
   const candidates: unknown[] = [
     data.data,
@@ -384,6 +461,16 @@ export async function handleKieCallback(
         }
 
         const processedSuccessfully = await options.onProcess(normalized, callbackId);
+
+        if (!processedSuccessfully) {
+          await recordIncompleteProcessError({
+            taskId,
+            callbackType,
+            code,
+            sourceLabel,
+            callbackId,
+          });
+        }
 
         if (idempotencyEnabled && taskKey) {
           if (processedSuccessfully) {
@@ -984,6 +1071,12 @@ async function processCallbackAsync(callback: NormalizedKieCallback, callbackId:
         const finalTitle = musicGenQuery.rows[0]?.title;
         const promptFallback = musicGenQuery.rows[0]?.prompt || '';
         const existingTags = (musicGenQuery.rows[0]?.tags || '').trim();
+        const callbackPrompt = tracks
+          .map((track: any) => (typeof track?.prompt === 'string' ? track.prompt.trim() : ''))
+          .find((value: string) => value.length > 0) || '';
+        const callbackTitle = tracks
+          .map((track: any) => (typeof track?.title === 'string' ? track.title.trim() : ''))
+          .find((value: string) => value.length > 0) || '';
         
         if (!musicGenerationId) {
           console.error(`No music record found for taskId: ${taskId} - this should not happen`);
@@ -1105,10 +1198,27 @@ async function processCallbackAsync(callback: NormalizedKieCallback, callbackId:
         }, 5, callbackId, 'update status to complete'); // complete 回调使用 5 次重试
         processedTasks.set(`${taskIdValue}_completed`, Date.now());
 
+        const lyricsContent = callbackPrompt || (typeof promptFallback === 'string' ? promptFallback.trim() : '');
+        const lyricsTitle = finalTitle || callbackTitle;
+        if (callbackPrompt && typeof promptFallback === 'string' && promptFallback.trim().length > 0) {
+          // 如果历史上已经先写入了 promptFallback（常见于 style 文本），允许 complete 回调用真实歌词覆盖。
+          try {
+            await query(
+              `UPDATE lyrics
+               SET content = ''
+               WHERE music_id = $1
+                 AND BTRIM(content) = BTRIM($2)`,
+              [musicGenerationId, promptFallback]
+            );
+          } catch (lyricsResetError) {
+            console.warn(`[CALLBACK-${callbackId}] Failed to reset fallback lyrics before complete upsert:`, lyricsResetError);
+          }
+        }
+
         await upsertLyrics(
           musicGenerationId,
-          finalTitle,
-          promptFallback,
+          lyricsTitle,
+          lyricsContent,
           callbackId
         );
 
