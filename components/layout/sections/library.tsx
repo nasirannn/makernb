@@ -51,30 +51,6 @@ const LibraryContent = () => {
     const [selectedLibraryTrack, setSelectedLibraryTrack] = useState<string | null>(null);
     const [inlineTrackDetails, setInlineTrackDetails] = useState<LibraryInlineTrackDetails | null>(null);
     const [lyricsPanelOpen, setLyricsPanelOpen] = useState(false);
-    // Sidebar宽度状态
-    const [sidebarWidth, setSidebarWidth] = useState(72); // 默认收起状态的宽度
-    const sidebarOffsetRef = React.useRef(sidebarWidth);
-
-    React.useEffect(() => {
-        const updateSidebarOffset = () => {
-            if (typeof document === 'undefined') return;
-            const isDesktopViewport = typeof window !== 'undefined' && window.innerWidth >= 768;
-            const offsetValue = isDesktopViewport ? `${sidebarOffsetRef.current}px` : '0px';
-            document.documentElement.style.setProperty('--sidebar-offset', offsetValue);
-        };
-
-        sidebarOffsetRef.current = sidebarWidth;
-        updateSidebarOffset();
-        if (typeof window !== 'undefined') {
-            window.addEventListener('resize', updateSidebarOffset);
-        }
-
-        return () => {
-            if (typeof window !== 'undefined') {
-                window.removeEventListener('resize', updateSidebarOffset);
-            }
-        };
-    }, [sidebarWidth]);
 
     // ==================== 播放器稳定引用 ====================
     const audioPlayerRef = React.useRef(audioPlayer);
@@ -421,10 +397,7 @@ const LibraryContent = () => {
             >
                 {/* Main Library Interface */}
                 <div
-                    className={`flex-1 h-full flex ${getZIndexClass('MAIN_CONTENT')} relative pb-[var(--mobile-nav-height,64px)] md:pb-0 transition-[margin] duration-500`}
-                    style={{
-                        marginLeft: 'var(--sidebar-offset, 0px)'
-                    }}
+                    className={`relative flex-1 h-full flex ${getZIndexClass('MAIN_CONTENT')} pb-[var(--mobile-nav-height,64px)] md:pb-0 md:pl-[calc(var(--studio-sidebar-width,72px)+1rem)]`}
                 >
                     <div className={`flex flex-col md:flex-row flex-1 min-h-0 min-w-0 ${showInlinePanel ? 'md:gap-0' : 'md:gap-0'}`}>
                         <div className={`flex-1 min-h-0 min-w-0 ${showInlinePanel ? 'md:pl-6 md:pr-0' : ''}`}>
@@ -473,7 +446,7 @@ const LibraryContent = () => {
                     {/* Music Player - Fixed on mobile, Absolute on desktop */}
                     {player.currentTrack && (
                         <div
-                            className={`fixed md:absolute left-3 ${getZIndexClass('MAIN_CONTENT')}`}
+                            className={`fixed md:absolute left-3 md:left-[calc(var(--studio-sidebar-width,72px)+1rem)] ${getZIndexClass('MAIN_CONTENT')}`}
                             style={{
                                 right: showInlinePanel ? 'calc(20rem + 1.5rem)' : '0.75rem',
                                 bottom: 'calc(var(--mobile-nav-height, 0px) + 0.75rem)'
@@ -486,7 +459,7 @@ const LibraryContent = () => {
 
 
                 {/* Common Sidebar */}
-                <CommonSidebar onWidthChange={setSidebarWidth} />
+                <CommonSidebar variant="studio" />
             </section>
 
             {/* Auth Modal */}
