@@ -269,6 +269,50 @@ const LibraryContent = () => {
         });
     }, [player]);
 
+    const handlePlayerLyricsToggle = React.useCallback(() => {
+        const playerTrack = player.currentTrack as any;
+        if (!playerTrack?.id) return;
+
+        if (lyricsPanelOpen && inlineTrackDetails?.id === playerTrack.id) {
+            handleBackToList();
+            return;
+        }
+
+        const matchedTrack = tracks.find((track) => track.id === playerTrack.id);
+        if (matchedTrack) {
+            setSelectedLibraryTrack(playerTrack.id);
+            setInlineTrackDetails(convertToInlineTrackDetails(matchedTrack));
+        } else {
+            setSelectedLibraryTrack(playerTrack.id);
+            setInlineTrackDetails({
+                id: playerTrack.id,
+                title: playerTrack.title || t("studioTracks.untitledTrack"),
+                tags: playerTrack.tags || "",
+                lyrics: playerTrack.lyrics || "",
+                coverImage: playerTrack.coverImage || playerTrack.coverR2Url || null,
+                createdAt: new Date().toISOString(),
+                duration: typeof playerTrack.duration === "number" ? playerTrack.duration.toString() : undefined,
+                status: "completed",
+                isGenerating: false,
+                isCompleted: true,
+                audioUrl: playerTrack.audioUrl || "",
+                streamAudioUrl: playerTrack.streamAudioUrl || "",
+            });
+        }
+
+        setLyricsPanelOpen(true);
+        router.replace(`/library?track=${playerTrack.id}`);
+    }, [
+        player,
+        lyricsPanelOpen,
+        inlineTrackDetails?.id,
+        handleBackToList,
+        tracks,
+        convertToInlineTrackDetails,
+        t,
+        router,
+    ]);
+
     const handlePrevious = React.useCallback(() => {
         if (!player.currentTrack || tracks.length === 0) return;
         
@@ -371,6 +415,7 @@ const LibraryContent = () => {
         onSeek: (time: number) => player.seek(time),
         onVolumeChange: (vol: number) => player.setVolume(vol),
         onMuteToggle: () => player.toggleMute(),
+        onTrackInfoClick: handlePlayerLyricsToggle,
         onClose: () => {
             player.clearCurrentTrack();
             setSelectedLibraryTrack(null);
@@ -399,47 +444,58 @@ const LibraryContent = () => {
                 <div
                     className={`relative flex-1 h-full flex ${getZIndexClass('MAIN_CONTENT')} pb-[var(--mobile-nav-height,64px)] md:pb-0 md:pl-[calc(var(--studio-sidebar-width,72px)+1rem)]`}
                 >
-                    <div className={`flex flex-col md:flex-row flex-1 min-h-0 min-w-0 ${showInlinePanel ? 'md:gap-0' : 'md:gap-0'}`}>
-                        <div className={`flex-1 min-h-0 min-w-0 ${showInlinePanel ? 'md:pl-6 md:pr-0' : ''}`}>
-                            <div className="min-h-0 h-full flex flex-col relative w-full">
-                                {/* Library Panel */}
-                                <LibraryPanel
-                                    tracks={libraryPanelTracks}
-                                    isLoading={isLoading}
-                                    hasPlayer={!!player.currentTrack}
-                                    onTrackSelect={(track) => {
-                                        handleTrackSelect(track);
-                                    }}
-                                    onTrackPlay={handleTrackPlay}
-                                    onTrackAction={handleTrackAction}
-                                    currentPlayingTrack={player.currentTrack?.id || null}
-                                    selectedLibraryTrack={selectedLibraryTrack}
-                                    isPlaying={player.isPlaying}
-                                    userId={user?.id}
-                                    onFavoriteToggle={handleFavoriteToggle}
-                                />
-                            </div>
-                        </div>
+                    <div className="flex-1 min-h-0 min-w-0">
+                        <div className="min-h-0 h-full flex flex-col relative w-full">
+                            {/* Library Panel */}
+                            <LibraryPanel
+                                tracks={libraryPanelTracks}
+                                isLoading={isLoading}
+                                hasPlayer={!!player.currentTrack}
+                                onTrackSelect={(track) => {
+                                    handleTrackSelect(track);
+                                }}
+                                onTrackPlay={handleTrackPlay}
+                                onTrackAction={handleTrackAction}
+                                currentPlayingTrack={player.currentTrack?.id || null}
+                                selectedLibraryTrack={selectedLibraryTrack}
+                                isPlaying={player.isPlaying}
+                                userId={user?.id}
+                                onFavoriteToggle={handleFavoriteToggle}
+                            />
 
-                        <div
-                            className={`relative transition-all duration-300 flex-shrink-0 overflow-hidden ${getZIndexClass('INLINE_PANEL_CONTAINER')} ${
-                                showInlinePanel
-                                    ? 'opacity-100 w-full md:w-80 px-0 md:px-0 md:py-4'
-                                    : 'opacity-0 pointer-events-none w-0 md:w-0 px-0'
-                            }`}
-                        >
-                            {showInlinePanel && (
-                                <div className="h-full">
-                                    <InlineTrackDetailsPanel
-                                        track={inlineTrackDetails}
-                                        isPlaying={isInlineTrackPlaying}
-                                        onClose={() => {
-                                            setLyricsPanelOpen(false);
-                                            handleBackToList();
-                                        }}
-                                    />
+                            <div
+                                className={`absolute inset-0 ${getZIndexClass('INLINE_PANEL_STUDIO_OVERLAY')} transition-opacity duration-200 ${
+                                    showInlinePanel ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none'
+                                }`}
+                                aria-hidden={!showInlinePanel}
+                            >
+                                <button
+                                    type="button"
+                                    aria-label={t("inlineTrack.closeLyricsPanel")}
+                                    onClick={handleBackToList}
+                                    className="absolute inset-0 bg-background/20 backdrop-blur-[1px] md:bg-background/10"
+                                />
+
+                                <div
+                                    className={`absolute right-0 top-0 h-full w-full max-w-[min(90vw,400px)] md:right-0 md:max-w-[20rem] ${
+                                        player.currentTrack ? 'md:h-[calc(100%-var(--player-height,0px)-0.5rem)]' : ''
+                                    } transform-gpu transition-transform duration-300 ease-out ${
+                                        showInlinePanel ? 'translate-x-0' : 'translate-x-full'
+                                    }`}
+                                >
+                                    {showInlinePanel && (
+                                        <div className="h-full p-2 md:py-2 md:pl-3 md:pr-0">
+                                            <InlineTrackDetailsPanel
+                                                track={inlineTrackDetails}
+                                                isPlaying={isInlineTrackPlaying}
+                                                currentTime={isInlineTrackPlaying ? player.currentTime : 0}
+                                                onClose={handleBackToList}
+                                                variant="studio"
+                                            />
+                                        </div>
+                                    )}
                                 </div>
-                            )}
+                            </div>
                         </div>
                     </div>
 
