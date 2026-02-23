@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { SubscriptionBadge } from "@/components/ui/subscription-badge";
-import { Music, Music2, Library, Sparkles, LogOut, BookOpen, LogIn, Split, FileText, Disc3, Wand2, RefreshCw, Expand, PencilLine, Coins, Blend, AudioLines, Ellipsis, Pin, PinOff } from "lucide-react";
+import { Music, Music2, Library, Sparkles, LogOut, LogIn, Split, FileText, Disc3, Wand2, RefreshCw, Expand, PencilLine, Coins, Blend, AudioLines, Ellipsis, Pin, PinOff } from "lucide-react";
 import { usePathname, useRouter } from "next/navigation";
 import Image from "next/image";
 import Link from "next/link";
@@ -51,8 +51,10 @@ const SIDEBAR_STUDIO_FEATURE_ORDER: StudioFeatureKey[] = [
   "music-generator",
   "music-extender",
   "music-cover",
-  "mashup",
   "add-track",
+  "add-vocal",
+  "add-melody",
+  "mashup",
 ];
 
 const STUDIO_FEATURE_LABEL_KEYS: Record<StudioFeatureKey, string> = {
@@ -144,7 +146,6 @@ export const CommonSidebar = ({
 
   const [userMenuOpen, setUserMenuOpen] = React.useState(false);
   const [isAuthModalOpen, setIsAuthModalOpen] = React.useState(false);
-  const [isDropdownOpen, setIsDropdownOpen] = React.useState(false);
   const [isRefreshingCredits, setIsRefreshingCredits] = React.useState(false);
   const [isExpanded, setIsExpanded] = React.useState(() =>
     isStudioVariant ? readStudioSidebarExpandedFromStorage() : readSidebarExpandedFromStorage()
@@ -233,19 +234,6 @@ export const CommonSidebar = ({
     };
   }, [isStudioVariant]);
 
-  // AI Music Tools dropdown items
-  const aiMusicToolsDropdown = React.useMemo(
-    () =>
-      AI_TOOL_ROUTE_ITEMS.map((item) => ({
-        href: item.href,
-        label: t(item.labelKey),
-        description: t(item.descriptionKey),
-        icon: item.href === "/vocal-separation"
-          ? <Split className="h-4 w-4" />
-          : <FileText className="h-4 w-4" />
-      })),
-    [t]
-  );
   // 处理积分刷新
   const handleRefreshCredits = async () => {
     if (isRefreshingCredits) return;
@@ -270,7 +258,6 @@ export const CommonSidebar = ({
   React.useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       const userMenuContainer = document.querySelector('.user-menu-container');
-      const dropdownContainer = document.querySelector('.dropdown-container');
       
       // 检查是否点击在菜单项上
       const clickedElement = event.target as Element;
@@ -279,13 +266,9 @@ export const CommonSidebar = ({
       if (userMenuOpen && userMenuContainer && !userMenuContainer.contains(event.target as Node) && !isMenuLink) {
         setUserMenuOpen(false);
       }
-      
-      if (isDropdownOpen && dropdownContainer && !dropdownContainer.contains(event.target as Node) && !isMenuLink) {
-        setIsDropdownOpen(false);
-      }
     };
 
-    if (userMenuOpen || isDropdownOpen) {
+    if (userMenuOpen) {
       // 使用 setTimeout 延迟添加事件监听器，避免立即触发
       const timeoutId = setTimeout(() => {
         document.addEventListener('mousedown', handleClickOutside);
@@ -296,7 +279,7 @@ export const CommonSidebar = ({
         document.removeEventListener('mousedown', handleClickOutside);
       };
     }
-  }, [userMenuOpen, isDropdownOpen]);
+  }, [userMenuOpen]);
 
   React.useEffect(() => {
     if (!isStudioVariant) return;
@@ -349,7 +332,7 @@ export const CommonSidebar = ({
     }, 120);
   }, [isExpanded, isStudioVariant]);
 
-  const studioFeatureNavItems: SidebarNavItem[] = React.useMemo(() => {
+  const studioToolNavItems: SidebarNavItem[] = React.useMemo(() => {
     const featureItems = SIDEBAR_STUDIO_FEATURE_ORDER.map((featureKey) => {
       const feature = getStudioFeatureDefinition(featureKey);
       return {
@@ -359,23 +342,14 @@ export const CommonSidebar = ({
       };
     });
 
-    return [...featureItems, { label: t("nav.library"), href: "/library", icon: Library }];
+    const aiToolItems = AI_TOOL_ROUTE_ITEMS.map((item) => ({
+      label: t(item.labelKey),
+      href: item.href,
+      icon: item.href === "/vocal-separation" ? Split : FileText,
+    }));
+
+    return [...featureItems, ...aiToolItems, { label: t("nav.library"), href: "/library", icon: Library }];
   }, [getStudioFeatureLabel, t]);
-
-  const exploreNavItems: SidebarNavItem[] = React.useMemo(() => ([
-    { label: t("nav.explore"), href: "/explore", icon: Sparkles },
-    { label: t("nav.blog"), href: "/blog", icon: BookOpen }
-  ]), [t]);
-
-  const aiToolNavItems: SidebarNavItem[] = React.useMemo(
-    () =>
-      AI_TOOL_ROUTE_ITEMS.map((item) => ({
-        label: t(item.labelKey),
-        href: item.href,
-        icon: item.href === "/vocal-separation" ? Split : FileText,
-      })),
-    [t]
-  );
 
   const expandedButtonClasses = (active: boolean) =>
     cn(
@@ -751,9 +725,7 @@ export const CommonSidebar = ({
             <div className={`flex-1 overflow-y-auto overflow-x-visible ${isSidebarExpanded ? 'px-4' : 'px-2'} pt-0 pb-6`}>
               <div className={`rounded-[28px] p-0 ${isSidebarExpanded ? '' : 'flex flex-col items-center'}`}>
                 <div className={`flex flex-col ${isSidebarExpanded ? 'gap-2' : 'gap-2 items-center'}`}>
-                  {studioFeatureNavItems.map(renderNavButton)}
-                  {aiToolNavItems.map(renderNavButton)}
-                  {exploreNavItems.map(renderNavButton)}
+                  {studioToolNavItems.map(renderNavButton)}
                 </div>
               </div>
             </div>
@@ -1010,6 +982,16 @@ export const CommonSidebar = ({
             <Music className="h-7 w-7" />
           </Button>
 
+          {/* Explore Button */}
+          <Button
+            onClick={() => router.push(withCurrentLocale("/explore"))}
+            variant="ghost"
+            size="sm"
+            className={`h-12 w-12 flex items-center justify-center hover:bg-muted/50 transition-all duration-300 rounded-lg ${isActive('/explore') ? 'bg-primary/20 text-primary shadow-sm' : 'text-muted-foreground'}`}
+          >
+            <Sparkles className="h-7 w-7" />
+          </Button>
+
           {/* Library Button */}
           <Button
             onClick={() => router.push(withCurrentLocale("/library"))}
@@ -1020,60 +1002,14 @@ export const CommonSidebar = ({
             <Library className="h-7 w-7" />
           </Button>
 
-          {/* AI Music Tools Button */}
-          <div className="relative dropdown-container" onClick={(e) => e.stopPropagation()}>
-            <Button
-              onClick={() => setIsDropdownOpen(!isDropdownOpen)}
-              variant="ghost"
-              size="sm"
-              className={`h-12 w-12 flex items-center justify-center hover:bg-muted/50 transition-all duration-300 rounded-lg ${
-                isActive('/vocal-separation') || isActive('/lyrics-generator')
-                  ? 'bg-primary/20 text-primary shadow-sm'
-                  : 'text-muted-foreground'
-              }`}
-            >
-              <Wand2 className="h-7 w-7" />
-            </Button>
-            
-            {/* Mobile Dropdown Menu */}
-            {isDropdownOpen && (
-              <div className={`absolute bottom-12 left-1/2 transform -translate-x-1/2 min-w-48 w-max bg-background border border-border/30 rounded-lg shadow-lg p-2 ${getZIndexClass('DROPDOWN')}`}>
-                {aiMusicToolsDropdown.map((item) => (
-                  <Link
-                    key={item.href}
-                    href={withCurrentLocale(item.href)}
-                    onClick={(e) => {
-                      e.preventDefault();
-                      e.stopPropagation();
-                      // 延迟关闭菜单，确保点击事件完成
-                      setTimeout(() => {
-                        setIsDropdownOpen(false);
-                        router.push(withCurrentLocale(item.href));
-                      }, 50);
-                    }}
-                    className="flex items-center gap-3 px-3 py-2 hover:bg-accent hover:text-accent-foreground transition-colors group rounded-md cursor-pointer"
-                  >
-                    <div className="flex-shrink-0 w-8 h-8 bg-primary/20 rounded-lg flex items-center justify-center transition-colors text-primary group-hover:bg-accent-foreground/15 group-hover:text-accent-foreground">
-                      {item.icon}
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <p className="text-foreground font-medium text-sm group-hover:text-accent-foreground">{item.label}</p>
-                      <p className="text-muted-foreground text-sm truncate group-hover:text-accent-foreground/85">{item.description}</p>
-                    </div>
-                  </Link>
-                ))}
-              </div>
-            )}
-          </div>
-
-          {/* Blog Button */}
+          {/* Pricing Button */}
           <Button
-            onClick={() => router.push(withCurrentLocale("/blog"))}
+            onClick={() => router.push(withCurrentLocale("/pricing"))}
             variant="ghost"
             size="sm"
-            className={`h-12 w-12 flex items-center justify-center hover:bg-muted/50 transition-all duration-300 rounded-lg ${isActive('/blog') ? 'bg-primary/20 text-primary shadow-sm' : 'text-muted-foreground'}`}
+            className={`h-12 w-12 flex items-center justify-center hover:bg-muted/50 transition-all duration-300 rounded-lg ${isActive('/pricing') ? 'bg-primary/20 text-primary shadow-sm' : 'text-muted-foreground'}`}
           >
-            <BookOpen className="h-7 w-7" />
+            <Coins className="h-7 w-7" />
           </Button>
         </div>
       </div>

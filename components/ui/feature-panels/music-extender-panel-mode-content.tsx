@@ -15,6 +15,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
+import { UploadEmptyStateCard } from "@/components/ui/feature-panels/shared/upload-empty-state-card";
 import { LYRICS_TAG_OPTIONS } from "@/lib/lyrics-tags";
 import { useI18n } from "@/lib/i18n/provider";
 import { getDrumKitIcon, getInstrumentIcon } from "@/lib/music-resources";
@@ -133,7 +134,7 @@ export const StudioSimpleModeContent: React.FC<StudioSimpleModeContentProps> = (
             {t("featurePanel.classicInstrumentsPreview")}
           </div>
 
-          <div className="flex flex-nowrap gap-2 overflow-x-auto pb-1">
+          <div className="flex flex-nowrap gap-2 overflow-x-auto scrollbar-hidden pb-1">
             {leadInstruments.map((instrument) => {
               const iconUrl = getInstrumentIcon(instrument.id);
 
@@ -258,7 +259,6 @@ interface StudioCustomModeContentProps {
   showAddAudioActions?: boolean;
   allowedUploadIntents?: AudioUploadIntent[];
   onAddTrack: () => void;
-  onChooseTrackFromList?: () => void;
   onAddVocal: () => void;
   onAddMelody: () => void;
   onClearUploadIntent?: () => void;
@@ -309,7 +309,6 @@ export const StudioCustomModeContent: React.FC<StudioCustomModeContentProps> = (
   showAddAudioActions = true,
   allowedUploadIntents = ["track", "vocal", "melody"],
   onAddTrack,
-  onChooseTrackFromList,
   onAddVocal,
   onAddMelody,
   onClearUploadIntent,
@@ -443,42 +442,15 @@ ${tag}
       <div className="space-y-5 md:space-y-6">
         <section className="space-y-3">
           {showTrackUploadCard && (
-            <div className="studio-panel-card rounded-2xl p-3 space-y-2">
-              <h3 className="text-xs md:text-sm font-semibold text-foreground">
-                {t("featurePanel.sourceMaterial")}
-              </h3>
-
-              <div className="w-full h-[160px] rounded-2xl border border-dashed border-slate-300/35 dark:border-slate-700/25 bg-background/20 px-4 py-8 text-center transition-colors">
-                <span className="mx-auto mb-3 inline-flex h-10 w-10 items-center justify-center text-muted-foreground">
-                  <FileMusic className="h-6 w-6" strokeWidth={2} />
-                </span>
-                <span className="block text-sm md:text-base font-semibold text-foreground leading-tight">
-                  {t("featurePanel.chooseSource")}
-                </span>
-                <p className="mt-1 block text-sm text-muted-foreground leading-relaxed">
-                  <button
-                    type="button"
-                    onClick={onAddTrack}
-                    className="text-xs text-primary transition-opacity hover:opacity-85"
-                    title={t("featurePanel.uploadFromLocalFile")}
-                  >
-                    {t("featurePanel.uploadFromLocalFile")}
-                  </button>
-                  <span>{t("featurePanel.or")}</span>
-                  <button
-                    type="button"
-                    onClick={onChooseTrackFromList}
-                    className="text-xs text-primary transition-opacity hover:opacity-85"
-                    title={t("featurePanel.editFromTrackList")}
-                  >
-                    {t("featurePanel.editFromTrackList")}
-                  </button>
-                </p>
-                <span className="mt-1 block text-xs text-muted-foreground/80">
-                  {t("featurePanel.audioDurationLimitHint")}
-                </span>
-              </div>
-            </div>
+            <UploadEmptyStateCard
+              headline={t("featurePanel.uploadAudio")}
+              icon={<FileMusic className="h-6 w-6" strokeWidth={2} />}
+              onClick={onAddTrack}
+              clickTitle={t("featurePanel.uploadFromLocalFile")}
+              description={t("featurePanel.uploadDropOrBrowse")}
+              formatHint={t("featurePanel.audioUploadFormatsHint")}
+              durationHint={t("featurePanel.audioDurationLimitHint")}
+            />
           )}
 
           {actionCount > 0 && (

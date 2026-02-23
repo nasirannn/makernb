@@ -261,6 +261,11 @@
     box-shadow: 0 8px 20px rgba(2, 8, 23, 0.06);
   }
 
+  .studio-panel-cards .studio-panel-card.upload-dashed-card,
+  .studio-panel-card.upload-dashed-card {
+    border: 2px dashed color-mix(in srgb, hsl(var(--primary)) 42%, transparent);
+  }
+
   @media (min-width: 768px) {
     .studio-panel-cards {
       padding: 0.875rem;
@@ -311,6 +316,11 @@
     background: rgba(26, 26, 30, 0.88);
     border: none;
     box-shadow: none;
+  }
+
+  .dark .studio-panel-cards .studio-panel-card.upload-dashed-card,
+  .dark .studio-panel-card.upload-dashed-card {
+    border-color: color-mix(in srgb, hsl(var(--primary)) 55%, transparent);
   }
 
   .sidebar-brand {

@@ -172,7 +172,7 @@ export const StudioSimpleModeContent: React.FC<StudioSimpleModeContentProps> = (
             {t("featurePanel.classicInstrumentsPreview")}
           </div>
 
-          <div className="flex flex-nowrap gap-2 overflow-x-auto pb-1">
+          <div className="flex flex-nowrap gap-2 overflow-x-auto scrollbar-hidden pb-1">
             {leadInstruments.map((instrument) => {
               const iconUrl = getInstrumentIcon(instrument.id);
 
@@ -603,7 +603,7 @@ ${tag}
             <button
               type="button"
               onClick={onAddTrack}
-              className="studio-panel-card w-full rounded-2xl p-3 text-left transition-colors hover:bg-foreground/5"
+              className="studio-panel-card upload-dashed-card w-full rounded-2xl border border-dashed border-primary/40 p-3 text-left transition-colors hover:border-primary/55 hover:bg-foreground/5 dark:border-primary/50 dark:hover:border-primary/70"
               title={t("featurePanel.uploadTrack")}
             >
               <div className="flex items-center justify-between gap-3">

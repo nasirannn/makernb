@@ -80,7 +80,6 @@ export const MusicExtenderPanel = (props: FeatureCreatePanelProps) => {
     forceVisibleOnMobile = false,
     hasPlayer = false,
     panelTitle,
-    onCollapseToTracks,
     setIsAuthModalOpen,
     mode,
     selectedGenre,
@@ -731,14 +730,6 @@ export const MusicExtenderPanel = (props: FeatureCreatePanelProps) => {
     openUploadPickerForIntent("track");
   }, [openUploadPickerForIntent, allowedUploadIntents]);
 
-  const handleChooseTrackFromList = React.useCallback(() => {
-    if (typeof onCollapseToTracks === "function") {
-      onCollapseToTracks();
-      return;
-    }
-    toast(t("toasts.goTrackListClickEditExtend"));
-  }, [onCollapseToTracks, t]);
-
   const handleAddVocalAudioClick = React.useCallback(() => {
     if (!allowedUploadIntents.includes("vocal")) return;
     openUploadPickerForIntent("vocal");
@@ -1303,7 +1294,7 @@ export const MusicExtenderPanel = (props: FeatureCreatePanelProps) => {
             {activeExpanded === 'genre' && (
               <div
                 className={`flex gap-2 ${
-                  options?.horizontalScroll ? 'flex-nowrap overflow-x-auto pb-1' : 'flex-wrap'
+                  options?.horizontalScroll ? 'flex-nowrap overflow-x-auto scrollbar-hidden pb-1' : 'flex-wrap'
                 }`}
               >
                 {genres.map((genre: any) => {
@@ -1485,7 +1476,7 @@ export const MusicExtenderPanel = (props: FeatureCreatePanelProps) => {
             {activeExpanded === 'instrument' && (
               <div
                 className={`flex gap-2 ${
-                  options?.horizontalScroll ? 'flex-nowrap overflow-x-auto pb-1' : 'flex-wrap'
+                  options?.horizontalScroll ? 'flex-nowrap overflow-x-auto scrollbar-hidden pb-1' : 'flex-wrap'
                 }`}
               >
                 {leadInstruments.map((instrument: any) => {
@@ -1566,7 +1557,7 @@ export const MusicExtenderPanel = (props: FeatureCreatePanelProps) => {
             {activeExpanded === 'drum' && (
               <div
                 className={`flex gap-2 ${
-                  options?.horizontalScroll ? 'flex-nowrap overflow-x-auto pb-1' : 'flex-wrap'
+                  options?.horizontalScroll ? 'flex-nowrap overflow-x-auto scrollbar-hidden pb-1' : 'flex-wrap'
                 }`}
               >
                 {drumKits.map((kit: any) => {
@@ -2063,7 +2054,6 @@ export const MusicExtenderPanel = (props: FeatureCreatePanelProps) => {
                 uploadIntent={audioUploadIntent}
                 preferTrackUploadCard={isExtendUploadMode}
                 onAddTrack={handleAddTrackAudioClick}
-                onChooseTrackFromList={handleChooseTrackFromList}
                 onAddVocal={handleAddVocalAudioClick}
                 onAddMelody={handleAddMelodyAudioClick}
                 onClearUploadIntent={forcedUploadIntent === undefined ? clearUploadIntentSelection : undefined}

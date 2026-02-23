@@ -1240,7 +1240,7 @@ export const MusicGeneratorPanel = (props: FeatureCreatePanelProps) => {
             {activeExpanded === 'genre' && (
               <div
                 className={`flex gap-2 ${
-                  options?.horizontalScroll ? 'flex-nowrap overflow-x-auto pb-1' : 'flex-wrap'
+                  options?.horizontalScroll ? 'flex-nowrap overflow-x-auto scrollbar-hidden pb-1' : 'flex-wrap'
                 }`}
               >
                 {genres.map((genre: any) => {
@@ -1422,7 +1422,7 @@ export const MusicGeneratorPanel = (props: FeatureCreatePanelProps) => {
             {activeExpanded === 'instrument' && (
               <div
                 className={`flex gap-2 ${
-                  options?.horizontalScroll ? 'flex-nowrap overflow-x-auto pb-1' : 'flex-wrap'
+                  options?.horizontalScroll ? 'flex-nowrap overflow-x-auto scrollbar-hidden pb-1' : 'flex-wrap'
                 }`}
               >
                 {leadInstruments.map((instrument: any) => {
@@ -1503,7 +1503,7 @@ export const MusicGeneratorPanel = (props: FeatureCreatePanelProps) => {
             {activeExpanded === 'drum' && (
               <div
                 className={`flex gap-2 ${
-                  options?.horizontalScroll ? 'flex-nowrap overflow-x-auto pb-1' : 'flex-wrap'
+                  options?.horizontalScroll ? 'flex-nowrap overflow-x-auto scrollbar-hidden pb-1' : 'flex-wrap'
                 }`}
               >
                 {drumKits.map((kit: any) => {
