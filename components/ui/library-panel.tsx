@@ -42,7 +42,6 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { Progress } from './progress';
 import { LibraryTrack } from '@/types/track';
 import { getEventBus, TRACK_EVENTS } from '@/lib/event-bus';
-import { TrackCover } from '@/features/lyrics-cover/components/track-cover';
 import { formatDuration, formatDateTime } from '@/lib/format-utils';
 import { LibraryTrackActions } from './library-track-actions';
 import {
@@ -85,52 +84,27 @@ interface LibraryPanelProps {
 type LibraryFilter = 'all' | 'favourite' | 'published';
 
 const LibraryListSkeleton = () => (
-  <div className="space-y-3 pb-6">
-    <div className="hidden md:block space-y-1 px-2">
-      {Array.from({ length: 6 }).map((_, index) => (
+  <div className="pb-6">
+    <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-4">
+      {Array.from({ length: 8 }).map((_, index) => (
         <div
-          key={`library-skeleton-desktop-${index}`}
-          className="grid grid-cols-12 gap-4 px-2 mx-2 py-3 rounded-lg border border-transparent bg-muted/10"
+          key={`library-skeleton-card-${index}`}
+          className="studio-panel-card overflow-hidden rounded-3xl p-0"
         >
-          <div className="col-span-1 flex items-center justify-center">
-            <Skeleton className="h-10 w-10 rounded-lg" />
-          </div>
-          <div className="col-span-3 flex items-center">
-            <Skeleton className="h-4 w-32" />
-          </div>
-          <div className="col-span-4 flex items-center">
-            <Skeleton className="h-3 w-full" />
-          </div>
-          <div className="col-span-1 flex items-center">
-            <Skeleton className="h-3 w-28" />
-          </div>
-          <div className="col-span-1 flex items-center justify-end">
-            <Skeleton className="h-3 w-10" />
-          </div>
-          <div className="col-span-2 flex items-center justify-center gap-2">
-            <Skeleton className="h-6 w-6 rounded-full" />
-            <Skeleton className="h-6 w-6 rounded-full" />
-            <Skeleton className="h-6 w-6 rounded-full" />
-            <Skeleton className="h-6 w-6 rounded-full" />
-          </div>
-        </div>
-      ))}
-    </div>
-    <div className="md:hidden space-y-3 px-3">
-      {Array.from({ length: 5 }).map((_, index) => (
-        <div
-          key={`library-skeleton-mobile-${index}`}
-          className="flex items-center gap-4 rounded-lg py-2 mx-3 border border-transparent"
-        >
-          <div className="ml-2">
-            <Skeleton className="h-14 w-14 rounded-xl flex-shrink-0" />
-          </div>
-          <div className="flex-1 space-y-1.5">
+          <Skeleton className="aspect-square w-full rounded-none" />
+          <div className="space-y-3 px-4 py-4">
             <Skeleton className="h-4 w-2/3" />
             <Skeleton className="h-3 w-1/2" />
-            <Skeleton className="h-3 w-1/3" />
+            <Skeleton className="h-3 w-full" />
+            <div className="flex items-center justify-between pt-1">
+              <Skeleton className="h-7 w-24 rounded-full" />
+              <div className="flex items-center gap-2">
+                <Skeleton className="h-7 w-7 rounded-full" />
+                <Skeleton className="h-7 w-7 rounded-full" />
+                <Skeleton className="h-7 w-7 rounded-full" />
+              </div>
+            </div>
           </div>
-          <Skeleton className="h-8 w-8 rounded-full mr-2" />
         </div>
       ))}
     </div>
@@ -299,6 +273,17 @@ export const LibraryPanel = ({
   const handleFavoriteRemoveClick = (track: LibraryTrack) => {
     setTrackToRemoveFavorite(track);
     setFavoriteDialogOpen(true);
+  };
+
+  const handleFavoriteToggleAction = (track: LibraryTrack) => {
+    if (!onFavoriteToggle) return;
+
+    if (track.isFavorited) {
+      handleFavoriteRemoveClick(track);
+      return;
+    }
+
+    onFavoriteToggle(track);
   };
 
   const handleShare = useCallback(async (track: LibraryTrack): Promise<boolean> => {
@@ -1071,8 +1056,24 @@ export const LibraryPanel = ({
             </div>
           </div>
 
-          <div className="flex items-center w-full md:w-auto md:justify-end">
-            {/* Search Input */}
+          <div className="flex items-center w-full md:w-auto md:justify-end gap-2">
+            <button
+              type="button"
+              onClick={handleSortClick}
+              className="app-card-muted inline-flex h-12 items-center justify-center gap-1 rounded-2xl bg-foreground/5 px-3 text-foreground/75 shadow-[0_1px_2px_rgba(0,0,0,0.06)] transition-colors hover:text-foreground dark:bg-white/10"
+              aria-label={t("libraryPage.createdTimeColumn")}
+              title={t("libraryPage.createdTimeColumn")}
+            >
+              <span className="hidden md:inline text-sm font-medium">{t("libraryPage.createdTimeColumn")}</span>
+              {sortOrder === null ? (
+                <ArrowUpDown className="h-4 w-4" />
+              ) : sortOrder === 'asc' ? (
+                <ArrowUp className="h-4 w-4 text-primary" />
+              ) : (
+                <ArrowDownIcon className="h-4 w-4 text-primary" />
+              )}
+            </button>
+
             <div className="relative w-full md:w-auto">
               <div className="app-card-muted rounded-2xl p-1 bg-foreground/5 shadow-[0_1px_2px_rgba(0,0,0,0.06)] dark:bg-white/10">
                 <div className="relative w-full">
@@ -1082,7 +1083,7 @@ export const LibraryPanel = ({
                     placeholder={t("libraryPage.searchPlaceholder")}
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
-                    className="w-full md:w-64 h-10 rounded-2xl bg-transparent pl-11 pr-10 text-sm text-foreground placeholder:text-foreground/40 transition-colors focus:bg-transparent focus:outline-none border-0"
+                    className="w-full md:w-72 h-10 rounded-2xl bg-transparent pl-11 pr-10 text-sm text-foreground placeholder:text-foreground/40 transition-colors focus:bg-transparent focus:outline-none border-0"
                   />
                   {searchQuery && (
                     <button
@@ -1107,48 +1108,10 @@ export const LibraryPanel = ({
           // 🎯 让内容延伸到页面底部，播放器悬浮遮挡
           // 有播放器：播放器高度 + 间距，让播放器悬浮遮挡内容
           // 无播放器：较大padding用于底部留白
-          paddingBottom: hasPlayer ? 'calc(var(--player-height, 80px) + 1.5rem)' : '5rem'
+          paddingBottom: hasPlayer ? 'calc(var(--player-height, 80px) + 0.5rem)' : '5rem'
         }}
       >
-        <div className="relative">
-          {/* Table Header - 只在桌面端显示 */}
-          <div className="hidden md:block">
-            <div className="grid grid-cols-12 gap-4 px-6 py-3 text-sm font-medium text-muted-foreground">
-              <div className="col-span-1 flex items-center justify-center">
-                <span></span>
-              </div>
-              <div className="col-span-3 flex items-center gap-3">
-                <span>{t("libraryPage.tracksColumn")}</span>
-              </div>
-              <div className="col-span-4 flex items-center">
-                <span>{t("libraryPage.tagsColumn")}</span>
-              </div>
-              <div 
-                className="col-span-1 flex items-center gap-0.5 cursor-pointer select-none hover:text-foreground transition-colors"
-                onClick={handleSortClick}
-              >
-                <span className="whitespace-nowrap">
-                  {t("libraryPage.createdTimeColumn")}
-                </span>
-                <div className="relative inline-flex items-center">
-                  {sortOrder === null ? (
-                    <ArrowUpDown className="h-4 w-4" />
-                  ) : sortOrder === 'asc' ? (
-                    <ArrowUp className="h-4 w-4 text-primary" />
-                  ) : (
-                    <ArrowDownIcon className="h-4 w-4 text-primary" />
-                  )}
-                </div>
-              </div>
-              <div className="col-span-1 flex items-center justify-end">
-                <span>{t("libraryPage.durationColumn")}</span>
-              </div>
-              <div className="col-span-2 flex items-center justify-center">
-                <span>{t("libraryPage.actionsColumn")}</span>
-              </div>
-            </div>
-          </div>
-
+        <div className="relative px-3 md:px-6">
           {isLibraryLoading ? (
             <LibraryListSkeleton />
           ) : paginatedTracks.length === 0 ? (
@@ -1172,213 +1135,159 @@ export const LibraryPanel = ({
               </div>
             </div>
           ) : (
-            <div className="space-y-1">
-              {paginatedTracks.map((track) => (
-                <div key={track.id}>
-                  {/* Desktop Track Item - 桌面端 */}
-                  <div
-                    className={`hidden md:grid grid-cols-12 gap-4 px-2 mx-2 transition-all duration-300 group cursor-pointer rounded-lg ${
-                      selectedLibraryTrack === track.id || currentPlayingTrack === track.id
-                        ? 'bg-muted/80'
-                        : 'bg-transparent hover:bg-muted/30 border-transparent'
-                    }`}
-                    onClick={() => {
-                      handleTrackAction(track, 'select');
-                    }}
-                  >
-                  {/* Play/Pause Button - 桌面端 */}
-                  <div className="col-span-1 flex items-center justify-center py-2">
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      className="h-8 w-8 p-0 text-muted-foreground hover:text-foreground transition-colors hover:bg-transparent focus-visible:bg-transparent"
-                      title={currentPlayingTrack === track.id && isPlaying ? t("trackActions.pause") : t("trackActions.play")}
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handleTrackAction(track, 'play');
-                      }}
+            <div className="space-y-4 pb-1">
+              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-4">
+                {paginatedTracks.map((track) => {
+                  const isActive = selectedLibraryTrack === track.id || currentPlayingTrack === track.id;
+                  const rawDuration = typeof track.duration === 'string'
+                    ? parseFloat(track.duration)
+                    : (track.duration || 0);
+                  const normalizedDuration = Number.isFinite(rawDuration) ? rawDuration : 0;
+                  const coverUrl = track.coverR2Url || track.coverImage || track.allTracks?.[0]?.coverR2Url || '';
+                  const modelLabel = formatModelLabel(track.model);
+
+                  return (
+                    <article
+                      key={track.id}
+                      className={`studio-panel-card group overflow-hidden rounded-3xl p-0 cursor-pointer ${
+                        isActive
+                          ? 'md:-translate-y-0.5 shadow-[0_18px_42px_rgba(2,8,23,0.16)] dark:shadow-[0_26px_54px_rgba(0,0,0,0.52)]'
+                          : 'transform-gpu transition-[transform,box-shadow] duration-200 ease-out motion-reduce:transform-none motion-reduce:transition-none md:hover:-translate-y-1 md:hover:shadow-[0_20px_45px_rgba(2,8,23,0.18)] dark:md:hover:shadow-[0_28px_56px_rgba(0,0,0,0.56)]'
+                      }`}
+                      onClick={() => handleTrackAction(track, 'select')}
                     >
-                      {currentPlayingTrack === track.id && isPlaying ? (
-                        <Pause className="h-4 w-4" />
-                      ) : (
-                        <Play className="h-4 w-4" />
-                      )}
-                    </Button>
-                  </div>
-
-                  {/* Cover Image and Play Button - 桌面端统一 */}
-                  <div className="col-span-3 flex items-center gap-3 py-2">
-                    <TrackCover
-                      coverUrl={track.coverR2Url}
-                      title={track.title}
-                      isPlaying={isPlaying}
-                      isCurrentTrack={currentPlayingTrack === track.id}
-                      hasPlayableAudio={Boolean(track.audioUrl)}
-                      trackId={track.id}
-                    />
-                    {/* Song Title */}
-                    <div className="flex-1 min-w-0 flex flex-col justify-center">
-                      <h3 className={`font-semibold text-sm truncate ${
-                        selectedLibraryTrack === track.id || currentPlayingTrack === track.id ? 'text-primary' : 'text-foreground group-hover:text-primary'
-                      }`}>
-                        {track.title}
-                      </h3>
-                    </div>
-                  </div>
-
-                  {/* Tags Column - 标签信息 - 桌面端 */}
-                  <div className="col-span-4 flex items-center py-2">
-                    <div className="flex items-center gap-2 text-sm text-muted-foreground truncate" title={track.tags || undefined}>
-                      {formatModelLabel(track.model) && (
-                        <span className="inline-flex items-center rounded-full border border-white/10 bg-white/5 px-2 py-0.5 text-xs font-medium text-white/70">
-                          {formatModelLabel(track.model)}
-                        </span>
-                      )}
-                      {track.tags ? (
-                        <span className="truncate">
-                          {track.tags.split(/[,;.]/).filter((tag: string) => tag.trim()).map((tag: string, index: number, array: string[]) => (
-                            <span key={index}>
-                              <span>{tag.trim()}</span>
-                              {index < array.length - 1 && <span className="mx-1">•</span>}
-                            </span>
-                          ))}
-                          {track.tags.length > 70 && '...'}
-                        </span>
-                      ) : (
-                        <span>-</span>
-                      )}
-                    </div>
-                  </div>
-
-                  {/* Created Time Column - 桌面端 */}
-                  <div className="col-span-1 flex items-center py-2">
-                    <span className="text-sm text-muted-foreground truncate">
-                      {track.createdAt ? formatDateTime(track.createdAt) : t("libraryPage.unknown")}
-                    </span>
-                  </div>
-
-                  {/* Duration Column - 时长 - 桌面端 */}
-                  <div className="col-span-1 flex items-center justify-end py-2">
-                    <span className="text-sm text-muted-foreground">
-                      {formatDuration(typeof track.duration === 'string' ? parseFloat(track.duration) : (track.duration || 0))}
-                    </span>
-                  </div>
-
-                  {/* Actions Column - 操作按钮 */}
-                  <div className="col-span-2 flex items-center justify-center py-2">
-                    <LibraryTrackActions
-                      track={track}
-                      isMobile={false}
-                      canDownloadMP3={canDownloadMP3}
-                      canDownloadWAV={canDownloadWAV}
-                      canDownloadCover={canDownloadCover}
-                      canDownloadMP4={canDownloadMP4}
-                      onDownload={(format) => handleDownload(track, format)}
-                      onFavorite={() => {
-                        if (onFavoriteToggle) {
-                          handleFavoriteRemoveClick(track);
-                        }
-                      }}
-                      onShare={() => handleShare(track)}
-                      onPublish={() => handlePublishClick(track)}
-                      onEdit={() => handleEditStart(track)}
-                      onDelete={() => handleDeleteClick(track)}
-                      onPricingModalOpen={openPricingModal}
-                      isCopied={copiedTrackId === track.id}
-                    />
-                  </div>
-                  </div>
-                  
-                  {/* Mobile Track Item - 移动端 */}
-                  <div
-                    className={`md:hidden flex items-center gap-4 py-2 mx-3 transition-all duration-300 group cursor-pointer rounded-lg border ${
-                      selectedLibraryTrack === track.id || currentPlayingTrack === track.id
-                        ? 'bg-muted/80'
-                        : 'hover:bg-muted/20 border-transparent'
-                    }`}
-                    onClick={() => {
-                      handleTrackAction(track, 'select');
-                    }}
-                  >
-                  {/* Cover Image and Play Button - 移动端 */}
-                  <div className="ml-2">
-                    <TrackCover
-                      coverUrl={track.coverR2Url}
-                      title={track.title}
-                      isPlaying={isPlaying}
-                      isCurrentTrack={currentPlayingTrack === track.id}
-                      hasPlayableAudio={Boolean(track.audioUrl)}
-                      onPlayPause={() => handleTrackAction(track, 'play')}
-                      trackId={track.id}
-                    />
-                  </div>
-
-                  {/* Song Title and Info - 移动端 */}
-                  <div className="flex-1 min-w-0 flex flex-col justify-center">
-                    <h3 className={`font-semibold text-sm truncate ${
-                      selectedLibraryTrack === track.id || currentPlayingTrack === track.id ? 'text-primary' : 'text-foreground group-hover:text-primary'
-                    }`}>
-                      {track.title}
-                    </h3>
-                    {track.tags && track.tags.trim() !== '' && (
-                      <div className="flex items-center gap-2 mt-0.5">
-                        {/* 时长显示在 tags 前面，用竖线分隔 */}
-                        {track.duration && track.duration > 0 && (
-                          <>
-                            <span className="text-sm text-muted-foreground whitespace-nowrap">
-                              {formatDuration(typeof track.duration === 'string' ? parseFloat(track.duration) : (track.duration || 0))}
-                            </span>
-                            <span className="text-xs text-muted-foreground/60">|</span>
-                          </>
+                      <div className="relative aspect-square overflow-hidden">
+                        {coverUrl ? (
+                          <SafeImage
+                            src={coverUrl}
+                            alt={track.title}
+                            fill
+                            sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, (max-width: 1536px) 33vw, 25vw"
+                            className="object-cover transition-transform duration-300 group-hover:scale-[1.03]"
+                            fallbackContent={
+                              <div className="flex h-full w-full items-center justify-center bg-gradient-to-br from-primary/20 to-foreground/10">
+                                <Library className="h-12 w-12 text-foreground/35" strokeWidth={1.6} />
+                              </div>
+                            }
+                          />
+                        ) : (
+                          <div className="flex h-full w-full items-center justify-center bg-gradient-to-br from-primary/20 to-foreground/10">
+                            <Library className="h-12 w-12 text-foreground/35" strokeWidth={1.6} />
+                          </div>
                         )}
-                        {formatModelLabel(track.model) && (
-                          <>
-                            <span className="inline-flex items-center rounded-full border border-white/10 bg-white/5 px-2 py-0.5 text-xs font-medium text-white/70">
-                              {formatModelLabel(track.model)}
-                            </span>
-                            <span className="text-xs text-muted-foreground/60">|</span>
-                          </>
-                        )}
-                        <p 
-                          className="text-sm text-muted-foreground truncate flex-1"
-                          title={track.tags}
+
+                        <div
+                          className={`pointer-events-none absolute inset-0 transition-opacity duration-300 ${
+                            isActive
+                              ? 'bg-gradient-to-t from-black/70 via-black/20 to-transparent opacity-100'
+                              : 'bg-gradient-to-t from-black/60 via-black/10 to-transparent opacity-80 group-hover:opacity-100'
+                          }`}
+                        />
+
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="absolute bottom-3 left-3 h-10 w-10 rounded-full bg-black/45 p-0 text-white backdrop-blur-sm transition-colors hover:bg-black/65 hover:text-white focus-visible:ring-white/70 disabled:cursor-not-allowed disabled:opacity-45"
+                          title={currentPlayingTrack === track.id && isPlaying ? t("trackActions.pause") : t("trackActions.play")}
+                          disabled={!track.audioUrl}
+                          onClick={(event) => {
+                            event.stopPropagation();
+                            if (!track.audioUrl) return;
+                            handleTrackAction(track, 'play');
+                          }}
                         >
-                          {track.tags.split(/[,;.]/).filter((tag: string) => tag.trim()).map((tag: string, index: number, array: string[]) => (
-                            <span key={index}>
-                              <span>{tag.trim()}</span>
-                              {index < array.length - 1 && <span className="mx-1">•</span>}
+                          {currentPlayingTrack === track.id && isPlaying ? (
+                            <Pause className="h-4 w-4" />
+                          ) : (
+                            <Play className="h-4 w-4" />
+                          )}
+                        </Button>
+
+                        <div className="absolute right-3 top-3 flex items-center gap-1.5">
+                          {track.isFavorited && (
+                            <span className="inline-flex h-7 w-7 items-center justify-center rounded-full bg-black/40 text-red-400 backdrop-blur-sm">
+                              <Star className="h-3.5 w-3.5 fill-current" />
                             </span>
-                          ))}
-                          {track.tags.length > 100 && '...'}
-                        </p>
+                          )}
+                          {track.isPublished && (
+                            <span className="inline-flex h-7 w-7 items-center justify-center rounded-full bg-black/40 text-emerald-300 backdrop-blur-sm">
+                              <Send className="h-3.5 w-3.5" />
+                            </span>
+                          )}
+                        </div>
+
+                        {normalizedDuration > 0 && (
+                          <span className="absolute bottom-3 right-3 rounded-full bg-black/45 px-2.5 py-1 text-[11px] font-medium text-white backdrop-blur-sm">
+                            {formatDuration(normalizedDuration)}
+                          </span>
+                        )}
                       </div>
-                    )}
-                    {track.createdAt && (
-                      <p className="text-sm text-muted-foreground/60 truncate mt-1">
-                        {formatDateTime(track.createdAt)}
-                      </p>
-                    )}
-                  </div>
 
+                      <div className="relative bg-[linear-gradient(180deg,rgba(255,255,255,0.985)_0%,rgba(246,248,252,0.955)_100%)] px-3.5 pb-3.5 pt-3 shadow-[inset_0_14px_24px_-20px_rgba(15,23,42,0.45)] md:px-4 md:pb-4 md:pt-3.5 dark:bg-transparent dark:shadow-none">
+                        <div className="flex items-start justify-between gap-3">
+                          <h3 className={`line-clamp-1 text-sm font-semibold md:text-base ${
+                            isActive ? 'text-primary' : 'text-foreground'
+                          }`}>
+                            {track.title}
+                          </h3>
 
-                  {/* Mobile More Actions Button - 移动端更多按钮 */}
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    className="h-8 w-8 p-0 mr-2 text-muted-foreground hover:text-foreground transition-colors hover:bg-transparent focus-visible:bg-transparent"
-                    title={t("trackActions.moreActions")}
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      setSelectedTrackForMenu(track);
-                      setMobileMenuOpen(true);
-                    }}
-                  >
-                    <MoreHorizontal className="h-5 w-5" />
-                  </Button>
-                  </div>
-                </div>
-              ))}
-              
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="md:hidden h-8 w-8 shrink-0 rounded-full p-0 text-muted-foreground hover:bg-foreground/10 hover:text-foreground"
+                            title={t("trackActions.moreActions")}
+                            onClick={(event) => {
+                              event.stopPropagation();
+                              setSelectedTrackForMenu(track);
+                              setMobileMenuOpen(true);
+                            }}
+                          >
+                            <MoreHorizontal className="h-4 w-4" />
+                          </Button>
+                        </div>
+
+                        <div className="mt-1.5 flex items-center gap-2 text-xs text-muted-foreground">
+                          {modelLabel && (
+                            <span className="inline-flex shrink-0 items-center rounded-full bg-foreground/8 px-2 py-0.5 text-[10px] font-medium text-foreground/75 dark:bg-white/10 dark:text-white/70">
+                              {modelLabel}
+                            </span>
+                          )}
+                          <span className="truncate">
+                            {track.createdAt ? formatDateTime(track.createdAt) : t("libraryPage.unknown")}
+                          </span>
+                        </div>
+
+                        <p
+                          className="mt-2 min-h-[2.5rem] text-sm leading-5 text-muted-foreground/90 line-clamp-2 break-words"
+                          title={track.tags || undefined}
+                        >
+                          {track.tags && track.tags.trim() !== '' ? track.tags : '-'}
+                        </p>
+
+                        <div className="mt-3 hidden md:flex items-center justify-end">
+                          <LibraryTrackActions
+                            track={track}
+                            isMobile={false}
+                            canDownloadMP3={canDownloadMP3}
+                            canDownloadWAV={canDownloadWAV}
+                            canDownloadCover={canDownloadCover}
+                            canDownloadMP4={canDownloadMP4}
+                            onDownload={(format) => handleDownload(track, format)}
+                            onFavorite={() => handleFavoriteToggleAction(track)}
+                            onShare={() => handleShare(track)}
+                            onPublish={() => handlePublishClick(track)}
+                            onEdit={() => handleEditStart(track)}
+                            onDelete={() => handleDeleteClick(track)}
+                            onPricingModalOpen={openPricingModal}
+                            isCopied={copiedTrackId === track.id}
+                          />
+                        </div>
+                      </div>
+                    </article>
+                  );
+                })}
+              </div>
+
               {/* Tracks Summary */}
               {paginatedTracks.length > 0 && (
                 <div className="flex justify-center items-center py-3 px-4">
@@ -1756,18 +1665,19 @@ export const LibraryPanel = ({
               </button>
             )}
 
-            {/* Remove from library */}
+            {/* Add/Remove from library */}
             {onFavoriteToggle && selectedTrackForMenu && (
               <button
                 onClick={() => {
-                  setTrackToRemoveFavorite(selectedTrackForMenu);
-                  setFavoriteDialogOpen(true);
+                  handleFavoriteToggleAction(selectedTrackForMenu);
                   setMobileMenuOpen(false);
                 }}
                 className="w-full flex items-center gap-3 p-3 rounded-lg hover:bg-muted transition-colors"
               >
-                <Star className="h-5 w-5 text-red-500 fill-current" />
-                <span className="font-medium">{t("trackActions.removeFromLibrary")}</span>
+                <Star className={`h-5 w-5 ${selectedTrackForMenu.isFavorited ? 'text-red-500 fill-current' : ''}`} />
+                <span className="font-medium">
+                  {selectedTrackForMenu.isFavorited ? t("trackActions.removeFromLibrary") : t("trackActions.addToLibrary")}
+                </span>
               </button>
             )}
 

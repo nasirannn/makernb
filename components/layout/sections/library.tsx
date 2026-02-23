@@ -443,14 +443,10 @@ const LibraryContent = () => {
                         </div>
                     </div>
 
-                    {/* Music Player - Fixed on mobile, Absolute on desktop */}
+                    {/* Music Player - Position aligned with Studio */}
                     {player.currentTrack && (
                         <div
-                            className={`fixed md:absolute left-3 md:left-[calc(var(--studio-sidebar-width,72px)+1rem)] ${getZIndexClass('MAIN_CONTENT')}`}
-                            style={{
-                                right: showInlinePanel ? 'calc(20rem + 1.5rem)' : '0.75rem',
-                                bottom: 'calc(var(--mobile-nav-height, 0px) + 0.75rem)'
-                            }}
+                            className={`fixed left-3 right-3 bottom-[calc(var(--mobile-nav-height,0px)+0.75rem)] md:bottom-2 md:left-[calc(var(--studio-sidebar-width,72px)+1rem)] md:right-4 ${getZIndexClass('MUSIC_PLAYER')} pointer-events-auto`}
                         >
                             <MusicPlayer {...musicPlayerProps} />
                         </div>
