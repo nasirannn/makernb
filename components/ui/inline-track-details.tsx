@@ -3,7 +3,7 @@
 import React from "react";
 import Image from "next/image";
 import { CassetteTape } from "@/components/ui/cassette-tape";
-import { Copy, X } from "lucide-react";
+import { Clock3, Copy, X } from "lucide-react";
 import { toast } from "sonner";
 import { useI18n } from "@/lib/i18n/provider";
 
@@ -89,6 +89,28 @@ export const InlineTrackDetailsPanel: React.FC<InlineTrackDetailsPanelProps> = (
 
     return rawLyrics;
   }, [track?.lyrics, track?.tags]);
+
+  const formattedCreatedAt = React.useMemo(() => {
+    if (!track?.createdAt) return "";
+    const createdDate = new Date(track.createdAt);
+    if (Number.isNaN(createdDate.getTime())) return "";
+
+    const year = createdDate.getFullYear();
+    const month = String(createdDate.getMonth() + 1).padStart(2, "0");
+    const day = String(createdDate.getDate()).padStart(2, "0");
+    const hours = String(createdDate.getHours()).padStart(2, "0");
+    const minutes = String(createdDate.getMinutes()).padStart(2, "0");
+
+    return `${year}-${month}-${day} ${hours}:${minutes}`;
+  }, [track?.createdAt]);
+
+  const lyricBlocks = React.useMemo(() => {
+    if (!displayLyrics) return [];
+    return displayLyrics
+      .split(/\n{2,}/)
+      .map((block) => block.trim())
+      .filter(Boolean);
+  }, [displayLyrics]);
 
   const handleCopyAllTags = React.useCallback(async () => {
     if (!allTagsText) {
@@ -186,6 +208,18 @@ export const InlineTrackDetailsPanel: React.FC<InlineTrackDetailsPanelProps> = (
                 )}
               </div>
             )}
+
+            {formattedCreatedAt && (
+              <div className="flex items-center gap-1.5">
+                <span
+                  className="inline-flex items-center gap-1 rounded-full bg-black/30 px-2 py-0.5 text-[11px] font-medium text-white/75 backdrop-blur-sm tabular-nums"
+                  title={formattedCreatedAt}
+                >
+                  <Clock3 className="h-3 w-3" />
+                  <span>{formattedCreatedAt}</span>
+                </span>
+              </div>
+            )}
           </div>
         </div>
 
@@ -196,17 +230,23 @@ export const InlineTrackDetailsPanel: React.FC<InlineTrackDetailsPanelProps> = (
             style={
               variant === "studio"
                 ? {
-                    paddingBottom: "calc(var(--player-height, 48px) + 0.75rem)",
+                    paddingBottom: "1.5rem",
                     maskImage: "linear-gradient(to bottom, transparent 0%, black 12%, black 88%, transparent 100%)",
                     WebkitMaskImage: "linear-gradient(to bottom, transparent 0%, black 12%, black 88%, transparent 100%)",
                   }
                 : undefined
             }
           >
-            <div className="space-y-3">
-              <div className="text-sm text-foreground/90 whitespace-pre-wrap font-mono leading-relaxed">
-                {displayLyrics ? displayLyrics : t("inlineTrack.noLyricsAvailable")}
-              </div>
+            <div className="space-y-3 text-sm leading-7 text-foreground/80">
+              {lyricBlocks.length > 0 ? (
+                lyricBlocks.map((block, index) => (
+                  <p key={`${track.id}-lyric-${index}`} className="whitespace-pre-line">
+                    {block}
+                  </p>
+                ))
+              ) : (
+                <p className="text-muted-foreground">{t("inlineTrack.noLyricsAvailable")}</p>
+              )}
             </div>
           </div>
         </div>
