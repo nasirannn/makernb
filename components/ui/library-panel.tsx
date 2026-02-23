@@ -1223,7 +1223,7 @@ export const LibraryPanel = ({
                         )}
                       </div>
 
-                      <div className="relative bg-[linear-gradient(180deg,rgba(255,255,255,0.985)_0%,rgba(246,248,252,0.955)_100%)] px-3.5 pb-3.5 pt-3 shadow-[inset_0_14px_24px_-20px_rgba(15,23,42,0.45)] md:px-4 md:pb-4 md:pt-3.5 dark:bg-transparent dark:shadow-none">
+                      <div className="relative bg-[linear-gradient(180deg,rgba(255,255,255,0.985)_0%,rgba(246,248,252,0.955)_100%)] px-3.5 pb-3.5 pt-3 shadow-[inset_0_14px_24px_-20px_rgba(15,23,42,0.45)] md:px-4 md:pb-4 md:pt-3.5 dark:bg-[linear-gradient(180deg,rgba(24,26,36,0.96)_0%,rgba(15,17,25,0.94)_100%)] dark:shadow-none">
                         <div className="flex items-start justify-between gap-3">
                           <h3 className={`line-clamp-1 text-sm font-semibold md:text-base ${
                             isActive ? 'text-primary' : 'text-foreground'
