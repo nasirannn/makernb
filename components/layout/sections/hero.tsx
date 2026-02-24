@@ -58,6 +58,10 @@ export const HeroSection = () => {
             </span>
           </h1>
 
+          <p className="mx-auto mt-4 max-w-3xl text-base leading-relaxed text-muted-foreground sm:text-lg">
+            {t("heroSection.subheading")}
+          </p>
+
           <form onSubmit={handleHeroPromptSubmit} className="mx-auto mt-7 w-full max-w-xl">
             <label htmlFor="hero-mood-input" className="sr-only">
               {t("heroSection.promptInputLabel")}

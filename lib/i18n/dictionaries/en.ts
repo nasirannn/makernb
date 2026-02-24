@@ -931,7 +931,7 @@ export const enMessages = {
       heading: "Turn Your Mood Into R&B in Seconds.",
       headingPrefix: "Free Online",
       headingSuffix: "Music Generator",
-      subheading: "Create songs in different Contemporary Rhythm and Blues musical styles",
+      subheading: "Create custom AI music, then refine and remix it into your final track.",
       promptInputLabel: "Describe your mood",
       promptInputPlaceholder: "Describe your vibe, mood, or scene...",
       promptInputAction: "Create",
