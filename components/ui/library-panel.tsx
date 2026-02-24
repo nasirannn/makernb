@@ -1214,11 +1214,7 @@ export const LibraryPanel = ({
                         <Button
                           variant="ghost"
                           size="sm"
-                          className={`absolute left-1/2 top-1/2 h-12 w-12 -translate-x-1/2 -translate-y-1/2 rounded-full bg-black/45 p-0 text-white backdrop-blur-sm transition-[opacity,transform,background-color] duration-200 hover:bg-black/65 hover:text-white focus-visible:ring-white/70 disabled:cursor-not-allowed disabled:opacity-45 md:scale-95 md:opacity-0 md:pointer-events-none md:group-hover:scale-100 md:group-hover:opacity-100 md:group-hover:pointer-events-auto md:group-focus-within:scale-100 md:group-focus-within:opacity-100 md:group-focus-within:pointer-events-auto ${
-                            isPlayingTrack
-                              ? 'opacity-0 pointer-events-none scale-95'
-                              : 'opacity-100 pointer-events-auto scale-100'
-                          }`}
+                          className="absolute left-1/2 top-1/2 h-12 w-12 -translate-x-1/2 -translate-y-1/2 rounded-full bg-black/45 p-0 text-white backdrop-blur-sm transition-[opacity,transform,background-color] duration-200 hover:bg-black/65 hover:text-white focus-visible:ring-white/70 disabled:cursor-not-allowed disabled:opacity-45 opacity-0 pointer-events-none scale-95 md:group-hover:scale-100 md:group-hover:opacity-100 md:group-hover:pointer-events-auto md:group-focus-within:scale-100 md:group-focus-within:opacity-100 md:group-focus-within:pointer-events-auto"
                           title={currentPlayingTrack === track.id && isPlaying ? t("trackActions.pause") : t("trackActions.play")}
                           disabled={!track.audioUrl}
                           onClick={(event) => {
