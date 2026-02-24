@@ -46,9 +46,9 @@ export const PricingSection = ({ initialPlans }: PricingSectionProps) => {
     <section id="pricing" className="py-24 sm:py-32">
       <div className="container max-w-7xl">
         <div className="text-center">
-          <h2 className="mt-2 text-3xl md:text-4xl font-bold tracking-tight">
+          <h1 className="mt-2 text-3xl md:text-4xl font-bold tracking-tight">
             {t("pricingPage.title")}
-          </h2>
+          </h1>
           <p className="mt-4 mx-auto max-w-2xl text-base md:text-lg text-muted-foreground">
             {t("pricingPage.subtitle")}
           </p>

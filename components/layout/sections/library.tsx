@@ -444,6 +444,7 @@ const LibraryContent = () => {
                 id="library"
                 className="h-screen flex flex-col bg-background relative overflow-hidden"
             >
+                <h1 className="sr-only">{t("nav.library")}</h1>
                 {/* Main Library Interface */}
                 <div
                     className={`relative flex-1 h-full flex ${getZIndexClass('MAIN_CONTENT')} pb-[var(--mobile-nav-height,64px)] md:pb-0 md:pl-[calc(var(--studio-sidebar-width,72px)+1rem)]`}
