@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { SubscriptionBadge } from "@/components/ui/subscription-badge";
-import { Music, Music2, Library, Sparkles, LogOut, LogIn, Split, FileText, Disc3, Wand2, RefreshCw, Expand, PencilLine, Coins, Blend, AudioLines, Ellipsis, Pin, PinOff } from "lucide-react";
+import { Music, Music2, Library, Sparkles, LogOut, LogIn, Split, FileText, Disc3, Wand2, RefreshCw, Expand, PencilLine, Coins, Blend, AudioLines, Ellipsis, PanelLeftClose, PanelLeftOpen } from "lucide-react";
 import { usePathname, useRouter } from "next/navigation";
 import Image from "next/image";
 import Link from "next/link";
@@ -502,9 +502,9 @@ export const CommonSidebar = ({
                   aria-label={isExpanded ? t("nav.collapseSidebarSrOnly") : t("nav.expandSidebarSrOnly")}
                 >
                   {isExpanded ? (
-                    <PinOff className="h-4 w-4" />
+                    <PanelLeftClose className="h-4 w-4" />
                   ) : (
-                    <Pin className="h-4 w-4" />
+                    <PanelLeftOpen className="h-4 w-4" />
                   )}
                 </Button>
               )}

@@ -1230,19 +1230,6 @@ export const LibraryPanel = ({
                           )}
                         </Button>
 
-                        <div className="absolute right-3 top-3 flex items-center gap-1.5">
-                          {track.isFavorited && (
-                            <span className="inline-flex h-7 w-7 items-center justify-center rounded-full bg-black/40 text-red-400 backdrop-blur-sm">
-                              <Star className="h-3.5 w-3.5 fill-current" />
-                            </span>
-                          )}
-                          {track.isPublished && (
-                            <span className="inline-flex h-7 w-7 items-center justify-center rounded-full bg-black/40 text-emerald-300 backdrop-blur-sm">
-                              <Send className="h-3.5 w-3.5" />
-                            </span>
-                          )}
-                        </div>
-
                         {normalizedDuration > 0 && (
                           <span className="absolute bottom-3 right-3 rounded-full bg-black/45 px-2.5 py-1 text-[11px] font-medium text-white backdrop-blur-sm md:hidden">
                             {formatDuration(normalizedDuration)}
