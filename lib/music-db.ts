@@ -58,6 +58,44 @@ export interface MusicGenerationWithTracks {
   type?: MusicType;
 }
 
+type MusicGenerationStatus = NonNullable<MusicGeneration['status']>;
+
+const TERMINAL_MUSIC_STATUSES = new Set<MusicGenerationStatus>(['complete']);
+
+function canTransitionMusicStatus(current: string | null | undefined, target: MusicGenerationStatus): boolean {
+  const currentStatus = (current || 'generating') as MusicGenerationStatus;
+  if (currentStatus === target) {
+    return true;
+  }
+
+  // Keep terminal states immutable to avoid callback disorder regressing or flipping final results.
+  if (TERMINAL_MUSIC_STATUSES.has(currentStatus)) {
+    return false;
+  }
+
+  if (currentStatus === 'error') {
+    return target === 'error' || target === 'complete';
+  }
+
+  if (target === 'error') {
+    return true;
+  }
+
+  if (target === 'text') {
+    return currentStatus === 'generating';
+  }
+
+  if (target === 'first') {
+    return currentStatus === 'generating' || currentStatus === 'text';
+  }
+
+  if (target === 'complete') {
+    return currentStatus === 'generating' || currentStatus === 'text' || currentStatus === 'first';
+  }
+
+  return false;
+}
+
 // ============================================================================
 // CRUD OPERATIONS
 // ============================================================================
@@ -467,6 +505,70 @@ export const updateMusicGenerationByTaskId = async (
     return result.rows[0];
   } catch (error) {
     console.error('Error updating music generation by task_id:', error);
+    throw error;
+  }
+};
+
+/**
+ * Updates music status by task_id with forward-only transition guard.
+ * Returns the current row when transition is blocked, without mutating data.
+ */
+export const transitionMusicGenerationStatusByTaskId = async (
+  taskId: string,
+  targetStatus: MusicGenerationStatus,
+  patch: Partial<MusicGeneration> = {}
+): Promise<{ updated: boolean; record: MusicGeneration }> => {
+  try {
+    validateRequiredParams({ taskId, targetStatus }, ['taskId', 'targetStatus']);
+
+    const existingResult = await query(
+      'SELECT * FROM music WHERE task_id = $1 LIMIT 1',
+      [taskId]
+    );
+
+    if (existingResult.rows.length === 0) {
+      throw new Error('Music generation not found');
+    }
+
+    const currentRecord = existingResult.rows[0] as MusicGeneration;
+    const currentStatus = currentRecord.status || 'generating';
+
+    if (!canTransitionMusicStatus(currentStatus, targetStatus)) {
+      return {
+        updated: false,
+        record: currentRecord,
+      };
+    }
+
+    const data: Partial<MusicGeneration> = {
+      ...patch,
+      status: targetStatus,
+    };
+
+    const excludeFields = ['id', 'user_id', 'created_at', 'task_id'];
+    const { setClause, values } = buildUpdateClause(data, excludeFields);
+    if (!setClause) {
+      return {
+        updated: false,
+        record: currentRecord,
+      };
+    }
+
+    const updatedResult = await query(
+      `UPDATE music SET ${setClause}, updated_at = NOW() WHERE task_id = $1 RETURNING *`,
+      [taskId, ...values]
+    );
+
+    if (updatedResult.rows.length === 0) {
+      throw new Error('Music generation not found');
+    }
+
+    return {
+      updated: true,
+      record: updatedResult.rows[0] as MusicGeneration,
+    };
+  } catch (error) {
+    console.error('Error transitioning music generation status by task_id:', error);
     throw error;
   }
 };

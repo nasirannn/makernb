@@ -156,72 +156,54 @@ export const createOrUpdateUserSubscription = async (
       
       const tierId = tierResult.rows[0].id;
 
-      // 检查是否已存在订阅记录
-      const existingSubscription = await queryFn(
-        'SELECT * FROM user_subscriptions WHERE user_id = $1::uuid AND subscription_id = $2',
-        [userId, subscriptionData.subscriptionId]
+      // 基于 subscription_id 的原子 upsert，避免并发 webhook 竞态。
+      // 仅允许同一 subscription_id 对同一 user_id 更新，防止跨用户串号。
+      const result = await queryFn(
+        `INSERT INTO user_subscriptions (
+          user_id, subscription_id, customer_id, product_id, plan_id, tier_id, status,
+          current_period_start, current_period_end, next_credit_grant_date,
+          credits_per_period, cancel_at_period_end, cancel_at, cancelled_at,
+          created_at, updated_at
+        ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, FALSE, NULL, NULL, NOW(), NOW())
+        ON CONFLICT (subscription_id)
+        DO UPDATE SET
+          customer_id = COALESCE(EXCLUDED.customer_id, user_subscriptions.customer_id),
+          product_id = EXCLUDED.product_id,
+          plan_id = EXCLUDED.plan_id,
+          tier_id = EXCLUDED.tier_id,
+          status = EXCLUDED.status,
+          current_period_start = EXCLUDED.current_period_start,
+          current_period_end = EXCLUDED.current_period_end,
+          next_credit_grant_date = EXCLUDED.next_credit_grant_date,
+          credits_per_period = EXCLUDED.credits_per_period,
+          cancel_at_period_end = FALSE,
+          cancel_at = NULL,
+          cancelled_at = NULL,
+          updated_at = NOW()
+        WHERE user_subscriptions.user_id = EXCLUDED.user_id
+        RETURNING *`,
+        [
+          userId,
+          subscriptionData.subscriptionId,
+          subscriptionData.customerId || null,
+          subscriptionData.productId,
+          plan.code,
+          tierId,
+          subscriptionData.status,
+          subscriptionData.currentPeriodStart,
+          subscriptionData.currentPeriodEnd,
+          nextCreditGrantDate.toISOString(),
+          plan.credits_per_period
+        ]
       );
 
-      if (existingSubscription.rows.length > 0) {
-        // 更新现有订阅（同时更新 tier_id）
-        const result = await queryFn(
-          `UPDATE user_subscriptions SET
-            status = $1,
-            current_period_start = $2,
-            current_period_end = $3,
-            next_credit_grant_date = $4,
-            tier_id = $5,
-            product_id = $6,
-            plan_id = $7,
-            credits_per_period = $8,
-            customer_id = COALESCE($9, customer_id),
-            cancel_at_period_end = FALSE,
-            cancel_at = NULL,
-            cancelled_at = NULL,
-            updated_at = NOW()
-          WHERE user_id = $10::uuid AND subscription_id = $11
-          RETURNING *`,
-          [
-            subscriptionData.status,
-            subscriptionData.currentPeriodStart,
-            subscriptionData.currentPeriodEnd,
-            nextCreditGrantDate.toISOString(),
-            tierId,
-            subscriptionData.productId,
-            plan.code,
-            plan.credits_per_period,
-            subscriptionData.customerId || null,
-            userId,
-            subscriptionData.subscriptionId
-          ]
+      if (result.rows.length === 0) {
+        throw new Error(
+          `Subscription ownership conflict for subscription_id=${subscriptionData.subscriptionId}`
         );
-        return result.rows[0];
-      } else {
-        // 创建新订阅记录（包含 tier_id）
-        const result = await queryFn(
-          `INSERT INTO user_subscriptions (
-            user_id, subscription_id, customer_id, product_id, plan_id, tier_id, status,
-            current_period_start, current_period_end, next_credit_grant_date,
-            credits_per_period, cancel_at_period_end, cancel_at, cancelled_at,
-            created_at, updated_at
-          ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, FALSE, NULL, NULL, NOW(), NOW())
-          RETURNING *`,
-          [
-            userId,
-            subscriptionData.subscriptionId,
-            subscriptionData.customerId || null,
-            subscriptionData.productId,
-            plan.code,
-            tierId,
-            subscriptionData.status,
-            subscriptionData.currentPeriodStart,
-            subscriptionData.currentPeriodEnd,
-            nextCreditGrantDate.toISOString(),
-            plan.credits_per_period
-          ]
-        );
-        return result.rows[0];
       }
+
+      return result.rows[0];
     });
   } catch (error) {
     console.error('Error creating/updating user subscription:', error);
@@ -466,7 +448,7 @@ export const clearScheduledCancellation = async (
 export const getSubscriptionById = async (subscriptionId: string): Promise<UserSubscription | null> => {
   try {
     const result = await query(
-      'SELECT * FROM user_subscriptions WHERE subscription_id = $1 ORDER BY created_at DESC LIMIT 1',
+      'SELECT * FROM user_subscriptions WHERE subscription_id = $1 LIMIT 1',
       [subscriptionId]
     );
 

@@ -1,19 +1,34 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { createHash } from 'crypto';
 
-import { updateMusicGenerationByTaskId } from '@/lib/music-db';
+import { transitionMusicGenerationStatusByTaskId, updateMusicGenerationByTaskId } from '@/lib/music-db';
 import { createGenerationError } from '@/lib/generation-errors-db';
 import { addUserCredits } from '@/lib/user-db';
-import { downloadFromUrl, uploadAudioFile, uploadCoverImage } from '@/lib/r2-storage';
+import { downloadFromUrl, isManagedAssetUrl, uploadAudioFile, uploadCoverImage } from '@/lib/r2-storage';
 import { query } from '@/lib/db-query-builder';
 import { getMusicCredits, getFeatureCredits, FeatureKey } from '@/lib/credits-config';
 import { MusicType } from '@/types/music';
 import { submitExplorePageToIndexNow } from '@/lib/indexnow';
 import { resolveLyricsTitle } from '@/lib/lyrics-title';
+import {
+  createCallbackEvent,
+  markCallbackEventFailed,
+  markCallbackEventProcessed,
+  markCallbackEventProcessing,
+} from '@/lib/callback-events-db';
 
 // Cache for processed tasks to handle idempotency
 const processedTasks = new Map<string, number>();
 const processingTasks = new Map<string, number>();
 const CALLBACK_IDEMPOTENCY_TTL_MS = 30 * 60 * 1000;
+const RECORD_INFO_RECONCILE_SOURCE_LABELS = new Set([
+  'generate',
+  'upload-cover',
+  'upload-extend',
+  'upload-vocals',
+  'upload-instrumental',
+  'upload-mashup',
+]);
 
 function isActiveTaskKey(cache: Map<string, number>, key: string, ttlMs: number): boolean {
   const timestamp = cache.get(key);
@@ -95,8 +110,9 @@ async function recordIncompleteProcessError(params: {
   code: number;
   sourceLabel: string;
   callbackId: string;
+  reason?: string;
 }) {
-  const { taskId, callbackType, code, sourceLabel, callbackId } = params;
+  const { taskId, callbackType, code, sourceLabel, callbackId, reason } = params;
 
   try {
     const musicResult = await query(
@@ -117,8 +133,10 @@ async function recordIncompleteProcessError(params: {
     const callbackTypeToken = normalizeErrorCodeToken(callbackType, 'UNKNOWN');
     const sourceToken = normalizeErrorCodeToken(sourceLabel, 'UNKNOWN');
     const codeToken = Number.isFinite(code) ? String(code) : 'UNKNOWN';
-    const reasonCode = `CALLBACK_PROCESS_INCOMPLETE_${sourceToken}_${callbackTypeToken}_${codeToken}`;
-    const reasonMessage = `Callback processor returned false. source=${sourceLabel}, callbackType=${callbackType || 'unknown'}, code=${code}, taskId=${taskId}`;
+    const compactSource = sourceToken.slice(0, 12) || 'UNKNOWN';
+    const compactCallbackType = callbackTypeToken.slice(0, 12) || 'UNKNOWN';
+    const reasonCode = `CB_INCOMP_${compactSource}_${compactCallbackType}_${codeToken}`.slice(0, 50);
+    const reasonMessage = `Callback processor returned false. source=${sourceLabel}, callbackType=${callbackType || 'unknown'}, code=${code}, taskId=${taskId}, reason=${reason || 'onprocess_false'}`;
 
     const duplicateResult = await query(
       `SELECT id
@@ -154,6 +172,219 @@ async function recordIncompleteProcessError(params: {
       error
     );
   }
+}
+
+function shouldAttemptRecordInfoReconcile(params: {
+  sourceLabel: string;
+  taskId: string;
+  code: number;
+  callbackType?: string;
+}): boolean {
+  const { sourceLabel, taskId, code, callbackType } = params;
+  if (!taskId || typeof taskId !== 'string') return false;
+  if (!Number.isFinite(code) || code !== 200) return false;
+  if (callbackType === 'error') return false;
+  return RECORD_INFO_RECONCILE_SOURCE_LABELS.has(sourceLabel);
+}
+
+type RecordInfoBuildResult = {
+  normalized: NormalizedKieCallback | null;
+  reason: string;
+  trackCount: number;
+};
+
+function mapRecordInfoTrackToCallbackTrack(rawTrack: unknown): Record<string, unknown> | null {
+  const track = asJsonRecord(rawTrack);
+  const id = typeof track.id === 'string' ? track.id.trim() : '';
+  if (!id) return null;
+
+  const asString = (value: unknown): string => (typeof value === 'string' ? value : '');
+
+  return {
+    id,
+    audio_url: asString(track.audio_url || track.audioUrl),
+    stream_audio_url: asString(track.stream_audio_url || track.streamAudioUrl),
+    image_url: asString(track.image_url || track.imageUrl),
+    prompt: asString(track.prompt),
+    model_name: asString(track.model_name || track.modelName),
+    title: asString(track.title),
+    tags: asString(track.tags),
+    createTime: asString(track.createTime || track.create_time),
+    duration: toFiniteNumber(track.duration) ?? null,
+    source_audio_url: asString(track.source_audio_url || track.sourceAudioUrl),
+    source_stream_audio_url: asString(track.source_stream_audio_url || track.sourceStreamAudioUrl),
+    source_image_url: asString(track.source_image_url || track.sourceImageUrl),
+  };
+}
+
+async function buildNormalizedCallbackFromRecordInfo(taskId: string, callbackId: string): Promise<RecordInfoBuildResult> {
+  const apiKey = process.env.KIE_API_KEY;
+  const baseUrl = process.env.KIE_API_BASE_URL || 'https://api.kie.ai';
+
+  if (!apiKey) {
+    return {
+      normalized: null,
+      reason: 'missing_kie_api_key',
+      trackCount: 0,
+    };
+  }
+
+  const normalizedBaseUrl = baseUrl.endsWith('/') ? baseUrl.slice(0, -1) : baseUrl;
+  const recordInfoUrl = `${normalizedBaseUrl}/api/v1/generate/record-info?taskId=${encodeURIComponent(taskId)}`;
+
+  let response: Response;
+  try {
+    response = await fetch(recordInfoUrl, {
+      method: 'GET',
+      headers: {
+        Authorization: `Bearer ${apiKey}`,
+      },
+    });
+  } catch (error) {
+    console.warn(`[CALLBACK-${callbackId}] Record-info request failed:`, error);
+    return {
+      normalized: null,
+      reason: 'record_info_request_failed',
+      trackCount: 0,
+    };
+  }
+
+  if (!response.ok) {
+    const details = await response.text().catch(() => '');
+    console.warn(
+      `[CALLBACK-${callbackId}] Record-info response not ok: ${response.status} ${response.statusText} ${details}`
+    );
+    return {
+      normalized: null,
+      reason: `record_info_http_${response.status}`,
+      trackCount: 0,
+    };
+  }
+
+  let recordPayload: unknown;
+  try {
+    recordPayload = await response.json();
+  } catch (error) {
+    console.warn(`[CALLBACK-${callbackId}] Record-info JSON parse failed:`, error);
+    return {
+      normalized: null,
+      reason: 'record_info_invalid_json',
+      trackCount: 0,
+    };
+  }
+
+  const root = asJsonRecord(recordPayload);
+  const data = asJsonRecord(root.data);
+  const responseNode = asJsonRecord(data.response);
+  const resolvedTaskId =
+    (typeof data.taskId === 'string' && data.taskId.trim()) ||
+    (typeof data.task_id === 'string' && data.task_id.trim()) ||
+    (typeof responseNode.taskId === 'string' && responseNode.taskId.trim()) ||
+    (typeof responseNode.task_id === 'string' && responseNode.task_id.trim()) ||
+    taskId;
+
+  const sunoDataCandidates: unknown[] = [
+    responseNode.sunoData,
+    responseNode.data,
+    data.sunoData,
+    data.data,
+  ];
+  let rawTracks: unknown[] = [];
+  for (const candidate of sunoDataCandidates) {
+    if (Array.isArray(candidate)) {
+      rawTracks = candidate;
+      break;
+    }
+  }
+
+  const mappedTracks = rawTracks
+    .map((track) => mapRecordInfoTrackToCallbackTrack(track))
+    .filter((track): track is Record<string, unknown> => Boolean(track));
+
+  if (mappedTracks.length === 0) {
+    return {
+      normalized: null,
+      reason: 'record_info_no_tracks',
+      trackCount: 0,
+    };
+  }
+
+  const inferredCallbackType = inferCallbackTypeFromTracks(mappedTracks) || 'complete';
+  const rootCode = toFiniteNumber(root.code);
+  const syntheticPayload = {
+    code: Number.isFinite(rootCode) ? (rootCode as number) : 200,
+    msg: typeof root.msg === 'string' ? root.msg : 'Reconciled from record-info',
+    data: {
+      callbackType: inferredCallbackType,
+      task_id: resolvedTaskId,
+      data: mappedTracks,
+    },
+  };
+
+  const normalized = normalizeKieCallback(syntheticPayload, {
+    defaultCallbackType: inferredCallbackType,
+  });
+
+  return {
+    normalized,
+    reason: 'ok',
+    trackCount: mappedTracks.length,
+  };
+}
+
+type RecordInfoReconcileResult = {
+  recovered: boolean;
+  reason: string;
+  trackCount: number;
+};
+
+async function tryRecoverWithRecordInfo(params: {
+  sourceLabel: string;
+  taskId: string;
+  code: number;
+  callbackType?: string;
+  callbackId: string;
+  onProcess: (callback: NormalizedKieCallback, callbackId: string) => Promise<boolean> | boolean;
+}): Promise<RecordInfoReconcileResult> {
+  const { sourceLabel, taskId, code, callbackType, callbackId, onProcess } = params;
+
+  if (!shouldAttemptRecordInfoReconcile({ sourceLabel, taskId, code, callbackType })) {
+    return {
+      recovered: false,
+      reason: 'reconcile_not_applicable',
+      trackCount: 0,
+    };
+  }
+
+  const buildResult = await buildNormalizedCallbackFromRecordInfo(taskId, callbackId);
+  if (!buildResult.normalized) {
+    return {
+      recovered: false,
+      reason: buildResult.reason,
+      trackCount: buildResult.trackCount,
+    };
+  }
+
+  const replayCallbackId = `${callbackId}_recordinfo`;
+  const replayProcessed = await onProcess(buildResult.normalized, replayCallbackId);
+
+  if (!replayProcessed) {
+    return {
+      recovered: false,
+      reason: 'record_info_replay_onprocess_false',
+      trackCount: buildResult.trackCount,
+    };
+  }
+
+  console.log(
+    `[CALLBACK-${callbackId}] Record-info reconcile succeeded for task ${taskId} with ${buildResult.trackCount} tracks`
+  );
+
+  return {
+    recovered: true,
+    reason: 'record_info_replayed',
+    trackCount: buildResult.trackCount,
+  };
 }
 
 function extractTracksFromPayload(root: JsonRecord, data: JsonRecord, payload: JsonRecord): any[] {
@@ -326,11 +557,12 @@ export async function handleKieCallback(
         }
       }
     }
-    try {
-      console.log(`[CALLBACK-${callbackId}] Raw callback payload:`, JSON.stringify(callbackData));
-    } catch (logError) {
-      console.warn(`[CALLBACK-${callbackId}] Failed to stringify callback payload:`, logError);
-    }
+    const payloadTracks = Array.isArray(callbackData?.data?.data)
+      ? callbackData.data.data.length
+      : (Array.isArray(callbackData?.data) ? callbackData.data.length : 0);
+    console.log(
+      `[CALLBACK-${callbackId}] Payload summary: taskId=${callbackData?.data?.task_id || callbackData?.task_id || callbackData?.taskId || 'unknown'}, code=${callbackData?.code ?? 'unknown'}, callbackType=${normalizeCallbackType(callbackData?.data?.callbackType || callbackData?.callbackType) || 'unknown'}, tracks=${payloadTracks}`
+    );
     const normalized = normalizeKieCallback(callbackData, {
       defaultCallbackType: options.defaultCallbackType,
     });
@@ -370,6 +602,41 @@ export async function handleKieCallback(
       invalidResponse.headers.set('Access-Control-Allow-Headers', 'Content-Type, Authorization');
       return invalidResponse;
     }
+
+    let callbackEventId: string | undefined;
+    try {
+      const hashSource = rawBody.trim().length > 0 ? rawBody : JSON.stringify(callbackData || {});
+      const payloadHash = createHash('sha256').update(hashSource).digest('hex');
+      const callbackEventResult = await createCallbackEvent({
+        provider: 'kie',
+        sourceLabel,
+        taskId,
+        callbackType: callbackType || null,
+        code,
+        payload: callbackData,
+        payloadHash,
+      });
+
+      if (callbackEventResult.enabled) {
+        callbackEventId = callbackEventResult.eventId;
+      }
+
+      if (callbackEventResult.enabled && !callbackEventResult.accepted) {
+        console.log(
+          `[CALLBACK-${callbackId}] Duplicate callback ignored by callback_events gate: taskId=${taskId}, status=${callbackEventResult.duplicateStatus || 'unknown'}`
+        );
+        return NextResponse.json({
+          success: true,
+          message: 'Duplicate callback ignored',
+          taskId,
+          callbackType,
+          processedAt: new Date().toISOString(),
+        });
+      }
+    } catch (eventError) {
+      console.warn(`[CALLBACK-${callbackId}] Failed to persist callback event (fallback to legacy path):`, eventError);
+    }
+
     const idempotencyEnabled = options.enableIdempotency !== false;
     const taskKey = taskId ? `${taskId}_${callbackType || 'unknown'}_${code}_${sourceLabel}` : undefined;
     const completedKey = taskId ? `${taskId}_completed` : undefined;
@@ -455,21 +722,48 @@ export async function handleKieCallback(
     response.headers.set('Access-Control-Allow-Headers', 'Content-Type, Authorization');
 
     setImmediate(async () => {
+      let processedSuccessfully = false;
+      let failureReason: string | undefined;
       try {
+        if (callbackEventId) {
+          await markCallbackEventProcessing(callbackEventId);
+        }
+
         if (idempotencyEnabled && taskKey) {
           processingTasks.set(taskKey, Date.now());
         }
 
-        const processedSuccessfully = await options.onProcess(normalized, callbackId);
+        processedSuccessfully = await options.onProcess(normalized, callbackId);
 
         if (!processedSuccessfully) {
-          await recordIncompleteProcessError({
-            taskId,
-            callbackType,
-            code,
+          const reconcileResult = await tryRecoverWithRecordInfo({
             sourceLabel,
+            taskId,
+            code,
+            callbackType,
             callbackId,
+            onProcess: options.onProcess,
           });
+
+          if (reconcileResult.recovered) {
+            processedSuccessfully = true;
+            console.log(
+              `[CALLBACK-${callbackId}] Marked as processed after record-info reconcile (${reconcileResult.trackCount} tracks)`
+            );
+          } else {
+            console.warn(
+              `[CALLBACK-${callbackId}] Record-info reconcile skipped/failed: ${reconcileResult.reason}`
+            );
+            failureReason = `reconcile_failed:${reconcileResult.reason}`;
+            await recordIncompleteProcessError({
+              taskId,
+              callbackType,
+              code,
+              sourceLabel,
+              callbackId,
+              reason: reconcileResult.reason,
+            });
+          }
         }
 
         if (idempotencyEnabled && taskKey) {
@@ -477,12 +771,28 @@ export async function handleKieCallback(
             processedTasks.set(taskKey, Date.now());
             console.log(`[CALLBACK-${callbackId}] Marked callback as processed: ${taskKey}`);
           } else {
+            if (!failureReason) {
+              failureReason = 'onprocess_false';
+            }
             console.warn(`[CALLBACK-${callbackId}] Callback not marked as processed (failed/incomplete): ${taskKey}`);
           }
         }
       } catch (processError) {
+        failureReason = processError instanceof Error ? processError.message : 'async_processor_exception';
         console.error(`[CALLBACK-${callbackId}] Async callback processor threw error:`, processError);
       } finally {
+        if (callbackEventId) {
+          try {
+            if (processedSuccessfully) {
+              await markCallbackEventProcessed(callbackEventId);
+            } else {
+              await markCallbackEventFailed(callbackEventId, failureReason || 'callback_not_processed');
+            }
+          } catch (eventStatusError) {
+            console.error(`[CALLBACK-${callbackId}] Failed to update callback_events status:`, eventStatusError);
+          }
+        }
+
         if (idempotencyEnabled && taskKey) {
           processingTasks.delete(taskKey);
         }
@@ -511,6 +821,49 @@ export async function handleKieCallback(
     console.log(`[CALLBACK-${callbackId}] Request handled in ${duration}ms`);
   }
 }
+
+export async function reconcileMusicTaskFromRecordInfo(
+  taskId: string,
+  sourceLabel: string = 'cron-reconcile'
+): Promise<{ success: boolean; reason: string; trackCount: number }> {
+  const callbackId = `${sourceLabel}_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`;
+
+  if (!taskId || typeof taskId !== 'string') {
+    return {
+      success: false,
+      reason: 'invalid_task_id',
+      trackCount: 0,
+    };
+  }
+
+  const buildResult = await buildNormalizedCallbackFromRecordInfo(taskId, callbackId);
+  if (!buildResult.normalized) {
+    return {
+      success: false,
+      reason: buildResult.reason,
+      trackCount: buildResult.trackCount,
+    };
+  }
+
+  const processed = await processCallbackAsync(buildResult.normalized, callbackId);
+  if (!processed) {
+    await recordIncompleteProcessError({
+      taskId,
+      callbackType: buildResult.normalized.callbackType,
+      code: buildResult.normalized.code,
+      sourceLabel,
+      callbackId,
+      reason: `${sourceLabel}_onprocess_false`,
+    });
+  }
+
+  return {
+    success: processed,
+    reason: processed ? 'reconciled' : 'reconcile_onprocess_false',
+    trackCount: buildResult.trackCount,
+  };
+}
+
 const clampTitle = (value?: string | null, fallback = 'Untitled') => {
   const normalized = (value || '').toString().trim();
   const safe = normalized.length > 0 ? normalized : fallback;
@@ -568,6 +921,29 @@ type TrackAlignmentState = {
   tracksBySunoId: Map<string, string>;
   unboundTrackIds: string[];
 };
+
+function isUniqueViolationError(error: unknown): boolean {
+  if (!error || typeof error !== 'object') return false;
+  return (error as { code?: string }).code === '23505';
+}
+
+async function findTrackIdByMusicAndSunoId(
+  musicGenerationId: string,
+  sunoTrackId: string
+): Promise<string | null> {
+  const existingTrack = await query<{ id: string }>(
+    `SELECT id
+     FROM tracks
+     WHERE music_id = $1
+       AND suno_track_id = $2
+       AND (is_deleted IS NULL OR is_deleted = FALSE)
+     ORDER BY updated_at DESC
+     LIMIT 1`,
+    [musicGenerationId, sunoTrackId]
+  );
+
+  return existingTrack.rows[0]?.id || null;
+}
 
 function normalizeTrackDuration(value: unknown): number | null {
   if (value === undefined || value === null || value === '') {
@@ -628,40 +1004,65 @@ async function resolveTrackRecordId(params: {
 
   if (alignmentState.unboundTrackIds.length > 0) {
     const unboundTrackId = alignmentState.unboundTrackIds.shift() as string;
-    await query(
-      `UPDATE tracks SET
-        suno_track_id = $1,
-        stream_audio_url = COALESCE(NULLIF($2, ''), stream_audio_url),
-        title = COALESCE(NULLIF($3, ''), title),
-        duration = COALESCE($4, duration),
-        updated_at = NOW()
-      WHERE id = $5`,
-      [
-        sunoTrackId,
-        streamAudioUrl || '',
-        trackTitle,
-        duration,
-        unboundTrackId,
-      ]
-    );
+    try {
+      await query(
+        `UPDATE tracks SET
+          suno_track_id = $1,
+          stream_audio_url = COALESCE(NULLIF($2, ''), stream_audio_url),
+          title = COALESCE(NULLIF($3, ''), title),
+          duration = COALESCE($4, duration),
+          updated_at = NOW()
+        WHERE id = $5`,
+        [
+          sunoTrackId,
+          streamAudioUrl || '',
+          trackTitle,
+          duration,
+          unboundTrackId,
+        ]
+      );
+    } catch (error) {
+      if (!isUniqueViolationError(error)) {
+        throw error;
+      }
+      const existingTrackId = await findTrackIdByMusicAndSunoId(musicGenerationId, sunoTrackId);
+      if (existingTrackId) {
+        alignmentState.tracksBySunoId.set(sunoTrackId, existingTrackId);
+        return existingTrackId;
+      }
+      throw error;
+    }
     alignmentState.tracksBySunoId.set(sunoTrackId, unboundTrackId);
     return unboundTrackId;
   }
 
-  const createdTrack = await query(
-    `INSERT INTO tracks (
-      music_id, suno_track_id, stream_audio_url, title, duration, is_published, created_at, updated_at
-    ) VALUES ($1, $2, $3, $4, $5, $6, NOW(), NOW())
-    RETURNING id`,
-    [
-      musicGenerationId,
-      sunoTrackId,
-      streamAudioUrl || null,
-      trackTitle,
-      duration,
-      isPublished,
-    ]
-  );
+  let createdTrack;
+  try {
+    createdTrack = await query(
+      `INSERT INTO tracks (
+        music_id, suno_track_id, stream_audio_url, title, duration, is_published, created_at, updated_at
+      ) VALUES ($1, $2, $3, $4, $5, $6, NOW(), NOW())
+      RETURNING id`,
+      [
+        musicGenerationId,
+        sunoTrackId,
+        streamAudioUrl || null,
+        trackTitle,
+        duration,
+        isPublished,
+      ]
+    );
+  } catch (error) {
+    if (!isUniqueViolationError(error)) {
+      throw error;
+    }
+    const existingTrackId = await findTrackIdByMusicAndSunoId(musicGenerationId, sunoTrackId);
+    if (!existingTrackId) {
+      throw error;
+    }
+    alignmentState.tracksBySunoId.set(sunoTrackId, existingTrackId);
+    return existingTrackId;
+  }
 
   const createdTrackId = createdTrack.rows[0]?.id;
   if (!createdTrackId) {
@@ -748,8 +1149,9 @@ async function processCallbackAsync(callback: NormalizedKieCallback, callbackId:
     // 1. 解析回调数据
     const { code, taskId: parsedTaskId, callbackType: rawCallbackType, tracks, msg, raw } = callback;
     taskId = parsedTaskId;
-    console.log(`[CALLBACK-${callbackId}] Raw callback data:`, raw);
-    console.log(`[CALLBACK-${callbackId}] code=${code}, taskId=${taskId}, status=${raw?.data?.status}, msg=${msg || raw?.msg}`);
+    console.log(
+      `[CALLBACK-${callbackId}] Async summary: taskId=${taskId || 'unknown'}, code=${code}, callbackType=${rawCallbackType || 'unknown'}, tracks=${tracks.length}, status=${raw?.data?.status || 'unknown'}, msg=${msg || raw?.msg || ''}`
+    );
 
     if (!taskId) {
       console.error(`[CALLBACK-${callbackId}] Missing taskId in callback payload`);
@@ -780,7 +1182,7 @@ async function processCallbackAsync(callback: NormalizedKieCallback, callbackId:
 
         // 4.1.1 查询music记录获取type和现有title
         const musicGenQuery = await query(
-          'SELECT id, type, title, prompt FROM music WHERE task_id = $1',
+          'SELECT id, type, title, prompt, status FROM music WHERE task_id = $1',
           [taskId]
         );
 
@@ -794,6 +1196,7 @@ async function processCallbackAsync(callback: NormalizedKieCallback, callbackId:
         const musicType = musicRecord.type as MusicType;
         const existingTitle = musicRecord.title;
         const promptFallback = musicRecord.prompt;
+        const currentMusicStatus = typeof musicRecord.status === 'string' ? musicRecord.status : 'generating';
         const trimmedExistingTitle = (existingTitle || '').trim();
         const hasUserProvidedTitle = trimmedExistingTitle.length > 0;
 
@@ -807,26 +1210,47 @@ async function processCallbackAsync(callback: NormalizedKieCallback, callbackId:
         );
 
         // 构建更新对象，只包含有值的字段
-        const updateData: any = {
-          status: 'text' // text回调已完成，文本信息已生成
-        };
+        if (
+          currentMusicStatus === 'first' ||
+          currentMusicStatus === 'complete' ||
+          currentMusicStatus === 'error'
+        ) {
+          console.log(
+            `[CALLBACK-${callbackId}] TEXT callback ignored because current status is ${currentMusicStatus}`
+          );
+          return true;
+        }
+
+        const metadataPatch: any = {};
 
         // 对于 upload 类型或用户自定义标题，保持原始标题；否则采用 text 回调标题
         if (isUploadDerivedMusicType(musicType)) {
           console.log(`[CALLBACK-${callbackId}] Upload type detected (${musicType}), preserving user title: ${existingTitle}`);
         } else if (!hasUserProvidedTitle) {
-          updateData.title = extractedTitle;
+          metadataPatch.title = extractedTitle;
         } else {
           console.log(`[CALLBACK-${callbackId}] User provided custom title (${trimmedExistingTitle}), skipping API title`);
         }
         if (typeof styleFromTags === 'string' && styleFromTags.trim()) {
-          updateData.tags = styleFromTags;
+          metadataPatch.tags = styleFromTags;
         }
 
         try {
-          // 实际执行数据库更新操作
-          await updateMusicGenerationByTaskId(taskId as string, updateData);
-          console.log(`[CALLBACK-${callbackId}] Updated music record with tags${updateData.title ? ' and title' : ''}`);
+          // 实际执行数据库更新操作（状态只允许前进，避免乱序回调回退状态）
+          const transitionResult = await transitionMusicGenerationStatusByTaskId(
+            taskId as string,
+            'text',
+            metadataPatch
+          );
+          if (!transitionResult.updated) {
+            console.log(
+              `[CALLBACK-${callbackId}] TEXT callback skipped because transition is not allowed from current status`
+            );
+            return true;
+          }
+          console.log(
+            `[CALLBACK-${callbackId}] Updated music record with tags${metadataPatch.title ? ' and title' : ''}`
+          );
         } catch (dbError) {
           console.error(`[CALLBACK-${callbackId}] Failed to update music generation record with text data:`, dbError);
           return false;
@@ -925,7 +1349,7 @@ async function processCallbackAsync(callback: NormalizedKieCallback, callbackId:
           let promptFallback = '';
           let musicType: MusicType | null = null;
           const musicGenQuery = await query(
-            'SELECT id, user_id, title, prompt, type FROM music WHERE task_id = $1',
+            'SELECT id, user_id, title, prompt, type, status FROM music WHERE task_id = $1',
             [taskId]
           );
           const musicGenerationId = musicGenQuery.rows[0]?.id;
@@ -934,6 +1358,15 @@ async function processCallbackAsync(callback: NormalizedKieCallback, callbackId:
             finalTitle = musicGenQuery.rows[0].title || finalTitle;
             promptFallback = musicGenQuery.rows[0].prompt || '';
             musicType = musicGenQuery.rows[0].type as MusicType;
+            const currentStatus = typeof musicGenQuery.rows[0].status === 'string'
+              ? musicGenQuery.rows[0].status
+              : 'generating';
+            if (currentStatus === 'complete' || currentStatus === 'error') {
+              console.log(
+                `[CALLBACK-${callbackId}] FIRST callback ignored because current status is ${currentStatus}`
+              );
+              return true;
+            }
           }
           if (!musicGenerationId) {
             console.error(`No music record found for taskId: ${taskId} (first callback)`);
@@ -987,9 +1420,12 @@ async function processCallbackAsync(callback: NormalizedKieCallback, callbackId:
           
           // 更新music状态为first (带重试机制)
           await retryDatabaseOperation(async () => {
-            await updateMusicGenerationByTaskId(taskIdValue, {
-              status: 'first'
-            });
+            const transitionResult = await transitionMusicGenerationStatusByTaskId(taskIdValue, 'first');
+            if (!transitionResult.updated) {
+              console.log(
+                `[CALLBACK-${callbackId}] FIRST callback skipped status transition due to forward-only guard`
+              );
+            }
           }, 3, callbackId, 'update status to first');
 
           if (!(isUploadDerivedMusicType(musicType))) {
@@ -1192,9 +1628,12 @@ async function processCallbackAsync(callback: NormalizedKieCallback, callbackId:
         
         // 更新music状态为complete (带重试机制)
         await retryDatabaseOperation(async () => {
-          await updateMusicGenerationByTaskId(taskIdValue, {
-            status: 'complete'
-          });
+          const transitionResult = await transitionMusicGenerationStatusByTaskId(taskIdValue, 'complete');
+          if (!transitionResult.updated) {
+            console.log(
+              `[CALLBACK-${callbackId}] COMPLETE callback skipped status transition due to forward-only guard`
+            );
+          }
         }, 5, callbackId, 'update status to complete'); // complete 回调使用 5 次重试
         processedTasks.set(`${taskIdValue}_completed`, Date.now());
 
@@ -1285,8 +1724,7 @@ async function processCallbackAsync(callback: NormalizedKieCallback, callbackId:
              JOIN music mg ON mt.music_id = mg.id
              JOIN cover_generations cg ON mg.task_id = cg.music_task_id
              WHERE cg.music_task_id = $1
-             AND mt.cover_image_url LIKE 'http%' 
-             AND mt.cover_image_url NOT LIKE '%makernb-assets.nasirann.com%'`,
+             AND mt.cover_image_url LIKE 'http%'`,
             [taskId]
           );
           
@@ -1294,6 +1732,9 @@ async function processCallbackAsync(callback: NormalizedKieCallback, callbackId:
             
             for (const track of coverImagesQuery.rows) {
               try {
+                if (isManagedAssetUrl(track.cover_image_url)) {
+                  continue;
+                }
 
                 const imageBuffer = await downloadFromUrl(track.cover_image_url);
                 const filename = `${Date.now()}_${track.id}.png`;
@@ -1347,20 +1788,33 @@ async function processCallbackAsync(callback: NormalizedKieCallback, callbackId:
 
         // 获取音乐生成记录信息
         const musicGenQuery = await query(
-          'SELECT id, user_id, prompt, type FROM music WHERE task_id = $1',
+          'SELECT id, user_id, prompt, type, status FROM music WHERE task_id = $1',
           [taskId]
         );
 
         if (musicGenQuery.rows.length > 0) {
           const musicGeneration = musicGenQuery.rows[0];
           const musicType = musicGeneration.type as MusicType | undefined;
+          const currentStatus = typeof musicGeneration.status === 'string'
+            ? musicGeneration.status
+            : 'generating';
+
+          if (currentStatus === 'complete') {
+            console.log(
+              `[CALLBACK-${callbackId}] Ignoring error callback because current status is complete`
+            );
+            return true;
+          }
 
           // 更新音乐生成状态为错误
           try {
-            await updateMusicGenerationByTaskId(taskId, {
-              status: 'error',
-              title: clampTitle(musicGeneration.prompt, 'Unknown') // 使用用户输入的prompt作为标题
-            });
+            await transitionMusicGenerationStatusByTaskId(
+              taskId,
+              'error',
+              {
+                title: clampTitle(musicGeneration.prompt, 'Unknown'), // 使用用户输入的prompt作为标题
+              }
+            );
           } catch (updateError) {
             console.error(`[CALLBACK-${callbackId}] Failed to update music status on error:`, updateError);
           }

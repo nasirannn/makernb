@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { query } from '@/lib/db-query-builder';
 import { getUserIdFromRequest } from '@/lib/auth';
-import { uploadCoverImage, downloadFromUrl } from '@/lib/r2-storage';
+import { uploadCoverImage, downloadFromUrl, isManagedAssetUrl } from '@/lib/r2-storage';
 
 export const dynamic = 'force-dynamic';
 
@@ -97,7 +97,7 @@ export async function POST(request: NextRequest) {
             filename,
             userId
           );
-        } else if (coverImageUrl.startsWith('http') && !coverImageUrl.includes('makernb-assets.nasirann.com')) {
+        } else if (coverImageUrl.startsWith('http') && !isManagedAssetUrl(coverImageUrl)) {
           // External URL - download and upload to R2
           const imageBuffer = await downloadFromUrl(coverImageUrl);
           const timestamp = Date.now();

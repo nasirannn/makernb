@@ -6,7 +6,7 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { query } from '@/lib/db-query-builder';
-import { downloadFromUrl, uploadAudioFile, uploadCoverImage } from '@/lib/r2-storage';
+import { downloadFromUrl, isManagedAssetUrl, uploadAudioFile, uploadCoverImage } from '@/lib/r2-storage';
 import { addUserCredits } from '@/lib/user-db';
 import { createGenerationError } from '@/lib/generation-errors-db';
 import { getFeatureCredits } from '@/lib/credits-config';
@@ -228,7 +228,7 @@ async function processCallbackAsync(callbackData: any, callbackId: string) {
             const existingTrack = existingTracks[i];
             const audioUrl = track.audio_url || track.stream_audio_url;
 
-            if (audioUrl && audioUrl.trim() !== '' && !audioUrl.includes('makernb-assets.nasirann.com')) {
+            if (audioUrl && audioUrl.trim() !== '' && !isManagedAssetUrl(audioUrl)) {
               try {
                 console.log(`[RS-CALLBACK-${callbackId}] Uploading audio for track ${i + 1}/${tracks.length} to R2`);
                 const audioBuffer = await downloadFromUrl(audioUrl);
@@ -261,8 +261,7 @@ async function processCallbackAsync(callbackData: any, callbackId: string) {
               `SELECT id, cover_image_url
                FROM tracks
                WHERE music_id = $1
-               AND cover_image_url LIKE 'http%'
-               AND cover_image_url NOT LIKE '%makernb-assets.nasirann.com%'`,
+               AND cover_image_url LIKE 'http%'`,
               [musicId]
             );
 
@@ -270,6 +269,9 @@ async function processCallbackAsync(callbackData: any, callbackId: string) {
               console.log(`[RS-CALLBACK-${callbackId}] Found ${coverImagesQuery.rows.length} cover images to backup`);
               for (const track of coverImagesQuery.rows) {
                 try {
+                  if (isManagedAssetUrl(track.cover_image_url)) {
+                    continue;
+                  }
                   console.log(`[RS-CALLBACK-${callbackId}] Backing up cover image for track ${track.id}`);
                   const imageBuffer = await downloadFromUrl(track.cover_image_url);
                   const filename = `${track.id}_cover.jpeg`;

@@ -314,6 +314,8 @@ export const ExploreSection = () => {
     const trackId = specificTrackId || music.primaryTrack.id;
     const audioUrl = specificAudioUrl || music.primaryTrack.audioUrl || "";
 
+    setCurrentlyPlaying(trackId);
+
     await audioPlayer.playTrack({
       id: trackId,
       title: music.title,
@@ -321,8 +323,6 @@ export const ExploreSection = () => {
       duration: music.primaryTrack.duration,
       coverImage: music.primaryTrack.coverR2Url || "",
     });
-
-    setCurrentlyPlaying(trackId);
   };
 
   const handlePlayPause = (trackId: string, _audioUrl: string, _music: MusicGeneration) => {
@@ -457,24 +457,23 @@ export const ExploreSection = () => {
     inlineTrackDetails && currentlyPlaying === inlineTrackDetails.id ? audioPlayer.currentTime : 0;
   const showInlinePanel = Boolean(inlineTrackDetails);
 
-  const waveBars = [8, 16, 11, 20, 14, 24, 12, 18, 10, 15, 9];
-
   const SongCardSkeleton = () => (
-    <div className="w-[84vw] shrink-0 rounded-[2rem] bg-background/80 p-3 sm:w-[320px] dark:bg-[rgba(18,20,30,0.9)]">
-      <div className="relative aspect-square overflow-hidden rounded-[1.55rem]">
+    <div className="studio-panel-card w-[84vw] shrink-0 overflow-hidden rounded-3xl bg-background/90 p-0 sm:w-[320px] dark:bg-[rgba(18,20,30,0.9)]">
+      <div className="relative aspect-square overflow-hidden">
         <Skeleton className="h-full w-full bg-foreground/10 dark:bg-white/10" />
+        <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-black/45 via-black/10 to-transparent" />
+        <div className="absolute right-3 top-3 flex items-center gap-1.5">
+          <Skeleton className="h-8 w-8 rounded-full bg-white/20 dark:bg-white/15" />
+          <Skeleton className="h-8 w-8 rounded-full bg-white/20 dark:bg-white/15" />
+        </div>
+        <Skeleton className="absolute bottom-3 left-3 h-10 w-10 rounded-full bg-white/20 dark:bg-white/15" />
       </div>
-      <div className="px-1 pb-1 pt-3">
-        <Skeleton className="mb-2 h-5 w-3/4 bg-foreground/10 dark:bg-white/10" />
-        <Skeleton className="mb-3 h-4 w-1/2 bg-foreground/10 dark:bg-white/10" />
-        <div className="flex items-center gap-1.5">
-          {waveBars.map((height, index) => (
-            <Skeleton
-              key={`skeleton-wave-${index}`}
-              className="w-1 rounded-full bg-foreground/10 dark:bg-white/10"
-              style={{ height: `${height}px` }}
-            />
-          ))}
+      <div className="relative bg-[linear-gradient(180deg,rgba(255,255,255,0.985)_0%,rgba(246,248,252,0.955)_100%)] px-3.5 pb-3.5 pt-3 shadow-[inset_0_14px_24px_-20px_rgba(15,23,42,0.45)] dark:bg-[linear-gradient(180deg,rgba(24,26,36,0.96)_0%,rgba(15,17,25,0.94)_100%)] dark:shadow-none">
+        <Skeleton className="h-5 w-3/4 bg-foreground/10 dark:bg-white/10" />
+        <Skeleton className="mt-2 h-4 w-2/3 bg-foreground/10 dark:bg-white/10" />
+        <div className="mt-3 flex items-center gap-3">
+          <Skeleton className="h-3 w-12 rounded-full bg-foreground/10 dark:bg-white/10" />
+          <Skeleton className="h-3 w-14 rounded-full bg-foreground/10 dark:bg-white/10" />
         </div>
       </div>
     </div>
@@ -536,7 +535,7 @@ export const ExploreSection = () => {
                 >
                   {exploreData.music.map((music) => {
                     const hasCover = Boolean(music.primaryTrack.coverR2Url);
-                    const isActiveTrack = currentlyPlaying === music.primaryTrack.id && audioPlayer.isPlaying;
+                    const isActiveTrack = currentlyPlaying === music.primaryTrack.id;
 
                     return (
                       <article
@@ -598,7 +597,9 @@ export const ExploreSection = () => {
                             </div>
                           )}
 
-                          <div className={`absolute right-3 top-3 ${getZIndexClass("MAIN_CONTENT")} flex items-center gap-1.5`}>
+                          <div
+                            className={`absolute right-3 top-3 ${getZIndexClass("MAIN_CONTENT")} flex items-center gap-1.5 opacity-0 transition-opacity duration-200 group-hover:opacity-100 focus-within:opacity-100`}
+                          >
                             <Button
                               variant="ghost"
                               size="sm"
@@ -654,12 +655,6 @@ export const ExploreSection = () => {
                             )}
                           </Button>
 
-                          <div className="absolute bottom-3 right-3 rounded-full bg-black/45 px-2.5 py-1 text-[11px] font-medium text-white backdrop-blur-sm">
-                            <span className="inline-flex items-center gap-1">
-                              <PlayTriangleIcon />
-                              {formatPlayCount(music.primaryTrack.playCount)}
-                            </span>
-                          </div>
                         </div>
 
                         <div className="relative bg-[linear-gradient(180deg,rgba(255,255,255,0.985)_0%,rgba(246,248,252,0.955)_100%)] px-3.5 pb-3.5 pt-3 shadow-[inset_0_14px_24px_-20px_rgba(15,23,42,0.45)] dark:bg-[linear-gradient(180deg,rgba(24,26,36,0.96)_0%,rgba(15,17,25,0.94)_100%)] dark:shadow-none">
@@ -670,8 +665,12 @@ export const ExploreSection = () => {
                             {music.tags || t("libraryPage.unknownArtist")}
                           </p>
 
-                          <div className="mt-3 flex items-center justify-start">
-                            <span className="inline-flex items-center gap-1 text-[11px] font-medium text-muted-foreground">
+                          <div className="mt-3 flex items-center gap-3 text-[11px] font-medium text-muted-foreground">
+                            <span className="inline-flex items-center gap-1">
+                              <PlayTriangleIcon />
+                              {formatPlayCount(music.primaryTrack.playCount)}
+                            </span>
+                            <span className="inline-flex items-center gap-1">
                               <Clock className="h-3 w-3" />
                               {formatDuration(music.totalDuration)}
                             </span>

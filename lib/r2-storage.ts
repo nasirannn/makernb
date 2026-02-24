@@ -35,6 +35,23 @@ export const r2Client = new Proxy({} as S3Client, {
 
 export const BUCKET_NAME = process.env.R2_BUCKET_NAME || '';
 const PUBLIC_DOMAIN = process.env.R2_PUBLIC_DOMAIN || '';
+const LEGACY_MANAGED_ASSET_HOSTS = new Set([
+  'makernb-assets.nasirann.com',
+  'cdn.makernb.com',
+]);
+
+const normalizeHost = (value: string): string | null => {
+  const trimmed = value.trim();
+  if (!trimmed) return null;
+  try {
+    const url = new URL(trimmed.startsWith('http') ? trimmed : `https://${trimmed}`);
+    return url.hostname.toLowerCase();
+  } catch {
+    return null;
+  }
+};
+
+const configuredManagedAssetHost = normalizeHost(PUBLIC_DOMAIN);
 
 /**
  * 从URL下载文件（带重试机制）
@@ -220,6 +237,19 @@ export async function uploadAudioFile(
     console.error('Error uploading audio file:', error);
     throw error;
   }
+}
+
+export function isManagedAssetUrl(value: unknown): boolean {
+  if (typeof value !== 'string' || value.trim().length === 0) {
+    return false;
+  }
+
+  const host = normalizeHost(value);
+  if (!host) return false;
+  if (configuredManagedAssetHost && host === configuredManagedAssetHost) {
+    return true;
+  }
+  return LEGACY_MANAGED_ASSET_HOSTS.has(host);
 }
 
 /**

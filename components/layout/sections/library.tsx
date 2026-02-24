@@ -250,6 +250,10 @@ const LibraryContent = () => {
 
     // 点击播放按钮 - 播放歌曲
     const handleTrackPlay = React.useCallback((track: any) => {
+        if (track?.id) {
+            setSelectedLibraryTrack(track.id);
+        }
+
         // 如果点击的是当前播放的歌曲，则暂停/继续
         if (player.currentTrack?.id === track.id) {
             player.togglePlayPause();

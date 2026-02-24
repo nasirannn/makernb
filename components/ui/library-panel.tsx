@@ -63,6 +63,7 @@ import {
 } from '@/components/ui/dialog';
 import { EditMusicInfoDialog } from '@/components/ui/edit-music-info-dialog';
 import { Mp4BrandingDialog } from '@/components/ui/mp4-branding-dialog';
+import { CustomAudioWaveIndicator } from './audio-wave-indicator';
 import { useI18n } from '@/lib/i18n/provider';
 import { withLocalePrefix } from '@/lib/i18n/routing';
 import { getZIndexClass } from '@/lib/z-index';
@@ -1144,6 +1145,8 @@ export const LibraryPanel = ({
                     : (track.duration || 0);
                   const normalizedDuration = Number.isFinite(rawDuration) ? rawDuration : 0;
                   const coverUrl = track.coverR2Url || track.coverImage || track.allTracks?.[0]?.coverR2Url || '';
+                  const hasCover = Boolean(coverUrl);
+                  const isPlayingTrack = currentPlayingTrack === track.id && isPlaying;
                   const modelLabel = formatModelLabel(track.model);
 
                   return (
@@ -1184,10 +1187,38 @@ export const LibraryPanel = ({
                           }`}
                         />
 
+                        {isPlayingTrack && (
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className={`absolute inset-0 h-auto w-auto flex items-center justify-center p-0 transition-opacity duration-300 md:pointer-events-none ${
+                              hasCover ? 'bg-black/20' : 'bg-white/15 dark:bg-black/20'
+                            } md:group-hover:opacity-0 md:group-focus-within:opacity-0`}
+                            title={t("trackActions.pause")}
+                            aria-label={t("trackActions.pause")}
+                            disabled={!track.audioUrl}
+                            onClick={(event) => {
+                              event.stopPropagation();
+                              if (!track.audioUrl) return;
+                              handleTrackAction(track, 'play');
+                            }}
+                          >
+                            <CustomAudioWaveIndicator
+                              isPlaying={isPlaying}
+                              size="lg"
+                              className={hasCover ? 'text-white' : 'text-foreground/80 dark:text-white/85'}
+                            />
+                          </Button>
+                        )}
+
                         <Button
                           variant="ghost"
                           size="sm"
-                          className="absolute bottom-3 left-3 h-10 w-10 rounded-full bg-black/45 p-0 text-white backdrop-blur-sm transition-colors hover:bg-black/65 hover:text-white focus-visible:ring-white/70 disabled:cursor-not-allowed disabled:opacity-45"
+                          className={`absolute left-1/2 top-1/2 h-12 w-12 -translate-x-1/2 -translate-y-1/2 rounded-full bg-black/45 p-0 text-white backdrop-blur-sm transition-[opacity,transform,background-color] duration-200 hover:bg-black/65 hover:text-white focus-visible:ring-white/70 disabled:cursor-not-allowed disabled:opacity-45 md:scale-95 md:opacity-0 md:pointer-events-none md:group-hover:scale-100 md:group-hover:opacity-100 md:group-hover:pointer-events-auto md:group-focus-within:scale-100 md:group-focus-within:opacity-100 md:group-focus-within:pointer-events-auto ${
+                            isPlayingTrack
+                              ? 'opacity-0 pointer-events-none scale-95'
+                              : 'opacity-100 pointer-events-auto scale-100'
+                          }`}
                           title={currentPlayingTrack === track.id && isPlaying ? t("trackActions.pause") : t("trackActions.play")}
                           disabled={!track.audioUrl}
                           onClick={(event) => {
@@ -1217,7 +1248,7 @@ export const LibraryPanel = ({
                         </div>
 
                         {normalizedDuration > 0 && (
-                          <span className="absolute bottom-3 right-3 rounded-full bg-black/45 px-2.5 py-1 text-[11px] font-medium text-white backdrop-blur-sm">
+                          <span className="absolute bottom-3 right-3 rounded-full bg-black/45 px-2.5 py-1 text-[11px] font-medium text-white backdrop-blur-sm md:hidden">
                             {formatDuration(normalizedDuration)}
                           </span>
                         )}
@@ -1264,7 +1295,15 @@ export const LibraryPanel = ({
                           {track.tags && track.tags.trim() !== '' ? track.tags : '-'}
                         </p>
 
-                        <div className="mt-3 hidden md:flex items-center justify-end">
+                        <div className="mt-3 hidden md:flex items-center justify-between gap-3">
+                          {normalizedDuration > 0 ? (
+                            <span className="inline-flex shrink-0 items-center gap-1 text-[11px] font-medium text-muted-foreground">
+                              <Clock className="h-3 w-3" />
+                              {formatDuration(normalizedDuration)}
+                            </span>
+                          ) : (
+                            <span />
+                          )}
                           <LibraryTrackActions
                             track={track}
                             isMobile={false}

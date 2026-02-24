@@ -240,12 +240,54 @@ export const useStudioTrackPlayback = ({
 
   const handleUserTrackPlay = React.useCallback((track: any, _music: any) => {
     if (!track) return;
+
+    const { track: foundTrack, music } = findTrackAndMusic(track.id);
+    if (foundTrack && music) {
+      setSelectedStudioTrack(
+        createTrackObject(
+          foundTrack.id,
+          music.id,
+          foundTrack.title || music.title || "Untitled Track",
+          foundTrack.audioUrl || foundTrack.audio_url || "",
+          foundTrack.duration,
+          foundTrack.coverR2Url || foundTrack.cover_r2_url || foundTrack.coverImage,
+          music.tags,
+          foundTrack.lyrics || music.lyrics,
+          foundTrack.isFavorited ?? foundTrack.is_favorited ?? false,
+          foundTrack.isLiked ?? foundTrack.is_liked ?? false,
+          foundTrack.isDisliked ?? foundTrack.is_disliked ?? false,
+          foundTrack.streamAudioUrl || foundTrack.stream_audio_url,
+          foundTrack.createdAt || music.createdAt || new Date().toISOString(),
+          music.generationMode
+        )
+      );
+    } else {
+      setSelectedStudioTrack(
+        createTrackObject(
+          track.id,
+          track.generationId || track.musicGeneration?.id || _music?.id || "",
+          track.title || track.musicTitle || "Untitled Track",
+          track.audioUrl || track.audio_url || "",
+          track.duration,
+          track.coverR2Url || track.cover_r2_url || track.coverImage,
+          track.tags || _music?.tags || "",
+          track.lyrics || _music?.lyrics || "",
+          track.isFavorited ?? track.is_favorited ?? false,
+          track.isLiked ?? track.is_liked ?? false,
+          track.isDisliked ?? track.is_disliked ?? false,
+          track.streamAudioUrl || track.stream_audio_url || "",
+          track.createdAt || _music?.createdAt || new Date().toISOString(),
+          track.musicGeneration?.generationMode || _music?.generationMode
+        )
+      );
+    }
+
     if (player.currentTrack?.id === track.id) {
       player.togglePlayPause();
       return;
     }
     void playTrackById(track.id);
-  }, [player, playTrackById]);
+  }, [createTrackObject, findTrackAndMusic, playTrackById, player, setSelectedStudioTrack]);
 
   const handleGeneratedTrackSelect = React.useCallback((trackId: string) => {
     const track = generatedTracks.find((t) => t.id === trackId);

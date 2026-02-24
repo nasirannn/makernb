@@ -316,16 +316,23 @@ export default function ExplorePage() {
 
   // 歌曲卡片Skeleton组件
   const SongCardSkeleton = () => (
-    <div className="rounded-xl overflow-hidden">
-      {/* Cover Image Skeleton */}
-      <div className="relative aspect-square overflow-hidden rounded-b-xl">
-        <Skeleton className="w-full h-full bg-white/10" />
+    <div className="studio-panel-card overflow-hidden rounded-3xl bg-background/90 p-0 dark:bg-[rgba(18,20,30,0.9)]">
+      <div className="relative aspect-square overflow-hidden">
+        <Skeleton className="h-full w-full bg-foreground/10 dark:bg-white/10" />
+        <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-black/45 via-black/10 to-transparent" />
+        <div className="absolute right-3 top-3 flex items-center gap-1.5">
+          <Skeleton className="h-8 w-8 rounded-full bg-white/20 dark:bg-white/15" />
+          <Skeleton className="h-8 w-8 rounded-full bg-white/20 dark:bg-white/15" />
+        </div>
+        <Skeleton className="absolute bottom-3 left-3 h-10 w-10 rounded-full bg-white/20 dark:bg-white/15" />
       </div>
-      
-      {/* Track Info Skeleton */}
-      <div className="pt-1 pb-4 pr-4 pl-0">
-        <Skeleton className="h-4 w-3/4 mb-1 bg-white/10" />
-        <Skeleton className="h-3 w-1/2 mb-2 bg-white/10" />
+      <div className="relative bg-[linear-gradient(180deg,rgba(255,255,255,0.985)_0%,rgba(246,248,252,0.955)_100%)] px-3.5 pb-3.5 pt-3 shadow-[inset_0_14px_24px_-20px_rgba(15,23,42,0.45)] dark:bg-[linear-gradient(180deg,rgba(24,26,36,0.96)_0%,rgba(15,17,25,0.94)_100%)] dark:shadow-none">
+        <Skeleton className="h-5 w-3/4 bg-foreground/10 dark:bg-white/10" />
+        <Skeleton className="mt-2 h-4 w-2/3 bg-foreground/10 dark:bg-white/10" />
+        <div className="mt-3 flex items-center gap-3">
+          <Skeleton className="h-3 w-12 rounded-full bg-foreground/10 dark:bg-white/10" />
+          <Skeleton className="h-3 w-14 rounded-full bg-foreground/10 dark:bg-white/10" />
+        </div>
       </div>
     </div>
   );
@@ -352,6 +359,8 @@ export default function ExplorePage() {
     const trackId = specificTrackId || music.primaryTrack.id;
     const audioUrl = specificAudioUrl || music.primaryTrack.audioUrl;
 
+    setCurrentlyPlaying(trackId);
+
     // 使用AudioService播放歌曲
     await audioPlayer.playTrack({
       id: trackId,
@@ -361,8 +370,6 @@ export default function ExplorePage() {
       coverImage: music.primaryTrack.coverR2Url,
     });
 
-    // 更新本地状态
-    setCurrentlyPlaying(trackId);
   };
 
   // 播放器控制函数
@@ -511,24 +518,37 @@ export default function ExplorePage() {
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-5 gap-4">
                   {exploreData.music.map((music) => {
                     const hasCover = Boolean(music.primaryTrack.coverR2Url);
-                    const isActiveTrack = currentlyPlaying === music.primaryTrack.id && audioPlayer.isPlaying;
+                    const isActiveTrack = currentlyPlaying === music.primaryTrack.id;
                     return (
-                      <div
+                      <article
                         key={music.id}
-                        className="rounded-xl overflow-hidden transition-all duration-300 group cursor-pointer"
+                        role="button"
+                        tabIndex={0}
+                        className={`studio-panel-card group relative cursor-pointer overflow-hidden rounded-3xl bg-background/90 p-0 transition-transform duration-200 ease-out motion-reduce:transform-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary dark:bg-[rgba(18,20,30,0.9)] ${
+                          isActiveTrack
+                            ? 'md:-translate-y-0.5 shadow-[0_18px_42px_rgba(2,8,23,0.16)] dark:shadow-[0_26px_54px_rgba(0,0,0,0.52)]'
+                            : 'md:hover:-translate-y-1 md:hover:shadow-[0_20px_45px_rgba(2,8,23,0.18)] dark:md:hover:shadow-[0_28px_56px_rgba(0,0,0,0.56)]'
+                        }`}
+                        onClick={() => handlePlayPause(music.primaryTrack.id, music.primaryTrack.audioUrl || '', music)}
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter' || e.key === ' ') {
+                            e.preventDefault();
+                            handlePlayPause(music.primaryTrack.id, music.primaryTrack.audioUrl || '', music);
+                          }
+                        }}
                       >
                       {/* Cover Image */}
-                      <div className="relative aspect-square overflow-hidden rounded-b-xl">
+                      <div className="relative aspect-square overflow-hidden">
                         {hasCover ? (
                           <SafeImage
                             src={music.primaryTrack.coverR2Url || ''}
                             alt={music.title}
                             fill
-                            className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
+                            className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-[1.03]"
                             fallbackContent={
                               <div className="h-full w-full bg-gradient-to-br from-slate-200 via-slate-100 to-slate-200 dark:from-zinc-800 dark:via-zinc-900 dark:to-zinc-800">
                                 <div className="flex h-full w-full items-center justify-center">
-                                  <Music className="h-7 w-7 text-slate-700 drop-shadow-[0_3px_10px_rgba(15,23,42,0.2)] dark:text-white/75 dark:drop-shadow-[0_3px_10px_rgba(0,0,0,0.45)]" />
+                                  <Music className="h-7 w-7 text-slate-700 dark:text-white/75" />
                                 </div>
                               </div>
                             }
@@ -537,15 +557,23 @@ export default function ExplorePage() {
                           <div className="relative h-full w-full overflow-hidden bg-gradient-to-br from-slate-200 via-slate-100 to-slate-200 transition-transform duration-300 group-hover:scale-[1.02] dark:from-zinc-800 dark:via-zinc-900 dark:to-zinc-800">
                             <div className="absolute inset-0 opacity-70 [background-image:radial-gradient(circle_at_20%_20%,rgba(255,255,255,0.35),transparent_45%),radial-gradient(circle_at_80%_80%,rgba(255,255,255,0.15),transparent_42%)] dark:[background-image:radial-gradient(circle_at_20%_20%,rgba(255,255,255,0.08),transparent_45%),radial-gradient(circle_at_80%_80%,rgba(255,255,255,0.05),transparent_42%)]" />
                             <div className="absolute inset-0 flex items-center justify-center">
-                              <Music className="h-7 w-7 text-slate-700 drop-shadow-[0_3px_10px_rgba(15,23,42,0.2)] dark:text-white/75 dark:drop-shadow-[0_3px_10px_rgba(0,0,0,0.45)]" />
+                              <Music className="h-7 w-7 text-slate-700 dark:text-white/75" />
                             </div>
                           </div>
                         )}
 
+                        <div
+                          className={`pointer-events-none absolute inset-0 transition-opacity duration-300 ${
+                            isActiveTrack
+                              ? 'bg-gradient-to-t from-black/70 via-black/20 to-transparent opacity-100'
+                              : 'bg-gradient-to-t from-black/60 via-black/10 to-transparent opacity-80 group-hover:opacity-100'
+                          }`}
+                        />
+
                         {/* Playing Wave Effect - 播放时音波效果 */}
                         {isActiveTrack && (
                           <div
-                            className={`absolute inset-0 flex items-center justify-center transition-opacity duration-300 ${
+                            className={`pointer-events-none absolute inset-0 flex items-center justify-center transition-opacity duration-300 ${
                               hasCover ? 'bg-black/20 group-hover:opacity-0' : 'bg-white/15 dark:bg-black/20'
                             }`}
                           >
@@ -557,106 +585,83 @@ export default function ExplorePage() {
                           </div>
                         )}
 
-                        {/* Play Button Overlay - 只在有封面图时显示 */}
-                        {hasCover && (
-                          <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
-                            <div className={`absolute right-3 top-3 ${getZIndexClass('MAIN_CONTENT')} flex items-center gap-2`}>
-                              <Button
-                                variant="ghost"
-                                size="sm"
-                                className="h-10 w-10 p-0 text-white/90 hover:text-white"
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  handleShare(music.primaryTrack.id);
-                                }}
-                                aria-label={t("trackActions.shareTrack")}
-                                title={t("trackActions.copyShareLink")}
-                              >
-                                <Share2 className="h-4 w-4" />
-                              </Button>
-                              <Button
-                                variant="ghost"
-                                size="sm"
-                                className={`h-10 w-10 p-0 ${music.primaryTrack.isFavorited ? 'text-pink-200 hover:text-pink-100' : 'text-white/90 hover:text-white'}`}
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  handleToggleFavorite(music.primaryTrack.id);
-                                }}
-                                aria-label={music.primaryTrack.isFavorited ? t("trackActions.unlikeTrack") : t("trackActions.likeTrack")}
-                                title={music.primaryTrack.isFavorited ? t("trackActions.unlikeTrack") : t("trackActions.likeTrack")}
-                                disabled={favoriteLoadingTrackId === music.primaryTrack.id}
-                              >
-                                {favoriteLoadingTrackId === music.primaryTrack.id ? (
-                                  <Loader2 className="h-4 w-4 animate-spin text-white" />
-                                ) : music.primaryTrack.isFavorited ? (
-                                  <SolidThumbsUpIcon className="h-4 w-4 fill-current" />
-                                ) : (
-                                  <ThumbsUp className="h-4 w-4" />
-                                )}
-                              </Button>
-                            </div>
-                            <div className="absolute inset-0 flex items-center justify-center">
-                              <Button
-                                variant="ghost"
-                                size="sm"
-                                className="h-12 w-12 p-0 bg-white/20 backdrop-blur-sm hover:bg-white/30"
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  handlePlayPause(music.primaryTrack.id, music.primaryTrack.audioUrl, music);
-                                }}
-                                aria-label={currentlyPlaying === music.primaryTrack.id && audioPlayer.isPlaying ? t("trackActions.pause") : t("trackActions.play")}
-                                title={currentlyPlaying === music.primaryTrack.id && audioPlayer.isPlaying ? t("trackActions.pause") : t("trackActions.play")}
-                              >
-                                {currentlyPlaying === music.primaryTrack.id && audioPlayer.isPlaying ? (
-                                  <Pause className="h-5 w-5 text-white" />
-                                ) : (
-                                  <Play className="h-5 w-5 text-white" />
-                                )}
-                              </Button>
-                            </div>
-                          </div>
-                        )}
-
-                        {!hasCover && (
-                          <div className="pointer-events-none absolute inset-0 opacity-0 transition-opacity duration-300 group-hover:opacity-100">
-                            <div className="absolute inset-0 bg-white/20 dark:bg-black/25" />
-                            <div className="absolute inset-0 flex items-center justify-center">
-                              {isActiveTrack ? (
-                                <Pause className="h-5 w-5 text-slate-800 drop-shadow-[0_3px_10px_rgba(15,23,42,0.28)] dark:text-white dark:drop-shadow-[0_3px_10px_rgba(0,0,0,0.5)]" />
-                              ) : (
-                                <Play className="h-5 w-5 translate-x-[1px] text-slate-800 drop-shadow-[0_3px_10px_rgba(15,23,42,0.28)] dark:text-white dark:drop-shadow-[0_3px_10px_rgba(0,0,0,0.5)]" />
-                              )}
-                            </div>
-                          </div>
-                        )}
-
-                        {/* Duration Overlay */}
-                        <div className="absolute inset-x-0 bottom-0">
-                          <div className="bg-gradient-to-t from-black/70 via-black/30 to-transparent px-3 py-2">
-                            <div className="text-xs font-semibold text-white/85 flex items-center gap-3">
-                              <span className="inline-flex items-center gap-1">
-                                <PlayTriangleIcon />
-                                {formatPlayCount(music.primaryTrack.playCount)}
-                              </span>
-                              <span className="inline-flex items-center gap-1">
-                                <Clock className="h-3 w-3" />
-                                {formatDuration(music.totalDuration)}
-                              </span>
-                            </div>
-                          </div>
+                        <div
+                          className={`absolute right-3 top-3 ${getZIndexClass('MAIN_CONTENT')} flex items-center gap-1.5 opacity-0 transition-opacity duration-200 group-hover:opacity-100 focus-within:opacity-100`}
+                        >
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="h-8 w-8 rounded-full bg-black/40 p-0 text-white/90 hover:bg-black/55 hover:text-white"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              void handleShare(music.primaryTrack.id);
+                            }}
+                            aria-label={t("trackActions.shareTrack")}
+                            title={t("trackActions.copyShareLink")}
+                          >
+                            <Share2 className="h-3.5 w-3.5" />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className={`h-8 w-8 rounded-full bg-black/40 p-0 ${music.primaryTrack.isFavorited ? 'text-pink-200 hover:text-pink-100' : 'text-white/90 hover:text-white'} hover:bg-black/55`}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              void handleToggleFavorite(music.primaryTrack.id);
+                            }}
+                            aria-label={music.primaryTrack.isFavorited ? t("trackActions.unlikeTrack") : t("trackActions.likeTrack")}
+                            title={music.primaryTrack.isFavorited ? t("trackActions.unlikeTrack") : t("trackActions.likeTrack")}
+                            disabled={favoriteLoadingTrackId === music.primaryTrack.id}
+                          >
+                            {favoriteLoadingTrackId === music.primaryTrack.id ? (
+                              <Loader2 className="h-3.5 w-3.5 animate-spin text-white" />
+                            ) : music.primaryTrack.isFavorited ? (
+                              <SolidThumbsUpIcon className="h-3.5 w-3.5 fill-current" />
+                            ) : (
+                              <ThumbsUp className="h-3.5 w-3.5" />
+                            )}
+                          </Button>
                         </div>
+
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="absolute bottom-3 left-3 h-10 w-10 rounded-full bg-black/45 p-0 text-white backdrop-blur-sm transition-colors hover:bg-black/65 hover:text-white"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handlePlayPause(music.primaryTrack.id, music.primaryTrack.audioUrl || '', music);
+                          }}
+                          aria-label={currentlyPlaying === music.primaryTrack.id && audioPlayer.isPlaying ? t("trackActions.pause") : t("trackActions.play")}
+                          title={currentlyPlaying === music.primaryTrack.id && audioPlayer.isPlaying ? t("trackActions.pause") : t("trackActions.play")}
+                        >
+                          {currentlyPlaying === music.primaryTrack.id && audioPlayer.isPlaying ? (
+                            <Pause className="h-4 w-4 text-white" />
+                          ) : (
+                            <Play className="h-4 w-4 text-white" />
+                          )}
+                        </Button>
+
                       </div>
 
-                      {/* Track Info */}
-                      <div className="pt-1 pb-4 pr-4 pl-0 bg-transparent">
-                        <h3 className="text-foreground font-bold text-base mb-1 truncate">
+                      <div className="relative bg-[linear-gradient(180deg,rgba(255,255,255,0.985)_0%,rgba(246,248,252,0.955)_100%)] px-3.5 pb-3.5 pt-3 shadow-[inset_0_14px_24px_-20px_rgba(15,23,42,0.45)] dark:bg-[linear-gradient(180deg,rgba(24,26,36,0.96)_0%,rgba(15,17,25,0.94)_100%)] dark:shadow-none">
+                        <h3 className="line-clamp-1 text-sm font-semibold text-foreground md:text-base">
                           {music.title}
                         </h3>
-                        <p className="text-muted-foreground text-xs mb-2 truncate capitalize whitespace-nowrap overflow-hidden">
-                          {music.tags}
+                        <p className="mt-1.5 line-clamp-1 text-sm text-muted-foreground">
+                          {music.tags || t("libraryPage.unknownArtist")}
                         </p>
+                        <div className="mt-3 flex items-center gap-3 text-[11px] font-medium text-muted-foreground">
+                          <span className="inline-flex items-center gap-1">
+                            <PlayTriangleIcon />
+                            {formatPlayCount(music.primaryTrack.playCount)}
+                          </span>
+                          <span className="inline-flex items-center gap-1">
+                            <Clock className="h-3 w-3" />
+                            {formatDuration(music.totalDuration)}
+                          </span>
+                        </div>
                       </div>
-                    </div>
+                    </article>
                   );
                   })}
                 </div>
