@@ -68,6 +68,7 @@ export default function ExplorePage() {
   const audioPlayer = useAudioPlayer();
   const [playlist, setPlaylist] = useState<MusicGeneration[]>([]);
   const [favoriteLoadingTrackId, setFavoriteLoadingTrackId] = useState<string | null>(null);
+  const pageBackgroundClass = "min-h-screen bg-gradient-to-b from-primary/10 via-background to-background";
 
   const getAuthHeaders = useCallback(async () => {
     const headers: Record<string, string> = {
@@ -449,7 +450,7 @@ export default function ExplorePage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-background ">
+      <div className={pageBackgroundClass}>
         <div className="container mx-auto px-4 pt-32 pb-6 sm:pb-12">
           <div className="max-w-7xl mx-auto">
             {/* Header */}
@@ -479,7 +480,7 @@ export default function ExplorePage() {
 
   if (error) {
     return (
-      <div className="min-h-screen bg-background ">
+      <div className={pageBackgroundClass}>
         <div className="container mx-auto px-4 pt-32 pb-6 sm:pb-12">
           <div className="max-w-7xl mx-auto">
             <div className="text-center">
@@ -495,7 +496,7 @@ export default function ExplorePage() {
   }
 
   return (
-    <div className="min-h-screen bg-background ">
+    <div className={pageBackgroundClass}>
       <div className={`container mx-auto px-4 pt-32 pb-6 sm:pb-12 ${playlist.length > 0 && currentlyPlaying ? 'pb-20 md:pb-20' : ''}`}>
         <div className="max-w-7xl mx-auto">
           {/* Header */}

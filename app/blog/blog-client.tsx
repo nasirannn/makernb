@@ -17,7 +17,7 @@ export default function BlogClient({ allPosts }: BlogClientProps) {
   const withCurrentLocale = React.useCallback((path: string) => withLocalePrefix(path, locale), [locale]);
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-gradient-to-b from-primary/10 via-background to-background">
       {/* Main Content */}
       <main className="container mx-auto px-4 pt-32 pb-6 sm:pb-12">
         {/* Page Header */}
