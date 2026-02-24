@@ -109,6 +109,10 @@ const nextConfig = {
         protocol: "https",
         hostname: "84826d28beedc6132a2353da3796e843.cdn.bubble.io",
       },
+      {
+        protocol: "https",
+        hostname: "www.superlaun.ch",
+      },
     ],
     // R2 处理图片优化，Next 不需要再优化
     unoptimized: true,

@@ -88,7 +88,7 @@ export default async function RootLayout({
                     <PricingModal />
                     
                     <Toaster
-                      position="top-right"
+                      position="bottom-right"
                       expand={false}
                     />
                   </ThemeProvider>

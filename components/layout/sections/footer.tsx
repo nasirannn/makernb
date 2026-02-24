@@ -29,6 +29,20 @@ export const FooterSection = () => {
         />
       </a>
       <a
+        href="https://www.superlaun.ch/products/1749"
+        target="_blank"
+        rel="noopener"
+        className="inline-flex items-center justify-center rounded-2xl px-2 py-2"
+      >
+        <Image
+          src="https://www.superlaun.ch/badge.png"
+          alt="Featured on Super Launch"
+          width={300}
+          height={300}
+          className="block h-[54px] w-auto"
+        />
+      </a>
+      <a
         href="https://www.producthunt.com/products/makernb?embed=true&utm_source=badge-featured&utm_medium=badge&utm_source=badge-makernb"
         target="_blank"
         rel="noopener noreferrer"
