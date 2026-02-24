@@ -6,7 +6,7 @@
     },
     {
       "path": "/api/cron/reconcile-music-callbacks",
-      "schedule": "*/10 * * * *"
+      "schedule": "0 2 * * *"
     }
   ]
 }
