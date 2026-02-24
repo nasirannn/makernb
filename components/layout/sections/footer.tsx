@@ -34,7 +34,8 @@ export const FooterSection = () => {
         rel="noopener"
         className="inline-flex items-center justify-center rounded-2xl px-2 py-2"
       >
-        <Image
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img
           src="https://www.superlaun.ch/badge.png"
           alt="Featured on Super Launch"
           width={300}
