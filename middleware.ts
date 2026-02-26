@@ -12,6 +12,11 @@ import { DEFAULT_LOCALE } from "@/lib/i18n/config";
 
 const PERMANENT_REDIRECT_STATUS = 308;
 const STATIC_FILE_PATTERN = /\.[^/]+$/;
+const LEGACY_PATH_REDIRECTS: Record<string, string> = {
+  "/studio": "/music-generator",
+  "/vocal-remover": "/vocal-separation",
+  "/vocal-removal": "/vocal-separation",
+};
 
 function resolvePreferredLocale(request: NextRequest) {
   const localeFromCookie = request.cookies.get(LOCALE_COOKIE_KEY)?.value;
@@ -39,6 +44,32 @@ function withNoIndexHeader(response: NextResponse) {
   return response;
 }
 
+function resolveLegacyRedirectPath(pathname: string): string | null {
+  const directRedirectTarget = LEGACY_PATH_REDIRECTS[pathname];
+  if (directRedirectTarget) {
+    return directRedirectTarget;
+  }
+
+  const segments = pathname.split("/").filter(Boolean);
+  if (segments.length < 2) {
+    return null;
+  }
+
+  const localePathSegment = segments[0];
+  const localeFromPath = resolveLocaleFromPathSegment(localePathSegment);
+  if (!localeFromPath) {
+    return null;
+  }
+
+  const localeStrippedPath = `/${segments.slice(1).join("/")}`;
+  const redirectedLocaleStrippedPath = LEGACY_PATH_REDIRECTS[localeStrippedPath];
+  if (!redirectedLocaleStrippedPath) {
+    return null;
+  }
+
+  return `/${localePathSegment}${redirectedLocaleStrippedPath}`;
+}
+
 export function middleware(request: NextRequest) {
   const { pathname, search } = request.nextUrl;
 
@@ -62,6 +93,13 @@ export function middleware(request: NextRequest) {
   if (pathname.endsWith("/") && pathname !== "/") {
     const url = request.nextUrl.clone();
     url.pathname = pathname.slice(0, -1);
+    return NextResponse.redirect(url, PERMANENT_REDIRECT_STATUS);
+  }
+
+  const legacyRedirectPath = resolveLegacyRedirectPath(pathname);
+  if (legacyRedirectPath) {
+    const url = request.nextUrl.clone();
+    url.pathname = legacyRedirectPath;
     return NextResponse.redirect(url, PERMANENT_REDIRECT_STATUS);
   }
 
