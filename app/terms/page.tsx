@@ -26,7 +26,7 @@ export default function TermsOfService() {
         </Link>
         <h1 className="text-4xl font-bold mb-4">Terms of Service</h1>
         <p className="text-muted-foreground">
-          Last updated: October 2025
+          Last updated: March 5, 2026
         </p>
       </div>
 
@@ -68,6 +68,27 @@ export default function TermsOfService() {
             <li>Use automated tools to abuse our service or exceed usage limits</li>
             <li>Share your account access or verification codes with others</li>
           </ul>
+        </section>
+
+        <section className="mb-8">
+          <h2 className="text-2xl font-semibold mb-4">Sponsored Content and Link Placements</h2>
+          <p className="mb-4">
+            We may review requests for guest posts, sponsored mentions, and link insertions.
+            Acceptance is discretionary and subject to editorial, legal, and quality standards.
+          </p>
+          <ul className="list-disc pl-6 mb-4">
+            <li>Paid outbound links are labeled and may include rel=&quot;sponsored nofollow&quot;</li>
+            <li>We reserve full editorial control, including the right to edit or reject submissions</li>
+            <li>We may remove sponsored content at any time if policy, legal, or quality risks arise</li>
+            <li>We do not guarantee search ranking improvements, traffic, or indexing timelines</li>
+          </ul>
+          <p className="mb-4">
+            Additional requirements and restrictions are described in our{" "}
+            <Link href="/sponsored-content-policy" className="text-primary hover:underline">
+              Sponsored Content and Link Policy
+            </Link>
+            .
+          </p>
         </section>
 
         <section className="mb-8">

@@ -11,7 +11,7 @@ export const NavbarWrapper = () => {
   const normalizedPathname = stripLocalePrefix(pathname);
   const { credits } = useCredits();
 
-  const hideNavbarPaths = ["/privacy", "/terms", "/refund", "/payment"];
+  const hideNavbarPaths = ["/privacy", "/terms", "/sponsored-content-policy", "/refund", "/payment"];
   const shouldHideNavbarByPath = hideNavbarPaths.some(path => 
     normalizedPathname === path || normalizedPathname.startsWith(`${path}/`)
   ) || isStudioAreaPath(pathname)
