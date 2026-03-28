@@ -107,8 +107,9 @@ export const TrackItem: React.FC<TrackItemProps> = ({
   
   // 确定标题和标签
   const title = track.title || track.musicTitle || t("studioTracks.untitledTrack");
+  const isSoundTrack = track.musicType === 'generated_sound' || track.musicGeneration?.type === 'generated_sound';
   const callbackTags = track.musicGeneration?.tags;
-  const promptFallback = track.prompt || track.musicGeneration?.prompt;
+  const promptFallback = isSoundTrack ? undefined : (track.prompt || track.musicGeneration?.prompt);
   const tags =
     callbackTags ||
     track.tags ||

@@ -35,6 +35,7 @@ import { ModelSelectionDialog, MusicModel, modelOptions } from '@/components/ui/
 import { PanelPricingModal } from "@/components/ui/feature-panels/shared/panel-pricing-modal";
 import { useTheme } from "next-themes";
 import { useI18n } from "@/lib/i18n/provider";
+import { formatMusicModelLabel, isPremiumMusicModel } from '@/lib/music-model-utils';
 import type { FeatureCreatePanelProps } from "@/types/studio-feature-panel";
 import { getZIndexClass } from "@/lib/z-index";
 
@@ -57,7 +58,7 @@ const UPLOAD_ACTION_CREDITS: Record<AudioUploadIntent, number> = {
   vocal: CLIENT_UPLOAD_AUDIO_CREDITS.vocal,
   melody: CLIENT_UPLOAD_AUDIO_CREDITS.melody,
 };
-const ADD_MELODY_ALLOWED_MODELS: MusicModel[] = ["V5", "V4_5PLUS"];
+const ADD_MELODY_ALLOWED_MODELS: MusicModel[] = ["V5_5", "V5", "V4_5PLUS"];
 
 type MashupPreviewTrack = {
   file: File;
@@ -194,7 +195,7 @@ export const AddMelodyPanel = (props: FeatureCreatePanelProps) => {
 
   React.useEffect(() => {
     if (!isCustomMode) return;
-    if (selectedModel === "V5" || selectedModel === "V4_5PLUS") return;
+    if (selectedModel === "V5_5" || selectedModel === "V5" || selectedModel === "V4_5PLUS") return;
     updateSelectedModel("V4_5PLUS", { forceOverride: true });
   }, [isCustomMode, selectedModel, updateSelectedModel]);
 
@@ -417,7 +418,7 @@ export const AddMelodyPanel = (props: FeatureCreatePanelProps) => {
     const selectedOption = addMelodyModelOptions.find((option) => option.value === model);
     if (!selectedOption) return;
 
-    if (model === 'V5' && !canUseV5Model) {
+    if (isPremiumMusicModel(model) && !canUseV5Model) {
       setIsPricingOpen(true);
       return;
     }
@@ -1859,7 +1860,7 @@ export const AddMelodyPanel = (props: FeatureCreatePanelProps) => {
                           className="group h-11 min-w-[5.75rem] px-4 rounded-2xl border border-white/45 dark:border-white/10 text-xs md:text-sm font-semibold text-slate-950 transition-all duration-200 bg-gradient-to-r from-cyan-300 via-sky-300 to-indigo-300 shadow-[0_6px_14px_rgba(56,189,248,0.18)] hover:from-cyan-200 hover:via-sky-200 hover:to-indigo-200 flex items-center justify-center"
                           title={t("featurePanel.chooseModel")}
                         >
-                          <span>{addMelodyModelOptions.find((opt) => opt.value === selectedModel)?.label || "V4.5+"}</span>
+                          <span>{formatMusicModelLabel(selectedModel) || "V4.5+"}</span>
                         </button>
                         <ModelSelectionDialog
                           open={isModelDialogOpen}
@@ -1867,7 +1868,7 @@ export const AddMelodyPanel = (props: FeatureCreatePanelProps) => {
                           selectedModel={selectedModel}
                           onSelectModel={handleModelSelect}
                           options={addMelodyModelOptions}
-                          isModelLocked={(model) => model === "V5" && !canUseV5Model}
+                          isModelLocked={(model) => isPremiumMusicModel(model) && !canUseV5Model}
                           onLockedModelSelect={() => setIsPricingOpen(true)}
                         />
                       </>

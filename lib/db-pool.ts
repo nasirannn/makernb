@@ -1,4 +1,11 @@
-import { Pool, PoolClient, QueryResultRow } from 'pg';
+import { Pool, PoolClient, QueryResultRow, types } from 'pg';
+
+const PG_NUMERIC_OID = 1700;
+
+types.setTypeParser(PG_NUMERIC_OID, (value: string) => {
+  const parsed = Number(value);
+  return Number.isFinite(parsed) ? parsed : value;
+});
 
 // ============================================================================
 // NEON FREE TIER OPTIMIZED DATABASE POOL

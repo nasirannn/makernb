@@ -66,6 +66,7 @@ import { Mp4BrandingDialog } from '@/components/ui/mp4-branding-dialog';
 import { CustomAudioWaveIndicator } from './audio-wave-indicator';
 import { useI18n } from '@/lib/i18n/provider';
 import { withLocalePrefix } from '@/lib/i18n/routing';
+import { formatMusicModelLabel } from '@/lib/music-model-utils';
 import { getZIndexClass } from '@/lib/z-index';
 
 interface LibraryPanelProps {
@@ -173,16 +174,6 @@ export const LibraryPanel = ({
     skipPrompt?: boolean;
   };
 
-  const formatModelLabel = (model?: string | null) => {
-    if (!model) return null;
-    if (model === 'V4_5PLUS') return 'V4.5+';
-    if (model === 'V4_5ALL') return 'V4.5ALL';
-    if (model === 'V4_5') return 'V4.5';
-    if (model === 'V4') return 'V4';
-    if (model === 'V5') return 'V5';
-    return model.replace('_', '.');
-  };
-  
   // 切换tags展开状态
   const toggleTagsExpansion = (trackId: string) => {
     setExpandedTags(prev => ({
@@ -1147,7 +1138,7 @@ export const LibraryPanel = ({
                   const coverUrl = track.coverR2Url || track.coverImage || track.allTracks?.[0]?.coverR2Url || '';
                   const hasCover = Boolean(coverUrl);
                   const isPlayingTrack = currentPlayingTrack === track.id && isPlaying;
-                  const modelLabel = formatModelLabel(track.model);
+                  const modelLabel = formatMusicModelLabel(track.model);
 
                   return (
                     <article

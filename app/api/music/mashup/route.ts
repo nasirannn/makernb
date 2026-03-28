@@ -28,6 +28,7 @@ function getModelLimits(model: string) {
       return { prompt: 5000, style: 1000, title: 80 };
     case 'V4_5':
     case 'V4_5PLUS':
+    case 'V5_5':
     case 'V5':
     default:
       return { prompt: 5000, style: 1000, title: 80 };

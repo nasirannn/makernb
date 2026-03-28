@@ -1,5 +1,6 @@
 export type MusicType =
   | 'generated'
+  | 'generated_sound'
   | 'extended'
   | 'upload_extend'
   | 'upload_cover'

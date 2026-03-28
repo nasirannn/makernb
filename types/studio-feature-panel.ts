@@ -2,11 +2,11 @@ import type { ExtendSourceTrack } from "@/types/extend-track-source";
 import type { ReactNode } from "react";
 
 export type StudioPanelMode = "simple" | "custom";
-export type StudioMusicModel = "V4" | "V4_5" | "V4_5PLUS" | "V5";
+export type StudioMusicModel = "V4" | "V4_5" | "V4_5PLUS" | "V5" | "V5_5";
 export type StudioPersonaModel = "style_persona" | "voice_persona";
 export type StudioUploadIntent = "track" | "vocal" | "melody";
 export type StudioBpmMode = "slow" | "moderate" | "medium" | "";
-export type StudioGenerationMode = "cover" | "extend" | "mashup" | "vocal" | "melody";
+export type StudioGenerationMode = "cover" | "extend" | "mashup" | "vocal" | "melody" | "sound";
 
 export interface GenerationStartOptions {
   uploadFile?: File | null;
@@ -23,6 +23,12 @@ export interface GenerationStartOptions {
   styleWeight?: number;
   weirdnessConstraint?: number;
   audioWeight?: number;
+  soundPrompt?: string;
+  soundLoop?: boolean;
+  soundType?: "one-shot" | "loop";
+  soundTempo?: number;
+  soundKey?: string;
+  grabLyrics?: boolean;
 }
 
 export interface FeatureCreatePanelProps {

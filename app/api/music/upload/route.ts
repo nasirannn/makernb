@@ -190,7 +190,7 @@ function resolveModelForMode(mode: UploadMode, requestedModel: string, useCustom
   }
 
   const normalized = normalizeModel(requestedModel || 'V4_5PLUS');
-  if (normalized === 'V5' || normalized === 'V4_5PLUS') {
+  if (normalized === 'V5' || normalized === 'V5_5' || normalized === 'V4_5PLUS') {
     return normalized;
   }
   return 'V4_5PLUS';
@@ -204,6 +204,7 @@ function getModelLimits(model: string) {
       return { prompt: 5000, style: 1000, title: 80 };
     case 'V4_5':
     case 'V4_5PLUS':
+    case 'V5_5':
     case 'V5':
     default:
       return { prompt: 5000, style: 1000, title: 80 };
@@ -293,7 +294,7 @@ export async function POST(request: NextRequest) {
   const personaModelRaw = formData.get('personaModel')?.toString().trim() || 'style_persona';
   const normalizedModel = normalizeModel(model);
   const personaModel: 'style_persona' | 'voice_persona' =
-    personaModelRaw === 'voice_persona' && normalizedModel === 'V5'
+    personaModelRaw === 'voice_persona' && (normalizedModel === 'V5' || normalizedModel === 'V5_5')
       ? 'voice_persona'
       : 'style_persona';
   const requestedInstrumental = formData.get('instrumental') === 'true';

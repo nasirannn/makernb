@@ -113,6 +113,7 @@ export interface TrackInfoResponse {
   title: string;
   tags: string | null;
   prompt: string | null;
+  musicType?: MusicType;
   isInstrumental: boolean;
   status: string;
   model?: string;

@@ -102,7 +102,10 @@ export async function POST(request: NextRequest) {
   if (model !== 'V4') {
     try {
       const { hasFeaturePermission } = await import('@/lib/feature-permissions');
-      const modelFeatureCode = `model_${model.toLowerCase().replace('+', '_plus').replace('.', '_')}`;
+      const normalizedModel = model.toUpperCase().replace(/\./g, '_').replace(/\+/g, 'PLUS');
+      const modelFeatureCode = normalizedModel === 'V5_5'
+        ? 'model_v5'
+        : `model_${model.toLowerCase().replace('+', '_plus').replace('.', '_')}`;
       const hasModelPermission = await hasFeaturePermission(userId, modelFeatureCode);
 
       if (!hasModelPermission) {

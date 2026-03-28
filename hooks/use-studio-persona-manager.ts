@@ -5,6 +5,7 @@ import { toast } from "sonner";
 
 import { formatDateTime } from "@/lib/format-utils";
 import { useI18n } from "@/lib/i18n/provider";
+import { getPersonaSupportIssue } from '@/lib/persona-support';
 import { supabase } from "@/lib/supabase";
 
 export type PersonaOption = {
@@ -20,6 +21,8 @@ export type PersonaTrackOption = {
   title: string | null;
   duration: number;
   createdAt: string;
+  model?: string | null;
+  musicType?: string | null;
   audioId: string | null;
   coverR2Url: string | null;
   hasPersona: boolean;
@@ -77,6 +80,19 @@ export const useStudioPersonaManager = ({
 
     if (track.hasPersona) {
       return t("personaDialog.personaAlreadyCreatedForAudio");
+    }
+
+    const supportIssue = getPersonaSupportIssue({
+      musicType: track.musicType,
+      model: track.model,
+    });
+
+    if (supportIssue === 'unsupported_source') {
+      return t("personaDialog.unsupportedTrackSource");
+    }
+
+    if (supportIssue === 'unsupported_model') {
+      return t("personaDialog.unsupportedTrackModel");
     }
 
     return null;
@@ -220,6 +236,8 @@ export const useStudioPersonaManager = ({
             title: item.title || t("studioTracks.untitledTrack"),
             duration: typeof item.duration === 'number' ? item.duration : Number(item.duration || 0),
             createdAt: item.createdAt || item.created_at || '',
+            model: item.model || null,
+            musicType: item.musicType || item.music_type || null,
             audioId: item.audioId || item.audio_id || null,
             coverR2Url: item.coverR2Url || item.cover_r2_url || null,
             hasPersona: normalizedHasPersona,
@@ -315,6 +333,8 @@ export const useStudioPersonaManager = ({
           title: fallbackTrack.title ?? t("studioTracks.untitledTrack"),
           duration: typeof fallbackTrack.duration === 'number' ? fallbackTrack.duration : Number(fallbackTrack.duration || 0),
           createdAt: fallbackTrack.createdAt || '',
+          model: fallbackTrack.model ?? null,
+          musicType: fallbackTrack.musicType ?? null,
           audioId: fallbackTrack.audioId ?? null,
           coverR2Url: fallbackTrack.coverR2Url ?? null,
           hasPersona: Boolean(fallbackTrack.hasPersona),

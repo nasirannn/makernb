@@ -59,6 +59,12 @@ export const FEATURE_CREDITS_CONFIG: Record<string, FeatureConfig> = {
     enabled: true,
     description: '从已生成音乐创建 Persona'
   },
+  generate_sound: {
+    name: 'Generate Sound',
+    credits: 2.5,
+    enabled: true,
+    description: '生成声音效果或音频片段'
+  },
   separate_vocals_from_music_local: {
     name: 'Separate Vocals from Music (Local File)',
     credits: 3,
@@ -148,6 +154,11 @@ export const MUSIC_GENERATION_CONFIG = {
  * 根据不同的模型版本设置不同的积分消耗
  */
 export const EXTEND_MUSIC_MODEL_CONFIG: Record<string, ModelConfig> = {
+  V5_5: {
+    model: 'V5_5',
+    credits: 12,
+    enabled: true
+  } as ModelConfig,
   V5: {
     model: 'V5',
     credits: 12,
@@ -272,7 +283,7 @@ export type ExtendMusicModel = keyof typeof EXTEND_MUSIC_MODEL_CONFIG;
 
 /**
  * 获取 Extend Music 模型版本的积分消耗
- * @param model 模型版本：'V5' | 'V4_5PLUS' | 'V4_5' | 'V4' | 'V4_5ALL'
+ * @param model 模型版本：'V5_5' | 'V5' | 'V4_5PLUS' | 'V4_5' | 'V4' | 'V4_5ALL'
  * @returns 积分消耗数量
  */
 export function getExtendMusicCredits(model: ExtendMusicModel): number {
@@ -333,10 +344,13 @@ export const CLIENT_UPLOAD_AUDIO_CREDITS = {
   melody: FEATURE_CREDITS_CONFIG.add_instrumental_music.credits,
 } as const;
 
+export const CLIENT_SOUND_CREDITS = FEATURE_CREDITS_CONFIG.generate_sound.credits;
+
 /**
  * 客户端可用的 Extend Music 积分配置（根据模型版本）
  */
 export const CLIENT_EXTEND_MUSIC_CREDITS = {
+  V5_5: EXTEND_MUSIC_MODEL_CONFIG.V5_5.credits,
   V5: EXTEND_MUSIC_MODEL_CONFIG.V5.credits,
   V4_5PLUS: EXTEND_MUSIC_MODEL_CONFIG.V4_5PLUS.credits,
   V4_5: EXTEND_MUSIC_MODEL_CONFIG.V4_5.credits,

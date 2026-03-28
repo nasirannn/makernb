@@ -14,7 +14,7 @@ import { cn } from "@/lib/utils";
 import { useI18n } from "@/lib/i18n/provider";
 import { getZIndexClass } from "@/lib/z-index";
 
-export type MusicModel = "V4" | "V4_5" | "V4_5PLUS" | "V5";
+export type MusicModel = "V4" | "V4_5" | "V4_5PLUS" | "V5" | "V5_5";
 
 type ModelHighlightTone = "cyan" | "sunset" | "emerald" | "azure" | "slate";
 
@@ -51,6 +51,29 @@ const MODEL_HIGHLIGHT_TONE_CLASS: Record<ModelHighlightTone, string> = {
 
 export const modelOptions: ModelOption[] = [
   {
+    value: "V5_5",
+    label: "V5.5",
+    description: "Latest premium model with 8-minute generation and extended style/lyrics limits.",
+    descriptionKey: "modelSelectionDialog.models.V5_5.description",
+    capabilities: ["Latest Release", "Up to 8 min", "1,000-char Style", "5,000-char Lyrics"],
+    capabilityKeys: [
+      "modelSelectionDialog.models.V5_5.capabilities.latestRelease",
+      "modelSelectionDialog.models.V5_5.capabilities.upTo8Min",
+      "modelSelectionDialog.models.V5_5.capabilities.styleInput1000",
+      "modelSelectionDialog.models.V5_5.capabilities.lyricsPrompt5000",
+    ],
+    tierHint: "Hobby+",
+    highlightBadges: [
+      {
+        label: "Premium model",
+        tone: "cyan",
+        withCrown: true,
+        i18nKey: "modelSelectionDialog.badges.premiumModel",
+      },
+      { label: "Latest", tone: "sunset", i18nKey: "modelSelectionDialog.badges.latest" },
+    ],
+  },
+  {
     value: "V5",
     label: "V5",
     description: "Best melody control and richer expression for premium outputs.",
@@ -70,7 +93,6 @@ export const modelOptions: ModelOption[] = [
         withCrown: true,
         i18nKey: "modelSelectionDialog.badges.premiumModel",
       },
-      { label: "Latest", tone: "sunset", i18nKey: "modelSelectionDialog.badges.latest" },
     ],
   },
   {

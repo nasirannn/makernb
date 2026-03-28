@@ -2,6 +2,7 @@
 
 import React from 'react';
 import { formatDuration, formatDateTime } from '@/lib/format-utils';
+import { formatMusicModelLabel } from '@/lib/music-model-utils';
 import { Tooltip } from '@/components/ui/tooltip';
 
 interface TrackInfoProps {
@@ -108,13 +109,7 @@ export const TrackInfo: React.FC<TrackInfoProps> = ({
   }, [parsedTags]);
 
   const modelLabel = React.useMemo(() => {
-    if (!model) return null;
-    if (model === 'V4_5PLUS') return 'V4.5+';
-    if (model === 'V4_5ALL') return 'V4.5ALL';
-    if (model === 'V4_5') return 'V4.5';
-    if (model === 'V4') return 'V4';
-    if (model === 'V5') return 'V5';
-    return model.replace('_', '.');
+    return formatMusicModelLabel(model);
   }, [model]);
 
   const modelBadgeClass = 'inline-flex items-center rounded-sm border border-white/45 dark:border-white/10 bg-gradient-to-r from-cyan-300 via-sky-300 to-indigo-300 px-2 py-0.5 text-xs font-semibold leading-none text-slate-950 shadow-[0_6px_14px_rgba(56,189,248,0.18)]';

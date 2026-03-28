@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { SubscriptionBadge } from "@/components/ui/subscription-badge";
-import { Music, Music2, Library, Sparkles, LogOut, LogIn, Split, FileText, Disc3, Wand2, RefreshCw, Expand, PencilLine, Coins, Blend, AudioLines, Ellipsis, PanelLeftClose, PanelLeftOpen } from "lucide-react";
+import { Music, Music2, Library, Sparkles, LogOut, LogIn, Split, FileText, Disc3, Wand2, RefreshCw, Expand, PencilLine, Coins, Blend, AudioLines, AudioWaveform, Ellipsis, PanelLeftClose, PanelLeftOpen } from "lucide-react";
 import { usePathname, useRouter } from "next/navigation";
 import Image from "next/image";
 import Link from "next/link";
@@ -49,6 +49,7 @@ const STUDIO_SIDEBAR_WIDTH_VAR = "--studio-sidebar-width";
 
 const SIDEBAR_STUDIO_FEATURE_ORDER: StudioFeatureKey[] = [
   "music-generator",
+  "sound-generator",
   "music-extender",
   "music-cover",
   "add-track",
@@ -59,6 +60,7 @@ const SIDEBAR_STUDIO_FEATURE_ORDER: StudioFeatureKey[] = [
 
 const STUDIO_FEATURE_LABEL_KEYS: Record<StudioFeatureKey, string> = {
   "music-generator": "studioFeatures.musicGenerator",
+  "sound-generator": "studioFeatures.soundGenerator",
   "music-extender": "studioFeatures.musicExtender",
   "music-cover": "studioFeatures.musicCover",
   "mashup": "studioFeatures.mashup",
@@ -82,6 +84,7 @@ const AI_TOOL_ROUTE_ITEMS = [
 
 const STUDIO_FEATURE_ICON_MAP: Record<StudioFeatureKey, React.ElementType> = {
   "music-generator": Music2,
+  "sound-generator": AudioWaveform,
   "music-extender": Expand,
   "music-cover": Disc3,
   "mashup": Blend,

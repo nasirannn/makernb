@@ -32,6 +32,7 @@ import { ModelSelectionDialog, MusicModel, modelOptions } from '@/components/ui/
 import { PanelPricingModal } from "@/components/ui/feature-panels/shared/panel-pricing-modal";
 import { useTheme } from "next-themes";
 import { useI18n } from "@/lib/i18n/provider";
+import { formatMusicModelLabel, isPremiumMusicModel } from '@/lib/music-model-utils';
 import type { FeatureCreatePanelProps } from "@/types/studio-feature-panel";
 import { getZIndexClass } from "@/lib/z-index";
 
@@ -588,7 +589,7 @@ export const MashupPanel = (props: FeatureCreatePanelProps) => {
         : CLIENT_MUSIC_CREDITS.simple;
 
   const handleModelSelect = React.useCallback((model: MusicModel) => {
-    if (model === 'V5' && !canUseV5Model) {
+    if (isPremiumMusicModel(model) && !canUseV5Model) {
       setIsPricingOpen(true);
       return;
     }
@@ -1923,7 +1924,7 @@ export const MashupPanel = (props: FeatureCreatePanelProps) => {
                           className="group h-11 min-w-[5.75rem] px-4 rounded-2xl border border-white/45 dark:border-white/10 text-xs md:text-sm font-semibold text-slate-950 transition-all duration-200 bg-gradient-to-r from-cyan-300 via-sky-300 to-indigo-300 shadow-[0_6px_14px_rgba(56,189,248,0.18)] hover:from-cyan-200 hover:via-sky-200 hover:to-indigo-200 flex items-center justify-center"
                           title={t("featurePanel.chooseModel")}
                         >
-                          <span>{modelOptions.find((opt) => opt.value === selectedModel)?.label || "V4"}</span>
+                          <span>{formatMusicModelLabel(selectedModel) || "V4"}</span>
                         </button>
                         <ModelSelectionDialog
                           open={isModelDialogOpen}
@@ -1931,7 +1932,7 @@ export const MashupPanel = (props: FeatureCreatePanelProps) => {
                           selectedModel={selectedModel}
                           onSelectModel={handleModelSelect}
                           options={modelOptions}
-                          isModelLocked={(model) => model === "V5" && !canUseV5Model}
+                          isModelLocked={(model) => isPremiumMusicModel(model) && !canUseV5Model}
                           onLockedModelSelect={() => setIsPricingOpen(true)}
                         />
                       </>

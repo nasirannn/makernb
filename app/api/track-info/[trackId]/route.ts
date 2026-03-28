@@ -46,6 +46,7 @@ export async function GET(
         COALESCE(NULLIF(mg.tags, ''), '') as genre,
         mg.tags,
         mg.prompt,
+        mg.type as music_type,
         mg.is_instrumental,
         mg.status,
         mg.model,
@@ -87,6 +88,7 @@ export async function GET(
       title: row.title,
       tags: row.tags,
       prompt: row.prompt,
+      musicType: row.music_type,
       isInstrumental: row.is_instrumental, // 映射数据库字段为 JavaScript 字段名
       status: row.status,
       model: row.model,

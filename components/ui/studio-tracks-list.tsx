@@ -2,7 +2,7 @@
 
 import React, { useState, useCallback, useMemo, useEffect } from 'react';
 import Image from "next/image";
-import { ArrowDownUp, Blend, Check, Disc3, Expand, Mic, Music, Music2, Search, ThumbsDown, X, Wand2, Filter } from "lucide-react";
+import { ArrowDownUp, AudioLines, AudioWaveform, Blend, Check, Disc3, Expand, Mic, Music, Music2, Search, ThumbsDown, X, Wand2, Filter } from "lucide-react";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { Skeleton } from '@/components/ui/skeleton';
 import { supabase } from "@/lib/supabase";
@@ -91,6 +91,7 @@ const noOpExtendMusicPolling = () => {};
 type TrackTypeFilter =
   | "all"
   | "music-generator"
+  | "sound-generator"
   | "music-extender"
   | "music-cover"
   | "mashup"
@@ -108,6 +109,7 @@ type MidiTrackState = {
 
 const STUDIO_FEATURE_LABEL_KEYS: Record<StudioFeatureKey, string> = {
   "music-generator": "studioFeatures.musicGenerator",
+  "sound-generator": "studioFeatures.soundGenerator",
   "music-extender": "studioFeatures.musicExtender",
   "music-cover": "studioFeatures.musicCover",
   "mashup": "studioFeatures.mashup",
@@ -125,6 +127,7 @@ const TRACK_TYPE_FILTER_CONFIG: Array<{
 }> = [
   { value: "all", labelKey: "studioTracks.all", musicTypes: [], icon: Filter },
   { value: "music-generator", featureKey: "music-generator", musicTypes: getStudioFeatureMusicTypes("music-generator"), icon: Music2 },
+  { value: "sound-generator", featureKey: "sound-generator", musicTypes: getStudioFeatureMusicTypes("sound-generator"), icon: AudioWaveform },
   { value: "music-extender", featureKey: "music-extender", musicTypes: getStudioFeatureMusicTypes("music-extender"), icon: Expand },
   { value: "music-cover", featureKey: "music-cover", musicTypes: getStudioFeatureMusicTypes("music-cover"), icon: Disc3 },
   { value: "mashup", featureKey: "mashup", musicTypes: getStudioFeatureMusicTypes("mashup"), icon: Blend },
@@ -532,6 +535,8 @@ export const StudioTracksList: React.FC<StudioTracksListProps> = React.memo(func
       title: track.title || track.musicTitle || untitledTrackLabel,
       duration: typeof track.duration === 'string' ? Number.parseFloat(track.duration) || 0 : (track.duration || 0),
       createdAt: track.createdAt || track.musicGeneration?.createdAt || '',
+      model: track.model || track.musicGeneration?.model || null,
+      musicType: track.musicType || track.musicGeneration?.type || null,
       audioId: track.audioId || null,
       coverR2Url: track.coverR2Url || track.coverImage || null,
       hasPersona: Boolean(track.personaId || track.persona_id),
@@ -1739,6 +1744,7 @@ export const StudioTracksList: React.FC<StudioTracksListProps> = React.memo(func
                 const isGeneratedTrack = track.isGenerating !== undefined || track.isPlaceholder !== undefined;
                 const isSelectedTrack = selectedTrack === track.id;
                 const canFloatOnHover = !track.isError && !track.isPlaceholder;
+                const isSoundTrack = track.musicType === 'generated_sound';
                 return (
                   <div
                     key={track.id}
@@ -1762,12 +1768,12 @@ export const StudioTracksList: React.FC<StudioTracksListProps> = React.memo(func
                       canDownloadWAV={canDownloadWAV}
                       canDownloadMP4={canDownloadMP4}
                       canDownloadCover={canDownloadCover}
-                      canVocalRemoval={canVocalRemoval}
-                      canSplitStem={canSplitStem}
-                      canGenerateMidi={canGenerateMidi}
-                      canExtendMusic={canExtendMusic}
-                      canReplaceSection={canReplaceSection}
-                      canCreatePersona={canCreatePersona}
+                      canVocalRemoval={!isSoundTrack && canVocalRemoval}
+                      canSplitStem={!isSoundTrack && canSplitStem}
+                      canGenerateMidi={!isSoundTrack && canGenerateMidi}
+                      canExtendMusic={!isSoundTrack && canExtendMusic}
+                      canReplaceSection={!isSoundTrack && canReplaceSection}
+                      canCreatePersona={!isSoundTrack && canCreatePersona}
                       onSelect={() => {
                         if (isGeneratedTrack && !track.isError && track.audioUrl && onGeneratedTrackSelect) {
                           onTrackPreview?.(track);
@@ -1783,12 +1789,12 @@ export const StudioTracksList: React.FC<StudioTracksListProps> = React.memo(func
                       onDislikeToggle={onDislikeToggle ? () => handleDislikeToggle(track) : undefined}
                       onLikeToggle={onLikeToggle ? () => handleLikeToggle(track) : undefined}
                       onDownload={onDownload ? (format) => handleDownload(track, track.musicGeneration, format) : undefined}
-                      onVocalRemoval={() => handleVocalRemoval(track.id)}
-                      onSplitStem={() => handleSplitStem(track.id)}
-                      onGenerateMidi={() => handleMidiAction(track.id)}
-                      onExtendMusic={() => handleExtendMusic(track.id)}
-                      onReplaceSection={() => handleReplaceSection(track.id)}
-                      onCreatePersona={() => handleCreatePersonaFromTrack(track)}
+                      onVocalRemoval={!isSoundTrack ? () => handleVocalRemoval(track.id) : undefined}
+                      onSplitStem={!isSoundTrack ? () => handleSplitStem(track.id) : undefined}
+                      onGenerateMidi={!isSoundTrack ? () => handleMidiAction(track.id) : undefined}
+                      onExtendMusic={!isSoundTrack ? () => handleExtendMusic(track.id) : undefined}
+                      onReplaceSection={!isSoundTrack ? () => handleReplaceSection(track.id) : undefined}
+                      onCreatePersona={!isSoundTrack ? () => handleCreatePersonaFromTrack(track) : undefined}
                       onDelete={onDelete ? () => handleDelete(track.id) : undefined}
                       onPublishToggle={() => handlePublishToggle(track)}
                       isPublishing={publishingTrackIds.includes(track.id)}

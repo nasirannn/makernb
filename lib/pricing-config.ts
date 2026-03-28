@@ -78,7 +78,7 @@ const buildFeatureList = (tier: PricingTierCode, credits: number, billingPeriod:
     'Commercial License Included',
     enhanceStyleLine,
     advancedEditingLine,
-    'Access to all models (V5, V4.5+, V4.5, V4)',
+    'Access to all models (V5.5, V5, V4.5+, V4.5, V4)',
     'Email customer support',
   ];
 };

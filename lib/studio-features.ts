@@ -3,6 +3,7 @@ import { stripLocalePrefix } from "@/lib/i18n/routing";
 
 export type StudioFeatureKey =
   | "music-generator"
+  | "sound-generator"
   | "music-extender"
   | "music-cover"
   | "mashup"
@@ -27,6 +28,13 @@ export const STUDIO_FEATURES: StudioFeatureDefinition[] = [
     path: "/music-generator",
     description: "Create songs from prompts and styles.",
     musicTypes: ["generated"],
+  },
+  {
+    key: "sound-generator",
+    label: "Sound Generator",
+    path: "/sound-generator",
+    description: "Generate standalone sounds from prompts and sound controls.",
+    musicTypes: ["generated_sound"],
   },
   {
     key: "music-extender",

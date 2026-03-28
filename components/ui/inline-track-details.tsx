@@ -6,6 +6,7 @@ import { CassetteTape } from "@/components/ui/cassette-tape";
 import { Clock3, Copy, X } from "lucide-react";
 import { toast } from "sonner";
 import { useI18n } from "@/lib/i18n/provider";
+import type { MusicType } from "@/types/music";
 
 interface InlineTrackDetails {
   id: string;
@@ -20,6 +21,7 @@ interface InlineTrackDetails {
   isGenerating?: boolean;
   isCompleted?: boolean;
   audioUrl?: string;
+  musicType?: MusicType;
 }
 
 interface InlineTrackDetailsPanelProps {
@@ -57,6 +59,8 @@ export const InlineTrackDetailsPanel: React.FC<InlineTrackDetailsPanelProps> = (
   }, [track?.tags, tags]);
 
   const displayLyrics = React.useMemo(() => {
+    if (track?.musicType === 'generated_sound') return "";
+
     const rawLyrics = track?.lyrics?.trim() || "";
     if (!rawLyrics) return "";
 
@@ -88,7 +92,7 @@ export const InlineTrackDetailsPanel: React.FC<InlineTrackDetailsPanelProps> = (
     }
 
     return rawLyrics;
-  }, [track?.lyrics, track?.tags]);
+  }, [track?.lyrics, track?.tags, track?.musicType]);
 
   const formattedCreatedAt = React.useMemo(() => {
     if (!track?.createdAt) return "";

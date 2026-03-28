@@ -155,6 +155,55 @@ export const useStudioGenerationActions = ({
     }
   }, []);
 
+  const handleSoundGenerationStart = React.useCallback(async (options?: GenerationStartOptions) => {
+    if (options?.mode !== "sound") {
+      return false;
+    }
+
+    if (!userId) {
+      setIsAuthModalOpen(true);
+      return false;
+    }
+
+    const prompt = options.soundPrompt?.trim() || "";
+    if (!prompt) {
+      toast.error(t("toasts.pleaseEnterSoundPrompt"));
+      return false;
+    }
+
+    if (typeof options.soundTempo === 'number' && (!Number.isFinite(options.soundTempo) || options.soundTempo <= 0)) {
+      toast.error(t("toasts.invalidSoundTempo"));
+      return false;
+    }
+
+    try {
+      const result = await runGenerationRequest({
+        endpoint: "/api/music/sound",
+        body: JSON.stringify({
+          prompt: prompt.slice(0, getModelLimits(selectedModel).prompt),
+          model: selectedModel,
+          soundLoop: options.soundLoop === true,
+          soundTempo: options.soundTempo,
+          soundKey: options.soundKey?.trim() || undefined,
+          grabLyrics: options.grabLyrics === true,
+        }),
+        json: true,
+        failedToastKey: "toasts.soundGenerationFailedTryAgain",
+      });
+
+      if (!result) {
+        return false;
+      }
+
+      return await finalizeGenerationTask(result, "toasts.soundTaskIdMissingTryAgain");
+    } catch (error) {
+      console.error("Sound generation failed:", error);
+      const message = error instanceof Error ? error.message : t("toasts.soundGenerationFailedTryAgain");
+      toast.error(message);
+      return false;
+    }
+  }, [finalizeGenerationTask, getModelLimits, runGenerationRequest, selectedModel, setIsAuthModalOpen, t, userId]);
+
   const handleMashupGenerationStart = React.useCallback(async (options?: GenerationStartOptions) => {
     if (options?.mode !== "mashup") {
       return false;
@@ -260,7 +309,7 @@ export const useStudioGenerationActions = ({
       return false;
     }
 
-    const uploadModel = selectedModel === "V5" || selectedModel === "V4_5PLUS"
+    const uploadModel = selectedModel === "V5" || selectedModel === "V5_5" || selectedModel === "V4_5PLUS"
       ? selectedModel
       : "V4_5PLUS";
     const modelLimits = getModelLimits(uploadModel);
@@ -448,6 +497,7 @@ export const useStudioGenerationActions = ({
   ]);
 
   return {
+    handleSoundGenerationStart,
     handleMashupGenerationStart,
     handleUploadTransformGenerationStart,
     handleExtendGenerationStart,

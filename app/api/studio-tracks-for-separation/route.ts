@@ -31,6 +31,8 @@ export async function GET(request: NextRequest) {
         mt.suno_track_id as audio_id,
         mt.music_id,
         COALESCE(mt.title, mg.title) as title,
+        mg.model,
+        mg.type as music_type,
         mt.audio_url,
         mt.duration,
         mt.cover_image_url as cover_r2_url,
@@ -69,6 +71,8 @@ export async function GET(request: NextRequest) {
       audioId: row.audio_id || null,
       musicId: row.music_id,
       title: row.title || 'Untitled Track',
+      model: row.model || null,
+      musicType: row.music_type || null,
       audioUrl: row.audio_url,
       duration: typeof row.duration === 'number' ? row.duration : parseFloat(row.duration || '0'),
       coverR2Url: row.cover_r2_url, // 映射数据库字段为 JavaScript 字段名

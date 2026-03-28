@@ -5,7 +5,7 @@ import { MusicType } from '@/types/music';
  */
 
 // 扩展音乐模型（与 credits-config.ts 中定义保持一致）
-export type ExtendMusicModel = 'V5' | 'V4_5PLUS' | 'V4_5' | 'V4' | 'V4_5ALL';
+export type ExtendMusicModel = 'V5_5' | 'V5' | 'V4_5PLUS' | 'V4_5' | 'V4' | 'V4_5ALL';
 
 // 扩展音乐请求参数
 export interface ExtendMusicParams {

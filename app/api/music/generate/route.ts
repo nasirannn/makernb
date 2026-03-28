@@ -392,6 +392,7 @@ export async function POST(request: NextRequest) {
           return { prompt: 5000, style: 1000, title: 80 };
         case 'V4_5':
         case 'V4_5PLUS':
+        case 'V5_5':
         case 'V5':
         default:
           return { prompt: 5000, style: 1000, title: 80 };
@@ -401,7 +402,7 @@ export async function POST(request: NextRequest) {
     const modelVersion = requestedModel;
     const normalizedModelVersion = normalizeModelName(modelVersion);
     const personaModel: 'style_persona' | 'voice_persona' =
-      rawPersonaModel === 'voice_persona' && normalizedModelVersion === 'V5'
+      rawPersonaModel === 'voice_persona' && (normalizedModelVersion === 'V5' || normalizedModelVersion === 'V5_5')
       ? 'voice_persona'
       : 'style_persona';
     const limits = getModelLimits(modelVersion);

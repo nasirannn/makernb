@@ -389,7 +389,9 @@ const StudioContent = ({ feature, FeaturePanel, panelMode, lockPanelMode }: Stud
         streamAudioUrl?: string,
         createdAt?: string,
         generationMode?: string,
-        sunoTrackId?: string | null
+        sunoTrackId?: string | null,
+        musicType?: string,
+        model?: string
     ) => ({
         id,
         generationId,
@@ -404,6 +406,8 @@ const StudioContent = ({ feature, FeaturePanel, panelMode, lockPanelMode }: Stud
         tags,
         lyrics,
         generationMode,
+        musicType,
+        model,
         isFavorited: isFavorited, // 使用驼峰命名
         isLiked: isLiked,
         isDisliked: isDisliked,
@@ -431,7 +435,9 @@ const StudioContent = ({ feature, FeaturePanel, panelMode, lockPanelMode }: Stud
                 track.streamAudioUrl ?? '',
                 track.createdAt || new Date().toISOString(),
                 track.generationMode,
-                track.sunoTrackId ?? null
+                track.sunoTrackId ?? null,
+                track.musicType,
+                track.model
             ));
         });
         
@@ -454,7 +460,9 @@ const StudioContent = ({ feature, FeaturePanel, panelMode, lockPanelMode }: Stud
                         track.streamAudioUrl ?? '',
                         track.createdAt ?? music.createdAt ?? new Date().toISOString(),
                         music.generationMode,
-                        track.sunoTrackId ?? track.suno_track_id ?? null
+                        track.sunoTrackId ?? track.suno_track_id ?? null,
+                        music.type,
+                        track.model ?? music.model
                     ));
                 });
             }
@@ -653,6 +661,7 @@ const StudioContent = ({ feature, FeaturePanel, panelMode, lockPanelMode }: Stud
                 return { prompt: 5000, style: 1000, title: 80 };
             case "V4_5":
             case "V4_5PLUS":
+            case "V5_5":
             case "V5":
             default:
                 return { prompt: 5000, style: 1000, title: 80 };
@@ -682,6 +691,7 @@ const StudioContent = ({ feature, FeaturePanel, panelMode, lockPanelMode }: Stud
     });
 
     const {
+        handleSoundGenerationStart,
         handleMashupGenerationStart,
         handleUploadTransformGenerationStart,
         handleExtendGenerationStart,
@@ -701,6 +711,10 @@ const StudioContent = ({ feature, FeaturePanel, panelMode, lockPanelMode }: Stud
     });
 
     const handleGenerationStart = React.useCallback(async (options?: GenerationStartOptions) => {
+        if (options?.mode === 'sound') {
+            return await handleSoundGenerationStart(options);
+        }
+
         if (options?.mode === 'mashup') {
             return await handleMashupGenerationStart(options);
         }
@@ -728,6 +742,7 @@ const StudioContent = ({ feature, FeaturePanel, panelMode, lockPanelMode }: Stud
         }
         return await handleGenerate();
     }, [
+        handleSoundGenerationStart,
         handleMashupGenerationStart,
         handleUploadTransformGenerationStart,
         handleExtendGenerationStart,

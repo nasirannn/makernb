@@ -5,6 +5,7 @@ import { usePathname } from "next/navigation";
 import { FeaturePermissionsProvider } from "@/contexts/FeaturePermissionsContext";
 import { FeatureWorkspaceSection } from "@/components/layout/sections/studio";
 import { MusicGeneratorPanel } from "@/components/ui/feature-panels/music-generator-panel";
+import { SoundGeneratorPanel } from "@/components/ui/feature-panels/sound-generator-panel";
 import { MusicExtenderPanel } from "@/components/ui/feature-panels/music-extender-panel";
 import { MusicCoverPanel } from "@/components/ui/feature-panels/music-cover-panel";
 import { MashupPanel } from "@/components/ui/feature-panels/mashup-panel";
@@ -21,6 +22,7 @@ const FEATURE_WORKSPACE_CONFIG: Record<
   {
     FeaturePanel:
       | typeof MusicGeneratorPanel
+      | typeof SoundGeneratorPanel
       | typeof MusicExtenderPanel
       | typeof MusicCoverPanel
       | typeof MashupPanel
@@ -35,6 +37,11 @@ const FEATURE_WORKSPACE_CONFIG: Record<
     FeaturePanel: MusicGeneratorPanel,
     panelMode: "simple",
     lockPanelMode: false,
+  },
+  "sound-generator": {
+    FeaturePanel: SoundGeneratorPanel,
+    panelMode: "simple",
+    lockPanelMode: true,
   },
   "music-extender": {
     FeaturePanel: MusicExtenderPanel,
