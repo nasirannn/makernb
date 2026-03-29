@@ -1,7 +1,6 @@
 "use client";
 
 import React from "react";
-import Image from "next/image";
 import { ChevronDown, ChevronRight, Disc3, Info, Mic, Music2, Play, Trash2, UploadCloud, Users, Wand2, Tag, Sparkles } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
@@ -18,12 +17,6 @@ import { Textarea } from "@/components/ui/textarea";
 import { UploadEmptyStateCard } from "@/components/ui/feature-panels/shared/upload-empty-state-card";
 import { LYRICS_TAG_OPTIONS } from "@/lib/lyrics-tags";
 import { useI18n } from "@/lib/i18n/provider";
-import { getDrumKitIcon, getInstrumentIcon } from "@/lib/music-resources";
-
-type NamedOption = {
-  id: string;
-  name: string;
-};
 
 type VocalGenderOption = {
   id: string;
@@ -45,12 +38,6 @@ interface StudioSimpleModeContentProps {
   onAddAudio: () => void;
   showAddAudioAction?: boolean;
   onClear: () => void;
-  leadInstruments: NamedOption[];
-  drumKits: NamedOption[];
-  onSelectLeadInstrument: (instrumentId: string) => void;
-  onSelectDrumKit: (kitId: string) => void;
-  onPreviewLeadInstrument: (instrumentId: string) => void;
-  onPreviewDrumKit: (kitId: string) => void;
   uploadCoverFile: File | null;
   uploadAudioPreview: React.ReactNode;
 }
@@ -68,12 +55,6 @@ export const StudioSimpleModeContent: React.FC<StudioSimpleModeContentProps> = (
   onAddAudio,
   showAddAudioAction = true,
   onClear,
-  leadInstruments,
-  drumKits,
-  onSelectLeadInstrument,
-  onSelectDrumKit,
-  onPreviewLeadInstrument,
-  onPreviewDrumKit,
   uploadCoverFile,
   uploadAudioPreview,
 }) => {
@@ -147,117 +128,7 @@ export const StudioSimpleModeContent: React.FC<StudioSimpleModeContentProps> = (
           </div>
         </section>
 
-        <section className="studio-panel-card rounded-2xl p-3">
-          <div className="pb-2 text-xs md:text-sm font-semibold text-foreground/80">
-            {t("featurePanel.classicInstrumentsPreview")}
-          </div>
-
-          <div className="flex flex-nowrap gap-2 overflow-x-auto scrollbar-hidden pb-1">
-            {leadInstruments.map((instrument) => {
-              const iconUrl = getInstrumentIcon(instrument.id);
-
-              return (
-                <div
-                  key={`instrument-${instrument.id}`}
-                  role="button"
-                  tabIndex={0}
-                  onClick={() => {
-                    onSelectLeadInstrument(instrument.id);
-                  }}
-                  onKeyDown={(event) => {
-                    if (event.key === "Enter" || event.key === " ") {
-                      event.preventDefault();
-                      onSelectLeadInstrument(instrument.id);
-                    }
-                  }}
-                  className="group relative inline-flex shrink-0 cursor-pointer flex-col items-center gap-1.5 px-3 py-2 rounded-lg bg-slate-50 text-[#0c0c16] transition-all duration-200 dark:bg-white/10 dark:text-foreground dark:border-white/15"
-                >
-                  {iconUrl && (
-                    <Image
-                      src={iconUrl}
-                      alt={instrument.name}
-                      width={16}
-                      height={16}
-                      className="h-7 w-7"
-                    />
-                  )}
-                  <span className="text-xs">{instrument.name}</span>
-                  <div
-                    role="button"
-                    tabIndex={0}
-                    aria-label={t("featurePanel.playSample")}
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      onPreviewLeadInstrument(instrument.id);
-                    }}
-                    onKeyDown={(event) => {
-                      if (event.key === "Enter" || event.key === " ") {
-                        event.preventDefault();
-                        onPreviewLeadInstrument(instrument.id);
-                      }
-                    }}
-                    className="absolute inset-0 m-auto h-8 w-8 rounded-full bg-black/50 text-white transition-all duration-200 hover:bg-black/60 opacity-0 group-hover:opacity-100 flex items-center justify-center"
-                    title={t("featurePanel.playSample")}
-                  >
-                    <Play className="h-4 w-4" />
-                  </div>
-                </div>
-              );
-            })}
-
-            {drumKits.map((kit) => {
-              const iconUrl = getDrumKitIcon(kit.id);
-
-              return (
-                <div
-                  key={`drum-${kit.id}`}
-                  role="button"
-                  tabIndex={0}
-                  onClick={() => {
-                    onSelectDrumKit(kit.id);
-                  }}
-                  onKeyDown={(event) => {
-                    if (event.key === "Enter" || event.key === " ") {
-                      event.preventDefault();
-                      onSelectDrumKit(kit.id);
-                    }
-                  }}
-                  className="group relative inline-flex shrink-0 cursor-pointer flex-col items-center gap-1.5 px-3 py-2 rounded-lg bg-slate-50 text-[#0c0c16] transition-all duration-200 dark:bg-white/10 dark:text-foreground dark:border-white/15"
-                >
-                  {iconUrl && (
-                    <Image
-                      src={iconUrl}
-                      alt={kit.name}
-                      width={16}
-                      height={16}
-                      className="h-7 w-7"
-                    />
-                  )}
-                  <span className="text-xs">{kit.name}</span>
-                  <div
-                    role="button"
-                    tabIndex={0}
-                    aria-label={t("featurePanel.playSample")}
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      onPreviewDrumKit(kit.id);
-                    }}
-                    onKeyDown={(event) => {
-                      if (event.key === "Enter" || event.key === " ") {
-                        event.preventDefault();
-                        onPreviewDrumKit(kit.id);
-                      }
-                    }}
-                    className="absolute inset-0 m-auto h-8 w-8 rounded-full bg-black/50 text-white transition-all duration-200 hover:bg-black/60 opacity-0 group-hover:opacity-100 flex items-center justify-center"
-                    title={t("featurePanel.playSample")}
-                  >
-                    <Play className="h-4 w-4" />
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        </section>
+        
 
         {uploadCoverFile && (
           <section>
@@ -747,7 +618,7 @@ ${tag}
 
             {isAdvancedOptionsOpen && (
               <div className="mt-3 space-y-4">
-                {showVocalGender && (
+                {showVocalGender && vocalGenders.length > 0 && (
                   <div className="flex items-center justify-between gap-3">
                     <p className="text-xs font-medium text-foreground whitespace-nowrap">{t("featurePanel.vocalGender")}</p>
                     <div className="studio-panel-card inline-flex shrink-0 whitespace-nowrap items-center rounded-full p-1 gap-1">

@@ -121,6 +121,8 @@ export const jaMessages = {
       toggleAdvancedOptions: "詳細オプションの切り替え",
       advancedOptions: "詳細オプション",
       vocalGender: "ボーカル性別",
+      male: "男性",
+      female: "女性",
       styleWeight: "スタイル重み",
       styleWeightInfoLabel: "スタイル重みの情報",
       styleWeightInfoText: "選択したスタイルへの追従度を調整します。値が高いほどスタイルに忠実になります。",

@@ -121,6 +121,8 @@ export const enMessages = {
       toggleAdvancedOptions: "Toggle advanced options",
       advancedOptions: "Advanced Options",
       vocalGender: "Vocal Gender",
+      male: "Male",
+      female: "Female",
       styleWeight: "Style Weight",
       styleWeightInfoLabel: "Style Weight info",
       styleWeightInfoText: "Controls how closely the result follows the chosen style. Higher values keep it more faithful to that style.",

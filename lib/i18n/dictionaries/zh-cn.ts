@@ -121,6 +121,8 @@ export const zhCNMessages = {
       toggleAdvancedOptions: "切换高级选项",
       advancedOptions: "高级选项",
       vocalGender: "人声性别",
+      male: "男声",
+      female: "女声",
       styleWeight: "风格权重",
       styleWeightInfoLabel: "风格权重说明",
       styleWeightInfoText: "控制结果对所选风格的贴合程度，数值越高越贴近该风格。",

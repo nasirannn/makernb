@@ -33,8 +33,6 @@ export const useMusicGeneration = () => {
   const [customLyrics, setCustomLyrics] = useState("");
   const [songTitle, setSongTitle] = useState("");
   const [styleText, setStyleText] = useState("");
-  const [selectedGenre, setSelectedGenre] = useState("");
-  const [selectedVibe, setSelectedVibe] = useState("");
   const [instrumentalMode, setInstrumentalMode] = useState(false);
   const [isPublished, setIsPublished] = useState(true);
   const [selectedModel, setSelectedModel] = useState<MusicModel>('V4'); // 默认选中 V4
@@ -42,13 +40,8 @@ export const useMusicGeneration = () => {
 
   // 高级选项
   const [bpm, setBpm] = useState([60]);
-  const [grooveType, setGrooveType] = useState("");
-  const [leadInstrument, setLeadInstrument] = useState<string[]>([]);
-  const [drumKit, setDrumKit] = useState("");
-  const [bassTone, setBassTone] = useState("");
   const [vocalStyle, setVocalStyle] = useState("");
   const [vocalGender, setVocalGender] = useState("");
-  const [harmonyPalette, setHarmonyPalette] = useState("");
   const [selectedPersonaId, setSelectedPersonaId] = useState("");
   const [selectedPersonaModel, setSelectedPersonaModel] = useState<'style_persona' | 'voice_persona'>('style_persona');
   const [styleWeight, setStyleWeight] = useState<number | undefined>(undefined);
@@ -611,19 +604,12 @@ export const useMusicGeneration = () => {
     customLyrics, setCustomLyrics,
     songTitle, setSongTitle,
     styleText, setStyleText,
-    selectedGenre, setSelectedGenre,
-    selectedVibe, setSelectedVibe,
     instrumentalMode, setInstrumentalMode,
     isPublished,
     setIsPublished,
     bpm, setBpm,
-    grooveType, setGrooveType,
-    leadInstrument, setLeadInstrument,
-    drumKit, setDrumKit,
-    bassTone, setBassTone,
     vocalStyle, setVocalStyle,
     vocalGender, setVocalGender,
-    harmonyPalette, setHarmonyPalette,
     selectedPersonaId, setSelectedPersonaId,
     selectedPersonaModel, setSelectedPersonaModel,
     styleWeight, setStyleWeight,

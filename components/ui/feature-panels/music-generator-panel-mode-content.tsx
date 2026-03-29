@@ -700,7 +700,7 @@ ${tag}
 
             {isAdvancedOptionsOpen && (
               <div className="mt-3 space-y-4">
-                {showVocalGender && (
+                {showVocalGender && vocalGenders.length > 0 && (
                   <div className="flex items-center justify-between gap-3">
                     <p className="text-xs font-medium text-foreground whitespace-nowrap">{t("featurePanel.vocalGender")}</p>
                     <div className="studio-panel-card inline-flex shrink-0 whitespace-nowrap items-center rounded-full p-1 gap-1">

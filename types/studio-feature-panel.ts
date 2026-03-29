@@ -41,10 +41,6 @@ export interface FeatureCreatePanelProps {
   // Music generation states
   mode: StudioPanelMode;
   setMode: (mode: StudioPanelMode) => void;
-  selectedGenre: string;
-  setSelectedGenre: (genre: string) => void;
-  selectedVibe: string;
-  setSelectedVibe: (vibe: string) => void;
   simplePrompt: string;
   setSimplePrompt: (prompt: string) => void;
   customLyrics: string;
@@ -61,18 +57,8 @@ export interface FeatureCreatePanelProps {
   setEnhanceStyle: (enabled: boolean) => void;
   bpm: number[];
   setBpm: (bpm: number[]) => void;
-  grooveType: string;
-  setGrooveType: (type: string) => void;
-  leadInstrument: string[];
-  setLeadInstrument: (instruments: string[]) => void;
-  drumKit: string;
-  setDrumKit: (kit: string) => void;
-  bassTone: string;
-  setBassTone: (tone: string) => void;
   vocalGender: string;
   setVocalGender: (gender: string) => void;
-  harmonyPalette: string;
-  setHarmonyPalette: (palette: string) => void;
   styleWeight?: number;
   setStyleWeight?: (value: number) => void;
   weirdnessConstraint?: number;
