@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import crypto from 'crypto';
 import { addUserCredits, getUserCredits } from '@/lib/user-db';
+import { getAuthUserIdByEmail } from '@/lib/supabase-admin';
 import {
   createOrUpdateUserSubscription,
   cancelUserSubscription,
@@ -14,18 +15,6 @@ import {
 export const dynamic = 'force-dynamic';
 
 const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-
-async function getUserIdByEmail(email: string): Promise<string | null> {
-  const normalizedEmail = email.trim().toLowerCase();
-  if (!normalizedEmail) return null;
-
-  const { query } = await import('@/lib/db-query-builder');
-  const result = await query<{ id: string }>(
-    'SELECT id FROM auth.users WHERE email = $1 LIMIT 1',
-    [normalizedEmail]
-  );
-  return result.rows[0]?.id ?? null;
-}
 
 // Creem webhook handler at /api/webhook per docs
 export async function POST(request: NextRequest) {
@@ -89,10 +78,10 @@ export async function POST(request: NextRequest) {
       console.log('subscription.paid - userId from metadata:', userId);
       console.log('subscription.paid - customer:', customer);
       
-      // 如果 metadata.userId 不是 UUID，尝试将其当作 email 查找
+        // 如果 metadata.userId 不是 UUID，尝试将其当作 email 查找
       if (userId && !uuidRegex.test(userId)) {
         if (userId.includes('@')) {
-          const resolved = await getUserIdByEmail(userId);
+          const resolved = await getAuthUserIdByEmail(userId);
           if (resolved) {
             userId = resolved;
           } else {
@@ -108,7 +97,7 @@ export async function POST(request: NextRequest) {
 
       // 如果 metadata 中没有 userId，尝试通过 customer.email 查找
       if (!userId && customer?.email) {
-        const resolved = await getUserIdByEmail(customer.email);
+        const resolved = await getAuthUserIdByEmail(customer.email);
         if (resolved) {
           userId = resolved;
         } else {
@@ -208,7 +197,7 @@ export async function POST(request: NextRequest) {
       }
 
       if (!userId && customer?.email) {
-        const resolved = await getUserIdByEmail(customer.email);
+        const resolved = await getAuthUserIdByEmail(customer.email);
         if (resolved) userId = resolved;
       }
 
@@ -242,7 +231,7 @@ export async function POST(request: NextRequest) {
       }
 
       if (!userId && customer?.email) {
-        const resolved = await getUserIdByEmail(customer.email);
+        const resolved = await getAuthUserIdByEmail(customer.email);
         if (resolved) userId = resolved;
       }
 
@@ -276,7 +265,7 @@ export async function POST(request: NextRequest) {
       }
 
       if (!userId && customer?.email) {
-        const resolved = await getUserIdByEmail(customer.email);
+        const resolved = await getAuthUserIdByEmail(customer.email);
         if (resolved) userId = resolved;
       }
 

@@ -278,6 +278,7 @@ export const jaMessages = {
       noMusicAvailableYet: "まだ音楽がありません",
       noPublicMusicAvailableYet: "公開中の音楽はまだありません",
       allSongsLoaded: "すべての曲を読み込みました",
+      unknownCreator: "不明なクリエイター",
     },
     homeStepsSection: {
       badge: "AI音楽ができるまで",

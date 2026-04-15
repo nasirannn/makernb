@@ -278,6 +278,7 @@ export const zhCNMessages = {
       noMusicAvailableYet: "暂无音乐可用",
       noPublicMusicAvailableYet: "暂无公开音乐",
       allSongsLoaded: "歌曲已全部加载",
+      unknownCreator: "未知创作者",
     },
     homeStepsSection: {
       badge: "看看 AI 音乐如何成型",

@@ -278,6 +278,7 @@ export const enMessages = {
       noMusicAvailableYet: "No music available yet",
       noPublicMusicAvailableYet: "No public music available yet",
       allSongsLoaded: "All songs loaded",
+      unknownCreator: "Unknown creator",
     },
     homeStepsSection: {
       badge: "How AI Music Comes Together",

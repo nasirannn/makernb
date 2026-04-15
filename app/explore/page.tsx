@@ -8,6 +8,7 @@ import { MusicPlayer } from '@/components/ui/music-player';
 import { CustomAudioWaveIndicator } from '@/components/ui/audio-wave-indicator';
 import { Skeleton } from '@/components/ui/skeleton';
 import { InlineTrackDetailsPanel } from '@/components/ui/inline-track-details';
+import { TrackCreator } from '@/components/ui/track-creator';
 import { FooterSection } from '@/components/layout/sections/footer';
 import { stopAllAudioGlobally } from '@/lib/audio-service';
 import { useAudioPlayer } from '@/hooks/use-audio-player';
@@ -32,6 +33,7 @@ interface MusicGeneration {
   id: string;
   title: string;
   tags: string;
+  creatorName?: string | null;
   prompt?: string;
   lyrics?: string;
   model?: string;
@@ -648,10 +650,11 @@ export default function ExplorePage() {
                         <h3 className="line-clamp-1 text-sm font-semibold text-foreground md:text-base">
                           {music.title}
                         </h3>
-                        <p className="mt-1.5 line-clamp-1 text-sm text-muted-foreground">
-                          {music.tags || t("libraryPage.unknownArtist")}
-                        </p>
-                        <div className="mt-3 flex items-center gap-3 text-[11px] font-medium text-muted-foreground">
+                        <TrackCreator
+                          name={music.creatorName}
+                          fallbackLabel={t("explorePage.unknownCreator")}
+                        />
+                        <div className="mt-3.5 flex items-center gap-3 text-[11px] font-medium text-muted-foreground">
                           <span className="inline-flex items-center gap-1">
                             <PlayTriangleIcon />
                             {formatPlayCount(music.primaryTrack.playCount)}

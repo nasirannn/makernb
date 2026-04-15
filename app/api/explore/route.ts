@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { batchCheckFavorites, query } from '@/lib/db-query-builder';
 import { getUserIdFromRequest } from '@/lib/auth';
+import { getCreatorProfiles } from '@/lib/creator-profiles';
 
 // 强制动态渲染
 export const dynamic = 'force-dynamic';
@@ -42,10 +43,12 @@ export async function GET(request: NextRequest) {
         mg.tags,
         mg.prompt,
         mg.model,
+        mg.user_id as creator_user_id,
         mg.created_at as generation_created_at,
         mg.updated_at,
         ml.content as lyrics_content,
-        mt.cover_image_url as cover_r2_url
+        mt.cover_image_url as cover_r2_url,
+        NULLIF(mg.author_name, '') as creator_name
       FROM tracks mt
       JOIN music mg ON mt.music_id = mg.id
       LEFT JOIN lyrics ml ON mg.id = ml.music_id
@@ -60,6 +63,7 @@ export async function GET(request: NextRequest) {
     `, genre && genre !== 'all' ? [limit, offset, `%${genre}%`] : [limit, offset]);
 
     const trackIds: string[] = result.rows.map(row => row.track_id).filter(Boolean);
+    const creatorProfiles = await getCreatorProfiles(result.rows.map((row) => row.creator_user_id));
     const favoriteStatus = requestUserId && trackIds.length > 0
       ? await batchCheckFavorites(requestUserId, trackIds)
       : {};
@@ -67,6 +71,7 @@ export async function GET(request: NextRequest) {
     // 将tracks数据转换为前端需要的格式（使用驼峰命名）
     const tracks = result.rows.map(row => {
       const isFavorited = favoriteStatus[row.track_id] || false;
+      const creatorProfile = creatorProfiles.get(row.creator_user_id);
 
       return {
         id: row.track_id,
@@ -76,6 +81,7 @@ export async function GET(request: NextRequest) {
         prompt: row.prompt,
         model: row.model,
         lyrics: row.lyrics_content,
+        creatorName: row.creator_name || creatorProfile?.name || null,
         createdAt: row.generation_created_at,
         updatedAt: row.updated_at,
         isFavorited,
